@@ -3,18 +3,22 @@ jQuery(function ($) {
     var mobileMediaQuery = window.matchMedia('(max-width: 1024px)');
     var currentMode = null;
     var resizeTimeoutId = null;
+    var mobileAutoplayIntervalId = null;
 
     if (!$dashboardMenuCarousel.length) {
         return;
     }
 
     var carouselOptions = {
-        loop: false,
+        loop: true,
         autoWidth: false,
         margin: 12,
         nav: true,
         dots: false,
         smartSpeed: 450,
+        autoplay: true,
+        autoplayTimeout: 5000,
+        autoplayHoverPause: true,
         touchDrag: true,
         mouseDrag: true,
         navText: [
@@ -33,14 +37,14 @@ jQuery(function ($) {
         },
         768: {
             items: 3,
-            slideBy: 3,
+            slideBy: 1,
             margin: 10,
             stagePadding: 0,
             nav: true
         },
         1200: {
             items: 4,
-            slideBy: 4,
+            slideBy: 1,
             margin: 12,
             stagePadding: 0,
             nav: true
@@ -53,12 +57,47 @@ jQuery(function ($) {
         }
     }
 
+    function stopMobileAutoplay() {
+        if (mobileAutoplayIntervalId) {
+            window.clearInterval(mobileAutoplayIntervalId);
+            mobileAutoplayIntervalId = null;
+        }
+    }
+
+    function startMobileAutoplay() {
+        var carouselElement = $dashboardMenuCarousel.get(0);
+        var totalSlides = $dashboardMenuCarousel.find('.dashboard-activity-item').length;
+
+        stopMobileAutoplay();
+
+        if (!carouselElement || totalSlides < 2) {
+            return;
+        }
+
+        mobileAutoplayIntervalId = window.setInterval(function () {
+            if (!mobileMediaQuery.matches || !$dashboardMenuCarousel.hasClass('mobile-snap')) {
+                return;
+            }
+
+            var viewportWidth = carouselElement.clientWidth;
+            var currentIndex = Math.round(carouselElement.scrollLeft / Math.max(viewportWidth, 1));
+            var nextIndex = (currentIndex + 1) % totalSlides;
+
+            carouselElement.scrollTo({
+                left: nextIndex * viewportWidth,
+                behavior: 'smooth'
+            });
+        }, 5000);
+    }
+
     function applyMobileMode() {
         destroyCarouselIfNeeded();
         $dashboardMenuCarousel.addClass('mobile-snap');
+        startMobileAutoplay();
     }
 
     function applyDesktopMode() {
+        stopMobileAutoplay();
         $dashboardMenuCarousel.removeClass('mobile-snap');
 
         if (!$dashboardMenuCarousel.hasClass('owl-loaded')) {
@@ -66,14 +105,18 @@ jQuery(function ($) {
         }
 
         $dashboardMenuCarousel.trigger('refresh.owl.carousel');
+        $dashboardMenuCarousel.trigger('play.owl.autoplay', [5000]);
     }
 
     function syncCarouselMode() {
         var nextMode = mobileMediaQuery.matches ? 'mobile' : 'desktop';
 
         if (nextMode === currentMode) {
-            if (nextMode === 'desktop' && $dashboardMenuCarousel.hasClass('owl-loaded')) {
+            if (nextMode === 'mobile') {
+                startMobileAutoplay();
+            } else if ($dashboardMenuCarousel.hasClass('owl-loaded')) {
                 $dashboardMenuCarousel.trigger('refresh.owl.carousel');
+                $dashboardMenuCarousel.trigger('play.owl.autoplay', [5000]);
             }
 
             return;

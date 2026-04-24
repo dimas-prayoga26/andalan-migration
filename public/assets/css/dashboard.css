@@ -102,7 +102,7 @@
 }
 
 .dashboard-shortcut-item i {
-    font-size: clamp(2.75rem, 4vw, 5rem);
+    font-size: 8rem;
     line-height: 1;
     color: #fff;
 }
@@ -157,7 +157,7 @@
     }
 
     .dashboard-shortcut-item i {
-        font-size: clamp(2rem, 5vw, 2.45rem);
+        font-size: clamp(2.35rem, 6vw, 2.95rem);
     }
 
     .dashboard-shortcut-label {
@@ -178,10 +178,11 @@
     .dashboard-menu-carousel.mobile-snap,
     .dashboard-menu-carousel:not(.owl-loaded) {
         display: flex;
-        gap: 0.5rem;
+        gap: 0;
         overflow-x: auto;
         overflow-y: hidden;
         scroll-snap-type: x mandatory;
+        scroll-padding-inline: 0;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
     }
@@ -195,6 +196,7 @@
     .dashboard-menu-carousel:not(.owl-loaded) .dashboard-activity-item {
         flex: 0 0 100%;
         min-width: 100%;
+        width: 100%;
         scroll-snap-align: start;
     }
 
@@ -207,7 +209,7 @@
     }
 
     .dashboard-menu-carousel .owl-stage-outer {
-        padding: 0.1rem 0 0.3rem;
+        padding: 0;
     }
 
     .dashboard-menu-carousel .avtivity-card .card-body {
@@ -220,13 +222,13 @@
     }
 
     .dashboard-menu-carousel .avtivity-card .avatar.avatar-lg {
-        --avatar-size: 58px;
+        --avatar-size: 65px;
         flex-shrink: 0;
     }
 
     .dashboard-menu-carousel .avtivity-card .avatar svg {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
     }
 
     .dashboard-menu-carousel .avtivity-card p {
@@ -251,7 +253,7 @@
     }
 
     .dashboard-shortcut-item i {
-        font-size: 1.9rem;
+        font-size: 3.5rem;
     }
 
     .dashboard-shortcut-label {
@@ -266,12 +268,12 @@
     }
 
     .dashboard-menu-carousel .avtivity-card .avatar.avatar-lg {
-        --avatar-size: 52px;
+        --avatar-size: 62px;
     }
 
     .dashboard-menu-carousel .avtivity-card .avatar svg {
-        width: 29px;
-        height: 29px;
+        width: 34px;
+        height: 34px;
     }
 
     .dashboard-menu-carousel .avtivity-card p {

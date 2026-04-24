@@ -12,7 +12,7 @@
 
         <div class="col-xl-12 col-xxl-12">
             <div class="row">
-                
+
                 <!-- Start - Weekly Progress -->
                 <div class="col-sm-3">
                     <div class="card overflow-hidden avtivity-card">
@@ -143,7 +143,7 @@
 
             </div>
         </div>
-        
+
     </div>
 
 @endsection

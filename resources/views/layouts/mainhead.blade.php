@@ -28,6 +28,7 @@
     
 	<!-- All Required CSS -->
 	<link href="vendor/owl-carousel/owl.carousel.css" rel="stylesheet">
+	<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 	
 	<!-- Start - Basic CSS -->
     <link href="vendor/metismenu/dist/metisMenu.min.css" rel="stylesheet">
@@ -75,6 +76,15 @@
             display: none;
         }
 
+        #main-wrapper.menu-toggle .deznav .slimScrollDiv,
+        #main-wrapper.menu-toggle .deznav .deznav-scroll {
+            height: 100% !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }
+
         @media only screen and (max-width: 1199.98px) {
             .nav-header .brand-logo .logo-mobile {
                 display: block;
@@ -82,6 +92,34 @@
 
             .nav-header .brand-logo .logo-desktop {
                 display: none;
+            }
+        }
+
+        @media only screen and (max-width: 47.9375rem) {
+            .nav-label {
+                margin: 0.75rem 0 0.25rem !important;
+                padding: 1.25rem 1.75rem 0.625rem !important;
+            }
+
+            .deznav .metismenu a {
+                padding-left: 1.75rem !important;
+                padding-right: 1.75rem !important;
+            }
+
+            .deznav .metismenu > li > a {
+                display: flex;
+                align-items: center;
+            }
+
+            .deznav .metismenu > li a > i {
+                width: 1.5rem;
+                margin-right: 0.75rem !important;
+                padding-right: 0 !important;
+                text-align: center;
+            }
+
+            .deznav .metismenu ul a {
+                padding-left: 4.25rem !important;
             }
         }
     </style>

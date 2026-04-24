@@ -3,7 +3,7 @@
 @section('title', 'Gymove  - Fitness Bootstrap Admin Dashboard Template')
 
 @section('css')
-
+    <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}">
 @endsection
 
 @section('content')
@@ -14,7 +14,7 @@
             <div class="row">
 
                 <!-- Start - Weekly Progress -->
-                <div class="col-sm-3">
+                <div class="dashboard-activity-item">
                     <div class="card overflow-hidden avtivity-card">
                         <div class="card-body">
                             <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -49,7 +49,7 @@
                 <!-- End - Weekly Progress -->
 
                 <!-- Start - Weekly Running -->
-                <div class="col-sm-3">
+                <div class="dashboard-activity-item">
                     <div class="card overflow-hidden avtivity-card">
                         <div class="card-body">
                             <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -79,7 +79,7 @@
                 <!-- End - Weekly Running -->
 
                 <!-- Start - Daily Cycling -->
-                <div class="col-sm-3">
+                <div class="dashboard-activity-item">
                     <div class="card overflow-hidden avtivity-card">
                         <div class="card-body">
                             <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -110,7 +110,7 @@
                 <!-- End - Daily Cycling -->
 
                 <!-- Start - Morning Yoga -->
-                <div class="col-sm-3">
+                <div class="dashboard-activity-item">
                     <div class="card overflow-hidden avtivity-card">
                         <div class="card-body">
                             <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -141,6 +141,97 @@
                 </div>
                 <!-- End - Morning Yoga -->
 
+                <!-- Start - Strength Training -->
+                <div class="dashboard-activity-item">
+                    <div class="card overflow-hidden avtivity-card">
+                        <div class="card-body">
+                            <div class="d-flex gap-md-4 gap-3 align-items-center">
+                                <span class="avatar avatar-lg avatar-primary rounded-circle border-0">
+                                    <i class="bx bx-dumbbell fs-1 text-primary"></i>
+                                </span>
+                                <div>
+                                    <p class="fs-14 mb-2">Strength Training</p>
+                                    <span class="title text-black fs-28 fw-semibold">5 Sessions</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
+                                    <div class="progress-bar rounded bg-primary" style="width: 65%; height:5px;" role="progressbar">
+                                        <span class="sr-only">65% Complete</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="effect bg-primary"></div>
+                    </div>
+                </div>
+                <!-- End - Strength Training -->
+
+                <!-- Start - Team Activity -->
+                <div class="dashboard-activity-item">
+                    <div class="card overflow-hidden avtivity-card">
+                        <div class="card-body">
+                            <div class="d-flex gap-md-4 gap-3 align-items-center">
+                                <span class="avatar avatar-lg avatar-info rounded-circle border-0">
+                                    <i class="bx bx-group fs-1 text-info"></i>
+                                </span>
+                                <div>
+                                    <p class="fs-14 mb-2">Team Activity</p>
+                                    <span class="title text-black fs-28 fw-semibold">12 Members</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
+                                    <div class="progress-bar rounded bg-info" style="width: 74%; height:5px;" role="progressbar">
+                                        <span class="sr-only">74% Complete</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="effect bg-info"></div>
+                    </div>
+                </div>
+                <!-- End - Team Activity -->
+
+            </div>
+
+            <div class="dashboard-shortcut-menu">
+                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-success">
+                    <span class="dashboard-shortcut-tile">
+                        <i class="bx bx-task"></i>
+                    </span>
+                    <span class="dashboard-shortcut-label">Laporan Pekerjaan</span>
+                </a>
+                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-secondary">
+                    <span class="dashboard-shortcut-tile">
+                        <i class="bx bx-calendar-alt"></i>
+                    </span>
+                    <span class="dashboard-shortcut-label">Agenda Kegiatan</span>
+                </a>
+                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-danger">
+                    <span class="dashboard-shortcut-tile">
+                        <i class="bx bx-fingerprint"></i>
+                    </span>
+                    <span class="dashboard-shortcut-label">Data Absensi</span>
+                </a>
+                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-warning">
+                    <span class="dashboard-shortcut-tile">
+                        <i class="bx bx-form"></i>
+                    </span>
+                    <span class="dashboard-shortcut-label">Data Pelamar</span>
+                </a>
+                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-primary desktop-only-menu">
+                    <span class="dashboard-shortcut-tile">
+                        <i class="bx bx-user"></i>
+                    </span>
+                    <span class="dashboard-shortcut-label">Data Karyawan</span>
+                </a>
+                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-info desktop-only-menu">
+                    <span class="dashboard-shortcut-tile">
+                        <i class="bx bx-file"></i>
+                    </span>
+                    <span class="dashboard-shortcut-label">Laporan</span>
+                </a>
             </div>
         </div>
 
@@ -149,5 +240,5 @@
 @endsection
 
 @section('script')
-
+    <script src="{{ asset('assets/js/dashboard.js') }}"></script>
 @endsection

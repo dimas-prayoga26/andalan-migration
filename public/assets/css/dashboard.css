@@ -1,0 +1,292 @@
+.content-body .container-fluid {
+    max-width: auto;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.dashboard-menu-carousel .dashboard-activity-item {
+    padding: 0;
+}
+
+.dashboard-menu-carousel .avtivity-card {
+    margin-bottom: 0;
+}
+
+.dashboard-menu-carousel .avtivity-card .title {
+    display: block;
+    line-height: 1.12;
+    overflow-wrap: anywhere;
+}
+
+.dashboard-menu-carousel .owl-dots {
+    display: none !important;
+}
+
+.dashboard-menu-carousel {
+    position: relative;
+}
+
+.dashboard-menu-carousel .owl-stage-outer {
+    padding: 0.25rem 0 0.4rem;
+}
+
+.dashboard-menu-carousel .owl-nav {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    margin: 0;
+    pointer-events: none;
+}
+
+.dashboard-menu-carousel .owl-nav button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px !important;
+    border: 0 !important;
+    background: #465071 !important;
+    color: #fff !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    pointer-events: auto;
+    margin: 0 !important;
+}
+
+.dashboard-menu-carousel .owl-nav button i {
+    line-height: 1;
+    font-size: 1.05rem;
+}
+
+.dashboard-menu-carousel .owl-nav button:hover {
+    background: #2a6cd7 !important;
+}
+
+.dashboard-menu-carousel .owl-nav .owl-prev {
+    left: 0.35rem;
+}
+
+.dashboard-menu-carousel .owl-nav .owl-next {
+    right: 0.35rem;
+}
+
+.dashboard-shortcut-menu {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.dashboard-shortcut-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    text-decoration: none;
+}
+
+.dashboard-shortcut-tile {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 14px rgba(31, 43, 84, 0.16);
+}
+
+.dashboard-shortcut-item i {
+    font-size: 8rem;
+    line-height: 1;
+    color: #fff;
+}
+
+.dashboard-shortcut-label {
+    color: #121b3a;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.dashboard-shortcut-item.shortcut-success .dashboard-shortcut-tile {
+    background: #0a9542;
+}
+
+.dashboard-shortcut-item.shortcut-secondary .dashboard-shortcut-tile {
+    background: #6f349c;
+}
+
+.dashboard-shortcut-item.shortcut-danger .dashboard-shortcut-tile {
+    background: #3f7cdc;
+}
+
+.dashboard-shortcut-item.shortcut-warning .dashboard-shortcut-tile {
+    background: linear-gradient(145deg, #7e32d8 0%, #a94fe8 100%);
+}
+
+.dashboard-shortcut-item.shortcut-primary .dashboard-shortcut-tile {
+    background: #2a6cd7;
+}
+
+.dashboard-shortcut-item.shortcut-info .dashboard-shortcut-tile {
+    background: #0d8f8a;
+}
+
+@media (max-width: 1199.98px) {
+    .dashboard-shortcut-menu {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1024px) {
+    .dashboard-shortcut-menu {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.65rem;
+        margin-top: 0.85rem;
+    }
+
+    .dashboard-shortcut-item {
+        gap: 0.45rem;
+    }
+
+    .dashboard-shortcut-item i {
+        font-size: clamp(2.35rem, 6vw, 2.95rem);
+    }
+
+    .dashboard-shortcut-label {
+        font-size: 0.72rem;
+        line-height: 1.2;
+        min-height: 2.4em;
+        width: 100%;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        overflow-wrap: anywhere;
+    }
+
+    .dashboard-menu-carousel {
+        padding: 0;
+    }
+
+    .dashboard-menu-carousel.mobile-snap,
+    .dashboard-menu-carousel:not(.owl-loaded) {
+        display: flex;
+        gap: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        scroll-padding-inline: 0;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .dashboard-menu-carousel.mobile-snap::-webkit-scrollbar,
+    .dashboard-menu-carousel:not(.owl-loaded)::-webkit-scrollbar {
+        display: none;
+    }
+
+    .dashboard-menu-carousel.mobile-snap .dashboard-activity-item,
+    .dashboard-menu-carousel:not(.owl-loaded) .dashboard-activity-item {
+        flex: 0 0 100%;
+        min-width: 100%;
+        width: 100%;
+        scroll-snap-align: start;
+    }
+
+    .dashboard-menu-carousel .owl-nav {
+        display: none !important;
+    }
+
+    .dashboard-menu-carousel .dashboard-activity-item {
+        padding: 0;
+    }
+
+    .dashboard-menu-carousel .owl-stage-outer {
+        padding: 0;
+    }
+
+    .dashboard-menu-carousel .avtivity-card .card-body {
+        padding: 1.05rem 0.95rem 1.15rem;
+        min-height: 8.2rem;
+    }
+
+    .dashboard-menu-carousel .avtivity-card .d-flex {
+        gap: 0.85rem !important;
+    }
+
+    .dashboard-menu-carousel .avtivity-card .avatar.avatar-lg {
+        --avatar-size: 65px;
+        flex-shrink: 0;
+    }
+
+    .dashboard-menu-carousel .avtivity-card .avatar svg {
+        width: 36px;
+        height: 36px;
+    }
+
+    .dashboard-menu-carousel .avtivity-card p {
+        font-size: 1rem !important;
+        margin-bottom: 0.35rem !important;
+        line-height: 1.2;
+    }
+
+    .dashboard-menu-carousel .avtivity-card .title {
+        font-size: clamp(1.6rem, 7.8vw, 2rem) !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-shortcut-menu {
+        gap: 0.5rem;
+    }
+
+    .dashboard-shortcut-item {
+        gap: 0.38rem;
+        min-width: 0;
+    }
+
+    .dashboard-shortcut-item i {
+        font-size: 3.5rem;
+    }
+
+    .dashboard-shortcut-label {
+        font-size: 0.68rem;
+        line-height: 1.15;
+        min-height: 2.3em;
+    }
+
+    .dashboard-menu-carousel .avtivity-card .card-body {
+        padding: 0.95rem 0.85rem 1.05rem;
+        min-height: 7.6rem;
+    }
+
+    .dashboard-menu-carousel .avtivity-card .avatar.avatar-lg {
+        --avatar-size: 62px;
+    }
+
+    .dashboard-menu-carousel .avtivity-card .avatar svg {
+        width: 34px;
+        height: 34px;
+    }
+
+    .dashboard-menu-carousel .avtivity-card p {
+        font-size: 0.95rem !important;
+    }
+
+    .dashboard-menu-carousel .avtivity-card .title {
+        font-size: clamp(1.45rem, 7.5vw, 1.85rem) !important;
+    }
+}
+
+@media (max-width: 390px) {
+    .dashboard-shortcut-label {
+        font-size: 0.64rem;
+    }
+}

@@ -85,6 +85,20 @@
             scrollbar-width: thin;
         }
 
+        @media only screen and (max-width: 74.9375rem) {
+            #main-wrapper.menu-toggle .deznav {
+                height: 100dvh;
+            }
+
+            #main-wrapper.menu-toggle .deznav .slimScrollDiv,
+            #main-wrapper.menu-toggle .deznav .deznav-scroll {
+                height: calc(100dvh - 80px) !important;
+                padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+                overscroll-behavior: contain;
+                touch-action: pan-y;
+            }
+        }
+
         @media only screen and (max-width: 1199.98px) {
             .nav-header .brand-logo .logo-mobile {
                 display: block;

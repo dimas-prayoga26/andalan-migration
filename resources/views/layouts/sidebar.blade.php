@@ -101,7 +101,19 @@
 							<span class="nav-text">Other Menu</span>
 						</a>
                         <ul aria-expanded="false">
-                            <li><a href="javascript:void(0)">Sub Menu</a></li>
+                            <li><a href="javascript:void(0)">Information</a></li>
+                        </ul>
+						<ul aria-expanded="false">
+                            <li><a href="javascript:void(0)">Setting</a></li>
+                        </ul>
+						<ul aria-expanded="false">
+                            <li><a href="javascript:void(0)">Help Center</a></li>
+                        </ul>
+						<ul aria-expanded="false">
+                            <li><a href="javascript:void(0)">Privacy Policy</a></li>
+                        </ul>
+						<ul aria-expanded="false">
+                            <li><a href="javascript:void(0)">Sitemap</a></li>
                         </ul>
                     </li>
                 </ul>

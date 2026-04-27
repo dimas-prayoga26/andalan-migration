@@ -67,7 +67,7 @@
     flex-direction: column;
     align-items: center;
     text-decoration: none;
-    border-radius: 1.25rem;
+    border-radius: 1.2rem;
     border: 1px solid rgba(31, 43, 84, 0.12);
     background: #f1f1f1;
     box-shadow: 0 6px 14px rgba(31, 43, 84, 0.16);
@@ -75,7 +75,7 @@
 }
 
 .dashboard-shortcut-hero {
-    width: 110%;    
+    width: 110%;
     min-height: 200px;
     display: flex;
     flex-direction: column;
@@ -83,7 +83,7 @@
     justify-content: center;
     padding: 1.1rem 0.85rem 0.95rem;
     border-top: 5px solid #ff3535;
-    border-radius: 1.5rem 1.5rem 80% 80% / 1.5rem 1.5rem 80% 80%;
+    border-radius: 1.35rem 1.35rem 115% 115% / 1.35rem 1.35rem 108% 108%;
     background: #f1d8da;
 }
 
@@ -115,7 +115,7 @@
 
 @media (max-width: 1199.98px) {
     .dashboard-shortcut-menu {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
     .dashboard-shortcut-item {
@@ -124,12 +124,13 @@
 
     .dashboard-shortcut-hero {
         min-height: 142px;
+        border-radius: 1.1rem 1.1rem 108% 108% / 1.1rem 1.1rem 100% 100%;
     }
 }
 
 @media (max-width: 1024px) {
     .dashboard-shortcut-menu {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 0.65rem;
         margin-top: 0.85rem;
     }
@@ -141,7 +142,7 @@
 
     .dashboard-shortcut-hero {
         min-height: 118px;
-        border-radius: 1rem 1rem 56% 56% / 1rem 1rem 36% 36%;
+        border-radius: 1rem 1rem 112% 112% / 1rem 1rem 106% 106%;
     }
 
     .dashboard-shortcut-icon {
@@ -150,8 +151,8 @@
     }
 
     .dashboard-shortcut-subtitle {
-        margin-top: 12px;
-        font-size: 14px;
+        margin-top: 10px;
+        font-size: 13px;
     }
 
     .dashboard-shortcut-label {
@@ -162,6 +163,46 @@
 
 }
 
+@media (max-width: 767.98px) {
+    .dashboard-shortcut-menu {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.55rem;
+    }
+
+    .dashboard-shortcut-item {
+        min-height: 0;
+        aspect-ratio: 1 / 1;
+        border-radius: 0.85rem;
+        justify-content: space-between;
+    }
+
+    .dashboard-shortcut-hero {
+        width: 100%;
+        min-height: 0;
+        height: 68%;
+        padding: 0.5rem 0.3rem 0.35rem;
+        border-top-width: 4px;
+        border-radius: 0.85rem 0.85rem 102% 102% / 0.85rem 0.85rem 96% 96%;
+    }
+
+    .dashboard-shortcut-icon {
+        font-size: 38px;
+        margin-top: 4px;
+    }
+
+    .dashboard-shortcut-subtitle {
+        margin-top: 5px;
+        font-size: 10px;
+    }
+
+    .dashboard-shortcut-label {
+        margin-bottom: 0;
+        padding: 0.35rem 0.35rem 0.5rem;
+        font-size: 0.83rem;
+        line-height: 1.15;
+    }
+}
+
 @media (max-width: 480px) {
     .dashboard-shortcut-menu {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -169,37 +210,40 @@
     }
 
     .dashboard-shortcut-item {
-        min-height: 170px;
-        border-radius: 0.9rem;
+        border-radius: 0.8rem;
     }
 
     .dashboard-shortcut-hero {
-        min-height: 105px;
-        border-radius: 0.9rem 0.9rem 56% 56% / 0.9rem 0.9rem 36% 36%;
+        height: 68%;
+        border-radius: 0.8rem 0.8rem 100% 100% / 0.8rem 0.8rem 94% 94%;
     }
 
     .dashboard-shortcut-icon {
-        font-size: 44px;
-        margin-top: 10px;
+        font-size: 34px;
+        margin-top: 2px;
     }
 
     .dashboard-shortcut-subtitle {
-        margin-top: 8px;
-        font-size: 12px;
+        margin-top: 4px;
+        font-size: 9px;
     }
 
     .dashboard-shortcut-label {
-        font-size: 0.9rem;
-        margin-bottom: 12px;
-        padding: 0.65rem 0.45rem 0.75rem;
+        font-size: 0.76rem;
+        padding: 0.28rem 0.28rem 0.42rem;
     }
 
 }
 
 @media (max-width: 390px) {
+    .dashboard-shortcut-subtitle {
+        font-size: 0.5rem;
+        margin-top: 3px;
+    }
+
     .dashboard-shortcut-label {
-        font-size: 0.82rem;
-        padding: 0.58rem 0.42rem 0.68rem;
+        font-size: 0.7rem;
+        padding: 0.22rem 0.2rem 0.34rem;
     }
 
     .dashboard-menu-carousel .owl-nav button {

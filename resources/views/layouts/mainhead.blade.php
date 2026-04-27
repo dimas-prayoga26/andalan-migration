@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    
+
 	<!-- Title -->
 	<base href="{{ asset('assets') }}/">
 	<title>@yield('title')</title>
@@ -25,24 +25,24 @@
 
 	<!-- Favicon icon -->
 	<link rel="shortcut icon" type="image/x-icon" href="images/favicon.avif">
-    
+
 	<!-- All Required CSS -->
 	<link href="vendor/owl-carousel/owl.carousel.css" rel="stylesheet">
 	<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-	
+
 	<!-- Start - Basic CSS -->
     <link href="vendor/metismenu/dist/metisMenu.min.css" rel="stylesheet">
     <link href="vendor/bootstrap-select/dist/css/bootstrap-select.min.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/chartist/css/chartist.min.css">
     <!-- End - Basic CSS -->
-    
+
 	<!-- Start - Switcher CSS -->
 	<link class="main-switcher" href="css/switcher.css" rel="stylesheet">
 	<!-- End - Switcher CSS -->
 
 	<!-- Start - Style Css -->
 	<link class="main-plugins" href="css/plugins.css" rel="stylesheet">
-	<link class="main-css" href="css/style.css" rel="stylesheet">	
+	<link class="main-css" href="css/style.css" rel="stylesheet">
 	<!-- End - Style Css -->
 
     <style>
@@ -137,7 +137,7 @@
             }
         }
     </style>
-    
+
 	@yield('css')
 
 </head>

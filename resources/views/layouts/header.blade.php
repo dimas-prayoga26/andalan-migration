@@ -5,7 +5,7 @@
                     <div class="collapse navbar-collapse justify-content-between">
                         <div class="header-left">
                             <div class="dashboard_bar">
-								Dashboard
+								@yield('navbarTitle')
                             </div>
                         </div>
                         <ul class="navbar-nav header-right">
@@ -115,7 +115,7 @@
 											<div class="ms-2">
 												<h6 class="mb-0">Johndoe</h6>
 												<small>Super Admin</small>
-											</div>	
+											</div>
 										</div>
 									</li>
 									<li><hr class="dropdown-divider"></li>

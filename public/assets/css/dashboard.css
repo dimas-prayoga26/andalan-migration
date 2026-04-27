@@ -60,121 +60,146 @@
 }
 
 .dashboard-shortcut-item {
+    position: relative;
+    width: 100%;
+    min-height: 230px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(31, 43, 84, 0.12);
+    background: #f1f1f1;
+    box-shadow: 0 6px 14px rgba(31, 43, 84, 0.16);
+    overflow: hidden;
+}
+
+.dashboard-shortcut-hero {
+    width: 110%;    
+    min-height: 200px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.65rem;
-    text-decoration: none;
+    padding: 1.1rem 0.85rem 0.95rem;
+    border-top: 5px solid #ff3535;
+    border-radius: 1.5rem 1.5rem 80% 80% / 1.5rem 1.5rem 80% 80%;
+    background: #f1d8da;
 }
 
-.dashboard-shortcut-tile {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    border-radius: 1.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 6px 14px rgba(31, 43, 84, 0.16);
-}
-
-.dashboard-shortcut-item i {
-    font-size: 8rem;
+.dashboard-shortcut-icon {
+    font-size: 80px;
+    margin-top: 25px;
     line-height: 1;
-    color: #fff;
+    color: #ff2424;
+}
+
+.dashboard-shortcut-subtitle {
+    margin-top: 24px;
+    color: #646a6e;
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0.01em;
 }
 
 .dashboard-shortcut-label {
-    color: #121b3a;
-    font-size: 1rem;
-    font-weight: 600;
+    width: 100%;
+    margin-bottom: 28px;
+    padding: 0.9rem 0.75rem 1rem;
+    color: #373a3e;
+    font-size: 20px;
+    font-weight: 700;
     text-align: center;
     line-height: 1.2;
-}
-
-.dashboard-shortcut-item.shortcut-success .dashboard-shortcut-tile {
-    background: #0a9542;
-}
-
-.dashboard-shortcut-item.shortcut-secondary .dashboard-shortcut-tile {
-    background: #6f349c;
-}
-
-.dashboard-shortcut-item.shortcut-danger .dashboard-shortcut-tile {
-    background: #3f7cdc;
-}
-
-.dashboard-shortcut-item.shortcut-warning .dashboard-shortcut-tile {
-    background: linear-gradient(145deg, #7e32d8 0%, #a94fe8 100%);
-}
-
-.dashboard-shortcut-item.shortcut-primary .dashboard-shortcut-tile {
-    background: #2a6cd7;
-}
-
-.dashboard-shortcut-item.shortcut-info .dashboard-shortcut-tile {
-    background: #0d8f8a;
 }
 
 @media (max-width: 1199.98px) {
     .dashboard-shortcut-menu {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+
+    .dashboard-shortcut-item {
+        min-height: 220px;
+    }
+
+    .dashboard-shortcut-hero {
+        min-height: 142px;
+    }
 }
 
 @media (max-width: 1024px) {
     .dashboard-shortcut-menu {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.65rem;
         margin-top: 0.85rem;
     }
 
     .dashboard-shortcut-item {
-        gap: 0.45rem;
+        min-height: 190px;
+        border-radius: 1rem;
     }
 
-    .dashboard-shortcut-item i {
-        font-size: clamp(2.35rem, 6vw, 2.95rem);
+    .dashboard-shortcut-hero {
+        min-height: 118px;
+        border-radius: 1rem 1rem 56% 56% / 1rem 1rem 36% 36%;
+    }
+
+    .dashboard-shortcut-icon {
+        font-size: 58px;
+        margin-top: 16px;
+    }
+
+    .dashboard-shortcut-subtitle {
+        margin-top: 12px;
+        font-size: 14px;
     }
 
     .dashboard-shortcut-label {
-        font-size: 0.72rem;
-        line-height: 1.2;
-        min-height: 2.4em;
-        width: 100%;
-        display: flex;
-        align-items: flex-start;
-        justify-content: center;
-        overflow-wrap: anywhere;
+        margin-bottom: 16px;
+        font-size: 16px;
+        padding: 0.75rem 0.55rem 0.85rem;
     }
 
 }
 
 @media (max-width: 480px) {
     .dashboard-shortcut-menu {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.5rem;
     }
 
     .dashboard-shortcut-item {
-        gap: 0.38rem;
-        min-width: 0;
+        min-height: 170px;
+        border-radius: 0.9rem;
     }
 
-    .dashboard-shortcut-item i {
-        font-size: 3.5rem;
+    .dashboard-shortcut-hero {
+        min-height: 105px;
+        border-radius: 0.9rem 0.9rem 56% 56% / 0.9rem 0.9rem 36% 36%;
+    }
+
+    .dashboard-shortcut-icon {
+        font-size: 44px;
+        margin-top: 10px;
+    }
+
+    .dashboard-shortcut-subtitle {
+        margin-top: 8px;
+        font-size: 12px;
     }
 
     .dashboard-shortcut-label {
-        font-size: 0.68rem;
-        line-height: 1.15;
-        min-height: 2.3em;
+        font-size: 0.9rem;
+        margin-bottom: 12px;
+        padding: 0.65rem 0.45rem 0.75rem;
     }
 
 }
 
 @media (max-width: 390px) {
     .dashboard-shortcut-label {
-        font-size: 0.64rem;
+        font-size: 0.82rem;
+        padding: 0.58rem 0.42rem 0.68rem;
     }
 
     .dashboard-menu-carousel .owl-nav button {

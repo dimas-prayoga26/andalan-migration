@@ -3,7 +3,11 @@
 @section('title', 'Dashboard Andalan')
 
 @section('css')
-    <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}">
+    @php
+        $dashboardCssPath = public_path('assets/css/dashboard.css');
+        $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
+    @endphp
+    <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
 @endsection
 
 @section('navbarTitle', 'Dashboard')
@@ -200,42 +204,49 @@
             </div>
 
             <div class="dashboard-shortcut-menu">
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-success">
-                    <span class="dashboard-shortcut-tile">
-                        <i class="bx bx-task"></i>
+                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                    <span class="dashboard-shortcut-hero">
+                        <i class="bx bx-notepad dashboard-shortcut-icon" aria-hidden="true"></i>
+                        <span class="dashboard-shortcut-subtitle">Halaman</span>
                     </span>
                     <span class="dashboard-shortcut-label">Laporan Pekerjaan</span>
                 </a>
-                {{-- <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-secondary">
-                    <span class="dashboard-shortcut-tile">
-                        <i class="bx bx-calendar-alt"></i>
+                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                    <span class="dashboard-shortcut-hero">
+                        <i class="bx bx-notepad dashboard-shortcut-icon" aria-hidden="true"></i>
+                        <span class="dashboard-shortcut-subtitle">Halaman</span>
                     </span>
-                    <span class="dashboard-shortcut-label">Agenda Kegiatan</span>
+                    <span class="dashboard-shortcut-label">Laporan Pekerjaan</span>
                 </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-danger">
-                    <span class="dashboard-shortcut-tile">
-                        <i class="bx bx-fingerprint"></i>
+                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                    <span class="dashboard-shortcut-hero">
+                        <i class="bx bx-notepad dashboard-shortcut-icon" aria-hidden="true"></i>
+                        <span class="dashboard-shortcut-subtitle">Halaman</span>
                     </span>
-                    <span class="dashboard-shortcut-label">Data Absensi</span>
+                    <span class="dashboard-shortcut-label">Laporan Pekerjaan</span>
                 </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-warning">
-                    <span class="dashboard-shortcut-tile">
-                        <i class="bx bx-form"></i>
+                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                    <span class="dashboard-shortcut-hero">
+                        <i class="bx bx-notepad dashboard-shortcut-icon" aria-hidden="true"></i>
+                        <span class="dashboard-shortcut-subtitle">Halaman</span>
                     </span>
-                    <span class="dashboard-shortcut-label">Data Pelamar</span>
+                    <span class="dashboard-shortcut-label">Laporan Pekerjaan</span>
                 </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-primary desktop-only-menu">
-                    <span class="dashboard-shortcut-tile">
-                        <i class="bx bx-user"></i>
+                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                    <span class="dashboard-shortcut-hero">
+                        <i class="bx bx-notepad dashboard-shortcut-icon" aria-hidden="true"></i>
+                        <span class="dashboard-shortcut-subtitle">Halaman</span>
                     </span>
-                    <span class="dashboard-shortcut-label">Data Karyawan</span>
+                    <span class="dashboard-shortcut-label">Laporan Pekerjaan</span>
                 </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-info desktop-only-menu">
-                    <span class="dashboard-shortcut-tile">
-                        <i class="bx bx-file"></i>
+                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                    <span class="dashboard-shortcut-hero">
+                        <i class="bx bx-notepad dashboard-shortcut-icon" aria-hidden="true"></i>
+                        <span class="dashboard-shortcut-subtitle">Halaman</span>
                     </span>
-                    <span class="dashboard-shortcut-label">Laporan</span>
-                </a> --}}
+                    <span class="dashboard-shortcut-label">Laporan Pekerjaan</span>
+                </a>
+
             </div>
         </div>
 
@@ -244,5 +255,9 @@
 @endsection
 
 @section('script')
-    <script src="{{ asset('assets/js/dashboard.js') }}"></script>
+    @php
+        $dashboardJsPath = public_path('assets/js/dashboard.js');
+        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
+    @endphp
+    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 @endsection

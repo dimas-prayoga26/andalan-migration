@@ -1,9 +1,6 @@
 jQuery(function ($) {
     var $dashboardMenuCarousel = $('.dashboard-menu-carousel');
-    var mobileMediaQuery = window.matchMedia('(max-width: 1024px)');
-    var currentMode = null;
     var resizeTimeoutId = null;
-    var mobileAutoplayIntervalId = null;
 
     if (!$dashboardMenuCarousel.length) {
         return;
@@ -31,9 +28,9 @@ jQuery(function ($) {
         0: {
             items: 1,
             slideBy: 1,
-            margin: 0,
-            stagePadding: 0,
-            nav: false
+            margin: 12,
+            stagePadding: 8,
+            nav: true
         },
         768: {
             items: 3,
@@ -51,55 +48,7 @@ jQuery(function ($) {
         }
     };
 
-    function destroyCarouselIfNeeded() {
-        if ($dashboardMenuCarousel.hasClass('owl-loaded') || $dashboardMenuCarousel.data('owl.carousel')) {
-            $dashboardMenuCarousel.trigger('destroy.owl.carousel');
-        }
-    }
-
-    function stopMobileAutoplay() {
-        if (mobileAutoplayIntervalId) {
-            window.clearInterval(mobileAutoplayIntervalId);
-            mobileAutoplayIntervalId = null;
-        }
-    }
-
-    function startMobileAutoplay() {
-        var carouselElement = $dashboardMenuCarousel.get(0);
-        var totalSlides = $dashboardMenuCarousel.find('.dashboard-activity-item').length;
-
-        stopMobileAutoplay();
-
-        if (!carouselElement || totalSlides < 2) {
-            return;
-        }
-
-        mobileAutoplayIntervalId = window.setInterval(function () {
-            if (!mobileMediaQuery.matches || !$dashboardMenuCarousel.hasClass('mobile-snap')) {
-                return;
-            }
-
-            var viewportWidth = carouselElement.clientWidth;
-            var currentIndex = Math.round(carouselElement.scrollLeft / Math.max(viewportWidth, 1));
-            var nextIndex = (currentIndex + 1) % totalSlides;
-
-            carouselElement.scrollTo({
-                left: nextIndex * viewportWidth,
-                behavior: 'smooth'
-            });
-        }, 5000);
-    }
-
-    function applyMobileMode() {
-        destroyCarouselIfNeeded();
-        $dashboardMenuCarousel.addClass('mobile-snap');
-        startMobileAutoplay();
-    }
-
-    function applyDesktopMode() {
-        stopMobileAutoplay();
-        $dashboardMenuCarousel.removeClass('mobile-snap');
-
+    function initOrRefreshCarousel() {
         if (!$dashboardMenuCarousel.hasClass('owl-loaded')) {
             $dashboardMenuCarousel.owlCarousel(carouselOptions);
         }
@@ -108,41 +57,12 @@ jQuery(function ($) {
         $dashboardMenuCarousel.trigger('play.owl.autoplay', [5000]);
     }
 
-    function syncCarouselMode() {
-        var nextMode = mobileMediaQuery.matches ? 'mobile' : 'desktop';
-
-        if (nextMode === currentMode) {
-            if (nextMode === 'mobile') {
-                startMobileAutoplay();
-            } else if ($dashboardMenuCarousel.hasClass('owl-loaded')) {
-                $dashboardMenuCarousel.trigger('refresh.owl.carousel');
-                $dashboardMenuCarousel.trigger('play.owl.autoplay', [5000]);
-            }
-
-            return;
-        }
-
-        currentMode = nextMode;
-
-        if (nextMode === 'mobile') {
-            applyMobileMode();
-        } else {
-            applyDesktopMode();
-        }
-    }
-
     function handleViewportChange() {
         clearTimeout(resizeTimeoutId);
-        resizeTimeoutId = window.setTimeout(syncCarouselMode, 120);
-    }
-
-    if (typeof mobileMediaQuery.addEventListener === 'function') {
-        mobileMediaQuery.addEventListener('change', syncCarouselMode);
-    } else if (typeof mobileMediaQuery.addListener === 'function') {
-        mobileMediaQuery.addListener(syncCarouselMode);
+        resizeTimeoutId = window.setTimeout(initOrRefreshCarousel, 120);
     }
 
     $(window).on('resize orientationchange', handleViewportChange);
 
-    syncCarouselMode();
+    initOrRefreshCarousel();
 });

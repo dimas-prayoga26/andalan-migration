@@ -34,8 +34,8 @@
                                         </svg>
                                     </span>
                                     <div>
-                                        <p class="fs-14 mb-2">Weekly Progress</p>
-                                        <span class="title text-black fs-28 fw-semibold">42%</span>
+                                        <p class="fs-12 mb-2">Weekly Progress</p>
+                                        <span class="title text-black fs-24 fw-semibold">42%</span>
                                     </div>
                                 </div>
                                 <div>
@@ -64,8 +64,8 @@
                                         </svg>
                                     </span>
                                     <div>
-                                        <p class="fs-14 mb-2">Weekly Running</p>
-                                        <span class="title text-black fs-28 fw-semibold">42km</span>
+                                        <p class="fs-12 mb-2">Weekly Running</p>
+                                        <span class="title text-black fs-24 fw-semibold">42km</span>
                                     </div>
                                 </div>
                                 <div>
@@ -95,8 +95,8 @@
                                         </svg>
                                     </span>
                                     <div>
-                                        <p class="fs-14 mb-2">Daily Cycling</p>
-                                        <span class="title text-black fs-28 fw-semibold">230 Km</span>
+                                        <p class="fs-12 mb-2">Daily Cycling</p>
+                                        <span class="title text-black fs-24 fw-semibold">230 Km</span>
                                     </div>
                                 </div>
                                 <div>
@@ -127,8 +127,8 @@
                                         </svg>
                                     </span>
                                     <div>
-                                        <p class="fs-14 mb-2">Morning Yoga</p>
-                                        <span class="title text-black fs-28 fw-semibold">18:34:21</span>
+                                        <p class="fs-12 mb-2">Morning Yoga</p>
+                                        <span class="title text-black fs-24 fw-semibold">18:34:21</span>
                                     </div>
                                 </div>
                                 <div>
@@ -153,8 +153,8 @@
                                         <i class="bx bx-dumbbell fs-1 text-primary"></i>
                                     </span>
                                     <div>
-                                        <p class="fs-14 mb-2">Strength Training</p>
-                                        <span class="title text-black fs-28 fw-semibold">5 Sessions</span>
+                                        <p class="fs-12 mb-2">Strength Training</p>
+                                        <span class="title text-black fs-24 fw-semibold">5 Sessions</span>
                                     </div>
                                 </div>
                                 <div>
@@ -179,8 +179,8 @@
                                         <i class="bx bx-group fs-1 text-info"></i>
                                     </span>
                                     <div>
-                                        <p class="fs-14 mb-2">Team Activity</p>
-                                        <span class="title text-black fs-28 fw-semibold">12 Members</span>
+                                        <p class="fs-12 mb-2">Team Activity</p>
+                                        <span class="title text-black fs-24 fw-semibold">12 Members</span>
                                     </div>
                                 </div>
                                 <div>

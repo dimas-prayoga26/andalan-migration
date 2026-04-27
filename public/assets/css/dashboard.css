@@ -1,41 +1,16 @@
-/* .content-body .container-fluid {
+.content-body .container-fluid {
     max-width: auto;
     margin-left: auto;
     margin-right: auto;
-}
-
-.dashboard-menu-carousel .dashboard-activity-item {
-    padding: 0;
-}
-
-.dashboard-menu-carousel .avtivity-card {
-    margin-bottom: 0;
-}
-
-.dashboard-menu-carousel .avtivity-card .title {
-    display: block;
-    line-height: 1.12;
-    overflow-wrap: anywhere;
-}
-
-.dashboard-menu-carousel .owl-dots {
-    display: none !important;
 }
 
 .dashboard-menu-carousel {
     position: relative;
 }
 
-.dashboard-menu-carousel .owl-stage-outer {
-    padding: 0.25rem 0 0.4rem;
-}
-
 .dashboard-menu-carousel .owl-nav {
     position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    inset: 0;
     margin: 0;
     pointer-events: none;
 }
@@ -44,23 +19,25 @@
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    width: 2rem;
-    height: 2rem;
-    border-radius: 999px !important;
+    width: 2.55rem;
+    height: 2.55rem;
     border: 0 !important;
+    border-radius: 999px !important;
     background: #465071 !important;
     color: #fff !important;
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
-    pointer-events: auto;
     margin: 0 !important;
+    pointer-events: auto;
+    box-shadow: 0 8px 16px rgba(35, 45, 85, 0.25);
+    transition: all 0.2s ease;
 }
 
-.dashboard-menu-carousel .owl-nav button i {
+.dashboard-menu-carousel .owl-nav button i,
+.dashboard-menu-carousel .owl-nav button span {
+    font-size: 1.25rem;
     line-height: 1;
-    font-size: 1.05rem;
 }
 
 .dashboard-menu-carousel .owl-nav button:hover {
@@ -68,11 +45,11 @@
 }
 
 .dashboard-menu-carousel .owl-nav .owl-prev {
-    left: 0.35rem;
+    left: 0.4rem;
 }
 
 .dashboard-menu-carousel .owl-nav .owl-next {
-    right: 0.35rem;
+    right: 0.4rem;
 }
 
 .dashboard-shortcut-menu {
@@ -171,75 +148,6 @@
         overflow-wrap: anywhere;
     }
 
-    .dashboard-menu-carousel {
-        padding: 0;
-    }
-
-    .dashboard-menu-carousel.mobile-snap,
-    .dashboard-menu-carousel:not(.owl-loaded) {
-        display: flex;
-        gap: 0;
-        overflow-x: auto;
-        overflow-y: hidden;
-        scroll-snap-type: x mandatory;
-        scroll-padding-inline: 0;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-    }
-
-    .dashboard-menu-carousel.mobile-snap::-webkit-scrollbar,
-    .dashboard-menu-carousel:not(.owl-loaded)::-webkit-scrollbar {
-        display: none;
-    }
-
-    .dashboard-menu-carousel.mobile-snap .dashboard-activity-item,
-    .dashboard-menu-carousel:not(.owl-loaded) .dashboard-activity-item {
-        flex: 0 0 100%;
-        min-width: 100%;
-        width: 100%;
-        scroll-snap-align: start;
-    }
-
-    .dashboard-menu-carousel .owl-nav {
-        display: none !important;
-    }
-
-    .dashboard-menu-carousel .dashboard-activity-item {
-        padding: 0;
-    }
-
-    .dashboard-menu-carousel .owl-stage-outer {
-        padding: 0;
-    }
-
-    .dashboard-menu-carousel .avtivity-card .card-body {
-        padding: 1.05rem 0.95rem 1.15rem;
-        min-height: 8.2rem;
-    }
-
-    .dashboard-menu-carousel .avtivity-card .d-flex {
-        gap: 0.85rem !important;
-    }
-
-    .dashboard-menu-carousel .avtivity-card .avatar.avatar-lg {
-        --avatar-size: 65px;
-        flex-shrink: 0;
-    }
-
-    .dashboard-menu-carousel .avtivity-card .avatar svg {
-        width: 36px;
-        height: 36px;
-    }
-
-    .dashboard-menu-carousel .avtivity-card p {
-        font-size: 1rem !important;
-        margin-bottom: 0.35rem !important;
-        line-height: 1.2;
-    }
-
-    .dashboard-menu-carousel .avtivity-card .title {
-        font-size: clamp(1.6rem, 7.8vw, 2rem) !important;
-    }
 }
 
 @media (max-width: 480px) {
@@ -262,31 +170,20 @@
         min-height: 2.3em;
     }
 
-    .dashboard-menu-carousel .avtivity-card .card-body {
-        padding: 0.95rem 0.85rem 1.05rem;
-        min-height: 7.6rem;
-    }
-
-    .dashboard-menu-carousel .avtivity-card .avatar.avatar-lg {
-        --avatar-size: 62px;
-    }
-
-    .dashboard-menu-carousel .avtivity-card .avatar svg {
-        width: 34px;
-        height: 34px;
-    }
-
-    .dashboard-menu-carousel .avtivity-card p {
-        font-size: 0.95rem !important;
-    }
-
-    .dashboard-menu-carousel .avtivity-card .title {
-        font-size: clamp(1.45rem, 7.5vw, 1.85rem) !important;
-    }
 }
 
 @media (max-width: 390px) {
     .dashboard-shortcut-label {
         font-size: 0.64rem;
     }
-} */
+
+    .dashboard-menu-carousel .owl-nav button {
+        width: 2.25rem;
+        height: 2.25rem;
+    }
+
+    .dashboard-menu-carousel .owl-nav button i,
+    .dashboard-menu-carousel .owl-nav button span {
+        font-size: 1.1rem;
+    }
+}

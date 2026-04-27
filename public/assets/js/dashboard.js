@@ -27,12 +27,12 @@ jQuery(function ($) {
     function getViewportBucket() {
         var viewportWidth = getViewportWidth();
 
-        if (viewportWidth < 576) {
-            return 'xs';
+        if (viewportWidth < 768) {
+            return 'mobile';
         }
 
         if (viewportWidth < 1200) {
-            return 'mobile';
+            return 'tablet';
         }
 
         return 'desktop';
@@ -75,10 +75,20 @@ jQuery(function ($) {
             ],
             responsive: {
                 0: {
+                    items: 1,
+                    slideBy: 1,
                     margin: 8,
                     nav: true
                 },
+                768: {
+                    items: 2,
+                    slideBy: 1,
+                    margin: 10,
+                    nav: true
+                },
                 1200: {
+                    items: 4,
+                    slideBy: 1,
                     margin: 12,
                     nav: true
                 }

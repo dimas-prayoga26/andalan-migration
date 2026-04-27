@@ -1,10 +1,12 @@
 @extends('layouts.main')
 
-@section('title', 'Gymove  - Fitness Bootstrap Admin Dashboard Template')
+@section('title', 'Dashboard Andalan')
 
 @section('css')
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}">
 @endsection
+
+@section('navbarTitle', 'Dashboard')
 
 @section('content')
 

@@ -202,7 +202,7 @@
                     </span>
                     <span class="dashboard-shortcut-label">Laporan Pekerjaan</span>
                 </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-secondary">
+                {{-- <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-secondary">
                     <span class="dashboard-shortcut-tile">
                         <i class="bx bx-calendar-alt"></i>
                     </span>
@@ -231,7 +231,7 @@
                         <i class="bx bx-file"></i>
                     </span>
                     <span class="dashboard-shortcut-label">Laporan</span>
-                </a>
+                </a> --}}
             </div>
         </div>
 

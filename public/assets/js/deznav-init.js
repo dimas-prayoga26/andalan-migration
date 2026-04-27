@@ -337,11 +337,7 @@ dzSettings.prototype.manageResponsiveSidebar = function() {
         body.attr("data-container", "wide");
     }
 
-    if(innerWidth > 767 && innerWidth <= 1024) {
-        body.attr("data-sidebar-style", "mini");
-    }
-
-    if(innerWidth < 768) {
+    if(innerWidth <= 1024) {
         body.attr("data-sidebar-style", "overlay");
     }
 }

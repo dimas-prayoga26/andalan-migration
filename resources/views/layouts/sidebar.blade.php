@@ -10,7 +10,7 @@
 						</a>
 					</li>
                     <li>
-						<a href="javascript:void(0)" class="ai-icon" aria-expanded="false">
+						<a href="{{ url('/agenda') }}" class="ai-icon" aria-expanded="false">
 							<i class="bi bi-calendar-event"></i>
 							<span class="nav-text">Agenda Kegiatan</span>
 						</a>

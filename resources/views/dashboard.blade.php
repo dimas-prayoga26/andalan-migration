@@ -30,7 +30,7 @@
                                     </span>
                                     <div>
                                         <p class="fs-12 mb-2">Laporan Pekerjaan</p>
-                                        <span class="title text-black fs-24 fw-semibold">128 Laporan</span>
+                                        <span class="title text-black fs-20 fw-semibold">128 Laporan</span>
                                     </div>
                                 </div>
                                 <div>
@@ -56,7 +56,7 @@
                                     </span>
                                     <div>
                                         <p class="fs-12 mb-2">Agenda Kegiatan</p>
-                                        <span class="title text-black fs-24 fw-semibold">24 Agenda</span>
+                                        <span class="title text-black fs-20 fw-semibold">24 Agenda</span>
                                     </div>
                                 </div>
                                 <div>
@@ -82,7 +82,7 @@
                                     </span>
                                     <div>
                                         <p class="fs-12 mb-2">Data Absensi</p>
-                                        <span class="title text-black fs-24 fw-semibold">97% Kehadiran</span>
+                                        <span class="title text-black fs-20 fw-semibold">97% Kehadiran</span>
                                     </div>
                                 </div>
                                 <div>
@@ -108,7 +108,7 @@
                                     </span>
                                     <div>
                                         <p class="fs-12 mb-2">Data Pelamar</p>
-                                        <span class="title text-black fs-24 fw-semibold">36 Pelamar</span>
+                                        <span class="title text-black fs-20 fw-semibold">36 Pelamar</span>
                                     </div>
                                 </div>
                                 <div>
@@ -134,7 +134,7 @@
                                     </span>
                                     <div>
                                         <p class="fs-12 mb-2">Data Karyawan</p>
-                                        <span class="title text-black fs-24 fw-semibold">245 Karyawan</span>
+                                        <span class="title text-black fs-20 fw-semibold">245 Karyawan</span>
                                     </div>
                                 </div>
                                 <div>
@@ -160,7 +160,7 @@
                                     </span>
                                     <div>
                                         <p class="fs-12 mb-2">Blog Management</p>
-                                        <span class="title text-black fs-24 fw-semibold">18 Artikel</span>
+                                        <span class="title text-black fs-20 fw-semibold">18 Artikel</span>
                                     </div>
                                 </div>
                                 <div>

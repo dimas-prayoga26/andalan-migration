@@ -8,6 +8,7 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <link rel="stylesheet" href="https://unpkg.com/antd@6.2.3/dist/antd.css">
 @endsection
 
 @section('navbarTitle', 'Dashboard')
@@ -179,92 +180,144 @@
 
             </div>
 
-            <div class="dashboard-shortcut-menu">
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                    <span class="dashboard-shortcut-hero">
-                        <i class="bx bx-notepad dashboard-shortcut-icon" aria-hidden="true"></i>
-                        <span class="dashboard-shortcut-subtitle">Halaman</span>
-                    </span>
-                    <span class="dashboard-shortcut-label">Laporan Pekerjaan</span>
-                </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                    <span class="dashboard-shortcut-hero">
-                        <i class="bx bx-calendar-alt dashboard-shortcut-icon" aria-hidden="true"></i>
-                        <span class="dashboard-shortcut-subtitle">Halaman</span>
-                    </span>
-                    <span class="dashboard-shortcut-label">Agenda Kegiatan</span>
-                </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                    <span class="dashboard-shortcut-hero">
-                        <i class="bx bx-fingerprint dashboard-shortcut-icon" aria-hidden="true"></i>
-                        <span class="dashboard-shortcut-subtitle">Halaman</span>
-                    </span>
-                    <span class="dashboard-shortcut-label">Data Absensi</span>
-                </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                    <span class="dashboard-shortcut-hero">
-                        <i class="bx bx-id-card dashboard-shortcut-icon" aria-hidden="true"></i>
-                        <span class="dashboard-shortcut-subtitle">Halaman</span>
-                    </span>
-                    <span class="dashboard-shortcut-label">Data Pelamar</span>
-                </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                    <span class="dashboard-shortcut-hero">
-                        <i class="bx bx-group dashboard-shortcut-icon" aria-hidden="true"></i>
-                        <span class="dashboard-shortcut-subtitle">Halaman</span>
-                    </span>
-                    <span class="dashboard-shortcut-label">Data Karyawan</span>
-                </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                    <span class="dashboard-shortcut-hero">
-                        <i class="bx bx-news dashboard-shortcut-icon" aria-hidden="true"></i>
-                        <span class="dashboard-shortcut-subtitle">Halaman</span>
-                    </span>
-                    <span class="dashboard-shortcut-label">Blog Management</span>
-                </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                    <span class="dashboard-shortcut-hero">
-                        <i class="bx bx-folder dashboard-shortcut-icon" aria-hidden="true"></i>
-                        <span class="dashboard-shortcut-subtitle">Halaman</span>
-                    </span>
-                    <span class="dashboard-shortcut-label">Project List</span>
-                </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                    <span class="dashboard-shortcut-hero">
-                        <i class="bx bx-wallet dashboard-shortcut-icon" aria-hidden="true"></i>
-                        <span class="dashboard-shortcut-subtitle">Halaman</span>
-                    </span>
-                    <span class="dashboard-shortcut-label">Finance Management</span>
-                </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                    <span class="dashboard-shortcut-hero">
-                        <i class="bx bx-file dashboard-shortcut-icon" aria-hidden="true"></i>
-                        <span class="dashboard-shortcut-subtitle">Halaman</span>
-                    </span>
-                    <span class="dashboard-shortcut-label">Administration Management</span>
-                </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                    <span class="dashboard-shortcut-hero">
-                        <i class="bx bx-slider-alt dashboard-shortcut-icon" aria-hidden="true"></i>
-                        <span class="dashboard-shortcut-subtitle">Halaman</span>
-                    </span>
-                    <span class="dashboard-shortcut-label">Options</span>
-                </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                    <span class="dashboard-shortcut-hero">
-                        <i class="bx bx-user-circle dashboard-shortcut-icon" aria-hidden="true"></i>
-                        <span class="dashboard-shortcut-subtitle">Halaman</span>
-                    </span>
-                    <span class="dashboard-shortcut-label">My Profile</span>
-                </a>
-                <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                    <span class="dashboard-shortcut-hero">
-                        <i class="bx bx-video dashboard-shortcut-icon" aria-hidden="true"></i>
-                        <span class="dashboard-shortcut-subtitle">Halaman</span>
-                    </span>
-                    <span class="dashboard-shortcut-label">Zoom Meeting</span>
-                </a>
+            <div class="row mt-4">
+                <div class="col-xl-12">
+                    <div class="dashboard-shortcut-menu">
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                            <span class="dashboard-shortcut-hero">
+                                <i class="bx bx-notepad dashboard-shortcut-icon" aria-hidden="true"></i>
+                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                            </span>
+                            <span class="dashboard-shortcut-label">Laporan Pekerjaan</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                            <span class="dashboard-shortcut-hero">
+                                <i class="bx bx-calendar-alt dashboard-shortcut-icon" aria-hidden="true"></i>
+                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                            </span>
+                            <span class="dashboard-shortcut-label">Agenda Kegiatan</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                            <span class="dashboard-shortcut-hero">
+                                <i class="bx bx-fingerprint dashboard-shortcut-icon" aria-hidden="true"></i>
+                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                            </span>
+                            <span class="dashboard-shortcut-label">Data Absensi</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                            <span class="dashboard-shortcut-hero">
+                                <i class="bx bx-id-card dashboard-shortcut-icon" aria-hidden="true"></i>
+                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                            </span>
+                            <span class="dashboard-shortcut-label">Data Pelamar</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                            <span class="dashboard-shortcut-hero">
+                                <i class="bx bx-group dashboard-shortcut-icon" aria-hidden="true"></i>
+                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                            </span>
+                            <span class="dashboard-shortcut-label">Data Karyawan</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                            <span class="dashboard-shortcut-hero">
+                                <i class="bx bx-news dashboard-shortcut-icon" aria-hidden="true"></i>
+                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                            </span>
+                            <span class="dashboard-shortcut-label">Blog Management</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                            <span class="dashboard-shortcut-hero">
+                                <i class="bx bx-folder dashboard-shortcut-icon" aria-hidden="true"></i>
+                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                            </span>
+                            <span class="dashboard-shortcut-label">Project List</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                            <span class="dashboard-shortcut-hero">
+                                <i class="bx bx-wallet dashboard-shortcut-icon" aria-hidden="true"></i>
+                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                            </span>
+                            <span class="dashboard-shortcut-label">Finance Management</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                            <span class="dashboard-shortcut-hero">
+                                <i class="bx bx-file dashboard-shortcut-icon" aria-hidden="true"></i>
+                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                            </span>
+                            <span class="dashboard-shortcut-label">Administration Management</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                            <span class="dashboard-shortcut-hero">
+                                <i class="bx bx-slider-alt dashboard-shortcut-icon" aria-hidden="true"></i>
+                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                            </span>
+                            <span class="dashboard-shortcut-label">Options</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                            <span class="dashboard-shortcut-hero">
+                                <i class="bx bx-user-circle dashboard-shortcut-icon" aria-hidden="true"></i>
+                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                            </span>
+                            <span class="dashboard-shortcut-label">My Profile</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
+                            <span class="dashboard-shortcut-hero">
+                                <i class="bx bx-video dashboard-shortcut-icon" aria-hidden="true"></i>
+                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                            </span>
+                            <span class="dashboard-shortcut-label">Zoom Meeting</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
 
+            <div class="col-xl-12 col-xxl-12 mt-5">
+                <div class="row">
+                
+                    <!-- Start - Featured Diet Menu -->
+                    <div class="col-xl-12">
+                        <div class="card featuredMenu">
+                            <div class="card-header border-0 d-flex justify-content-start align-items-center gap-3 flex-wrap">
+                                <h4 class="card-title mb-0">Absensi Karyawan</h4>
+                                <div id="attendanceDateFilterRoot">
+                                    <input type="date" class="form-control form-control-sm" style="min-width: 190px;" aria-label="Filter tanggal absensi">
+                                </div>
+                            </div>
+                            <div class="card-body loadmore-content height700 dz-scroll pt-0" id="FeaturedMenusContent">
+                                <div class="d-flex">
+                                    <img src="images/menus/1.avif" alt="menus" class="avatar avatar-lg rounded me-3">
+                                    <div>
+                                        <h5><a href="food-menu.html" class="text-black fs-16">Syarif Hidayatullah</a></h5>
+                                        <span class="fs-14 text-primary"><i class="bx bx-time-five me-1"></i>Masuk 08:00 | <i class="bx bx-time-five ms-1 me-1"></i>Pulang --:--</span>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="d-flex">
+                                    <img src="images/menus/2.avif" alt="menus" class="avatar avatar-lg rounded me-3">
+                                    <div>
+                                        <h5><a href="food-menu.html" class="text-black fs-16">Dimas</a></h5>
+                                        <span class="fs-14 text-primary"><i class="bx bx-time-five me-1"></i>Masuk 08:00 | <i class="bx bx-time-five ms-1 me-1"></i>Pulang --:--</span>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="d-flex">
+                                    <img src="images/menus/3.avif" alt="menus" class="avatar avatar-lg rounded me-3">
+                                    <div>
+                                        <h5><a href="food-menu.html" class="text-black fs-16">Famil</a></h5>
+                                        <span class="fs-14 text-primary"><i class="bx bx-time-five me-1"></i>Masuk 08:00 | <i class="bx bx-time-five ms-1 me-1"></i>Pulang --:--</span>
+                                    </div>
+                                </div>
+                                <hr>
+                            </div>
+                            <div class="position-absolute top-100 start-50 translate-middle">
+                                <a class="avatar avatar-sm dz-load-more bg-body rounded-circle fa fa-chevron-down text-primary shadow border-0" aria-label="Featured-icon" id="FeaturedMenus" rel="ajax/featured-menu-list.html">
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End - Featured Diet Menu -->
+                    
+                </div>
             </div>
         </div>
 
@@ -278,4 +331,35 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+    <script src="https://unpkg.com/antd@6.2.3/dist/antd.min.js"></script>
+    <script>
+        (function () {
+            const rootElement = document.getElementById('attendanceDateFilterRoot');
+
+            if (!rootElement || !window.React || !window.ReactDOM || !window.antd || !window.dayjs) {
+                return;
+            }
+
+            const DatePicker = window.antd.DatePicker;
+
+            function AttendanceDateFilter() {
+                return React.createElement(DatePicker, {
+                    format: 'DD/MM/YYYY',
+                    placeholder: 'Pilih tanggal',
+                    allowClear: true,
+                    style: { width: 190 },
+                });
+            }
+
+            if (typeof window.ReactDOM.createRoot === 'function') {
+                window.ReactDOM.createRoot(rootElement).render(React.createElement(AttendanceDateFilter));
+                return;
+            }
+
+            window.ReactDOM.render(React.createElement(AttendanceDateFilter), rootElement);
+        })();
+    </script>
 @endsection

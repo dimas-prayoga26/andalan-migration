@@ -1,11 +1,21 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('dashboard');
+Route::middleware('guest')->group(function (): void {
+    Route::get('/login', [AuthController::class, 'create'])->name('login');
+    Route::post('/login', [AuthController::class, 'store'])->name('login.store');
 });
 
-Route::get('/agenda', function(){
-    return view('agenda');
+Route::middleware('auth')->group(function (): void {
+    Route::get('/', function () {
+        return view('dashboard');
+    })->name('dashboard');
+
+    Route::get('/agenda', function () {
+        return view('agenda');
+    })->name('agenda');
+
+    Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
 });

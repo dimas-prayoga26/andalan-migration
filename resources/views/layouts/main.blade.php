@@ -41,6 +41,14 @@
 
 	<script>
 		function carouselReview(){
+			if (typeof jQuery.fn.owlCarousel === 'undefined') {
+				return;
+			}
+
+			if (jQuery('.testimonial-one').length === 0) {
+				return;
+			}
+
 			/*  testimonial one function by = owl.carousel.js */
 			jQuery('.testimonial-one').owlCarousel({
 				nav:true,

@@ -42,6 +42,7 @@
 	<link class="main-plugins" href="css/plugins.css" rel="stylesheet">
 	<link class="main-css" href="css/style.css" rel="stylesheet">	
 	<!-- End - Style Css -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     
 </head>
 <body class="vh-100">
@@ -53,38 +54,38 @@
                 <div class="col-md-6">
 					<div class="card p-5 shadow-lg">
 						<div class="text-center mb-3">
-							<a href="index.html" class="brand-logo" aria-label="Gymove">
-								<svg class="logo-abbr" width="53" height="53" viewBox="0 0 53 53" fill="none" xmlns="http://www.w3.org/2000/svg">
-									<path d="M0.730591 20.2078C0.730591 9.16207 9.6849 0.207764 20.7306 0.207764H32.7306C43.7763 0.207764 52.7306 9.16207 52.7306 20.2078V44.2078C52.7306 48.626 49.1489 52.2078 44.7306 52.2078H20.7306C9.68489 52.2078 0.730591 43.2535 0.730591 32.2078V20.2078Z" fill="url(#paint0_linear_42_4)"/>
-									<path d="M21.2539 18.2042C23.2694 18.2042 24.9032 16.638 24.9032 14.706C24.9032 12.7741 23.2694 11.2078 21.2539 11.2078C19.2388 11.2078 17.6051 12.7741 17.6051 14.706C17.6051 16.638 19.2388 18.2042 21.2539 18.2042Z" fill="white"/>
-									<path d="M22.4456 22.7752C23.6846 24.8155 24.8612 26.8917 25.9913 28.9903C24.3209 29.809 22.3444 31.2439 21.3368 32.0273C20.3291 32.8107 18.4505 36.815 17.4845 38.7296C16.4468 40.7857 19.7855 42.2771 20.8194 40.2297C21.6715 38.5423 23.1065 35.1838 23.9418 34.5246C24.7771 33.8653 27.5191 32.005 29.611 31.3063C29.714 31.2718 29.8076 31.2308 29.8965 31.1853C32.4572 34.301 37.4727 35.7728 41.7506 33.3761C44.0047 32.1131 41.9658 28.9991 39.7051 30.2659C36.5717 32.0227 33.3106 29.7764 31.834 26.9639C30.3572 24.1513 29.3109 22.1716 28.1138 20.1798C30.4515 19.465 32.5888 20.1179 34.2697 22.3747C35.6366 24.2108 38.8341 22.4501 37.4515 20.5923C34.1982 16.2245 29.3473 15.1405 24.4906 17.9047C24.2888 18.0196 23.377 18.5013 23.1716 18.6182C20.1526 20.3365 17.3469 20.0107 15.2518 17.197C13.8838 15.3608 10.687 17.1215 12.0706 18.979C14.7437 22.5689 18.4968 23.9351 22.4456 22.7752Z" fill="white"/>
-									<defs>
-									<linearGradient id="paint0_linear_42_4" x1="26.7306" y1="0.207765" x2="55.2306" y2="56.2078" gradientUnits="userSpaceOnUse">
-									<stop stop-color="#6A10C5"/>
-									<stop offset="1" stop-color="#0B2A97"/>
-									</linearGradient>
-									</defs>
-								</svg>
-								<svg class="brand-title view-light ms-3" width="126" height="28" viewBox="0 0 126 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-									<path class="svg-logo-path" d="M10.6786 0.411763C5.02259 0.411763 0.710591 4.55576 0.710591 10.4078C0.710591 16.2598 5.02259 20.3758 10.7066 20.3758C15.9146 20.3758 19.4706 16.7358 20.2546 12.7598V9.34376H9.67059V12.3398H16.3906C15.8026 15.1118 13.8706 16.8478 10.8466 16.8478C7.20659 16.8478 4.74259 14.3838 4.74259 10.4078C4.74259 6.51576 7.17859 4.02376 10.6786 4.02376C12.7506 4.02376 14.3746 4.89176 15.2706 6.54376H19.7786C18.5186 2.62376 15.0466 0.411763 10.6786 0.411763ZM29.7628 15.5318L25.7588 4.69576H21.3628L27.5788 19.8158L24.2188 27.5438H28.3908L37.9948 4.69576H33.8228L29.7628 15.5318Z" fill="#262626"/>
-									<path class="svg-logo-path" d="M61.8079 20.2078H65.7279V11.1078C65.7279 6.82376 63.0959 4.47176 59.3719 4.47176C57.1039 4.47176 55.0599 5.67576 54.0519 7.43976C52.9879 5.50776 50.9999 4.47176 48.5919 4.47176C46.6599 4.47176 45.0079 5.28376 44.0279 6.57176V4.69576H40.1079V20.2078H44.0279V11.6398C44.0279 9.17576 45.3999 7.88776 47.5279 7.88776C49.5999 7.88776 50.9719 9.17576 50.9719 11.6398V20.2078H54.8919V11.6398C54.8919 9.17576 56.2639 7.88776 58.3639 7.88776C60.4359 7.88776 61.8079 9.17576 61.8079 11.6398V20.2078ZM84.4277 12.4518C84.4277 7.55176 80.9277 4.44376 76.4477 4.44376C71.9677 4.44376 68.4677 7.55176 68.4677 12.4518C68.4677 17.3238 71.8557 20.4598 76.3357 20.4598C80.8437 20.4598 84.4277 17.3238 84.4277 12.4518ZM72.4437 12.4518C72.4437 9.34376 74.3197 7.85976 76.3917 7.85976C78.4637 7.85976 80.3957 9.34376 80.3957 12.4518C80.3957 15.5318 78.4077 17.0438 76.3357 17.0438C74.2357 17.0438 72.4437 15.5318 72.4437 12.4518ZM85.6512 4.69576L91.3632 20.2078H96.1232L101.863 4.69576H97.6912L93.7712 16.5958L89.8512 4.69576H85.6512ZM110.729 7.66376C112.745 7.66376 114.369 8.95176 114.425 10.9958H107.061C107.369 8.86776 108.853 7.66376 110.729 7.66376ZM118.093 15.3358H113.865C113.361 16.3718 112.437 17.2118 110.757 17.2118C108.797 17.2118 107.229 15.9238 107.033 13.6278H118.373C118.457 13.1238 118.485 12.6198 118.485 12.1158C118.485 7.49576 115.321 4.44376 110.841 4.44376C106.249 4.44376 103.057 7.55176 103.057 12.4518C103.057 17.3238 106.333 20.4598 110.841 20.4598C114.677 20.4598 117.253 18.1918 118.093 15.3358ZM125.462 18.1078C125.462 16.8198 124.454 15.8118 123.082 15.8118C121.654 15.8118 120.646 16.8198 120.646 18.1078C120.646 19.3958 121.654 20.4038 123.082 20.4038C124.454 20.4038 125.462 19.3958 125.462 18.1078Z" fill="#0B2A97"/>
-								</svg>
-								<svg class="brand-title view-dark ms-3" width="126" height="28" viewBox="0 0 126 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-									<path d="M10.6786 0.411763C5.02259 0.411763 0.710591 4.55576 0.710591 10.4078C0.710591 16.2598 5.02259 20.3758 10.7066 20.3758C15.9146 20.3758 19.4706 16.7358 20.2546 12.7598V9.34376H9.67059V12.3398H16.3906C15.8026 15.1118 13.8706 16.8478 10.8466 16.8478C7.20659 16.8478 4.74259 14.3838 4.74259 10.4078C4.74259 6.51576 7.17859 4.02376 10.6786 4.02376C12.7506 4.02376 14.3746 4.89176 15.2706 6.54376H19.7786C18.5186 2.62376 15.0466 0.411763 10.6786 0.411763ZM29.7628 15.5318L25.7588 4.69576H21.3628L27.5788 19.8158L24.2188 27.5438H28.3908L37.9948 4.69576H33.8228L29.7628 15.5318Z" fill="#fff"/>
-									<path d="M61.8079 20.2078H65.7279V11.1078C65.7279 6.82376 63.0959 4.47176 59.3719 4.47176C57.1039 4.47176 55.0599 5.67576 54.0519 7.43976C52.9879 5.50776 50.9999 4.47176 48.5919 4.47176C46.6599 4.47176 45.0079 5.28376 44.0279 6.57176V4.69576H40.1079V20.2078H44.0279V11.6398C44.0279 9.17576 45.3999 7.88776 47.5279 7.88776C49.5999 7.88776 50.9719 9.17576 50.9719 11.6398V20.2078H54.8919V11.6398C54.8919 9.17576 56.2639 7.88776 58.3639 7.88776C60.4359 7.88776 61.8079 9.17576 61.8079 11.6398V20.2078ZM84.4277 12.4518C84.4277 7.55176 80.9277 4.44376 76.4477 4.44376C71.9677 4.44376 68.4677 7.55176 68.4677 12.4518C68.4677 17.3238 71.8557 20.4598 76.3357 20.4598C80.8437 20.4598 84.4277 17.3238 84.4277 12.4518ZM72.4437 12.4518C72.4437 9.34376 74.3197 7.85976 76.3917 7.85976C78.4637 7.85976 80.3957 9.34376 80.3957 12.4518C80.3957 15.5318 78.4077 17.0438 76.3357 17.0438C74.2357 17.0438 72.4437 15.5318 72.4437 12.4518ZM85.6512 4.69576L91.3632 20.2078H96.1232L101.863 4.69576H97.6912L93.7712 16.5958L89.8512 4.69576H85.6512ZM110.729 7.66376C112.745 7.66376 114.369 8.95176 114.425 10.9958H107.061C107.369 8.86776 108.853 7.66376 110.729 7.66376ZM118.093 15.3358H113.865C113.361 16.3718 112.437 17.2118 110.757 17.2118C108.797 17.2118 107.229 15.9238 107.033 13.6278H118.373C118.457 13.1238 118.485 12.6198 118.485 12.1158C118.485 7.49576 115.321 4.44376 110.841 4.44376C106.249 4.44376 103.057 7.55176 103.057 12.4518C103.057 17.3238 106.333 20.4598 110.841 20.4598C114.677 20.4598 117.253 18.1918 118.093 15.3358ZM125.462 18.1078C125.462 16.8198 124.454 15.8118 123.082 15.8118C121.654 15.8118 120.646 16.8198 120.646 18.1078C120.646 19.3958 121.654 20.4038 123.082 20.4038C124.454 20.4038 125.462 19.3958 125.462 18.1078Z" fill="#fff"/>
-								</svg>
-							</a>
+							@if (! empty($logoPaths))
+								<div id="company-logo-carousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="2200" data-bs-pause="false">
+									<div class="carousel-inner">
+										@foreach ($logoPaths as $logoPath)
+											<div class="carousel-item {{ $loop->first ? 'active' : '' }}">
+												<img src="{{ $logoPath }}" alt="Logo Perusahaan" style="max-width: 220px; width: 100%; height: 84px; object-fit: contain;">
+											</div>
+										@endforeach
+									</div>
+								</div>
+							@else
+								<a href="{{ route('login') }}" class="brand-logo" aria-label="Andalan Migration">
+									<span class="fw-semibold">Andalan Migration</span>
+								</a>
+							@endif
 						</div>
 						<h4 class="text-center mb-4">Sign in your account</h4>
-						<form action="index.html">
+						@if ($errors->any())
+							<div class="alert alert-danger">
+								{{ $errors->first() }}
+							</div>
+						@endif
+						<form id="login-form" action="{{ route('login.store') }}" method="POST">
+							@csrf
 							<div class="form-group mb-3">
 								<label class="form-label"><strong>Email</strong></label>
-								<input type="email" class="form-control form-control-lg" value="hello@example.com">
+								<input type="email" name="email" class="form-control form-control-lg" value="{{ old('email') }}" required autocomplete="email" autofocus>
 							</div>
 							<div class="form-group mb-3">
 								<label class="form-label"><strong>Password</strong></label>
 								<div class="position-relative">
-									<input type="password" autocomplete="current-password" class="form-control form-control-lg dz-password" placeholder="Enter your password" value="Password">
+									<input type="password" name="password" autocomplete="current-password" class="form-control form-control-lg dz-password" placeholder="Enter your password" required>
 									<span class="show-pass position-absolute top-50 end-0 me-2 translate-middle">
 										<span class="show"><i class="fa fa-eye-slash"></i></span>
 										<span class="hide"><i class="fa fa-eye"></i></span>
@@ -94,22 +95,15 @@
 							<div class="form-row d-flex justify-content-between mt-4 mb-2 flex-wrap">
 								<div class="form-group mb-3">
 								   <div class="custom-control custom-checkbox ms-1">
-										<input type="checkbox" class="form-check-input" id="basic_checkbox_1">
+										<input type="checkbox" name="remember" class="form-check-input" id="basic_checkbox_1" {{ old('remember') ? 'checked' : '' }}>
 										<label class="form-check-label" for="basic_checkbox_1">Remember my preference</label>
 									</div>
-								</div>
-								<div class="form-group">
-									<a href="pages/forgot-password.html">Forgot Password?</a>
 								</div>
 							</div>
 							<div class="text-center">
 								<button type="submit" class="btn btn-primary btn-lg w-100">Sign Me In</button>
 							</div>
 						</form>
-						<div class="mt-3">
-							<p>Don't have an account? <a class="text-primary" href="pages/register.html">Sign up</a></p>
-				
-						</div>
 					</div>
                 </div>
             </div>
@@ -123,15 +117,93 @@
 	<script src="vendor/bootstrap-select/dist/js/bootstrap-select.min.js"></script>
 	<script src="vendor/@yaireo/tagify/dist/tagify.js"></script>
 	<script src="vendor/metismenu/dist/metisMenu.min.js"></script>
-	<script src="vendor/chart-js/chart.bundle.min.js"></script>
+	{{-- <script src="vendor/chart-js/chart.bundle.min.js"></script> --}}
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         
 	<!-- Script For Custom JS -->
-	<script src="js/deznav-init.js"></script>
-    <script src="js/custom.js"></script>
+	{{-- <script src="js/deznav-init.js"></script>
+    <script src="js/custom.js"></script> --}}
 	
 	<!-- Script For Multiple Languages -->
-	<script src="vendor/i18n/i18n.js"></script>
-	<script src="js/translator.js"></script>
+	{{-- <script src="vendor/i18n/i18n.js"></script>
+	<script src="js/translator.js"></script> --}}
+	<script>
+		(function () {
+			const loginForm = document.getElementById('login-form');
+			const submitButton = loginForm?.querySelector('button[type="submit"]');
+
+			if (!loginForm || typeof Swal === 'undefined') {
+				return;
+			}
+
+			loginForm.addEventListener('submit', async function (event) {
+				event.preventDefault();
+
+				if (submitButton) {
+					submitButton.disabled = true;
+				}
+
+				try {
+					const response = await fetch(loginForm.action, {
+						method: 'POST',
+						headers: {
+							'Accept': 'application/json',
+							'X-Requested-With': 'XMLHttpRequest',
+						},
+						credentials: 'same-origin',
+						body: new FormData(loginForm),
+					});
+
+					if (response.ok) {
+						const payload = await response.json();
+
+						await Swal.fire({
+							icon: 'success',
+							title: 'Login Berhasil',
+							text: payload.message ?? 'Anda akan diarahkan ke dashboard.',
+							timer: 1800,
+							timerProgressBar: true,
+							allowOutsideClick: false,
+							allowEscapeKey: false,
+							confirmButtonText: 'OK',
+						});
+
+						window.location.href = payload.redirect ?? "{{ route('dashboard') }}";
+						return;
+					}
+
+					let message = 'Email atau password tidak sesuai.';
+
+					if (response.status === 422) {
+						const payload = await response.json();
+						const firstErrorGroup = payload?.errors ? Object.values(payload.errors)[0] : null;
+
+						if (Array.isArray(firstErrorGroup) && firstErrorGroup.length > 0) {
+							message = String(firstErrorGroup[0]);
+						}
+					}
+
+					await Swal.fire({
+						icon: 'error',
+						title: 'Login Gagal',
+						text: message,
+						confirmButtonText: 'Coba Lagi',
+					});
+				} catch (error) {
+					await Swal.fire({
+						icon: 'error',
+						title: 'Terjadi Kesalahan',
+						text: 'Tidak dapat memproses login saat ini.',
+						confirmButtonText: 'Tutup',
+					});
+				} finally {
+					if (submitButton) {
+						submitButton.disabled = false;
+					}
+				}
+			});
+		})();
+	</script>
 	
 </body>
 </html>

@@ -4,7 +4,7 @@
     margin-right: auto;
 }
 
-.dashboard-menu-carousel {
+/* .dashboard-menu-carousel {
     position: relative;
 }
 
@@ -50,31 +50,96 @@
 
 .dashboard-menu-carousel .owl-nav .owl-next {
     right: 0.4rem;
-}
+} */
 
 .dashboard-shortcut-menu {
     margin-top: 18px;
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 20px 18px;
+    gap: 44px 36px;
 }
 
 .dashboard-shortcut-item {
     position: relative;
     width: 100%;
     min-height: 0;
-    aspect-ratio: 1 / 1;
-    height: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
+    gap: 10px;
+    height: auto;
+    padding: 0;
     text-decoration: none;
-    border-radius: 1.35rem;
-    border: 1px solid rgba(31, 43, 84, 0.12);
-    background: #f1f1f1;
-    box-shadow: 0 6px 14px rgba(31, 43, 84, 0.16);
-    overflow: hidden;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+}
+
+.dashboard-shortcut-box {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.6rem;
+    border-radius: 1rem;
+    background: #ffffff;
+}
+
+.dashboard-shortcut-icon-image {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+}
+
+@media (min-width: 1200px) {
+    .dashboard-shortcut-icon-image {
+        width: 100px;
+        height: 100px;
+    }
+
+    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(1) {
+        order: 1;
+    }
+
+    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(2) {
+        order: 2;
+    }
+
+    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(3) {
+        order: 3;
+    }
+
+    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(4) {
+        order: 4;
+    }
+
+    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(6) {
+        order: 5;
+    }
+
+    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(5) {
+        order: 6;
+    }
+
+    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(7) {
+        order: 7;
+    }
+
+    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(8) {
+        order: 8;
+    }
+}
+
+.dashboard-shortcut-text {
+    font-family: 'Poppins', sans-serif;
+    color: #1f2124;
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.25;
+    text-align: center;
 }
 
 .dashboard-shortcut-hero {
@@ -131,6 +196,48 @@
     line-height: 1.2;
 }
 
+.attendance-card {
+    border-radius: 1rem;
+}
+
+.attendance-item {
+    background: #f4f4f4;
+    border-radius: 0.9rem;
+    padding: 1rem 1.15rem;
+}
+
+.attendance-name {
+    margin-bottom: 0.4rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1b1b1b;
+}
+
+.attendance-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    color: #737373;
+    font-size: 1.05rem;
+}
+
+.attendance-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+    white-space: nowrap;
+}
+
+.attendance-chip i {
+    font-size: 1rem;
+    color: #8b8b8b;
+}
+
+.attendance-separator {
+    color: #9c9c9c;
+}
+
 @media (max-width: 1199.98px) {
     .dashboard-shortcut-menu {
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -140,23 +247,38 @@
         min-height: 0;
     }
 
+    .dashboard-shortcut-text {
+        font-size: 1rem;
+    }
+
     .dashboard-shortcut-hero {
         min-height: 0;
         flex-basis: 68%;
         height: auto;
         border-radius: 1.1rem 1.1rem 124% 124% / 1.1rem 1.1rem 116% 116%;
     }
+
+    .attendance-name {
+        font-size: 1.2rem;
+    }
+
+    .attendance-meta {
+        font-size: 0.95rem;
+    }
 }
 
 @media (max-width: 1024px) {
     .dashboard-shortcut-menu {
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 16px 14px;
+        gap: 44px 36px;
         margin-top: 14px;
     }
 
     .dashboard-shortcut-item {
         min-height: 0;
+    }
+
+    .dashboard-shortcut-box {
         border-radius: 1rem;
     }
 
@@ -189,15 +311,28 @@
 
 @media (max-width: 767.98px) {
     .dashboard-shortcut-menu {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px 10px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        /* grid-template-rows: repeat(3, minmax(0, 1fr)); */
+        gap: 35px 25px;
     }
 
     .dashboard-shortcut-item {
         min-height: 0;
-        aspect-ratio: 1 / 1;
+        gap: 8px;
+    }
+
+    .dashboard-shortcut-box {
         border-radius: 0.85rem;
-        justify-content: flex-start;
+        padding: 0.45rem;
+    }
+
+    .dashboard-shortcut-icon-image {
+        width: 42px;
+        height: 42px;
+    }
+
+    .dashboard-shortcut-text {
+        font-size: 0.95rem;
     }
 
     .dashboard-shortcut-hero {
@@ -230,16 +365,44 @@
         font-size: 13px;
         line-height: 1.15;
     }
+
+    .attendance-item {
+        padding: 0.9rem 1rem;
+    }
+
+    .attendance-name {
+        font-size: 1.05rem;
+    }
+
+    .attendance-meta {
+        font-size: 0.85rem;
+        gap: 0.35rem;
+    }
 }
 
 @media (max-width: 480px) {
     .dashboard-shortcut-menu {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 11px 9px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        /* grid-template-rows: repeat(3, minmax(0, 1fr)); */
+        gap: 30px 30px;
     }
 
     .dashboard-shortcut-item {
+        gap: 7px;
+    }
+
+    .dashboard-shortcut-box {
         border-radius: 0.8rem;
+        padding: 0.35rem;
+    }
+
+    .dashboard-shortcut-icon-image {
+        width: 34px;
+        height: 34px;
+    }
+
+    .dashboard-shortcut-text {
+        font-size: 0.8rem;
     }
 
     .dashboard-shortcut-hero {
@@ -283,7 +446,7 @@
         padding: 4px 3px 6px;
     }
 
-    .dashboard-menu-carousel .owl-nav button {
+    /* .dashboard-menu-carousel .owl-nav button {
         width: 2.25rem;
         height: 2.25rem;
     }
@@ -291,5 +454,5 @@
     .dashboard-menu-carousel .owl-nav button i,
     .dashboard-menu-carousel .owl-nav button span {
         font-size: 1.1rem;
-    }
+    } */
 }

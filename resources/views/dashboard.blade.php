@@ -36,7 +36,7 @@
                                 </div>
                                 <div>
                                     <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar bg-success position-absolute rounded bootom-0" style="width: 76%; height:5px;" aria-label="Progess-success" role="progressbar">
+                                        <div class="progress-bar bg-success position-absolute rounded bootom-0" style="width: 100%; height:5px;" aria-label="Progess-success" role="progressbar">
                                             <span class="sr-only">76% Complete</span>
                                         </div>
                                     </div>
@@ -62,7 +62,7 @@
                                 </div>
                                 <div>
                                     <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-secondary" style="width: 58%; height:5px;" aria-label="Progess-secondary" role="progressbar">
+                                        <div class="progress-bar rounded bg-secondary" style="width: 100%; height:5px;" aria-label="Progess-secondary" role="progressbar">
                                             <span class="sr-only">58% Complete</span>
                                         </div>
                                     </div>
@@ -88,7 +88,7 @@
                                 </div>
                                 <div>
                                     <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-danger" style="width: 97%; height:5px;" aria-label="Progess-danger"  role="progressbar">
+                                        <div class="progress-bar rounded bg-danger" style="width: 100%; height:5px;" aria-label="Progess-danger"  role="progressbar">
                                             <span class="sr-only">97% Complete</span>
                                         </div>
                                     </div>
@@ -114,7 +114,7 @@
                                 </div>
                                 <div>
                                     <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-warning" style="width: 64%; height:5px;" role="progressbar">
+                                        <div class="progress-bar rounded bg-warning" style="width: 100%; height:5px;" role="progressbar">
                                             <span class="sr-only">64% Complete</span>
                                         </div>
                                     </div>
@@ -140,7 +140,7 @@
                                 </div>
                                 <div>
                                     <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-primary" style="width: 70%; height:5px;" role="progressbar">
+                                        <div class="progress-bar rounded bg-primary" style="width: 100%; height:5px;" role="progressbar">
                                             <span class="sr-only">70% Complete</span>
                                         </div>
                                     </div>
@@ -166,7 +166,7 @@
                                 </div>
                                 <div>
                                     <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-info" style="width: 54%; height:5px;" role="progressbar">
+                                        <div class="progress-bar rounded bg-info" style="width: 100%; height:5px;" role="progressbar">
                                             <span class="sr-only">54% Complete</span>
                                         </div>
                                     </div>
@@ -180,98 +180,63 @@
 
             </div>
 
-            <div class="row mt-4">
-                <div class="col-xl-12">
+            <div class="row">
+                <div class="col-xl-12 mb-3">
+                    <h4 class="mb-3">Menu</h4>
                     <div class="dashboard-shortcut-menu">
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                            <span class="dashboard-shortcut-hero">
-                                <i class="bx bx-notepad dashboard-shortcut-icon" aria-hidden="true"></i>
-                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Absensi">
+                            <span class="dashboard-shortcut-box">
+                                <img src="{{ asset('assets/icon-menus/bx-calendar-check.svg.svg') }}" alt="Icon Absensi" class="dashboard-shortcut-icon-image">
                             </span>
-                            <span class="dashboard-shortcut-label">Laporan Pekerjaan</span>
+                            <span class="dashboard-shortcut-text">Absensi</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                            <span class="dashboard-shortcut-hero">
-                                <i class="bx bx-calendar-alt dashboard-shortcut-icon" aria-hidden="true"></i>
-                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Agenda">
+                            <span class="dashboard-shortcut-box">
+                                <img src="{{ asset('assets/icon-menus/bx-calendar.svg.svg') }}" alt="Icon Agenda" class="dashboard-shortcut-icon-image">
                             </span>
-                            <span class="dashboard-shortcut-label">Agenda Kegiatan</span>
+                            <span class="dashboard-shortcut-text">Agenda</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                            <span class="dashboard-shortcut-hero">
-                                <i class="bx bx-fingerprint dashboard-shortcut-icon" aria-hidden="true"></i>
-                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Blog">
+                            <span class="dashboard-shortcut-box">
+                                <img src="{{ asset('assets/icon-menus/bxs-detail.svg.svg') }}" alt="Icon Blog" class="dashboard-shortcut-icon-image">
                             </span>
-                            <span class="dashboard-shortcut-label">Data Absensi</span>
+                            <span class="dashboard-shortcut-text">Blog</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                            <span class="dashboard-shortcut-hero">
-                                <i class="bx bx-id-card dashboard-shortcut-icon" aria-hidden="true"></i>
-                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Project">
+                            <span class="dashboard-shortcut-box">
+                                <img src="{{ asset('assets/icon-menus/bx-task.svg.svg') }}" alt="Icon Project" class="dashboard-shortcut-icon-image">
                             </span>
-                            <span class="dashboard-shortcut-label">Data Pelamar</span>
+                            <span class="dashboard-shortcut-text">Project</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                            <span class="dashboard-shortcut-hero">
-                                <i class="bx bx-group dashboard-shortcut-icon" aria-hidden="true"></i>
-                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Profile">
+                            <span class="dashboard-shortcut-box">
+                                <img src="{{ asset('assets/icon-menus/bx-user-pin.svg.svg') }}" alt="Icon Profile" class="dashboard-shortcut-icon-image">
                             </span>
-                            <span class="dashboard-shortcut-label">Data Karyawan</span>
+                            <span class="dashboard-shortcut-text">Profile</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                            <span class="dashboard-shortcut-hero">
-                                <i class="bx bx-news dashboard-shortcut-icon" aria-hidden="true"></i>
-                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Meeting">
+                            <span class="dashboard-shortcut-box">
+                                <img src="{{ asset('assets/icon-menus/bxl-zoom.svg.svg') }}" alt="Icon Meeting" class="dashboard-shortcut-icon-image">
                             </span>
-                            <span class="dashboard-shortcut-label">Blog Management</span>
+                            <span class="dashboard-shortcut-text">Meeting</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                            <span class="dashboard-shortcut-hero">
-                                <i class="bx bx-folder dashboard-shortcut-icon" aria-hidden="true"></i>
-                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Finance">
+                            <span class="dashboard-shortcut-box">
+                                <img src="{{ asset('assets/icon-menus/wallet-filled-money-tool 1.svg') }}" alt="Icon Finance" class="dashboard-shortcut-icon-image">
                             </span>
-                            <span class="dashboard-shortcut-label">Project List</span>
+                            <span class="dashboard-shortcut-text">Finance</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                            <span class="dashboard-shortcut-hero">
-                                <i class="bx bx-wallet dashboard-shortcut-icon" aria-hidden="true"></i>
-                                <span class="dashboard-shortcut-subtitle">Halaman</span>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Lainnya">
+                            <span class="dashboard-shortcut-box">
+                                <img src="{{ asset('assets/icon-menus/upload-rounded-symbol 1.svg') }}" alt="Icon Lainnya" class="dashboard-shortcut-icon-image">
                             </span>
-                            <span class="dashboard-shortcut-label">Finance Management</span>
-                        </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                            <span class="dashboard-shortcut-hero">
-                                <i class="bx bx-file dashboard-shortcut-icon" aria-hidden="true"></i>
-                                <span class="dashboard-shortcut-subtitle">Halaman</span>
-                            </span>
-                            <span class="dashboard-shortcut-label">Administration Management</span>
-                        </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                            <span class="dashboard-shortcut-hero">
-                                <i class="bx bx-slider-alt dashboard-shortcut-icon" aria-hidden="true"></i>
-                                <span class="dashboard-shortcut-subtitle">Halaman</span>
-                            </span>
-                            <span class="dashboard-shortcut-label">Options</span>
-                        </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                            <span class="dashboard-shortcut-hero">
-                                <i class="bx bx-user-circle dashboard-shortcut-icon" aria-hidden="true"></i>
-                                <span class="dashboard-shortcut-subtitle">Halaman</span>
-                            </span>
-                            <span class="dashboard-shortcut-label">My Profile</span>
-                        </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card">
-                            <span class="dashboard-shortcut-hero">
-                                <i class="bx bx-video dashboard-shortcut-icon" aria-hidden="true"></i>
-                                <span class="dashboard-shortcut-subtitle">Halaman</span>
-                            </span>
-                            <span class="dashboard-shortcut-label">Zoom Meeting</span>
+                            <span class="dashboard-shortcut-text">Lainnya</span>
                         </a>
                     </div>
                 </div>
             </div>
 
-            <div class="col-xl-12 col-xxl-12 mt-5">
+            <div class="col-xl-12 col-xxl-12 mt-3">
                 <div class="row">
                 
                     <!-- Start - Featured Diet Menu -->
@@ -295,7 +260,7 @@
                                 <div class="d-flex">
                                     <img src="images/menus/2.avif" alt="menus" class="avatar avatar-lg rounded me-3">
                                     <div>
-                                        <h5><a href="food-menu.html" class="text-black fs-16">Dimas</a></h5>
+                                        <h5><a href="food-menu.html" class="text-black fs-16">Dimas Prayoga</a></h5>
                                         <span class="fs-14 text-primary"><i class="bx bx-time-five me-1"></i>Masuk 08:00 | <i class="bx bx-time-five ms-1 me-1"></i>Pulang --:--</span>
                                     </div>
                                 </div>
@@ -303,7 +268,7 @@
                                 <div class="d-flex">
                                     <img src="images/menus/3.avif" alt="menus" class="avatar avatar-lg rounded me-3">
                                     <div>
-                                        <h5><a href="food-menu.html" class="text-black fs-16">Famil</a></h5>
+                                        <h5><a href="food-menu.html" class="text-black fs-16">Andre</a></h5>
                                         <span class="fs-14 text-primary"><i class="bx bx-time-five me-1"></i>Masuk 08:00 | <i class="bx bx-time-five ms-1 me-1"></i>Pulang --:--</span>
                                     </div>
                                 </div>

@@ -59,7 +59,7 @@ jQuery(function ($) {
             slideBy: 1,
             autoWidth: false,
             margin: 10,
-            nav: true,
+            nav: false,
             dots: false,
             smartSpeed: 450,
             autoplay: true,
@@ -69,28 +69,24 @@ jQuery(function ($) {
             mouseDrag: true,
             checkVisible: false,
             responsiveRefreshRate: 100,
-            navText: [
-                '<i class="bx bx-chevron-left"></i>',
-                '<i class="bx bx-chevron-right"></i>'
-            ],
             responsive: {
                 0: {
                     items: 1,
                     slideBy: 1,
                     margin: 8,
-                    nav: true
+                    nav: false
                 },
                 768: {
                     items: 2,
                     slideBy: 1,
                     margin: 10,
-                    nav: true
+                    nav: false
                 },
                 1200: {
                     items: 4,
                     slideBy: 1,
                     margin: 12,
-                    nav: true
+                    nav: false
                 }
             }
         });

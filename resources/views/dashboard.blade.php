@@ -184,49 +184,79 @@
                 <div class="col-xl-12 mb-3">
                     <h4 class="mb-3">Menu</h4>
                     <div class="dashboard-shortcut-menu">
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Absensi">
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--absensi shortcut-card" aria-label="Absensi">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bx-calendar-check.svg.svg') }}" alt="Icon Absensi" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Absensi</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Agenda">
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--agenda shortcut-card" aria-label="Agenda">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bx-calendar.svg.svg') }}" alt="Icon Agenda" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Agenda</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Blog">
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--blog shortcut-card" aria-label="Blog">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bxs-detail.svg.svg') }}" alt="Icon Blog" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Blog</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Project">
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--project shortcut-card" aria-label="Project">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bx-task.svg.svg') }}" alt="Icon Project" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Project</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Profile">
-                            <span class="dashboard-shortcut-box">
-                                <img src="{{ asset('assets/icon-menus/bx-user-pin.svg.svg') }}" alt="Icon Profile" class="dashboard-shortcut-icon-image">
-                            </span>
-                            <span class="dashboard-shortcut-text">Profile</span>
-                        </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Meeting">
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--meeting shortcut-card" aria-label="Meeting">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bxl-zoom.svg.svg') }}" alt="Icon Meeting" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Meeting</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Finance">
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--finance shortcut-card" aria-label="Finance">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/wallet-filled-money-tool 1.svg') }}" alt="Icon Finance" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Finance</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item shortcut-card" aria-label="Lainnya">
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--profile shortcut-card" aria-label="Profile">
+                            <span class="dashboard-shortcut-box">
+                                <img src="{{ asset('assets/icon-menus/bx-user-pin.svg.svg') }}" alt="Icon Profile" class="dashboard-shortcut-icon-image">
+                            </span>
+                            <span class="dashboard-shortcut-text">Profile</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--desktop-extra shortcut-card" aria-label="Laporan">
+                            <span class="dashboard-shortcut-box">
+                                <img src="{{ asset('assets/icon-menus/bxs-report.svg.svg') }}" alt="Icon Lainnya" class="dashboard-shortcut-icon-image">
+                            </span>
+                            <span class="dashboard-shortcut-text">Laporan</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--desktop-extra shortcut-card" aria-label="Pelamar">
+                            <span class="dashboard-shortcut-box">
+                                <img src="{{ asset('assets/icon-menus/bx-user-plus.svg.svg') }}" alt="Icon Pelamar" class="dashboard-shortcut-icon-image">
+                            </span>
+                            <span class="dashboard-shortcut-text">Pelamar</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--desktop-extra shortcut-card" aria-label="Karyawan">
+                            <span class="dashboard-shortcut-box">
+                                <img src="{{ asset('assets/icon-menus/bxs-user-detail.svg.svg') }}" alt="Icon Karyawan" class="dashboard-shortcut-icon-image">
+                            </span>
+                            <span class="dashboard-shortcut-text">Karyawan</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--desktop-extra shortcut-card" aria-label="Setting">
+                            <span class="dashboard-shortcut-box">
+                                <img src="{{ asset('assets/icon-menus/bx-slider-alt.svg.svg') }}" alt="Icon Setting" class="dashboard-shortcut-icon-image">
+                            </span>
+                            <span class="dashboard-shortcut-text">Setting</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--desktop-extra shortcut-card" aria-label="Administration">
+                            <span class="dashboard-shortcut-box">
+                                <img src="{{ asset('assets/icon-menus/bxs-credit-card.svg.svg') }}" alt="Icon Administration" class="dashboard-shortcut-icon-image">
+                            </span>
+                            <span class="dashboard-shortcut-text">Administration</span>
+                        </a>
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--mobile-only shortcut-card" aria-label="Lainnya" data-bs-toggle="modal" data-bs-target="#mobileMoreMenuModal" role="button">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/upload-rounded-symbol 1.svg') }}" alt="Icon Lainnya" class="dashboard-shortcut-icon-image">
                             </span>
@@ -236,9 +266,54 @@
                 </div>
             </div>
 
+            <div class="modal fade" id="mobileMoreMenuModal" tabindex="-1" aria-labelledby="mobileMoreMenuModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content dashboard-more-menu-modal">
+                        <div class="modal-header border-0 justify-content-center pb-0">
+                            <h5 class="modal-title fw-semibold" id="mobileMoreMenuModalLabel">Menu Lainnya</h5>
+                        </div>
+                        <div class="modal-body pt-3">
+                            <div class="dashboard-more-menu-track">
+                                <a href="javascript:void(0)" class="dashboard-more-menu-item">
+                                    <span class="dashboard-more-menu-box">
+                                        <img src="{{ asset('assets/icon-menus/bxs-report.svg.svg') }}" alt="Icon Laporan" class="dashboard-more-menu-icon">
+                                    </span>
+                                    <span class="dashboard-more-menu-text">Laporan</span>
+                                </a>
+                                <a href="javascript:void(0)" class="dashboard-more-menu-item">
+                                    <span class="dashboard-more-menu-box">
+                                        <img src="{{ asset('assets/icon-menus/bx-user-plus.svg.svg') }}" alt="Icon Pelamar" class="dashboard-more-menu-icon">
+                                    </span>
+                                    <span class="dashboard-more-menu-text">Pelamar</span>
+                                </a>
+                                <a href="javascript:void(0)" class="dashboard-more-menu-item">
+                                    <span class="dashboard-more-menu-box">
+                                        <img src="{{ asset('assets/icon-menus/bxs-user-detail.svg.svg') }}" alt="Icon Karyawan" class="dashboard-more-menu-icon">
+                                    </span>
+                                    <span class="dashboard-more-menu-text">Karyawan</span>
+                                </a>
+                                <a href="javascript:void(0)" class="dashboard-more-menu-item">
+                                    <span class="dashboard-more-menu-box">
+                                        <img src="{{ asset('assets/icon-menus/bx-slider-alt.svg.svg') }}" alt="Icon Setting" class="dashboard-more-menu-icon">
+                                    </span>
+                                    <span class="dashboard-more-menu-text">Setting</span>
+                                </a>
+                                <a href="javascript:void(0)" class="dashboard-more-menu-item">
+                                    <span class="dashboard-more-menu-box">
+                                        <img src="{{ asset('assets/icon-menus/bxs-credit-card.svg.svg') }}" alt="Icon Administration" class="dashboard-more-menu-icon">
+                                    </span>
+                                    <span class="dashboard-more-menu-text">Admin</span>
+                                </a>
+                            </div>
+                            <button type="button" class="btn btn-danger w-100 mt-4 dashboard-more-menu-back" data-bs-dismiss="modal">Kembali</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="col-xl-12 col-xxl-12 mt-3">
                 <div class="row">
-                
+                    
                     <!-- Start - Featured Diet Menu -->
                     <div class="col-xl-12">
                         <div class="card featuredMenu">

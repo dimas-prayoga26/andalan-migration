@@ -77,6 +77,10 @@
     overflow: visible;
 }
 
+.dashboard-shortcut-item--mobile-only {
+    display: none;
+}
+
 .dashboard-shortcut-box {
     width: 100%;
     aspect-ratio: 1 / 1;
@@ -116,11 +120,11 @@
         order: 4;
     }
 
-    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(6) {
+    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(5) {
         order: 5;
     }
 
-    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(5) {
+    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(6) {
         order: 6;
     }
 
@@ -130,6 +134,22 @@
 
     .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(8) {
         order: 8;
+    }
+
+    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(9) {
+        order: 9;
+    }
+
+    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(10) {
+        order: 10;
+    }
+
+    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(11) {
+        order: 11;
+    }
+
+    .dashboard-shortcut-menu .dashboard-shortcut-item:nth-child(12) {
+        order: 12;
     }
 }
 
@@ -238,6 +258,76 @@
     color: #9c9c9c;
 }
 
+.dashboard-more-menu-modal {
+    border: 0;
+    border-radius: 0.9rem;
+    background: #f4f4f4;
+}
+
+#mobileMoreMenuModal .modal-dialog {
+    max-width: 400px;
+}
+
+.dashboard-more-menu-icon {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+}
+
+.dashboard-more-menu-track {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.35rem;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+}
+
+.dashboard-more-menu-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.55rem;
+    flex: 0 0 auto;
+    min-width: 72px;
+    color: #1f2124;
+    text-decoration: none;
+    scroll-snap-align: start;
+}
+
+.dashboard-more-menu-box {
+    width: 68px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.6rem;
+    background: #e9e9e9;
+}
+
+.dashboard-more-menu-text {
+    font-size: 0.86rem;
+    font-weight: 500;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.dashboard-more-menu-item:hover {
+    color: #1f2124;
+}
+
+.dashboard-more-menu-back {
+    background: #c91930;
+    border-color: #c91930;
+    border-radius: 0.45rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    padding-top: 0.42rem;
+    padding-bottom: 0.42rem;
+}
+
 @media (max-width: 1199.98px) {
     .dashboard-shortcut-menu {
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -333,6 +423,43 @@
 
     .dashboard-shortcut-text {
         font-size: 0.95rem;
+    }
+
+    .dashboard-shortcut-item--desktop-extra {
+        display: none;
+    }
+
+    .dashboard-shortcut-item--mobile-only {
+        display: flex;
+        order: 8;
+    }
+
+    .dashboard-shortcut-item--absensi {
+        order: 1;
+    }
+
+    .dashboard-shortcut-item--agenda {
+        order: 2;
+    }
+
+    .dashboard-shortcut-item--blog {
+        order: 3;
+    }
+
+    .dashboard-shortcut-item--project {
+        order: 4;
+    }
+
+    .dashboard-shortcut-item--profile {
+        order: 5;
+    }
+
+    .dashboard-shortcut-item--meeting {
+        order: 6;
+    }
+
+    .dashboard-shortcut-item--finance {
+        order: 7;
     }
 
     .dashboard-shortcut-hero {

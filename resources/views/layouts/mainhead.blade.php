@@ -57,15 +57,57 @@
 
         .nav-header .brand-logo .logo-mobile {
             display: none;
-            width: 48px;
-            height: auto;
+            width: 42px !important;
+            height: 42px !important;
+            max-width: 42px !important;
+            max-height: 42px !important;
+            object-fit: contain;
+        }
+
+        .nav-header .brand-logo {
+            display: flex !important;
+            align-items: center;
+            justify-content: flex-start !important;
+            gap: 0.45rem;
+            padding-left: 0.85rem !important;
+            padding-right: 0.85rem !important;
         }
 
         .nav-header .brand-logo .logo-desktop {
             display: block;
-            height: auto;
-            width: 210px;
+            width: 70px !important;
+            max-width: 70px !important;
+            max-height: 70px !important;
+            height: auto !important;
+            object-fit: contain;
+            flex: 0 0 auto;
+        }
+
+        .nav-header .logo-company-name {
+            display: block;
+            flex: 1 1 auto;
             max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #000000;
+            line-height: 1.2;
+            margin-top: 10px;
+        }
+
+        #main-wrapper:not(.menu-toggle) .nav-header .brand-logo {
+            justify-content: flex-start !important;
+            padding-left: 0.7rem !important;
+            padding-right: 0.5rem !important;
+        }
+
+        #main-wrapper:not(.menu-toggle)[data-sidebar-style=compact] .nav-header .brand-logo,
+        #main-wrapper:not(.menu-toggle)[data-sidebar-style=mini] .nav-header .brand-logo {
+            justify-content: flex-start !important;
+            padding-left: 0.7rem !important;
+            padding-right: 0.5rem !important;
         }
 
         #main-wrapper.menu-toggle .nav-header .brand-logo .logo-mobile {
@@ -73,6 +115,10 @@
         }
 
         #main-wrapper.menu-toggle .nav-header .brand-logo .logo-desktop {
+            display: none;
+        }
+
+        #main-wrapper.menu-toggle .nav-header .brand-logo .logo-company-name {
             display: none;
         }
 
@@ -100,11 +146,29 @@
         }
 
         @media only screen and (max-width: 1199.98px) {
+            .nav-header {
+                transition: none !important;
+            }
+
+            #main-wrapper .nav-header .brand-logo,
+            #main-wrapper.menu-toggle .nav-header .brand-logo {
+                justify-content: flex-start !important;
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+                gap: 0.35rem !important;
+            }
+
             .nav-header .brand-logo .logo-mobile {
                 display: block;
+                margin: 0 !important;
+                transform: none !important;
             }
 
             .nav-header .brand-logo .logo-desktop {
+                display: none;
+            }
+
+            .nav-header .brand-logo .logo-company-name {
                 display: none;
             }
         }

@@ -3,14 +3,14 @@
             <div class="deznav-scroll">
 				<ul class="metismenu" id="menu">
                     <li class="nav-label first">Main</li>
-                    <li>
-						<a href="{{ url('/') }}" class="ai-icon" aria-expanded="false">
+                    <li class="{{ request()->routeIs('dashboard') ? 'mm-active' : '' }}">
+						<a href="{{ route('dashboard') }}" class="ai-icon {{ request()->routeIs('dashboard') ? 'active' : '' }}" aria-expanded="{{ request()->routeIs('dashboard') ? 'true' : 'false' }}">
 							<i class="bi bi-house-door"></i>
 							<span class="nav-text">Dashboard</span>
 						</a>
 					</li>
                     <li>
-						<a href="{{ url('/agenda') }}" class="ai-icon" aria-expanded="false">
+						<a href="{{ route('agenda') }}" class="ai-icon" aria-expanded="false">
 							<i class="bi bi-calendar-event"></i>
 							<span class="nav-text">Agenda Kegiatan</span>
 						</a>

@@ -28,15 +28,25 @@ class AuthController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+        $authenticatedUser = $request->user();
+        $tenant = 'admin';
+
+        if (! $authenticatedUser?->hasAnyRole(['superuser'])) {
+            $companyName = $authenticatedUser?->company?->name;
+            abort_if($companyName === null, 403);
+            $tenant = $companyName;
+        }
+
+        $dashboardUrl = route('dashboard', ['tenant' => $tenant]);
 
         if ($request->expectsJson()) {
             return response()->json([
                 'message' => 'Login berhasil.',
-                'redirect' => route('dashboard'),
+                'redirect' => $dashboardUrl,
             ]);
         }
 
-        return redirect()->intended('/');
+        return redirect()->intended($dashboardUrl);
     }
 
     public function destroy(Request $request): RedirectResponse

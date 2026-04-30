@@ -8,10 +8,26 @@
     <div id="main-wrapper">
 
         <!-- Start - Nav header -->
+         @php
+            $companyLogoFilename = trim((string) (auth()->user()?->company?->images ?? ''));
+            $companyDisplayName = trim((string) (auth()->user()?->company?->name ?? ''));
+            $companyLogoPublicPath = $companyLogoFilename !== ''
+                ? public_path('assets/logo_perusahaan/'.$companyLogoFilename)
+                : null;
+            $companyLogoUrl = $companyLogoPublicPath !== null && file_exists($companyLogoPublicPath)
+                ? asset('assets/logo_perusahaan/'.rawurlencode($companyLogoFilename))
+                : asset('images/logo.png');
+            $companyMobileLogoUrl = $companyLogoPublicPath !== null && file_exists($companyLogoPublicPath)
+                ? $companyLogoUrl
+                : asset('images/favicon.png');
+        @endphp
          <div class="nav-header">
-            <a href="{{ url('/') }}" class="brand-logo" aria-label="Andalan Bersama Group">
-                <img class="logo-mobile" src="{{ asset('images/favicon.png') }}" alt="Andalan Bersama Group Icon" width="48">
-                <img class="logo-desktop" src="{{ asset('images/logo.png') }}" alt="Andalan Bersama Group Logo">
+            <a href="{{ route('home') }}" class="brand-logo" aria-label="Andalan Bersama Group">
+                <img class="logo-mobile" src="{{ $companyMobileLogoUrl }}" alt="Andalan Bersama Group Icon">
+                <img class="logo-desktop" src="{{ $companyLogoUrl }}" alt="Andalan Bersama Group Logo">
+                <span class="logo-company-name">
+                    {{ $companyDisplayName !== '' ? $companyDisplayName : 'Andalan Bersama Group' }}
+                </span>
             </a>
 
             <div class="nav-control">

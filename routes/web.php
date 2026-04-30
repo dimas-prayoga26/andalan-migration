@@ -10,25 +10,42 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/', function () {
-        return view('dashboard');
-    })->name('dashboard');
+        $authenticatedUser = auth()->user();
 
-    Route::get('/project-management', function () {
-        return view('project_management.index');
-    })->name('project_management');
+        if ($authenticatedUser?->hasAnyRole(['admin', 'superuser'])) {
+            return redirect()->route('dashboard', ['tenant' => 'admin']);
+        }
 
-    Route::get('/project-management/detail', function () {
-        return view('project_management.detail');
-    })->name('project_management.detail');
+        $companyName = $authenticatedUser?->company?->name;
 
+        abort_if($companyName === null, 403);
 
-    Route::get('/applicant', function () {
-        return view('applicant_data.index');
-    })->name('applicant');
+        return redirect()->route('dashboard', ['tenant' => $companyName]);
+    })->name('home');
 
-    Route::get('/agenda', function () {
-        return view('agenda');
-    })->name('agenda');
+    Route::prefix('/{tenant}/page')
+        ->middleware('company.context')
+        ->group(function (): void {
+            Route::get('/dashboard', function () {
+                return view('dashboard');
+            })->name('dashboard');
+
+            Route::get('/project-management', function () {
+                return view('project_management.index');
+            })->name('project_management');
+
+            Route::get('/project-management/detail', function () {
+                return view('project_management.detail');
+            })->name('project_management.detail');
+
+            Route::get('/applicant', function () {
+                return view('applicant_data.index');
+            })->name('applicant');
+
+            Route::get('/agenda', function () {
+                return view('agenda');
+            })->name('agenda');
+        });
 
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
 });

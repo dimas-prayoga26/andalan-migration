@@ -11,6 +11,7 @@
 					</li>
                     <li>
 						<a href="{{ route('agenda') }}" class="ai-icon" aria-expanded="false">
+						<a href="javascript:void(0)" class="ai-icon" aria-expanded="false">
 							<i class="bi bi-calendar-event"></i>
 							<span class="nav-text">Agenda Kegiatan</span>
 						</a>
@@ -18,7 +19,7 @@
 
                     <li class="nav-label">Data Siap</li>
                     <li>
-						<a href="javascript:void(0)" class="ai-icon" aria-expanded="false">
+						<a href="{{ route('absensi') }}" class="ai-icon" aria-expanded="false">
 							<i class="bi bi-archive"></i>
 							<span class="nav-text">Data Absensi</span>
 						</a>

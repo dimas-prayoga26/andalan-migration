@@ -1,5 +1,14 @@
 <?php
 
+<<<<<<< HEAD
+=======
+use App\Http\Controllers\AbsensiController;
+>>>>>>> 8a4f1a0790dd8b5a5f6450921a45bab2660f51fc
+use App\Models\Absensi\Absen;
+use App\Models\Absensi\Izin;
+use App\Models\Absensi\Lembur;
+
+use Carbon\Carbon;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -42,10 +51,9 @@ Route::middleware('auth')->group(function (): void {
                 return view('applicant_data.index');
             })->name('applicant');
 
-            Route::get('/agenda', function () {
-                return view('agenda');
-            })->name('agenda');
-        });
+    Route::get('/agenda', function () {
+        return view('agenda');
+    })->name('agenda');
 
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
 });

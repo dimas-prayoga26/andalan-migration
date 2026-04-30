@@ -1,9 +1,6 @@
 <?php
 
-<<<<<<< HEAD
-=======
 use App\Http\Controllers\AbsensiController;
->>>>>>> 8a4f1a0790dd8b5a5f6450921a45bab2660f51fc
 use App\Models\Absensi\Absen;
 use App\Models\Absensi\Izin;
 use App\Models\Absensi\Lembur;

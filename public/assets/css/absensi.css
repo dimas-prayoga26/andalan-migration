@@ -1,0 +1,117 @@
+.ag-tab.active {
+    background: #1e3fb4;
+    border-color: #1e3fb4;
+    color: #fff;
+}
+.ag-tab:hover:not(.active) {
+    background: #f3f4f6;
+}
+
+/* Panel show/hide */
+.ag-panel {
+    display: none;
+}
+.ag-panel.active {
+    display: block;
+}
+
+/* Kalender — grid 7 kolom, Bootstrap tidak punya */
+.ag-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    text-align: center;
+}
+.ag-cal-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #374151;
+    position: relative;
+}
+.ag-cal-day:hover {
+    background: #f3f4f6;
+}
+.ag-cal-day.today {
+    background: #1e3fb4;
+    color: #fff;
+    font-weight: 600;
+}
+.ag-cal-day.muted {
+    color: #d1d5db;
+}
+
+.ag-cal-day.has-dot {
+    position: relative;
+    color: #1e3fb4;
+    font-weight: bold;
+    background: #e5e8ff;
+    border-radius: 8px;
+}
+
+.ag-cal-day.has-dot::after {
+    content: "";
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #1e3fb4;
+}
+.ag-cal-day.today.has-dot::after {
+    background: #fff;
+}
+
+/* Jam — tabular nums agar angka tidak goyang */
+#ag-live-clock {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Badge warna kustom (Bootstrap tidak punya amber/purple ini) */
+.badge-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+.badge-approved {
+    background: #d1fae5;
+    color: #065f46;
+}
+.badge-rejected {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Dot legenda */
+.ag-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.ag-cal-day.holiday {
+    color: #dc3545;
+    font-weight: bold;
+    background: #ffe5e5;
+    border-radius: 8px;
+}
+
+.ag-cal-day.izin {
+    color: #f59e0b;
+    font-weight: bold;
+    background: #fffbe5;
+    border-radius: 8px;
+}
+
+.ag-cal-day.lembur {
+    color: #8e3aee;
+    font-weight: bold;
+    background: #f1e5ff;
+    border-radius: 8px;
+}

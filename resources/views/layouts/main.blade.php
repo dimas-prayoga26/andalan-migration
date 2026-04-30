@@ -2,7 +2,7 @@
 
 <body>
 
-    @include('layouts.loader')
+    {{-- @include('layouts.loader') --}}
 
     <!-- Start - Main Wrapper -->
     <div id="main-wrapper">
@@ -67,11 +67,11 @@
 					},
 					882:{
 						items:3
-					},	
+					},
 					1200:{
 						items:2
-					},			
-					
+					},
+
 					1540:{
 						items:3
 					},
@@ -79,12 +79,12 @@
 						items:4
 					}
 				}
-			})			
+			})
 		}
 		jQuery(window).on('load',function(){
 			setTimeout(function(){
 				carouselReview();
-			}, 1000); 
+			}, 1000);
 		});
 	</script>
 

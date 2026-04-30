@@ -13,10 +13,9 @@
 
     {{-- ── Tab Navigation ── --}}
     <div class="d-flex flex-wrap gap-2 mb-4">
-        <button class="btn btn-sm btn-outline-primary rounded-pill px-3 ag-tab active" onclick="agSwitchTab('beranda', this)">Beranda</button>
-        <button class="btn btn-sm btn-outline-primary rounded-pill px-3 ag-tab" onclick="agSwitchTab('izin', this)">Izin</button>
+        <button class="btn btn-sm btn-outline-primary rounded-pill px-3 ag-tab active" onclick="agSwitchTab('beranda', this)">Absensi</button>
+        <button class="btn btn-sm btn-outline-primary rounded-pill px-3 ag-tab" onclick="agSwitchTab('izin', this)">Lembur</button>
         <button class="btn btn-sm btn-outline-primary rounded-pill px-3 ag-tab" onclick="agSwitchTab('cuti', this)">Cuti</button>
-        <button class="btn btn-sm btn-outline-primary rounded-pill px-3 ag-tab" onclick="agSwitchTab('sakit', this)">Sakit</button>
     </div>
 
     @include('absensi.absen')
@@ -30,6 +29,7 @@
 @endsection
 
 @section('script')
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
 // ── TAB ─────────────────────────────────
 function agSwitchTab(name, el) {

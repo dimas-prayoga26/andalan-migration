@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Absensi\Absen;
 use App\Models\Absensi\Izin;
 use App\Models\Absensi\Lembur;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -24,5 +25,6 @@ class DatabaseSeeder extends Seeder
         Absen::factory(4)->create();
         Izin::factory(2)->create();
         Lembur::factory(4)->create();
+        $this->call(UserSeeder::class);
     }
 }

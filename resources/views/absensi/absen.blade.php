@@ -11,8 +11,19 @@
                 <div id="ag-live-date" class="small text-muted">Memuat tanggal…</div>
             </div>
             <div class="d-flex gap-2">
-                <button class="btn btn-sm px-3 btn-primary text-white" onclick="agAbsen('masuk')">
-                    <i class="bi bi-box-arrow-in-right me-1"></i> Absen Masuk
+                <button
+                    id="btn-absen"
+                    class="btn btn-sm px-3 btn-primary d-flex align-items-center text-white"
+                    data-url="{{ route('absensi.store') }}"
+                    data-url-update="{{ route('absensi.update') }}"
+                    onclick="agAbsen(1, this, `{{ $absensiHariIni?->jam_masuk }}`, this.dataset.url, this.dataset.urlUpdate)"
+                >
+                    <span class="ag-label">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Absen Masuk
+                    </span>
+                    <span class="ag-loading d-none">
+                        <span class="spinner-border spinner-border-sm me-1"></span> Loading...
+                    </span>
                 </button>
             </div>
         </div>
@@ -116,6 +127,7 @@
 
 <script>
     window.agEvent = @json($agEvent);
+    window.absensiHariIni = @json($absensiHariIni);
     window.agLembur = @json($lembur->where('status_persetujuan', 'Disetujui')->values());
     window.agIzin = @json($izin->where('status_persetujuan', 'Disetujui')->values());
 </script>

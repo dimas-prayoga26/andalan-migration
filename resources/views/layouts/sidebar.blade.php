@@ -18,7 +18,7 @@
 
                     <li class="nav-label">Data Siap</li>
                     <li>
-						<a href="{{ url('/absensi') }}" class="ai-icon" aria-expanded="false">
+						<a href="{{ route('absensi') }}" class="ai-icon" aria-expanded="false">
 							<i class="bi bi-archive"></i>
 							<span class="nav-text">Data Absensi</span>
 						</a>

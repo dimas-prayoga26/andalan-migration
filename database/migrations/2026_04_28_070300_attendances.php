@@ -17,7 +17,7 @@ return new class extends Migration
             $table->enum('domisili', ['Yogyakarta', 'Jakarta']);
             $table->date('tanggal');
             $table->time('jam_masuk');
-            $table->time('jam_keluar');
+            $table->time('jam_keluar')->nullable();
             $table->enum('status', ['Terlambat', 'Hadir']);
         });
 

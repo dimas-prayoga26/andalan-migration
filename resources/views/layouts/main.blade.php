@@ -4,8 +4,12 @@
 
     @include('layouts.loader')
 
+    @php
+        $isSuperuserLogoShift = auth()->user()?->hasRole('superuser') ?? false;
+    @endphp
+
     <!-- Start - Main Wrapper -->
-    <div id="main-wrapper">
+    <div id="main-wrapper" class="{{ $isSuperuserLogoShift ? 'superuser-logo-shift' : '' }}">
 
         <!-- Start - Nav header -->
          @php

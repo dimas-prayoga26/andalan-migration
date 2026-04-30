@@ -110,6 +110,20 @@
             padding-right: 0.5rem !important;
         }
 
+        #main-wrapper.superuser-logo-shift .nav-header {
+            transition: all 0.2s ease !important;
+        }
+
+        #main-wrapper.superuser-logo-shift .nav-header .brand-logo {
+            transition: all 0.2s ease !important;
+        }
+
+        #main-wrapper.superuser-logo-shift.menu-toggle .nav-header .brand-logo {
+            justify-content: center !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+
         #main-wrapper.menu-toggle .nav-header .brand-logo .logo-mobile {
             display: block;
         }
@@ -146,16 +160,30 @@
         }
 
         @media only screen and (max-width: 1199.98px) {
-            .nav-header {
+            #main-wrapper:not(.superuser-logo-shift) .nav-header {
                 transition: none !important;
             }
 
-            #main-wrapper .nav-header .brand-logo,
-            #main-wrapper.menu-toggle .nav-header .brand-logo {
+            #main-wrapper:not(.superuser-logo-shift) .nav-header .brand-logo,
+            #main-wrapper:not(.superuser-logo-shift).menu-toggle .nav-header .brand-logo {
                 justify-content: flex-start !important;
                 padding-left: 0.75rem !important;
                 padding-right: 0.75rem !important;
                 gap: 0.35rem !important;
+            }
+
+            #main-wrapper.superuser-logo-shift:not(.menu-toggle) .nav-header .brand-logo {
+                justify-content: flex-start !important;
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+                gap: 0.35rem !important;
+            }
+
+            #main-wrapper.superuser-logo-shift.menu-toggle .nav-header .brand-logo {
+                justify-content: center !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+                gap: 0 !important;
             }
 
             .nav-header .brand-logo .logo-mobile {

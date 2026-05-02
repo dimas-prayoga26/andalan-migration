@@ -1,7 +1,5 @@
 <?php
 
-use App\Http\Middleware\EnsureAdminContext;
-use App\Http\Middleware\EnsureCompanyContext;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,10 +11,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias([
-            'admin.context' => EnsureAdminContext::class,
-            'company.context' => EnsureCompanyContext::class,
-        ]);
+        //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

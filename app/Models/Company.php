@@ -23,23 +23,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'phone',
     'email',
     'website',
-    'images',
     'is_active',
 ])]
 class Company extends Model
 {
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'is_active' => 'boolean',
-        ];
-    }
-
     public function users(): HasMany
     {
         return $this->hasMany(User::class);

@@ -18,7 +18,7 @@ class UserSeeder extends Seeder
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $roles = ['admin', 'superuser', 'Board of Directors', 'Staff'];
+        $roles = ['superuser', 'Board of Directors', 'Staff'];
 
         foreach ($roles as $roleName) {
             Role::query()->firstOrCreate([
@@ -41,7 +41,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
             ],
         );
-        $superuser->syncRoles(['admin', 'superuser']);
+        $superuser->syncRoles(['superuser']);
 
         foreach ($companies as $index => $company) {
             $directorNumber = $index + 1;

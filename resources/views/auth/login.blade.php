@@ -168,7 +168,7 @@
 							confirmButtonText: 'OK',
 						});
 
-						window.location.href = payload.redirect ?? "/";
+						window.location.href = payload.redirect ?? "{{ route('dashboard') }}";
 						return;
 					}
 

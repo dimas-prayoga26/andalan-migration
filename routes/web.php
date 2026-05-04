@@ -51,6 +51,9 @@ Route::middleware('auth')->group(function (): void {
     })->name('project_management');
 
     Route::get('/absensi', [AbsensiController::class, 'index'])->name('absensi');
+    Route::get('/absensi/dinas', function () {
+        return view('absensi.dinas');
+    })->name('absensi.dinas');
     Route::get('/absensi/reports', function () {
         return view('absensi.reports');
     })->name('absensi.reports');

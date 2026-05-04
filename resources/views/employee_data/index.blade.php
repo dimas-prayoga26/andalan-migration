@@ -92,6 +92,14 @@
             width: auto;
         }
 
+        .employee-header-actions {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+
         .applicant-filter-bar label {
             margin: 0;
             color: #5f6b7a;
@@ -127,6 +135,18 @@
             align-items: center;
             justify-content: center;
             font-size: 0.95rem;
+        }
+
+        .employee-photo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            color: #94a3b8;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.05rem;
         }
 
         .applicant-action-group {
@@ -230,6 +250,12 @@
                 justify-content: space-between;
             }
 
+            .employee-header-actions {
+                width: 100%;
+                margin-left: 0;
+                justify-content: flex-end;
+            }
+
             .applicant-filter-bar select {
                 width: 100%;
                 max-width: 100%;
@@ -272,14 +298,14 @@
 
 @endsection
 
-@section('navbarTitle', 'Applicants')
+@section('navbarTitle', 'Users')
 
 @section('content')
 <!-- Start - Page Title & Breadcrumb -->
 <div class="page-title">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li><h1>Applicants</h1></li>
+            <li><h1>Users</h1></li>
             <li class="breadcrumb-item">
                 <a href="{{ route('dashboard') }}">
                     <svg width="18" height="18" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -289,7 +315,7 @@
                     Main
                 </a>
             </li>
-            <li class="breadcrumb-item active" aria-current="page">applicants</li>
+            <li class="breadcrumb-item active" aria-current="page">Users</li>
         </ol>
     </nav>
 </div>
@@ -300,10 +326,10 @@
             <div class="card-header">
                 <ul class="nav nav-underline card-header-tabs absensi-tabs" id="nav-tab" role="tablist">
                     <li class="nav-item">
-                        <button type="button" data-href="{{ route('applicant') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('applicant') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('applicant') ? 'true' : 'false' }}">Applicants</button>
+                        <button type="button" data-href="{{ route('employee_data') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('employee_data') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('employee_data') ? 'true' : 'false' }}">List Karyawan</button>
                     </li>
                     <li class="nav-item">
-                        <button type="button" data-href="{{ route('applicant.job_vacancies') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('applicant.job_vacancies') ? 'true' : 'false' }}">Job Vacancies</button>
+                        <button type="button" data-href="{{ route('employee_data.authorization') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('employee_data.authorization') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('employee_data.authorization') ? 'true' : 'false' }}">Authorization</button>
                     </li>
                 </ul>
             </div>
@@ -311,12 +337,10 @@
                 <div class="col-xxl-12 col-xl-12">
                     <div class="card-body">
                         <div class="applicant-header-bar">
-                            <div class="applicant-table-title">Data Pelamar</div>
-                            <div class="applicant-filter-bar">
-                                <label for="positionFilter">Filter Posisi:</label>
-                                <select id="positionFilter">
-                                    <option value="">Semua Posisi</option>
-                                </select>
+                            <div class="applicant-table-title">Data Karyawan</div>
+                            <div class="employee-header-actions">
+                                <button type="button" class="btn btn-primary btn-sm">Create Users</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm">Search</button>
                             </div>
                         </div>
                         <div class="table-responsive">
@@ -324,52 +348,161 @@
                                 <thead>
                                 <tr>
                                     <th class="mw-80">No</th>
-                                    <th class="mw-100">Photo</th>
-                                    <th class="mw-260">Nama Lengkap</th>
-                                    <th class="mw-250">Posisi Dilamar</th>
-                                    <th class="mw-160">Keterangan</th>
+                                    <th class="mw-100">Pic</th>
+                                    <th class="mw-140">NIK</th>
+                                    <th class="mw-220">Name</th>
+                                    <th class="mw-280">Jabatan</th>
+                                    <th class="mw-220">Perusahaan</th>
                                     <th class="mw-160">Action</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 <tr>
                                     <td>1.</td>
-                                    <td><span class="applicant-photo"><i class="bi bi-person-fill"></i></span></td>
-                                    <td>Mijil Haryo Siswantoro</td>
-                                    <td>Social Media Specialist</td>
-                                    <td></td>
+                                    <td><span class="employee-photo"><i class="bi bi-person-fill"></i></span></td>
+                                    <td>000000</td>
+                                    <td>Admin Andalan</td>
+                                    <td>System Administrator</td>
+                                    <td>Rumahgue.id</td>
                                     <td>
                                         <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
                                             <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
                                             <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>2.</td>
-                                    <td><span class="applicant-photo"><i class="bi bi-person-fill"></i></span></td>
-                                    <td>Edward Halomoan Simanjuntak</td>
-                                    <td>Social Media Specialist</td>
-                                    <td></td>
+                                    <td><span class="employee-photo"><i class="bi bi-person-fill"></i></span></td>
+                                    <td>000000</td>
+                                    <td>Agus Suryanto</td>
+                                    <td>Commissioner Independent</td>
+                                    <td>RnB Management</td>
                                     <td>
                                         <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
                                             <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
                                             <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>3.</td>
-                                    <td><span class="applicant-photo"><i class="bi bi-person-fill"></i></span></td>
-                                    <td>Muhamad Rezki Nugraha</td>
-                                    <td>Social Media Specialist</td>
-                                    <td></td>
+                                    <td><span class="employee-photo"><i class="bi bi-person-fill"></i></span></td>
+                                    <td>000000</td>
+                                    <td>Adik Wiriyanto</td>
+                                    <td>Commissioner</td>
+                                    <td>RnB Management</td>
                                     <td>
                                         <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
                                             <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>4.</td>
+                                    <td><span class="employee-photo"><i class="bi bi-person-fill"></i></span></td>
+                                    <td>011701</td>
+                                    <td>Lukman Prabowo</td>
+                                    <td>Chief Operating Officer</td>
+                                    <td>RnB Management</td>
+                                    <td>
+                                        <div class="applicant-action-group">
+                                            <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>5.</td>
+                                    <td><span class="employee-photo"><i class="bi bi-person-fill"></i></span></td>
+                                    <td>-</td>
+                                    <td>Leonie Putri Andhari</td>
+                                    <td>Finance and Administration Coordinator</td>
+                                    <td>RnB Management</td>
+                                    <td>
+                                        <div class="applicant-action-group">
+                                            <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>6.</td>
+                                    <td><span class="employee-photo"><i class="bi bi-person-fill"></i></span></td>
+                                    <td>011702</td>
+                                    <td>Muhammad Fadil Erdiyansyah</td>
+                                    <td>Director</td>
+                                    <td>RnB Management</td>
+                                    <td>
+                                        <div class="applicant-action-group">
+                                            <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>7.</td>
+                                    <td><span class="employee-photo"><i class="bi bi-person-fill"></i></span></td>
+                                    <td>-</td>
+                                    <td>Ajeng Pamungkas</td>
+                                    <td>Accounting and Taxation</td>
+                                    <td>RnB Management</td>
+                                    <td>
+                                        <div class="applicant-action-group">
+                                            <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>8.</td>
+                                    <td><span class="employee-photo"><i class="bi bi-person-fill"></i></span></td>
+                                    <td>011830</td>
+                                    <td>Ahmad Fahmil Ulumi</td>
+                                    <td>Director</td>
+                                    <td>Karpet Merah Andalan</td>
+                                    <td>
+                                        <div class="applicant-action-group">
+                                            <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>9.</td>
+                                    <td><span class="employee-photo"><i class="bi bi-person-fill"></i></span></td>
+                                    <td>011908</td>
+                                    <td>Yuni Puspitasari</td>
+                                    <td>Accounting and Taxation</td>
+                                    <td>Karpet Merah Andalan</td>
+                                    <td>
+                                        <div class="applicant-action-group">
+                                            <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>10.</td>
+                                    <td><span class="employee-photo"><i class="bi bi-person-fill"></i></span></td>
+                                    <td>011907</td>
+                                    <td>Rexy Aldinny</td>
+                                    <td>Architecture Design</td>
+                                    <td>Trah Propertindo</td>
+                                    <td>
+                                        <div class="applicant-action-group">
+                                            <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
                                             <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
@@ -408,38 +541,20 @@
             var applicantsTable = $('#myTable').DataTable({
                 columnDefs: [
                     {
-                        targets: [1, 5],
+                        targets: [0, 1, 6],
                         orderable: false
-                    },
-                    {
-                        targets: 0,
-                        type: 'string'
                     }
                 ]
             });
-            var positionFilter = $('#positionFilter');
-            var positionColumnIndex = 3;
-            var uniquePositions = {};
 
-            applicantsTable.column(positionColumnIndex).data().each(function (value) {
-                var positionName = String(value || '').trim();
-                if (positionName.length > 0) {
-                    uniquePositions[positionName] = true;
-                }
-            });
-
-            Object.keys(uniquePositions).sort().forEach(function (positionName) {
-                positionFilter.append('<option value="' + positionName + '">' + positionName + '</option>');
-            });
-
-            positionFilter.on('change', function () {
-                var selectedPosition = $(this).val();
-                var escapedPosition = $.fn.dataTable.util.escapeRegex(selectedPosition);
+            applicantsTable.on('order.dt search.dt draw.dt', function () {
                 applicantsTable
-                    .column(positionColumnIndex)
-                    .search(selectedPosition ? '^' + escapedPosition + '$' : '', true, false)
-                    .draw();
-            });
+                    .column(0, { search: 'applied', order: 'applied', page: 'current' })
+                    .nodes()
+                    .each(function (cell, index) {
+                        cell.innerHTML = (index + 1) + '.';
+                    });
+            }).draw();
         });
     </script>
 @endsection

@@ -39,11 +39,15 @@
 	<!-- Start - Switcher CSS -->
 	<link class="main-switcher" href="css/switcher.css" rel="stylesheet">
 	<!-- End - Switcher CSS -->
+    <link href="vendor/fullcalendar/css/main.min.css" rel="stylesheet">
+	<!-- End - All Required css -->
 
 	<!-- Start - Style Css -->
 	<link class="main-plugins" href="css/plugins.css" rel="stylesheet">
 	<link class="main-css" href="css/style.css" rel="stylesheet">
 	<!-- End - Style Css -->
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.3.8/css/dataTables.dataTables.css" />
 
     <style>
         .deznav {
@@ -106,6 +110,18 @@
 
             .nav-header .brand-logo .logo-desktop {
                 display: none;
+            }
+        }
+
+        @media only screen and (max-width: 1024px) {
+            body:not([data-sidebar-style]) .deznav {
+                left: -100% !important;
+                transition: none !important;
+            }
+
+            body:not([data-sidebar-style]) #main-wrapper.menu-toggle .deznav {
+                left: 0 !important;
+                transition: none !important;
             }
         }
 

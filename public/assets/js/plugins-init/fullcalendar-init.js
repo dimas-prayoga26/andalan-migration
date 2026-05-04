@@ -1,271 +1,198 @@
-"use strict"
- document.addEventListener('DOMContentLoaded', function() {
+"use strict";
 
-		/* initialize the external events
-		-----------------------------------------------------------------*/
+(function () {
+    function buildDefaultEvents() {
+        return [
+            {
+                title: 'All Day Event',
+                start: '2021-02-01',
+            },
+            {
+                title: 'Long Event',
+                start: '2021-02-07',
+                end: '2021-02-10',
+                className: 'bg-danger',
+            },
+            {
+                title: 'Conference',
+                start: '2021-02-11',
+                end: '2021-02-13',
+                className: 'bg-danger',
+            },
+            {
+                title: 'Lunch',
+                start: '2021-02-12T12:00:00',
+            },
+            {
+                title: 'Birthday Party',
+                start: '2021-02-13T07:00:00',
+                className: 'bg-secondary',
+            },
+        ];
+    }
 
-		var containerEl = document.getElementById('external-events');
-		new FullCalendar.Draggable(containerEl, {
-		  itemSelector: '.external-event',
-		  eventData: function(eventEl) {
-			return {
-			  title: eventEl.innerText.trim()
-			}
-		  }
-		 
-		});
-		
+    function createCalendarOptions(calendarEl, containerEl, dropRemove) {
+        const eventSourceUrl = calendarEl.dataset.eventSourceUrl;
+        const timeZone = calendarEl.dataset.timeZone || 'local';
+        const options = {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,dayGridWeek,dayGridDay,listSchedule',
+            },
+            views: {
+                listSchedule: {
+                    type: 'list',
+                    duration: { months: 4 },
+                    buttonText: 'Schedule',
+                },
+            },
+            listDayFormat: { weekday: 'short', month: 'short', day: 'numeric' },
+            listDaySideFormat: { year: 'numeric' },
+            scrollTime: '07:30:00',
+            slotMinTime: '06:00:00',
+            slotMaxTime: '21:00:00',
+            weekNumbers: true,
+            navLinks: true,
+            nowIndicator: true,
+            longPressDelay: 0,
+            datesSet: function (info) {
+                mountDateFilterInToolbar(info.view.calendar);
+            },
+            dateClick: function (info) {
+                if (info.view.type === 'dayGridMonth' || info.view.type === 'dayGridWeek') {
+                    info.view.calendar.changeView('dayGridDay', info.date);
+                }
+            },
+            editable: true,
+            selectable: true,
+            selectMirror: true,
+            droppable: !!containerEl,
+            drop: function (info) {
+                if (dropRemove && dropRemove.checked) {
+                    info.draggedEl.parentNode.removeChild(info.draggedEl);
+                }
+            },
+            select: function (info) {
+                const title = prompt('Event Title:');
+                if (title) {
+                    info.view.calendar.addEvent({
+                        title: title,
+                        start: info.start,
+                        end: info.end,
+                        allDay: info.allDay,
+                    });
+                }
 
-		/* initialize the calendar
-		-----------------------------------------------------------------*/
+                info.view.calendar.unselect();
+            },
+        };
 
-		var calendarEl = document.getElementById('calendar');
-		var calendar = new FullCalendar.Calendar(calendarEl, {
-		  headerToolbar: {
-			left: 'prev,next today',
-			center: 'title',
-			right: 'dayGridMonth,timeGridWeek,timeGridDay'
-		  },
-		  
-		  selectable: true,
-		  selectMirror: true,
-		  select: function(arg) {
-			var title = prompt('Event Title:');
-			if (title) {
-			  calendar.addEvent({
-				title: title,
-				start: arg.start,
-				end: arg.end,
-				allDay: arg.allDay
-			  })
-			}
-			calendar.unselect()
-		  },
-		  
-		  editable: true,
-		  droppable: true, // this allows things to be dropped onto the calendar
-		  drop: function(arg) {
-			// is the "remove after drop" checkbox checked?
-			if (document.getElementById('drop-remove').checked) {
-			  // if so, remove the element from the "Draggable Events" list
-			  arg.draggedEl.parentNode.removeChild(arg.draggedEl);
-			}
-		  },
-		  initialDate: '2021-02-13',
-			  weekNumbers: true,
-			  navLinks: true, // can click day/week names to navigate views
-			  editable: true,
-			  selectable: true,
-			  nowIndicator: true,
-		   events: [
-				{
-				  title: 'All Day Event',
-				  start: '2021-02-01'
-				},
-				{
-				  title: 'Long Event',
-				  start: '2021-02-07',
-				  end: '2021-02-10',
-				  className: "bg-danger"
-				},
-				{
-				  groupId: 999,
-				  title: 'Repeating Event',
-				  start: '2021-02-09T16:00:00'
-				},
-				{
-				  groupId: 999,
-				  title: 'Repeating Event',
-				  start: '2021-02-16T16:00:00'
-				},
-				{
-				  title: 'Conference',
-				  start: '2021-02-11',
-				  end: '2021-02-13',
-				  className: "bg-danger"
-				},
-				{
-				  title: 'Meeting',
-				  start: '2021-02-12T10:30:00',
-				  end: '2021-02-12T12:30:00',
-				  className:"bg-info"
-				},
-				{
-				  title: 'Lunch',
-				  start: '2021-02-12T12:00:00'
-				},
-				{
-				  title: 'Meeting',
-				  start: '2021-04-12T14:30:00'
-				},
-				{
-				  title: 'Happy Hour',
-				  start: '2021-07-12T17:30:00'
-				},
-				{
-				  title: 'Dinner',
-				  start: '2021-02-12T20:00:00',
-				  className: "bg-warning"
-				},
-				{
-				  title: 'Birthday Party',
-				  start: '2021-02-13T07:00:00',
-				  className: "bg-secondary"
-				},
-				{
-				  title: 'Click for Google',
-				  url: 'http://google.com/',
-				  start: '2021-02-28'
-				}
-			  ]
-		});
-		calendar.render();
+        if (eventSourceUrl) {
+            options.timeZone = timeZone;
+            options.events = {
+                url: eventSourceUrl,
+                method: 'GET',
+                failure: function () {
+                    console.error('Failed to load calendar events');
+                },
+            };
+            options.editable = false;
+            options.selectable = false;
+            options.droppable = false;
+        } else {
+            options.initialDate = '2021-02-13';
+            options.events = buildDefaultEvents();
+        }
 
-	  });
-"use strict"
+        return options;
+    }
 
-function fullCalender(){
-	
-	
-	
-	/* initialize the external events
-		-----------------------------------------------------------------*/
+    function initializeExternalEvents(containerEl) {
+        if (!containerEl || typeof FullCalendar.Draggable !== 'function') {
+            return;
+        }
 
-		var containerEl = document.getElementById('external-events');
-		new FullCalendar.Draggable(containerEl, {
-		  itemSelector: '.external-event',
-		  eventData: function(eventEl) {
-			return {
-			  title: eventEl.innerText.trim()
-			}
-		  }
-		 
-		});
-		/* initialize the calendar
-		-----------------------------------------------------------------*/
+        new FullCalendar.Draggable(containerEl, {
+            itemSelector: '.external-event',
+            eventData: function (eventEl) {
+                return {
+                    title: eventEl.innerText.trim(),
+                };
+            },
+        });
+    }
 
-		var calendarEl = document.getElementById('calendar');
-		var calendar = new FullCalendar.Calendar(calendarEl, {
-			initialView: 'dayGridMonth',
-		  headerToolbar: {
-			left: 'prev,next today',
-			center: 'title',
-			right: 'dayGridMonth,timeGridWeek,timeGridDay'
-		  },
-		  eventPositioned: function(info)
-		 {
-		      if (info.view.type === 'dayGridMonth' && info.el.classList.contains('fc-event')) {
-		        var eventCount = info.event._def.extendedProps.eventCount;
-		        var moreIndicator = '<div class="event-more">+' + (eventCount - 1) + ' more</div>';
-		        
-		        if (eventCount > 1) {
-		          info.el.querySelector('.fc-event-title').insertAdjacentHTML('beforeend', moreIndicator);
-		        }
-		      }
-		    },
+    function initializeCalendar() {
+        const calendarEl = document.getElementById('calendar');
+        if (!calendarEl || typeof FullCalendar === 'undefined' || calendarEl.dataset.fcInitialized === '1') {
+            return;
+        }
 
-		  selectable: true,
-		  selectMirror: true,
-		  select: function(arg) {
-			var title = prompt('Event Title:');
-			if (title) {
-			  calendar.addEvent({
-				title: title,
-				start: arg.start,
-				end: arg.end,
-				allDay: arg.allDay
-			  })
-			}
-			calendar.unselect()
-		  },
-		  
-    		longPressDelay: 0,
-		  editable: true,
-		  droppable: true, // this allows things to be dropped onto the calendar
-		  drop: function(arg) {
-			// is the "remove after drop" checkbox checked?
-			if (document.getElementById('drop-remove').checked) {
-			  // if so, remove the element from the "Draggable Events" list
-			  arg.draggedEl.parentNode.removeChild(arg.draggedEl);
-			}
-		  },
-		  initialDate: '2021-02-13',
-			  weekNumbers: true,
-			  navLinks: true, // can click day/week names to navigate views
-			  editable: true,
-			  selectable: true,
-			  nowIndicator: true,
-		   events: [
-				{
-				  title: 'All Day Event',
-				  start: '2021-02-01'
-				},
-				{
-				  title: 'Long Event',
-				  start: '2021-02-07',
-				  end: '2021-02-10',
-				  className: "bg-danger"
-				},
-				{
-				  groupId: 999,
-				  title: 'Repeating Event',
-				  start: '2021-02-09T16:00:00'
-				},
-				{
-				  groupId: 999,
-				  title: 'Repeating Event',
-				  start: '2021-02-16T16:00:00'
-				},
-				{
-				  title: 'Conference',
-				  start: '2021-02-11',
-				  end: '2021-02-13',
-				  className: "bg-danger"
-				},
-				{
-				  title: 'Lunch',
-				  start: '2021-02-12T12:00:00'
-				},
-				{
-				  title: 'Meeting',
-				  start: '2021-04-12T14:30:00'
-				},
-				{
-				  title: 'Happy Hour',
-				  start: '2021-07-12T17:30:00'
-				},
-				{
-				  title: 'Dinner',
-				  start: '2021-02-12T20:00:00',
-				  className: "bg-warning"
-				},
-				{
-				  title: 'Birthday Party',
-				  start: '2021-02-13T07:00:00',
-				  className: "bg-secondary"
-				},
-				{
-				  title: 'Click for Google',
-				  url: 'http://google.com/',
-				  start: '2021-02-28'
-				}
-			  ]
-		});
-		calendar.render();
-		
-		
-	
-}	
-	
-	
-	
-jQuery(window).on('load',function(){
-	setTimeout(function(){
-		fullCalender();	
-	}, 1000);
-	
-	
-});	
-	
+        const externalEventsContainer = document.getElementById('external-events');
+        const dropRemove = document.getElementById('drop-remove');
 
-		
+        initializeExternalEvents(externalEventsContainer);
+
+        const calendar = new FullCalendar.Calendar(
+            calendarEl,
+            createCalendarOptions(calendarEl, externalEventsContainer, dropRemove)
+        );
+
+        calendar.render();
+        window.activityScheduleCalendar = calendar;
+        calendarEl.dataset.fcInitialized = '1';
+
+        mountDateFilterInToolbar(calendar);
+        bindDateFilter(calendar);
+    }
+
+    function mountDateFilterInToolbar(calendar) {
+        const wrap = document.getElementById('calendar-date-filter-wrap');
+        if (!wrap) {
+            return;
+        }
+
+        const toolbarLeft = calendar.el.querySelector('.fc-header-toolbar .fc-toolbar-chunk:first-child');
+        if (!toolbarLeft) {
+            return;
+        }
+
+        if (!toolbarLeft.contains(wrap)) {
+            wrap.classList.remove('d-none');
+            wrap.classList.add('d-inline-flex', 'align-items-center', 'ms-2');
+            toolbarLeft.appendChild(wrap);
+        }
+    }
+
+    function bindDateFilter(calendar) {
+        const dateInput = document.getElementById('calendar-date-filter');
+
+        if (!dateInput || dateInput.dataset.bound === '1') {
+            return;
+        }
+
+        const applyDateFilter = function () {
+            if (!dateInput.value) {
+                return;
+            }
+
+            calendar.changeView('dayGridMonth', dateInput.value);
+        };
+
+        dateInput.addEventListener('change', applyDateFilter);
+
+        dateInput.dataset.bound = '1';
+    }
+
+    document.addEventListener('DOMContentLoaded', initializeCalendar);
+
+    if (typeof jQuery !== 'undefined') {
+        jQuery(window).on('load', function () {
+            setTimeout(initializeCalendar, 300);
+        });
+    }
+
+    window.fullCalender = initializeCalendar;
+})();

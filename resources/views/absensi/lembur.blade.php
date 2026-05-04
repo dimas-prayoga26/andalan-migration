@@ -54,10 +54,6 @@
             text-align: center !important;
         }
 
-        #myTable tbody td {
-            vertical-align: middle;
-        }
-
         .badge-attendance-empty {
             background: #fff1f2;
             color: #be123c;
@@ -77,73 +73,38 @@
             text-align: center;
         }
 
-        .izin-summary-row {
-            margin-bottom: 1rem;
-        }
-
-        .izin-summary-card {
-            background: #fff;
-            border: 1px solid #e6eaf2;
-            border-radius: 0.75rem;
-            box-shadow: 0 1px 6px rgba(17, 24, 39, 0.05);
-            padding: 1.25rem 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            min-height: 78px;
-        }
-
-        .izin-summary-label {
-            color: #72829f;
-            font-size: 1.05rem;
-            font-weight: 600;
-        }
-
-        .izin-summary-value {
-            color: #111827;
-            font-size: 2rem;
-            font-weight: 700;
-            line-height: 1;
-        }
-
-        .submission-list-title {
+        .lembur-table-title {
             font-size: 1.05rem;
             font-weight: 700;
             color: #25314c;
             margin-bottom: 0.6rem;
-            text-align: center;
+            text-align: left;
         }
 
-        .izin-status-badge {
+        #myTable tbody td {
+            vertical-align: middle;
+        }
+
+        .lembur-status-badge {
             display: inline-block;
             border-radius: 0.4rem;
             padding: 0.25rem 0.6rem;
             font-size: 0.9rem;
             font-weight: 500;
             line-height: 1.2;
-            border: 1px solid;
-        }
-
-        .izin-status-badge.pending {
+            border: 1px solid #8397cf;
             background: #eef2ff;
             color: #6475a7;
-            border-color: #8397cf;
         }
 
-        .izin-status-badge.refused {
-            background: #ffe8ed;
-            color: #ff3355;
-            border-color: #ff3355;
-        }
-
-        .izin-action-group {
+        .lembur-action-group {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.35rem;
         }
 
-        .izin-action-btn {
+        .lembur-action-btn {
             width: 34px;
             height: 34px;
             border: 0;
@@ -154,17 +115,17 @@
             font-size: 1rem;
         }
 
-        .izin-action-btn.info {
+        .lembur-action-btn.info {
             background: #d9f2f4;
             color: #4aa3ad;
         }
 
-        .izin-action-btn.edit {
+        .lembur-action-btn.edit {
             background: #f8e8b7;
             color: #f2ad00;
         }
 
-        .izin-action-btn.delete {
+        .lembur-action-btn.delete {
             background: #f8d6e2;
             color: #ff4f7b;
         }
@@ -311,141 +272,179 @@
                 <div class="col-xxl-12 col-xl-12">
                     <div class="card-body">
                         <div class="attendance-datetime" id="attendanceDateTime"></div>
-                        <div class="row g-3 izin-summary-row">
-                            <div class="col-xl-3 col-md-6">
-                                <div class="izin-summary-card">
-                                    <span class="izin-summary-label">Pending</span>
-                                    <span class="izin-summary-value">4</span>
-                                </div>
-                            </div>
-                            <div class="col-xl-3 col-md-6">
-                                <div class="izin-summary-card">
-                                    <span class="izin-summary-label">Approved</span>
-                                    <span class="izin-summary-value">0</span>
-                                </div>
-                            </div>
-                            <div class="col-xl-3 col-md-6">
-                                <div class="izin-summary-card">
-                                    <span class="izin-summary-label">Refused</span>
-                                    <span class="izin-summary-value">2</span>
-                                </div>
-                            </div>
-                            <div class="col-xl-3 col-md-6">
-                                <div class="izin-summary-card">
-                                    <span class="izin-summary-label">Total</span>
-                                    <span class="izin-summary-value">6</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="submission-list-title">List Pengajuan</div>
+                        <div class="lembur-table-title">Data Lembur</div>
                         <div class="table-responsive">
                             <table id="myTable" class="display table">
                                 <thead>
                                 <tr>
-                                    <th class="mw-100">No</th>
-                                    <th class="mw-220">Tanggal</th>
-                                    <th class="mw-120">Durasi</th>
-                                    <th class="mw-180">Nama Staff</th>
-                                    <th class="mw-180">Tipe Izin</th>
+                                    <th class="mw-80">No</th>
+                                    <th class="mw-180">Tanggal</th>
+                                    <th class="mw-220">Nama</th>
+                                    <th class="mw-150">Jam</th>
+                                    <th class="mw-160">Durasi</th>
                                     <th class="mw-140">Status</th>
-                                    <th class="mw-250">Keterangan</th>
+                                    <th class="mw-300">Deskripsi</th>
                                     <th class="mw-130 text-center">Action</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 <tr>
                                     <td>1.</td>
-                                    <td>23 Aug 2025 - 25 Aug 2025</td>
-                                    <td>3 Hari</td>
-                                    <td>Andre</td>
-                                    <td>Cuti Khusus</td>
-                                    <td><span class="izin-status-badge pending">Pending</span></td>
-                                    <td>Test Fitur</td>
+                                    <td>2 August 2025</td>
+                                    <td>Andre Maulana Mustafa</td>
+                                    <td>10:00 - 16:48</td>
+                                    <td>06 Jam 48 Menit</td>
+                                    <td><span class="lembur-status-badge">Pending</span></td>
+                                    <td>Pembelajaran Lagi</td>
                                     <td>
-                                        <div class="izin-action-group">
-                                            <button type="button" class="izin-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="izin-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="izin-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        <div class="lembur-action-group">
+                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
+                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>2.</td>
-                                    <td>31 Oct 2024 - 01 Nov 2024</td>
-                                    <td>2 Hari</td>
-                                    <td>Padyan</td>
-                                    <td>Cuti Tahunan</td>
-                                    <td><span class="izin-status-badge pending">Pending</span></td>
-                                    <td>menghadiri wisuda adik ...</td>
+                                    <td>01 March 2024</td>
+                                    <td>Basith Alif Wahyujati</td>
+                                    <td>18:00 - 23:00</td>
+                                    <td>05 Jam 00 Menit</td>
+                                    <td><span class="lembur-status-badge">Pending</span></td>
+                                    <td>Mengerjakan Video Opening Ceremony untuk Rapat Koordinasi Nasional Akreditasi.</td>
                                     <td>
-                                        <div class="izin-action-group">
-                                            <button type="button" class="izin-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="izin-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="izin-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        <div class="lembur-action-group">
+                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
+                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>3.</td>
-                                    <td>26 Sep 2024 - 26 Sep 2024</td>
-                                    <td>1 Hari</td>
-                                    <td>Padyan</td>
-                                    <td>Sakit</td>
-                                    <td><span class="izin-status-badge pending">Pending</span></td>
-                                    <td>Sakit</td>
+                                    <td>09 February 2024</td>
+                                    <td>Basith Alif Wahyujati</td>
+                                    <td>20:00 - 23:59</td>
+                                    <td>03 Jam 59 Menit</td>
+                                    <td><span class="lembur-status-badge">Pending</span></td>
+                                    <td>Mengerjakan Video Opening Ceremony untuk acara Rapat Koordinasi Nasional Akreditasi di Bandung</td>
                                     <td>
-                                        <div class="izin-action-group">
-                                            <button type="button" class="izin-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="izin-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="izin-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        <div class="lembur-action-group">
+                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
+                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>4.</td>
-                                    <td>20 May 2024 - 22 May 2024</td>
-                                    <td>3 Hari</td>
-                                    <td>Syafiq</td>
-                                    <td>Izin Dinas Luar Kota</td>
-                                    <td><span class="izin-status-badge pending">Pending</span></td>
-                                    <td>-</td>
+                                    <td>08 February 2024</td>
+                                    <td>Basith Alif Wahyujati</td>
+                                    <td>09:00 - 12:00</td>
+                                    <td>03 Jam 00 Menit</td>
+                                    <td><span class="lembur-status-badge">Pending</span></td>
+                                    <td>Mengerjakan Backdrop Rapat Koordinasi Percepatan Pengembangan Kemandirian BLK Komunitas</td>
                                     <td>
-                                        <div class="izin-action-group">
-                                            <button type="button" class="izin-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="izin-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="izin-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        <div class="lembur-action-group">
+                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
+                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>5.</td>
-                                    <td>23 Oct 2023 - 29 Oct 2023</td>
-                                    <td>7 Hari</td>
-                                    <td>Wildan</td>
-                                    <td>Izin Dinas Luar Kota</td>
-                                    <td><span class="izin-status-badge refused">Refused</span></td>
-                                    <td>-</td>
+                                    <td>07 February 2024</td>
+                                    <td>Basith Alif Wahyujati</td>
+                                    <td>17:00 - 23:00</td>
+                                    <td>06 Jam 00 Menit</td>
+                                    <td><span class="lembur-status-badge">Pending</span></td>
+                                    <td>Mengerjakan Lowerthird untuk Video yang ditayangkan di Rapat Koordinasi BLK Komunitas Semarang.</td>
                                     <td>
-                                        <div class="izin-action-group">
-                                            <button type="button" class="izin-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="izin-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="izin-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        <div class="lembur-action-group">
+                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
+                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>6.</td>
-                                    <td>27 Sep 2023 - 27 Sep 2023</td>
-                                    <td>1 Hari</td>
-                                    <td>Wildan</td>
-                                    <td>Sakit</td>
-                                    <td><span class="izin-status-badge refused">Refused</span></td>
-                                    <td>Berobat ke puskesmas ...</td>
+                                    <td>September 2023</td>
+                                    <td>Rexy Aldinny</td>
+                                    <td>19:00 - 01:47</td>
+                                    <td>06 Jam 47 Menit</td>
+                                    <td><span class="lembur-status-badge">Pending</span></td>
+                                    <td>Mengerjakan desain stage untuk event Festival Pelatihan Vokasi 2023</td>
                                     <td>
-                                        <div class="izin-action-group">
-                                            <button type="button" class="izin-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="izin-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="izin-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        <div class="lembur-action-group">
+                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
+                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>7.</td>
+                                    <td>September 2023</td>
+                                    <td>Rexy Aldinny</td>
+                                    <td>22:57 - 00:07</td>
+                                    <td>01 Jam 10 Menit</td>
+                                    <td><span class="lembur-status-badge">Pending</span></td>
+                                    <td>Mengerjakan revisi desain dan layout untuk event upacara Kesaktian Pancasila 1 Oktober</td>
+                                    <td>
+                                        <div class="lembur-action-group">
+                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
+                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>8.</td>
+                                    <td>September 2023</td>
+                                    <td>Rexy Aldinny</td>
+                                    <td>18:37 - 02:04</td>
+                                    <td>07 Jam 27 Menit</td>
+                                    <td><span class="lembur-status-badge">Pending</span></td>
+                                    <td>Mengerjakan desain dan layout untuk event upacara Kesaktian Pancasila 1 Oktober</td>
+                                    <td>
+                                        <div class="lembur-action-group">
+                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
+                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>9.</td>
+                                    <td>September 2023</td>
+                                    <td>Rexy Aldinny</td>
+                                    <td>09:01 - 15:35</td>
+                                    <td>06 Jam 34 Menit</td>
+                                    <td><span class="lembur-status-badge">Pending</span></td>
+                                    <td>Mengerjakan 4 opsi desain dan gambar kerja booth event Jakarta Smart city-Innovation Day</td>
+                                    <td>
+                                        <div class="lembur-action-group">
+                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
+                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>10.</td>
+                                    <td>September 2023</td>
+                                    <td>Rexy Aldinny</td>
+                                    <td>20:57 - 23:18</td>
+                                    <td>02 Jam 21 Menit</td>
+                                    <td><span class="lembur-status-badge">Pending</span></td>
+                                    <td>Mengerjakan 2 opsi desain dan gambar kerja booth event Jakarta Smart city-World Clean Up Day</td>
+                                    <td>
+                                        <div class="lembur-action-group">
+                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
+                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -526,14 +525,7 @@
                 }
             });
 
-            $('#myTable').DataTable({
-                columnDefs: [
-                    {
-                        targets: 0,
-                        type: 'string'
-                    }
-                ]
-            });
+            $('#myTable').DataTable();
         });
     </script>
 @endsection

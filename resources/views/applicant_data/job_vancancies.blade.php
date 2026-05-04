@@ -161,6 +161,27 @@
             color: #ff4f7b;
         }
 
+        .job-status-badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 0.35rem;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            line-height: 1.2;
+            background: #fff;
+        }
+
+        .job-status-badge.active {
+            border: 1px solid #22c55e;
+            color: #16a34a;
+        }
+
+        .job-status-badge.inactive {
+            border: 1px solid #ff4f7b;
+            color: #ff2f63;
+        }
+
         #myTable_wrapper .dt-length label,
         #myTable_wrapper .dt-search label,
         #myTable_wrapper .dt-info,
@@ -311,12 +332,9 @@
                 <div class="col-xxl-12 col-xl-12">
                     <div class="card-body">
                         <div class="applicant-header-bar">
-                            <div class="applicant-table-title">Data Pelamar</div>
+                            <div class="applicant-table-title">Job Vacancy</div>
                             <div class="applicant-filter-bar">
-                                <label for="positionFilter">Filter Posisi:</label>
-                                <select id="positionFilter">
-                                    <option value="">Semua Posisi</option>
-                                </select>
+                                <button type="button" class="btn btn-outline-primary">Create Job Vacancy</button>
                             </div>
                         </div>
                         <div class="table-responsive">
@@ -324,52 +342,118 @@
                                 <thead>
                                 <tr>
                                     <th class="mw-80">No</th>
-                                    <th class="mw-100">Photo</th>
-                                    <th class="mw-260">Nama Lengkap</th>
-                                    <th class="mw-250">Posisi Dilamar</th>
-                                    <th class="mw-160">Keterangan</th>
+                                    <th class="mw-300">Lowongan Pekerjaan</th>
+                                    <th class="mw-160">Status</th>
                                     <th class="mw-160">Action</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 <tr>
                                     <td>1.</td>
-                                    <td><span class="applicant-photo"><i class="bi bi-person-fill"></i></span></td>
-                                    <td>Mijil Haryo Siswantoro</td>
-                                    <td>Social Media Specialist</td>
-                                    <td></td>
+                                    <td>Interior Design</td>
+                                    <td><span class="job-status-badge active">Active</span></td>
                                     <td>
                                         <div class="applicant-action-group">
                                             <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
                                             <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>2.</td>
-                                    <td><span class="applicant-photo"><i class="bi bi-person-fill"></i></span></td>
-                                    <td>Edward Halomoan Simanjuntak</td>
-                                    <td>Social Media Specialist</td>
-                                    <td></td>
+                                    <td>Mobile Developer</td>
+                                    <td><span class="job-status-badge active">Active</span></td>
                                     <td>
                                         <div class="applicant-action-group">
                                             <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
                                             <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>3.</td>
-                                    <td><span class="applicant-photo"><i class="bi bi-person-fill"></i></span></td>
-                                    <td>Muhamad Rezki Nugraha</td>
-                                    <td>Social Media Specialist</td>
-                                    <td></td>
+                                    <td>Accounting</td>
+                                    <td><span class="job-status-badge active">Active</span></td>
                                     <td>
                                         <div class="applicant-action-group">
                                             <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
+                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>4.</td>
+                                    <td>Animasi Film</td>
+                                    <td><span class="job-status-badge inactive">Non Active</span></td>
+                                    <td>
+                                        <div class="applicant-action-group">
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>5.</td>
+                                    <td>Video Editor 3D Modelling</td>
+                                    <td><span class="job-status-badge inactive">Non Active</span></td>
+                                    <td>
+                                        <div class="applicant-action-group">
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>6.</td>
+                                    <td>Administrasi</td>
+                                    <td><span class="job-status-badge inactive">Non Active</span></td>
+                                    <td>
+                                        <div class="applicant-action-group">
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>7.</td>
+                                    <td>Branding Designer</td>
+                                    <td><span class="job-status-badge inactive">Non Active</span></td>
+                                    <td>
+                                        <div class="applicant-action-group">
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>8.</td>
+                                    <td>Social Media Specialist</td>
+                                    <td><span class="job-status-badge inactive">Non Active</span></td>
+                                    <td>
+                                        <div class="applicant-action-group">
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>9.</td>
+                                    <td>Marketing Communication</td>
+                                    <td><span class="job-status-badge inactive">Non Active</span></td>
+                                    <td>
+                                        <div class="applicant-action-group">
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
+                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>10.</td>
+                                    <td>Graphic Design</td>
+                                    <td><span class="job-status-badge inactive">Non Active</span></td>
+                                    <td>
+                                        <div class="applicant-action-group">
+                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
                                             <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
@@ -405,41 +489,23 @@
                 }
             });
 
-            var applicantsTable = $('#myTable').DataTable({
+            var jobVacancyTable = $('#myTable').DataTable({
                 columnDefs: [
                     {
-                        targets: [1, 5],
+                        targets: [0, 3],
                         orderable: false
-                    },
-                    {
-                        targets: 0,
-                        type: 'string'
                     }
                 ]
             });
-            var positionFilter = $('#positionFilter');
-            var positionColumnIndex = 3;
-            var uniquePositions = {};
 
-            applicantsTable.column(positionColumnIndex).data().each(function (value) {
-                var positionName = String(value || '').trim();
-                if (positionName.length > 0) {
-                    uniquePositions[positionName] = true;
-                }
-            });
-
-            Object.keys(uniquePositions).sort().forEach(function (positionName) {
-                positionFilter.append('<option value="' + positionName + '">' + positionName + '</option>');
-            });
-
-            positionFilter.on('change', function () {
-                var selectedPosition = $(this).val();
-                var escapedPosition = $.fn.dataTable.util.escapeRegex(selectedPosition);
-                applicantsTable
-                    .column(positionColumnIndex)
-                    .search(selectedPosition ? '^' + escapedPosition + '$' : '', true, false)
-                    .draw();
-            });
+            jobVacancyTable.on('order.dt search.dt draw.dt', function () {
+                jobVacancyTable
+                    .column(0, { search: 'applied', order: 'applied', page: 'current' })
+                    .nodes()
+                    .each(function (cell, index) {
+                        cell.innerHTML = (index + 1) + '.';
+                    });
+            }).draw();
         });
     </script>
 @endsection

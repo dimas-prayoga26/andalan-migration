@@ -73,6 +73,54 @@
             text-align: center;
         }
 
+        .report-filter-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .report-filter-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .report-table-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #25314c;
+            margin: 0;
+        }
+
+        .report-filter-btn {
+            min-width: 170px;
+            text-align: left;
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 0.6rem;
+        }
+
+        @media only screen and (max-width: 767.98px) {
+            .report-filter-bar {
+                justify-content: stretch;
+                flex-wrap: wrap;
+            }
+
+            .report-filter-right {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+
+            .report-filter-bar .dropdown,
+            .report-filter-btn,
+            .report-filter-bar .btn-reset-filter {
+                width: 100%;
+            }
+        }
+
         #myTable_wrapper .dt-length label,
         #myTable_wrapper .dt-search label,
         #myTable_wrapper .dt-info,
@@ -215,34 +263,72 @@
                 <div class="col-xxl-12 col-xl-12">
                     <div class="card-body">
                         <div class="attendance-datetime" id="attendanceDateTime"></div>
+                        <div class="report-filter-bar">
+                            <div class="report-table-title">Laporan Absensi</div>
+                            <div class="report-filter-right">
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary report-filter-btn dropdown-toggle" type="button" id="reportMonthFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Bulan: Semua
+                                    </button>
+                                    <ul class="dropdown-menu" id="reportMonthFilterMenu" aria-labelledby="reportMonthFilterBtn"></ul>
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary report-filter-btn dropdown-toggle" type="button" id="reportYearFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Tahun: Semua
+                                    </button>
+                                    <ul class="dropdown-menu" id="reportYearFilterMenu" aria-labelledby="reportYearFilterBtn"></ul>
+                                </div>
+                                <button type="button" class="btn btn-light border btn-reset-filter" id="resetReportFilterBtn">Reset Filter</button>
+                            </div>
+                        </div>
                         <div class="table-responsive">
                             <table id="myTable" class="display table">
                                 <thead>
                                 <tr>
                                     <th class="mw-100">No</th>
                                     <th class="mw-200">Nama Staff</th>
-                                    <th class="mw-150">Masuk</th>
-                                    <th class="mw-150">Pulang</th>
+                                    <th class="mw-150">Bulan</th>
+                                    <th class="mw-100">Telat</th>
+                                    <th class="mw-100">On Time</th>
+                                    <th class="mw-100">Alpha</th>
+                                    <th class="mw-100">Lembur</th>
+                                    <th class="mw-150">Cuti {{ now()->translatedFormat('F Y') }}</th>
+                                    <th class="mw-120">Cuti {{ now()->year }}</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 <tr>
                                     <td>1</td>
                                     <td>Gavin Cortez</td>
-                                    <td>08:00</td>
-                                    <td>17:00</td>
+                                    <td>{{ now()->translatedFormat('F Y') }}</td>
+                                    <td>2</td>
+                                    <td>20</td>
+                                    <td>0</td>
+                                    <td>3</td>
+                                    <td>1 hari</td>
+                                    <td>4 hari</td>
                                 </tr>
                                 <tr>
                                     <td>2</td>
                                     <td>Martena Mccray</td>
-                                    <td>08:10</td>
-                                    <td><span class="badge-attendance-empty">Belum Absen Pulang</span></td>
+                                    <td>{{ \Illuminate\Support\Carbon::now()->subMonthNoOverflow()->translatedFormat('F Y') }}</td>
+                                    <td>1</td>
+                                    <td>21</td>
+                                    <td>1</td>
+                                    <td>2</td>
+                                    <td>0 hari</td>
+                                    <td>3 hari</td>
                                 </tr>
                                 <tr>
                                     <td>3</td>
                                     <td>Peter Parkur</td>
-                                    <td><span class="badge-attendance-empty">Belum Absen Masuk</span></td>
-                                    <td><span class="badge-attendance-empty">Belum Absen Pulang</span></td>
+                                    <td>{{ \Illuminate\Support\Carbon::now()->subYear()->translatedFormat('F Y') }}</td>
+                                    <td>0</td>
+                                    <td>22</td>
+                                    <td>0</td>
+                                    <td>1</td>
+                                    <td>2 hari</td>
+                                    <td>2 hari</td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -321,13 +407,99 @@
                 }
             });
 
-            $('#myTable').DataTable({
-                columnDefs: [
-                    {
-                        targets: 0,
-                        type: 'string'
+            var selectedMonth = '';
+            var selectedYear = '';
+            var reportTable = $('#myTable').DataTable();
+
+            function parseMonthYear(rawMonthYear) {
+                var monthYear = (rawMonthYear || '').trim();
+                var parts = monthYear.split(/\s+/);
+                var year = parts.length ? parts[parts.length - 1] : '';
+                var month = parts.length > 1 ? parts.slice(0, -1).join(' ') : '';
+
+                return {
+                    month: month,
+                    year: year
+                };
+            }
+
+            function renderFilterMenuItems(menuElement, items, type) {
+                var html = '<li><button type="button" class="dropdown-item active" data-filter-type="' + type + '" data-filter-value="">Semua</button></li>';
+
+                items.forEach(function (item) {
+                    html += '<li><button type="button" class="dropdown-item" data-filter-type="' + type + '" data-filter-value="' + item + '">' + item + '</button></li>';
+                });
+
+                menuElement.html(html);
+            }
+
+            function collectMonthYearOptions() {
+                var monthMap = {};
+                var yearMap = {};
+
+                reportTable.rows().every(function () {
+                    var data = this.data();
+                    var parsed = parseMonthYear(data[2]);
+
+                    if (parsed.month) {
+                        monthMap[parsed.month] = true;
                     }
-                ]
+
+                    if (parsed.year) {
+                        yearMap[parsed.year] = true;
+                    }
+                });
+
+                var months = Object.keys(monthMap);
+                var years = Object.keys(yearMap).sort(function (a, b) {
+                    return Number(b) - Number(a);
+                });
+
+                renderFilterMenuItems($('#reportMonthFilterMenu'), months, 'month');
+                renderFilterMenuItems($('#reportYearFilterMenu'), years, 'year');
+            }
+
+            $.fn.dataTable.ext.search.push(function (settings, data) {
+                if (settings.nTable.id !== 'myTable') {
+                    return true;
+                }
+
+                var parsed = parseMonthYear(data[2]);
+                var monthMatch = !selectedMonth || parsed.month === selectedMonth;
+                var yearMatch = !selectedYear || parsed.year === selectedYear;
+
+                return monthMatch && yearMatch;
+            });
+
+            collectMonthYearOptions();
+
+            $(document).on('click', '#reportMonthFilterMenu .dropdown-item, #reportYearFilterMenu .dropdown-item', function () {
+                var filterType = $(this).data('filter-type');
+                var filterValue = ($(this).data('filter-value') || '').toString();
+                var labelValue = filterValue || 'Semua';
+
+                if (filterType === 'month') {
+                    selectedMonth = filterValue;
+                    $('#reportMonthFilterBtn').text('Bulan: ' + labelValue);
+                } else if (filterType === 'year') {
+                    selectedYear = filterValue;
+                    $('#reportYearFilterBtn').text('Tahun: ' + labelValue);
+                }
+
+                $(this).closest('.dropdown-menu').find('.dropdown-item').removeClass('active');
+                $(this).addClass('active');
+
+                reportTable.draw();
+            });
+
+            $('#resetReportFilterBtn').on('click', function () {
+                selectedMonth = '';
+                selectedYear = '';
+                $('#reportMonthFilterBtn').text('Bulan: Semua');
+                $('#reportYearFilterBtn').text('Tahun: Semua');
+                $('#reportMonthFilterMenu .dropdown-item, #reportYearFilterMenu .dropdown-item').removeClass('active');
+                $('#reportMonthFilterMenu .dropdown-item[data-filter-value=""], #reportYearFilterMenu .dropdown-item[data-filter-value=""]').addClass('active');
+                reportTable.draw();
             });
         });
     </script>

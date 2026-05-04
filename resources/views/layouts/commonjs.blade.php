@@ -25,3 +25,9 @@
 	<!-- Script For Custom JS -->
 	<script src="js/deznav-init.js"></script>
     <script src="js/custom.js"></script>
+
+	<!-- Script For Full Calendar -->
+    <script src="vendor/fullcalendar/js/main.js"></script>
+	<script src="js/plugins-init/fullcalendar-init.js"></script>
+
+	<script src="https://cdn.datatables.net/2.3.8/js/dataTables.js"></script>

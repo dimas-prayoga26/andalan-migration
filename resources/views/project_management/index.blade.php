@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://unpkg.com/antd@6.2.3/dist/antd.css">
 @endsection
 
-@section('navbarTitle', 'Dashboard')
+@section('navbarTitle', 'Reports')
 
 @section('content')
 <!-- Start - Page Title & Breadcrumb -->
@@ -28,7 +28,7 @@
                     Home
                 </a>
             </li>
-            <li class="breadcrumb-item active" aria-current="page">Projects</li>
+            <li class="breadcrumb-item active" aria-current="page">Reports</li>
         </ol>
     </nav>
 </div>

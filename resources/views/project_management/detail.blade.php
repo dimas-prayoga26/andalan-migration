@@ -11,14 +11,14 @@
     <link rel="stylesheet" href="https://unpkg.com/antd@6.2.3/dist/antd.css">
 @endsection
 
-@section('navbarTitle', 'Dashboard')
+@section('navbarTitle', 'Reports')
 
 @section('content')
 <!-- Start - Page Title & Breadcrumb -->
 <div class="page-title">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li><h1>Projects</h1></li>
+            <li><h1>Reports</h1></li>
             <li class="breadcrumb-item">
                 <a href="index.html">
                     <svg width="18" height="18" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -28,11 +28,19 @@
                     Home
                 </a>
             </li>
-            <li class="breadcrumb-item active" aria-current="page">Projects</li>
+            <li class="breadcrumb-item active" aria-current="page">reports</li>
         </ol>
     </nav>
 </div>
 <!-- End - Page Title & Breadcrumb -->
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <a href="javascript:void(0);" class="btn btn-outline-secondary btn-sm">Back</a>
+    <div class="d-flex align-items-center gap-2">
+        <a href="javascript:void(0);" class="btn btn-outline-success btn-sm">Generate Default Task</a>
+        <a href="javascript:void(0);" class="btn btn-outline-primary btn-sm">Create Task</a>
+    </div>
+</div>
 
 <div class="tab-content d-flex flex-column" id="tabContentMyProfileBottom" style="min-height: calc(100vh - 310px);">
     <div class="row">
@@ -41,62 +49,110 @@
         <div class="accordion-item">
             <h2 class="accordion-header">
             <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOneIcon" aria-expanded="true" aria-controls="collapseOneIcon">
-                <i class="fa-solid fa-circle-info me-2 fs-5"></i> Accordion Item #1
+                <i class="fa-solid fa-user-gear me-2 fs-5"></i> Administration
             </button>
             </h2>
             <div id="collapseOneIcon" class="accordion-collapse collapse show" data-bs-parent="#accordionExampleIcon">
             <div class="accordion-body">
-                Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. 
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <h6 class="mb-0 text-danger">Google Drive Link</h6>
+                    <button type="button" class="btn btn-link btn-sm text-muted p-0" aria-label="More options">
+                        <i class="fa-solid fa-ellipsis"></i>
+                    </button>
+                </div>
+                <hr class="my-3">
+                <div class="row g-2 align-items-center">
+                    <div class="col-12 col-md-8 col-lg-6">
+                        <input type="text" class="form-control" placeholder="Create" aria-label="Administration input">
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-success px-4">Create</button>
+                    </div>
+                </div>
             </div>
             </div>
         </div>
         <div class="accordion-item">
             <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwoIcon" aria-expanded="false" aria-controls="collapseTwoIcon">
-                <i class="fa-solid fa-circle-info me-2 fs-5"></i> Accordion Item #2
+                <i class="fa-solid fa-pen-ruler me-2 fs-5"></i> Design
             </button>
             </h2>
             <div id="collapseTwoIcon" class="accordion-collapse collapse" data-bs-parent="#accordionExampleIcon">
             <div class="accordion-body">
-                Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. 
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <h6 class="mb-0 text-danger">Design Link</h6>
+                    <button type="button" class="btn btn-link btn-sm text-muted p-0" aria-label="More options">
+                        <i class="fa-solid fa-ellipsis"></i>
+                    </button>
+                </div>
+                <hr class="my-3">
+                <div class="row g-2 align-items-center">
+                    <div class="col-12 col-md-8 col-lg-6">
+                        <input type="text" class="form-control" placeholder="Create" aria-label="Design input">
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-success px-4">Create</button>
+                    </div>
+                </div>
             </div>
             </div>
         </div>
         <div class="accordion-item">
             <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThreeIcon" aria-expanded="false" aria-controls="collapseThreeIcon">
-                <i class="fa-solid fa-circle-info me-2 fs-5"></i> Accordion Item #3
+                <i class="fa-solid fa-file-lines me-2 fs-5"></i> Documentation
             </button>
             </h2>
             <div id="collapseThreeIcon" class="accordion-collapse collapse" data-bs-parent="#accordionExampleIcon">
             <div class="accordion-body">
-                Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. 
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <h6 class="mb-0 text-danger">Document Link</h6>
+                    <button type="button" class="btn btn-link btn-sm text-muted p-0" aria-label="More options">
+                        <i class="fa-solid fa-ellipsis"></i>
+                    </button>
+                </div>
+                <hr class="my-3">
+                <div class="row g-2 align-items-center">
+                    <div class="col-12 col-md-8 col-lg-6">
+                        <input type="text" class="form-control" placeholder="Create" aria-label="Documentation input">
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-success px-4">Create</button>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFourIcon" aria-expanded="false" aria-controls="collapseFourIcon">
+                <i class="fa-solid fa-video me-2 fs-5"></i> Video Content
+            </button>
+            </h2>
+            <div id="collapseFourIcon" class="accordion-collapse collapse" data-bs-parent="#accordionExampleIcon">
+            <div class="accordion-body">
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <h6 class="mb-0 text-danger">Video Link</h6>
+                    <button type="button" class="btn btn-link btn-sm text-muted p-0" aria-label="More options">
+                        <i class="fa-solid fa-ellipsis"></i>
+                    </button>
+                </div>
+                <hr class="my-3">
+                <div class="row g-2 align-items-center">
+                    <div class="col-12 col-md-8 col-lg-6">
+                        <input type="text" class="form-control" placeholder="Create" aria-label="Video content input">
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-success px-4">Create</button>
+                    </div>
+                </div>
             </div>
             </div>
         </div>
         </div>
 
     </div>
-</div>
-
-<div class="d-flex justify-content-center mt-auto pt-3 mb-2">
-    <nav aria-label="Page navigation example">
-        <ul class="pagination mb-0">
-            <li class="page-item">
-                <a class="page-link" href="javascript:void(0);" aria-label="Previous">
-                    <span aria-hidden="true">&laquo;</span>
-                </a>
-            </li>
-            <li class="page-item"><a class="page-link" href="javascript:void(0);">1</a></li>
-            <li class="page-item"><a class="page-link" href="javascript:void(0);">2</a></li>
-            <li class="page-item"><a class="page-link" href="javascript:void(0);">3</a></li>
-            <li class="page-item">
-                <a class="page-link" href="javascript:void(0);" aria-label="Next">
-                    <span aria-hidden="true">&raquo;</span>
-                </a>
-            </li>
-        </ul>
-    </nav>
 </div>
 
 <!-- End - Content Body -->
@@ -110,4 +166,3 @@
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 @endsection
-

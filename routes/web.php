@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\AbsensiController;
 use App\Http\Controllers\ActivityScheduleController;
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -50,7 +50,9 @@ Route::middleware('auth')->group(function (): void {
         return view('project_management.index');
     })->name('project_management');
 
-    Route::get('/absensi', [AbsensiController::class, 'index'])->name('absensi');
+    Route::resource('absensi', AttendanceController::class)
+        ->only(['index', 'store', 'update'])
+        ->names(['index' => 'absensi']);
     Route::get('/absensi/dinas', function () {
         return view('absensi.dinas');
     })->name('absensi.dinas');
@@ -70,9 +72,6 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/error-503', function () {
         return view('error_code.maintance');
     })->name('error_code');
-
-    Route::post('/store', [AbsensiController::class, 'storeAbsen'])->name('absensi.store');
-    Route::put('/update', [AbsensiController::class, 'updateAbsen'])->name('absensi.update');
 
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
 });

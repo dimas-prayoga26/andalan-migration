@@ -69,8 +69,26 @@
             font-size: 1rem;
             font-weight: 600;
             color: #25314c;
-            margin-bottom: 1rem;
+            margin-bottom: 0;
             text-align: center;
+        }
+
+        .onsite-map-container {
+            border: 1px solid #e6eaf2;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .onsite-map-canvas {
+            width: 100%;
+            height: 360px;
+            background: #f8fafc;
+        }
+
+        .onsite-map-meta {
+            border-top: 1px solid #e6eaf2;
+            padding: 0.85rem 1rem;
         }
 
         #myTable_wrapper .dt-length label,
@@ -217,8 +235,16 @@
             <div class="row">
                 <div class="col-xxl-12 col-xl-12">
                     <div class="card-body">
-                        <div class="attendance-datetime" id="attendanceDateTime"></div>
-                        <div class="table-responsive">
+                        <div class="row g-2 align-items-center mb-3">
+                            <div class="col-12 col-md-3 order-2 order-md-1"></div>
+                            <div class="col-12 col-md-6 order-1 order-md-2">
+                                <div class="attendance-datetime mb-0" id="attendanceDateTime"></div>
+                            </div>
+                            <div class="col-12 col-md-3 order-3 text-md-end">
+                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#attendanceActionModal">Absen</button>
+                            </div>
+                        </div>
+                        <div>
                             <table id="myTable" class="display table">
                                 <thead>
                                 <tr>
@@ -249,10 +275,60 @@
                                 </tr>
                                 </tbody>
                             </table>
-                            </div>
+                        </div>
 
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="attendanceActionModal" tabindex="-1" aria-labelledby="attendanceActionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="attendanceActionModalLabel">Pilih Jenis Absen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-pills mb-3" id="attendanceTypeTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="onsite-tab" data-bs-toggle="tab" data-bs-target="#onsite-pane" type="button" role="tab" aria-controls="onsite-pane" aria-selected="true">Absen Onsite</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="business-trip-tab" data-bs-toggle="tab" data-bs-target="#business-trip-pane" type="button" role="tab" aria-controls="business-trip-pane" aria-selected="false">Absen Business Trip</button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="attendanceTypeTabContent">
+                    <div class="tab-pane fade show active" id="onsite-pane" role="tabpanel" aria-labelledby="onsite-tab" tabindex="0">
+                        <div class="onsite-map-container">
+                            <div id="onsiteMapCanvas" class="onsite-map-canvas"></div>
+                            <div class="onsite-map-meta">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                    <div>
+                                        <h6 class="mb-1">Validasi Lokasi Onsite</h6>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="checkOnsiteLocationBtn">Cek Lokasi Saya</button>
+                                </div>
+                                <div class="small text-muted mb-1">
+                                    <strong>Status:</strong> <span id="onsiteStatusText">Menunggu cek lokasi</span>
+                                </div>
+                                <div class="small text-muted mb-0">
+                                    <strong>IP:</strong> <span id="onsiteIpText">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="business-trip-pane" role="tabpanel" aria-labelledby="business-trip-tab" tabindex="0">
+                        <div class="border rounded p-3">
+                            <h6 class="mb-2">Business Trip</h6>
+                            <p class="mb-0 text-muted">Konten khusus business trip ditampilkan di sini.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
@@ -270,6 +346,250 @@
     <script>
         $(function () {
             var attendanceDateElement = document.getElementById('attendanceDateTime');
+            var googleMapsApiKey = @json(config('services.google_maps.api_key'));
+            var officeLocation = @json($officeLocation);
+            var attendanceModalElement = document.getElementById('attendanceActionModal');
+            var checkOnsiteLocationButton = document.getElementById('checkOnsiteLocationBtn');
+            var onsiteStatusText = document.getElementById('onsiteStatusText');
+            var onsiteIpText = document.getElementById('onsiteIpText');
+            var onsiteMapInstance = null;
+            var officeMarker = null;
+            var officeRadiusCircle = null;
+            var userMarker = null;
+            var userToOfficeLine = null;
+
+            function setOnsiteStatus(text) {
+                if (onsiteStatusText) {
+                    onsiteStatusText.textContent = text;
+                }
+            }
+
+            function loadPublicIp() {
+                if (!onsiteIpText) {
+                    return;
+                }
+
+                onsiteIpText.textContent = 'Memuat...';
+
+                $.ajax({
+                    url: 'https://api.ipify.org?format=json',
+                    method: 'GET',
+                    timeout: 7000
+                }).done(function (response) {
+                    onsiteIpText.textContent = response && response.ip ? response.ip : '-';
+                }).fail(function () {
+                    onsiteIpText.textContent = 'Tidak tersedia';
+                });
+            }
+
+            function toRadians(value) {
+                return value * (Math.PI / 180);
+            }
+
+            function calculateDistanceInMeters(startLat, startLng, endLat, endLng) {
+                var earthRadius = 6371000;
+                var latitudeDelta = toRadians(endLat - startLat);
+                var longitudeDelta = toRadians(endLng - startLng);
+                var a = Math.sin(latitudeDelta / 2) * Math.sin(latitudeDelta / 2)
+                    + Math.cos(toRadians(startLat)) * Math.cos(toRadians(endLat))
+                    * Math.sin(longitudeDelta / 2) * Math.sin(longitudeDelta / 2);
+                var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+                return earthRadius * c;
+            }
+
+            function loadGoogleMapsApi() {
+                return new Promise(function (resolve, reject) {
+                    if (window.google && window.google.maps) {
+                        resolve();
+                        return;
+                    }
+
+                    if (!googleMapsApiKey) {
+                        reject(new Error('GOOGLE_MAPS_API_KEY belum diset'));
+                        return;
+                    }
+
+                    var existingScript = document.getElementById('googleMapsScript');
+                    if (existingScript) {
+                        existingScript.addEventListener('load', function () {
+                            resolve();
+                        });
+                        existingScript.addEventListener('error', function () {
+                            reject(new Error('Gagal memuat Google Maps API'));
+                        });
+                        return;
+                    }
+
+                    var script = document.createElement('script');
+                    script.id = 'googleMapsScript';
+                    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(googleMapsApiKey);
+                    script.async = true;
+                    script.defer = true;
+                    script.onload = function () {
+                        resolve();
+                    };
+                    script.onerror = function () {
+                        reject(new Error('Gagal memuat Google Maps API'));
+                    };
+                    document.head.appendChild(script);
+                });
+            }
+
+            function initializeOnsiteMap() {
+                if (!officeLocation || officeLocation.latitude === null || officeLocation.longitude === null) {
+                    setOnsiteStatus('Koordinat kantor belum tersedia di database perusahaan');
+                    return;
+                }
+
+                if (onsiteMapInstance) {
+                    return;
+                }
+
+                var mapElement = document.getElementById('onsiteMapCanvas');
+                if (!mapElement || !window.google || !window.google.maps) {
+                    return;
+                }
+
+                var officePosition = {
+                    lat: Number(officeLocation.latitude),
+                    lng: Number(officeLocation.longitude)
+                };
+                var officeRadius = Number(officeLocation.radius_meters || 100);
+
+                onsiteMapInstance = new window.google.maps.Map(mapElement, {
+                    center: officePosition,
+                    zoom: 17,
+                    mapTypeControl: false,
+                    streetViewControl: false,
+                    fullscreenControl: false
+                });
+
+                officeMarker = new window.google.maps.Marker({
+                    position: officePosition,
+                    map: onsiteMapInstance,
+                    title: officeLocation.name || 'Office'
+                });
+
+                officeRadiusCircle = new window.google.maps.Circle({
+                    map: onsiteMapInstance,
+                    center: officePosition,
+                    radius: officeRadius,
+                    strokeColor: '#2563eb',
+                    strokeOpacity: 0.85,
+                    strokeWeight: 2,
+                    fillColor: '#60a5fa',
+                    fillOpacity: 0.14
+                });
+
+                setOnsiteStatus('Peta siap. Klik "Cek Lokasi Saya" untuk validasi.');
+            }
+
+            function updateUserLocationOnMap(position) {
+                if (!onsiteMapInstance || !officeLocation) {
+                    return;
+                }
+
+                var officePosition = {
+                    lat: Number(officeLocation.latitude),
+                    lng: Number(officeLocation.longitude)
+                };
+                var userPosition = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                var distance = calculateDistanceInMeters(
+                    userPosition.lat,
+                    userPosition.lng,
+                    officePosition.lat,
+                    officePosition.lng
+                );
+                var allowedRadius = Number(officeLocation.radius_meters || 100);
+                var inRadius = distance <= allowedRadius;
+
+                if (!userMarker) {
+                    userMarker = new window.google.maps.Marker({
+                        position: userPosition,
+                        map: onsiteMapInstance,
+                        title: 'Lokasi Saya',
+                        icon: {
+                            path: window.google.maps.SymbolPath.CIRCLE,
+                            scale: 8,
+                            fillColor: '#dc2626',
+                            fillOpacity: 1,
+                            strokeColor: '#ffffff',
+                            strokeWeight: 2
+                        }
+                    });
+                } else {
+                    userMarker.setPosition(userPosition);
+                }
+
+                if (userToOfficeLine) {
+                    userToOfficeLine.setMap(null);
+                }
+
+                userToOfficeLine = new window.google.maps.Polyline({
+                    path: [officePosition, userPosition],
+                    geodesic: true,
+                    strokeColor: '#dc2626',
+                    strokeOpacity: 0.8,
+                    strokeWeight: 2,
+                    map: onsiteMapInstance
+                });
+
+                onsiteMapInstance.panTo(userPosition);
+
+                setOnsiteStatus(inRadius ? 'Di dalam radius kantor' : 'Di luar radius kantor');
+            }
+
+            function checkOnsiteLocation() {
+                if (!navigator.geolocation) {
+                    setOnsiteStatus('Browser tidak mendukung geolocation');
+                    return;
+                }
+
+                if (!window.isSecureContext) {
+                    setOnsiteStatus('Geolocation hanya jalan di HTTPS atau localhost');
+                    return;
+                }
+
+                setOnsiteStatus('Mengambil lokasi saat ini...');
+
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        updateUserLocationOnMap(position);
+                    },
+                    function (error) {
+                        if (!error || typeof error.code === 'undefined') {
+                            setOnsiteStatus('Gagal mendapatkan lokasi');
+                            return;
+                        }
+
+                        if (error.code === 1) {
+                            setOnsiteStatus('Izin lokasi ditolak. Izinkan lokasi di browser.');
+                            return;
+                        }
+
+                        if (error.code === 2) {
+                            setOnsiteStatus('Lokasi tidak tersedia. Aktifkan GPS/lokasi perangkat.');
+                            return;
+                        }
+
+                        if (error.code === 3) {
+                            setOnsiteStatus('Timeout saat mengambil lokasi. Coba lagi.');
+                            return;
+                        }
+
+                        setOnsiteStatus('Gagal mendapatkan lokasi');
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 0
+                    }
+                );
+            }
 
             function renderAttendanceDateTime() {
                 if (!attendanceDateElement) {
@@ -324,14 +644,62 @@
                 }
             });
 
-            $('#myTable').DataTable({
+            var attendanceTable = $('#myTable').DataTable({
+                autoWidth: false,
+                scrollX: true,
+                scrollCollapse: true,
                 columnDefs: [
                     {
                         targets: 0,
                         type: 'string'
                     }
-                ]
+                ],
+                initComplete: function () {
+                    var tableApi = this.api();
+                    var tableContainer = $(tableApi.table().container());
+                    var scrollBody = tableContainer.find('.dt-scroll-body');
+
+                    scrollBody.css({
+                        overflowX: 'auto',
+                        overflowY: 'hidden',
+                        WebkitOverflowScrolling: 'touch'
+                    });
+
+                    scrollBody.scrollLeft(0);
+                    tableApi.columns.adjust();
+                }
             });
+
+            attendanceTable.on('draw', function () {
+                attendanceTable.columns.adjust();
+            });
+
+            $(window).on('resize', function () {
+                attendanceTable.columns.adjust();
+            });
+
+            if (attendanceModalElement) {
+                attendanceModalElement.addEventListener('shown.bs.modal', function () {
+                    loadPublicIp();
+                    loadGoogleMapsApi()
+                        .then(function () {
+                            initializeOnsiteMap();
+                            if (onsiteMapInstance && officeRadiusCircle) {
+                                window.google.maps.event.trigger(onsiteMapInstance, 'resize');
+                                onsiteMapInstance.fitBounds(officeRadiusCircle.getBounds());
+                            }
+                        })
+                        .catch(function (error) {
+                            setOnsiteStatus(error.message);
+                        });
+                });
+            }
+
+            if (checkOnsiteLocationButton) {
+                checkOnsiteLocationButton.addEventListener('click', function () {
+                    checkOnsiteLocation();
+                });
+            }
         });
     </script>
 @endsection

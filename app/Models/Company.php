@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'name',
     'legal_name',
     'address',
+    'latitude',
+    'longitude',
     'city',
     'province',
     'postal_code',

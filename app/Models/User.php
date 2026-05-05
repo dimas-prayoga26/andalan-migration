@@ -3,9 +3,6 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Models\Absensi\Absen;
-use App\Models\Absensi\Izin;
-use App\Models\Absensi\Lembur;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -34,18 +31,8 @@ class User extends Authenticatable
         ];
     }
 
-    public function absen()
+    public function attendances()
     {
-        return $this->hasMany(Absen::class);
-    }
-
-    public function izin()
-    {
-        return $this->hasMany(Izin::class);
-    }
-
-    public function lembur()
-    {
-        return $this->hasMany(Lembur::class);
+        return $this->hasMany(Attendance::class);
     }
 }

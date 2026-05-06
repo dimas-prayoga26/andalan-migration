@@ -337,7 +337,7 @@
                                     <span id="onsiteIpText" class="{{ ($isIpPrefixMatch ?? false) ? 'text-success fw-semibold' : 'text-danger fw-semibold' }}">
                                         {{ $publicIp ?? '-' }}
                                     </span>
-                                    <span class="badge ms-2 {{ ($isIpPrefixMatch ?? false) ? 'bg-success' : 'bg-danger' }}">
+                                    <span id="onsiteIpBadge" class="badge ms-2 {{ ($isIpPrefixMatch ?? false) ? 'bg-success' : 'bg-danger' }}">
                                         {{ ($isIpPrefixMatch ?? false) ? 'Valid' : 'Tidak Valid' }}
                                     </span>
                                 </div>
@@ -382,6 +382,8 @@
             var checkOnsiteLocationButton = document.getElementById('checkOnsiteLocationBtn');
             var submitOnsiteAttendanceButton = document.getElementById('submitOnsiteAttendanceBtn');
             var onsiteStatusText = document.getElementById('onsiteStatusText');
+            var onsiteIpText = document.getElementById('onsiteIpText');
+            var onsiteIpBadge = document.getElementById('onsiteIpBadge');
             var onsiteRunningTimeElement = document.getElementById('onsiteRunningTime');
             var onsiteMapInstance = null;
             var officeMarker = null;
@@ -390,7 +392,45 @@
             var userToOfficeLine = null;
             var storeAttendanceUrl = @json(route('absensi.store'));
             var attendanceDatatableUrl = @json(route('absensi.datatable'));
+            var currentIpUrl = @json(route('absensi.current-ip'));
             var csrfToken = @json(csrf_token());
+
+            function setOnsiteIpIndicator(ipAddress, isValidIpPrefix) {
+                if (!onsiteIpText || !onsiteIpBadge) {
+                    return;
+                }
+
+                onsiteIpText.textContent = ipAddress || '-';
+                onsiteIpText.classList.remove('text-success', 'text-danger', 'fw-semibold');
+                onsiteIpBadge.classList.remove('bg-success', 'bg-danger');
+
+                if (isValidIpPrefix) {
+                    onsiteIpText.classList.add('text-success', 'fw-semibold');
+                    onsiteIpBadge.classList.add('bg-success');
+                    onsiteIpBadge.textContent = 'Valid';
+                    return;
+                }
+
+                onsiteIpText.classList.add('text-danger', 'fw-semibold');
+                onsiteIpBadge.classList.add('bg-danger');
+                onsiteIpBadge.textContent = 'Tidak Valid';
+            }
+
+            function refreshOnsiteIpIndicator() {
+                if (!currentIpUrl) {
+                    return;
+                }
+
+                $.ajax({
+                    url: currentIpUrl,
+                    method: 'GET',
+                    timeout: 10000
+                }).done(function (response) {
+                    var ipAddress = response && response.ip ? response.ip : '-';
+                    var isValidIpPrefix = !!(response && response.is_ip_prefix_match);
+                    setOnsiteIpIndicator(ipAddress, isValidIpPrefix);
+                });
+            }
 
             function setOnsiteStatus(text) {
                 if (onsiteStatusText) {
@@ -636,6 +676,7 @@
                     }
                 }).done(function (response) {
                     setOnsiteStatus(response && response.message ? response.message : 'Absen berhasil disimpan');
+                    refreshOnsiteIpIndicator();
                 }).fail(function (xhr) {
                     var errorMessage = 'Gagal memproses absen';
                     if (xhr.responseJSON && xhr.responseJSON.message) {
@@ -837,6 +878,7 @@
 
             if (attendanceModalElement) {
                 attendanceModalElement.addEventListener('shown.bs.modal', function () {
+                    refreshOnsiteIpIndicator();
                     loadGoogleMapsApi()
                         .then(function () {
                             initializeOnsiteMap();

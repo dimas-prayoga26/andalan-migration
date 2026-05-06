@@ -51,6 +51,7 @@ Route::middleware('auth')->group(function (): void {
     })->name('project_management');
 
     Route::get('/absensi/datatable', [AttendanceController::class, 'datatable'])->name('absensi.datatable');
+    Route::get('/absensi/current-ip', [AttendanceController::class, 'currentIp'])->name('absensi.current-ip');
 
     Route::resource('absensi', AttendanceController::class)
         ->only(['index', 'store', 'update'])

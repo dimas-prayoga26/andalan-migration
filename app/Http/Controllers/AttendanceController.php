@@ -225,6 +225,32 @@ class AttendanceController extends Controller
         ]);
     }
 
+    public function currentIp(): JsonResponse
+    {
+        $userId = Auth::id();
+        $publicIp = '-';
+        $officeLocation = $this->resolveOfficeContext($userId);
+        $ipdataData = $this->fetchIpdata();
+
+        if (! empty($ipdataData['ip'])) {
+            $publicIp = (string) $ipdataData['ip'];
+        }
+
+        $allowedIpRange = is_array($officeLocation) ? ($officeLocation['ip_range'] ?? null) : null;
+        $publicIpPrefix = $this->extractIpTwoOctets($publicIp);
+        $allowedIpPrefix = $this->extractIpTwoOctets($allowedIpRange);
+        $isIpPrefixMatch = $publicIpPrefix !== null
+            && $allowedIpPrefix !== null
+            && $publicIpPrefix === $allowedIpPrefix;
+
+        return response()->json([
+            'ip' => $publicIp,
+            'public_ip_prefix' => $publicIpPrefix,
+            'allowed_ip_prefix' => $allowedIpPrefix,
+            'is_ip_prefix_match' => $isIpPrefixMatch,
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */

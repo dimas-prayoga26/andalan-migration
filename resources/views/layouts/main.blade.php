@@ -2,7 +2,7 @@
 
 <body>
 
-    {{-- @include('layouts.loader') --}}
+    @include('layouts.loader')
 
     @php
         $isSuperuserLogoShift = auth()->user()?->hasRole('superuser') ?? false;

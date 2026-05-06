@@ -1,3 +1,10 @@
+@php
+    $authenticatedUser = auth()->user();
+    $headerUserName = $authenticatedUser?->name ?? '-';
+    $headerUserRole = $authenticatedUser?->getRoleNames()->first();
+    $headerUserRoleLabel = $headerUserRole ? \Illuminate\Support\Str::headline($headerUserRole) : '-';
+@endphp
+
 <!-- Start - Header -->
         <header class="header">
             <div class="header-content">
@@ -104,8 +111,8 @@
                                 <a class="nav-link" href="javascript:void(0)" role="button" data-bs-toggle="dropdown">
                                     <img src="images/profile/10.webp" width="20" alt="/">
 									<div class="header-info">
-										<span class="text-black fw-semibold"><p class="mb-1">Peter Parkur</p></span>
-										<p class="fs-12 mb-0">Super Admin</p>
+										<span class="text-black fw-semibold"><p class="mb-1">{{ $headerUserName }}</p></span>
+										<p class="fs-12 mb-0">{{ $headerUserRoleLabel }}</p>
 									</div>
                                 </a>
 								<ul class="dropdown-menu dropdown-menu-end">
@@ -113,8 +120,8 @@
 										<div class="py-2 d-flex px-3">
 											<img src="images/profile/10.webp" class="avatar avatar-sm rounded-circle" alt="">
 											<div class="ms-2">
-												<h6 class="mb-0">Johndoe</h6>
-												<small>Super Admin</small>
+												<h6 class="mb-0">{{ $headerUserName }}</h6>
+												<small>{{ $headerUserRoleLabel }}</small>
 											</div>
 										</div>
 									</li>

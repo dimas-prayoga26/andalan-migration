@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('attendances', function (Blueprint $table) {
+        Schema::create('rules_of_attendaces', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->date('date');
-            $table->enum('status', ['present', 'late', 'remote', 'business_trip']);
+            $table->foreignId('companies_id')->constrained('companies')->cascadeOnDelete();
+            $table->string('ip_range');
+            $table->unsignedInteger('radius');
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('attendances');
+        Schema::dropIfExists('rules_of_attendaces');
     }
 };

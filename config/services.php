@@ -39,4 +39,8 @@ return [
         'api_key' => env('GOOGLE_MAPS_API_KEY'),
     ],
 
+    'ipdata' => [
+        'api_key' => env('IPDATA_API_KEY', 'b549a55faa524dfb28a1d6ff730fa245baa3262b0a3d836b8031464e'),
+    ],
+
 ];

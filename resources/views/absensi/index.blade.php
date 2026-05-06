@@ -80,6 +80,33 @@
             background: #fff;
         }
 
+        #onsiteRunningTime {
+            padding: 0.85rem 1rem;
+            font-size: 1.05rem;
+            letter-spacing: 0.02em;
+            transition: color 0.2s ease, background-color 0.2s ease;
+        }
+
+        #onsiteRunningTime.time-green {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        #onsiteRunningTime.time-yellow {
+            color: #854d0e;
+            background: #fef9c3;
+        }
+
+        #onsiteRunningTime.time-red {
+            color: #b91c1c;
+            background: #fee2e2;
+        }
+
+        #onsiteRunningTime.time-gray {
+            color: #374151;
+            background: #e5e7eb;
+        }
+
         .onsite-map-canvas {
             width: 100%;
             height: 360px;
@@ -88,7 +115,7 @@
 
         .onsite-map-meta {
             border-top: 1px solid #e6eaf2;
-            padding: 0.85rem 1rem;
+            padding: 1.2rem 1.2rem;
         }
 
         #myTable_wrapper .dt-length label,
@@ -236,7 +263,19 @@
                 <div class="col-xxl-12 col-xl-12">
                     <div class="card-body">
                         <div class="row g-2 align-items-center mb-3">
-                            <div class="col-12 col-md-3 order-2 order-md-1"></div>
+                            @if($showCompanyFilter ?? false)
+                                <div class="col-12 col-md-3 order-2 order-md-1">
+                                    <div class="small text-muted mb-1">Filter Perusahaan</div>
+                                    <select class="form-select form-select-sm" id="attendanceCompanyFilter">
+                                        <option value="0">Semua Perusahaan</option>
+                                        @foreach($companies as $company)
+                                            <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @else
+                                <div class="col-12 col-md-3 order-2 order-md-1"></div>
+                            @endif
                             <div class="col-12 col-md-6 order-1 order-md-2">
                                 <div class="attendance-datetime mb-0" id="attendanceDateTime"></div>
                             </div>
@@ -252,27 +291,11 @@
                                     <th class="mw-200">Nama Staff</th>
                                     <th class="mw-150">Masuk</th>
                                     <th class="mw-150">Pulang</th>
+                                    <th class="mw-200">Nama PT</th>
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr>
-                                    <td>1</td>
-                                    <td>Gavin Cortez</td>
-                                    <td>08:00</td>
-                                    <td>17:00</td>
-                                </tr>
-                                <tr>
-                                    <td>2</td>
-                                    <td>Martena Mccray</td>
-                                    <td>08:10</td>
-                                    <td><span class="badge-attendance-empty">Belum Absen Pulang</span></td>
-                                </tr>
-                                <tr>
-                                    <td>3</td>
-                                    <td>Peter Parkur</td>
-                                    <td><span class="badge-attendance-empty">Belum Absen Masuk</span></td>
-                                    <td><span class="badge-attendance-empty">Belum Absen Pulang</span></td>
-                                </tr>
+
                                 </tbody>
                             </table>
                         </div>
@@ -302,19 +325,25 @@
                 <div class="tab-content" id="attendanceTypeTabContent">
                     <div class="tab-pane fade show active" id="onsite-pane" role="tabpanel" aria-labelledby="onsite-tab" tabindex="0">
                         <div class="onsite-map-container">
+                            <div class="px-3 py-2 border-bottom text-center fw-semibold" id="onsiteRunningTime">--:--:--</div>
                             <div id="onsiteMapCanvas" class="onsite-map-canvas"></div>
                             <div class="onsite-map-meta">
-                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-                                    <div>
-                                        <h6 class="mb-1">Validasi Lokasi Onsite</h6>
-                                    </div>
-                                    <button type="button" class="btn btn-outline-primary btn-sm" id="checkOnsiteLocationBtn">Cek Lokasi Saya</button>
-                                </div>
-                                <div class="small text-muted mb-1">
+                                <h6 class="mb-3">Validasi Lokasi Onsite</h6>
+                                <div class="small text-muted mb-2">
                                     <strong>Status:</strong> <span id="onsiteStatusText">Menunggu cek lokasi</span>
                                 </div>
-                                <div class="small text-muted mb-0">
-                                    <strong>IP:</strong> <span id="onsiteIpText">-</span>
+                                <div class="small mb-3">
+                                    <strong>IP:</strong>
+                                    <span id="onsiteIpText" class="{{ ($isIpPrefixMatch ?? false) ? 'text-success fw-semibold' : 'text-danger fw-semibold' }}">
+                                        {{ $publicIp ?? '-' }}
+                                    </span>
+                                    <span class="badge ms-2 {{ ($isIpPrefixMatch ?? false) ? 'bg-success' : 'bg-danger' }}">
+                                        {{ ($isIpPrefixMatch ?? false) ? 'Valid' : 'Tidak Valid' }}
+                                    </span>
+                                </div>
+                                <div class="d-flex gap-3">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="checkOnsiteLocationBtn">Cek Lokasi Saya</button>
+                                    <button type="button" class="btn btn-primary btn-sm" id="submitOnsiteAttendanceBtn">Submit</button>
                                 </div>
                             </div>
                         </div>
@@ -346,40 +375,40 @@
     <script>
         $(function () {
             var attendanceDateElement = document.getElementById('attendanceDateTime');
+            var attendanceCompanyFilter = document.getElementById('attendanceCompanyFilter');
             var googleMapsApiKey = @json(config('services.google_maps.api_key'));
             var officeLocation = @json($officeLocation);
             var attendanceModalElement = document.getElementById('attendanceActionModal');
             var checkOnsiteLocationButton = document.getElementById('checkOnsiteLocationBtn');
+            var submitOnsiteAttendanceButton = document.getElementById('submitOnsiteAttendanceBtn');
             var onsiteStatusText = document.getElementById('onsiteStatusText');
-            var onsiteIpText = document.getElementById('onsiteIpText');
+            var onsiteRunningTimeElement = document.getElementById('onsiteRunningTime');
             var onsiteMapInstance = null;
             var officeMarker = null;
             var officeRadiusCircle = null;
             var userMarker = null;
             var userToOfficeLine = null;
+            var storeAttendanceUrl = @json(route('absensi.store'));
+            var attendanceDatatableUrl = @json(route('absensi.datatable'));
+            var csrfToken = @json(csrf_token());
 
             function setOnsiteStatus(text) {
                 if (onsiteStatusText) {
                     onsiteStatusText.textContent = text;
+                    onsiteStatusText.classList.remove('text-success', 'text-danger', 'text-muted');
+
+                    if (text === 'Di dalam radius kantor') {
+                        onsiteStatusText.classList.add('text-success');
+                        return;
+                    }
+
+                    if (text === 'Di luar radius kantor') {
+                        onsiteStatusText.classList.add('text-danger');
+                        return;
+                    }
+
+                    onsiteStatusText.classList.add('text-muted');
                 }
-            }
-
-            function loadPublicIp() {
-                if (!onsiteIpText) {
-                    return;
-                }
-
-                onsiteIpText.textContent = 'Memuat...';
-
-                $.ajax({
-                    url: 'https://api.ipify.org?format=json',
-                    method: 'GET',
-                    timeout: 7000
-                }).done(function (response) {
-                    onsiteIpText.textContent = response && response.ip ? response.ip : '-';
-                }).fail(function () {
-                    onsiteIpText.textContent = 'Tidak tersedia';
-                });
             }
 
             function toRadians(value) {
@@ -591,6 +620,34 @@
                 );
             }
 
+            function submitOnsiteAttendance() {
+                if (!submitOnsiteAttendanceButton) {
+                    return;
+                }
+
+                submitOnsiteAttendanceButton.disabled = true;
+                setOnsiteStatus('Memproses submit absen...');
+
+                $.ajax({
+                    url: storeAttendanceUrl,
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken
+                    }
+                }).done(function (response) {
+                    setOnsiteStatus(response && response.message ? response.message : 'Absen berhasil disimpan');
+                }).fail(function (xhr) {
+                    var errorMessage = 'Gagal memproses absen';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+
+                    setOnsiteStatus(errorMessage);
+                }).always(function () {
+                    submitOnsiteAttendanceButton.disabled = false;
+                });
+            }
+
             function renderAttendanceDateTime() {
                 if (!attendanceDateElement) {
                     return;
@@ -632,8 +689,49 @@
                 attendanceDateElement.textContent = formattedDateTime;
             }
 
+            function renderOnsiteRunningTime() {
+                if (!onsiteRunningTimeElement) {
+                    return;
+                }
+
+                var now = new Date();
+
+                var timeParts = new Intl.DateTimeFormat('id-ID', {
+                    timeZone: 'Asia/Jakarta',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hourCycle: 'h23'
+                }).formatToParts(now);
+
+                var timeMap = {};
+                timeParts.forEach(function (part) {
+                    timeMap[part.type] = part.value;
+                });
+
+                var hour = parseInt(timeMap.hour, 10);
+                var minute = parseInt(timeMap.minute, 10);
+                var totalMinutes = (hour * 60) + minute;
+                var formattedTime = timeMap.hour + ':' + timeMap.minute + ':' + timeMap.second;
+
+                onsiteRunningTimeElement.textContent = formattedTime;
+                onsiteRunningTimeElement.classList.remove('time-green', 'time-yellow', 'time-red', 'time-gray');
+
+                if (totalMinutes < 480) {
+                    onsiteRunningTimeElement.classList.add('time-green');
+                } else if (totalMinutes < 495) {
+                    onsiteRunningTimeElement.classList.add('time-yellow');
+                } else if (totalMinutes > 1020) {
+                    onsiteRunningTimeElement.classList.add('time-gray');
+                } else {
+                    onsiteRunningTimeElement.classList.add('time-red');
+                }
+            }
+
             renderAttendanceDateTime();
             setInterval(renderAttendanceDateTime, 1000);
+            renderOnsiteRunningTime();
+            setInterval(renderOnsiteRunningTime, 1000);
 
             $('.absensi-tab-btn').on('click', function (event) {
                 event.preventDefault();
@@ -645,13 +743,65 @@
             });
 
             var attendanceTable = $('#myTable').DataTable({
+                ajax: {
+                    url: attendanceDatatableUrl,
+                    data: function (requestData) {
+                        requestData.company_id = attendanceCompanyFilter ? attendanceCompanyFilter.value : 0;
+                    },
+                    dataSrc: 'data'
+                },
                 autoWidth: false,
                 scrollX: true,
                 scrollCollapse: true,
+                columns: [
+                    {
+                        data: null,
+                        defaultContent: ''
+                    },
+                    {
+                        data: 'staff_name'
+                    },
+                    {
+                        data: 'check_in'
+                    },
+                    {
+                        data: 'check_out'
+                    },
+                    {
+                        data: 'company_name'
+                    }
+                ],
                 columnDefs: [
                     {
                         targets: 0,
-                        type: 'string'
+                        searchable: false,
+                        orderable: false
+                    },
+                    {
+                        targets: 2,
+                        render: function (data) {
+                            if (data) {
+                                return data;
+                            }
+
+                            return '<span class="badge-attendance-empty">Belum Absen Masuk</span>';
+                        }
+                    },
+                    {
+                        targets: 3,
+                        render: function (data) {
+                            if (data) {
+                                return data;
+                            }
+
+                            return '<span class="badge-attendance-empty">Belum Absen Pulang</span>';
+                        }
+                    },
+                    {
+                        targets: 4,
+                        render: function (data) {
+                            return data || '-';
+                        }
                     }
                 ],
                 initComplete: function () {
@@ -670,6 +820,13 @@
                 }
             });
 
+            attendanceTable.on('order.dt search.dt draw.dt', function () {
+                var pageInfo = attendanceTable.page.info();
+                attendanceTable.column(0, { page: 'current' }).nodes().each(function (cell, index) {
+                    cell.innerHTML = pageInfo.start + index + 1;
+                });
+            });
+
             attendanceTable.on('draw', function () {
                 attendanceTable.columns.adjust();
             });
@@ -680,7 +837,6 @@
 
             if (attendanceModalElement) {
                 attendanceModalElement.addEventListener('shown.bs.modal', function () {
-                    loadPublicIp();
                     loadGoogleMapsApi()
                         .then(function () {
                             initializeOnsiteMap();
@@ -700,6 +856,19 @@
                     checkOnsiteLocation();
                 });
             }
+
+            if (submitOnsiteAttendanceButton) {
+                submitOnsiteAttendanceButton.addEventListener('click', function () {
+                    submitOnsiteAttendance();
+                });
+            }
+
+            if (attendanceCompanyFilter) {
+                attendanceCompanyFilter.addEventListener('change', function () {
+                    attendanceTable.ajax.reload();
+                });
+            }
+
         });
     </script>
 @endsection

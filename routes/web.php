@@ -50,9 +50,13 @@ Route::middleware('auth')->group(function (): void {
         return view('project_management.index');
     })->name('project_management');
 
+    Route::get('/absensi/datatable', [AttendanceController::class, 'datatable'])->name('absensi.datatable');
+
     Route::resource('absensi', AttendanceController::class)
         ->only(['index', 'store', 'update'])
         ->names(['index' => 'absensi']);
+    Route::get('/absensi/datatable', [AttendanceController::class, 'datatable'])->name('absensi.datatable');
+
     Route::get('/absensi/dinas', function () {
         return view('absensi.dinas');
     })->name('absensi.dinas');

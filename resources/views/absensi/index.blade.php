@@ -343,7 +343,7 @@
                                 </div>
                                 <div class="d-flex gap-3">
                                     <button type="button" class="btn btn-outline-primary btn-sm" id="checkOnsiteLocationBtn">Cek Lokasi Saya</button>
-                                    <button type="button" class="btn btn-primary btn-sm" id="submitOnsiteAttendanceBtn">Submit</button>
+                                    <button type="button" class="btn btn-primary btn-sm" id="submitOnsiteAttendanceBtn">Masuk</button>
                                 </div>
                             </div>
                         </div>
@@ -391,10 +391,16 @@
             var userMarker = null;
             var userToOfficeLine = null;
             var storeAttendanceUrl = @json(route('absensi.store'));
+            var updateAttendanceUrlTemplate = @json(url('/absensi/__ATTENDANCE_ID__'));
             var attendanceDatatableUrl = @json(route('absensi.datatable'));
             var currentIpUrl = @json(route('absensi.current-ip'));
             var csrfToken = @json(csrf_token());
             var browserPublicIp = null;
+            var attendanceState = {
+                todayAttendanceId: @json($todayAttendanceId ?? null),
+                hasCheckedInToday: @json($hasCheckedInToday ?? false),
+                hasCheckedOutToday: @json($hasCheckedOutToday ?? false)
+            };
 
             function setOnsiteIpIndicator(ipAddress, isValidIpPrefix) {
                 if (!onsiteIpText || !onsiteIpBadge) {
@@ -451,6 +457,35 @@
                 }).always(function () {
                     refreshOnsiteIpIndicator();
                 });
+            }
+
+            function getUpdateAttendanceUrl(attendanceId) {
+                return updateAttendanceUrlTemplate.replace('__ATTENDANCE_ID__', String(attendanceId));
+            }
+
+            function renderSubmitAttendanceButton() {
+                if (!submitOnsiteAttendanceButton) {
+                    return;
+                }
+
+                submitOnsiteAttendanceButton.classList.remove('btn-primary', 'btn-success', 'btn-danger', 'btn-secondary');
+                submitOnsiteAttendanceButton.disabled = false;
+
+                if (attendanceState.hasCheckedOutToday) {
+                    submitOnsiteAttendanceButton.classList.add('btn-secondary');
+                    submitOnsiteAttendanceButton.textContent = 'Sudah Pulang';
+                    submitOnsiteAttendanceButton.disabled = true;
+                    return;
+                }
+
+                if (attendanceState.hasCheckedInToday) {
+                    submitOnsiteAttendanceButton.classList.add('btn-danger');
+                    submitOnsiteAttendanceButton.textContent = 'Keluar';
+                    return;
+                }
+
+                submitOnsiteAttendanceButton.classList.add('btn-success');
+                submitOnsiteAttendanceButton.textContent = 'Masuk';
             }
 
             function setOnsiteStatus(text) {
@@ -686,12 +721,22 @@
                     return;
                 }
 
+                if (attendanceState.hasCheckedOutToday) {
+                    setOnsiteStatus('Kamu sudah absen pulang hari ini');
+                    return;
+                }
+
                 submitOnsiteAttendanceButton.disabled = true;
                 setOnsiteStatus('Memproses submit absen...');
 
+                var requestMethod = attendanceState.hasCheckedInToday ? 'PATCH' : 'POST';
+                var requestUrl = attendanceState.hasCheckedInToday && attendanceState.todayAttendanceId
+                    ? getUpdateAttendanceUrl(attendanceState.todayAttendanceId)
+                    : storeAttendanceUrl;
+
                 $.ajax({
-                    url: storeAttendanceUrl,
-                    method: 'POST',
+                    url: requestUrl,
+                    method: requestMethod,
                     headers: {
                         'X-CSRF-TOKEN': csrfToken
                     },
@@ -700,7 +745,19 @@
                     }
                 }).done(function (response) {
                     setOnsiteStatus(response && response.message ? response.message : 'Absen berhasil disimpan');
+                    if (!attendanceState.hasCheckedInToday) {
+                        attendanceState.hasCheckedInToday = true;
+                        if (response && response.attendance_id) {
+                            attendanceState.todayAttendanceId = response.attendance_id;
+                        }
+                    } else {
+                        attendanceState.hasCheckedOutToday = true;
+                    }
+                    renderSubmitAttendanceButton();
                     resolveBrowserPublicIpAndRefresh();
+                    if (attendanceTable) {
+                        attendanceTable.ajax.reload(null, false);
+                    }
                 }).fail(function (xhr) {
                     var errorMessage = 'Gagal memproses absen';
                     if (xhr.responseJSON && xhr.responseJSON.message) {
@@ -709,7 +766,9 @@
 
                     setOnsiteStatus(errorMessage);
                 }).always(function () {
-                    submitOnsiteAttendanceButton.disabled = false;
+                    if (!attendanceState.hasCheckedOutToday) {
+                        submitOnsiteAttendanceButton.disabled = false;
+                    }
                 });
             }
 
@@ -797,6 +856,7 @@
             setInterval(renderAttendanceDateTime, 1000);
             renderOnsiteRunningTime();
             setInterval(renderOnsiteRunningTime, 1000);
+            renderSubmitAttendanceButton();
 
             $('.absensi-tab-btn').on('click', function (event) {
                 event.preventDefault();
@@ -844,8 +904,16 @@
                     },
                     {
                         targets: 2,
-                        render: function (data) {
+                        render: function (data, type, row) {
                             if (data) {
+                                if (row && row.status === 'late') {
+                                    return '<span class="text-danger fw-semibold">' + data + '</span>';
+                                }
+
+                                if (row && row.status === 'present') {
+                                    return '<span class="text-success fw-semibold">' + data + '</span>';
+                                }
+
                                 return data;
                             }
 

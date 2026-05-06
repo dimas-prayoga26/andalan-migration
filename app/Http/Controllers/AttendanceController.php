@@ -39,6 +39,16 @@ class AttendanceController extends Controller
         $izin = collect();
         $lembur = collect();
         $absensiHariIni = Attendance::where('date', now()->format('Y-m-d'))->where('user_id', $userId)->first();
+        $todayAttendanceId = $absensiHariIni?->id;
+        $todayAttendanceLog = null;
+        if ($todayAttendanceId) {
+            $todayAttendanceLog = AttendanceLog::query()
+                ->where('attendance_id', $todayAttendanceId)
+                ->orderByDesc('id')
+                ->first(['check_in', 'check_out']);
+        }
+        $hasCheckedInToday = ! empty($todayAttendanceLog?->check_in);
+        $hasCheckedOutToday = ! empty($todayAttendanceLog?->check_out);
         $totalLemburJam = 0;
 
         $agEvent = $attendance->groupBy(function ($data) {
@@ -82,6 +92,9 @@ class AttendanceController extends Controller
             'isIpPrefixMatch',
             'companies',
             'showCompanyFilter',
+            'todayAttendanceId',
+            'hasCheckedInToday',
+            'hasCheckedOutToday',
         ));
     }
 
@@ -170,9 +183,32 @@ class AttendanceController extends Controller
             ], 422);
         }
 
+        $attendanceLog = AttendanceLog::query()
+            ->where('attendance_id', $absensi->id)
+            ->orderByDesc('id')
+            ->first();
+
+        if (! $attendanceLog || empty($attendanceLog->check_in)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data absen masuk tidak ditemukan',
+            ], 422);
+        }
+
+        if (! empty($attendanceLog->check_out)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kamu sudah absen pulang hari ini',
+            ], 422);
+        }
+
+        $attendanceLog->update([
+            'check_out' => now('Asia/Jakarta')->format('H:i:s'),
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'Endpoint update belum digunakan',
+            'message' => 'Absen pulang berhasil disimpan',
         ]);
     }
 
@@ -210,14 +246,27 @@ class AttendanceController extends Controller
             });
         }
 
-        $tableRows = $tableUsersQuery->get()->map(function (User $user): array {
+        $tableUsers = $tableUsersQuery->get();
+        $attendanceIds = $tableUsers
+            ->map(fn (User $user): mixed => $user->attendances->first()?->id)
+            ->filter()
+            ->values();
+        $attendanceLogsByAttendanceId = AttendanceLog::query()
+            ->whereIn('attendance_id', $attendanceIds)
+            ->orderByDesc('id')
+            ->get(['attendance_id', 'check_in', 'check_out'])
+            ->groupBy('attendance_id')
+            ->map(fn ($attendanceLogs) => $attendanceLogs->first());
+
+        $tableRows = $tableUsers->map(function (User $user) use ($attendanceLogsByAttendanceId): array {
             $attendanceToday = $user->attendances->first();
+            $attendanceLog = $attendanceToday ? $attendanceLogsByAttendanceId->get($attendanceToday->id) : null;
 
             return [
                 'staff_name' => $user->name,
                 'company_name' => $user->userEmployee?->company?->name,
-                'check_in' => $attendanceToday?->check_in?->format('H:i'),
-                'check_out' => $attendanceToday?->check_out?->format('H:i'),
+                'check_in' => $this->formatAttendanceLogTime($attendanceLog?->check_in),
+                'check_out' => $this->formatAttendanceLogTime($attendanceLog?->check_out),
                 'status' => $attendanceToday?->status,
             ];
         })->values();
@@ -359,6 +408,19 @@ class AttendanceController extends Controller
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earthRadius * $c;
+    }
+
+    private function formatAttendanceLogTime(mixed $timeValue): ?string
+    {
+        if (! is_string($timeValue) || trim($timeValue) === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($timeValue)->format('H:i');
+        } catch (\Throwable) {
+            return substr($timeValue, 0, 5);
+        }
     }
 
     private function isSuperUser(?User $user): bool

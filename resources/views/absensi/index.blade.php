@@ -394,6 +394,7 @@
             var attendanceDatatableUrl = @json(route('absensi.datatable'));
             var currentIpUrl = @json(route('absensi.current-ip'));
             var csrfToken = @json(csrf_token());
+            var browserPublicIp = null;
 
             function setOnsiteIpIndicator(ipAddress, isValidIpPrefix) {
                 if (!onsiteIpText || !onsiteIpBadge) {
@@ -421,14 +422,34 @@
                     return;
                 }
 
+                var refreshIpRequestData = {};
+                if (browserPublicIp) {
+                    refreshIpRequestData.client_ip = browserPublicIp;
+                }
+
                 $.ajax({
                     url: currentIpUrl,
                     method: 'GET',
+                    data: refreshIpRequestData,
                     timeout: 10000
                 }).done(function (response) {
                     var ipAddress = response && response.ip ? response.ip : '-';
                     var isValidIpPrefix = !!(response && response.is_ip_prefix_match);
                     setOnsiteIpIndicator(ipAddress, isValidIpPrefix);
+                });
+            }
+
+            function resolveBrowserPublicIpAndRefresh() {
+                $.ajax({
+                    url: 'https://api.ipify.org?format=json',
+                    method: 'GET',
+                    timeout: 7000
+                }).done(function (response) {
+                    if (response && response.ip) {
+                        browserPublicIp = response.ip;
+                    }
+                }).always(function () {
+                    refreshOnsiteIpIndicator();
                 });
             }
 
@@ -673,10 +694,13 @@
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': csrfToken
+                    },
+                    data: {
+                        client_ip: browserPublicIp || (onsiteIpText ? onsiteIpText.textContent.trim() : null)
                     }
                 }).done(function (response) {
                     setOnsiteStatus(response && response.message ? response.message : 'Absen berhasil disimpan');
-                    refreshOnsiteIpIndicator();
+                    resolveBrowserPublicIpAndRefresh();
                 }).fail(function (xhr) {
                     var errorMessage = 'Gagal memproses absen';
                     if (xhr.responseJSON && xhr.responseJSON.message) {
@@ -878,7 +902,7 @@
 
             if (attendanceModalElement) {
                 attendanceModalElement.addEventListener('shown.bs.modal', function () {
-                    refreshOnsiteIpIndicator();
+                    resolveBrowserPublicIpAndRefresh();
                     loadGoogleMapsApi()
                         .then(function () {
                             initializeOnsiteMap();

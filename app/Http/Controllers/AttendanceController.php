@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Http;
 
 class AttendanceController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $userId = Auth::id();
         $authenticatedUser = Auth::user();
@@ -55,7 +55,8 @@ class AttendanceController extends Controller
 
         $officeLocation = $this->resolveOfficeContext($userId);
 
-        $ipdataData = $this->fetchIpdata();
+        $clientIpAddress = $this->resolveClientIpAddress($request);
+        $ipdataData = $this->fetchIpdata($clientIpAddress);
         if (! empty($ipdataData['ip'])) {
             $publicIp = (string) $ipdataData['ip'];
         }
@@ -107,13 +108,14 @@ class AttendanceController extends Controller
             'status' => $attendanceStatus,
         ]);
 
-        $ipdataData = $this->fetchIpdata();
+        $clientIpAddress = $this->resolveClientIpAddress($request, $request->input('client_ip'));
+        $ipdataData = $this->fetchIpdata($clientIpAddress);
         $hasIpCoordinates = isset($ipdataData['latitude'], $ipdataData['longitude'])
             && is_numeric($ipdataData['latitude'])
             && is_numeric($ipdataData['longitude']);
         $latitude = $hasIpCoordinates ? (float) $ipdataData['latitude'] : 0.0;
         $longitude = $hasIpCoordinates ? (float) $ipdataData['longitude'] : 0.0;
-        $ipAddress = $ipdataData['ip'] ?? $request->ip();
+        $ipAddress = $ipdataData['ip'] ?? $clientIpAddress ?? $request->ip();
 
         $officeContext = $this->resolveOfficeContext($userId);
         $distance = 0.0;
@@ -225,12 +227,13 @@ class AttendanceController extends Controller
         ]);
     }
 
-    public function currentIp(): JsonResponse
+    public function currentIp(Request $request): JsonResponse
     {
         $userId = Auth::id();
         $publicIp = '-';
         $officeLocation = $this->resolveOfficeContext($userId);
-        $ipdataData = $this->fetchIpdata();
+        $clientIpAddress = $this->resolveClientIpAddress($request, $request->query('client_ip'));
+        $ipdataData = $this->fetchIpdata($clientIpAddress);
 
         if (! empty($ipdataData['ip'])) {
             $publicIp = (string) $ipdataData['ip'];
@@ -254,7 +257,7 @@ class AttendanceController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function fetchIpdata(): array
+    private function fetchIpdata(?string $ipAddress = null): array
     {
         $ipdataApiKey = config('services.ipdata.api_key');
 
@@ -263,9 +266,14 @@ class AttendanceController extends Controller
         }
 
         try {
+            $endpoint = 'https://api.ipdata.co';
+            if ($ipAddress) {
+                $endpoint .= '/'.rawurlencode($ipAddress);
+            }
+
             $ipdataResponse = Http::timeout(7)
                 ->acceptJson()
-                ->get('https://api.ipdata.co', [
+                ->get($endpoint, [
                     'api-key' => $ipdataApiKey,
                 ]);
 
@@ -375,5 +383,19 @@ class AttendanceController extends Controller
 
         return $normalizedRoleNames->contains('board of directur')
             || $normalizedRoleNames->contains('board of directors');
+    }
+
+    private function resolveClientIpAddress(Request $request, mixed $preferredIpAddress = null): ?string
+    {
+        if (is_string($preferredIpAddress) && filter_var($preferredIpAddress, FILTER_VALIDATE_IP)) {
+            return $preferredIpAddress;
+        }
+
+        $requestIpAddress = $request->ip();
+        if (is_string($requestIpAddress) && filter_var($requestIpAddress, FILTER_VALIDATE_IP)) {
+            return $requestIpAddress;
+        }
+
+        return null;
     }
 }

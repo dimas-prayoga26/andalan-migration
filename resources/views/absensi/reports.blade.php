@@ -412,7 +412,40 @@
 
             var selectedMonth = '';
             var selectedYear = '';
-            var reportTable = $('#myTable').DataTable();
+
+            function parseCounterValue(rawValue) {
+                var value = (rawValue || '').toString().trim();
+                var numericMatch = value.match(/\d+/);
+                if (!numericMatch) {
+                    return 0;
+                }
+
+                var parsedNumber = parseInt(numericMatch[0], 10);
+                return Number.isNaN(parsedNumber) ? 0 : parsedNumber;
+            }
+
+            function formatCounterWithLimit(rawValue, limit) {
+                var currentValue = parseCounterValue(rawValue);
+                var safeValue = Math.min(currentValue, limit);
+                return safeValue + '/' + limit;
+            }
+
+            var reportTable = $('#myTable').DataTable({
+                columnDefs: [
+                    {
+                        targets: 5,
+                        render: function (data) {
+                            return formatCounterWithLimit(data, 3);
+                        }
+                    },
+                    {
+                        targets: 8,
+                        render: function (data) {
+                            return formatCounterWithLimit(data, 12);
+                        }
+                    }
+                ]
+            });
 
             function parseMonthYear(rawMonthYear) {
                 var monthYear = (rawMonthYear || '').trim();

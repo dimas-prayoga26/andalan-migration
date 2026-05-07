@@ -41,6 +41,8 @@
 	<!-- End - Switcher CSS -->
     <link href="vendor/fullcalendar/css/main.min.css" rel="stylesheet">
 	<!-- End - All Required css -->
+    <!-- All Required CSS -->
+	<link href="vendor/daterangepicker/daterangepicker.css" rel="stylesheet">
 
 	<!-- Start - Style Css -->
 	<link class="main-plugins" href="css/plugins.css" rel="stylesheet">
@@ -48,7 +50,7 @@
 	<!-- End - Style Css -->
 
     <link rel="stylesheet" href="https://cdn.datatables.net/2.3.8/css/dataTables.dataTables.css" />
-
+    <link href="https://unpkg.com/filepond/dist/filepond.min.css" rel="stylesheet">
     <style>
         .deznav {
             box-shadow: none !important;

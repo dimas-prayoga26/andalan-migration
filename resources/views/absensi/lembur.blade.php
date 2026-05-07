@@ -92,9 +92,25 @@
             font-size: 0.9rem;
             font-weight: 500;
             line-height: 1.2;
-            border: 1px solid #8397cf;
-            background: #eef2ff;
-            color: #6475a7;
+            border: 1px solid transparent;
+        }
+
+        .lembur-status-badge.warning {
+            background: #fff7e6;
+            border-color: #ffd591;
+            color: #ad6800;
+        }
+
+        .lembur-status-badge.success {
+            background: #f6ffed;
+            border-color: #b7eb8f;
+            color: #237804;
+        }
+
+        .lembur-status-badge.danger {
+            background: #fff1f0;
+            border-color: #ffa39e;
+            color: #a8071a;
         }
 
         .lembur-action-group {
@@ -255,7 +271,6 @@
                         <button type="button" data-href="{{ route('absensi') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi') ? 'true' : 'false' }}">Absensi Hari Ini</button>
                     </li>
                     <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.dinas') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.dinas') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.dinas') ? 'true' : 'false' }}">Absensi Dinas</button>
                     </li>
                     <li class="nav-item">
                         <button type="button" data-href="{{ route('absensi.reports') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.reports') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.reports') ? 'true' : 'false' }}">Reports</button>
@@ -274,7 +289,25 @@
             <div class="row">
                 <div class="col-xxl-12 col-xl-12">
                     <div class="card-body">
-                        <div class="attendance-datetime" id="attendanceDateTime"></div>
+                        <div class="row g-2 align-items-center mb-3">
+                            <div class="col-12 col-md-3"></div>
+                            <div class="col-12 col-md-6">
+                                <div class="attendance-datetime mb-0" id="attendanceDateTime"></div>
+                            </div>
+                            <div class="col-12 col-md-3 text-md-end">
+                                @if($canSubmitOvertime ?? false)
+                                    <button
+                                        type="button"
+                                        id="openSubmitLemburModalButton"
+                                        class="btn btn-primary btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#submitLemburModal"
+                                    >
+                                        Submit Lembur
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
                         <div class="lembur-table-title">Data Lembur</div>
                         <div class="table-responsive">
                             <table id="myTable" class="display table">
@@ -290,168 +323,7 @@
                                     <th class="mw-130 text-center">Action</th>
                                 </tr>
                                 </thead>
-                                <tbody>
-                                <tr>
-                                    <td>1.</td>
-                                    <td>2 August 2025</td>
-                                    <td>Andre Maulana Mustafa</td>
-                                    <td>10:00 - 16:48</td>
-                                    <td>06 Jam 48 Menit</td>
-                                    <td><span class="lembur-status-badge">Pending</span></td>
-                                    <td>Pembelajaran Lagi</td>
-                                    <td>
-                                        <div class="lembur-action-group">
-                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>2.</td>
-                                    <td>01 March 2024</td>
-                                    <td>Basith Alif Wahyujati</td>
-                                    <td>18:00 - 23:00</td>
-                                    <td>05 Jam 00 Menit</td>
-                                    <td><span class="lembur-status-badge">Pending</span></td>
-                                    <td>Mengerjakan Video Opening Ceremony untuk Rapat Koordinasi Nasional Akreditasi.</td>
-                                    <td>
-                                        <div class="lembur-action-group">
-                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>3.</td>
-                                    <td>09 February 2024</td>
-                                    <td>Basith Alif Wahyujati</td>
-                                    <td>20:00 - 23:59</td>
-                                    <td>03 Jam 59 Menit</td>
-                                    <td><span class="lembur-status-badge">Pending</span></td>
-                                    <td>Mengerjakan Video Opening Ceremony untuk acara Rapat Koordinasi Nasional Akreditasi di Bandung</td>
-                                    <td>
-                                        <div class="lembur-action-group">
-                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>4.</td>
-                                    <td>08 February 2024</td>
-                                    <td>Basith Alif Wahyujati</td>
-                                    <td>09:00 - 12:00</td>
-                                    <td>03 Jam 00 Menit</td>
-                                    <td><span class="lembur-status-badge">Pending</span></td>
-                                    <td>Mengerjakan Backdrop Rapat Koordinasi Percepatan Pengembangan Kemandirian BLK Komunitas</td>
-                                    <td>
-                                        <div class="lembur-action-group">
-                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>5.</td>
-                                    <td>07 February 2024</td>
-                                    <td>Basith Alif Wahyujati</td>
-                                    <td>17:00 - 23:00</td>
-                                    <td>06 Jam 00 Menit</td>
-                                    <td><span class="lembur-status-badge">Pending</span></td>
-                                    <td>Mengerjakan Lowerthird untuk Video yang ditayangkan di Rapat Koordinasi BLK Komunitas Semarang.</td>
-                                    <td>
-                                        <div class="lembur-action-group">
-                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>6.</td>
-                                    <td>September 2023</td>
-                                    <td>Rexy Aldinny</td>
-                                    <td>19:00 - 01:47</td>
-                                    <td>06 Jam 47 Menit</td>
-                                    <td><span class="lembur-status-badge">Pending</span></td>
-                                    <td>Mengerjakan desain stage untuk event Festival Pelatihan Vokasi 2023</td>
-                                    <td>
-                                        <div class="lembur-action-group">
-                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>7.</td>
-                                    <td>September 2023</td>
-                                    <td>Rexy Aldinny</td>
-                                    <td>22:57 - 00:07</td>
-                                    <td>01 Jam 10 Menit</td>
-                                    <td><span class="lembur-status-badge">Pending</span></td>
-                                    <td>Mengerjakan revisi desain dan layout untuk event upacara Kesaktian Pancasila 1 Oktober</td>
-                                    <td>
-                                        <div class="lembur-action-group">
-                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>8.</td>
-                                    <td>September 2023</td>
-                                    <td>Rexy Aldinny</td>
-                                    <td>18:37 - 02:04</td>
-                                    <td>07 Jam 27 Menit</td>
-                                    <td><span class="lembur-status-badge">Pending</span></td>
-                                    <td>Mengerjakan desain dan layout untuk event upacara Kesaktian Pancasila 1 Oktober</td>
-                                    <td>
-                                        <div class="lembur-action-group">
-                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>9.</td>
-                                    <td>September 2023</td>
-                                    <td>Rexy Aldinny</td>
-                                    <td>09:01 - 15:35</td>
-                                    <td>06 Jam 34 Menit</td>
-                                    <td><span class="lembur-status-badge">Pending</span></td>
-                                    <td>Mengerjakan 4 opsi desain dan gambar kerja booth event Jakarta Smart city-Innovation Day</td>
-                                    <td>
-                                        <div class="lembur-action-group">
-                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>10.</td>
-                                    <td>September 2023</td>
-                                    <td>Rexy Aldinny</td>
-                                    <td>20:57 - 23:18</td>
-                                    <td>02 Jam 21 Menit</td>
-                                    <td><span class="lembur-status-badge">Pending</span></td>
-                                    <td>Mengerjakan 2 opsi desain dan gambar kerja booth event Jakarta Smart city-World Clean Up Day</td>
-                                    <td>
-                                        <div class="lembur-action-group">
-                                            <button type="button" class="lembur-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="lembur-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="lembur-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                </tbody>
+                                <tbody></tbody>
                             </table>
                             </div>
 
@@ -461,6 +333,81 @@
         </div>
     </div>
 </div>
+@if($canSubmitOvertime ?? false)
+    <div class="modal fade" id="submitLemburModal" tabindex="-1" aria-labelledby="submitLemburModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="submitLemburModalLabel">Submit Lembur</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="overtimeSubmissionForm" action="{{ route('absensi.lembur.store') }}" method="POST">
+                        @csrf
+                        <input type="hidden" id="overtimeIdInput" value="">
+                        <div class="mb-3">
+                            <label class="form-label" for="overtimeDateInput">Tanggal Lembur</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="overtimeDateInput"
+                                name="overtime_date"
+                                placeholder="DD/MM/YYYY"
+                                autocomplete="off"
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <div class="row g-2">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label small mb-1" for="overtimeStartTimeInput">Jam Mulai</label>
+                                    <input
+                                        type="time"
+                                        step="1"
+                                        class="form-control"
+                                        id="overtimeStartTimeInput"
+                                        name="start_time"
+                                    >
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label small mb-1" for="overtimeEndTimeInput">Jam Selesai</label>
+                                    <input
+                                        type="time"
+                                        step="1"
+                                        class="form-control"
+                                        id="overtimeEndTimeInput"
+                                        name="end_time"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label" for="overtimeDescriptionInput">Deskripsi</label>
+                            <textarea
+                                class="form-control"
+                                id="overtimeDescriptionInput"
+                                name="description"
+                                rows="4"
+                                placeholder="Tulis deskripsi lembur"
+                            ></textarea>
+                        </div>
+                        <div class="mb-0 mt-3 d-none" id="overtimeApprovalStatusGroup">
+                            <label class="form-label" for="overtimeApprovalStatusInput">Approval Status</label>
+                            <select class="form-select" id="overtimeApprovalStatusInput" name="approval_status">
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="submitOvertimeButton">Submit Lembur</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
 <!-- End - Content Body -->
 
 @endsection
@@ -471,9 +418,22 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        var overtimeShowUrlTemplate = '{{ route('absensi.lembur.show', ['attendanceOvertime' => '__ID__']) }}';
+        var overtimeUpdateUrlTemplate = '{{ route('absensi.lembur.update', ['attendanceOvertime' => '__ID__']) }}';
+        var overtimeDestroyUrlTemplate = '{{ route('absensi.lembur.destroy', ['attendanceOvertime' => '__ID__']) }}';
+        var overtimeTableInstance = null;
+        var overtimeModalInstance = null;
+        var overtimeFormMode = 'create';
+        var shouldReloadOvertimeTable = false;
+
         $(function () {
             var attendanceDateElement = document.getElementById('attendanceDateTime');
+            var overtimeModalElement = document.getElementById('submitLemburModal');
+            overtimeModalInstance = window.bootstrap && overtimeModalElement
+                ? bootstrap.Modal.getOrCreateInstance(overtimeModalElement)
+                : null;
 
             function renderAttendanceDateTime() {
                 if (!attendanceDateElement) {
@@ -528,7 +488,440 @@
                 }
             });
 
-            $('#myTable').DataTable();
+            overtimeTableInstance = $('#myTable').DataTable({
+                ajax: {
+                    url: '{{ route('absensi.lembur.datatable') }}',
+                    dataSrc: 'data'
+                },
+                processing: true,
+                autoWidth: false,
+                scrollX: true,
+                scrollCollapse: true,
+                columns: [
+                    { data: null, defaultContent: '' },
+                    { data: 'overtime_date', defaultContent: '-' },
+                    { data: 'staff_name', defaultContent: '-' },
+                    { data: 'time_range', defaultContent: '-' },
+                    { data: 'duration', defaultContent: '-' },
+                    { data: 'status', defaultContent: 'pending' },
+                    { data: 'description', defaultContent: '-' },
+                    { data: null, defaultContent: '' }
+                ],
+                columnDefs: [
+                    {
+                        targets: 0,
+                        searchable: false,
+                        orderable: false
+                    },
+                    {
+                        targets: 5,
+                        render: function (data) {
+                            var normalizedStatus = String(data || 'pending').toLowerCase();
+                            var statusLabel = 'Pending';
+                            var statusClass = 'warning';
+
+                            if (normalizedStatus === 'approved') {
+                                statusLabel = 'Approved';
+                                statusClass = 'success';
+                            } else if (normalizedStatus === 'rejected') {
+                                statusLabel = 'Rejected';
+                                statusClass = 'danger';
+                            }
+
+                            return '<span class="lembur-status-badge ' + statusClass + '">' + statusLabel + '</span>';
+                        }
+                    },
+                    {
+                        targets: 7,
+                        searchable: false,
+                        orderable: false,
+                        className: 'text-center',
+                        render: function (data, type, row) {
+                            var overtimeId = row && row.id ? row.id : '';
+
+                            return '<div class="lembur-action-group">'
+                                + '<button type="button" class="lembur-action-btn info" onclick="infoDataOvertime(' + overtimeId + ')"><i class="bi bi-info-circle"></i></button>'
+                                + '<button type="button" class="lembur-action-btn edit" onclick="editDataOvertime(' + overtimeId + ')"><i class="bi bi-pencil"></i></button>'
+                                + '<button type="button" class="lembur-action-btn delete" onclick="deleteDataOvertime(' + overtimeId + ')"><i class="bi bi-trash"></i></button>'
+                                + '</div>';
+                        }
+                    }
+                ],
+                initComplete: function () {
+                    var tableApi = this.api();
+                    var tableContainer = $(tableApi.table().container());
+                    var scrollBody = tableContainer.find('.dt-scroll-body');
+
+                    scrollBody.css({
+                        overflowX: 'auto',
+                        overflowY: 'hidden',
+                        WebkitOverflowScrolling: 'touch'
+                    });
+
+                    scrollBody.scrollLeft(0);
+                    tableApi.columns.adjust();
+                }
+            });
+
+            overtimeTableInstance.on('order.dt search.dt draw.dt', function () {
+                var pageInfo = overtimeTableInstance.page.info();
+                overtimeTableInstance.column(0, { page: 'current' }).nodes().each(function (cell, index) {
+                    cell.innerHTML = pageInfo.start + index + 1;
+                });
+            });
+
+            overtimeTableInstance.on('draw', function () {
+                overtimeTableInstance.columns.adjust();
+            });
+
+            $(window).on('resize', function () {
+                overtimeTableInstance.columns.adjust();
+            });
+
+            function initOvertimeDatePicker() {
+                var $overtimeDateInput = $('#overtimeDateInput');
+
+                if (!$.fn.daterangepicker || !$overtimeDateInput.length) {
+                    return;
+                }
+
+                $overtimeDateInput.daterangepicker({
+                    parentEl: '#submitLemburModal .modal-body',
+                    singleDatePicker: true,
+                    autoApply: true,
+                    autoUpdateInput: false,
+                    locale: {
+                        format: 'DD/MM/YYYY',
+                        cancelLabel: 'Clear'
+                    }
+                });
+
+                $overtimeDateInput.on('apply.daterangepicker', function (event, picker) {
+                    $(this).val(picker.startDate.format('DD/MM/YYYY'));
+                });
+
+                $overtimeDateInput.on('cancel.daterangepicker', function () {
+                    $(this).val('');
+                });
+            }
+
+            $('#submitLemburModal').on('hidden.bs.modal', function () {
+                resetOvertimeFormFields();
+                setOvertimeModalCreateMode();
+
+                if (shouldReloadOvertimeTable) {
+                    refreshOvertimeTable();
+                    shouldReloadOvertimeTable = false;
+                }
+            });
+
+            function handleOvertimeFormSubmit() {
+                $('#submitOvertimeButton').on('click', function (event) {
+                    event.preventDefault();
+
+                    var $submitButton = $(this);
+                    var $overtimeForm = $('#overtimeSubmissionForm');
+                    var formData = new FormData($overtimeForm[0]);
+                    var overtimeId = $('#overtimeIdInput').val();
+                    var requestUrl = '{{ route('absensi.lembur.store') }}';
+
+                    if (overtimeFormMode === 'edit' && overtimeId) {
+                        requestUrl = buildOvertimeUrl(overtimeUpdateUrlTemplate, overtimeId);
+                        formData.append('_method', 'PUT');
+                    }
+
+                    $.ajax({
+                        url: requestUrl,
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        headers: {
+                            'X-CSRF-TOKEN': formData.get('_token'),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        beforeSend: function () {
+                            $submitButton.prop('disabled', true).text('Menyimpan...');
+                        },
+                        success: function (response) {
+                            if (response && response.success === true) {
+                                shouldReloadOvertimeTable = true;
+
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    text: response.message,
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                });
+
+                                if (overtimeModalInstance) {
+                                    overtimeModalInstance.hide();
+                                } else {
+                                    resetOvertimeFormFields();
+                                    setOvertimeModalCreateMode();
+                                    refreshOvertimeTable();
+                                    shouldReloadOvertimeTable = false;
+                                }
+
+                                return;
+                            }
+
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Gagal',
+                                text: response && response.message ? response.message : 'Gagal menyimpan data lembur.'
+                            });
+                        },
+                        error: function (xhr) {
+                            var responseJson = xhr.responseJSON || {};
+                            var errorMessage = responseJson.message || 'Gagal memproses permintaan.';
+
+                            if (responseJson.errors) {
+                                var firstErrorKey = Object.keys(responseJson.errors)[0];
+                                if (firstErrorKey && Array.isArray(responseJson.errors[firstErrorKey])) {
+                                    errorMessage = responseJson.errors[firstErrorKey][0];
+                                }
+                            }
+
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Terjadi Kesalahan',
+                                text: errorMessage
+                            });
+                        },
+                        complete: function () {
+                            $submitButton.prop('disabled', false).text(overtimeFormMode === 'edit' ? 'Update Lembur' : 'Submit Lembur');
+                        }
+                    });
+                });
+            }
+
+            $('#openSubmitLemburModalButton').on('click', function () {
+                resetOvertimeFormFields();
+                setOvertimeModalCreateMode();
+            });
+
+            initOvertimeDatePicker();
+            setOvertimeModalCreateMode();
+            handleOvertimeFormSubmit();
         });
+
+        function buildOvertimeUrl(urlTemplate, overtimeId) {
+            return String(urlTemplate).replace('__ID__', String(overtimeId || ''));
+        }
+
+        function escapeHtml(value) {
+            return $('<div>').text(value || '-').html();
+        }
+
+        function normalizeOvertimeStatusLabel(statusValue) {
+            var normalizedStatus = String(statusValue || 'pending').toLowerCase();
+
+            if (normalizedStatus === 'approved') {
+                return 'Approved';
+            }
+
+            if (normalizedStatus === 'rejected' || normalizedStatus === 'refused') {
+                return 'Rejected';
+            }
+
+            return 'Pending';
+        }
+
+        function refreshOvertimeTable() {
+            if (overtimeTableInstance && overtimeTableInstance.ajax) {
+                overtimeTableInstance.ajax.reload(null, false);
+            }
+        }
+
+        function showOvertimeAjaxError(xhr) {
+            var responseJson = xhr.responseJSON || {};
+            var errorMessage = responseJson.message || 'Gagal memproses permintaan.';
+
+            Swal.fire({
+                icon: 'error',
+                title: 'Terjadi Kesalahan',
+                text: errorMessage
+            });
+        }
+
+        function resetOvertimeFormFields() {
+            $('#overtimeSubmissionForm')[0].reset();
+            $('#overtimeIdInput').val('');
+            $('#overtimeDateInput').val('');
+            $('#overtimeStartTimeInput').val('');
+            $('#overtimeEndTimeInput').val('');
+            $('#overtimeDescriptionInput').val('');
+        }
+
+        function setOvertimeModalCreateMode() {
+            overtimeFormMode = 'create';
+            $('#submitLemburModalLabel').text('Submit Lembur');
+            $('#submitOvertimeButton').text('Submit Lembur');
+            $('#overtimeIdInput').val('');
+            $('#overtimeApprovalStatusInput').val('pending');
+            $('#overtimeApprovalStatusGroup').addClass('d-none');
+        }
+
+        function setOvertimeModalEditMode(detailData) {
+            overtimeFormMode = 'edit';
+            $('#submitLemburModalLabel').text('Edit Lembur');
+            $('#submitOvertimeButton').text('Update Lembur');
+
+            $('#overtimeIdInput').val(detailData.id || '');
+            $('#overtimeDateInput').val(detailData.overtime_date_input || '');
+            $('#overtimeStartTimeInput').val(detailData.start_time || '');
+            $('#overtimeEndTimeInput').val(detailData.end_time || '');
+            $('#overtimeDescriptionInput').val(detailData.description && detailData.description !== '-' ? detailData.description : '');
+            $('#overtimeApprovalStatusInput').val(String(detailData.status || 'pending').toLowerCase());
+            $('#overtimeApprovalStatusGroup').removeClass('d-none');
+
+            var datePickerInstance = $('#overtimeDateInput').data('daterangepicker');
+            if (datePickerInstance && detailData.overtime_date_input && window.moment) {
+                var selectedDate = moment(detailData.overtime_date_input, 'DD/MM/YYYY');
+                if (selectedDate.isValid()) {
+                    datePickerInstance.setStartDate(selectedDate);
+                    datePickerInstance.setEndDate(selectedDate);
+                }
+            }
+        }
+
+        function infoDataOvertime(overtimeId) {
+            if (!overtimeId) {
+                return;
+            }
+
+            $.ajax({
+                url: buildOvertimeUrl(overtimeShowUrlTemplate, overtimeId),
+                type: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function (response) {
+                    if (!response || response.success !== true || !response.data) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Gagal',
+                            text: response && response.message ? response.message : 'Data lembur tidak ditemukan.'
+                        });
+                        return;
+                    }
+
+                    var detailData = response.data;
+                    var detailHtml = '<div class="text-start px-2">'
+                        + '<div class="table-responsive">'
+                        + '<table class="table table-sm align-middle mb-0">'
+                        + '<tbody>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="width: 38%; color: #334155;">Nama Staff</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.staff_name) + '</td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Tanggal</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.overtime_date) + '</td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Jam</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.start_time) + ' - ' + escapeHtml(detailData.end_time) + '</td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Durasi</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.duration) + '</td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Status</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(normalizeOvertimeStatusLabel(detailData.status)) + '</td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Deskripsi</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.description) + '</td></tr>'
+                        + '</tbody>'
+                        + '</table>'
+                        + '</div>'
+                        + '</div>';
+
+                    Swal.fire({
+                        title: 'Detail Lembur',
+                        html: detailHtml,
+                        confirmButtonText: 'Tutup',
+                        confirmButtonColor: '#475569',
+                        customClass: {
+                            popup: 'p-3',
+                            title: 'mb-2'
+                        }
+                    });
+                },
+                error: function (xhr) {
+                    showOvertimeAjaxError(xhr);
+                }
+            });
+        }
+
+        function editDataOvertime(overtimeId) {
+            if (!overtimeId) {
+                return;
+            }
+
+            $.ajax({
+                url: buildOvertimeUrl(overtimeShowUrlTemplate, overtimeId),
+                type: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function (response) {
+                    if (!response || response.success !== true || !response.data) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Gagal',
+                            text: response && response.message ? response.message : 'Data lembur tidak ditemukan.'
+                        });
+                        return;
+                    }
+
+                    setOvertimeModalEditMode(response.data);
+
+                    if (overtimeModalInstance) {
+                        overtimeModalInstance.show();
+                    }
+                },
+                error: function (xhr) {
+                    showOvertimeAjaxError(xhr);
+                }
+            });
+        }
+
+        function deleteDataOvertime(overtimeId) {
+            if (!overtimeId) {
+                return;
+            }
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Hapus Data Lembur?',
+                text: 'Data yang dihapus tidak dapat dikembalikan.',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal',
+                reverseButtons: true
+            }).then(function (result) {
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                $.ajax({
+                    url: buildOvertimeUrl(overtimeDestroyUrlTemplate, overtimeId),
+                    type: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    beforeSend: function () {
+                        Swal.fire({
+                            title: 'Menghapus...',
+                            allowOutsideClick: false,
+                            didOpen: function () {
+                                Swal.showLoading();
+                            }
+                        });
+                    },
+                    success: function (response) {
+                        Swal.fire({
+                            icon: response && response.success === true ? 'success' : 'warning',
+                            title: response && response.success === true ? 'Berhasil' : 'Gagal',
+                            text: response && response.message ? response.message : 'Proses hapus selesai.'
+                        }).then(function () {
+                            refreshOvertimeTable();
+                        });
+                    },
+                    error: function (xhr) {
+                        showOvertimeAjaxError(xhr);
+                    }
+                });
+            });
+        }
     </script>
 @endsection

@@ -243,7 +243,6 @@
                         <button type="button" data-href="{{ route('absensi') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi') ? 'true' : 'false' }}">Absensi Hari Ini</button>
                     </li>
                     <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.dinas') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.dinas') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.dinas') ? 'true' : 'false' }}">Absensi Dinas</button>
                     </li>
                     <li class="nav-item">
                         <button type="button" data-href="{{ route('absensi.reports') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.reports') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.reports') ? 'true' : 'false' }}">Reports</button>
@@ -904,17 +903,19 @@
                     },
                     {
                         targets: 2,
-                        render: function (data, type, row) {
+                        render: function (data) {
                             if (data) {
-                                if (row && row.status === 'late') {
+                                var timeParts = String(data).split(':');
+                                var checkInHour = parseInt(timeParts[0], 10);
+                                var checkInMinute = parseInt(timeParts[1], 10);
+                                var checkInTotalMinutes = (checkInHour * 60) + checkInMinute;
+                                var officeStartTotalMinutes = (8 * 60);
+
+                                if (!Number.isNaN(checkInTotalMinutes) && checkInTotalMinutes > officeStartTotalMinutes) {
                                     return '<span class="text-danger fw-semibold">' + data + '</span>';
                                 }
 
-                                if (row && row.status === 'present') {
-                                    return '<span class="text-success fw-semibold">' + data + '</span>';
-                                }
-
-                                return data;
+                                return '<span class="text-success fw-semibold">' + data + '</span>';
                             }
 
                             return '<span class="badge-attendance-empty">Belum Absen Masuk</span>';

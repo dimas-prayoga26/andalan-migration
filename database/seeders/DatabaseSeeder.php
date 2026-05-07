@@ -13,13 +13,16 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             CompanySeeder::class,
+            MetaDataLeaveCompanySeeder::class,
             RulesOfAttendacesSeeder::class,
             MetaDataDomiciliSeeder::class,
             MetaDataGenderSeeder::class,
             MetaDataMaritalStatusSeeder::class,
             MetaDataDivisionSeeder::class,
             MetaDataPositionSeeder::class,
+            MetaDataPermissionTypeSeeder::class,
             UserSeeder::class,
+            LeaveBalanceSeeder::class,
         ]);
     }
 }

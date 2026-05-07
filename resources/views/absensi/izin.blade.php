@@ -81,6 +81,10 @@
             margin-bottom: 1rem;
         }
 
+        .izin-summary-item {
+            padding: 2px;
+        }
+
         .izin-summary-card {
             background: #fff;
             border: 1px solid #e6eaf2;
@@ -167,6 +171,28 @@
         .izin-action-btn.delete {
             background: #f8d6e2;
             color: #ff4f7b;
+        }
+
+        .izin-form-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #25314c;
+            margin-bottom: 0.45rem;
+        }
+
+        .izin-filepond .filepond--root {
+            margin-bottom: 0;
+            font-family: inherit;
+        }
+
+        .izin-filepond .filepond--panel-root {
+            border: 1px dashed #cbd5e1;
+            background: #fbfdff;
+        }
+
+        .izin-filepond .filepond--drop-label {
+            color: #72829f;
+            font-weight: 500;
         }
 
         #myTable_wrapper .dt-length label,
@@ -294,7 +320,6 @@
                         <button type="button" data-href="{{ route('absensi') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi') ? 'true' : 'false' }}">Absensi Hari Ini</button>
                     </li>
                     <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.dinas') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.dinas') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.dinas') ? 'true' : 'false' }}">Absensi Dinas</button>
                     </li>
                     <li class="nav-item">
                         <button type="button" data-href="{{ route('absensi.reports') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.reports') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.reports') ? 'true' : 'false' }}">Reports</button>
@@ -313,35 +338,49 @@
             <div class="row">
                 <div class="col-xxl-12 col-xl-12">
                     <div class="card-body">
-                        <div class="attendance-datetime" id="attendanceDateTime"></div>
-                        <div class="row g-3 izin-summary-row">
-                            <div class="col-xl-3 col-md-6">
-                                <div class="izin-summary-card">
-                                    <span class="izin-summary-label">Pending</span>
-                                    <span class="izin-summary-value">4</span>
-                                </div>
+                        <div class="row g-2 align-items-center mb-3">
+                            <div class="col-12 col-md-3"></div>
+                            <div class="col-12 col-md-6">
+                                <div class="attendance-datetime mb-0" id="attendanceDateTime"></div>
                             </div>
-                            <div class="col-xl-3 col-md-6">
-                                <div class="izin-summary-card">
-                                    <span class="izin-summary-label">Approved</span>
-                                    <span class="izin-summary-value">0</span>
-                                </div>
-                            </div>
-                            <div class="col-xl-3 col-md-6">
-                                <div class="izin-summary-card">
-                                    <span class="izin-summary-label">Refused</span>
-                                    <span class="izin-summary-value">2</span>
-                                </div>
-                            </div>
-                            <div class="col-xl-3 col-md-6">
-                                <div class="izin-summary-card">
-                                    <span class="izin-summary-label">Total</span>
-                                    <span class="izin-summary-value">6</span>
-                                </div>
+                            <div class="col-12 col-md-3 text-md-end">
+                                <button
+                                    type="button"
+                                    class="btn btn-primary btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#submitIzinModal"
+                                >
+                                    Submit Izin
+                                </button>
                             </div>
                         </div>
+                        <div id="izinSummaryCarousel" class="izin-summary-row owl-carousel">
+                            @foreach(($summaryCards ?? []) as $summaryCard)
+                                <div class="izin-summary-item">
+                                    <div class="izin-summary-card">
+                                        <span class="izin-summary-label">{{ $summaryCard['label'] ?? '-' }}</span>
+                                        <span class="izin-summary-value">{{ $summaryCard['value'] ?? 0 }}</span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
                         <div class="submission-list-title">List Pengajuan</div>
-                        <div class="table-responsive">
+                        @if($canFilterEmployees ?? false)
+                            <div class="row mb-3">
+                                <div class="col-12 col-md-5 col-lg-4">
+                                    <label for="attendanceStaffFilter" class="form-label mb-1">Filter Karyawan</label>
+                                    <select id="attendanceStaffFilter" class="form-select form-select-sm">
+                                        <option value="0">Semua Karyawan</option>
+                                        @foreach(($staffUsers ?? collect()) as $staffUser)
+                                            <option value="{{ $staffUser->id }}" {{ (int) ($defaultStaffUserId ?? 0) === (int) $staffUser->id ? 'selected' : '' }}>
+                                                {{ $staffUser->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        @endif
+                        <div>
                             <table id="myTable" class="display table">
                                 <thead>
                                 <tr>
@@ -355,109 +394,77 @@
                                     <th class="mw-130 text-center">Action</th>
                                 </tr>
                                 </thead>
-                                <tbody>
-                                <tr>
-                                    <td>1.</td>
-                                    <td>23 Aug 2025 - 25 Aug 2025</td>
-                                    <td>3 Hari</td>
-                                    <td>Andre</td>
-                                    <td>Cuti Khusus</td>
-                                    <td><span class="izin-status-badge pending">Pending</span></td>
-                                    <td>Test Fitur</td>
-                                    <td>
-                                        <div class="izin-action-group">
-                                            <button type="button" class="izin-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="izin-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="izin-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>2.</td>
-                                    <td>31 Oct 2024 - 01 Nov 2024</td>
-                                    <td>2 Hari</td>
-                                    <td>Padyan</td>
-                                    <td>Cuti Tahunan</td>
-                                    <td><span class="izin-status-badge pending">Pending</span></td>
-                                    <td>menghadiri wisuda adik ...</td>
-                                    <td>
-                                        <div class="izin-action-group">
-                                            <button type="button" class="izin-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="izin-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="izin-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>3.</td>
-                                    <td>26 Sep 2024 - 26 Sep 2024</td>
-                                    <td>1 Hari</td>
-                                    <td>Padyan</td>
-                                    <td>Sakit</td>
-                                    <td><span class="izin-status-badge pending">Pending</span></td>
-                                    <td>Sakit</td>
-                                    <td>
-                                        <div class="izin-action-group">
-                                            <button type="button" class="izin-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="izin-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="izin-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>4.</td>
-                                    <td>20 May 2024 - 22 May 2024</td>
-                                    <td>3 Hari</td>
-                                    <td>Syafiq</td>
-                                    <td>Izin Dinas Luar Kota</td>
-                                    <td><span class="izin-status-badge pending">Pending</span></td>
-                                    <td>-</td>
-                                    <td>
-                                        <div class="izin-action-group">
-                                            <button type="button" class="izin-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="izin-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="izin-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>5.</td>
-                                    <td>23 Oct 2023 - 29 Oct 2023</td>
-                                    <td>7 Hari</td>
-                                    <td>Wildan</td>
-                                    <td>Izin Dinas Luar Kota</td>
-                                    <td><span class="izin-status-badge refused">Refused</span></td>
-                                    <td>-</td>
-                                    <td>
-                                        <div class="izin-action-group">
-                                            <button type="button" class="izin-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="izin-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="izin-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>6.</td>
-                                    <td>27 Sep 2023 - 27 Sep 2023</td>
-                                    <td>1 Hari</td>
-                                    <td>Wildan</td>
-                                    <td>Sakit</td>
-                                    <td><span class="izin-status-badge refused">Refused</span></td>
-                                    <td>Berobat ke puskesmas ...</td>
-                                    <td>
-                                        <div class="izin-action-group">
-                                            <button type="button" class="izin-action-btn info"><i class="bi bi-info-circle"></i></button>
-                                            <button type="button" class="izin-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="izin-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                </tbody>
+                                <tbody></tbody>
                             </table>
                             </div>
 
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="submitIzinModal" tabindex="-1" aria-labelledby="submitIzinModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="submitIzinModalLabel">Pengajuan Izin</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="izinSubmissionForm" action="{{ route('absensi.izin.store') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <input type="hidden" id="izinStartDate" name="start_date">
+                    <input type="hidden" id="izinEndDate" name="end_date">
+                    <div class="mb-3">
+                        <label class="izin-form-label" for="izinDateRangeRoot">Durasi Izin atau Cuti</label>
+                        <input
+                            class="form-control"
+                            type="text"
+                            id="izinDateRangeInput"
+                            name="izin_daterange"
+                            placeholder="DD/MM/YYYY - DD/MM/YYYY"
+                            autocomplete="off"
+                        />
+                    </div>
+                    <div class="mb-3">
+                        <label class="izin-form-label" for="izinPermissionType">Tipe Izin atau Cuti</label>
+                        <select class="form-select" id="izinPermissionType" name="permission_type_id">
+                            <option value="">Pilih tipe izin atau cuti</option>
+                            @forelse($permissionTypes ?? [] as $permissionType)
+                                <option value="{{ $permissionType->id }}">{{ $permissionType->name }}</option>
+                            @empty
+                                <option value="" disabled>Data tipe izin belum tersedia</option>
+                            @endforelse
+                        </select>
+                    </div>
+                    <div class="mb-3 izin-filepond">
+                        <label class="izin-form-label" for="izinAttachments">Lampiran (Opsional)</label>
+                        <input
+                            class="form-control"
+                            type="file"
+                            id="izinAttachments"
+                            name="attachment_files[]"
+                            accept=".jpg,.jpeg,.png,.pdf"
+                            multiple
+                        >
+                    </div>
+                    <div class="mb-0">
+                        <label class="izin-form-label" for="izinDescription">Keterangan</label>
+                        <textarea
+                            class="form-control"
+                            id="izinDescription"
+                            name="reason"
+                            rows="4"
+                            placeholder="Tulis keterangan izin atau cuti"
+                        ></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Batal</button>
+                <button type="button" id="submitIzinButton" class="btn btn-primary btn-sm">Submit Izin</button>
             </div>
         </div>
     </div>
@@ -472,9 +479,21 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+    <script src="https://unpkg.com/antd@6.2.3/dist/antd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        var attendancePermissionShowUrlTemplate = '{{ route('absensi.izin.show', ['attendancePermission' => '__ID__']) }}';
+        var attendancePermissionDestroyUrlTemplate = '{{ route('absensi.izin.destroy', ['attendancePermission' => '__ID__']) }}';
+        var attendancePermissionUpdateStatusUrlTemplate = '{{ route('absensi.izin.update-status', ['attendancePermission' => '__ID__']) }}';
+        var canUpdatePermissionStatus = @json($canUpdatePermissionStatus ?? false);
+
         $(function () {
             var attendanceDateElement = document.getElementById('attendanceDateTime');
+            var izinAttachmentPond = null;
+            var attendanceStaffFilter = document.getElementById('attendanceStaffFilter');
 
             function renderAttendanceDateTime() {
                 if (!attendanceDateElement) {
@@ -529,14 +548,550 @@
                 }
             });
 
-            $('#myTable').DataTable({
+            var attendancePermissionTable = $('#myTable').DataTable({
+                ajax: {
+                    url: '{{ route('absensi.izin.datatable') }}',
+                    data: function (requestData) {
+                        requestData.staff_user_id = attendanceStaffFilter ? attendanceStaffFilter.value : 0;
+                    },
+                    dataSrc: 'data'
+                },
+                autoWidth: false,
+                scrollX: true,
+                scrollCollapse: true,
+                columns: [
+                    { data: null, defaultContent: '' },
+                    { data: 'date_range', defaultContent: '-' },
+                    { data: 'duration', defaultContent: '-' },
+                    { data: 'staff_name', defaultContent: '-' },
+                    { data: 'permission_type', defaultContent: '-' },
+                    { data: 'status', defaultContent: 'pending' },
+                    { data: 'reason', defaultContent: '-' },
+                    { data: null, defaultContent: '' }
+                ],
                 columnDefs: [
                     {
                         targets: 0,
-                        type: 'string'
+                        searchable: false,
+                        orderable: false
+                    },
+                    {
+                        targets: 5,
+                        render: function (data, type, row) {
+                            var normalizedStatus = String(data || 'pending').toLowerCase();
+                            var selectedPending = normalizedStatus === 'pending' ? ' selected' : '';
+                            var selectedApproved = normalizedStatus === 'approved' ? ' selected' : '';
+                            var selectedRejected = (normalizedStatus === 'refused' || normalizedStatus === 'rejected') ? ' selected' : '';
+                            var isFinalStatus = normalizedStatus !== 'pending';
+                            var selectDisabled = !canUpdatePermissionStatus || isFinalStatus ? ' disabled' : '';
+
+                            return '<select class="form-select form-select-sm permission-status-select" data-id="' + (row && row.id ? row.id : '') + '" data-current-status="' + normalizedStatus + '"' + selectDisabled + '>'
+                                + '<option value="pending"' + selectedPending + '>Pending</option>'
+                                + '<option value="approved"' + selectedApproved + '>Approved</option>'
+                                + '<option value="rejected"' + selectedRejected + '>Rejected</option>'
+                                + '</select>';
+                        }
+                    },
+                    {
+                        targets: 7,
+                        searchable: false,
+                        orderable: false,
+                        className: 'text-center',
+                        render: function (data, type, row) {
+                            var permissionId = row && row.id ? row.id : '';
+
+                            return '<div class="izin-action-group">'
+                                + '<button type="button" class="izin-action-btn info" onclick="infoData(' + permissionId + ')"><i class="bi bi-info-circle"></i></button>'
+                                + '<button type="button" class="izin-action-btn delete" onclick="deleteData(' + permissionId + ')"><i class="bi bi-trash"></i></button>'
+                                + '</div>';
+                        }
                     }
-                ]
+                ],
+                initComplete: function () {
+                    var tableApi = this.api();
+                    var tableContainer = $(tableApi.table().container());
+                    var scrollBody = tableContainer.find('.dt-scroll-body');
+
+                    scrollBody.css({
+                        overflowX: 'auto',
+                        overflowY: 'hidden',
+                        WebkitOverflowScrolling: 'touch'
+                    });
+
+                    scrollBody.scrollLeft(0);
+                    tableApi.columns.adjust();
+                }
             });
+
+            attendancePermissionTable.on('draw', function () {
+                var tableContainer = $(attendancePermissionTable.table().container());
+                tableContainer.find('.dt-scroll-body').css({
+                    overflowX: 'auto',
+                    overflowY: 'hidden',
+                    WebkitOverflowScrolling: 'touch'
+                });
+                attendancePermissionTable.columns.adjust();
+            });
+
+            attendancePermissionTable.on('order.dt search.dt draw.dt', function () {
+                var pageInfo = attendancePermissionTable.page.info();
+                attendancePermissionTable.column(0, { page: 'current' }).nodes().each(function (cell, index) {
+                    cell.innerHTML = pageInfo.start + index + 1;
+                });
+            });
+
+            $(window).on('resize', function () {
+                attendancePermissionTable.columns.adjust();
+            });
+
+            if (attendanceStaffFilter) {
+                attendanceStaffFilter.addEventListener('change', function () {
+                    attendancePermissionTable.ajax.reload();
+                });
+            }
+
+            $('#myTable').on('change', '.permission-status-select', function () {
+                var $statusSelect = $(this);
+                var permissionId = $statusSelect.data('id');
+                var previousStatus = String($statusSelect.data('current-status') || 'pending').toLowerCase();
+                var selectedStatus = String($statusSelect.val() || 'pending').toLowerCase();
+
+                if (!permissionId || !canUpdatePermissionStatus) {
+                    $statusSelect.val(previousStatus);
+                    return;
+                }
+
+                if (selectedStatus === previousStatus) {
+                    return;
+                }
+
+                $.ajax({
+                    url: buildAttendancePermissionUrl(attendancePermissionUpdateStatusUrlTemplate, permissionId),
+                    type: 'PUT',
+                    data: {
+                        approval_status: selectedStatus
+                    },
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    beforeSend: function () {
+                        $statusSelect.prop('disabled', true);
+                    },
+                    success: function (response) {
+                        if (!response || response.success !== true) {
+                            $statusSelect.val(previousStatus);
+                            $statusSelect.prop('disabled', false);
+
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Gagal',
+                                text: response && response.message ? response.message : 'Gagal memperbarui status izin.'
+                            });
+                            return;
+                        }
+
+                        $statusSelect.data('current-status', selectedStatus);
+                        $statusSelect.prop('disabled', true);
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.message,
+                            timer: 1200,
+                            showConfirmButton: false
+                        });
+                    },
+                    error: function (xhr) {
+                        $statusSelect.val(previousStatus);
+                        $statusSelect.prop('disabled', false);
+
+                        var responseJson = xhr.responseJSON || {};
+                        var errorMessage = responseJson.message || 'Gagal memproses permintaan.';
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Terjadi Kesalahan',
+                            text: errorMessage
+                        });
+                    }
+                });
+            });
+
+            if ($('#izinSummaryCarousel').length && typeof $.fn.owlCarousel === 'function') {
+                $('#izinSummaryCarousel').owlCarousel({
+                    items: 1,
+                    slideBy: 1,
+                    autoWidth: false,
+                    nav: false,
+                    dots: false,
+                    smartSpeed: 450,
+                    touchDrag: true,
+                    mouseDrag: true,
+                    checkVisible: false,
+                    responsiveRefreshRate: 100,
+                    responsive: {
+                        0: {
+                            items: 1,
+                            slideBy: 1,
+                            margin: 8,
+                            nav: false
+                        },
+                        768: {
+                            items: 2,
+                            slideBy: 1,
+                            margin: 10,
+                            nav: false
+                        },
+                        1200: {
+                            items: 4,
+                            slideBy: 1,
+                            margin: 12,
+                            nav: false
+                        }
+                    }
+                });
+            }
+
+            function initIzinDateRangePicker() {
+                var $izinDateRangeInput = $('#izinDateRangeInput');
+                var $submitIzinModal = $('#submitIzinModal');
+                var $izinStartDate = $('#izinStartDate');
+                var $izinEndDate = $('#izinEndDate');
+
+                if (!$.fn.daterangepicker || !$izinDateRangeInput.length) {
+                    return;
+                }
+
+                var currentMonthStart = moment().startOf('month');
+                var currentDate = moment();
+
+                $izinDateRangeInput.daterangepicker({
+                    parentEl: '#submitIzinModal .modal-body',
+                    opens: 'center',
+                    autoUpdateInput: false,
+                    minDate: currentMonthStart,
+                    startDate: currentMonthStart,
+                    endDate: currentDate,
+                    locale: {
+                        format: 'DD/MM/YYYY',
+                        cancelLabel: 'Clear'
+                    }
+                });
+
+                $izinDateRangeInput.on('apply.daterangepicker', function (event, picker) {
+                    $(this).val(picker.startDate.format('DD/MM/YYYY') + ' - ' + picker.endDate.format('DD/MM/YYYY'));
+                    $izinStartDate.val(picker.startDate.format('YYYY-MM-DD'));
+                    $izinEndDate.val(picker.endDate.format('YYYY-MM-DD'));
+                });
+
+                $izinDateRangeInput.on('cancel.daterangepicker', function () {
+                    $(this).val('');
+                    $izinStartDate.val('');
+                    $izinEndDate.val('');
+                });
+
+                $submitIzinModal.on('shown.bs.modal', function () {
+                    $izinDateRangeInput.attr('placeholder', 'DD/MM/YYYY - DD/MM/YYYY');
+                });
+            }
+
+            function initIzinAttachmentFilePond() {
+                var attachmentInput = document.getElementById('izinAttachments');
+
+                if (!attachmentInput || typeof FilePond === 'undefined') {
+                    return;
+                }
+
+                izinAttachmentPond = FilePond.create(attachmentInput, {
+                    allowMultiple: true,
+                    instantUpload: false,
+                    credits: false,
+                    labelIdle: 'Drop file di sini atau <span class="filepond--label-action">Browse</span>',
+                    labelFileProcessingError: 'Terjadi kesalahan saat memproses file',
+                    labelTapToUndo: 'Tap untuk batal',
+                    labelTapToCancel: 'Tap untuk batal',
+                    labelTapToRetry: 'Tap untuk coba lagi'
+                });
+            }
+
+            function handleIzinFormSubmit() {
+                $('#submitIzinButton').on('click', function (event) {
+                    event.preventDefault();
+
+                    var $submitButton = $(this);
+                    var $izinForm = $('#izinSubmissionForm');
+
+                    var formData = new FormData($izinForm[0]);
+                    formData.delete('attachment_files');
+                    formData.delete('attachment_files[]');
+
+                    if (izinAttachmentPond) {
+                        var selectedAttachmentFiles = izinAttachmentPond.getFiles();
+
+                        selectedAttachmentFiles.forEach(function (pondFileItem) {
+                            if (pondFileItem && pondFileItem.file) {
+                                formData.append('attachment_files[]', pondFileItem.file, pondFileItem.file.name);
+                            }
+                        });
+                    }
+
+                    $.ajax({
+                        url: $izinForm.attr('action'),
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        headers: {
+                            'X-CSRF-TOKEN': formData.get('_token'),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        beforeSend: function () {
+                            $submitButton.prop('disabled', true).text('Menyimpan...');
+                        },
+                        success: function (response) {
+                            if (response && response.success === true) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    text: response.message,
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                });
+
+                                setTimeout(function () {
+                                    $izinForm[0].reset();
+                                    $('#izinDateRangeInput').val('');
+                                    $('#izinStartDate').val('');
+                                    $('#izinEndDate').val('');
+                                    if (izinAttachmentPond) {
+                                        izinAttachmentPond.removeFiles();
+                                    }
+
+                                    $('#submitIzinModal').modal('hide');
+                                    attendancePermissionTable.ajax.reload(null, false);
+                                }, 1000);
+
+                                return;
+                            }
+
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Gagal',
+                                text: response && response.message ? response.message : 'Gagal menyimpan data.'
+                            });
+                        },
+                        error: function (xhr) {
+                            var responseJson = xhr.responseJSON || {};
+                            var errorMessage = responseJson.message || 'Gagal memproses permintaan.';
+
+                            if (responseJson.errors) {
+                                var firstErrorKey = Object.keys(responseJson.errors)[0];
+                                if (firstErrorKey && Array.isArray(responseJson.errors[firstErrorKey])) {
+                                    errorMessage = responseJson.errors[firstErrorKey][0];
+                                }
+                            }
+
+                            console.error(xhr.responseText);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Terjadi Kesalahan',
+                                text: errorMessage
+                            });
+                        },
+                        complete: function () {
+                            $submitButton.prop('disabled', false).text('Submit Izin');
+                        }
+                    });
+                });
+            }
+
+            $('#submitIzinModal').on('hidden.bs.modal', function () {
+                if (izinAttachmentPond) {
+                    izinAttachmentPond.removeFiles();
+                }
+            });
+
+            initIzinAttachmentFilePond();
+            initIzinDateRangePicker();
+            handleIzinFormSubmit();
         });
+
+        function buildAttendancePermissionUrl(urlTemplate, permissionId) {
+            return String(urlTemplate).replace('__ID__', String(permissionId || ''));
+        }
+
+        function normalizeStatusLabel(statusValue) {
+            var normalizedStatus = String(statusValue || 'pending').toLowerCase();
+
+            if (normalizedStatus === 'approved') {
+                return 'Approved';
+            }
+
+            if (normalizedStatus === 'refused' || normalizedStatus === 'rejected') {
+                return 'Refused';
+            }
+
+            return 'Pending';
+        }
+
+        function resolveStatusBadgeClass(statusValue) {
+            var normalizedStatus = String(statusValue || 'pending').toLowerCase();
+
+            if (normalizedStatus === 'approved') {
+                return 'text-bg-success';
+            }
+
+            if (normalizedStatus === 'refused' || normalizedStatus === 'rejected') {
+                return 'text-bg-danger';
+            }
+
+            return 'text-bg-warning';
+        }
+
+        function escapeHtml(value) {
+            return $('<div>').text(value || '-').html();
+        }
+
+        function infoData(permissionId) {
+            if (!permissionId) {
+                return;
+            }
+
+            $.ajax({
+                url: buildAttendancePermissionUrl(attendancePermissionShowUrlTemplate, permissionId),
+                type: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function (response) {
+                    if (!response || response.success !== true || !response.data) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Gagal',
+                            text: response && response.message ? response.message : 'Data izin tidak ditemukan.'
+                        });
+                        return;
+                    }
+
+                    var detailData = response.data;
+                    console.log(detailData);
+                    
+                    var statusLabel = normalizeStatusLabel(detailData.status);
+                    var statusBadgeClass = resolveStatusBadgeClass(detailData.status);
+                    var attachments = Array.isArray(detailData.attachments) ? detailData.attachments : [];
+                    var attachmentListHtml = '<span class="text-muted small">Tidak ada lampiran</span>';
+
+                    if (attachments.length > 0) {
+                        var attachmentItems = attachments.map(function (attachment, index) {
+                            var fileUrl = String(attachment.file_url || '');
+                            var normalizedFileUrl = encodeURI(fileUrl);
+                            var safeFileUrl = escapeHtml(normalizedFileUrl);
+
+                            return '<div class="mb-1">'
+                                + '<a href="' + safeFileUrl + '" target="_blank" rel="noopener noreferrer">Gambar ' + (index + 1) + '</a>'
+                                + '</div>';
+                        }).join('');
+
+                        attachmentListHtml = '<div class="mb-0">' + attachmentItems + '</div>';
+                    }
+
+                    var detailHtml = '<div class="text-start px-2">'
+                        + '<div class="table-responsive">'
+                        + '<table class="table table-sm align-middle mb-0">'
+                        + '<tbody>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="width: 38%; color: #334155;">Nama Staff</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.staff_name) + '</td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Tanggal</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.date_range) + '</td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Durasi</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.duration) + '</td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Tipe Izin</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.permission_type) + '</td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Status</th><td class="border-0 px-0" style="color: #1f2937;"><span class="badge ' + statusBadgeClass + '">' + statusLabel + '</span></td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Keterangan</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.reason) + '</td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Lampiran</th><td class="border-0 px-0">' + attachmentListHtml + '</td></tr>'
+                        + '</tbody>'
+                        + '</table>'
+                        + '</div>'
+                        + '</div>';
+
+                    Swal.fire({
+                        title: 'Detail Izin ' + (detailData.permission_type || '-'),
+                        html: detailHtml,
+                        confirmButtonText: 'Tutup',
+                        confirmButtonColor: '#475569',
+                        customClass: {
+                            popup: 'p-3',
+                            title: 'mb-2'
+                        }
+                    });
+                },
+                error: function (xhr) {
+                    var responseJson = xhr.responseJSON || {};
+                    var errorMessage = responseJson.message || 'Gagal memproses permintaan.';
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Terjadi Kesalahan',
+                        text: errorMessage
+                    });
+                }
+            });
+        }
+
+        function deleteData(permissionId) {
+            if (!permissionId) {
+                return;
+            }
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Hapus Data Izin?',
+                text: 'Data yang dihapus tidak dapat dikembalikan.',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal',
+                reverseButtons: true
+            }).then(function (result) {
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                $.ajax({
+                    url: buildAttendancePermissionUrl(attendancePermissionDestroyUrlTemplate, permissionId),
+                    type: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    beforeSend: function () {
+                        Swal.fire({
+                            title: 'Menghapus...',
+                            allowOutsideClick: false,
+                            didOpen: function () {
+                                Swal.showLoading();
+                            }
+                        });
+                    },
+                    success: function (response) {
+                        Swal.fire({
+                            icon: response && response.success === true ? 'success' : 'warning',
+                            title: response && response.success === true ? 'Berhasil' : 'Gagal',
+                            text: response && response.message ? response.message : 'Proses hapus selesai.'
+                        }).then(function () {
+                            $('#myTable').DataTable().ajax.reload(null, false);
+                            window.location.reload();
+                        });
+                    },
+                    error: function (xhr) {
+                        var responseJson = xhr.responseJSON || {};
+                        var errorMessage = responseJson.message || 'Gagal memproses permintaan.';
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Terjadi Kesalahan',
+                            text: errorMessage
+                        });
+                    }
+                });
+            });
+        }
     </script>
 @endsection

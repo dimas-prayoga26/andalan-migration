@@ -104,7 +104,7 @@ class AttendanceController extends Controller
         $nowJakarta = now('Asia/Jakarta');
         $todayDate = $nowJakarta->toDateString();
         $currentTime = $nowJakarta->format('H:i:s');
-        $attendanceStatus = $nowJakarta->gt($nowJakarta->copy()->setTime(8, 0, 0)) ? 'late' : 'present';
+        $attendanceStatus = $nowJakarta->gt($nowJakarta->copy()->setTime(8, 0, 0)) ? 'Masuk' : 'Pulang';
 
         if (Attendance::where('user_id', $userId)
             ->whereDate('date', $todayDate)

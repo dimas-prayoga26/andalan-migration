@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Company;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
@@ -138,6 +139,7 @@ class UserSeeder extends Seeder
         ?int $maritalStatusId,
     ): void {
         $now = now();
+        $randomEmploymentStartDate = $this->resolveEmploymentStartDate();
 
         DB::table('user_profiles')->updateOrInsert(
             ['user_id' => $user->id],
@@ -173,7 +175,7 @@ class UserSeeder extends Seeder
                 'position_id' => $positionId,
                 'division_id' => $divisionId,
                 'domicile_id' => $domicileId,
-                'start_date' => now()->toDateString(),
+                'start_date' => $randomEmploymentStartDate,
                 'status' => 'Active',
                 'updated_at' => $now,
                 'created_at' => $now,
@@ -207,5 +209,19 @@ class UserSeeder extends Seeder
         }
 
         return (int) $value;
+    }
+
+    private function resolveEmploymentStartDate(): string
+    {
+        $startBoundary = Carbon::create(2026, 1, 1)->startOfDay();
+        $endBoundary = now()->startOfDay();
+
+        if ($endBoundary->lessThan($startBoundary)) {
+            return $startBoundary->toDateString();
+        }
+
+        $randomTimestamp = random_int($startBoundary->timestamp, $endBoundary->timestamp);
+
+        return Carbon::createFromTimestamp($randomTimestamp)->toDateString();
     }
 }

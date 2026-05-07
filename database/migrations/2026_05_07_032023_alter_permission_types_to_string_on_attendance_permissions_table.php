@@ -11,12 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('attendances', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->date('date');
-            $table->string('status');
-            $table->timestamps();
+        Schema::table('attendance_permissions', function (Blueprint $table) {
+            $table->string('permission_types')->change();
         });
     }
 
@@ -25,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('attendances');
+        Schema::table('attendance_permissions', function (Blueprint $table) {
+            $table->unsignedBigInteger('permission_types')->change();
+        });
     }
 };

@@ -296,7 +296,7 @@ class AttendanceController extends Controller
                 ->whereYear('date', $selectedYear)
                 ->orderByDesc('date')
                 ->orderByDesc('id')
-                ->get(['id']);
+                ->get(['id', 'date', 'status']);
 
             $attendanceLogsByAttendanceId = AttendanceLog::query()
                 ->whereIn('attendance_id', $staffAttendances->pluck('id'))
@@ -309,10 +309,12 @@ class AttendanceController extends Controller
                 $attendanceLog = $attendanceLogsByAttendanceId->get($attendanceItem->id);
 
                 return [
+                    'attendance_date' => $attendanceItem->date?->format('Y-m-d'),
                     'staff_name' => $staffUser->name,
                     'company_name' => $staffUser->userEmployee?->company?->name,
                     'check_in' => $this->formatAttendanceLogTime($attendanceLog?->check_in),
                     'check_out' => $this->formatAttendanceLogTime($attendanceLog?->check_out),
+                    'status' => $attendanceItem->status,
                 ];
             })->values();
 
@@ -355,15 +357,17 @@ class AttendanceController extends Controller
             ->groupBy('attendance_id')
             ->map(fn ($attendanceLogs) => $attendanceLogs->first());
 
-        $tableRows = $tableUsers->map(function (User $user) use ($attendanceLogsByAttendanceId): array {
+        $tableRows = $tableUsers->map(function (User $user) use ($attendanceLogsByAttendanceId, $todayDate): array {
             $attendanceToday = $user->attendances->first();
             $attendanceLog = $attendanceToday ? $attendanceLogsByAttendanceId->get($attendanceToday->id) : null;
 
             return [
+                'attendance_date' => $attendanceToday?->date?->format('Y-m-d') ?? $todayDate,
                 'staff_name' => $user->name,
                 'company_name' => $user->userEmployee?->company?->name,
                 'check_in' => $this->formatAttendanceLogTime($attendanceLog?->check_in),
                 'check_out' => $this->formatAttendanceLogTime($attendanceLog?->check_out),
+                'status' => $attendanceToday?->status,
             ];
         })->values();
 

@@ -65,6 +65,32 @@
             display: inline-block;
         }
 
+        .attendance-action-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .attendance-action-btn {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.5rem;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1d4ed8;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .attendance-action-btn:hover {
+            background: #dbeafe;
+            color: #1e40af;
+            border-color: #93c5fd;
+        }
+
         .attendance-datetime {
             font-size: 1rem;
             font-weight: 600;
@@ -116,6 +142,12 @@
         .onsite-map-meta {
             border-top: 1px solid #e6eaf2;
             padding: 1.2rem 1.2rem;
+        }
+
+        .attendance-detail-label {
+            width: 150px;
+            color: #64748b;
+            font-weight: 600;
         }
 
         #myTable_wrapper .dt-length label,
@@ -325,6 +357,7 @@
                                     <th class="mw-150">Masuk</th>
                                     <th class="mw-150">Pulang</th>
                                     <th class="mw-200">Nama PT</th>
+                                    <th class="mw-120 text-center">Action</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -395,6 +428,51 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="attendanceDetailModal" tabindex="-1" aria-labelledby="attendanceDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="attendanceDetailModalLabel">Detail Absensi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                        <tr>
+                            <td class="attendance-detail-label">Tanggal</td>
+                            <td id="attendanceDetailDate">-</td>
+                        </tr>
+                        <tr>
+                            <td class="attendance-detail-label">Nama Staff</td>
+                            <td id="attendanceDetailStaffName">-</td>
+                        </tr>
+                        <tr>
+                            <td class="attendance-detail-label">Nama PT</td>
+                            <td id="attendanceDetailCompanyName">-</td>
+                        </tr>
+                        <tr>
+                            <td class="attendance-detail-label">Status</td>
+                            <td id="attendanceDetailStatus">-</td>
+                        </tr>
+                        <tr>
+                            <td class="attendance-detail-label">Masuk</td>
+                            <td id="attendanceDetailCheckIn">-</td>
+                        </tr>
+                        <tr>
+                            <td class="attendance-detail-label">Pulang</td>
+                            <td id="attendanceDetailCheckOut">-</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- End - Content Body -->
 
 @endsection
@@ -414,12 +492,19 @@
             var googleMapsApiKey = @json(config('services.google_maps.api_key'));
             var officeLocation = @json($officeLocation);
             var attendanceModalElement = document.getElementById('attendanceActionModal');
+            var attendanceDetailModalElement = document.getElementById('attendanceDetailModal');
             var checkOnsiteLocationButton = document.getElementById('checkOnsiteLocationBtn');
             var submitOnsiteAttendanceButton = document.getElementById('submitOnsiteAttendanceBtn');
             var onsiteStatusText = document.getElementById('onsiteStatusText');
             var onsiteIpText = document.getElementById('onsiteIpText');
             var onsiteIpBadge = document.getElementById('onsiteIpBadge');
             var onsiteRunningTimeElement = document.getElementById('onsiteRunningTime');
+            var attendanceDetailDateElement = document.getElementById('attendanceDetailDate');
+            var attendanceDetailStaffNameElement = document.getElementById('attendanceDetailStaffName');
+            var attendanceDetailCompanyNameElement = document.getElementById('attendanceDetailCompanyName');
+            var attendanceDetailStatusElement = document.getElementById('attendanceDetailStatus');
+            var attendanceDetailCheckInElement = document.getElementById('attendanceDetailCheckIn');
+            var attendanceDetailCheckOutElement = document.getElementById('attendanceDetailCheckOut');
             var onsiteMapInstance = null;
             var officeMarker = null;
             var officeRadiusCircle = null;
@@ -912,6 +997,58 @@
                 }
             }
 
+            function showAttendanceDetail(rowData) {
+                var attendanceDate = rowData && rowData.attendance_date ? formatAttendanceDate(rowData.attendance_date) : '-';
+                var staffName = rowData && rowData.staff_name ? rowData.staff_name : '-';
+                var companyName = rowData && rowData.company_name ? rowData.company_name : '-';
+                var attendanceStatus = rowData && rowData.status ? rowData.status : '-';
+                var checkIn = rowData && rowData.check_in ? rowData.check_in : 'Belum Absen Masuk';
+                var checkOut = rowData && rowData.check_out ? rowData.check_out : 'Belum Absen Pulang';
+
+                if (!attendanceDetailModalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+                    return;
+                }
+
+                if (attendanceDetailDateElement) {
+                    attendanceDetailDateElement.textContent = attendanceDate;
+                }
+                if (attendanceDetailStaffNameElement) {
+                    attendanceDetailStaffNameElement.textContent = staffName;
+                }
+                if (attendanceDetailCompanyNameElement) {
+                    attendanceDetailCompanyNameElement.textContent = companyName;
+                }
+                if (attendanceDetailStatusElement) {
+                    attendanceDetailStatusElement.textContent = attendanceStatus;
+                }
+                if (attendanceDetailCheckInElement) {
+                    attendanceDetailCheckInElement.textContent = checkIn;
+                }
+                if (attendanceDetailCheckOutElement) {
+                    attendanceDetailCheckOutElement.textContent = checkOut;
+                }
+
+                bootstrap.Modal.getOrCreateInstance(attendanceDetailModalElement).show();
+            }
+
+            function formatAttendanceDate(dateValue) {
+                var dateText = String(dateValue || '').trim();
+                if (!dateText) {
+                    return '-';
+                }
+
+                var dateObject = new Date(dateText + 'T00:00:00');
+                if (Number.isNaN(dateObject.getTime())) {
+                    return dateText;
+                }
+
+                return dateObject.toLocaleDateString('id-ID', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                });
+            }
+
             renderAttendanceDateTime();
             setInterval(renderAttendanceDateTime, 1000);
             renderOnsiteRunningTime();
@@ -956,6 +1093,10 @@
                     },
                     {
                         data: 'company_name'
+                    },
+                    {
+                        data: null,
+                        defaultContent: ''
                     }
                 ],
                 columnDefs: [
@@ -998,6 +1139,19 @@
                         render: function (data) {
                             return data || '-';
                         }
+                    },
+                    {
+                        targets: 5,
+                        searchable: false,
+                        orderable: false,
+                        className: 'text-center',
+                        render: function () {
+                            return '<div class="attendance-action-group">'
+                                + '<button type="button" class="attendance-action-btn attendance-detail-btn" title="Detail">'
+                                + '<i class="bi bi-info-circle"></i>'
+                                + '</button>'
+                                + '</div>';
+                        }
                     }
                 ],
                 initComplete: function () {
@@ -1025,6 +1179,11 @@
 
             attendanceTable.on('draw', function () {
                 attendanceTable.columns.adjust();
+            });
+
+            $('#myTable tbody').on('click', '.attendance-detail-btn', function () {
+                var rowData = attendanceTable.row($(this).closest('tr')).data();
+                showAttendanceDetail(rowData || {});
             });
 
             $(window).on('resize', function () {

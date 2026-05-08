@@ -12,6 +12,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 
 class AttendanceController extends Controller
 {
@@ -19,10 +20,48 @@ class AttendanceController extends Controller
     {
         $userId = Auth::id();
         $authenticatedUser = Auth::user();
+        $isStaffUser = $this->isStaffUser($authenticatedUser);
+        $nowJakarta = now('Asia/Jakarta');
         $publicIp = '-';
         $attendance = Attendance::with('user')->where('user_id', $userId)->get();
         $showCompanyFilter = $this->isSuperUser($authenticatedUser);
+        $showStaffPeriodFilter = $isStaffUser;
         $companies = collect();
+        $staffMonthOptions = collect(range(1, 12));
+        $staffYearOptions = collect();
+        $defaultStaffMonth = (int) $request->integer('month', (int) $nowJakarta->month);
+        $defaultStaffYear = (int) $request->integer('year', (int) $nowJakarta->year);
+
+        if ($defaultStaffMonth < 1 || $defaultStaffMonth > 12) {
+            $defaultStaffMonth = (int) $nowJakarta->month;
+        }
+
+        if ($defaultStaffYear < 2000 || $defaultStaffYear > 2100) {
+            $defaultStaffYear = (int) $nowJakarta->year;
+        }
+
+        if ($isStaffUser) {
+            $staffYearOptions = Attendance::query()
+                ->where('user_id', $userId)
+                ->selectRaw('DISTINCT YEAR(`date`) as year_value')
+                ->orderByDesc('year_value')
+                ->pluck('year_value')
+                ->filter(static fn (mixed $yearValue): bool => is_numeric($yearValue))
+                ->map(static fn (mixed $yearValue): int => (int) $yearValue)
+                ->values();
+
+            if ($staffYearOptions->isEmpty()) {
+                $staffYearOptions = collect([(int) $nowJakarta->year]);
+            }
+
+            if (! $staffYearOptions->contains($defaultStaffYear)) {
+                $staffYearOptions = $staffYearOptions
+                    ->push($defaultStaffYear)
+                    ->unique()
+                    ->sortDesc()
+                    ->values();
+            }
+        }
 
         if ($showCompanyFilter) {
             $companies = User::query()
@@ -92,6 +131,11 @@ class AttendanceController extends Controller
             'isIpPrefixMatch',
             'companies',
             'showCompanyFilter',
+            'showStaffPeriodFilter',
+            'staffMonthOptions',
+            'staffYearOptions',
+            'defaultStaffMonth',
+            'defaultStaffYear',
             'todayAttendanceId',
             'hasCheckedInToday',
             'hasCheckedOutToday',
@@ -104,7 +148,8 @@ class AttendanceController extends Controller
         $nowJakarta = now('Asia/Jakarta');
         $todayDate = $nowJakarta->toDateString();
         $currentTime = $nowJakarta->format('H:i:s');
-        $attendanceStatus = $nowJakarta->gt($nowJakarta->copy()->setTime(8, 0, 0)) ? 'Masuk' : 'Pulang';
+        $officeContext = $this->resolveOfficeContext($userId);
+        $attendanceStatus = $this->resolveAttendanceStatus($nowJakarta, $officeContext);
 
         if (Attendance::where('user_id', $userId)
             ->whereDate('date', $todayDate)
@@ -130,7 +175,6 @@ class AttendanceController extends Controller
         $longitude = $hasIpCoordinates ? (float) $ipdataData['longitude'] : 0.0;
         $ipAddress = $ipdataData['ip'] ?? $clientIpAddress ?? $request->ip();
 
-        $officeContext = $this->resolveOfficeContext($userId);
         $distance = 0.0;
         $radiusResult = 'outside';
 
@@ -221,9 +265,62 @@ class AttendanceController extends Controller
 
         $isSuperUser = $this->isSuperUser($authenticatedUser);
         $isBoardOfDirectur = $this->isBoardOfDirectur($authenticatedUser);
+        $isStaffUser = $this->isStaffUser($authenticatedUser);
         $userCompanyId = $authenticatedUser?->userEmployee?->company_id;
-        $todayDate = now('Asia/Jakarta')->toDateString();
+        $nowJakarta = now('Asia/Jakarta');
+        $todayDate = $nowJakarta->toDateString();
+        $selectedMonth = (int) $request->integer('month', (int) $nowJakarta->month);
+        $selectedYear = (int) $request->integer('year', (int) $nowJakarta->year);
         $selectedCompanyId = $request->integer('company_id', 0);
+
+        if ($selectedMonth < 1 || $selectedMonth > 12) {
+            $selectedMonth = (int) $nowJakarta->month;
+        }
+
+        if ($selectedYear < 2000 || $selectedYear > 2100) {
+            $selectedYear = (int) $nowJakarta->year;
+        }
+
+        if ($isStaffUser) {
+            $staffUser = User::query()
+                ->with(['userEmployee.company:id,name'])
+                ->find(Auth::id());
+
+            if (! $staffUser) {
+                return response()->json(['data' => []]);
+            }
+
+            $staffAttendances = Attendance::query()
+                ->where('user_id', $staffUser->id)
+                ->whereMonth('date', $selectedMonth)
+                ->whereYear('date', $selectedYear)
+                ->orderByDesc('date')
+                ->orderByDesc('id')
+                ->get(['id']);
+
+            $attendanceLogsByAttendanceId = AttendanceLog::query()
+                ->whereIn('attendance_id', $staffAttendances->pluck('id'))
+                ->orderByDesc('id')
+                ->get(['attendance_id', 'check_in', 'check_out'])
+                ->groupBy('attendance_id')
+                ->map(fn ($attendanceLogs) => $attendanceLogs->first());
+
+            $tableRows = $staffAttendances->map(function (Attendance $attendanceItem) use ($attendanceLogsByAttendanceId, $staffUser): array {
+                $attendanceLog = $attendanceLogsByAttendanceId->get($attendanceItem->id);
+
+                return [
+                    'staff_name' => $staffUser->name,
+                    'company_name' => $staffUser->userEmployee?->company?->name,
+                    'check_in' => $this->formatAttendanceLogTime($attendanceLog?->check_in),
+                    'check_out' => $this->formatAttendanceLogTime($attendanceLog?->check_out),
+                ];
+            })->values();
+
+            return response()->json([
+                'data' => $tableRows,
+            ]);
+        }
+
         $tableUsersQuery = User::query()
             ->with([
                 'userEmployee.company:id,name',
@@ -267,7 +364,6 @@ class AttendanceController extends Controller
                 'company_name' => $user->userEmployee?->company?->name,
                 'check_in' => $this->formatAttendanceLogTime($attendanceLog?->check_in),
                 'check_out' => $this->formatAttendanceLogTime($attendanceLog?->check_out),
-                'status' => $attendanceToday?->status,
             ];
         })->values();
 
@@ -339,7 +435,17 @@ class AttendanceController extends Controller
     }
 
     /**
-     * @return array{name: string|null, address: string|null, latitude: float, longitude: float, radius_meters: int, ip_range: string|null}|null
+     * @return array{
+     *     name:string|null,
+     *     address:string|null,
+     *     latitude:float,
+     *     longitude:float,
+     *     radius_meters:int,
+     *     ip_range:string|null,
+     *     office_start_time:string,
+     *     office_end_time:string,
+     *     late_grace_minutes:int|null
+     * }|null
      */
     private function resolveOfficeContext(int $userId): ?array
     {
@@ -358,11 +464,22 @@ class AttendanceController extends Controller
 
         $attendanceRule = null;
         if ($companyId) {
+            $ruleSelectColumns = ['radius', 'ip_range'];
+            if (Schema::hasColumn('rules_of_attendaces', 'office_start_time')) {
+                $ruleSelectColumns[] = 'office_start_time';
+            }
+            if (Schema::hasColumn('rules_of_attendaces', 'office_end_time')) {
+                $ruleSelectColumns[] = 'office_end_time';
+            }
+            if (Schema::hasColumn('rules_of_attendaces', 'late_grace_minutes')) {
+                $ruleSelectColumns[] = 'late_grace_minutes';
+            }
+
             $attendanceRule = DB::table('rules_of_attendaces')
                 ->where('companies_id', $companyId)
                 ->where('is_active', true)
                 ->orderByDesc('id')
-                ->first(['radius', 'ip_range']);
+                ->first($ruleSelectColumns);
         }
 
         return [
@@ -372,7 +489,46 @@ class AttendanceController extends Controller
             'longitude' => (float) $officeCompany->longitude,
             'radius_meters' => (int) ($attendanceRule->radius ?? 10),
             'ip_range' => isset($attendanceRule?->ip_range) ? (string) $attendanceRule->ip_range : null,
+            'office_start_time' => isset($attendanceRule?->office_start_time) && is_string($attendanceRule->office_start_time)
+                ? $attendanceRule->office_start_time
+                : '08:00:00',
+            'office_end_time' => isset($attendanceRule?->office_end_time) && is_string($attendanceRule->office_end_time)
+                ? $attendanceRule->office_end_time
+                : '17:00:00',
+            'late_grace_minutes' => isset($attendanceRule?->late_grace_minutes)
+                ? max((int) $attendanceRule->late_grace_minutes, 0)
+                : null,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $officeContext
+     */
+    private function resolveAttendanceStatus(Carbon $attendanceTime, ?array $officeContext): string
+    {
+        $officeStartTime = is_array($officeContext) && isset($officeContext['office_start_time']) && is_string($officeContext['office_start_time'])
+            ? $officeContext['office_start_time']
+            : '08:00:00';
+
+        $lateGraceMinutes = is_array($officeContext) && array_key_exists('late_grace_minutes', $officeContext)
+            && $officeContext['late_grace_minutes'] !== null
+            ? max((int) $officeContext['late_grace_minutes'], 0)
+            : 0;
+
+        $officeStartDateTime = $attendanceTime->copy();
+        try {
+            $officeStartDateTime->setTimeFromTimeString($officeStartTime);
+        } catch (\Throwable) {
+            $officeStartDateTime->setTime(8, 0, 0);
+        }
+
+        $lateThresholdDateTime = $officeStartDateTime->copy()->addMinutes($lateGraceMinutes);
+
+        if ($attendanceTime->greaterThan($lateThresholdDateTime)) {
+            return 'Terlambat';
+        }
+
+        return 'Masuk';
     }
 
     private function extractIpTwoOctets(?string $ipValue): ?string
@@ -445,6 +601,17 @@ class AttendanceController extends Controller
 
         return $normalizedRoleNames->contains('board of directur')
             || $normalizedRoleNames->contains('board of directors');
+    }
+
+    private function isStaffUser(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return $user->getRoleNames()
+            ->map(fn (string $roleName): string => strtolower(trim($roleName)))
+            ->contains('staff');
     }
 
     private function resolveClientIpAddress(Request $request, mixed $preferredIpAddress = null): ?string

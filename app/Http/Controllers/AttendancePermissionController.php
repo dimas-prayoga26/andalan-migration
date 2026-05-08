@@ -60,7 +60,7 @@ class AttendancePermissionController extends Controller
         if (Schema::hasTable('meta_data_permission_types')) {
             $permissionTypes = DB::table('meta_data_permission_types')
                 ->select(['id', 'name'])
-                ->whereNotIn('name', ['Masuk', 'Pulang'])
+                ->whereNotIn('name', $this->attendanceStatusPermissionTypeNames())
                 ->orderBy('name')
                 ->get();
         }
@@ -158,6 +158,16 @@ class AttendancePermissionController extends Controller
             ? $permissionTypeName
             : (string) $validated['permission_type_id'];
         $normalizedPermissionType = strtolower(trim($permissionTypeValue));
+        $normalizedAttendanceStatusTypes = collect($this->attendanceStatusPermissionTypeNames())
+            ->map(static fn (string $statusType): string => strtolower(trim($statusType)));
+
+        if ($normalizedAttendanceStatusTypes->contains($normalizedPermissionType)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tipe izin tidak valid untuk pengajuan izin.',
+            ], 422);
+        }
+
         $startDate = Carbon::parse($validated['start_date']);
         $endDate = Carbon::parse($validated['end_date']);
         $durationDays = $startDate->diffInDays($endDate) + 1;
@@ -467,6 +477,14 @@ class AttendancePermissionController extends Controller
                     && trim($permissionType->name) !== '';
             })
             ->values();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function attendanceStatusPermissionTypeNames(): array
+    {
+        return ['Masuk', 'Terlambat', 'Pulang'];
     }
 
     private function isBoardOfDirectur(?User $user): bool

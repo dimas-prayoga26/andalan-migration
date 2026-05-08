@@ -24,7 +24,7 @@ class AttendanceFactory extends Factory
             'date' => $this->faker->dateTimeBetween('2026-04-20', '2026-04-23')->format('Y-m-d'),
             'check_in' => $this->faker->time(),
             'check_out' => $this->faker->time(),
-            'status' => $this->faker->randomElement(['present', 'late']),
+            'status' => $this->faker->randomElement(['Masuk', 'Terlambat']),
         ];
     }
 }

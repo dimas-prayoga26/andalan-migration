@@ -35,7 +35,7 @@ class AttendanceRequest extends FormRequest
             'date' => 'required|date|date_format:Y-m-d',
             'check_in' => 'required|date_format:H:i|before_or_equal:check_out',
             'check_out' => 'nullable|date_format:H:i|after_or_equal:check_in',
-            'status' => 'required|in:present,late,remote,business_trip',
+            'status' => 'required|in:Masuk,Terlambat',
         ];
     }
 
@@ -56,7 +56,7 @@ class AttendanceRequest extends FormRequest
             'check_in.before_or_equal' => 'Jam Masuk harus sebelum Jam Keluar.',
             'check_out.after_or_equal' => 'Jam Keluar harus setelah Jam Masuk.',
 
-            'status.in' => 'Status harus present, late, remote, atau business_trip.',
+            'status.in' => 'Status harus Masuk atau Terlambat.',
         ];
     }
 }

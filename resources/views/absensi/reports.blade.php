@@ -280,6 +280,7 @@
                                     </button>
                                     <ul class="dropdown-menu" id="reportYearFilterMenu" aria-labelledby="reportYearFilterBtn"></ul>
                                 </div>
+                                <button type="button" class="btn btn-primary" id="exportReportBtn">Export</button>
                                 <button type="button" class="btn btn-light border btn-reset-filter" id="resetReportFilterBtn">Reset Filter</button>
                             </div>
                         </div>
@@ -446,6 +447,49 @@
                 ]
             });
 
+            function escapeCsvValue(rawValue) {
+                var value = rawValue === null || typeof rawValue === 'undefined' ? '' : String(rawValue);
+                var escaped = value.replace(/"/g, '""');
+                return '"' + escaped + '"';
+            }
+
+            function exportReportTableToCsv() {
+                var headers = $('#myTable thead th').map(function () {
+                    return $(this).text().trim();
+                }).get();
+
+                var rowsData = reportTable.rows({ search: 'applied' }).data().toArray();
+                if (!rowsData.length) {
+                    window.alert('Tidak ada data untuk di-export.');
+                    return;
+                }
+
+                var csvRows = [];
+                csvRows.push(headers.map(escapeCsvValue).join(','));
+
+                rowsData.forEach(function (row) {
+                    var normalizedRow = Array.isArray(row) ? row : Object.values(row || {});
+                    csvRows.push(normalizedRow.map(escapeCsvValue).join(','));
+                });
+
+                var csvContent = csvRows.join('\n');
+                var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                var downloadLink = document.createElement('a');
+                var today = new Date();
+                var fileDate = today.getFullYear()
+                    + String(today.getMonth() + 1).padStart(2, '0')
+                    + String(today.getDate()).padStart(2, '0');
+
+                downloadLink.href = URL.createObjectURL(blob);
+                downloadLink.download = 'laporan-absensi-' + fileDate + '.csv';
+                downloadLink.style.display = 'none';
+
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                URL.revokeObjectURL(downloadLink.href);
+            }
+
             function parseMonthYear(rawMonthYear) {
                 var monthYear = (rawMonthYear || '').trim();
                 var parts = monthYear.split(/\s+/);
@@ -535,6 +579,10 @@
                 $('#reportMonthFilterMenu .dropdown-item, #reportYearFilterMenu .dropdown-item').removeClass('active');
                 $('#reportMonthFilterMenu .dropdown-item[data-filter-value=""], #reportYearFilterMenu .dropdown-item[data-filter-value=""]').addClass('active');
                 reportTable.draw();
+            });
+
+            $('#exportReportBtn').on('click', function () {
+                exportReportTableToCsv();
             });
         });
     </script>

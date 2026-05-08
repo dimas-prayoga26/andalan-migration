@@ -261,9 +261,18 @@
             <div class="row">
                 <div class="col-xxl-12 col-xl-12">
                     <div class="card-body">
+                        @php
+                            $filterColumnClass = 'col-12 col-md-3 order-2 order-md-1';
+                            $dateTimeColumnClass = 'col-12 col-md-6 order-1 order-md-2';
+
+                            if ($showStaffPeriodFilter ?? false) {
+                                $filterColumnClass = 'col-12 col-md-4 order-2 order-md-1';
+                                $dateTimeColumnClass = 'col-12 col-md-5 order-1 order-md-2';
+                            }
+                        @endphp
                         <div class="row g-2 align-items-center mb-3">
                             @if($showCompanyFilter ?? false)
-                                <div class="col-12 col-md-3 order-2 order-md-1">
+                                <div class="{{ $filterColumnClass }}">
                                     <div class="small text-muted mb-1">Filter Perusahaan</div>
                                     <select class="form-select form-select-sm" id="attendanceCompanyFilter">
                                         <option value="0">Semua Perusahaan</option>
@@ -272,10 +281,35 @@
                                         @endforeach
                                     </select>
                                 </div>
+                            @elseif($showStaffPeriodFilter ?? false)
+                                <div class="{{ $filterColumnClass }}">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="small text-muted mb-1">Bulan</div>
+                                            <select class="form-select form-select-sm" id="attendanceMonthFilter">
+                                                @foreach(($staffMonthOptions ?? collect()) as $monthOption)
+                                                    <option value="{{ $monthOption }}" {{ (int) ($defaultStaffMonth ?? 0) === (int) $monthOption ? 'selected' : '' }}>
+                                                        {{ \Illuminate\Support\Carbon::create(null, (int) $monthOption, 1)->translatedFormat('F') }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="small text-muted mb-1">Tahun</div>
+                                            <select class="form-select form-select-sm" id="attendanceYearFilter">
+                                                @foreach(($staffYearOptions ?? collect()) as $yearOption)
+                                                    <option value="{{ $yearOption }}" {{ (int) ($defaultStaffYear ?? 0) === (int) $yearOption ? 'selected' : '' }}>
+                                                        {{ $yearOption }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
                             @else
                                 <div class="col-12 col-md-3 order-2 order-md-1"></div>
                             @endif
-                            <div class="col-12 col-md-6 order-1 order-md-2">
+                            <div class="{{ $dateTimeColumnClass }}">
                                 <div class="attendance-datetime mb-0" id="attendanceDateTime"></div>
                             </div>
                             <div class="col-12 col-md-3 order-3 text-md-end">
@@ -375,6 +409,8 @@
         $(function () {
             var attendanceDateElement = document.getElementById('attendanceDateTime');
             var attendanceCompanyFilter = document.getElementById('attendanceCompanyFilter');
+            var attendanceMonthFilter = document.getElementById('attendanceMonthFilter');
+            var attendanceYearFilter = document.getElementById('attendanceYearFilter');
             var googleMapsApiKey = @json(config('services.google_maps.api_key'));
             var officeLocation = @json($officeLocation);
             var attendanceModalElement = document.getElementById('attendanceActionModal');
@@ -400,6 +436,31 @@
                 hasCheckedInToday: @json($hasCheckedInToday ?? false),
                 hasCheckedOutToday: @json($hasCheckedOutToday ?? false)
             };
+            var officeStartTotalMinutes = parseTimeStringToMinutes(officeLocation && officeLocation.office_start_time, 8 * 60);
+            var officeEndTotalMinutes = parseTimeStringToMinutes(officeLocation && officeLocation.office_end_time, 17 * 60);
+            var lateGraceMinutes = Number(officeLocation && officeLocation.late_grace_minutes);
+            lateGraceMinutes = Number.isNaN(lateGraceMinutes) ? 0 : Math.max(lateGraceMinutes, 0);
+            var lateThresholdTotalMinutes = officeStartTotalMinutes + lateGraceMinutes;
+
+            function parseTimeStringToMinutes(timeString, fallbackMinutes) {
+                if (typeof timeString !== 'string' || timeString.trim() === '') {
+                    return fallbackMinutes;
+                }
+
+                var normalizedTime = timeString.trim();
+                var timeParts = normalizedTime.split(':');
+                if (timeParts.length < 2) {
+                    return fallbackMinutes;
+                }
+
+                var hourValue = parseInt(timeParts[0], 10);
+                var minuteValue = parseInt(timeParts[1], 10);
+                if (Number.isNaN(hourValue) || Number.isNaN(minuteValue)) {
+                    return fallbackMinutes;
+                }
+
+                return (hourValue * 60) + minuteValue;
+            }
 
             function setOnsiteIpIndicator(ipAddress, isValidIpPrefix) {
                 if (!onsiteIpText || !onsiteIpBadge) {
@@ -840,11 +901,11 @@
                 onsiteRunningTimeElement.textContent = formattedTime;
                 onsiteRunningTimeElement.classList.remove('time-green', 'time-yellow', 'time-red', 'time-gray');
 
-                if (totalMinutes < 480) {
+                if (totalMinutes < officeStartTotalMinutes) {
                     onsiteRunningTimeElement.classList.add('time-green');
-                } else if (totalMinutes < 495) {
+                } else if (totalMinutes <= lateThresholdTotalMinutes) {
                     onsiteRunningTimeElement.classList.add('time-yellow');
-                } else if (totalMinutes > 1020) {
+                } else if (totalMinutes > officeEndTotalMinutes) {
                     onsiteRunningTimeElement.classList.add('time-gray');
                 } else {
                     onsiteRunningTimeElement.classList.add('time-red');
@@ -871,6 +932,8 @@
                     url: attendanceDatatableUrl,
                     data: function (requestData) {
                         requestData.company_id = attendanceCompanyFilter ? attendanceCompanyFilter.value : 0;
+                        requestData.month = attendanceMonthFilter ? attendanceMonthFilter.value : 0;
+                        requestData.year = attendanceYearFilter ? attendanceYearFilter.value : 0;
                     },
                     dataSrc: 'data'
                 },
@@ -909,7 +972,6 @@
                                 var checkInHour = parseInt(timeParts[0], 10);
                                 var checkInMinute = parseInt(timeParts[1], 10);
                                 var checkInTotalMinutes = (checkInHour * 60) + checkInMinute;
-                                var officeStartTotalMinutes = (8 * 60);
 
                                 if (!Number.isNaN(checkInTotalMinutes) && checkInTotalMinutes > officeStartTotalMinutes) {
                                     return '<span class="text-danger fw-semibold">' + data + '</span>';
@@ -1000,6 +1062,18 @@
 
             if (attendanceCompanyFilter) {
                 attendanceCompanyFilter.addEventListener('change', function () {
+                    attendanceTable.ajax.reload();
+                });
+            }
+
+            if (attendanceMonthFilter) {
+                attendanceMonthFilter.addEventListener('change', function () {
+                    attendanceTable.ajax.reload();
+                });
+            }
+
+            if (attendanceYearFilter) {
+                attendanceYearFilter.addEventListener('change', function () {
                     attendanceTable.ajax.reload();
                 });
             }

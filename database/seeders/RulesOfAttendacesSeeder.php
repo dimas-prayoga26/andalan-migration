@@ -26,6 +26,9 @@ class RulesOfAttendacesSeeder extends Seeder
             [
                 'ip_range' => '182.8',
                 'radius' => 50,
+                'office_start_time' => '08:00:00',
+                'office_end_time' => '17:00:00',
+                'late_grace_minutes' => null,
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),

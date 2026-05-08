@@ -16,6 +16,7 @@ class MetaDataPermissionTypeSeeder extends Seeder
         $permissionTypes = [
             ['name' => 'Masuk', 'color' => '#16a34a'],
             ['name' => 'Pulang', 'color' => '#0ea5e9'],
+            ['name' => 'Terlambat', 'color' => '#f97316'],
             ['name' => 'Sakit', 'color' => '#ef4444'],
             ['name' => 'Cuti Khusus', 'color' => '#f59e0b'],
             ['name' => 'Cuti Tahunan', 'color' => '#d97706'],

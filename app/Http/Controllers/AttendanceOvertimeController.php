@@ -14,8 +14,11 @@ class AttendanceOvertimeController extends Controller
 {
     public function index(): View
     {
+        $authenticatedUser = Auth::user();
+
         return view('absensi.lembur', [
-            'canSubmitOvertime' => $this->isStaffUser(Auth::user()),
+            'canSubmitOvertime' => $this->isStaffUser($authenticatedUser),
+            'canManageOvertimeActions' => $this->isSuperuserUser($authenticatedUser) || $this->isBoardOfDirectur($authenticatedUser),
         ]);
     }
 
@@ -147,7 +150,7 @@ class AttendanceOvertimeController extends Controller
     public function update(Request $request, AttendanceOvertime $attendanceOvertime): JsonResponse
     {
         $authenticatedUser = Auth::user();
-        if (! $this->canAccessOvertime($authenticatedUser, $attendanceOvertime)) {
+        if (! $this->canManageOvertimeAction($authenticatedUser, $attendanceOvertime)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk mengubah data lembur ini.',
@@ -190,7 +193,7 @@ class AttendanceOvertimeController extends Controller
     public function destroy(AttendanceOvertime $attendanceOvertime): JsonResponse
     {
         $authenticatedUser = Auth::user();
-        if (! $this->canAccessOvertime($authenticatedUser, $attendanceOvertime)) {
+        if (! $this->canManageOvertimeAction($authenticatedUser, $attendanceOvertime)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk menghapus data lembur ini.',
@@ -297,6 +300,18 @@ class AttendanceOvertimeController extends Controller
         return $normalizedRoleNames->contains('staff');
     }
 
+    private function isSuperuserUser(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $normalizedRoleNames = $user->getRoleNames()
+            ->map(static fn (string $roleName): string => strtolower(trim($roleName)));
+
+        return $normalizedRoleNames->contains('superuser');
+    }
+
     private function canAccessOvertime(?User $authenticatedUser, AttendanceOvertime $attendanceOvertime): bool
     {
         if (! $authenticatedUser instanceof User) {
@@ -308,6 +323,33 @@ class AttendanceOvertimeController extends Controller
         }
 
         if ((int) $authenticatedUser->id === (int) $attendanceOvertime->user_id) {
+            return true;
+        }
+
+        if (! $this->isBoardOfDirectur($authenticatedUser)) {
+            return false;
+        }
+
+        $authenticatedUser->loadMissing('userEmployee');
+        $userCompanyId = (int) ($authenticatedUser->userEmployee?->company_id ?? 0);
+        if ($userCompanyId <= 0) {
+            return false;
+        }
+
+        return $attendanceOvertime->user()
+            ->whereHas('userEmployee', function ($query) use ($userCompanyId): void {
+                $query->where('company_id', $userCompanyId);
+            })
+            ->exists();
+    }
+
+    private function canManageOvertimeAction(?User $authenticatedUser, AttendanceOvertime $attendanceOvertime): bool
+    {
+        if (! $authenticatedUser instanceof User) {
+            return false;
+        }
+
+        if ($this->isSuperuserUser($authenticatedUser)) {
             return true;
         }
 

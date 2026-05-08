@@ -333,7 +333,7 @@
         </div>
     </div>
 </div>
-@if($canSubmitOvertime ?? false)
+@if(($canSubmitOvertime ?? false) || ($canManageOvertimeActions ?? false))
     <div class="modal fade" id="submitLemburModal" tabindex="-1" aria-labelledby="submitLemburModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -423,6 +423,7 @@
         var overtimeShowUrlTemplate = '{{ route('absensi.lembur.show', ['attendanceOvertime' => '__ID__']) }}';
         var overtimeUpdateUrlTemplate = '{{ route('absensi.lembur.update', ['attendanceOvertime' => '__ID__']) }}';
         var overtimeDestroyUrlTemplate = '{{ route('absensi.lembur.destroy', ['attendanceOvertime' => '__ID__']) }}';
+        var canManageOvertimeActions = @json($canManageOvertimeActions ?? false);
         var overtimeTableInstance = null;
         var overtimeModalInstance = null;
         var overtimeFormMode = 'create';
@@ -538,11 +539,15 @@
                         className: 'text-center',
                         render: function (data, type, row) {
                             var overtimeId = row && row.id ? row.id : '';
+                            var actionButtons = '<button type="button" class="lembur-action-btn info" onclick="infoDataOvertime(' + overtimeId + ')"><i class="bi bi-info-circle"></i></button>';
+
+                            if (canManageOvertimeActions) {
+                                actionButtons += '<button type="button" class="lembur-action-btn edit" onclick="editDataOvertime(' + overtimeId + ')"><i class="bi bi-pencil"></i></button>'
+                                    + '<button type="button" class="lembur-action-btn delete" onclick="deleteDataOvertime(' + overtimeId + ')"><i class="bi bi-trash"></i></button>';
+                            }
 
                             return '<div class="lembur-action-group">'
-                                + '<button type="button" class="lembur-action-btn info" onclick="infoDataOvertime(' + overtimeId + ')"><i class="bi bi-info-circle"></i></button>'
-                                + '<button type="button" class="lembur-action-btn edit" onclick="editDataOvertime(' + overtimeId + ')"><i class="bi bi-pencil"></i></button>'
-                                + '<button type="button" class="lembur-action-btn delete" onclick="deleteDataOvertime(' + overtimeId + ')"><i class="bi bi-trash"></i></button>'
+                                + actionButtons
                                 + '</div>';
                         }
                     }
@@ -842,6 +847,10 @@
         }
 
         function editDataOvertime(overtimeId) {
+            if (!canManageOvertimeActions) {
+                return;
+            }
+
             if (!overtimeId) {
                 return;
             }
@@ -875,6 +884,10 @@
         }
 
         function deleteDataOvertime(overtimeId) {
+            if (!canManageOvertimeActions) {
+                return;
+            }
+
             if (!overtimeId) {
                 return;
             }

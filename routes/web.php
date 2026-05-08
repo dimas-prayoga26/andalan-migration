@@ -69,6 +69,8 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/absensi/izin/attachment/{attachment}', [AttendancePermissionController::class, 'attachment'])->name('absensi.izin.attachment');
     Route::get('/absensi/izin/{attendancePermission}', [AttendancePermissionController::class, 'show'])->name('absensi.izin.show');
     Route::put('/absensi/izin/{attendancePermission}/status', [AttendancePermissionController::class, 'updateStatus'])->name('absensi.izin.update-status');
+
+    // Attendance permission routes
     Route::delete('/absensi/izin/{attendancePermission}', [AttendancePermissionController::class, 'destroy'])->name('absensi.izin.destroy');
     Route::get('/absensi/lembur/datatable', [AttendanceOvertimeController::class, 'datatable'])->name('absensi.lembur.datatable');
     Route::get('/absensi/lembur', [AttendanceOvertimeController::class, 'index'])->name('absensi.lembur');

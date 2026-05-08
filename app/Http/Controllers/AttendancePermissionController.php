@@ -133,6 +133,7 @@ class AttendancePermissionController extends Controller
             'summaryCards' => $summaryCards,
             'staffUsers' => $staffUsers,
             'defaultStaffUserId' => 0,
+            'canSubmitPermission' => $isStaffUser,
             'canFilterEmployees' => $canFilterEmployees,
             'canUpdatePermissionStatus' => $canUpdatePermissionStatus,
         ]);
@@ -549,23 +550,26 @@ class AttendancePermissionController extends Controller
             ->where('year', $year)
             ->first();
 
-        $baseAnnualBalance = (int) ($leaveBalance->annual_balance ?? 0);
+        $baseAnnualBalance = max((int) ($leaveBalance->annual_balance ?? 0), 0);
         $employmentStartDateRaw = DB::table('user_employments')
             ->where('user_id', $userId)
             ->value('start_date');
 
-        $calculationStartDate = Carbon::create($year, 1, 1)->startOfDay();
+        $calculationStartDate = Carbon::create($year, 1, 1)->startOfMonth();
         if (is_string($employmentStartDateRaw) && trim($employmentStartDateRaw) !== '') {
-            $employmentStartDate = Carbon::parse($employmentStartDateRaw)->startOfDay();
+            $employmentStartDate = Carbon::parse($employmentStartDateRaw)->startOfMonth();
             if ($employmentStartDate->greaterThan($calculationStartDate)) {
                 $calculationStartDate = $employmentStartDate;
             }
         }
 
-        $calculationStartMonth = (int) $calculationStartDate->month;
-        if ((int) $calculationStartDate->year > $year) {
-            $calculationStartMonth = $currentMonth + 1;
+        $currentMonthStartDate = Carbon::create($year, max($currentMonth, 1), 1)->startOfMonth();
+        $accruedMonthLimit = 0;
+        if (! $calculationStartDate->greaterThan($currentMonthStartDate)) {
+            $accruedMonthLimit = $calculationStartDate->diffInMonths($currentMonthStartDate) + 1;
         }
+
+        $baseAnnualBalance = min($baseAnnualBalance, $accruedMonthLimit);
 
         $usedAnnualBalance = (int) DB::table('attendance_permissions')
             ->where('user_id', $userId)
@@ -575,25 +579,8 @@ class AttendancePermissionController extends Controller
             ->selectRaw('COALESCE(SUM(DATEDIFF(end_date, start_date) + 1), 0) as used_days')
             ->value('used_days');
 
-        // Bonus +1 hanya dari bulan yang sudah lewat (contoh: tidak cuti di Mei, maka di Juni +1).
-        $lastCompletedMonth = max($currentMonth - 1, 0);
         $monthlyBonus = 0;
-
-        for ($month = $calculationStartMonth; $month <= $lastCompletedMonth; $month++) {
-            $isLeaveTakenInMonth = DB::table('attendance_permissions')
-                ->where('user_id', $userId)
-                ->whereYear('start_date', $year)
-                ->whereMonth('start_date', $month)
-                ->whereRaw('LOWER(permission_types) IN (?, ?)', ['cuti tahunan', 'cuti khusus'])
-                ->whereRaw('LOWER(approval_status) NOT IN (?, ?)', ['rejected', 'refused'])
-                ->exists();
-
-            if (! $isLeaveTakenInMonth) {
-                $monthlyBonus++;
-            }
-        }
-
-        $remainingAnnualBalance = max(($baseAnnualBalance + $monthlyBonus) - $usedAnnualBalance, 0);
+        $remainingAnnualBalance = max($baseAnnualBalance - $usedAnnualBalance, 0);
 
         return [
             'base_annual_balance' => $baseAnnualBalance,

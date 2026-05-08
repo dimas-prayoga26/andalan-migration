@@ -344,14 +344,16 @@
                                 <div class="attendance-datetime mb-0" id="attendanceDateTime"></div>
                             </div>
                             <div class="col-12 col-md-3 text-md-end">
-                                <button
-                                    type="button"
-                                    class="btn btn-primary btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#submitIzinModal"
-                                >
-                                    Submit Izin
-                                </button>
+                                @if($canSubmitPermission ?? false)
+                                    <button
+                                        type="button"
+                                        class="btn btn-primary btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#submitIzinModal"
+                                    >
+                                        Submit Izin
+                                    </button>
+                                @endif
                             </div>
                         </div>
                         <div id="izinSummaryCarousel" class="izin-summary-row owl-carousel">

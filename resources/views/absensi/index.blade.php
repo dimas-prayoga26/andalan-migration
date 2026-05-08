@@ -150,6 +150,22 @@
             font-weight: 600;
         }
 
+        .attendance-detail-map-canvas {
+            width: 100%;
+            height: 260px;
+            border-radius: 0.65rem;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            overflow: hidden;
+        }
+
+        .attendance-detail-map-empty {
+            display: none;
+            margin-top: 0.65rem;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
         #myTable_wrapper .dt-length label,
         #myTable_wrapper .dt-search label,
         #myTable_wrapper .dt-info,
@@ -440,31 +456,40 @@
                     <table class="table table-sm mb-0">
                         <tbody>
                         <tr>
-                            <td class="attendance-detail-label">Tanggal</td>
-                            <td id="attendanceDetailDate">-</td>
+                            <td class="attendance-detail-label">Alamat</td>
+                            <td id="attendanceDetailFormattedAddress">-</td>
                         </tr>
                         <tr>
-                            <td class="attendance-detail-label">Nama Staff</td>
-                            <td id="attendanceDetailStaffName">-</td>
+                            <td class="attendance-detail-label">Desa/Kelurahan</td>
+                            <td id="attendanceDetailVillage">-</td>
                         </tr>
                         <tr>
-                            <td class="attendance-detail-label">Nama PT</td>
-                            <td id="attendanceDetailCompanyName">-</td>
+                            <td class="attendance-detail-label">Kecamatan</td>
+                            <td id="attendanceDetailDistrict">-</td>
                         </tr>
                         <tr>
-                            <td class="attendance-detail-label">Status</td>
-                            <td id="attendanceDetailStatus">-</td>
+                            <td class="attendance-detail-label">Kabupaten/Kota</td>
+                            <td id="attendanceDetailRegency">-</td>
                         </tr>
                         <tr>
-                            <td class="attendance-detail-label">Masuk</td>
-                            <td id="attendanceDetailCheckIn">-</td>
+                            <td class="attendance-detail-label">Provinsi</td>
+                            <td id="attendanceDetailProvince">-</td>
                         </tr>
                         <tr>
-                            <td class="attendance-detail-label">Pulang</td>
-                            <td id="attendanceDetailCheckOut">-</td>
+                            <td class="attendance-detail-label">Kode Pos</td>
+                            <td id="attendanceDetailPostalCode">-</td>
+                        </tr>
+                        <tr>
+                            <td class="attendance-detail-label">Sumber Lokasi</td>
+                            <td id="attendanceDetailLocationSource">-</td>
                         </tr>
                         </tbody>
                     </table>
+                </div>
+                <div class="mt-3">
+                    <div id="attendanceDetailLocationInfo" class="small text-muted mb-2">Lokasi absen: -</div>
+                    <div id="attendanceDetailMapCanvas" class="attendance-detail-map-canvas"></div>
+                    <div id="attendanceDetailMapEmpty" class="attendance-detail-map-empty">Lokasi absen tidak tersedia.</div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -493,23 +518,32 @@
             var officeLocation = @json($officeLocation);
             var attendanceModalElement = document.getElementById('attendanceActionModal');
             var attendanceDetailModalElement = document.getElementById('attendanceDetailModal');
+            var attendanceDetailModalLabel = document.getElementById('attendanceDetailModalLabel');
             var checkOnsiteLocationButton = document.getElementById('checkOnsiteLocationBtn');
             var submitOnsiteAttendanceButton = document.getElementById('submitOnsiteAttendanceBtn');
             var onsiteStatusText = document.getElementById('onsiteStatusText');
             var onsiteIpText = document.getElementById('onsiteIpText');
             var onsiteIpBadge = document.getElementById('onsiteIpBadge');
             var onsiteRunningTimeElement = document.getElementById('onsiteRunningTime');
-            var attendanceDetailDateElement = document.getElementById('attendanceDetailDate');
-            var attendanceDetailStaffNameElement = document.getElementById('attendanceDetailStaffName');
-            var attendanceDetailCompanyNameElement = document.getElementById('attendanceDetailCompanyName');
-            var attendanceDetailStatusElement = document.getElementById('attendanceDetailStatus');
-            var attendanceDetailCheckInElement = document.getElementById('attendanceDetailCheckIn');
-            var attendanceDetailCheckOutElement = document.getElementById('attendanceDetailCheckOut');
+            var attendanceDetailFormattedAddressElement = document.getElementById('attendanceDetailFormattedAddress');
+            var attendanceDetailVillageElement = document.getElementById('attendanceDetailVillage');
+            var attendanceDetailDistrictElement = document.getElementById('attendanceDetailDistrict');
+            var attendanceDetailRegencyElement = document.getElementById('attendanceDetailRegency');
+            var attendanceDetailProvinceElement = document.getElementById('attendanceDetailProvince');
+            var attendanceDetailPostalCodeElement = document.getElementById('attendanceDetailPostalCode');
+            var attendanceDetailLocationSourceElement = document.getElementById('attendanceDetailLocationSource');
+            var attendanceDetailLocationInfoElement = document.getElementById('attendanceDetailLocationInfo');
+            var attendanceDetailMapCanvasElement = document.getElementById('attendanceDetailMapCanvas');
+            var attendanceDetailMapEmptyElement = document.getElementById('attendanceDetailMapEmpty');
             var onsiteMapInstance = null;
             var officeMarker = null;
             var officeRadiusCircle = null;
             var userMarker = null;
             var userToOfficeLine = null;
+            var attendanceDetailMapInstance = null;
+            var attendanceDetailUserMarker = null;
+            var attendanceDetailOfficeMarker = null;
+            var attendanceDetailLine = null;
             var storeAttendanceUrl = @json(route('absensi.store'));
             var updateAttendanceUrlTemplate = @json(url('/absensi/__ATTENDANCE_ID__'));
             var attendanceDatatableUrl = @json(route('absensi.datatable'));
@@ -521,6 +555,7 @@
                 hasCheckedInToday: @json($hasCheckedInToday ?? false),
                 hasCheckedOutToday: @json($hasCheckedOutToday ?? false)
             };
+            var latestUserCoordinates = null;
             var officeStartTotalMinutes = parseTimeStringToMinutes(officeLocation && officeLocation.office_start_time, 8 * 60);
             var officeEndTotalMinutes = parseTimeStringToMinutes(officeLocation && officeLocation.office_end_time, 17 * 60);
             var lateGraceMinutes = Number(officeLocation && officeLocation.late_grace_minutes);
@@ -760,6 +795,11 @@
                     return;
                 }
 
+                latestUserCoordinates = {
+                    latitude: Number(position.coords.latitude),
+                    longitude: Number(position.coords.longitude)
+                };
+
                 var officePosition = {
                     lat: Number(officeLocation.latitude),
                     lng: Number(officeLocation.longitude)
@@ -861,6 +901,33 @@
                 );
             }
 
+            function resolveCurrentCoordinatesForAttendance() {
+                return new Promise(function (resolve) {
+                    if (!navigator.geolocation || !window.isSecureContext) {
+                        resolve(latestUserCoordinates);
+                        return;
+                    }
+
+                    navigator.geolocation.getCurrentPosition(
+                        function (position) {
+                            latestUserCoordinates = {
+                                latitude: Number(position.coords.latitude),
+                                longitude: Number(position.coords.longitude)
+                            };
+                            resolve(latestUserCoordinates);
+                        },
+                        function () {
+                            resolve(latestUserCoordinates);
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 7000,
+                            maximumAge: 0
+                        }
+                    );
+                });
+            }
+
             function submitOnsiteAttendance() {
                 if (!submitOnsiteAttendanceButton) {
                     return;
@@ -879,41 +946,50 @@
                     ? getUpdateAttendanceUrl(attendanceState.todayAttendanceId)
                     : storeAttendanceUrl;
 
-                $.ajax({
-                    url: requestUrl,
-                    method: requestMethod,
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken
-                    },
-                    data: {
+                resolveCurrentCoordinatesForAttendance().then(function (coordinates) {
+                    var payload = {
                         client_ip: browserPublicIp || (onsiteIpText ? onsiteIpText.textContent.trim() : null)
-                    }
-                }).done(function (response) {
-                    setOnsiteStatus(response && response.message ? response.message : 'Absen berhasil disimpan');
-                    if (!attendanceState.hasCheckedInToday) {
-                        attendanceState.hasCheckedInToday = true;
-                        if (response && response.attendance_id) {
-                            attendanceState.todayAttendanceId = response.attendance_id;
-                        }
-                    } else {
-                        attendanceState.hasCheckedOutToday = true;
-                    }
-                    renderSubmitAttendanceButton();
-                    resolveBrowserPublicIpAndRefresh();
-                    if (attendanceTable) {
-                        attendanceTable.ajax.reload(null, false);
-                    }
-                }).fail(function (xhr) {
-                    var errorMessage = 'Gagal memproses absen';
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMessage = xhr.responseJSON.message;
+                    };
+
+                    if (coordinates && Number.isFinite(coordinates.latitude) && Number.isFinite(coordinates.longitude)) {
+                        payload.latitude = coordinates.latitude;
+                        payload.longitude = coordinates.longitude;
                     }
 
-                    setOnsiteStatus(errorMessage);
-                }).always(function () {
-                    if (!attendanceState.hasCheckedOutToday) {
-                        submitOnsiteAttendanceButton.disabled = false;
-                    }
+                    $.ajax({
+                        url: requestUrl,
+                        method: requestMethod,
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken
+                        },
+                        data: payload
+                    }).done(function (response) {
+                        setOnsiteStatus(response && response.message ? response.message : 'Absen berhasil disimpan');
+                        if (!attendanceState.hasCheckedInToday) {
+                            attendanceState.hasCheckedInToday = true;
+                            if (response && response.attendance_id) {
+                                attendanceState.todayAttendanceId = response.attendance_id;
+                            }
+                        } else {
+                            attendanceState.hasCheckedOutToday = true;
+                        }
+                        renderSubmitAttendanceButton();
+                        resolveBrowserPublicIpAndRefresh();
+                        if (attendanceTable) {
+                            attendanceTable.ajax.reload(null, false);
+                        }
+                    }).fail(function (xhr) {
+                        var errorMessage = 'Gagal memproses absen';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+
+                        setOnsiteStatus(errorMessage);
+                    }).always(function () {
+                        if (!attendanceState.hasCheckedOutToday) {
+                            submitOnsiteAttendanceButton.disabled = false;
+                        }
+                    });
                 });
             }
 
@@ -998,56 +1074,207 @@
             }
 
             function showAttendanceDetail(rowData) {
-                var attendanceDate = rowData && rowData.attendance_date ? formatAttendanceDate(rowData.attendance_date) : '-';
                 var staffName = rowData && rowData.staff_name ? rowData.staff_name : '-';
-                var companyName = rowData && rowData.company_name ? rowData.company_name : '-';
-                var attendanceStatus = rowData && rowData.status ? rowData.status : '-';
-                var checkIn = rowData && rowData.check_in ? rowData.check_in : 'Belum Absen Masuk';
-                var checkOut = rowData && rowData.check_out ? rowData.check_out : 'Belum Absen Pulang';
+                var formattedAddress = rowData && rowData.formatted_address ? rowData.formatted_address : '-';
+                var villageName = rowData && rowData.address_village ? rowData.address_village : '-';
+                var districtName = rowData && rowData.address_district ? rowData.address_district : '-';
+                var regencyName = rowData && rowData.address_regency ? rowData.address_regency : (rowData && rowData.address_city ? rowData.address_city : '-');
+                var provinceName = rowData && rowData.address_province ? rowData.address_province : '-';
+                var postalCode = rowData && rowData.address_postal_code ? rowData.address_postal_code : '-';
+                var locationSource = normalizeLocationSourceLabel(rowData && rowData.location_source ? rowData.location_source : null);
 
                 if (!attendanceDetailModalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
                     return;
                 }
 
-                if (attendanceDetailDateElement) {
-                    attendanceDetailDateElement.textContent = attendanceDate;
+                if (attendanceDetailModalLabel) {
+                    attendanceDetailModalLabel.textContent = 'Detail Absensi - ' + staffName;
                 }
-                if (attendanceDetailStaffNameElement) {
-                    attendanceDetailStaffNameElement.textContent = staffName;
+
+                if (attendanceDetailFormattedAddressElement) {
+                    attendanceDetailFormattedAddressElement.textContent = formattedAddress;
                 }
-                if (attendanceDetailCompanyNameElement) {
-                    attendanceDetailCompanyNameElement.textContent = companyName;
+                if (attendanceDetailVillageElement) {
+                    attendanceDetailVillageElement.textContent = villageName;
                 }
-                if (attendanceDetailStatusElement) {
-                    attendanceDetailStatusElement.textContent = attendanceStatus;
+                if (attendanceDetailDistrictElement) {
+                    attendanceDetailDistrictElement.textContent = districtName;
                 }
-                if (attendanceDetailCheckInElement) {
-                    attendanceDetailCheckInElement.textContent = checkIn;
+                if (attendanceDetailRegencyElement) {
+                    attendanceDetailRegencyElement.textContent = regencyName;
                 }
-                if (attendanceDetailCheckOutElement) {
-                    attendanceDetailCheckOutElement.textContent = checkOut;
+                if (attendanceDetailProvinceElement) {
+                    attendanceDetailProvinceElement.textContent = provinceName;
+                }
+                if (attendanceDetailPostalCodeElement) {
+                    attendanceDetailPostalCodeElement.textContent = postalCode;
+                }
+                if (attendanceDetailLocationSourceElement) {
+                    attendanceDetailLocationSourceElement.textContent = locationSource;
                 }
 
                 bootstrap.Modal.getOrCreateInstance(attendanceDetailModalElement).show();
+                renderAttendanceDetailMap(rowData || {});
             }
 
-            function formatAttendanceDate(dateValue) {
-                var dateText = String(dateValue || '').trim();
-                if (!dateText) {
-                    return '-';
+            function normalizeLocationSourceLabel(locationSourceValue) {
+                var normalizedSource = String(locationSourceValue || '').toLowerCase().trim();
+                if (normalizedSource === 'gps') {
+                    return 'GPS';
                 }
 
-                var dateObject = new Date(dateText + 'T00:00:00');
-                if (Number.isNaN(dateObject.getTime())) {
-                    return dateText;
+                if (normalizedSource === 'ip') {
+                    return 'IP';
                 }
 
-                return dateObject.toLocaleDateString('id-ID', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric'
-                });
+                return '-';
             }
+
+            function isValidCoordinate(latitudeValue, longitudeValue) {
+                if (!Number.isFinite(latitudeValue) || !Number.isFinite(longitudeValue)) {
+                    return false;
+                }
+
+                if (latitudeValue < -90 || latitudeValue > 90 || longitudeValue < -180 || longitudeValue > 180) {
+                    return false;
+                }
+
+                return !(Math.abs(latitudeValue) < 0.000001 && Math.abs(longitudeValue) < 0.000001);
+            }
+
+            function setAttendanceDetailMapState(showMap, emptyText) {
+                if (attendanceDetailMapCanvasElement) {
+                    attendanceDetailMapCanvasElement.style.display = showMap ? 'block' : 'none';
+                }
+
+                if (attendanceDetailMapEmptyElement) {
+                    attendanceDetailMapEmptyElement.style.display = showMap ? 'none' : 'block';
+                    attendanceDetailMapEmptyElement.textContent = emptyText || 'Lokasi absen tidak tersedia.';
+                }
+            }
+
+            function clearAttendanceDetailMapElements() {
+                if (attendanceDetailUserMarker) {
+                    attendanceDetailUserMarker.setMap(null);
+                    attendanceDetailUserMarker = null;
+                }
+
+                if (attendanceDetailOfficeMarker) {
+                    attendanceDetailOfficeMarker.setMap(null);
+                    attendanceDetailOfficeMarker = null;
+                }
+
+                if (attendanceDetailLine) {
+                    attendanceDetailLine.setMap(null);
+                    attendanceDetailLine = null;
+                }
+            }
+
+            function renderAttendanceDetailMap(rowData) {
+                var latitudeValue = Number(rowData && rowData.check_in_latitude);
+                var longitudeValue = Number(rowData && rowData.check_in_longitude);
+                var hasValidAttendanceCoordinate = isValidCoordinate(latitudeValue, longitudeValue);
+                var officeLatitudeValue = Number(officeLocation && officeLocation.latitude);
+                var officeLongitudeValue = Number(officeLocation && officeLocation.longitude);
+                var hasValidOfficeCoordinate = isValidCoordinate(officeLatitudeValue, officeLongitudeValue);
+                var distanceMetersValue = Number(rowData && rowData.distance_meters);
+                var distanceLabel = Number.isFinite(distanceMetersValue) ? distanceMetersValue.toFixed(2) + ' m' : '-';
+                var radiusResultValue = rowData && rowData.radius_result ? String(rowData.radius_result) : '-';
+
+                if (attendanceDetailLocationInfoElement) {
+                    if (hasValidAttendanceCoordinate) {
+                        attendanceDetailLocationInfoElement.textContent = 'Lokasi absen: '
+                            + latitudeValue.toFixed(6) + ', ' + longitudeValue.toFixed(6)
+                            + ' | Jarak: ' + distanceLabel
+                            + ' | Radius: ' + radiusResultValue;
+                    } else {
+                        attendanceDetailLocationInfoElement.textContent = 'Lokasi absen: -';
+                    }
+                }
+
+                if (!hasValidAttendanceCoordinate) {
+                    setAttendanceDetailMapState(false, 'Lokasi absen tidak tersedia.');
+                    clearAttendanceDetailMapElements();
+                    return;
+                }
+
+                setAttendanceDetailMapState(true, '');
+
+                if (!attendanceDetailMapCanvasElement) {
+                    return;
+                }
+
+                loadGoogleMapsApi()
+                    .then(function () {
+                        var attendancePosition = {
+                            lat: latitudeValue,
+                            lng: longitudeValue
+                        };
+
+                        if (!attendanceDetailMapInstance) {
+                            attendanceDetailMapInstance = new window.google.maps.Map(attendanceDetailMapCanvasElement, {
+                                center: attendancePosition,
+                                zoom: 16,
+                                mapTypeControl: false,
+                                streetViewControl: false,
+                                fullscreenControl: false
+                            });
+                        }
+
+                        clearAttendanceDetailMapElements();
+
+                        attendanceDetailUserMarker = new window.google.maps.Marker({
+                            position: attendancePosition,
+                            map: attendanceDetailMapInstance,
+                            title: 'Titik Absen',
+                            icon: {
+                                path: window.google.maps.SymbolPath.CIRCLE,
+                                scale: 7,
+                                fillColor: '#dc2626',
+                                fillOpacity: 1,
+                                strokeColor: '#ffffff',
+                                strokeWeight: 2
+                            }
+                        });
+
+                        if (hasValidOfficeCoordinate) {
+                            var officePosition = {
+                                lat: officeLatitudeValue,
+                                lng: officeLongitudeValue
+                            };
+
+                            attendanceDetailOfficeMarker = new window.google.maps.Marker({
+                                position: officePosition,
+                                map: attendanceDetailMapInstance,
+                                title: 'Titik Kantor'
+                            });
+
+                            attendanceDetailLine = new window.google.maps.Polyline({
+                                path: [officePosition, attendancePosition],
+                                geodesic: true,
+                                strokeColor: '#2563eb',
+                                strokeOpacity: 0.85,
+                                strokeWeight: 2,
+                                map: attendanceDetailMapInstance
+                            });
+
+                            var bounds = new window.google.maps.LatLngBounds();
+                            bounds.extend(attendancePosition);
+                            bounds.extend(officePosition);
+                            attendanceDetailMapInstance.fitBounds(bounds);
+                        } else {
+                            attendanceDetailMapInstance.setCenter(attendancePosition);
+                            attendanceDetailMapInstance.setZoom(16);
+                        }
+
+                        window.google.maps.event.trigger(attendanceDetailMapInstance, 'resize');
+                    })
+                    .catch(function () {
+                        setAttendanceDetailMapState(false, 'Gagal memuat peta lokasi absen.');
+                    });
+            }
+
+            setAttendanceDetailMapState(false, 'Lokasi absen tidak tersedia.');
 
             renderAttendanceDateTime();
             setInterval(renderAttendanceDateTime, 1000);
@@ -1204,6 +1431,19 @@
                         .catch(function (error) {
                             setOnsiteStatus(error.message);
                         });
+                });
+            }
+
+            if (attendanceDetailModalElement) {
+                attendanceDetailModalElement.addEventListener('hidden.bs.modal', function () {
+                    clearAttendanceDetailMapElements();
+                    if (attendanceDetailModalLabel) {
+                        attendanceDetailModalLabel.textContent = 'Detail Absensi';
+                    }
+                    if (attendanceDetailLocationInfoElement) {
+                        attendanceDetailLocationInfoElement.textContent = 'Lokasi absen: -';
+                    }
+                    setAttendanceDetailMapState(false, 'Lokasi absen tidak tersedia.');
                 });
             }
 

@@ -168,17 +168,25 @@ class AttendanceController extends Controller
 
         $clientIpAddress = $this->resolveClientIpAddress($request, $request->input('client_ip'));
         $ipdataData = $this->fetchIpdata($clientIpAddress);
+        $requestLatitude = $request->input('latitude');
+        $requestLongitude = $request->input('longitude');
+        $hasRequestCoordinates = is_numeric($requestLatitude)
+            && is_numeric($requestLongitude)
+            && $this->isValidCoordinate((float) $requestLatitude, (float) $requestLongitude);
         $hasIpCoordinates = isset($ipdataData['latitude'], $ipdataData['longitude'])
             && is_numeric($ipdataData['latitude'])
-            && is_numeric($ipdataData['longitude']);
-        $latitude = $hasIpCoordinates ? (float) $ipdataData['latitude'] : 0.0;
-        $longitude = $hasIpCoordinates ? (float) $ipdataData['longitude'] : 0.0;
+            && is_numeric($ipdataData['longitude'])
+            && $this->isValidCoordinate((float) $ipdataData['latitude'], (float) $ipdataData['longitude']);
+        $latitude = $hasRequestCoordinates ? (float) $requestLatitude : ($hasIpCoordinates ? (float) $ipdataData['latitude'] : 0.0);
+        $longitude = $hasRequestCoordinates ? (float) $requestLongitude : ($hasIpCoordinates ? (float) $ipdataData['longitude'] : 0.0);
         $ipAddress = $ipdataData['ip'] ?? $clientIpAddress ?? $request->ip();
 
         $distance = 0.0;
         $radiusResult = 'outside';
+        $hasCoordinates = $hasRequestCoordinates || $hasIpCoordinates;
+        $locationSource = $hasRequestCoordinates ? 'gps' : ($hasIpCoordinates ? 'ip' : null);
 
-        if ($officeContext !== null && $hasIpCoordinates) {
+        if ($officeContext !== null && $hasCoordinates) {
             $distance = $this->calculateDistanceInMeters(
                 $latitude,
                 $longitude,
@@ -188,6 +196,8 @@ class AttendanceController extends Controller
 
             $radiusResult = $distance <= $officeContext['radius_meters'] ? 'inside' : 'outside';
         }
+
+        $locationMetadata = $hasCoordinates ? $this->reverseGeocodeCoordinates($latitude, $longitude) : [];
 
         AttendanceLog::create([
             'attendance_id' => $attendance->id,
@@ -200,6 +210,16 @@ class AttendanceController extends Controller
             'ip_address' => $ipAddress,
             'user_agent' => $request->userAgent(),
             'device_hash' => hash('sha256', ($request->userAgent() ?? 'unknown').'|'.$ipAddress),
+            'location_source' => $locationSource,
+            'formatted_address' => $locationMetadata['formatted_address'] ?? null,
+            'address_village' => $locationMetadata['address_village'] ?? null,
+            'address_district' => $locationMetadata['address_district'] ?? null,
+            'address_regency' => $locationMetadata['address_regency'] ?? null,
+            'address_city' => $locationMetadata['address_city'] ?? null,
+            'address_province' => $locationMetadata['address_province'] ?? null,
+            'address_postal_code' => $locationMetadata['address_postal_code'] ?? null,
+            'geocoding_provider' => $locationMetadata['geocoding_provider'] ?? null,
+            'geocoded_at' => isset($locationMetadata['geocoded_at']) ? Carbon::parse($locationMetadata['geocoded_at']) : null,
         ]);
 
         return response()->json([
@@ -301,7 +321,23 @@ class AttendanceController extends Controller
             $attendanceLogsByAttendanceId = AttendanceLog::query()
                 ->whereIn('attendance_id', $staffAttendances->pluck('id'))
                 ->orderByDesc('id')
-                ->get(['attendance_id', 'check_in', 'check_out'])
+                ->get([
+                    'attendance_id',
+                    'check_in',
+                    'check_out',
+                    'latitude',
+                    'longitude',
+                    'distance',
+                    'radius_result',
+                    'location_source',
+                    'formatted_address',
+                    'address_village',
+                    'address_district',
+                    'address_regency',
+                    'address_city',
+                    'address_province',
+                    'address_postal_code',
+                ])
                 ->groupBy('attendance_id')
                 ->map(fn ($attendanceLogs) => $attendanceLogs->first());
 
@@ -309,12 +345,25 @@ class AttendanceController extends Controller
                 $attendanceLog = $attendanceLogsByAttendanceId->get($attendanceItem->id);
 
                 return [
+                    'attendance_id' => $attendanceItem->id,
                     'attendance_date' => $attendanceItem->date?->format('Y-m-d'),
                     'staff_name' => $staffUser->name,
                     'company_name' => $staffUser->userEmployee?->company?->name,
                     'check_in' => $this->formatAttendanceLogTime($attendanceLog?->check_in),
                     'check_out' => $this->formatAttendanceLogTime($attendanceLog?->check_out),
                     'status' => $attendanceItem->status,
+                    'check_in_latitude' => isset($attendanceLog?->latitude) ? (float) $attendanceLog->latitude : null,
+                    'check_in_longitude' => isset($attendanceLog?->longitude) ? (float) $attendanceLog->longitude : null,
+                    'distance_meters' => isset($attendanceLog?->distance) ? (float) $attendanceLog->distance : null,
+                    'radius_result' => isset($attendanceLog?->radius_result) ? (string) $attendanceLog->radius_result : null,
+                    'location_source' => isset($attendanceLog?->location_source) ? (string) $attendanceLog->location_source : null,
+                    'formatted_address' => isset($attendanceLog?->formatted_address) ? (string) $attendanceLog->formatted_address : null,
+                    'address_village' => isset($attendanceLog?->address_village) ? (string) $attendanceLog->address_village : null,
+                    'address_district' => isset($attendanceLog?->address_district) ? (string) $attendanceLog->address_district : null,
+                    'address_regency' => isset($attendanceLog?->address_regency) ? (string) $attendanceLog->address_regency : null,
+                    'address_city' => isset($attendanceLog?->address_city) ? (string) $attendanceLog->address_city : null,
+                    'address_province' => isset($attendanceLog?->address_province) ? (string) $attendanceLog->address_province : null,
+                    'address_postal_code' => isset($attendanceLog?->address_postal_code) ? (string) $attendanceLog->address_postal_code : null,
                 ];
             })->values();
 
@@ -353,7 +402,23 @@ class AttendanceController extends Controller
         $attendanceLogsByAttendanceId = AttendanceLog::query()
             ->whereIn('attendance_id', $attendanceIds)
             ->orderByDesc('id')
-            ->get(['attendance_id', 'check_in', 'check_out'])
+            ->get([
+                'attendance_id',
+                'check_in',
+                'check_out',
+                'latitude',
+                'longitude',
+                'distance',
+                'radius_result',
+                'location_source',
+                'formatted_address',
+                'address_village',
+                'address_district',
+                'address_regency',
+                'address_city',
+                'address_province',
+                'address_postal_code',
+            ])
             ->groupBy('attendance_id')
             ->map(fn ($attendanceLogs) => $attendanceLogs->first());
 
@@ -362,12 +427,25 @@ class AttendanceController extends Controller
             $attendanceLog = $attendanceToday ? $attendanceLogsByAttendanceId->get($attendanceToday->id) : null;
 
             return [
+                'attendance_id' => $attendanceToday?->id,
                 'attendance_date' => $attendanceToday?->date?->format('Y-m-d') ?? $todayDate,
                 'staff_name' => $user->name,
                 'company_name' => $user->userEmployee?->company?->name,
                 'check_in' => $this->formatAttendanceLogTime($attendanceLog?->check_in),
                 'check_out' => $this->formatAttendanceLogTime($attendanceLog?->check_out),
                 'status' => $attendanceToday?->status,
+                'check_in_latitude' => isset($attendanceLog?->latitude) ? (float) $attendanceLog->latitude : null,
+                'check_in_longitude' => isset($attendanceLog?->longitude) ? (float) $attendanceLog->longitude : null,
+                'distance_meters' => isset($attendanceLog?->distance) ? (float) $attendanceLog->distance : null,
+                'radius_result' => isset($attendanceLog?->radius_result) ? (string) $attendanceLog->radius_result : null,
+                'location_source' => isset($attendanceLog?->location_source) ? (string) $attendanceLog->location_source : null,
+                'formatted_address' => isset($attendanceLog?->formatted_address) ? (string) $attendanceLog->formatted_address : null,
+                'address_village' => isset($attendanceLog?->address_village) ? (string) $attendanceLog->address_village : null,
+                'address_district' => isset($attendanceLog?->address_district) ? (string) $attendanceLog->address_district : null,
+                'address_regency' => isset($attendanceLog?->address_regency) ? (string) $attendanceLog->address_regency : null,
+                'address_city' => isset($attendanceLog?->address_city) ? (string) $attendanceLog->address_city : null,
+                'address_province' => isset($attendanceLog?->address_province) ? (string) $attendanceLog->address_province : null,
+                'address_postal_code' => isset($attendanceLog?->address_postal_code) ? (string) $attendanceLog->address_postal_code : null,
             ];
         })->values();
 
@@ -436,6 +514,154 @@ class AttendanceController extends Controller
         } catch (\Throwable) {
             return [];
         }
+    }
+
+    /**
+     * @return array{
+     *     formatted_address:string|null,
+     *     address_village:string|null,
+     *     address_district:string|null,
+     *     address_regency:string|null,
+     *     address_city:string|null,
+     *     address_province:string|null,
+     *     address_postal_code:string|null,
+     *     geocoding_provider:string|null,
+     *     geocoded_at:string|null
+     * }
+     */
+    private function reverseGeocodeCoordinates(float $latitude, float $longitude): array
+    {
+        $googleMapsApiKey = config('services.google_maps.api_key');
+
+        if (empty($googleMapsApiKey) || ! $this->isValidCoordinate($latitude, $longitude)) {
+            return [
+                'formatted_address' => null,
+                'address_village' => null,
+                'address_district' => null,
+                'address_regency' => null,
+                'address_city' => null,
+                'address_province' => null,
+                'address_postal_code' => null,
+                'geocoding_provider' => null,
+                'geocoded_at' => null,
+            ];
+        }
+
+        try {
+            $response = Http::timeout(7)
+                ->acceptJson()
+                ->get('https://maps.googleapis.com/maps/api/geocode/json', [
+                    'latlng' => $latitude.','.$longitude,
+                    'language' => 'id',
+                    'key' => $googleMapsApiKey,
+                ]);
+
+            if (! $response->successful()) {
+                return [];
+            }
+
+            $payload = $response->json();
+            if (! is_array($payload)) {
+                return [];
+            }
+
+            $results = $payload['results'] ?? null;
+            if (! is_array($results) || ! isset($results[0]) || ! is_array($results[0])) {
+                return [];
+            }
+
+            $primaryResult = $results[0];
+            $components = isset($primaryResult['address_components']) && is_array($primaryResult['address_components'])
+                ? $primaryResult['address_components']
+                : [];
+            $addressComponents = $this->parseAddressComponents($components);
+
+            return [
+                'formatted_address' => isset($primaryResult['formatted_address']) && is_string($primaryResult['formatted_address'])
+                    ? $primaryResult['formatted_address']
+                    : null,
+                'address_village' => $addressComponents['address_village'],
+                'address_district' => $addressComponents['address_district'],
+                'address_regency' => $addressComponents['address_regency'],
+                'address_city' => $addressComponents['address_city'],
+                'address_province' => $addressComponents['address_province'],
+                'address_postal_code' => $addressComponents['address_postal_code'],
+                'geocoding_provider' => 'google_maps',
+                'geocoded_at' => now()->toDateTimeString(),
+            ];
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * @param  array<int, mixed>  $components
+     * @return array{
+     *     address_village:string|null,
+     *     address_district:string|null,
+     *     address_regency:string|null,
+     *     address_city:string|null,
+     *     address_province:string|null,
+     *     address_postal_code:string|null
+     * }
+     */
+    private function parseAddressComponents(array $components): array
+    {
+        $resolvedComponents = [
+            'address_village' => null,
+            'address_district' => null,
+            'address_regency' => null,
+            'address_city' => null,
+            'address_province' => null,
+            'address_postal_code' => null,
+        ];
+
+        foreach ($components as $component) {
+            if (! is_array($component)) {
+                continue;
+            }
+
+            $longName = isset($component['long_name']) && is_string($component['long_name'])
+                ? trim($component['long_name'])
+                : null;
+            $types = isset($component['types']) && is_array($component['types'])
+                ? $component['types']
+                : [];
+
+            if ($longName === null || $longName === '') {
+                continue;
+            }
+
+            if (in_array('administrative_area_level_4', $types, true) || in_array('sublocality_level_1', $types, true)) {
+                $resolvedComponents['address_village'] ??= $longName;
+            }
+
+            if (in_array('administrative_area_level_3', $types, true) || in_array('sublocality', $types, true)) {
+                $resolvedComponents['address_district'] ??= $longName;
+            }
+
+            if (in_array('administrative_area_level_2', $types, true)) {
+                $resolvedComponents['address_regency'] ??= $longName;
+            }
+
+            if (in_array('administrative_area_level_1', $types, true)) {
+                $resolvedComponents['address_province'] ??= $longName;
+            }
+
+            if (in_array('locality', $types, true)) {
+                $resolvedComponents['address_city'] ??= $longName;
+            }
+
+            if (in_array('postal_code', $types, true)) {
+                $resolvedComponents['address_postal_code'] ??= $longName;
+            }
+        }
+
+        if ($resolvedComponents['address_city'] === null) {
+            $resolvedComponents['address_city'] = $resolvedComponents['address_regency'];
+        }
+
+        return $resolvedComponents;
     }
 
     /**
@@ -568,6 +794,15 @@ class AttendanceController extends Controller
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earthRadius * $c;
+    }
+
+    private function isValidCoordinate(float $latitude, float $longitude): bool
+    {
+        return $latitude >= -90
+            && $latitude <= 90
+            && $longitude >= -180
+            && $longitude <= 180
+            && ! (abs($latitude) < 0.000001 && abs($longitude) < 0.000001);
     }
 
     private function formatAttendanceLogTime(mixed $timeValue): ?string

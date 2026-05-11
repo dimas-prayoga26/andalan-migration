@@ -406,12 +406,20 @@
                         </div>
                         <div class="small mb-3">
                             <strong>IP:</strong>
-                            <span id="onsiteIpText" class="{{ ($isIpPrefixMatch ?? false) ? 'text-success fw-semibold' : 'text-danger fw-semibold' }}">
-                                {{ $publicIp ?? '-' }}
-                            </span>
-                            <span id="onsiteIpBadge" class="badge ms-2 {{ ($isIpPrefixMatch ?? false) ? 'bg-success' : 'bg-danger' }}">
-                                {{ ($isIpPrefixMatch ?? false) ? 'Valid' : 'Tidak Valid' }}
-                            </span>
+                            @if (!empty($publicIp))
+                                <span id="onsiteIpText" class="{{ ($isIpPrefixMatch ?? false) ? 'text-success fw-semibold' : 'text-danger fw-semibold' }}">
+                                    {{ $publicIp }}
+                                </span>
+                                <span id="onsiteIpBadge" class="badge ms-2 {{ ($isIpPrefixMatch ?? false) ? 'bg-success' : 'bg-danger' }}">
+                                    {{ ($isIpPrefixMatch ?? false) ? 'Valid' : 'Tidak Valid' }}
+                                </span>
+                            @else
+                                <span id="onsiteIpText" class="text-muted">
+                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                    Memuat...
+                                </span>
+                                <span id="onsiteIpBadge" class="badge ms-2 d-none"></span>
+                            @endif
                         </div>
                         <div class="d-flex gap-3">
                             <button type="button" class="btn btn-outline-primary btn-sm" id="checkOnsiteLocationBtn">Cek Lokasi Saya</button>
@@ -566,24 +574,67 @@
             }
 
             function setOnsiteIpIndicator(ipAddress, isValidIpPrefix) {
-                if (!onsiteIpText || !onsiteIpBadge) {
+                if (!onsiteIpText) {
                     return;
                 }
 
-                onsiteIpText.textContent = ipAddress || '-';
-                onsiteIpText.classList.remove('text-success', 'text-danger', 'fw-semibold');
-                onsiteIpBadge.classList.remove('bg-success', 'bg-danger');
+                if (!ipAddress || ipAddress === '-') {
+                    setOnsiteIpUnavailableState();
+                    return;
+                }
+
+                onsiteIpText.textContent = ipAddress;
+                onsiteIpText.classList.remove('text-success', 'text-danger', 'text-muted', 'fw-semibold');
+                if (onsiteIpBadge) {
+                    onsiteIpBadge.classList.remove('d-none');
+                    onsiteIpBadge.classList.remove('bg-success', 'bg-danger', 'bg-secondary');
+                }
 
                 if (isValidIpPrefix) {
                     onsiteIpText.classList.add('text-success', 'fw-semibold');
-                    onsiteIpBadge.classList.add('bg-success');
-                    onsiteIpBadge.textContent = 'Valid';
+                    if (onsiteIpBadge) {
+                        onsiteIpBadge.classList.add('bg-success');
+                        onsiteIpBadge.textContent = 'Valid';
+                    }
                     return;
                 }
 
                 onsiteIpText.classList.add('text-danger', 'fw-semibold');
-                onsiteIpBadge.classList.add('bg-danger');
-                onsiteIpBadge.textContent = 'Tidak Valid';
+                if (onsiteIpBadge) {
+                    onsiteIpBadge.classList.add('bg-danger');
+                    onsiteIpBadge.textContent = 'Tidak Valid';
+                }
+            }
+
+            function setOnsiteIpLoadingState() {
+                if (!onsiteIpText) {
+                    return;
+                }
+
+                onsiteIpText.classList.remove('text-success', 'text-danger', 'fw-semibold');
+                onsiteIpText.classList.add('text-muted');
+                onsiteIpText.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Memuat...';
+                if (onsiteIpBadge) {
+                    onsiteIpBadge.classList.add('d-none');
+                    onsiteIpBadge.classList.remove('bg-success', 'bg-danger', 'bg-secondary');
+                    onsiteIpBadge.textContent = '';
+                }
+            }
+
+            function setOnsiteIpUnavailableState() {
+                if (!onsiteIpText) {
+                    return;
+                }
+
+                onsiteIpText.textContent = 'Tidak tersedia';
+                onsiteIpText.classList.remove('text-success', 'text-danger', 'fw-semibold');
+                onsiteIpText.classList.add('text-muted');
+                if (onsiteIpBadge) {
+                    onsiteIpBadge.classList.remove('d-none');
+                    onsiteIpBadge.classList.remove('bg-success', 'bg-danger');
+                    onsiteIpBadge.classList.add('bg-secondary');
+                    onsiteIpBadge.textContent = 'Tidak tersedia';
+                }
             }
 
             function refreshOnsiteIpIndicator() {
@@ -591,20 +642,17 @@
                     return;
                 }
 
-                var refreshIpRequestData = {};
-                if (browserPublicIp) {
-                    refreshIpRequestData.client_ip = browserPublicIp;
-                }
-
                 $.ajax({
                     url: currentIpUrl,
                     method: 'GET',
-                    data: refreshIpRequestData,
+                    data: browserPublicIp ? { client_ip: browserPublicIp } : {},
                     timeout: 10000
                 }).done(function (response) {
                     var ipAddress = response && response.ip ? response.ip : '-';
                     var isValidIpPrefix = !!(response && response.is_ip_prefix_match);
                     setOnsiteIpIndicator(ipAddress, isValidIpPrefix);
+                }).fail(function () {
+                    setOnsiteIpUnavailableState();
                 });
             }
 
@@ -959,17 +1007,9 @@
                         }
                         renderSubmitAttendanceButton();
                         resolveBrowserPublicIpAndRefresh();
-                        if (attendanceTable) {
-                            attendanceTable.ajax.reload(null, false);
-                        }
-
                         if (projectManagementIndexUrl) {
                             window.location.href = projectManagementIndexUrl;
                             return;
-                        }
-
-                        if (isCheckInAction && attendanceModalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                            bootstrap.Modal.getOrCreateInstance(attendanceModalElement).hide();
                         }
                     }).fail(function (xhr) {
                         var errorMessage = 'Gagal memproses absen';
@@ -1412,6 +1452,10 @@
 
             if (attendanceModalElement) {
                 attendanceModalElement.addEventListener('shown.bs.modal', function () {
+                    if (!browserPublicIp) {
+                        setOnsiteIpLoadingState();
+                    }
+
                     resolveBrowserPublicIpAndRefresh();
                     loadGoogleMapsApi()
                         .then(function () {

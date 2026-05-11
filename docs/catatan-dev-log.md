@@ -7,6 +7,9 @@ Aturan log:
 
 ## Daftar Entry
 
+- `2026-05-11-0944-hapus-badge-memuat-ip-modal-absensi.md`
+- `2026-05-11-0940-spinner-ip-saat-loading-di-modal-absensi.md`
+- `2026-05-11-0934-cleanup-script-redundan-index-absensi.md`
 - `2026-05-11-0922-title-modal-absen-dinamis-tanggal-hari-ini.md`
 - `2026-05-11-0919-hapus-menu-absen-onsite-dan-ubah-title-modal.md`
 - `2026-05-11-0844-fix-route-redirect-project-management.md`

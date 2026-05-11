@@ -392,48 +392,30 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="attendanceActionModalLabel">Pilih Jenis Absen</h5>
+                <h5 class="modal-title" id="attendanceActionModalLabel">Absen {{ now('Asia/Jakarta')->format('d/m/Y') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <ul class="nav nav-pills mb-3" id="attendanceTypeTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="onsite-tab" data-bs-toggle="tab" data-bs-target="#onsite-pane" type="button" role="tab" aria-controls="onsite-pane" aria-selected="true">Absen Onsite</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="business-trip-tab" data-bs-toggle="tab" data-bs-target="#business-trip-pane" type="button" role="tab" aria-controls="business-trip-pane" aria-selected="false">Absen Business Trip</button>
-                    </li>
-                </ul>
-                <div class="tab-content" id="attendanceTypeTabContent">
-                    <div class="tab-pane fade show active" id="onsite-pane" role="tabpanel" aria-labelledby="onsite-tab" tabindex="0">
-                        <div class="onsite-map-container">
-                            <div class="px-3 py-2 border-bottom text-center fw-semibold" id="onsiteRunningTime">--:--:--</div>
-                            <div id="onsiteMapCanvas" class="onsite-map-canvas"></div>
-                            <div class="onsite-map-meta">
-                                <h6 class="mb-3">Validasi Lokasi Onsite</h6>
-                                <div class="small text-muted mb-2">
-                                    <strong>Status:</strong> <span id="onsiteStatusText">Menunggu cek lokasi</span>
-                                </div>
-                                <div class="small mb-3">
-                                    <strong>IP:</strong>
-                                    <span id="onsiteIpText" class="{{ ($isIpPrefixMatch ?? false) ? 'text-success fw-semibold' : 'text-danger fw-semibold' }}">
-                                        {{ $publicIp ?? '-' }}
-                                    </span>
-                                    <span id="onsiteIpBadge" class="badge ms-2 {{ ($isIpPrefixMatch ?? false) ? 'bg-success' : 'bg-danger' }}">
-                                        {{ ($isIpPrefixMatch ?? false) ? 'Valid' : 'Tidak Valid' }}
-                                    </span>
-                                </div>
-                                <div class="d-flex gap-3">
-                                    <button type="button" class="btn btn-outline-primary btn-sm" id="checkOnsiteLocationBtn">Cek Lokasi Saya</button>
-                                    <button type="button" class="btn btn-primary btn-sm" id="submitOnsiteAttendanceBtn">Masuk</button>
-                                </div>
-                            </div>
+                <div class="onsite-map-container">
+                    <div class="px-3 py-2 border-bottom text-center fw-semibold" id="onsiteRunningTime">--:--:--</div>
+                    <div id="onsiteMapCanvas" class="onsite-map-canvas"></div>
+                    <div class="onsite-map-meta">
+                        <h6 class="mb-3">Validasi Lokasi Onsite</h6>
+                        <div class="small text-muted mb-2">
+                            <strong>Status:</strong> <span id="onsiteStatusText">Menunggu cek lokasi</span>
                         </div>
-                    </div>
-                    <div class="tab-pane fade" id="business-trip-pane" role="tabpanel" aria-labelledby="business-trip-tab" tabindex="0">
-                        <div class="border rounded p-3">
-                            <h6 class="mb-2">Business Trip</h6>
-                            <p class="mb-0 text-muted">Konten khusus business trip ditampilkan di sini.</p>
+                        <div class="small mb-3">
+                            <strong>IP:</strong>
+                            <span id="onsiteIpText" class="{{ ($isIpPrefixMatch ?? false) ? 'text-success fw-semibold' : 'text-danger fw-semibold' }}">
+                                {{ $publicIp ?? '-' }}
+                            </span>
+                            <span id="onsiteIpBadge" class="badge ms-2 {{ ($isIpPrefixMatch ?? false) ? 'bg-success' : 'bg-danger' }}">
+                                {{ ($isIpPrefixMatch ?? false) ? 'Valid' : 'Tidak Valid' }}
+                            </span>
+                        </div>
+                        <div class="d-flex gap-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="checkOnsiteLocationBtn">Cek Lokasi Saya</button>
+                            <button type="button" class="btn btn-primary btn-sm" id="submitOnsiteAttendanceBtn">Masuk</button>
                         </div>
                     </div>
                 </div>
@@ -547,6 +529,7 @@
             var storeAttendanceUrl = @json(route('absensi.store'));
             var updateAttendanceUrlTemplate = @json(url('/absensi/__ATTENDANCE_ID__'));
             var attendanceDatatableUrl = @json(route('absensi.datatable'));
+            var projectManagementIndexUrl = @json(route('project_management'));
             var currentIpUrl = @json(route('absensi.current-ip'));
             var csrfToken = @json(csrf_token());
             var browserPublicIp = null;
@@ -941,6 +924,7 @@
                 submitOnsiteAttendanceButton.disabled = true;
                 setOnsiteStatus('Memproses submit absen...');
 
+                var isCheckInAction = !attendanceState.hasCheckedInToday;
                 var requestMethod = attendanceState.hasCheckedInToday ? 'PATCH' : 'POST';
                 var requestUrl = attendanceState.hasCheckedInToday && attendanceState.todayAttendanceId
                     ? getUpdateAttendanceUrl(attendanceState.todayAttendanceId)
@@ -965,7 +949,7 @@
                         data: payload
                     }).done(function (response) {
                         setOnsiteStatus(response && response.message ? response.message : 'Absen berhasil disimpan');
-                        if (!attendanceState.hasCheckedInToday) {
+                        if (isCheckInAction) {
                             attendanceState.hasCheckedInToday = true;
                             if (response && response.attendance_id) {
                                 attendanceState.todayAttendanceId = response.attendance_id;
@@ -977,6 +961,15 @@
                         resolveBrowserPublicIpAndRefresh();
                         if (attendanceTable) {
                             attendanceTable.ajax.reload(null, false);
+                        }
+
+                        if (projectManagementIndexUrl) {
+                            window.location.href = projectManagementIndexUrl;
+                            return;
+                        }
+
+                        if (isCheckInAction && attendanceModalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                            bootstrap.Modal.getOrCreateInstance(attendanceModalElement).hide();
                         }
                     }).fail(function (xhr) {
                         var errorMessage = 'Gagal memproses absen';

@@ -3,8 +3,8 @@
 use App\Http\Controllers\ActivityScheduleController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceOvertimeController;
-use App\Http\Controllers\AttendancePermissionController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\LeaveRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -63,15 +63,15 @@ Route::middleware('auth')->group(function (): void {
     })->name('absensi.reports');
 
     // Attendance permission routes
-    Route::get('/absensi/izin/datatable', [AttendancePermissionController::class, 'datatable'])->name('absensi.izin.datatable');
-    Route::get('/absensi/izin', [AttendancePermissionController::class, 'index'])->name('absensi.izin');
-    Route::post('/absensi/izin', [AttendancePermissionController::class, 'store'])->name('absensi.izin.store');
-    Route::get('/absensi/izin/attachment/{attachment}', [AttendancePermissionController::class, 'attachment'])->name('absensi.izin.attachment');
-    Route::get('/absensi/izin/{attendancePermission}', [AttendancePermissionController::class, 'show'])->name('absensi.izin.show');
-    Route::put('/absensi/izin/{attendancePermission}/status', [AttendancePermissionController::class, 'updateStatus'])->name('absensi.izin.update-status');
+    Route::get('/absensi/izin/datatable', [LeaveRequestController::class, 'datatable'])->name('absensi.izin.datatable');
+    Route::get('/absensi/izin', [LeaveRequestController::class, 'index'])->name('absensi.izin');
+    Route::post('/absensi/izin', [LeaveRequestController::class, 'store'])->name('absensi.izin.store');
+    Route::get('/absensi/izin/attachment/{attachment}', [LeaveRequestController::class, 'attachment'])->name('absensi.izin.attachment');
+    Route::get('/absensi/izin/{leaveRequest}', [LeaveRequestController::class, 'show'])->name('absensi.izin.show');
+    Route::put('/absensi/izin/{leaveRequest}/status', [LeaveRequestController::class, 'updateStatus'])->name('absensi.izin.update-status');
 
     // Attendance permission routes
-    Route::delete('/absensi/izin/{attendancePermission}', [AttendancePermissionController::class, 'destroy'])->name('absensi.izin.destroy');
+    Route::delete('/absensi/izin/{leaveRequest}', [LeaveRequestController::class, 'destroy'])->name('absensi.izin.destroy');
     Route::get('/absensi/lembur/datatable', [AttendanceOvertimeController::class, 'datatable'])->name('absensi.lembur.datatable');
     Route::get('/absensi/lembur', [AttendanceOvertimeController::class, 'index'])->name('absensi.lembur');
     Route::post('/absensi/lembur', [AttendanceOvertimeController::class, 'store'])->name('absensi.lembur.store');

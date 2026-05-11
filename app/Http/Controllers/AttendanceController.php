@@ -18,12 +18,21 @@ class AttendanceController extends Controller
 {
     public function index(Request $request): View
     {
-        $userId = Auth::id();
         $authenticatedUser = Auth::user();
+        if ($authenticatedUser instanceof User) {
+            $authenticatedUser->loadMissing('employee');
+        }
+        $userId = Auth::id();
+        $employeeId = $authenticatedUser?->employee?->id;
         $isStaffUser = $this->isStaffUser($authenticatedUser);
         $nowJakarta = now('Asia/Jakarta');
         $publicIp = '-';
-        $attendance = Attendance::with('user')->where('user_id', $userId)->get();
+        $attendance = collect();
+        if (is_string($employeeId) && trim($employeeId) !== '') {
+            $attendance = Attendance::query()
+                ->where('employee_id', $employeeId)
+                ->get();
+        }
         $showCompanyFilter = $this->isSuperUser($authenticatedUser);
         $showStaffPeriodFilter = $isStaffUser;
         $companies = collect();
@@ -42,7 +51,7 @@ class AttendanceController extends Controller
 
         if ($isStaffUser) {
             $staffYearOptions = Attendance::query()
-                ->where('user_id', $userId)
+                ->where('employee_id', $employeeId)
                 ->selectRaw('DISTINCT YEAR(`date`) as year_value')
                 ->orderByDesc('year_value')
                 ->pluck('year_value')
@@ -66,10 +75,10 @@ class AttendanceController extends Controller
         if ($showCompanyFilter) {
             $companies = User::query()
                 ->with([
-                    'userEmployee.company:id,name',
+                    'employee.deployment.company:id,name',
                 ])
                 ->get()
-                ->pluck('userEmployee.company')
+                ->pluck('employee.deployment.company')
                 ->filter()
                 ->unique('id')
                 ->sortBy('name')
@@ -77,17 +86,16 @@ class AttendanceController extends Controller
         }
         $izin = collect();
         $lembur = collect();
-        $absensiHariIni = Attendance::where('date', now()->format('Y-m-d'))->where('user_id', $userId)->first();
-        $todayAttendanceId = $absensiHariIni?->id;
-        $todayAttendanceLog = null;
-        if ($todayAttendanceId) {
-            $todayAttendanceLog = AttendanceLog::query()
-                ->where('attendance_id', $todayAttendanceId)
-                ->orderByDesc('id')
-                ->first(['check_in', 'check_out']);
+        $absensiHariIni = null;
+        if (is_string($employeeId) && trim($employeeId) !== '') {
+            $absensiHariIni = Attendance::query()
+                ->where('date', now()->format('Y-m-d'))
+                ->where('employee_id', $employeeId)
+                ->first();
         }
-        $hasCheckedInToday = ! empty($todayAttendanceLog?->check_in);
-        $hasCheckedOutToday = ! empty($todayAttendanceLog?->check_out);
+        $todayAttendanceId = $absensiHariIni?->id;
+        $hasCheckedInToday = ! empty($absensiHariIni?->clock_in);
+        $hasCheckedOutToday = ! empty($absensiHariIni?->clock_out);
         $totalLemburJam = 0;
 
         $agEvent = $attendance->groupBy(function ($data) {
@@ -95,8 +103,8 @@ class AttendanceController extends Controller
         })->map(function ($items) {
             return $items->map(function ($data) {
                 return [
-                    'check_in' => $data->check_in?->format('H:i'),
-                    'check_out' => $data->check_out?->format('H:i'),
+                    'check_in' => $data->clock_in?->format('H:i'),
+                    'check_out' => $data->clock_out?->format('H:i'),
                     'status' => $data->status,
                 ];
             })->values();
@@ -145,13 +153,25 @@ class AttendanceController extends Controller
     public function store(Request $request): JsonResponse
     {
         $userId = Auth::id();
+        $authenticatedUser = Auth::user();
+        if ($authenticatedUser instanceof User) {
+            $authenticatedUser->loadMissing('employee');
+        }
+        $employeeId = $authenticatedUser?->employee?->id;
+        if (! is_string($employeeId) || trim($employeeId) === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data employee belum tersedia untuk user ini',
+            ], 422);
+        }
+
         $nowJakarta = now('Asia/Jakarta');
         $todayDate = $nowJakarta->toDateString();
         $currentTime = $nowJakarta->format('H:i:s');
         $officeContext = $this->resolveOfficeContext($userId);
         $attendanceStatus = $this->resolveAttendanceStatus($nowJakarta, $officeContext);
 
-        if (Attendance::where('user_id', $userId)
+        if (Attendance::where('employee_id', $employeeId)
             ->whereDate('date', $todayDate)
             ->exists()) {
             return response()->json([
@@ -161,8 +181,10 @@ class AttendanceController extends Controller
         }
 
         $attendance = Attendance::create([
-            'user_id' => $userId,
+            'employee_id' => $employeeId,
             'date' => $todayDate,
+            'clock_in' => $currentTime,
+            'clock_out' => null,
             'status' => $attendanceStatus,
         ]);
 
@@ -184,8 +206,6 @@ class AttendanceController extends Controller
         $distance = 0.0;
         $radiusResult = 'outside';
         $hasCoordinates = $hasRequestCoordinates || $hasIpCoordinates;
-        $locationSource = $hasRequestCoordinates ? 'gps' : ($hasIpCoordinates ? 'ip' : null);
-
         if ($officeContext !== null && $hasCoordinates) {
             $distance = $this->calculateDistanceInMeters(
                 $latitude,
@@ -201,8 +221,8 @@ class AttendanceController extends Controller
 
         AttendanceLog::create([
             'attendance_id' => $attendance->id,
-            'check_in' => $currentTime,
-            'check_out' => null,
+            'location_in' => $locationMetadata['formatted_address'] ?? null,
+            'location_out' => null,
             'latitude' => $latitude,
             'longitude' => $longitude,
             'radius_result' => $radiusResult,
@@ -210,15 +230,12 @@ class AttendanceController extends Controller
             'ip_address' => $ipAddress,
             'user_agent' => $request->userAgent(),
             'device_hash' => hash('sha256', ($request->userAgent() ?? 'unknown').'|'.$ipAddress),
-            'location_source' => $locationSource,
-            'formatted_address' => $locationMetadata['formatted_address'] ?? null,
             'address_village' => $locationMetadata['address_village'] ?? null,
             'address_district' => $locationMetadata['address_district'] ?? null,
             'address_regency' => $locationMetadata['address_regency'] ?? null,
             'address_city' => $locationMetadata['address_city'] ?? null,
             'address_province' => $locationMetadata['address_province'] ?? null,
             'address_postal_code' => $locationMetadata['address_postal_code'] ?? null,
-            'geocoding_provider' => $locationMetadata['geocoding_provider'] ?? null,
             'geocoded_at' => isset($locationMetadata['geocoded_at']) ? Carbon::parse($locationMetadata['geocoded_at']) : null,
         ]);
 
@@ -231,7 +248,8 @@ class AttendanceController extends Controller
 
     public function update(Request $request, Attendance $absensi): JsonResponse
     {
-        if ($absensi->user_id !== Auth::id()) {
+        $absensi->loadMissing('employee');
+        if ($absensi->employee?->user_id !== Auth::id()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses ke data absen ini',
@@ -247,27 +265,22 @@ class AttendanceController extends Controller
             ], 422);
         }
 
-        $attendanceLog = AttendanceLog::query()
-            ->where('attendance_id', $absensi->id)
-            ->orderByDesc('id')
-            ->first();
-
-        if (! $attendanceLog || empty($attendanceLog->check_in)) {
+        if (empty($absensi->clock_in)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Data absen masuk tidak ditemukan',
             ], 422);
         }
 
-        if (! empty($attendanceLog->check_out)) {
+        if (! empty($absensi->clock_out)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Kamu sudah absen pulang hari ini',
             ], 422);
         }
 
-        $attendanceLog->update([
-            'check_out' => now('Asia/Jakarta')->format('H:i:s'),
+        $absensi->update([
+            'clock_out' => now('Asia/Jakarta')->format('H:i:s'),
         ]);
 
         return response()->json([
@@ -280,18 +293,18 @@ class AttendanceController extends Controller
     {
         $authenticatedUser = Auth::user();
         if ($authenticatedUser instanceof User) {
-            $authenticatedUser->loadMissing('userEmployee');
+            $authenticatedUser->loadMissing('employee.deployment');
         }
 
         $isSuperUser = $this->isSuperUser($authenticatedUser);
         $isBoardOfDirectur = $this->isBoardOfDirectur($authenticatedUser);
         $isStaffUser = $this->isStaffUser($authenticatedUser);
-        $userCompanyId = $authenticatedUser?->userEmployee?->company_id;
+        $userCompanyId = $authenticatedUser?->employee?->deployment?->current_company_id;
         $nowJakarta = now('Asia/Jakarta');
         $todayDate = $nowJakarta->toDateString();
         $selectedMonth = (int) $request->integer('month', (int) $nowJakarta->month);
         $selectedYear = (int) $request->integer('year', (int) $nowJakarta->year);
-        $selectedCompanyId = $request->integer('company_id', 0);
+        $selectedCompanyId = trim((string) $request->input('company_id', ''));
 
         if ($selectedMonth < 1 || $selectedMonth > 12) {
             $selectedMonth = (int) $nowJakarta->month;
@@ -303,34 +316,36 @@ class AttendanceController extends Controller
 
         if ($isStaffUser) {
             $staffUser = User::query()
-                ->with(['userEmployee.company:id,name'])
+                ->with(['employee.deployment.company:id,name'])
                 ->find(Auth::id());
 
             if (! $staffUser) {
                 return response()->json(['data' => []]);
             }
+            $staffEmployeeId = $staffUser->employee?->id;
+            if (! is_string($staffEmployeeId) || trim($staffEmployeeId) === '') {
+                return response()->json(['data' => []]);
+            }
 
             $staffAttendances = Attendance::query()
-                ->where('user_id', $staffUser->id)
+                ->where('employee_id', $staffEmployeeId)
                 ->whereMonth('date', $selectedMonth)
                 ->whereYear('date', $selectedYear)
                 ->orderByDesc('date')
                 ->orderByDesc('id')
-                ->get(['id', 'date', 'status']);
+                ->get(['id', 'date', 'status', 'clock_in', 'clock_out']);
 
             $attendanceLogsByAttendanceId = AttendanceLog::query()
                 ->whereIn('attendance_id', $staffAttendances->pluck('id'))
                 ->orderByDesc('id')
                 ->get([
                     'attendance_id',
-                    'check_in',
-                    'check_out',
+                    'location_in',
+                    'location_out',
                     'latitude',
                     'longitude',
                     'distance',
                     'radius_result',
-                    'location_source',
-                    'formatted_address',
                     'address_village',
                     'address_district',
                     'address_regency',
@@ -348,16 +363,17 @@ class AttendanceController extends Controller
                     'attendance_id' => $attendanceItem->id,
                     'attendance_date' => $attendanceItem->date?->format('Y-m-d'),
                     'staff_name' => $staffUser->name,
-                    'company_name' => $staffUser->userEmployee?->company?->name,
-                    'check_in' => $this->formatAttendanceLogTime($attendanceLog?->check_in),
-                    'check_out' => $this->formatAttendanceLogTime($attendanceLog?->check_out),
+                    'company_name' => $staffUser->employee?->deployment?->company?->name,
+                    'check_in' => $attendanceItem->clock_in?->format('H:i'),
+                    'check_out' => $attendanceItem->clock_out?->format('H:i'),
                     'status' => $attendanceItem->status,
                     'check_in_latitude' => isset($attendanceLog?->latitude) ? (float) $attendanceLog->latitude : null,
                     'check_in_longitude' => isset($attendanceLog?->longitude) ? (float) $attendanceLog->longitude : null,
                     'distance_meters' => isset($attendanceLog?->distance) ? (float) $attendanceLog->distance : null,
                     'radius_result' => isset($attendanceLog?->radius_result) ? (string) $attendanceLog->radius_result : null,
-                    'location_source' => isset($attendanceLog?->location_source) ? (string) $attendanceLog->location_source : null,
-                    'formatted_address' => isset($attendanceLog?->formatted_address) ? (string) $attendanceLog->formatted_address : null,
+                    'location_in' => isset($attendanceLog?->location_in) ? (string) $attendanceLog->location_in : null,
+                    'location_out' => isset($attendanceLog?->location_out) ? (string) $attendanceLog->location_out : null,
+                    'formatted_address' => isset($attendanceLog?->location_in) ? (string) $attendanceLog->location_in : null,
                     'address_village' => isset($attendanceLog?->address_village) ? (string) $attendanceLog->address_village : null,
                     'address_district' => isset($attendanceLog?->address_district) ? (string) $attendanceLog->address_district : null,
                     'address_regency' => isset($attendanceLog?->address_regency) ? (string) $attendanceLog->address_regency : null,
@@ -374,29 +390,38 @@ class AttendanceController extends Controller
 
         $tableUsersQuery = User::query()
             ->with([
-                'userEmployee.company:id,name',
-                'attendances' => function ($query) use ($todayDate): void {
-                    $query->whereDate('date', $todayDate)->orderByDesc('id');
-                },
+                'employee.deployment.company:id,name',
+                'employee:id,user_id',
             ]);
 
         if ($isBoardOfDirectur) {
             if ($userCompanyId) {
-                $tableUsersQuery->whereHas('userEmployee', function ($query) use ($userCompanyId): void {
-                    $query->where('company_id', $userCompanyId);
+                $tableUsersQuery->whereHas('employee.deployment', function ($query) use ($userCompanyId): void {
+                    $query->where('current_company_id', $userCompanyId);
                 });
             } else {
                 $tableUsersQuery->whereRaw('1 = 0');
             }
-        } elseif ($isSuperUser && $selectedCompanyId > 0) {
-            $tableUsersQuery->whereHas('userEmployee', function ($query) use ($selectedCompanyId): void {
-                $query->where('company_id', $selectedCompanyId);
+        } elseif ($isSuperUser && $selectedCompanyId !== '') {
+            $tableUsersQuery->whereHas('employee.deployment', function ($query) use ($selectedCompanyId): void {
+                $query->where('current_company_id', $selectedCompanyId);
             });
         }
 
         $tableUsers = $tableUsersQuery->get();
+        $employeeIds = $tableUsers
+            ->map(fn (User $user): mixed => $user->employee?->id)
+            ->filter()
+            ->values();
+        $attendancesTodayByEmployeeId = Attendance::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->whereDate('date', $todayDate)
+            ->orderByDesc('id')
+            ->get(['id', 'employee_id', 'date', 'clock_in', 'clock_out', 'status'])
+            ->groupBy('employee_id')
+            ->map(fn ($attendanceItems) => $attendanceItems->first());
         $attendanceIds = $tableUsers
-            ->map(fn (User $user): mixed => $user->attendances->first()?->id)
+            ->map(fn (User $user): mixed => $attendancesTodayByEmployeeId->get($user->employee?->id)?->id)
             ->filter()
             ->values();
         $attendanceLogsByAttendanceId = AttendanceLog::query()
@@ -404,14 +429,12 @@ class AttendanceController extends Controller
             ->orderByDesc('id')
             ->get([
                 'attendance_id',
-                'check_in',
-                'check_out',
+                'location_in',
+                'location_out',
                 'latitude',
                 'longitude',
                 'distance',
                 'radius_result',
-                'location_source',
-                'formatted_address',
                 'address_village',
                 'address_district',
                 'address_regency',
@@ -422,24 +445,25 @@ class AttendanceController extends Controller
             ->groupBy('attendance_id')
             ->map(fn ($attendanceLogs) => $attendanceLogs->first());
 
-        $tableRows = $tableUsers->map(function (User $user) use ($attendanceLogsByAttendanceId, $todayDate): array {
-            $attendanceToday = $user->attendances->first();
+        $tableRows = $tableUsers->map(function (User $user) use ($attendanceLogsByAttendanceId, $attendancesTodayByEmployeeId, $todayDate): array {
+            $attendanceToday = $attendancesTodayByEmployeeId->get($user->employee?->id);
             $attendanceLog = $attendanceToday ? $attendanceLogsByAttendanceId->get($attendanceToday->id) : null;
 
             return [
                 'attendance_id' => $attendanceToday?->id,
                 'attendance_date' => $attendanceToday?->date?->format('Y-m-d') ?? $todayDate,
                 'staff_name' => $user->name,
-                'company_name' => $user->userEmployee?->company?->name,
-                'check_in' => $this->formatAttendanceLogTime($attendanceLog?->check_in),
-                'check_out' => $this->formatAttendanceLogTime($attendanceLog?->check_out),
+                'company_name' => $user->employee?->deployment?->company?->name,
+                'check_in' => $attendanceToday?->clock_in?->format('H:i'),
+                'check_out' => $attendanceToday?->clock_out?->format('H:i'),
                 'status' => $attendanceToday?->status,
                 'check_in_latitude' => isset($attendanceLog?->latitude) ? (float) $attendanceLog->latitude : null,
                 'check_in_longitude' => isset($attendanceLog?->longitude) ? (float) $attendanceLog->longitude : null,
                 'distance_meters' => isset($attendanceLog?->distance) ? (float) $attendanceLog->distance : null,
                 'radius_result' => isset($attendanceLog?->radius_result) ? (string) $attendanceLog->radius_result : null,
-                'location_source' => isset($attendanceLog?->location_source) ? (string) $attendanceLog->location_source : null,
-                'formatted_address' => isset($attendanceLog?->formatted_address) ? (string) $attendanceLog->formatted_address : null,
+                'location_in' => isset($attendanceLog?->location_in) ? (string) $attendanceLog->location_in : null,
+                'location_out' => isset($attendanceLog?->location_out) ? (string) $attendanceLog->location_out : null,
+                'formatted_address' => isset($attendanceLog?->location_in) ? (string) $attendanceLog->location_in : null,
                 'address_village' => isset($attendanceLog?->address_village) ? (string) $attendanceLog->address_village : null,
                 'address_district' => isset($attendanceLog?->address_district) ? (string) $attendanceLog->address_district : null,
                 'address_regency' => isset($attendanceLog?->address_regency) ? (string) $attendanceLog->address_regency : null,
@@ -525,7 +549,6 @@ class AttendanceController extends Controller
      *     address_city:string|null,
      *     address_province:string|null,
      *     address_postal_code:string|null,
-     *     geocoding_provider:string|null,
      *     geocoded_at:string|null
      * }
      */
@@ -542,7 +565,6 @@ class AttendanceController extends Controller
                 'address_city' => null,
                 'address_province' => null,
                 'address_postal_code' => null,
-                'geocoding_provider' => null,
                 'geocoded_at' => null,
             ];
         }
@@ -586,7 +608,6 @@ class AttendanceController extends Controller
                 'address_city' => $addressComponents['address_city'],
                 'address_province' => $addressComponents['address_province'],
                 'address_postal_code' => $addressComponents['address_postal_code'],
-                'geocoding_provider' => 'google_maps',
                 'geocoded_at' => now()->toDateTimeString(),
             ];
         } catch (\Throwable) {
@@ -677,16 +698,20 @@ class AttendanceController extends Controller
      *     late_grace_minutes:int|null
      * }|null
      */
-    private function resolveOfficeContext(int $userId): ?array
+    private function resolveOfficeContext(int|string|null $userId): ?array
     {
+        if (! is_string($userId) && ! is_int($userId)) {
+            return null;
+        }
+
         $currentUser = User::query()
             ->with([
-                'userEmployee.company:id,name,address,latitude,longitude',
+                'employee.deployment.company:id,name,address,latitude,longitude',
             ])
             ->find($userId);
 
-        $officeCompany = $currentUser?->userEmployee?->company;
-        $companyId = $currentUser?->userEmployee?->company_id;
+        $officeCompany = $currentUser?->employee?->deployment?->company;
+        $companyId = $currentUser?->employee?->deployment?->current_company_id;
 
         if (! $officeCompany || $officeCompany->latitude === null || $officeCompany->longitude === null) {
             return null;
@@ -708,7 +733,7 @@ class AttendanceController extends Controller
             $attendanceRule = DB::table('rules_of_attendaces')
                 ->where('companies_id', $companyId)
                 ->where('is_active', true)
-                ->orderByDesc('id')
+                ->orderByDesc('created_at')
                 ->first($ruleSelectColumns);
         }
 
@@ -803,19 +828,6 @@ class AttendanceController extends Controller
             && $longitude >= -180
             && $longitude <= 180
             && ! (abs($latitude) < 0.000001 && abs($longitude) < 0.000001);
-    }
-
-    private function formatAttendanceLogTime(mixed $timeValue): ?string
-    {
-        if (! is_string($timeValue) || trim($timeValue) === '') {
-            return null;
-        }
-
-        try {
-            return Carbon::parse($timeValue)->format('H:i');
-        } catch (\Throwable) {
-            return substr($timeValue, 0, 5);
-        }
     }
 
     private function isSuperUser(?User $user): bool

@@ -323,7 +323,7 @@
                                 <div class="{{ $filterColumnClass }}">
                                     <div class="small text-muted mb-1">Filter Perusahaan</div>
                                     <select class="form-select form-select-sm" id="attendanceCompanyFilter">
-                                        <option value="0">Semua Perusahaan</option>
+                                        <option value="">Semua Perusahaan</option>
                                         @foreach($companies as $company)
                                             <option value="{{ $company->id }}">{{ $company->name }}</option>
                                         @endforeach
@@ -469,10 +469,6 @@
                             <td class="attendance-detail-label">Kode Pos</td>
                             <td id="attendanceDetailPostalCode">-</td>
                         </tr>
-                        <tr>
-                            <td class="attendance-detail-label">Sumber Lokasi</td>
-                            <td id="attendanceDetailLocationSource">-</td>
-                        </tr>
                         </tbody>
                     </table>
                 </div>
@@ -521,7 +517,6 @@
             var attendanceDetailRegencyElement = document.getElementById('attendanceDetailRegency');
             var attendanceDetailProvinceElement = document.getElementById('attendanceDetailProvince');
             var attendanceDetailPostalCodeElement = document.getElementById('attendanceDetailPostalCode');
-            var attendanceDetailLocationSourceElement = document.getElementById('attendanceDetailLocationSource');
             var attendanceDetailLocationInfoElement = document.getElementById('attendanceDetailLocationInfo');
             var attendanceDetailMapCanvasElement = document.getElementById('attendanceDetailMapCanvas');
             var attendanceDetailMapEmptyElement = document.getElementById('attendanceDetailMapEmpty');
@@ -1114,7 +1109,6 @@
                 var regencyName = rowData && rowData.address_regency ? rowData.address_regency : (rowData && rowData.address_city ? rowData.address_city : '-');
                 var provinceName = rowData && rowData.address_province ? rowData.address_province : '-';
                 var postalCode = rowData && rowData.address_postal_code ? rowData.address_postal_code : '-';
-                var locationSource = normalizeLocationSourceLabel(rowData && rowData.location_source ? rowData.location_source : null);
 
                 if (!attendanceDetailModalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
                     return;
@@ -1142,26 +1136,18 @@
                 if (attendanceDetailPostalCodeElement) {
                     attendanceDetailPostalCodeElement.textContent = postalCode;
                 }
-                if (attendanceDetailLocationSourceElement) {
-                    attendanceDetailLocationSourceElement.textContent = locationSource;
-                }
-
                 bootstrap.Modal.getOrCreateInstance(attendanceDetailModalElement).show();
                 renderAttendanceDetailMap(rowData || {});
             }
 
-            function normalizeLocationSourceLabel(locationSourceValue) {
-                var normalizedSource = String(locationSourceValue || '').toLowerCase().trim();
-                if (normalizedSource === 'gps') {
-                    return 'GPS';
+            window.onClickAttendanceDetail = function (buttonElement) {
+                if (!buttonElement || !attendanceTable) {
+                    return;
                 }
 
-                if (normalizedSource === 'ip') {
-                    return 'IP';
-                }
-
-                return '-';
-            }
+                var rowData = attendanceTable.row($(buttonElement).closest('tr')).data();
+                showAttendanceDetail(rowData || {});
+            };
 
             function isValidCoordinate(latitudeValue, longitudeValue) {
                 if (!Number.isFinite(latitudeValue) || !Number.isFinite(longitudeValue)) {
@@ -1328,7 +1314,7 @@
                 ajax: {
                     url: attendanceDatatableUrl,
                     data: function (requestData) {
-                        requestData.company_id = attendanceCompanyFilter ? attendanceCompanyFilter.value : 0;
+                        requestData.company_id = attendanceCompanyFilter ? attendanceCompanyFilter.value : '';
                         requestData.month = attendanceMonthFilter ? attendanceMonthFilter.value : 0;
                         requestData.year = attendanceYearFilter ? attendanceYearFilter.value : 0;
                     },
@@ -1407,7 +1393,7 @@
                         className: 'text-center',
                         render: function () {
                             return '<div class="attendance-action-group">'
-                                + '<button type="button" class="attendance-action-btn attendance-detail-btn" title="Detail">'
+                                + '<button type="button" class="attendance-action-btn attendance-detail-btn" title="Detail" onclick="onClickAttendanceDetail(this)">'
                                 + '<i class="bi bi-info-circle"></i>'
                                 + '</button>'
                                 + '</div>';
@@ -1439,11 +1425,6 @@
 
             attendanceTable.on('draw', function () {
                 attendanceTable.columns.adjust();
-            });
-
-            $('#myTable tbody').on('click', '.attendance-detail-btn', function () {
-                var rowData = attendanceTable.row($(this).closest('tr')).data();
-                showAttendanceDetail(rowData || {});
             });
 
             $(window).on('resize', function () {

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Company;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class RulesOfAttendacesSeeder extends Seeder
 {
@@ -21,9 +22,16 @@ class RulesOfAttendacesSeeder extends Seeder
             return;
         }
 
+        $existingRuleId = DB::table('rules_of_attendaces')
+            ->where('companies_id', $rnbCompany->id)
+            ->value('id');
+
         DB::table('rules_of_attendaces')->updateOrInsert(
             ['companies_id' => $rnbCompany->id],
             [
+                'id' => is_string($existingRuleId) && trim($existingRuleId) !== ''
+                    ? $existingRuleId
+                    : (string) Str::uuid(),
                 'ip_range' => '182.8',
                 'radius' => 75,
                 'office_start_time' => '08:00:00',

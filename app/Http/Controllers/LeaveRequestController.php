@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AttendancePermission;
-use App\Models\AttendancePermissionAttachment;
+use App\Models\LeaveRequest;
+use App\Models\LeaveRequestAttachment;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -18,13 +18,13 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class AttendancePermissionController extends Controller
+class LeaveRequestController extends Controller
 {
     public function index(): View
     {
         $authenticatedUser = Auth::user();
         if ($authenticatedUser instanceof User) {
-            $authenticatedUser->loadMissing('userEmployee');
+            $authenticatedUser->loadMissing('employee.deployment');
         }
 
         $isBoardOfDirectur = $this->isBoardOfDirectur($authenticatedUser);
@@ -32,7 +32,7 @@ class AttendancePermissionController extends Controller
         $isStaffUser = $this->isStaffUser($authenticatedUser);
         $canFilterEmployees = $isBoardOfDirectur || $isAdminUser;
         $canUpdatePermissionStatus = $isBoardOfDirectur || $isAdminUser;
-        $userCompanyId = $authenticatedUser?->userEmployee?->company_id;
+        $userCompanyId = $authenticatedUser?->employee?->deployment?->current_company_id;
         $permissionTypes = collect();
         $approvalSummary = [
             'pending' => 0,
@@ -42,12 +42,12 @@ class AttendancePermissionController extends Controller
         ];
         $staffUsersQuery = User::query()
             ->select(['id', 'name'])
-            ->whereHas('userEmployee')
+            ->whereHas('employee.deployment')
             ->orderBy('name');
 
         if ($isBoardOfDirectur && $userCompanyId) {
-            $staffUsersQuery->whereHas('userEmployee', function ($query) use ($userCompanyId): void {
-                $query->where('company_id', $userCompanyId);
+            $staffUsersQuery->whereHas('employee.deployment', function ($query) use ($userCompanyId): void {
+                $query->where('current_company_id', $userCompanyId);
             });
         } elseif (! $isAdminUser) {
             $staffUsersQuery->whereKey(Auth::id());
@@ -65,11 +65,11 @@ class AttendancePermissionController extends Controller
                 ->get();
         }
 
-        $summaryQuery = AttendancePermission::query();
+        $summaryQuery = LeaveRequest::query();
 
         if ($isBoardOfDirectur && $userCompanyId) {
-            $summaryQuery->whereHas('user.userEmployee', function ($query) use ($userCompanyId): void {
-                $query->where('company_id', $userCompanyId);
+            $summaryQuery->whereHas('user.employee.deployment', function ($query) use ($userCompanyId): void {
+                $query->where('current_company_id', $userCompanyId);
             });
         } elseif (! $isAdminUser) {
             $summaryQuery->where('user_id', Auth::id());
@@ -96,7 +96,7 @@ class AttendancePermissionController extends Controller
             $currentYear = (int) now()->year;
             $currentMonth = (int) now()->month;
             $currentMonthYearLabel = now()->format('F Y');
-            $userId = (int) $authenticatedUser->id;
+            $userId = (string) $authenticatedUser->id;
 
             $monthlyLeaveLimit = 0;
             if ($userCompanyId) {
@@ -109,7 +109,7 @@ class AttendancePermissionController extends Controller
             $remainingAnnualLeave = $leaveSummary['remaining_annual_balance'];
             $annualLeaveUsage = $leaveSummary['used_annual_balance'];
 
-            $isMonthlySpecialLeaveUsed = AttendancePermission::query()
+            $isMonthlySpecialLeaveUsed = LeaveRequest::query()
                 ->where('user_id', $userId)
                 ->whereRaw('LOWER(permission_types) = ?', ['cuti khusus'])
                 ->whereYear('start_date', $currentYear)
@@ -132,7 +132,7 @@ class AttendancePermissionController extends Controller
             'approvalSummary' => $approvalSummary,
             'summaryCards' => $summaryCards,
             'staffUsers' => $staffUsers,
-            'defaultStaffUserId' => 0,
+            'defaultStaffUserId' => '',
             'canSubmitPermission' => $isStaffUser,
             'canFilterEmployees' => $canFilterEmployees,
             'canUpdatePermissionStatus' => $canUpdatePermissionStatus,
@@ -173,14 +173,14 @@ class AttendancePermissionController extends Controller
         $durationDays = $startDate->diffInDays($endDate) + 1;
         $currentYear = (int) $startDate->year;
         $currentMonth = (int) $startDate->month;
-        $userId = (int) Auth::id();
+        $userId = (string) Auth::id();
         $authenticatedUser = Auth::user();
-        $authenticatedUser?->loadMissing('userEmployee');
-        $userCompanyId = (int) ($authenticatedUser?->userEmployee?->company_id ?? 0);
+        $authenticatedUser?->loadMissing('employee.deployment');
+        $userCompanyId = (string) ($authenticatedUser?->employee?->deployment?->current_company_id ?? '');
 
         if ($normalizedPermissionType === 'cuti khusus') {
             $monthlyLeaveLimit = 0;
-            if ($userCompanyId > 0) {
+            if ($userCompanyId !== '') {
                 $monthlyLeaveLimit = (int) DB::table('meta_data_leave_companies')
                     ->where('company_id', $userCompanyId)
                     ->value('montly_leave_limit');
@@ -193,7 +193,7 @@ class AttendancePermissionController extends Controller
                 ], 422);
             }
 
-            $isMonthlySpecialLeaveUsed = AttendancePermission::query()
+            $isMonthlySpecialLeaveUsed = LeaveRequest::query()
                 ->where('user_id', $userId)
                 ->whereRaw('LOWER(permission_types) = ?', ['cuti khusus'])
                 ->whereYear('start_date', $currentYear)
@@ -221,13 +221,21 @@ class AttendancePermissionController extends Controller
             }
         }
 
-        DB::transaction(function () use ($request, $validated, $permissionTypeValue): void {
-            $attendancePermission = AttendancePermission::create([
+        DB::transaction(function () use ($request, $validated, $permissionTypeValue, $durationDays): void {
+            $authenticatedUser = Auth::user();
+            $employeeId = $authenticatedUser?->employee?->id;
+
+            $leaveRequest = LeaveRequest::create([
                 'user_id' => Auth::id(),
+                'employee_id' => $employeeId,
+                'leave_type_id' => $validated['permission_type_id'],
                 'start_date' => $validated['start_date'],
                 'end_date' => $validated['end_date'],
+                'total_days' => $durationDays,
                 'reason' => $validated['reason'],
+                'is_active' => true,
                 'permission_types' => $permissionTypeValue,
+                'status' => 'pending',
                 'approval_status' => 'pending',
             ]);
 
@@ -236,7 +244,7 @@ class AttendancePermissionController extends Controller
                 (array) $request->file('attachment_files', []),
                 static fn (mixed $attachment): bool => $attachment instanceof UploadedFile
             ));
-            $attachmentDirectory = 'attendance-permission-attachments';
+            $attachmentDirectory = 'leave-request-attachments';
 
             foreach ($attachments as $attachment) {
                 if (! $attachment->isValid()) {
@@ -256,7 +264,7 @@ class AttendancePermissionController extends Controller
                     continue;
                 }
 
-                $attendancePermission->attachments()->create([
+                $leaveRequest->attachments()->create([
                     'file_path' => $storedPath,
                     'file_name' => $originalName,
                     'attachment_type' => $attachment->getClientMimeType() ?: $extension,
@@ -274,15 +282,15 @@ class AttendancePermissionController extends Controller
     {
         $authenticatedUser = Auth::user();
         if ($authenticatedUser instanceof User) {
-            $authenticatedUser->loadMissing('userEmployee');
+            $authenticatedUser->loadMissing('employee.deployment');
         }
 
         $isBoardOfDirectur = $this->isBoardOfDirectur($authenticatedUser);
         $isAdminUser = $this->isAdminUser($authenticatedUser);
-        $userCompanyId = $authenticatedUser?->userEmployee?->company_id;
-        $selectedStaffUserId = $request->integer('staff_user_id', 0);
+        $userCompanyId = $authenticatedUser?->employee?->deployment?->current_company_id;
+        $selectedStaffUserId = trim((string) $request->input('staff_user_id', ''));
 
-        $permissionsQuery = AttendancePermission::query()
+        $permissionsQuery = LeaveRequest::query()
             ->with(['user:id,name'])
             ->latest('id')
             ->select([
@@ -296,20 +304,20 @@ class AttendancePermissionController extends Controller
             ]);
 
         if ($isBoardOfDirectur && $userCompanyId) {
-            $permissionsQuery->whereHas('user.userEmployee', function ($query) use ($userCompanyId): void {
-                $query->where('company_id', $userCompanyId);
+            $permissionsQuery->whereHas('user.employee.deployment', function ($query) use ($userCompanyId): void {
+                $query->where('current_company_id', $userCompanyId);
             });
         } elseif (! $isAdminUser) {
             $permissionsQuery->where('user_id', Auth::id());
         }
 
-        if ($selectedStaffUserId > 0) {
+        if ($selectedStaffUserId !== '') {
             $permissionsQuery->where('user_id', $selectedStaffUserId);
         }
 
         $permissions = $permissionsQuery->get();
 
-        $tableRows = $permissions->map(function (AttendancePermission $permission): array {
+        $tableRows = $permissions->map(function (LeaveRequest $permission): array {
             $startDate = $permission->start_date instanceof Carbon
                 ? $permission->start_date
                 : Carbon::parse($permission->start_date);
@@ -335,37 +343,37 @@ class AttendancePermissionController extends Controller
         ]);
     }
 
-    public function show(AttendancePermission $attendancePermission): JsonResponse
+    public function show(LeaveRequest $leaveRequest): JsonResponse
     {
-        if ((int) $attendancePermission->user_id !== (int) Auth::id()) {
+        if ((string) $leaveRequest->user_id !== (string) Auth::id()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses ke data izin ini.',
             ], 403);
         }
 
-        $attendancePermission->loadMissing('user:id,name');
-        $attendancePermission->loadMissing('attachments:id,attendance_permission_id,file_name,file_path,attachment_type');
+        $leaveRequest->loadMissing('user:id,name');
+        $leaveRequest->loadMissing('attachments:id,leave_request_id,file_name,file_path,attachment_type');
 
-        $startDate = $attendancePermission->start_date instanceof Carbon
-            ? $attendancePermission->start_date
-            : Carbon::parse($attendancePermission->start_date);
-        $endDate = $attendancePermission->end_date instanceof Carbon
-            ? $attendancePermission->end_date
-            : Carbon::parse($attendancePermission->end_date);
+        $startDate = $leaveRequest->start_date instanceof Carbon
+            ? $leaveRequest->start_date
+            : Carbon::parse($leaveRequest->start_date);
+        $endDate = $leaveRequest->end_date instanceof Carbon
+            ? $leaveRequest->end_date
+            : Carbon::parse($leaveRequest->end_date);
         $durationDays = $startDate->diffInDays($endDate) + 1;
 
         return response()->json([
             'success' => true,
             'data' => [
-                'id' => $attendancePermission->id,
-                'staff_name' => $attendancePermission->user?->name ?? '-',
+                'id' => $leaveRequest->id,
+                'staff_name' => $leaveRequest->user?->name ?? '-',
                 'date_range' => $startDate->format('d M Y').' - '.$endDate->format('d M Y'),
                 'duration' => $durationDays.' Hari',
-                'permission_type' => (string) $attendancePermission->permission_types,
-                'status' => (string) $attendancePermission->approval_status,
-                'reason' => $attendancePermission->reason ?: '-',
-                'attachments' => $attendancePermission->attachments->map(function ($attachment): array {
+                'permission_type' => (string) $leaveRequest->permission_types,
+                'status' => (string) $leaveRequest->approval_status,
+                'reason' => $leaveRequest->reason ?: '-',
+                'attachments' => $leaveRequest->attachments->map(function ($attachment): array {
                     $filePath = is_string($attachment->file_path) ? $attachment->file_path : '';
 
                     return [
@@ -382,11 +390,11 @@ class AttendancePermissionController extends Controller
         ]);
     }
 
-    public function attachment(AttendancePermissionAttachment $attachment): StreamedResponse
+    public function attachment(LeaveRequestAttachment $attachment): StreamedResponse
     {
-        $attachment->loadMissing('attendancePermission:id,user_id');
+        $attachment->loadMissing('leaveRequest:id,user_id');
 
-        if ((int) ($attachment->attendancePermission?->user_id ?? 0) !== (int) Auth::id()) {
+        if ((string) ($attachment->leaveRequest?->user_id ?? '') !== (string) Auth::id()) {
             abort(403);
         }
 
@@ -398,26 +406,26 @@ class AttendancePermissionController extends Controller
         return Storage::disk('public')->response($filePath);
     }
 
-    public function destroy(AttendancePermission $attendancePermission): JsonResponse
+    public function destroy(LeaveRequest $leaveRequest): JsonResponse
     {
-        if ((int) $attendancePermission->user_id !== (int) Auth::id()) {
+        if ((string) $leaveRequest->user_id !== (string) Auth::id()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk menghapus data izin ini.',
             ], 403);
         }
 
-        DB::transaction(function () use ($attendancePermission): void {
-            $attendancePermission->loadMissing('attachments:id,attendance_permission_id,file_path');
+        DB::transaction(function () use ($leaveRequest): void {
+            $leaveRequest->loadMissing('attachments:id,leave_request_id,file_path');
 
-            foreach ($attendancePermission->attachments as $attachment) {
+            foreach ($leaveRequest->attachments as $attachment) {
                 if (is_string($attachment->file_path) && trim($attachment->file_path) !== '') {
                     Storage::disk('public')->delete($attachment->file_path);
                 }
             }
 
-            $attendancePermission->attachments()->delete();
-            $attendancePermission->delete();
+            $leaveRequest->attachments()->delete();
+            $leaveRequest->delete();
         });
 
         return response()->json([
@@ -426,10 +434,10 @@ class AttendancePermissionController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, AttendancePermission $attendancePermission): JsonResponse
+    public function updateStatus(Request $request, LeaveRequest $leaveRequest): JsonResponse
     {
         $authenticatedUser = Auth::user();
-        if (! $this->canManagePermissionStatus($authenticatedUser, $attendancePermission)) {
+        if (! $this->canManagePermissionStatus($authenticatedUser, $leaveRequest)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk mengubah status izin ini.',
@@ -440,7 +448,7 @@ class AttendancePermissionController extends Controller
             'approval_status' => ['required', 'in:pending,approved,refused,rejected'],
         ]);
 
-        $currentStatus = strtolower((string) ($attendancePermission->approval_status ?? 'pending'));
+        $currentStatus = strtolower((string) ($leaveRequest->approval_status ?? 'pending'));
         if ($currentStatus !== 'pending') {
             return response()->json([
                 'success' => false,
@@ -453,7 +461,7 @@ class AttendancePermissionController extends Controller
             $normalizedStatus = 'refused';
         }
 
-        $attendancePermission->update([
+        $leaveRequest->update([
             'approval_status' => $normalizedStatus,
         ]);
 
@@ -525,7 +533,7 @@ class AttendancePermissionController extends Controller
         return $normalizedRoleNames->contains('staff');
     }
 
-    private function canManagePermissionStatus(?User $authenticatedUser, AttendancePermission $attendancePermission): bool
+    private function canManagePermissionStatus(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
     {
         if (! $authenticatedUser instanceof User) {
             return false;
@@ -539,15 +547,15 @@ class AttendancePermissionController extends Controller
             return false;
         }
 
-        $authenticatedUser->loadMissing('userEmployee');
-        $userCompanyId = (int) ($authenticatedUser->userEmployee?->company_id ?? 0);
-        if ($userCompanyId <= 0) {
+        $authenticatedUser->loadMissing('employee.deployment');
+        $userCompanyId = $authenticatedUser->employee?->deployment?->current_company_id;
+        if (! is_string($userCompanyId) || trim($userCompanyId) === '') {
             return false;
         }
 
-        return $attendancePermission->user()
-            ->whereHas('userEmployee', function ($query) use ($userCompanyId): void {
-                $query->where('company_id', $userCompanyId);
+        return $leaveRequest->user()
+            ->whereHas('employee.deployment', function ($query) use ($userCompanyId): void {
+                $query->where('current_company_id', $userCompanyId);
             })
             ->exists();
     }
@@ -560,7 +568,7 @@ class AttendancePermissionController extends Controller
      *     remaining_annual_balance:int
      * }
      */
-    private function calculateStaffLeaveSummary(int $userId, int $year, int $currentMonth): array
+    private function calculateStaffLeaveSummary(string $userId, int $year, int $currentMonth): array
     {
         $leaveBalance = DB::table('leave_balances')
             ->select(['annual_balance', 'created_at'])
@@ -569,9 +577,10 @@ class AttendancePermissionController extends Controller
             ->first();
 
         $baseAnnualBalance = max((int) ($leaveBalance->annual_balance ?? 0), 0);
-        $employmentStartDateRaw = DB::table('user_employments')
-            ->where('user_id', $userId)
-            ->value('start_date');
+        $employmentStartDateRaw = DB::table('employee_deployments')
+            ->join('employees', 'employee_deployments.employee_id', '=', 'employees.id')
+            ->where('employees.user_id', $userId)
+            ->value('employee_deployments.join_date');
 
         $calculationStartDate = Carbon::create($year, 1, 1)->startOfMonth();
         if (is_string($employmentStartDateRaw) && trim($employmentStartDateRaw) !== '') {
@@ -589,7 +598,7 @@ class AttendancePermissionController extends Controller
 
         $baseAnnualBalance = min($baseAnnualBalance, $accruedMonthLimit);
 
-        $usedAnnualBalance = (int) DB::table('attendance_permissions')
+        $usedAnnualBalance = (int) DB::table('leave_requests')
             ->where('user_id', $userId)
             ->whereYear('start_date', $year)
             ->whereRaw('LOWER(permission_types) IN (?, ?)', ['cuti tahunan', 'cuti khusus'])

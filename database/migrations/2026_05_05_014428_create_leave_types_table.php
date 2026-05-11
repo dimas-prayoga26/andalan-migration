@@ -11,12 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('meta_data_leave_companies', function (Blueprint $table) {
-            $table->id();
-            $table->foreignUuid('company_id')->constrained('companies', 'id')->cascadeOnDelete();
+        Schema::create('leave_types', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('code')->unique();
             $table->string('name');
-            $table->unsignedInteger('annual_quota');
-            $table->unsignedInteger('montly_leave_limit');
+            $table->string('accrual_method');
+            $table->decimal('monthly_accrual_rate', 8, 2)->default(0);
+            $table->boolean('is_encashable')->default(false);
             $table->boolean('is_active')->default(true);
         });
     }
@@ -26,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('meta_data_leave_companies');
+        Schema::dropIfExists('leave_types');
     }
 };

@@ -17,6 +17,7 @@ class LeaveBalanceSeeder extends Seeder
         $now = now();
         $currentYear = (int) $now->year;
         $defaultAnnualQuota = 12;
+        /** @var array<string, int> $annualQuotaByCompany */
         $annualQuotaByCompany = [];
 
         $users = User::query()
@@ -24,25 +25,27 @@ class LeaveBalanceSeeder extends Seeder
             ->get();
 
         foreach ($users as $user) {
-            $employment = DB::table('user_employments')
-                ->select(['start_date', 'company_id'])
-                ->where('user_id', $user->id)
+            $employment = DB::table('employee_deployments')
+                ->select(['join_date', 'current_company_id'])
+                ->join('employees', 'employee_deployments.employee_id', '=', 'employees.id')
+                ->where('employees.user_id', $user->id)
                 ->first();
 
-            $employmentStartDateRaw = $employment?->start_date;
-            $companyId = (int) ($employment?->company_id ?? 0);
+            $employmentStartDateRaw = $employment?->join_date;
+            $companyId = $employment?->current_company_id;
+            $companyKey = $companyId === null ? 'none' : (string) $companyId;
 
-            if (! array_key_exists($companyId, $annualQuotaByCompany)) {
-                $annualQuotaByCompany[$companyId] = $companyId > 0
+            if (! array_key_exists($companyKey, $annualQuotaByCompany)) {
+                $annualQuotaByCompany[$companyKey] = $companyId !== null
                     ? (int) (DB::table('meta_data_leave_companies')
                         ->where('company_id', $companyId)
                         ->value('annual_quota') ?? $defaultAnnualQuota)
                     : $defaultAnnualQuota;
             }
 
-            $annualQuota = max($annualQuotaByCompany[$companyId], 0);
+            $annualQuota = max($annualQuotaByCompany[$companyKey], 0);
             $annualBalance = $this->resolveAnnualBalance(
-                (int) $user->id,
+                (string) $user->id,
                 $employmentStartDateRaw,
                 $currentYear,
                 $annualQuota,
@@ -69,7 +72,7 @@ class LeaveBalanceSeeder extends Seeder
     }
 
     private function resolveAnnualBalance(
-        int $userId,
+        string $userId,
         mixed $employmentStartDateRaw,
         int $currentYear,
         int $annualQuota,
@@ -124,13 +127,13 @@ class LeaveBalanceSeeder extends Seeder
      * @return array<int, true>
      */
     private function resolveUsedLeaveMonths(
-        int $userId,
+        string $userId,
         int $currentYear,
         Carbon $accrualPeriodStart,
         Carbon $lastCompletedMonthStart
     ): array {
         /** @var array<int, int|string> $months */
-        $months = DB::table('attendance_permissions')
+        $months = DB::table('leave_requests')
             ->where('user_id', $userId)
             ->whereYear('start_date', $currentYear)
             ->whereBetween('start_date', [

@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
             MetaDataMaritalStatusSeeder::class,
             MetaDataDivisionSeeder::class,
             MetaDataPositionSeeder::class,
-            MetaDataPermissionTypeSeeder::class,
+            // MetaDataPermissionTypeSeeder::class,
             UserSeeder::class,
             LeaveBalanceSeeder::class,
         ]);

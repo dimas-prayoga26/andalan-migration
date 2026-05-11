@@ -1,4 +1,4 @@
-@extends('layouts.main')
+﻿@extends('layouts.main')
 
 @section('title', 'Dashboard Andalan')
 
@@ -372,9 +372,9 @@
                                 <div class="col-12 col-md-5 col-lg-4">
                                     <label for="attendanceStaffFilter" class="form-label mb-1">Filter Karyawan</label>
                                     <select id="attendanceStaffFilter" class="form-select form-select-sm">
-                                        <option value="0">Semua Karyawan</option>
+                                        <option value="">Semua Karyawan</option>
                                         @foreach(($staffUsers ?? collect()) as $staffUser)
-                                            <option value="{{ $staffUser->id }}" {{ (int) ($defaultStaffUserId ?? 0) === (int) $staffUser->id ? 'selected' : '' }}>
+                                            <option value="{{ $staffUser->id }}" {{ (string) ($defaultStaffUserId ?? '') === (string) $staffUser->id ? 'selected' : '' }}>
                                                 {{ $staffUser->name }}
                                             </option>
                                         @endforeach
@@ -487,9 +487,9 @@
     <script src="https://unpkg.com/antd@6.2.3/dist/antd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        var attendancePermissionShowUrlTemplate = '{{ route('absensi.izin.show', ['attendancePermission' => '__ID__']) }}';
-        var attendancePermissionDestroyUrlTemplate = '{{ route('absensi.izin.destroy', ['attendancePermission' => '__ID__']) }}';
-        var attendancePermissionUpdateStatusUrlTemplate = '{{ route('absensi.izin.update-status', ['attendancePermission' => '__ID__']) }}';
+        var leaveRequestShowUrlTemplate = '{{ route('absensi.izin.show', ['leaveRequest' => '__ID__']) }}';
+        var leaveRequestDestroyUrlTemplate = '{{ route('absensi.izin.destroy', ['leaveRequest' => '__ID__']) }}';
+        var leaveRequestUpdateStatusUrlTemplate = '{{ route('absensi.izin.update-status', ['leaveRequest' => '__ID__']) }}';
         var canUpdatePermissionStatus = @json($canUpdatePermissionStatus ?? false);
 
         $(function () {
@@ -550,11 +550,11 @@
                 }
             });
 
-            var attendancePermissionTable = $('#myTable').DataTable({
+            var leaveRequestTable = $('#myTable').DataTable({
                 ajax: {
                     url: '{{ route('absensi.izin.datatable') }}',
                     data: function (requestData) {
-                        requestData.staff_user_id = attendanceStaffFilter ? attendanceStaffFilter.value : 0;
+                        requestData.staff_user_id = attendanceStaffFilter ? attendanceStaffFilter.value : '';
                     },
                     dataSrc: 'data'
                 },
@@ -625,30 +625,30 @@
                 }
             });
 
-            attendancePermissionTable.on('draw', function () {
-                var tableContainer = $(attendancePermissionTable.table().container());
+            leaveRequestTable.on('draw', function () {
+                var tableContainer = $(leaveRequestTable.table().container());
                 tableContainer.find('.dt-scroll-body').css({
                     overflowX: 'auto',
                     overflowY: 'hidden',
                     WebkitOverflowScrolling: 'touch'
                 });
-                attendancePermissionTable.columns.adjust();
+                leaveRequestTable.columns.adjust();
             });
 
-            attendancePermissionTable.on('order.dt search.dt draw.dt', function () {
-                var pageInfo = attendancePermissionTable.page.info();
-                attendancePermissionTable.column(0, { page: 'current' }).nodes().each(function (cell, index) {
+            leaveRequestTable.on('order.dt search.dt draw.dt', function () {
+                var pageInfo = leaveRequestTable.page.info();
+                leaveRequestTable.column(0, { page: 'current' }).nodes().each(function (cell, index) {
                     cell.innerHTML = pageInfo.start + index + 1;
                 });
             });
 
             $(window).on('resize', function () {
-                attendancePermissionTable.columns.adjust();
+                leaveRequestTable.columns.adjust();
             });
 
             if (attendanceStaffFilter) {
                 attendanceStaffFilter.addEventListener('change', function () {
-                    attendancePermissionTable.ajax.reload();
+                    leaveRequestTable.ajax.reload();
                 });
             }
 
@@ -668,7 +668,7 @@
                 }
 
                 $.ajax({
-                    url: buildAttendancePermissionUrl(attendancePermissionUpdateStatusUrlTemplate, permissionId),
+                    url: buildLeaveRequestUrl(leaveRequestUpdateStatusUrlTemplate, permissionId),
                     type: 'PUT',
                     data: {
                         approval_status: selectedStatus
@@ -871,7 +871,7 @@
                                     }
 
                                     $('#submitIzinModal').modal('hide');
-                                    attendancePermissionTable.ajax.reload(null, false);
+                                    leaveRequestTable.ajax.reload(null, false);
                                 }, 1000);
 
                                 return;
@@ -919,7 +919,7 @@
             handleIzinFormSubmit();
         });
 
-        function buildAttendancePermissionUrl(urlTemplate, permissionId) {
+        function buildLeaveRequestUrl(urlTemplate, permissionId) {
             return String(urlTemplate).replace('__ID__', String(permissionId || ''));
         }
 
@@ -961,7 +961,7 @@
             }
 
             $.ajax({
-                url: buildAttendancePermissionUrl(attendancePermissionShowUrlTemplate, permissionId),
+                url: buildLeaveRequestUrl(leaveRequestShowUrlTemplate, permissionId),
                 type: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
@@ -1057,7 +1057,7 @@
                 }
 
                 $.ajax({
-                    url: buildAttendancePermissionUrl(attendancePermissionDestroyUrlTemplate, permissionId),
+                    url: buildLeaveRequestUrl(leaveRequestDestroyUrlTemplate, permissionId),
                     type: 'DELETE',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -1097,3 +1097,4 @@
         }
     </script>
 @endsection
+

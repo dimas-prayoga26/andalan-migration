@@ -3,12 +3,13 @@
 namespace Database\Seeders;
 
 use App\Models\Company;
+use App\Models\Employee;
+use App\Models\EmployeeDeployment;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class UserSeeder extends Seeder
@@ -65,7 +66,9 @@ class UserSeeder extends Seeder
         $superuser = User::query()->updateOrCreate(
             ['email' => 'superuser@gmail.com'],
             [
+                'username' => 'superuser',
                 'name' => 'System Superuser',
+                'is_active' => true,
                 'password' => Hash::make('password'),
             ],
         );
@@ -92,7 +95,9 @@ class UserSeeder extends Seeder
             $director = User::query()->updateOrCreate(
                 ['email' => "director{$directorNumber}@gmail.com"],
                 [
+                    'username' => "director{$directorNumber}",
                     'name' => "Director {$directorNumber} - {$company->name}",
+                    'is_active' => true,
                     'password' => Hash::make('password'),
                 ],
             );
@@ -111,7 +116,9 @@ class UserSeeder extends Seeder
                 $staff = User::query()->updateOrCreate(
                     ['email' => "staff{$directorNumber}{$staffIndex}@gmail.com"],
                     [
+                        'username' => "staff{$directorNumber}{$staffIndex}",
                         'name' => "Staff {$staffIndex} - {$company->name}",
+                        'is_active' => true,
                         'password' => Hash::make('password'),
                     ],
                 );
@@ -131,7 +138,7 @@ class UserSeeder extends Seeder
 
     private function seedUserRelations(
         User $user,
-        ?int $companyId,
+        int|string|null $companyId,
         ?int $divisionId,
         ?int $positionId,
         ?int $domicileId,
@@ -139,7 +146,6 @@ class UserSeeder extends Seeder
         ?int $maritalStatusId,
     ): void {
         $now = now();
-        $randomEmploymentStartDate = $this->resolveEmploymentStartDate();
 
         DB::table('user_profiles')->updateOrInsert(
             ['user_id' => $user->id],
@@ -147,7 +153,7 @@ class UserSeeder extends Seeder
                 'nickname' => $user->name,
                 'gender_id' => $genderId,
                 'marital_status_id' => $maritalStatusId,
-                'phone' => '08'.str_pad((string) $user->id, 10, '0', STR_PAD_LEFT),
+                'phone' => $this->resolvePhoneNumber((string) $user->id),
                 'address' => 'Alamat belum diisi',
                 'updated_at' => $now,
                 'created_at' => $now,
@@ -157,30 +163,47 @@ class UserSeeder extends Seeder
         DB::table('user_documents')->updateOrInsert(
             ['user_id' => $user->id],
             [
-                'ktp' => str_pad((string) ($user->id + 1000000000000000), 16, '0', STR_PAD_LEFT),
-                'kk' => str_pad((string) ($user->id + 1000000000000000), 16, '0', STR_PAD_LEFT),
-                'npwp' => 'NPWP-'.str_pad((string) $user->id, 8, '0', STR_PAD_LEFT),
-                'bpjs' => 'BPJS-'.str_pad((string) $user->id, 8, '0', STR_PAD_LEFT),
-                'bpjstk' => 'BPJSTK-'.str_pad((string) $user->id, 8, '0', STR_PAD_LEFT),
-                'nik' => str_pad((string) ($user->id + 2000000000000000), 16, '0', STR_PAD_LEFT),
+                'ktp' => $this->resolveDocumentNumber((string) $user->id, '11'),
+                'kk' => $this->resolveDocumentNumber((string) $user->id, '22'),
+                'npwp' => 'NPWP-'.$this->resolveShortNumericToken((string) $user->id, '33'),
+                'bpjs' => 'BPJS-'.$this->resolveShortNumericToken((string) $user->id, '44'),
+                'bpjstk' => 'BPJSTK-'.$this->resolveShortNumericToken((string) $user->id, '55'),
+                'nik' => $this->resolveDocumentNumber((string) $user->id, '66'),
                 'updated_at' => $now,
                 'created_at' => $now,
             ],
         );
 
-        DB::table('user_employments')->updateOrInsert(
+        $employee = Employee::query()->updateOrCreate(
             ['user_id' => $user->id],
             [
-                'company_id' => $companyId,
-                'position_id' => $positionId,
-                'division_id' => $divisionId,
-                'domicile_id' => $domicileId,
-                'start_date' => $randomEmploymentStartDate,
+                'employee_code' => 'EMP-'.$this->resolveShortNumericToken((string) $user->id, 'EMP'),
                 'status' => 'Active',
                 'updated_at' => $now,
                 'created_at' => $now,
             ],
         );
+
+        EmployeeDeployment::query()->updateOrCreate(
+            ['employee_id' => $employee->id],
+            [
+                'current_company_id' => $companyId,
+                'current_position_id' => $positionId,
+                'current_department_id' => $divisionId,
+                'join_date' => now()->toDateString(),
+                'resignation_date' => null,
+                'workplace' => 'Onsite',
+                'status' => 'Active',
+                'updated_at' => $now,
+                'created_at' => $now,
+            ],
+        );
+
+        $user->forceFill([
+            'company_id' => $companyId,
+            'phone' => $this->resolvePhoneNumber((string) $user->id),
+            'is_active' => true,
+        ])->save();
     }
 
     private function resolveDomicileId(
@@ -211,17 +234,21 @@ class UserSeeder extends Seeder
         return (int) $value;
     }
 
-    private function resolveEmploymentStartDate(): string
+    private function resolvePhoneNumber(string $userId): string
     {
-        $startBoundary = Carbon::create(2026, 1, 1)->startOfDay();
-        $endBoundary = now()->startOfDay();
+        return '08'.$this->resolveShortNumericToken($userId, '10');
+    }
 
-        if ($endBoundary->lessThan($startBoundary)) {
-            return $startBoundary->toDateString();
-        }
+    private function resolveDocumentNumber(string $userId, string $prefix): string
+    {
+        return substr($prefix.$this->resolveShortNumericToken($userId, $prefix).$this->resolveShortNumericToken(strrev($userId), $prefix), 0, 16);
+    }
 
-        $randomTimestamp = random_int($startBoundary->timestamp, $endBoundary->timestamp);
+    private function resolveShortNumericToken(string $value, string $salt): string
+    {
+        $hexHash = substr(hash('sha256', $salt.'|'.$value), 0, 16);
+        $decimalValue = (string) hexdec(substr($hexHash, 0, 8));
 
-        return Carbon::createFromTimestamp($randomTimestamp)->toDateString();
+        return str_pad(substr($decimalValue, 0, 8), 8, '0', STR_PAD_LEFT);
     }
 }

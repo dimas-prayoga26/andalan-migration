@@ -2,32 +2,57 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'user_id',
+    'employee_id',
+    'assigned_by',
     'overtime_date',
-    'start_time',
-    'end_time',
-    'description',
-    'notes',
-    'approval_status',
+    'planned_start_time',
+    'planned_end_time',
+    'instruction',
+    'actual_start_time',
+    'actual_end_time',
+    'calculated_hours',
+    'status',
 ])]
 class AttendanceOvertime extends Model
 {
-    protected $table = 'attendances_overtime';
+    use GeneratesCustomSequenceUuid;
+
+    protected $table = 'overtimes';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
 
     protected function casts(): array
     {
         return [
             'overtime_date' => 'date',
+            'calculated_hours' => 'decimal:2',
         ];
     }
 
-    public function user(): BelongsTo
+    protected static function booted(): void
     {
-        return $this->belongsTo(User::class);
+        static::creating(function (self $overtime): void {
+            if (! is_string($overtime->id) || trim($overtime->id) === '') {
+                $overtime->id = static::generateCustomSequenceUuid('id');
+            }
+        });
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'employee_id', 'id');
+    }
+
+    public function assignedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_by', 'id');
     }
 }

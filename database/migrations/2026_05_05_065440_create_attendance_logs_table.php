@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('attendance_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('attendance_id')->constrained('attendances')->cascadeOnDelete();
-            $table->string('check_in')->nullable();
-            $table->string('check_out')->nullable();
+            $table->foreignUuid('attendance_id')->constrained('attendances')->cascadeOnDelete();
+            $table->text('location_in')->nullable();
+            $table->text('location_out')->nullable();
             $table->decimal('latitude', 10, 7);
             $table->decimal('longitude', 10, 7);
             $table->enum('radius_result', ['inside', 'outside']);

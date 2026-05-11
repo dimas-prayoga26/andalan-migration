@@ -12,10 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('rules_of_attendaces', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('companies_id')->constrained('companies')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('companies_id')->constrained('companies', 'id')->cascadeOnDelete();
             $table->string('ip_range');
             $table->unsignedInteger('radius');
+            $table->time('office_start_time')->default('08:00:00');
+            $table->time('office_end_time')->default('17:00:00');
+            $table->unsignedInteger('late_grace_minutes')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

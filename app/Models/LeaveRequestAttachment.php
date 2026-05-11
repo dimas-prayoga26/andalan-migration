@@ -7,15 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'attendance_permission_id',
+    'leave_request_id',
     'file_path',
     'file_name',
     'attachment_type',
 ])]
-class AttendancePermissionAttachment extends Model
+class LeaveRequestAttachment extends Model
 {
-    public function attendancePermission(): BelongsTo
+    protected $table = 'leave_request_attachments';
+
+    public function leaveRequest(): BelongsTo
     {
-        return $this->belongsTo(AttendancePermission::class);
+        return $this->belongsTo(LeaveRequest::class, 'leave_request_id', 'id');
     }
 }

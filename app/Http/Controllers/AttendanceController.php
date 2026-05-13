@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
@@ -20,11 +21,14 @@ class AttendanceController extends Controller
     {
         $authenticatedUser = Auth::user();
         if ($authenticatedUser instanceof User) {
-            $authenticatedUser->loadMissing('employee');
+            $authenticatedUser->loadMissing('employee.deployment');
         }
         $userId = Auth::id();
         $employeeId = $authenticatedUser?->employee?->id;
+        $isSuperUser = $this->isSuperUser($authenticatedUser);
+        $isBoardOfDirectur = $this->isBoardOfDirectur($authenticatedUser);
         $isStaffUser = $this->isStaffUser($authenticatedUser);
+        $profileStatsMode = $isStaffUser ? 'staff' : 'management';
         $nowJakarta = now('Asia/Jakarta');
         $publicIp = '-';
         $attendance = collect();
@@ -33,7 +37,7 @@ class AttendanceController extends Controller
                 ->where('employee_id', $employeeId)
                 ->get();
         }
-        $showCompanyFilter = $this->isSuperUser($authenticatedUser);
+        $showCompanyFilter = $isSuperUser;
         $showStaffPeriodFilter = $isStaffUser;
         $companies = collect();
         $staffMonthOptions = collect(range(1, 12));
@@ -124,6 +128,148 @@ class AttendanceController extends Controller
         $isIpPrefixMatch = $publicIpPrefix !== null
             && $allowedIpPrefix !== null
             && $publicIpPrefix === $allowedIpPrefix;
+        $profilePicturePath = null;
+        if (is_string($userId) && trim($userId) !== '' && Schema::hasTable('user_profiles')) {
+            $profilePicturePath = DB::table('user_profiles')
+                ->where('user_id', $userId)
+                ->value('profile_picture');
+        }
+        $profilePositionName = '-';
+        $profileAddressSummary = '-';
+        $profileBusinessEmail = '-';
+        $profileDisplayName = '-';
+        $profileAttendanceDaysCount = 0;
+        $profileWorkingDaysCount = 0;
+        $profileWorkingMonthLabel = $nowJakarta->format('F');
+        $managementTotalEmployeesCount = 0;
+        $managementPresentTodayCount = 0;
+        $managementLateTodayCount = 0;
+        $managementLeaveTodayCount = 0;
+
+        if (is_string($authenticatedUser?->business_email) && trim($authenticatedUser->business_email) !== '') {
+            $profileBusinessEmail = trim($authenticatedUser->business_email);
+        } elseif (is_string($authenticatedUser?->email) && trim($authenticatedUser->email) !== '') {
+            $profileBusinessEmail = trim($authenticatedUser->email);
+        }
+
+        if (is_string($authenticatedUser?->username) && trim($authenticatedUser->username) !== '') {
+            $profileDisplayName = trim($authenticatedUser->username);
+        } elseif (is_string($authenticatedUser?->email) && trim($authenticatedUser->email) !== '') {
+            $profileDisplayName = (string) explode('@', trim($authenticatedUser->email))[0];
+        }
+
+        if (is_string($employeeId) && trim($employeeId) !== '') {
+            $profileAttendanceDaysCount = Attendance::query()
+                ->where('employee_id', $employeeId)
+                ->whereYear('date', (int) $nowJakarta->year)
+                ->whereMonth('date', (int) $nowJakarta->month)
+                ->whereNotNull('clock_in')
+                ->count();
+            $profileWorkingDaysCount = $this->calculateWorkingDaysInMonth($nowJakarta);
+
+            if (Schema::hasTable('employee_profiles')) {
+                $employeeProfileName = DB::table('employee_profiles')
+                    ->where('employee_id', $employeeId)
+                    ->value('name');
+
+                if (is_string($employeeProfileName) && trim($employeeProfileName) !== '') {
+                    $profileDisplayName = trim($employeeProfileName);
+                }
+            }
+
+            if (Schema::hasTable('employee_deployments') && Schema::hasTable('positions')) {
+                $positionName = DB::table('employee_deployments')
+                    ->leftJoin('positions', 'employee_deployments.current_position_id', '=', 'positions.id')
+                    ->where('employee_deployments.employee_id', $employeeId)
+                    ->orderByDesc('employee_deployments.created_at')
+                    ->value('positions.name');
+
+                if (is_string($positionName) && trim($positionName) !== '') {
+                    $profilePositionName = trim($positionName);
+                }
+            }
+
+            if (Schema::hasTable('employee_addresses')) {
+                $addressData = DB::table('employee_addresses')
+                    ->select(['village', 'subdistrict'])
+                    ->where('employee_id', $employeeId)
+                    ->when(
+                        Schema::hasColumn('employee_addresses', 'deleted_at'),
+                        static fn ($query) => $query->whereNull('deleted_at')
+                    )
+                    ->orderByDesc('created_at')
+                    ->first();
+
+                $villageName = is_string($addressData?->village) ? trim($addressData->village) : '';
+                $subdistrictName = is_string($addressData?->subdistrict) ? trim($addressData->subdistrict) : '';
+
+                if ($villageName !== '' && $subdistrictName !== '') {
+                    $profileAddressSummary = $villageName.', '.$subdistrictName;
+                } elseif ($villageName !== '') {
+                    $profileAddressSummary = $villageName;
+                } elseif ($subdistrictName !== '') {
+                    $profileAddressSummary = $subdistrictName;
+                }
+            }
+        }
+
+        if (! $isStaffUser && Schema::hasTable('employees') && Schema::hasTable('employee_deployments')) {
+            $employeeScopeQuery = DB::table('employees')
+                ->leftJoin('employee_deployments', 'employee_deployments.employee_id', '=', 'employees.id')
+                ->select('employees.id');
+
+            if ($isBoardOfDirectur) {
+                $currentCompanyId = $authenticatedUser?->employee?->deployment?->current_company_id;
+                if (! is_string($currentCompanyId) || trim($currentCompanyId) === '') {
+                    $employeeScopeQuery->whereRaw('1 = 0');
+                } else {
+                    $employeeScopeQuery->where('employee_deployments.current_company_id', $currentCompanyId);
+                }
+            }
+
+            $scopedEmployeeIds = $employeeScopeQuery
+                ->pluck('employees.id')
+                ->filter(static fn (mixed $value): bool => is_string($value) && trim($value) !== '')
+                ->values();
+
+            $managementTotalEmployeesCount = $scopedEmployeeIds->count();
+
+            if ($managementTotalEmployeesCount > 0) {
+                $todayDate = $nowJakarta->toDateString();
+                $attendanceTodayQuery = Attendance::query()
+                    ->whereIn('employee_id', $scopedEmployeeIds)
+                    ->whereDate('date', $todayDate);
+
+                $managementPresentTodayCount = (clone $attendanceTodayQuery)
+                    ->whereNotNull('clock_in')
+                    ->count();
+
+                $managementLateTodayCount = (clone $attendanceTodayQuery)
+                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['terlambat'])
+                    ->count();
+
+                if (Schema::hasTable('leave_requests')) {
+                    $leaveTodayQuery = DB::table('leave_requests')
+                        ->whereIn('employee_id', $scopedEmployeeIds)
+                        ->whereDate('start_date', '<=', $todayDate)
+                        ->whereDate('end_date', '>=', $todayDate);
+
+                    if (Schema::hasColumn('leave_requests', 'status')) {
+                        $leaveTodayQuery->where('status', 'approved');
+                    }
+
+                    if (Schema::hasColumn('leave_requests', 'is_active')) {
+                        $leaveTodayQuery->where('is_active', true);
+                    }
+
+                    if (Schema::hasColumn('leave_requests', 'deleted_at')) {
+                        $leaveTodayQuery->whereNull('deleted_at');
+                    }
+
+                    $managementLeaveTodayCount = $leaveTodayQuery->count();
+                }
+            }
+        }
 
         return view('absensi.index', compact(
             'attendance',
@@ -147,6 +293,19 @@ class AttendanceController extends Controller
             'todayAttendanceId',
             'hasCheckedInToday',
             'hasCheckedOutToday',
+            'profilePicturePath',
+            'profilePositionName',
+            'profileAddressSummary',
+            'profileBusinessEmail',
+            'profileDisplayName',
+            'profileAttendanceDaysCount',
+            'profileWorkingDaysCount',
+            'profileWorkingMonthLabel',
+            'profileStatsMode',
+            'managementTotalEmployeesCount',
+            'managementPresentTodayCount',
+            'managementLateTodayCount',
+            'managementLeaveTodayCount',
         ));
     }
 
@@ -332,12 +491,20 @@ class AttendanceController extends Controller
                 ->whereMonth('date', $selectedMonth)
                 ->whereYear('date', $selectedYear)
                 ->orderByDesc('date')
-                ->orderByDesc('id')
+                ->orderByDesc('created_at')
                 ->get(['id', 'date', 'status', 'clock_in', 'clock_out']);
+            $staffProfileName = DB::table('employee_profiles')
+                ->where('employee_id', $staffEmployeeId)
+                ->value('name');
+            $staffDisplayName = is_string($staffProfileName) && trim($staffProfileName) !== ''
+                ? trim($staffProfileName)
+                : ((is_string($staffUser->username) && trim($staffUser->username) !== '')
+                    ? trim($staffUser->username)
+                    : ((is_string($staffUser->email) && trim($staffUser->email) !== '') ? trim($staffUser->email) : '-'));
 
             $attendanceLogsByAttendanceId = AttendanceLog::query()
                 ->whereIn('attendance_id', $staffAttendances->pluck('id'))
-                ->orderByDesc('id')
+                ->orderByDesc('created_at')
                 ->get([
                     'attendance_id',
                     'location_in',
@@ -355,14 +522,13 @@ class AttendanceController extends Controller
                 ])
                 ->groupBy('attendance_id')
                 ->map(fn ($attendanceLogs) => $attendanceLogs->first());
-
-            $tableRows = $staffAttendances->map(function (Attendance $attendanceItem) use ($attendanceLogsByAttendanceId, $staffUser): array {
+            $tableRows = $staffAttendances->map(function (Attendance $attendanceItem) use ($attendanceLogsByAttendanceId, $staffDisplayName, $staffUser): array {
                 $attendanceLog = $attendanceLogsByAttendanceId->get($attendanceItem->id);
 
                 return [
                     'attendance_id' => $attendanceItem->id,
                     'attendance_date' => $attendanceItem->date?->format('Y-m-d'),
-                    'staff_name' => $staffUser->name,
+                    'staff_name' => $staffDisplayName,
                     'company_name' => $staffUser->employee?->deployment?->company?->name,
                     'check_in' => $attendanceItem->clock_in?->format('H:i'),
                     'check_out' => $attendanceItem->clock_out?->format('H:i'),
@@ -413,10 +579,14 @@ class AttendanceController extends Controller
             ->map(fn (User $user): mixed => $user->employee?->id)
             ->filter()
             ->values();
+        $employeeProfileNamesByEmployeeId = DB::table('employee_profiles')
+            ->whereIn('employee_id', $employeeIds)
+            ->orderBy('created_at')
+            ->pluck('name', 'employee_id');
         $attendancesTodayByEmployeeId = Attendance::query()
             ->whereIn('employee_id', $employeeIds)
             ->whereDate('date', $todayDate)
-            ->orderByDesc('id')
+            ->orderByDesc('created_at')
             ->get(['id', 'employee_id', 'date', 'clock_in', 'clock_out', 'status'])
             ->groupBy('employee_id')
             ->map(fn ($attendanceItems) => $attendanceItems->first());
@@ -426,7 +596,7 @@ class AttendanceController extends Controller
             ->values();
         $attendanceLogsByAttendanceId = AttendanceLog::query()
             ->whereIn('attendance_id', $attendanceIds)
-            ->orderByDesc('id')
+            ->orderByDesc('created_at')
             ->get([
                 'attendance_id',
                 'location_in',
@@ -445,14 +615,21 @@ class AttendanceController extends Controller
             ->groupBy('attendance_id')
             ->map(fn ($attendanceLogs) => $attendanceLogs->first());
 
-        $tableRows = $tableUsers->map(function (User $user) use ($attendanceLogsByAttendanceId, $attendancesTodayByEmployeeId, $todayDate): array {
+        $tableRows = $tableUsers->map(function (User $user) use ($attendanceLogsByAttendanceId, $attendancesTodayByEmployeeId, $todayDate, $employeeProfileNamesByEmployeeId): array {
             $attendanceToday = $attendancesTodayByEmployeeId->get($user->employee?->id);
             $attendanceLog = $attendanceToday ? $attendanceLogsByAttendanceId->get($attendanceToday->id) : null;
+            $employeeId = $user->employee?->id;
+            $profileName = is_string($employeeId) ? $employeeProfileNamesByEmployeeId->get($employeeId) : null;
+            $staffDisplayName = is_string($profileName) && trim($profileName) !== ''
+                ? trim($profileName)
+                : ((is_string($user->username) && trim($user->username) !== '')
+                    ? trim($user->username)
+                    : ((is_string($user->email) && trim($user->email) !== '') ? trim($user->email) : '-'));
 
             return [
                 'attendance_id' => $attendanceToday?->id,
                 'attendance_date' => $attendanceToday?->date?->format('Y-m-d') ?? $todayDate,
-                'staff_name' => $user->name,
+                'staff_name' => $staffDisplayName,
                 'company_name' => $user->employee?->deployment?->company?->name,
                 'check_in' => $attendanceToday?->clock_in?->format('H:i'),
                 'check_out' => $attendanceToday?->clock_out?->format('H:i'),
@@ -877,5 +1054,80 @@ class AttendanceController extends Controller
         }
 
         return null;
+    }
+
+    private function calculateWorkingDaysInMonth(Carbon $referenceDate): int
+    {
+        $monthStart = $referenceDate->copy()->startOfMonth();
+        $monthEnd = $referenceDate->copy()->endOfMonth();
+        $holidayDates = $this->fetchIndonesiaHolidayDates((int) $referenceDate->year);
+        $holidayMap = array_fill_keys($holidayDates, true);
+        $workingDays = 0;
+
+        for ($day = $monthStart->copy(); $day->lte($monthEnd); $day->addDay()) {
+            if ($day->isWeekend()) {
+                continue;
+            }
+
+            if (isset($holidayMap[$day->format('Y-m-d')])) {
+                continue;
+            }
+
+            $workingDays++;
+        }
+
+        return $workingDays;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function fetchIndonesiaHolidayDates(int $year): array
+    {
+        $cacheKey = "libur-deno:indonesia:{$year}";
+        $cacheExpiry = now('Asia/Jakarta')->endOfDay();
+
+        return Cache::remember($cacheKey, $cacheExpiry, function () use ($year): array {
+            try {
+                $response = Http::timeout(10)
+                    ->acceptJson()
+                    ->get('https://libur.deno.dev/api', [
+                        'year' => $year,
+                    ]);
+
+                if (! $response->successful()) {
+                    return [];
+                }
+
+                $payload = $response->json();
+                if (! is_array($payload)) {
+                    return [];
+                }
+
+                $items = $payload['value'] ?? $payload;
+                if (! is_array($items)) {
+                    return [];
+                }
+
+                $holidayDates = [];
+                foreach ($items as $item) {
+                    if (! is_array($item)) {
+                        continue;
+                    }
+
+                    $dateValue = $item['date'] ?? null;
+                    if (! is_string($dateValue) || trim($dateValue) === '') {
+                        continue;
+                    }
+
+                    // API sudah mencakup hari libur nasional dan cuti bersama.
+                    $holidayDates[] = trim($dateValue);
+                }
+
+                return array_values(array_unique($holidayDates));
+            } catch (\Throwable) {
+                return [];
+            }
+        });
     }
 }

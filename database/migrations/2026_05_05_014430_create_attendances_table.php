@@ -23,8 +23,8 @@ return new class extends Migration
             $table->foreignUuid('overtime_id')->nullable()->constrained('overtimes')->nullOnDelete();
             $table->boolean('is_overtime')->default(false);
             $table->string('status');
-            $table->text('location_in')->nullable();
-            $table->text('location_out')->nullable();
+            // $table->text('location_in')->nullable();
+            // $table->text('location_out')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });

@@ -10,7 +10,9 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 use Spatie\Permission\PermissionRegistrar;
+use Throwable;
 
 class UserSeeder extends Seeder
 {
@@ -19,128 +21,131 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        try {
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $roles = ['superuser', 'Board of Directors', 'Staff'];
+            $roles = ['superuser', 'Board of Directors', 'Staff'];
 
-        foreach ($roles as $roleName) {
-            Role::query()->firstOrCreate([
-                'name' => $roleName,
-                'guard_name' => 'web',
-            ]);
-        }
+            foreach ($roles as $roleName) {
+                Role::query()->firstOrCreate([
+                    'name' => $roleName,
+                    'guard_name' => 'web',
+                ]);
+            }
 
-        $companies = Company::query()->orderBy('id')->take(7)->get();
+            $companies = Company::query()->orderBy('id')->take(7)->get();
 
-        if ($companies->isEmpty()) {
-            return;
-        }
+            if ($companies->isEmpty()) {
+                return;
+            }
 
-        $genderId = $this->toNullableInt(
-            DB::table('meta_data_gender')->where('name', 'Male')->value('id')
-                ?? DB::table('meta_data_gender')->orderBy('id')->value('id'),
-        );
-        $maritalStatusId = $this->toNullableInt(
-            DB::table('meta_data_marital_statuses')->where('name', 'Single')->value('id')
-                ?? DB::table('meta_data_marital_statuses')->orderBy('id')->value('id'),
-        );
-        $directorDivisionId = $this->toNullableInt(DB::table('meta_data_divisions')->where('name', 'Board of Directors')->value('id'));
-        $staffDivisionId = $this->toNullableInt(
-            DB::table('meta_data_divisions')->where('name', 'Information and Communications Technology')->value('id')
-                ?? DB::table('meta_data_divisions')->where('name', 'Operations')->value('id'),
-        );
-        $adminDivisionId = $this->toNullableInt(DB::table('meta_data_divisions')->where('name', 'Administrator')->value('id'));
-        $directorPositionId = $this->toNullableInt(DB::table('meta_data_positions')->where('name', 'Director')->value('id'));
-        $staffPositionId = $this->toNullableInt(
-            DB::table('meta_data_positions')->where('name', 'Web Developer')->value('id')
-                ?? DB::table('meta_data_positions')->orderBy('id')->value('id'),
-        );
-        $adminPositionId = $this->toNullableInt(
-            DB::table('meta_data_positions')->where('name', 'System Administrator')->value('id')
-                ?? DB::table('meta_data_positions')->orderBy('id')->value('id'),
-        );
-        $jakartaDomicileId = $this->toNullableInt(DB::table('meta_data_domicili')->where('name', 'Jakarta')->value('id'));
-        $yogyakartaDomicileId = $this->toNullableInt(DB::table('meta_data_domicili')->where('name', 'Yogyakarta')->value('id'));
-        $fallbackDomicileId = $this->toNullableInt(DB::table('meta_data_domicili')->orderBy('id')->value('id'));
-
-        $superuser = User::query()->updateOrCreate(
-            ['email' => 'superuser@gmail.com'],
-            [
-                'username' => 'superuser',
-                'name' => 'System Superuser',
-                'is_active' => true,
-                'password' => Hash::make('password'),
-            ],
-        );
-        $superuser->syncRoles(['superuser']);
-        $this->seedUserRelations(
-            $superuser,
-            companyId: $companies->first()->id,
-            divisionId: $adminDivisionId,
-            positionId: $adminPositionId,
-            domicileId: $jakartaDomicileId ?? $fallbackDomicileId,
-            genderId: $genderId,
-            maritalStatusId: $maritalStatusId,
-        );
-
-        foreach ($companies as $index => $company) {
-            $directorNumber = $index + 1;
-            $domicileId = $this->resolveDomicileId(
-                companyCity: (string) $company->city,
-                jakartaDomicileId: $jakartaDomicileId,
-                yogyakartaDomicileId: $yogyakartaDomicileId,
-                fallbackDomicileId: $fallbackDomicileId,
+            $genderId = $this->toNullableInt(
+                DB::table('meta_data_gender')->where('name', 'Male')->value('id')
+                    ?? DB::table('meta_data_gender')->orderBy('id')->value('id'),
             );
+            $maritalStatusId = $this->toNullableInt(
+                DB::table('meta_data_marital_statuses')->where('name', 'Single')->value('id')
+                    ?? DB::table('meta_data_marital_statuses')->orderBy('id')->value('id'),
+            );
+            $directorDivisionId = $this->toNullableString(DB::table('departments')->where('name', 'Board of Directors')->value('id'));
+            $staffDivisionId = $this->toNullableString(
+                DB::table('departments')->where('name', 'Information and Communications Technology')->value('id')
+                    ?? DB::table('departments')->where('name', 'Operations')->value('id'),
+            );
+            $adminDivisionId = $this->toNullableString(DB::table('departments')->where('name', 'Administrator')->value('id'));
+            $directorPositionId = $this->toNullableString(DB::table('positions')->where('name', 'Director')->value('id'));
+            $staffPositionId = $this->toNullableString(
+                DB::table('positions')->where('name', 'Web Developer')->value('id')
+                    ?? DB::table('positions')->orderBy('name')->value('id'),
+            );
+            $adminPositionId = $this->toNullableString(
+                DB::table('positions')->where('name', 'System Administrator')->value('id')
+                    ?? DB::table('positions')->orderBy('name')->value('id'),
+            );
+            $jakartaDomicileId = $this->toNullableInt(DB::table('meta_data_domicili')->where('name', 'Jakarta')->value('id'));
+            $yogyakartaDomicileId = $this->toNullableInt(DB::table('meta_data_domicili')->where('name', 'Yogyakarta')->value('id'));
+            $fallbackDomicileId = $this->toNullableInt(DB::table('meta_data_domicili')->orderBy('id')->value('id'));
 
-            $director = User::query()->updateOrCreate(
-                ['email' => "director{$directorNumber}@gmail.com"],
+            $superuser = User::query()->updateOrCreate(
+                ['email' => 'superuser@gmail.com'],
                 [
-                    'username' => "director{$directorNumber}",
-                    'name' => "Director {$directorNumber} - {$company->name}",
+                    'username' => 'superuser',
                     'is_active' => true,
                     'password' => Hash::make('password'),
                 ],
             );
-            $director->syncRoles(['Board of Directors']);
+            $superuser->syncRoles(['superuser']);
             $this->seedUserRelations(
-                $director,
-                companyId: $company->id,
-                divisionId: $directorDivisionId,
-                positionId: $directorPositionId,
-                domicileId: $domicileId,
+                $superuser,
+                companyId: $companies->first()->id,
+                divisionId: $adminDivisionId,
+                positionId: $adminPositionId,
+                domicileId: $jakartaDomicileId ?? $fallbackDomicileId,
                 genderId: $genderId,
                 maritalStatusId: $maritalStatusId,
             );
 
-            foreach ([1, 2] as $staffIndex) {
-                $staff = User::query()->updateOrCreate(
-                    ['email' => "staff{$directorNumber}{$staffIndex}@gmail.com"],
+            foreach ($companies as $index => $company) {
+                $directorNumber = $index + 1;
+                $domicileId = $this->resolveDomicileId(
+                    companyCity: (string) $company->city,
+                    jakartaDomicileId: $jakartaDomicileId,
+                    yogyakartaDomicileId: $yogyakartaDomicileId,
+                    fallbackDomicileId: $fallbackDomicileId,
+                );
+
+                $director = User::query()->updateOrCreate(
+                    ['email' => "director{$directorNumber}@gmail.com"],
                     [
-                        'username' => "staff{$directorNumber}{$staffIndex}",
-                        'name' => "Staff {$staffIndex} - {$company->name}",
+                        'username' => "director{$directorNumber}",
+                        'business_email' => "director{$directorNumber}@{$this->resolveCompanyEmailDomain((string) $company->name)}",
                         'is_active' => true,
                         'password' => Hash::make('password'),
                     ],
                 );
-                $staff->syncRoles(['Staff']);
+                $director->syncRoles(['Board of Directors']);
                 $this->seedUserRelations(
-                    $staff,
+                    $director,
                     companyId: $company->id,
-                    divisionId: $staffDivisionId,
-                    positionId: $staffPositionId,
+                    divisionId: $directorDivisionId,
+                    positionId: $directorPositionId,
                     domicileId: $domicileId,
                     genderId: $genderId,
                     maritalStatusId: $maritalStatusId,
                 );
+
+                foreach ([1, 2] as $staffIndex) {
+                    $staff = User::query()->updateOrCreate(
+                        ['email' => "staff{$directorNumber}{$staffIndex}@gmail.com"],
+                        [
+                            'username' => "staff{$directorNumber}{$staffIndex}",
+                            'business_email' => "staff{$directorNumber}{$staffIndex}@{$this->resolveCompanyEmailDomain((string) $company->name)}",
+                            'is_active' => true,
+                            'password' => Hash::make('password'),
+                        ],
+                    );
+                    $staff->syncRoles(['Staff']);
+                    $this->seedUserRelations(
+                        $staff,
+                        companyId: $company->id,
+                        divisionId: $staffDivisionId,
+                        positionId: $staffPositionId,
+                        domicileId: $domicileId,
+                        genderId: $genderId,
+                        maritalStatusId: $maritalStatusId,
+                    );
+                }
             }
+        } catch (Throwable $throwable) {
+            throw new RuntimeException('UserSeeder gagal dijalankan.', 0, $throwable);
         }
     }
 
     private function seedUserRelations(
         User $user,
         int|string|null $companyId,
-        ?int $divisionId,
-        ?int $positionId,
+        ?string $divisionId,
+        ?string $positionId,
         ?int $domicileId,
         ?int $genderId,
         ?int $maritalStatusId,
@@ -150,7 +155,7 @@ class UserSeeder extends Seeder
         DB::table('user_profiles')->updateOrInsert(
             ['user_id' => $user->id],
             [
-                'nickname' => $user->name,
+                'nickname' => $this->resolveDisplayName($user),
                 'gender_id' => $genderId,
                 'marital_status_id' => $maritalStatusId,
                 'phone' => $this->resolvePhoneNumber((string) $user->id),
@@ -234,9 +239,39 @@ class UserSeeder extends Seeder
         return (int) $value;
     }
 
+    private function toNullableString(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        return (string) $value;
+    }
+
     private function resolvePhoneNumber(string $userId): string
     {
         return '08'.$this->resolveShortNumericToken($userId, '10');
+    }
+
+    private function resolveDisplayName(User $user): string
+    {
+        if (is_string($user->username) && trim($user->username) !== '') {
+            return (string) $user->username;
+        }
+
+        return (string) explode('@', (string) $user->email)[0];
+    }
+
+    private function resolveCompanyEmailDomain(string $companyName): string
+    {
+        $slug = strtolower((string) preg_replace('/[^a-z0-9]+/i', '-', trim($companyName)));
+        $slug = trim($slug, '-');
+
+        if ($slug === '') {
+            return 'company.local';
+        }
+
+        return "{$slug}.local";
     }
 
     private function resolveDocumentNumber(string $userId, string $prefix): string

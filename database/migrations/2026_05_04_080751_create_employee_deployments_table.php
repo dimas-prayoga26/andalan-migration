@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('employee_deployments', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('employee_id')->unique()->constrained('employees', 'id')->cascadeOnDelete();
-            $table->foreignId('current_department_id')->nullable()->constrained('meta_data_divisions')->nullOnDelete();
-            $table->foreignId('current_position_id')->nullable()->constrained('meta_data_positions')->nullOnDelete();
+            $table->foreignUuid('current_department_id')->nullable()->constrained('departments', 'id')->nullOnDelete();
+            $table->foreignUuid('current_position_id')->nullable()->constrained('positions', 'id')->nullOnDelete();
             $table->foreignUuid('current_company_id')->nullable()->constrained('companies', 'id')->nullOnDelete();
             $table->date('join_date')->nullable();
             $table->date('resignation_date')->nullable();

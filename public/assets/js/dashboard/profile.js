@@ -841,35 +841,6 @@ var dzProfile = function(){
 		}
 	}
 	
-	var tableLogs = function(){
-		if($('#tableLogs').length > 0){
-			var table = $('#tableLogs').DataTable({
-				'dom': 'ZBfrltip',
-				buttons: [{
-					extend: 'excel',
-					text: '<i class="fa-solid fa-file-excel"></i> Export Report',
-					className: 'btn btn-primary light btn-sm'
-				}],
-				searching: false,
-				pageLength: 6,
-				select: false,            
-				lengthChange: false,
-				paging: true,
-				bInfo: true,
-				language: {
-					paginate: {
-						next: '<i class="fa-solid fa-angle-right"></i>',
-						previous: '<i class="fa-solid fa-angle-left"></i>' 
-					}
-				},
-				initComplete: function() {
-					var btns = $('#tableLogs_wrapper .dt-buttons').detach();
-					$('#tableLogsExcelBTN').append(btns);
-				}
-			});
-		}
-	}
-	
 	var cardCarousel = function () {
 		var isRTL = $('body').attr('direction') === 'rtl';
 
@@ -1350,7 +1321,6 @@ var dzProfile = function(){
 			chartTasksOverTime();
 			chartDeals();
 			tableLicenseUsage();
-			tableLogs();
 			cardCarousel();
 			chartProfileProgress();
 			chartProjectChart();

@@ -15,7 +15,6 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('company_id')->nullable()->constrained('companies', 'id')->nullOnDelete();
             $table->string('username')->nullable()->unique();
-            $table->string('name');
             $table->string('phone')->nullable();
             $table->string('email')->unique();
             $table->string('business_email')->nullable()->unique();

@@ -1,6 +1,24 @@
 @php
     $authenticatedUser = auth()->user();
-    $headerUserName = $authenticatedUser?->name ?? '-';
+    $headerUserName = '-';
+    if ($authenticatedUser) {
+        $employeeId = $authenticatedUser->employee?->id;
+        $employeeProfileName = null;
+
+        if (is_string($employeeId) && trim($employeeId) !== '') {
+            $employeeProfileName = \Illuminate\Support\Facades\DB::table('employee_profiles')
+                ->where('employee_id', $employeeId)
+                ->value('name');
+        }
+
+        if (is_string($employeeProfileName) && trim($employeeProfileName) !== '') {
+            $headerUserName = trim($employeeProfileName);
+        } elseif (is_string($authenticatedUser->username) && trim($authenticatedUser->username) !== '') {
+            $headerUserName = trim($authenticatedUser->username);
+        } elseif (is_string($authenticatedUser->email) && trim($authenticatedUser->email) !== '') {
+            $headerUserName = (string) explode('@', trim($authenticatedUser->email))[0];
+        }
+    }
     $headerUserRole = $authenticatedUser?->getRoleNames()->first();
     $headerUserRoleLabel = $headerUserRole ? \Illuminate\Support\Str::headline($headerUserRole) : '-';
 @endphp

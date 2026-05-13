@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use RuntimeException;
+use Throwable;
 
 class DatabaseSeeder extends Seeder
 {
@@ -11,18 +13,31 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([
+        $seeders = [
             CompanySeeder::class,
             MetaDataLeaveCompanySeeder::class,
             RulesOfAttendacesSeeder::class,
             MetaDataDomiciliSeeder::class,
             MetaDataGenderSeeder::class,
             MetaDataMaritalStatusSeeder::class,
-            MetaDataDivisionSeeder::class,
-            MetaDataPositionSeeder::class,
+            PositionSeeder::class,
             // MetaDataPermissionTypeSeeder::class,
             UserSeeder::class,
+            EmployeeProfileSeeder::class,
+            EmployeeIdentitySeeder::class,
+            EmployeeFamilySeeder::class,
+            EmployeeOrganizationSeeder::class,
+            EmployeeBankAccountSeeder::class,
+            EmployeeAddressSeeder::class,
             LeaveBalanceSeeder::class,
-        ]);
+        ];
+
+        foreach ($seeders as $seederClass) {
+            try {
+                $this->call([$seederClass]);
+            } catch (Throwable $throwable) {
+                throw new RuntimeException("Seeder {$seederClass} gagal dijalankan.", 0, $throwable);
+            }
+        }
     }
 }

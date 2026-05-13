@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
+use Throwable;
 
 class MetaDataPositionSeeder extends Seeder
 {
@@ -12,34 +14,38 @@ class MetaDataPositionSeeder extends Seeder
      */
     public function run(): void
     {
-        $now = now();
-        $positions = [
-            'System Administrator',
-            'Commissioner Independent',
-            'Commissioner',
-            'Chief Operating Officer',
-            'Director',
-            'Legal Officer & Partnership',
-            'Finance and Administration Coordinator',
-            'Accounting and Taxation',
-            'Operations Coordinator',
-            'Interior Design',
-            'Architecture Design',
-            'Web Developer',
-            'Documentation Event and Editor Video',
-            'Graphic Design',
-            'Branding Designer',
-        ];
+        try {
+            $now = now();
+            $positions = [
+                'System Administrator',
+                'Commissioner Independent',
+                'Commissioner',
+                'Chief Operating Officer',
+                'Director',
+                'Legal Officer & Partnership',
+                'Finance and Administration Coordinator',
+                'Accounting and Taxation',
+                'Operations Coordinator',
+                'Interior Design',
+                'Architecture Design',
+                'Web Developer',
+                'Documentation Event and Editor Video',
+                'Graphic Design',
+                'Branding Designer',
+            ];
 
-        DB::table('meta_data_positions')->upsert(
-            array_map(fn (string $name): array => [
-                'name' => $name,
-                'is_active' => true,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ], $positions),
-            ['name'],
-            ['is_active', 'updated_at'],
-        );
+            DB::table('meta_data_positions')->upsert(
+                array_map(fn (string $name): array => [
+                    'name' => $name,
+                    'is_active' => true,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ], $positions),
+                ['name'],
+                ['is_active', 'updated_at'],
+            );
+        } catch (Throwable $throwable) {
+            throw new RuntimeException('MetaDataPositionSeeder gagal dijalankan.', 0, $throwable);
+        }
     }
 }

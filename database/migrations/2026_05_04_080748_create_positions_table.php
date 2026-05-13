@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('meta_data_positions', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->unique();
-            $table->boolean('is_active')->default(true);
+        Schema::create('positions', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('name');
+            $table->string('status')->default('active');
             $table->timestamps();
         });
     }
@@ -24,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('meta_data_positions');
+        Schema::dropIfExists('positions');
     }
 };

@@ -81,6 +81,9 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/absensi/cuti', function () {
         return view('absensi.cuti');
     })->name('absensi.cuti');
+    Route::get('/absensi/dinas', function () {
+        return view('absensi.dinas');
+    })->name('absensi.dinas');
 
     // Error page
     Route::get('/error-503', function () {

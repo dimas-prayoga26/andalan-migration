@@ -38,22 +38,6 @@
             box-shadow: none;
         }
 
-        #myTable thead th {
-            font-size: 1.1rem;
-            font-weight: 600;
-            padding: 1rem 0.75rem;
-        }
-
-        #myTable tbody td {
-            font-size: 1rem;
-            padding: 0.9rem 0.75rem;
-        }
-
-        #myTable thead th:first-child,
-        #myTable tbody td:first-child {
-            text-align: center !important;
-        }
-
         .badge-attendance-empty {
             background: #fff1f2;
             color: #be123c;
@@ -165,229 +149,87 @@
             font-size: 0.9rem;
             color: #64748b;
         }
-
-        #myTable_wrapper .dt-length label,
-        #myTable_wrapper .dt-search label,
-        #myTable_wrapper .dt-info,
-        #myTable_wrapper .dt-paging {
-            font-size: 1rem;
-        }
-
-        #myTable_wrapper .dt-layout-row:first-child {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.75rem 1rem;
-            margin-bottom: 0.85rem;
-            background: #fff;
-            border: 1px solid #e6eaf2;
-            border-radius: 0.75rem;
-        }
-
-        #myTable_wrapper .dt-length,
-        #myTable_wrapper .dt-search {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin: 0;
-        }
-
-        #myTable_wrapper .dt-search label,
-        #myTable_wrapper .dt-length label {
-            margin: 0;
-            color: #5f6b7a;
-            font-weight: 500;
-        }
-
-        #myTable_wrapper .dt-search input,
-        #myTable_wrapper .dt-length select {
-            min-height: 40px;
-            font-size: 1rem;
-            border-radius: 0.6rem;
-            border: 1px solid #d9dce5;
-            padding: 0.35rem 0.75rem;
-            background: #fff;
-            color: #27334a;
-        }
-
-        #myTable_wrapper .dt-search input {
-            min-width: 220px;
-        }
-
-        #myTable_wrapper .dt-search input:focus,
-        #myTable_wrapper .dt-length select:focus {
-            border-color: #cfd5df;
-            box-shadow: 0 0 0 0.15rem rgba(15, 23, 42, 0.08);
-            outline: 0;
-        }
-
-        @media only screen and (max-width: 767.98px) {
-            #myTable_wrapper .dt-layout-row:first-child {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            #myTable_wrapper .dt-search,
-            #myTable_wrapper .dt-length {
-                justify-content: space-between;
-                width: 100%;
-            }
-
-            #myTable_wrapper .dt-search input {
-                min-width: 0;
-                width: 100%;
-            }
-        }
-
-        #myTable_wrapper .dt-paging .dt-paging-button {
-            background: #fff !important;
-            border: 1px solid #d9dce5 !important;
-            color: #5f6b7a !important;
-        }
-
-        #myTable_wrapper .dt-paging .dt-paging-button:hover {
-            background: #f3f6ff !important;
-            color: var(--bs-primary) !important;
-        }
-
-        #myTable_wrapper .dt-paging .dt-paging-button.current {
-            background: var(--bs-danger) !important;
-            border-color: var(--bs-danger) !important;
-            color: #fff !important;
-        }
     </style>
 
 @endsection
 
-@section('navbarTitle', 'Attendances-data')
+@section('navbarTitle', 'Attendances')
 
 @section('content')
 <!-- Start - Page Title & Breadcrumb -->
-<div class="page-title">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li><h1>Attendances-data</h1></li>
-            <li class="breadcrumb-item">
-                <a href="{{ route('dashboard') }}">
-                    <svg width="18" height="18" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2.125 6.375L8.5 1.41667L14.875 6.375V14.1667C14.875 14.5424 14.7257 14.9027 14.4601 15.1684C14.1944 15.4341 13.8341 15.5833 13.4583 15.5833H3.54167C3.16594 15.5833 2.80561 15.4341 2.53993 15.1684C2.27426 14.9027 2.125 14.5424 2.125 14.1667V6.375Z" stroke="var(--bs-body-color)" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M6.375 15.5833V8.5H10.625V15.5833" stroke="var(--bs-body-color)" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    Home
-                </a>
-            </li>
-            <li class="breadcrumb-item active" aria-current="page">Attendances-data</li>
-        </ol>
-    </nav>
+@include('layouts.breadcrumb', [
+    'title' => 'Attendances',
+    'current' => 'Presensi',
+    'homeRoute' => 'dashboard',
+])
+
+@include('absensi.layouts_absensi.profileIndex')
+
+<div class="col-lg-12">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Presensi</h5>
+        <div class="d-flex align-items-center">
+            <button
+                type="button"
+                class="me-2 btn btn-success light btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#attendanceActionModal"
+            >Presensi Check in</button>
+        </div>
+    </div>
 </div>
-<!-- End - Page Title & Breadcrumb -->
-<div class="row">
-    <div class="col-xl-12 col-xxl-12">
-        <div class="card h-auto">
-            <div class="card-header">
-                <ul class="nav nav-underline card-header-tabs absensi-tabs" id="nav-tab" role="tablist">
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi') ? 'true' : 'false' }}">Absensi Hari Ini</button>
-                    </li>
-                    <li class="nav-item">
-                    </li>
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.reports') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.reports') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.reports') ? 'true' : 'false' }}">Reports</button>
-                    </li>
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.izin') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.izin') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.izin') ? 'true' : 'false' }}">Izin</button>
-                    </li>
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.lembur') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.lembur') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.lembur') ? 'true' : 'false' }}">Lembur</button>
-                    </li>
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.cuti') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.cuti') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.cuti') ? 'true' : 'false' }}">Libur Nasional dan Cuti Bersama</button>
-                    </li>
-                </ul>
-            </div>
-            <div class="row">
-                <div class="col-xxl-12 col-xl-12">
-                    <div class="card-body">
-                        @php
-                            $filterColumnClass = 'col-12 col-md-3 order-2 order-md-1';
-                            $dateTimeColumnClass = 'col-12 col-md-6 order-1 order-md-2';
 
-                            if ($showStaffPeriodFilter ?? false) {
-                                $filterColumnClass = 'col-12 col-md-4 order-2 order-md-1';
-                                $dateTimeColumnClass = 'col-12 col-md-5 order-1 order-md-2';
-                            }
-                        @endphp
-                        <div class="row g-2 align-items-center mb-3">
-                            @if($showCompanyFilter ?? false)
-                                <div class="{{ $filterColumnClass }}">
-                                    <div class="small text-muted mb-1">Filter Perusahaan</div>
-                                    <select class="form-select form-select-sm" id="attendanceCompanyFilter">
-                                        <option value="">Semua Perusahaan</option>
-                                        @foreach($companies as $company)
-                                            <option value="{{ $company->id }}">{{ $company->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            @elseif($showStaffPeriodFilter ?? false)
-                                <div class="{{ $filterColumnClass }}">
-                                    <div class="row g-2">
-                                        <div class="col-6">
-                                            <div class="small text-muted mb-1">Bulan</div>
-                                            <select class="form-select form-select-sm" id="attendanceMonthFilter">
-                                                @foreach(($staffMonthOptions ?? collect()) as $monthOption)
-                                                    <option value="{{ $monthOption }}" {{ (int) ($defaultStaffMonth ?? 0) === (int) $monthOption ? 'selected' : '' }}>
-                                                        {{ \Illuminate\Support\Carbon::create(null, (int) $monthOption, 1)->translatedFormat('F') }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="small text-muted mb-1">Tahun</div>
-                                            <select class="form-select form-select-sm" id="attendanceYearFilter">
-                                                @foreach(($staffYearOptions ?? collect()) as $yearOption)
-                                                    <option value="{{ $yearOption }}" {{ (int) ($defaultStaffYear ?? 0) === (int) $yearOption ? 'selected' : '' }}>
-                                                        {{ $yearOption }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            @else
-                                <div class="col-12 col-md-3 order-2 order-md-1"></div>
-                            @endif
-                            <div class="{{ $dateTimeColumnClass }}">
-                                <div class="attendance-datetime mb-0" id="attendanceDateTime"></div>
-                            </div>
-                            <div class="col-12 col-md-3 order-3 text-md-end">
-                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#attendanceActionModal">Absen</button>
-                            </div>
+<div class="tab-content" id="tabContentMyProfileBottom">
+    <div class="row">
+
+        <!-- Start - logs -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-0 align-items-center">
+                    <h4 class="card-title">Logs</h4>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="clearfix">
+                            <select class="selectpicker form-select form-select-sm">
+                                <option value="All Time">All Time</option>
+                                <option value="Weekly">Week</option>
+                                <option value="Monthly">Month</option>
+                            </select>
                         </div>
-                        <div>
-                            <table id="myTable" class="display table">
-                                <thead>
+                        <div class="clearfix">
+                            <select class="selectpicker form-select form-select-sm">
+                                <option value="View All">View All</option>
+                                <option value="Top 10">Top 10</option>
+                                <option value="Top 20">Top 20</option>
+                            </select>
+                        </div>
+                        <div class="clearfix">
+                            <button class="btn btn-sm btn-primary">Reset</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body table-card-body px-0 pt-0 pb-2">
+                    <div class="table-responsive">
+                        <table id="tableLogs" class="table table-sm table-sm-responsive text-nowrap">
+                            <thead>
                                 <tr>
-                                    <th class="mw-100">No</th>
-                                    <th class="mw-200">Nama Staff</th>
-                                    <th class="mw-150">Masuk</th>
+                                    <th class="mw-50">No</th>
+                                    <th class="mw-150">Nama Staff</th>
+                                    <th class="mw-100">Masuk</th>
                                     <th class="mw-150">Pulang</th>
-                                    <th class="mw-200">Nama PT</th>
-                                    <th class="mw-120 text-center">Action</th>
+                                    <th class="mw-100">Nama PT</th>
+                                    <th class="text-end mw-100">Action</th>
                                 </tr>
-                                </thead>
-                                <tbody>
-
-                                </tbody>
-                            </table>
-                        </div>
-
+                            </thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
+        <!-- End - logs -->
     </div>
 </div>
+<!-- Login Sessions table temporarily removed -->
 <div class="modal fade" id="attendanceActionModal" tabindex="-1" aria-labelledby="attendanceActionModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -423,13 +265,12 @@
                         </div>
                         <div class="d-flex gap-3">
                             <button type="button" class="btn btn-outline-primary btn-sm" id="checkOnsiteLocationBtn">Cek Lokasi Saya</button>
-                            <button type="button" class="btn btn-primary btn-sm" id="submitOnsiteAttendanceBtn">Masuk</button>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary btn-sm w-100" id="submitOnsiteAttendanceBtn">Masuk</button>
             </div>
         </div>
     </div>
@@ -494,6 +335,10 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+	
+	<!-- Script For Datatables -->
+	<script src="vendor/datatables/js/jquery.dataTables.bundle.min.js"></script>
+	
     <script>
         $(function () {
             var attendanceDateElement = document.getElementById('attendanceDateTime');
@@ -547,6 +392,104 @@
             var lateGraceMinutes = Number(officeLocation && officeLocation.late_grace_minutes);
             lateGraceMinutes = Number.isNaN(lateGraceMinutes) ? 0 : Math.max(lateGraceMinutes, 0);
             var lateThresholdTotalMinutes = officeStartTotalMinutes + lateGraceMinutes;
+
+            var attendanceTable = null;
+
+            var tableLogs = function(){
+                if ($('#tableLogs').length === 0) {
+                    return;
+                }
+
+                attendanceTable = $('#tableLogs').DataTable({
+                    ajax: {
+                        url: attendanceDatatableUrl,
+                        data: function (requestData) {
+                            requestData.company_id = attendanceCompanyFilter ? attendanceCompanyFilter.value : '';
+                            requestData.month = attendanceMonthFilter ? attendanceMonthFilter.value : 0;
+                            requestData.year = attendanceYearFilter ? attendanceYearFilter.value : 0;
+                        },
+                        dataSrc: 'data'
+                    },
+                    autoWidth: false,
+                    searching: false,
+                    pageLength: 6,
+                    select: false,
+                    lengthChange: false,
+                    paging: true,
+                    bInfo: true,
+                    columns: [
+                        { data: null, defaultContent: '' },
+                        { data: 'staff_name', defaultContent: '-' },
+                        { data: 'check_in', defaultContent: '' },
+                        { data: 'check_out', defaultContent: '' },
+                        { data: 'company_name', defaultContent: '-' },
+                        { data: null, defaultContent: '' }
+                    ],
+                    columnDefs: [
+                        {
+                            targets: 0,
+                            searchable: false,
+                            orderable: false
+                        },
+                        {
+                            targets: 2,
+                            render: function (data) {
+                                if (data) {
+                                    var timeParts = String(data).split(':');
+                                    var checkInHour = parseInt(timeParts[0], 10);
+                                    var checkInMinute = parseInt(timeParts[1], 10);
+                                    var checkInTotalMinutes = (checkInHour * 60) + checkInMinute;
+
+                                    if (!Number.isNaN(checkInTotalMinutes) && checkInTotalMinutes > officeStartTotalMinutes) {
+                                        return '<span class="text-danger fw-semibold">' + data + '</span>';
+                                    }
+
+                                    return '<span class="text-success fw-semibold">' + data + '</span>';
+                                }
+
+                                return '<span class="badge-attendance-empty">Belum Absen Masuk</span>';
+                            }
+                        },
+                        {
+                            targets: 3,
+                            render: function (data) {
+                                if (data) {
+                                    return data;
+                                }
+
+                                return '<span class="badge-attendance-empty">Belum Absen Pulang</span>';
+                            }
+                        },
+                        {
+                            targets: 5,
+                            searchable: false,
+                            orderable: false,
+                            className: 'text-end',
+                            render: function () {
+                                return '<div class="dropdown dropdown-sm">'
+                                    + '<button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Options</button>'
+                                    + '<ul class="dropdown-menu dropdown-menu-end">'
+                                    + '<li><a class="dropdown-item" href="javascript:void(0)" onclick="onClickAttendanceDetail(this)">Detail</a></li>'
+                                    + '</ul>'
+                                    + '</div>';
+                            }
+                        }
+                    ],
+                    language: {
+                        paginate: {
+                            next: '<i class="fa-solid fa-angle-right"></i>',
+                            previous: '<i class="fa-solid fa-angle-left"></i>'
+                        }
+                    }
+                });
+
+                attendanceTable.on('order.dt search.dt draw.dt', function () {
+                    var pageInfo = attendanceTable.page.info();
+                    attendanceTable.column(0, { page: 'current' }).nodes().each(function (cell, index) {
+                        cell.innerHTML = pageInfo.start + index + 1;
+                    });
+                });
+            };
 
             function parseTimeStringToMinutes(timeString, fallbackMinutes) {
                 if (typeof timeString !== 'string' || timeString.trim() === '') {
@@ -1300,6 +1243,7 @@
             renderOnsiteRunningTime();
             setInterval(renderOnsiteRunningTime, 1000);
             renderSubmitAttendanceButton();
+            tableLogs();
 
             $('.absensi-tab-btn').on('click', function (event) {
                 event.preventDefault();
@@ -1308,127 +1252,6 @@
                 if (targetUrl) {
                     window.location.href = targetUrl;
                 }
-            });
-
-            var attendanceTable = $('#myTable').DataTable({
-                ajax: {
-                    url: attendanceDatatableUrl,
-                    data: function (requestData) {
-                        requestData.company_id = attendanceCompanyFilter ? attendanceCompanyFilter.value : '';
-                        requestData.month = attendanceMonthFilter ? attendanceMonthFilter.value : 0;
-                        requestData.year = attendanceYearFilter ? attendanceYearFilter.value : 0;
-                    },
-                    dataSrc: 'data'
-                },
-                autoWidth: false,
-                scrollX: true,
-                scrollCollapse: true,
-                columns: [
-                    {
-                        data: null,
-                        defaultContent: ''
-                    },
-                    {
-                        data: 'staff_name'
-                    },
-                    {
-                        data: 'check_in'
-                    },
-                    {
-                        data: 'check_out'
-                    },
-                    {
-                        data: 'company_name'
-                    },
-                    {
-                        data: null,
-                        defaultContent: ''
-                    }
-                ],
-                columnDefs: [
-                    {
-                        targets: 0,
-                        searchable: false,
-                        orderable: false
-                    },
-                    {
-                        targets: 2,
-                        render: function (data) {
-                            if (data) {
-                                var timeParts = String(data).split(':');
-                                var checkInHour = parseInt(timeParts[0], 10);
-                                var checkInMinute = parseInt(timeParts[1], 10);
-                                var checkInTotalMinutes = (checkInHour * 60) + checkInMinute;
-
-                                if (!Number.isNaN(checkInTotalMinutes) && checkInTotalMinutes > officeStartTotalMinutes) {
-                                    return '<span class="text-danger fw-semibold">' + data + '</span>';
-                                }
-
-                                return '<span class="text-success fw-semibold">' + data + '</span>';
-                            }
-
-                            return '<span class="badge-attendance-empty">Belum Absen Masuk</span>';
-                        }
-                    },
-                    {
-                        targets: 3,
-                        render: function (data) {
-                            if (data) {
-                                return data;
-                            }
-
-                            return '<span class="badge-attendance-empty">Belum Absen Pulang</span>';
-                        }
-                    },
-                    {
-                        targets: 4,
-                        render: function (data) {
-                            return data || '-';
-                        }
-                    },
-                    {
-                        targets: 5,
-                        searchable: false,
-                        orderable: false,
-                        className: 'text-center',
-                        render: function () {
-                            return '<div class="attendance-action-group">'
-                                + '<button type="button" class="attendance-action-btn attendance-detail-btn" title="Detail" onclick="onClickAttendanceDetail(this)">'
-                                + '<i class="bi bi-info-circle"></i>'
-                                + '</button>'
-                                + '</div>';
-                        }
-                    }
-                ],
-                initComplete: function () {
-                    var tableApi = this.api();
-                    var tableContainer = $(tableApi.table().container());
-                    var scrollBody = tableContainer.find('.dt-scroll-body');
-
-                    scrollBody.css({
-                        overflowX: 'auto',
-                        overflowY: 'hidden',
-                        WebkitOverflowScrolling: 'touch'
-                    });
-
-                    scrollBody.scrollLeft(0);
-                    tableApi.columns.adjust();
-                }
-            });
-
-            attendanceTable.on('order.dt search.dt draw.dt', function () {
-                var pageInfo = attendanceTable.page.info();
-                attendanceTable.column(0, { page: 'current' }).nodes().each(function (cell, index) {
-                    cell.innerHTML = pageInfo.start + index + 1;
-                });
-            });
-
-            attendanceTable.on('draw', function () {
-                attendanceTable.columns.adjust();
-            });
-
-            $(window).on('resize', function () {
-                attendanceTable.columns.adjust();
             });
 
             if (attendanceModalElement) {
@@ -1479,19 +1302,25 @@
 
             if (attendanceCompanyFilter) {
                 attendanceCompanyFilter.addEventListener('change', function () {
-                    attendanceTable.ajax.reload();
+                    if (attendanceTable) {
+                        attendanceTable.ajax.reload();
+                    }
                 });
             }
 
             if (attendanceMonthFilter) {
                 attendanceMonthFilter.addEventListener('change', function () {
-                    attendanceTable.ajax.reload();
+                    if (attendanceTable) {
+                        attendanceTable.ajax.reload();
+                    }
                 });
             }
 
             if (attendanceYearFilter) {
                 attendanceYearFilter.addEventListener('change', function () {
-                    attendanceTable.ajax.reload();
+                    if (attendanceTable) {
+                        attendanceTable.ajax.reload();
+                    }
                 });
             }
 

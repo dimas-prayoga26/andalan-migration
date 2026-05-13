@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
+use Throwable;
 
 class LeaveBalanceSeeder extends Seeder
 {
@@ -14,60 +16,64 @@ class LeaveBalanceSeeder extends Seeder
      */
     public function run(): void
     {
-        $now = now();
-        $currentYear = (int) $now->year;
-        $defaultAnnualQuota = 12;
-        /** @var array<string, int> $annualQuotaByCompany */
-        $annualQuotaByCompany = [];
+        try {
+            $now = now();
+            $currentYear = (int) $now->year;
+            $defaultAnnualQuota = 12;
+            /** @var array<string, int> $annualQuotaByCompany */
+            $annualQuotaByCompany = [];
 
-        $users = User::query()
-            ->select(['id'])
-            ->get();
+            $users = User::query()
+                ->select(['id'])
+                ->get();
 
-        foreach ($users as $user) {
-            $employment = DB::table('employee_deployments')
-                ->select(['join_date', 'current_company_id'])
-                ->join('employees', 'employee_deployments.employee_id', '=', 'employees.id')
-                ->where('employees.user_id', $user->id)
-                ->first();
+            foreach ($users as $user) {
+                $employment = DB::table('employee_deployments')
+                    ->select(['join_date', 'current_company_id'])
+                    ->join('employees', 'employee_deployments.employee_id', '=', 'employees.id')
+                    ->where('employees.user_id', $user->id)
+                    ->first();
 
-            $employmentStartDateRaw = $employment?->join_date;
-            $companyId = $employment?->current_company_id;
-            $companyKey = $companyId === null ? 'none' : (string) $companyId;
+                $employmentStartDateRaw = $employment?->join_date;
+                $companyId = $employment?->current_company_id;
+                $companyKey = $companyId === null ? 'none' : (string) $companyId;
 
-            if (! array_key_exists($companyKey, $annualQuotaByCompany)) {
-                $annualQuotaByCompany[$companyKey] = $companyId !== null
-                    ? (int) (DB::table('meta_data_leave_companies')
-                        ->where('company_id', $companyId)
-                        ->value('annual_quota') ?? $defaultAnnualQuota)
-                    : $defaultAnnualQuota;
+                if (! array_key_exists($companyKey, $annualQuotaByCompany)) {
+                    $annualQuotaByCompany[$companyKey] = $companyId !== null
+                        ? (int) (DB::table('meta_data_leave_companies')
+                            ->where('company_id', $companyId)
+                            ->value('annual_quota') ?? $defaultAnnualQuota)
+                        : $defaultAnnualQuota;
+                }
+
+                $annualQuota = max($annualQuotaByCompany[$companyKey], 0);
+                $annualBalance = $this->resolveAnnualBalance(
+                    (string) $user->id,
+                    $employmentStartDateRaw,
+                    $currentYear,
+                    $annualQuota,
+                    $now
+                );
+
+                $timestamp = $now->copy();
+                if (is_string($employmentStartDateRaw) && trim($employmentStartDateRaw) !== '') {
+                    $timestamp = Carbon::parse($employmentStartDateRaw)->startOfDay();
+                }
+
+                DB::table('leave_balances')->updateOrInsert(
+                    [
+                        'user_id' => $user->id,
+                        'year' => $currentYear,
+                    ],
+                    [
+                        'annual_balance' => $annualBalance,
+                        'updated_at' => $now,
+                        'created_at' => $timestamp,
+                    ]
+                );
             }
-
-            $annualQuota = max($annualQuotaByCompany[$companyKey], 0);
-            $annualBalance = $this->resolveAnnualBalance(
-                (string) $user->id,
-                $employmentStartDateRaw,
-                $currentYear,
-                $annualQuota,
-                $now
-            );
-
-            $timestamp = $now->copy();
-            if (is_string($employmentStartDateRaw) && trim($employmentStartDateRaw) !== '') {
-                $timestamp = Carbon::parse($employmentStartDateRaw)->startOfDay();
-            }
-
-            DB::table('leave_balances')->updateOrInsert(
-                [
-                    'user_id' => $user->id,
-                    'year' => $currentYear,
-                ],
-                [
-                    'annual_balance' => $annualBalance,
-                    'updated_at' => $now,
-                    'created_at' => $timestamp,
-                ]
-            );
+        } catch (Throwable $throwable) {
+            throw new RuntimeException('LeaveBalanceSeeder gagal dijalankan.', 0, $throwable);
         }
     }
 

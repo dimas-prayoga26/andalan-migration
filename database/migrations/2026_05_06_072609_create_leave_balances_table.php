@@ -12,10 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('leave_balances', function (Blueprint $table) {
-            $table->id();
-            $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
-            $table->unsignedInteger('annual_balance');
-            $table->year('year');
+            $table->uuid('id')->primary();
+            $table->foreignUuid('employee_id')->nullable()->constrained('employees', 'id')->nullOnDelete();
+            $table->foreignUuid('leave_type_id')->nullable()->constrained('leave_types', 'id')->nullOnDelete();
+            $table->year('period_year')->nullable();
+            $table->decimal('earned_quota', 8, 2)->default(0);
+            $table->decimal('used_quota', 8, 2)->default(0);
+            $table->decimal('remaining_quota', 8, 2)->default(0);
+            $table->softDeletes();
             $table->timestamps();
         });
     }

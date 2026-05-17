@@ -54,6 +54,10 @@
             text-align: center !important;
         }
 
+        #myTable.dataTable tbody td.dataTables_empty {
+            text-align: center !important;
+        }
+
         .badge-attendance-empty {
             background: #fff1f2;
             color: #be123c;
@@ -202,6 +206,47 @@
             outline: 0;
         }
 
+        #myTable_wrapper .dt-scroll,
+        #myTable_wrapper .dataTables_scroll {
+            overflow: hidden;
+        }
+
+        #myTable_wrapper .dt-scroll-head table,
+        #myTable_wrapper .dt-scroll-body table,
+        #myTable_wrapper .dataTables_scrollHead table,
+        #myTable_wrapper .dataTables_scrollBody table {
+            min-width: 920px;
+        }
+
+        #myTable_wrapper .dt-scroll-body,
+        #myTable_wrapper .dataTables_scrollBody {
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #myTable_wrapper .dt-scroll-body thead,
+        #myTable_wrapper .dataTables_scrollBody thead {
+            visibility: hidden !important;
+        }
+
+        #myTable_wrapper .dt-scroll-body thead tr,
+        #myTable_wrapper .dt-scroll-body thead th,
+        #myTable_wrapper .dataTables_scrollBody thead tr,
+        #myTable_wrapper .dataTables_scrollBody thead th {
+            height: 0 !important;
+            line-height: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            border-top: 0 !important;
+            border-bottom: 0 !important;
+            margin: 0 !important;
+        }
+
+        #myTable_wrapper table.dataTable thead > tr > th span.dt-column-order {
+            display: none !important;
+        }
+
         @media only screen and (max-width: 767.98px) {
             #myTable_wrapper .dt-layout-row:first-child {
                 flex-direction: column;
@@ -243,71 +288,37 @@
 @section('navbarTitle', 'Attendances-data')
 
 @section('content')
-<!-- Start - Page Title & Breadcrumb -->
-<div class="page-title">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li><h1>Attendances-data</h1></li>
-            <li class="breadcrumb-item">
-                <a href="{{ route('dashboard') }}">
-                    <svg width="18" height="18" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2.125 6.375L8.5 1.41667L14.875 6.375V14.1667C14.875 14.5424 14.7257 14.9027 14.4601 15.1684C14.1944 15.4341 13.8341 15.5833 13.4583 15.5833H3.54167C3.16594 15.5833 2.80561 15.4341 2.53993 15.1684C2.27426 14.9027 2.125 14.5424 2.125 14.1667V6.375Z" stroke="var(--bs-body-color)" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M6.375 15.5833V8.5H10.625V15.5833" stroke="var(--bs-body-color)" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    Home
-                </a>
-            </li>
-            <li class="breadcrumb-item active" aria-current="page">Attendances-data</li>
-        </ol>
-    </nav>
+
+@include('layouts.breadcrumb', [
+    'title' => 'Attendances',
+    'current' => 'Izin',
+    'homeRoute' => 'dashboard',
+])
+
+@include('absensi.layouts_absensi.profileIndex')
+
+<div class="col-lg-12">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Lembur</h5>
+        <div class="d-flex align-items-center">
+            @if($canSubmitOvertime ?? false)
+            <button
+                type="button"
+                class="me-2 btn btn-success light btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#submitLemburModal"
+            >Submit Lembur</button>
+            @endif
+        </div>
+    </div>
 </div>
 <!-- End - Page Title & Breadcrumb -->
 <div class="row">
     <div class="col-xl-12 col-xxl-12">
         <div class="card h-auto">
-            <div class="card-header">
-                <ul class="nav nav-underline card-header-tabs absensi-tabs" id="nav-tab" role="tablist">
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi') ? 'true' : 'false' }}">Absensi Hari Ini</button>
-                    </li>
-                    <li class="nav-item">
-                    </li>
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.reports') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.reports') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.reports') ? 'true' : 'false' }}">Reports</button>
-                    </li>
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.izin') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.izin') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.izin') ? 'true' : 'false' }}">Izin</button>
-                    </li>
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.lembur') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.lembur') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.lembur') ? 'true' : 'false' }}">Lembur</button>
-                    </li>
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.cuti') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.cuti') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.cuti') ? 'true' : 'false' }}">Libur Nasional dan Cuti Bersama</button>
-                    </li>
-                </ul>
-            </div>
             <div class="row">
                 <div class="col-xxl-12 col-xl-12">
                     <div class="card-body">
-                        <div class="row g-2 align-items-center mb-3">
-                            <div class="col-12 col-md-3"></div>
-                            <div class="col-12 col-md-6">
-                                <div class="attendance-datetime mb-0" id="attendanceDateTime"></div>
-                            </div>
-                            <div class="col-12 col-md-3 text-md-end">
-                                @if($canSubmitOvertime ?? false)
-                                    <button
-                                        type="button"
-                                        id="openSubmitLemburModalButton"
-                                        class="btn btn-primary btn-sm"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#submitLemburModal"
-                                    >
-                                        Submit Lembur
-                                    </button>
-                                @endif
-                            </div>
-                        </div>
                         <div class="lembur-table-title">Data Lembur</div>
                         <div class="table-responsive">
                             <table id="myTable" class="display table">
@@ -489,6 +500,30 @@
                 }
             });
 
+            function ensureEmptyPageOne(tableApi) {
+                var tableWrapper = $(tableApi.table().container());
+                var pageInfo = tableApi.page.info();
+
+                tableWrapper.find('.absensi-empty-page-btn').remove();
+
+                if (!pageInfo || pageInfo.recordsTotal !== 0) {
+                    return;
+                }
+
+                var modernNextButton = tableWrapper.find('.dt-paging .dt-paging-button.next');
+                if (modernNextButton.length > 0) {
+                    $('<button type="button" class="dt-paging-button current absensi-empty-page-btn" disabled>1</button>')
+                        .insertBefore(modernNextButton.first());
+                    return;
+                }
+
+                var legacyNextButton = tableWrapper.find('.dataTables_paginate .paginate_button.next');
+                if (legacyNextButton.length > 0) {
+                    $('<span class="paginate_button current absensi-empty-page-btn">1</span>')
+                        .insertBefore(legacyNextButton.first());
+                }
+            }
+
             overtimeTableInstance = $('#myTable').DataTable({
                 ajax: {
                     url: '{{ route('absensi.lembur.datatable') }}',
@@ -498,6 +533,8 @@
                 autoWidth: false,
                 scrollX: true,
                 scrollCollapse: true,
+                searching: false,
+                lengthChange: false,
                 columns: [
                     { data: null, defaultContent: '' },
                     { data: 'overtime_date', defaultContent: '-' },
@@ -565,6 +602,9 @@
 
                     scrollBody.scrollLeft(0);
                     tableApi.columns.adjust();
+                },
+                drawCallback: function () {
+                    ensureEmptyPageOne(this.api());
                 }
             });
 

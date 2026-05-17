@@ -3,25 +3,16 @@
 namespace App\Models;
 
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable([
-    'employee_id',
-    'current_department_id',
-    'current_position_id',
-    'current_company_id',
-    'join_date',
-    'resignation_date',
-    'workplace',
-    'status',
-])]
 class EmployeeDeployment extends Model
 {
     use GeneratesCustomSequenceUuid;
 
     protected $table = 'employee_deployments';
+
+    protected $guarded = [];
 
     protected $keyType = 'string';
 
@@ -49,5 +40,10 @@ class EmployeeDeployment extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'current_company_id');
+    }
+
+    public function position(): BelongsTo
+    {
+        return $this->belongsTo(Position::class, 'current_position_id', 'id');
     }
 }

@@ -3,32 +3,17 @@
 namespace App\Models;
 
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable([
-    'user_id',
-    'employee_id',
-    'leave_type_id',
-    'start_date',
-    'end_date',
-    'total_days',
-    'reason',
-    'is_active',
-    'attachment_path',
-    'permission_types',
-    'status',
-    'approval_status',
-    'approved_by',
-    'approved_at',
-])]
 class LeaveRequest extends Model
 {
     use GeneratesCustomSequenceUuid;
 
     protected $table = 'leave_requests';
+
+    protected $guarded = [];
 
     protected $keyType = 'string';
 
@@ -54,9 +39,14 @@ class LeaveRequest extends Model
         });
     }
 
-    public function user(): BelongsTo
+    public function employee(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Employee::class, 'employee_id', 'id');
+    }
+
+    public function leaveType(): BelongsTo
+    {
+        return $this->belongsTo(LeaveType::class, 'leave_type_id', 'id');
     }
 
     public function attachments(): HasMany

@@ -25,17 +25,24 @@ class EmployeeAddressSeeder extends Seeder
             $now = now();
 
             $employees = Employee::query()
-                ->with('user')
+                ->with(['user.userProfile', 'deployment.company'])
                 ->get();
-
-            $userProfiles = DB::table('user_profiles')
-                ->whereIn('user_id', $employees->pluck('user_id')->filter()->values())
-                ->get()
-                ->keyBy('user_id');
 
             foreach ($employees as $employee) {
                 $employeeId = (string) $employee->id;
-                $userProfile = $userProfiles->get($employee->user_id);
+                $userProfile = $employee->user?->userProfile;
+                $companyAddress = is_string($employee->deployment?->company?->address)
+                    ? trim((string) $employee->deployment?->company?->address)
+                    : '';
+                $companyCity = is_string($employee->deployment?->company?->city)
+                    ? trim((string) $employee->deployment?->company?->city)
+                    : '';
+                $addressLine = is_string($userProfile?->address) && trim((string) $userProfile?->address) !== ''
+                    ? trim((string) $userProfile?->address)
+                    : ($companyAddress !== '' ? $companyAddress : 'Alamat belum diisi');
+                $regency = $companyCity !== '' ? $companyCity : 'Sleman';
+                $subdistrict = $regency === 'Jakarta' ? 'Tanah Abang' : 'Depok';
+                $village = $subdistrict === 'Tanah Abang' ? 'Kebon Kacang' : 'Condongcatur';
 
                 $existingAddress = DB::table('employee_addresses')
                     ->where('employee_id', $employeeId)
@@ -43,10 +50,10 @@ class EmployeeAddressSeeder extends Seeder
                     ->first();
 
                 $payload = [
-                    'address_line' => $userProfile?->address ?: 'Alamat belum diisi',
-                    'village' => null,
-                    'subdistrict' => null,
-                    'regency' => null,
+                    'address_line' => $addressLine,
+                    'village' => $village,
+                    'subdistrict' => $subdistrict,
+                    'regency' => $regency,
                     'province' => 'DI Yogyakarta',
                     'country' => 'Indonesia',
                     'postal_code' => null,

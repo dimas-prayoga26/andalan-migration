@@ -1,8 +1,13 @@
 {
-    "agents": ["codex"],
+    "agents": [
+        "codex"
+    ],
+    "cloud": false,
     "guidelines": true,
     "mcp": true,
     "nightwatch_mcp": false,
     "sail": false,
-    "skills": ["laravel-best-practices"]
+    "skills": [
+        "laravel-best-practices"
+    ]
 }

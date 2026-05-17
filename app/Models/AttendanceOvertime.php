@@ -3,27 +3,16 @@
 namespace App\Models;
 
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable([
-    'employee_id',
-    'assigned_by',
-    'overtime_date',
-    'planned_start_time',
-    'planned_end_time',
-    'instruction',
-    'actual_start_time',
-    'actual_end_time',
-    'calculated_hours',
-    'status',
-])]
 class AttendanceOvertime extends Model
 {
     use GeneratesCustomSequenceUuid;
 
     protected $table = 'overtimes';
+
+    protected $guarded = [];
 
     protected $keyType = 'string';
 

@@ -149,6 +149,110 @@
             font-size: 0.9rem;
             color: #64748b;
         }
+
+        #tableLogs.dataTable tbody td.dataTables_empty {
+            text-align: center !important;
+        }
+
+        .attendance-table-scroll-area {
+            overflow: hidden;
+        }
+
+        .attendance-table-scroll-area #tableLogs {
+            width: 100% !important;
+        }
+
+        #tableLogs_wrapper .dt-scroll,
+        #tableLogs_wrapper .dataTables_scroll {
+            overflow: hidden;
+        }
+
+        #tableLogs_wrapper .dt-scroll-head table,
+        #tableLogs_wrapper .dt-scroll-body table,
+        #tableLogs_wrapper .dataTables_scrollHead table,
+        #tableLogs_wrapper .dataTables_scrollBody table {
+            min-width: 820px;
+        }
+
+        #tableLogs_wrapper .dt-scroll-body,
+        #tableLogs_wrapper .dataTables_scrollBody {
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #tableLogs_wrapper .dt-scroll-body thead,
+        #tableLogs_wrapper .dataTables_scrollBody thead {
+            visibility: hidden !important;
+        }
+
+        #tableLogs_wrapper .dt-scroll-body thead tr,
+        #tableLogs_wrapper .dt-scroll-body thead th,
+        #tableLogs_wrapper .dataTables_scrollBody thead tr,
+        #tableLogs_wrapper .dataTables_scrollBody thead th {
+            height: 0 !important;
+            line-height: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            border-top: 0 !important;
+            border-bottom: 0 !important;
+            margin: 0 !important;
+        }
+
+        #tableLogs_wrapper table.dataTable thead > tr > th span.dt-column-order {
+            display: none !important;
+        }
+
+        .logs-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .logs-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+
+        .logs-toolbar > .clearfix {
+            flex: 0 0 auto;
+        }
+
+        @media only screen and (max-width: 767.98px) {
+            .logs-card-header {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .logs-card-header .card-title {
+                width: 100%;
+                margin-bottom: 0.5rem;
+                text-align: center;
+            }
+
+            .logs-toolbar {
+                width: 100%;
+                margin-left: 0;
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+                align-items: center;
+            }
+
+            .logs-toolbar .bootstrap-select,
+            .logs-toolbar .selectpicker,
+            .logs-toolbar .bootstrap-select > .dropdown-toggle {
+                width: auto !important;
+                min-width: 110px;
+            }
+
+            .logs-toolbar .btn {
+                white-space: nowrap;
+            }
+        }
     </style>
 
 @endsection
@@ -185,18 +289,18 @@
         <!-- Start - logs -->
         <div class="col-12">
             <div class="card">
-                <div class="card-header border-0 align-items-center">
+                <div class="card-header border-0 align-items-center logs-card-header">
                     <h4 class="card-title">Logs</h4>
-                    <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-2 logs-toolbar">
                         <div class="clearfix">
-                            <select class="selectpicker form-select form-select-sm">
+                            <select class="selectpicker">
                                 <option value="All Time">All Time</option>
                                 <option value="Weekly">Week</option>
                                 <option value="Monthly">Month</option>
                             </select>
                         </div>
                         <div class="clearfix">
-                            <select class="selectpicker form-select form-select-sm">
+                            <select class="selectpicker">
                                 <option value="View All">View All</option>
                                 <option value="Top 10">Top 10</option>
                                 <option value="Top 20">Top 20</option>
@@ -208,7 +312,7 @@
                     </div>
                 </div>
                 <div class="card-body table-card-body px-0 pt-0 pb-2">
-                    <div class="table-responsive">
+                    <div class="table-responsive attendance-table-scroll-area">
                         <table id="tableLogs" class="table table-sm table-sm-responsive text-nowrap">
                             <thead>
                                 <tr>
@@ -336,9 +440,6 @@
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 	
-	<!-- Script For Datatables -->
-	<script src="vendor/datatables/js/jquery.dataTables.bundle.min.js"></script>
-	
     <script>
         $(function () {
             var attendanceDateElement = document.getElementById('attendanceDateTime');
@@ -395,6 +496,34 @@
 
             var attendanceTable = null;
 
+            function ensureEmptyPageOne(datatableApi) {
+                if (!datatableApi) {
+                    return;
+                }
+
+                var pageInfo = datatableApi.page.info();
+                var tableWrapper = $(datatableApi.table().container());
+
+                tableWrapper.find('.absensi-empty-page-btn').remove();
+
+                if (!pageInfo || pageInfo.recordsTotal !== 0) {
+                    return;
+                }
+
+                var modernNextButton = tableWrapper.find('.dt-paging .dt-paging-button.next');
+                if (modernNextButton.length > 0) {
+                    $('<button type="button" class="dt-paging-button current absensi-empty-page-btn" disabled>1</button>')
+                        .insertBefore(modernNextButton.first());
+                    return;
+                }
+
+                var legacyNextButton = tableWrapper.find('.dataTables_paginate .paginate_button.next');
+                if (legacyNextButton.length > 0) {
+                    $('<span class="paginate_button current absensi-empty-page-btn">1</span>')
+                        .insertBefore(legacyNextButton.first());
+                }
+            }
+
             var tableLogs = function(){
                 if ($('#tableLogs').length === 0) {
                     return;
@@ -411,6 +540,7 @@
                         dataSrc: 'data'
                     },
                     autoWidth: false,
+                    scrollX: true,
                     searching: false,
                     pageLength: 6,
                     select: false,
@@ -476,10 +606,14 @@
                         }
                     ],
                     language: {
+                        emptyTable: 'No data available in table',
                         paginate: {
                             next: '<i class="fa-solid fa-angle-right"></i>',
                             previous: '<i class="fa-solid fa-angle-left"></i>'
                         }
+                    },
+                    drawCallback: function () {
+                        ensureEmptyPageOne(this.api());
                     }
                 });
 
@@ -489,6 +623,8 @@
                         cell.innerHTML = pageInfo.start + index + 1;
                     });
                 });
+
+                ensureEmptyPageOne(attendanceTable);
             };
 
             function parseTimeStringToMinutes(timeString, fallbackMinutes) {

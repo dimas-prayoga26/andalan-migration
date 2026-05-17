@@ -49,7 +49,6 @@
 	<link class="main-css" href="css/style.css" rel="stylesheet">
 	<!-- End - Style Css -->
 
-    <link rel="stylesheet" href="https://cdn.datatables.net/2.3.8/css/dataTables.dataTables.css" />
     <link href="https://unpkg.com/filepond/dist/filepond.min.css" rel="stylesheet">
     <style>
         .deznav {

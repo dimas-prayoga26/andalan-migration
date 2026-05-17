@@ -2,19 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable([
-    'leave_request_id',
-    'file_path',
-    'file_name',
-    'attachment_type',
-])]
 class LeaveRequestAttachment extends Model
 {
     protected $table = 'leave_request_attachments';
+
+    protected $guarded = [];
 
     public function leaveRequest(): BelongsTo
     {

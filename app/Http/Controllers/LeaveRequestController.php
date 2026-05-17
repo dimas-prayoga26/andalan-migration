@@ -2,30 +2,29 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\EmployeeDeployment;
+use App\Models\EmployeeProfile;
+use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
-use App\Models\LeaveRequestAttachment;
+use App\Models\LeaveType;
+use App\Models\MetaDataLeaveCompany;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LeaveRequestController extends Controller
 {
     public function index(): View
     {
-        $authenticatedUser = Auth::user();
-        if ($authenticatedUser instanceof User) {
-            $authenticatedUser->loadMissing('employee.deployment');
-        }
+        $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
 
         $isBoardOfDirectur = $this->isBoardOfDirectur($authenticatedUser);
         $isAdminUser = $this->isAdminUser($authenticatedUser);
@@ -33,7 +32,6 @@ class LeaveRequestController extends Controller
         $canFilterEmployees = $isBoardOfDirectur || $isAdminUser;
         $canUpdatePermissionStatus = $isBoardOfDirectur || $isAdminUser;
         $userCompanyId = $authenticatedUser?->employee?->deployment?->current_company_id;
-        $permissionTypes = collect();
         $approvalSummary = [
             'pending' => 0,
             'approved' => 0,
@@ -41,9 +39,10 @@ class LeaveRequestController extends Controller
             'total' => 0,
         ];
         $staffUsersQuery = User::query()
-            ->select(['id', 'name'])
+            ->select(['id', 'username', 'email'])
+            ->with(['employee:id,user_id'])
             ->whereHas('employee.deployment')
-            ->orderBy('name');
+            ->orderBy('username');
 
         if ($isBoardOfDirectur && $userCompanyId) {
             $staffUsersQuery->whereHas('employee.deployment', function ($query) use ($userCompanyId): void {
@@ -56,27 +55,33 @@ class LeaveRequestController extends Controller
         $staffUsersQuery->whereKeyNot(Auth::id());
 
         $staffUsers = $staffUsersQuery->get();
+        $staffUsersProfileNamesByEmployeeId = $this->fetchEmployeeProfileNamesByUsers($staffUsers);
+        $staffUsers = $staffUsers->map(function (User $staffUser) use ($staffUsersProfileNamesByEmployeeId): object {
+            return (object) [
+                'id' => $staffUser->id,
+                'name' => $this->resolveUserDisplayName($staffUser, $staffUsersProfileNamesByEmployeeId),
+            ];
+        });
 
-        if (Schema::hasTable('meta_data_permission_types')) {
-            $permissionTypes = DB::table('meta_data_permission_types')
-                ->select(['id', 'name'])
-                ->whereNotIn('name', $this->attendanceStatusPermissionTypeNames())
-                ->orderBy('name')
-                ->get();
-        }
+        $permissionTypes = LeaveType::query()
+            ->select(['id', 'name'])
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
 
         $summaryQuery = LeaveRequest::query();
 
         if ($isBoardOfDirectur && $userCompanyId) {
-            $summaryQuery->whereHas('user.employee.deployment', function ($query) use ($userCompanyId): void {
+            $summaryQuery->whereHas('employee.deployment', function ($query) use ($userCompanyId): void {
                 $query->where('current_company_id', $userCompanyId);
             });
         } elseif (! $isAdminUser) {
-            $summaryQuery->where('user_id', Auth::id());
+            $currentEmployeeId = $authenticatedUser?->employee?->id;
+            $summaryQuery->where('employee_id', $currentEmployeeId);
         }
 
         $approvalCounts = $summaryQuery
-            ->selectRaw('LOWER(approval_status) as status, COUNT(*) as total')
+            ->selectRaw('LOWER(status) as status, COUNT(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status');
 
@@ -97,24 +102,27 @@ class LeaveRequestController extends Controller
             $currentMonth = (int) now()->month;
             $currentMonthYearLabel = now()->format('F Y');
             $userId = (string) $authenticatedUser->id;
+            $employeeId = (string) ($authenticatedUser->employee?->id ?? '');
 
             $monthlyLeaveLimit = 0;
             if ($userCompanyId) {
-                $monthlyLeaveLimit = (int) DB::table('meta_data_leave_companies')
+                $monthlyLeaveLimit = (int) MetaDataLeaveCompany::query()
                     ->where('company_id', $userCompanyId)
                     ->value('montly_leave_limit');
             }
 
-            $leaveSummary = $this->calculateStaffLeaveSummary($userId, $currentYear, $currentMonth);
+            $leaveSummary = $this->calculateStaffLeaveSummary($employeeId, $currentYear, $currentMonth);
             $remainingAnnualLeave = $leaveSummary['remaining_annual_balance'];
             $annualLeaveUsage = $leaveSummary['used_annual_balance'];
 
             $isMonthlySpecialLeaveUsed = LeaveRequest::query()
-                ->where('user_id', $userId)
-                ->whereRaw('LOWER(permission_types) = ?', ['cuti khusus'])
+                ->where('employee_id', $employeeId)
+                ->whereHas('leaveType', function ($query): void {
+                    $query->whereRaw('LOWER(name) = ?', ['cuti khusus']);
+                })
                 ->whereYear('start_date', $currentYear)
                 ->whereMonth('start_date', $currentMonth)
-                ->whereRaw('LOWER(approval_status) NOT IN (?, ?)', ['rejected', 'refused'])
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['rejected', 'refused'])
                 ->exists();
 
             $remainingMonthlyLeave = $isMonthlySpecialLeaveUsed ? 0 : $monthlyLeaveLimit;
@@ -144,44 +152,46 @@ class LeaveRequestController extends Controller
         $validated = $request->validate([
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
-            'permission_type_id' => ['required'],
+            'permission_type_id' => ['required', 'exists:leave_types,id'],
             'reason' => ['required', 'string', 'max:5000'],
-            'attachment_files' => ['sometimes', 'array'],
-            'attachment_files.*' => ['file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'attachment_path' => ['nullable', 'string', 'max:255'],
+            'attachment_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
         ]);
 
-        $permissionTypeName = DB::table('meta_data_permission_types')
+        $permissionTypeName = LeaveType::query()
             ->where('id', $validated['permission_type_id'])
             ->value('name');
 
-        $permissionTypeValue = is_string($permissionTypeName) && trim($permissionTypeName) !== ''
-            ? $permissionTypeName
-            : (string) $validated['permission_type_id'];
-        $normalizedPermissionType = strtolower(trim($permissionTypeValue));
-        $normalizedAttendanceStatusTypes = collect($this->attendanceStatusPermissionTypeNames())
-            ->map(static fn (string $statusType): string => strtolower(trim($statusType)));
-
-        if ($normalizedAttendanceStatusTypes->contains($normalizedPermissionType)) {
+        $permissionTypeValue = is_string($permissionTypeName) ? trim($permissionTypeName) : '';
+        if ($permissionTypeValue === '') {
             return response()->json([
                 'success' => false,
-                'message' => 'Tipe izin tidak valid untuk pengajuan izin.',
+                'message' => 'Tipe izin tidak ditemukan.',
             ], 422);
         }
+        $normalizedPermissionType = strtolower($permissionTypeValue);
 
         $startDate = Carbon::parse($validated['start_date']);
         $endDate = Carbon::parse($validated['end_date']);
         $durationDays = $startDate->diffInDays($endDate) + 1;
         $currentYear = (int) $startDate->year;
         $currentMonth = (int) $startDate->month;
-        $userId = (string) Auth::id();
-        $authenticatedUser = Auth::user();
-        $authenticatedUser?->loadMissing('employee.deployment');
+        $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
+        $userId = (string) ($authenticatedUser?->id ?? '');
+        $employeeId = (string) ($authenticatedUser?->employee?->id ?? '');
         $userCompanyId = (string) ($authenticatedUser?->employee?->deployment?->current_company_id ?? '');
+
+        if ($employeeId === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data karyawan tidak ditemukan.',
+            ], 422);
+        }
 
         if ($normalizedPermissionType === 'cuti khusus') {
             $monthlyLeaveLimit = 0;
             if ($userCompanyId !== '') {
-                $monthlyLeaveLimit = (int) DB::table('meta_data_leave_companies')
+                $monthlyLeaveLimit = (int) MetaDataLeaveCompany::query()
                     ->where('company_id', $userCompanyId)
                     ->value('montly_leave_limit');
             }
@@ -194,11 +204,13 @@ class LeaveRequestController extends Controller
             }
 
             $isMonthlySpecialLeaveUsed = LeaveRequest::query()
-                ->where('user_id', $userId)
-                ->whereRaw('LOWER(permission_types) = ?', ['cuti khusus'])
+                ->where('employee_id', $employeeId)
+                ->whereHas('leaveType', function ($query): void {
+                    $query->whereRaw('LOWER(name) = ?', ['cuti khusus']);
+                })
                 ->whereYear('start_date', $currentYear)
                 ->whereMonth('start_date', $currentMonth)
-                ->whereRaw('LOWER(approval_status) NOT IN (?, ?)', ['rejected', 'refused'])
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['rejected', 'refused'])
                 ->exists();
 
             if ($isMonthlySpecialLeaveUsed) {
@@ -210,7 +222,7 @@ class LeaveRequestController extends Controller
         }
 
         if (in_array($normalizedPermissionType, ['cuti khusus', 'cuti tahunan'], true)) {
-            $leaveSummary = $this->calculateStaffLeaveSummary($userId, $currentYear, $currentMonth);
+            $leaveSummary = $this->calculateStaffLeaveSummary($employeeId, $currentYear, $currentMonth);
             $remainingAnnualBalance = (int) $leaveSummary['remaining_annual_balance'];
 
             if ($remainingAnnualBalance < $durationDays) {
@@ -221,12 +233,49 @@ class LeaveRequestController extends Controller
             }
         }
 
-        DB::transaction(function () use ($request, $validated, $permissionTypeValue, $durationDays): void {
-            $authenticatedUser = Auth::user();
-            $employeeId = $authenticatedUser?->employee?->id;
+        $temporaryAttachmentPath = $this->normalizeUploadedAttachmentPath($validated['attachment_path'] ?? null);
+        if ($temporaryAttachmentPath !== null && ! $this->publicDisk()->exists($temporaryAttachmentPath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lampiran sementara tidak ditemukan. Silakan upload ulang lampiran.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($request, $validated, $durationDays, $employeeId, $temporaryAttachmentPath): void {
+            $storedAttachmentPath = null;
+            $attachmentDirectory = 'leave-request-attachments';
+            if (! $this->publicDisk()->directoryExists($attachmentDirectory)) {
+                $this->publicDisk()->makeDirectory($attachmentDirectory);
+            }
+
+            if ($temporaryAttachmentPath !== null) {
+                $temporaryExtension = strtolower((string) pathinfo($temporaryAttachmentPath, PATHINFO_EXTENSION));
+                $finalExtension = in_array($temporaryExtension, ['jpg', 'jpeg', 'png', 'pdf'], true)
+                    ? $temporaryExtension
+                    : 'bin';
+                $finalFileName = now()->format('YmdHis').'_'.Str::random(8).'_'.Str::slug(pathinfo($temporaryAttachmentPath, PATHINFO_FILENAME)).'.'.$finalExtension;
+                $finalStoredPath = $attachmentDirectory.'/'.$finalFileName;
+
+                $isMoved = $this->publicDisk()->move($temporaryAttachmentPath, $finalStoredPath);
+                if ($isMoved) {
+                    $storedAttachmentPath = $finalStoredPath;
+                }
+            } else {
+                $attachmentFile = $request->file('attachment_file');
+                if ($attachmentFile && $attachmentFile->isValid()) {
+                    $originalName = $attachmentFile->getClientOriginalName();
+                    $sanitizedName = Str::slug(pathinfo($originalName, PATHINFO_FILENAME));
+                    $extension = strtolower((string) $attachmentFile->getClientOriginalExtension());
+                    $storedFileName = now()->format('YmdHis').'_'.Str::random(8).'_'.$sanitizedName.'.'.$extension;
+                    $storedPath = $attachmentFile->storeAs($attachmentDirectory, $storedFileName, 'public');
+
+                    if ($storedPath !== false) {
+                        $storedAttachmentPath = $storedPath;
+                    }
+                }
+            }
 
             $leaveRequest = LeaveRequest::create([
-                'user_id' => Auth::id(),
                 'employee_id' => $employeeId,
                 'leave_type_id' => $validated['permission_type_id'],
                 'start_date' => $validated['start_date'],
@@ -234,42 +283,9 @@ class LeaveRequestController extends Controller
                 'total_days' => $durationDays,
                 'reason' => $validated['reason'],
                 'is_active' => true,
-                'permission_types' => $permissionTypeValue,
+                'attachment_path' => $storedAttachmentPath,
                 'status' => 'pending',
-                'approval_status' => 'pending',
             ]);
-
-            /** @var array<int, UploadedFile> $attachments */
-            $attachments = array_values(array_filter(
-                (array) $request->file('attachment_files', []),
-                static fn (mixed $attachment): bool => $attachment instanceof UploadedFile
-            ));
-            $attachmentDirectory = 'leave-request-attachments';
-
-            foreach ($attachments as $attachment) {
-                if (! $attachment->isValid()) {
-                    continue;
-                }
-
-                if (! Storage::disk('public')->directoryExists($attachmentDirectory)) {
-                    Storage::disk('public')->makeDirectory($attachmentDirectory);
-                }
-
-                $originalName = $attachment->getClientOriginalName();
-                $sanitizedName = Str::slug(pathinfo($originalName, PATHINFO_FILENAME));
-                $extension = strtolower((string) $attachment->getClientOriginalExtension());
-                $storedFileName = now()->format('YmdHis').'_'.Str::random(8).'_'.$sanitizedName.'.'.$extension;
-                $storedPath = $attachment->storeAs($attachmentDirectory, $storedFileName, 'public');
-                if ($storedPath === false) {
-                    continue;
-                }
-
-                $leaveRequest->attachments()->create([
-                    'file_path' => $storedPath,
-                    'file_name' => $originalName,
-                    'attachment_type' => $attachment->getClientMimeType() ?: $extension,
-                ]);
-            }
         });
 
         return response()->json([
@@ -278,46 +294,123 @@ class LeaveRequestController extends Controller
         ]);
     }
 
+    public function uploadImage(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'attachment_file' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+        ]);
+
+        $attachmentFile = $request->file('attachment_file');
+        if (! $attachmentFile || ! $attachmentFile->isValid()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File lampiran tidak valid.',
+            ], 422);
+        }
+
+        $temporaryDirectory = 'leave-request-temp';
+        if (! $this->publicDisk()->directoryExists($temporaryDirectory)) {
+            $this->publicDisk()->makeDirectory($temporaryDirectory);
+        }
+
+        $originalName = $attachmentFile->getClientOriginalName();
+        $sanitizedName = Str::slug(pathinfo($originalName, PATHINFO_FILENAME));
+        $extension = strtolower((string) $attachmentFile->getClientOriginalExtension());
+        $storedFileName = now()->format('YmdHis').'_'.Str::random(8).'_'.$sanitizedName.'.'.$extension;
+        $storedPath = $attachmentFile->storeAs($temporaryDirectory, $storedFileName, 'public');
+
+        if ($storedPath === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan lampiran sementara.',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lampiran berhasil diupload.',
+            'attachment_path' => $storedPath,
+            'attachment_url' => $this->publicDisk()->url($storedPath),
+        ]);
+    }
+
+    public function deleteUploadedImage(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'attachment_path' => ['required', 'string', 'max:255'],
+        ]);
+
+        $attachmentPath = $this->normalizeUploadedAttachmentPath($validated['attachment_path'] ?? null);
+        if ($attachmentPath === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lampiran sementara tidak valid.',
+            ], 422);
+        }
+
+        if ($this->publicDisk()->exists($attachmentPath)) {
+            $this->publicDisk()->delete($attachmentPath);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lampiran sementara berhasil dihapus.',
+        ]);
+    }
+
     public function datatable(Request $request): JsonResponse
     {
-        $authenticatedUser = Auth::user();
-        if ($authenticatedUser instanceof User) {
-            $authenticatedUser->loadMissing('employee.deployment');
-        }
+        $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
 
         $isBoardOfDirectur = $this->isBoardOfDirectur($authenticatedUser);
         $isAdminUser = $this->isAdminUser($authenticatedUser);
         $userCompanyId = $authenticatedUser?->employee?->deployment?->current_company_id;
         $selectedStaffUserId = trim((string) $request->input('staff_user_id', ''));
+        $currentEmployeeId = (string) ($authenticatedUser?->employee?->id ?? '');
 
         $permissionsQuery = LeaveRequest::query()
-            ->with(['user:id,name'])
+            ->with(['employee:id,user_id', 'employee.user:id,username,email', 'leaveType:id,name'])
             ->latest('id')
             ->select([
                 'id',
-                'user_id',
+                'employee_id',
+                'leave_type_id',
                 'start_date',
                 'end_date',
-                'permission_types',
-                'approval_status',
+                'status',
                 'reason',
             ]);
 
         if ($isBoardOfDirectur && $userCompanyId) {
-            $permissionsQuery->whereHas('user.employee.deployment', function ($query) use ($userCompanyId): void {
+            $permissionsQuery->whereHas('employee.deployment', function ($query) use ($userCompanyId): void {
                 $query->where('current_company_id', $userCompanyId);
             });
         } elseif (! $isAdminUser) {
-            $permissionsQuery->where('user_id', Auth::id());
+            $permissionsQuery->where('employee_id', $currentEmployeeId);
         }
 
         if ($selectedStaffUserId !== '') {
-            $permissionsQuery->where('user_id', $selectedStaffUserId);
+            $selectedStaffUser = User::query()
+                ->select(['id'])
+                ->with('employee:id,user_id')
+                ->whereKey($selectedStaffUserId)
+                ->first();
+            $selectedStaffEmployeeId = (string) ($selectedStaffUser?->employee?->id ?? '');
+
+            if ($selectedStaffEmployeeId !== '') {
+                $permissionsQuery->where('employee_id', $selectedStaffEmployeeId);
+            } else {
+                $permissionsQuery->whereRaw('1 = 0');
+            }
         }
 
         $permissions = $permissionsQuery->get();
+        $permissionEmployeeIds = $permissions
+            ->pluck('employee_id')
+            ->filter(static fn (mixed $employeeId): bool => is_string($employeeId) && trim($employeeId) !== '');
+        $permissionUserProfileNamesByEmployeeId = $this->fetchEmployeeProfileNamesByEmployeeIds($permissionEmployeeIds);
 
-        $tableRows = $permissions->map(function (LeaveRequest $permission): array {
+        $tableRows = $permissions->map(function (LeaveRequest $permission) use ($permissionUserProfileNamesByEmployeeId): array {
             $startDate = $permission->start_date instanceof Carbon
                 ? $permission->start_date
                 : Carbon::parse($permission->start_date);
@@ -331,9 +424,9 @@ class LeaveRequestController extends Controller
                 'id' => $permission->id,
                 'date_range' => $startDate->format('d M Y').' - '.$endDate->format('d M Y'),
                 'duration' => $durationDays.' Hari',
-                'staff_name' => $permission->user?->name ?? '-',
-                'permission_type' => $permission->permission_types,
-                'status' => $permission->approval_status,
+                'staff_name' => $this->resolveUserDisplayName($permission->employee?->user, $permissionUserProfileNamesByEmployeeId),
+                'permission_type' => $permission->leaveType?->name ?? '-',
+                'status' => $permission->status,
                 'reason' => $permission->reason ?: '-',
             ];
         })->values();
@@ -345,15 +438,27 @@ class LeaveRequestController extends Controller
 
     public function show(LeaveRequest $leaveRequest): JsonResponse
     {
-        if ((string) $leaveRequest->user_id !== (string) Auth::id()) {
+        $currentEmployeeId = (string) (Auth::user()?->employee?->id ?? '');
+        if ((string) $leaveRequest->employee_id !== $currentEmployeeId) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses ke data izin ini.',
             ], 403);
         }
 
-        $leaveRequest->loadMissing('user:id,name');
-        $leaveRequest->loadMissing('attachments:id,leave_request_id,file_name,file_path,attachment_type');
+        $leaveRequest = LeaveRequest::query()
+            ->with(['employee:id,user_id', 'employee.user:id,username,email', 'leaveType:id,name'])
+            ->find($leaveRequest->id);
+        if (! $leaveRequest instanceof LeaveRequest) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data izin tidak ditemukan.',
+            ], 404);
+        }
+
+        $leaveRequestUserProfileNamesByEmployeeId = $this->fetchEmployeeProfileNamesByEmployeeIds(
+            collect([$leaveRequest->employee_id])->filter(static fn (mixed $employeeId): bool => is_string($employeeId) && trim($employeeId) !== '')
+        );
 
         $startDate = $leaveRequest->start_date instanceof Carbon
             ? $leaveRequest->start_date
@@ -363,52 +468,35 @@ class LeaveRequestController extends Controller
             : Carbon::parse($leaveRequest->end_date);
         $durationDays = $startDate->diffInDays($endDate) + 1;
 
+        $attachmentPath = is_string($leaveRequest->attachment_path) ? trim($leaveRequest->attachment_path) : '';
+        $attachments = collect();
+        if ($attachmentPath !== '') {
+            $attachments->push([
+                'file_name' => basename($attachmentPath),
+                'file_url' => $this->publicDisk()->url($attachmentPath),
+                'attachment_type' => '',
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
                 'id' => $leaveRequest->id,
-                'staff_name' => $leaveRequest->user?->name ?? '-',
+                'staff_name' => $this->resolveUserDisplayName($leaveRequest->employee?->user, $leaveRequestUserProfileNamesByEmployeeId),
                 'date_range' => $startDate->format('d M Y').' - '.$endDate->format('d M Y'),
                 'duration' => $durationDays.' Hari',
-                'permission_type' => (string) $leaveRequest->permission_types,
-                'status' => (string) $leaveRequest->approval_status,
+                'permission_type' => (string) ($leaveRequest->leaveType?->name ?? '-'),
+                'status' => (string) $leaveRequest->status,
                 'reason' => $leaveRequest->reason ?: '-',
-                'attachments' => $leaveRequest->attachments->map(function ($attachment): array {
-                    $filePath = is_string($attachment->file_path) ? $attachment->file_path : '';
-
-                    return [
-                        'file_name' => is_string($attachment->file_name) && trim($attachment->file_name) !== ''
-                            ? $attachment->file_name
-                            : basename($filePath),
-                        'file_url' => $filePath !== ''
-                            ? route('absensi.izin.attachment', ['attachment' => $attachment->id])
-                            : '',
-                        'attachment_type' => is_string($attachment->attachment_type) ? $attachment->attachment_type : '',
-                    ];
-                })->values(),
+                'attachments' => $attachments->values(),
             ],
         ]);
     }
 
-    public function attachment(LeaveRequestAttachment $attachment): StreamedResponse
-    {
-        $attachment->loadMissing('leaveRequest:id,user_id');
-
-        if ((string) ($attachment->leaveRequest?->user_id ?? '') !== (string) Auth::id()) {
-            abort(403);
-        }
-
-        $filePath = is_string($attachment->file_path) ? $attachment->file_path : '';
-        if ($filePath === '' || ! Storage::disk('public')->exists($filePath)) {
-            abort(404);
-        }
-
-        return Storage::disk('public')->response($filePath);
-    }
-
     public function destroy(LeaveRequest $leaveRequest): JsonResponse
     {
-        if ((string) $leaveRequest->user_id !== (string) Auth::id()) {
+        $currentEmployeeId = (string) (Auth::user()?->employee?->id ?? '');
+        if ((string) $leaveRequest->employee_id !== $currentEmployeeId) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk menghapus data izin ini.',
@@ -416,15 +504,10 @@ class LeaveRequestController extends Controller
         }
 
         DB::transaction(function () use ($leaveRequest): void {
-            $leaveRequest->loadMissing('attachments:id,leave_request_id,file_path');
-
-            foreach ($leaveRequest->attachments as $attachment) {
-                if (is_string($attachment->file_path) && trim($attachment->file_path) !== '') {
-                    Storage::disk('public')->delete($attachment->file_path);
-                }
+            if (is_string($leaveRequest->attachment_path) && trim($leaveRequest->attachment_path) !== '') {
+                $this->publicDisk()->delete($leaveRequest->attachment_path);
             }
 
-            $leaveRequest->attachments()->delete();
             $leaveRequest->delete();
         });
 
@@ -445,10 +528,10 @@ class LeaveRequestController extends Controller
         }
 
         $validated = $request->validate([
-            'approval_status' => ['required', 'in:pending,approved,refused,rejected'],
+            'status' => ['required', 'in:pending,approved,refused,rejected'],
         ]);
 
-        $currentStatus = strtolower((string) ($leaveRequest->approval_status ?? 'pending'));
+        $currentStatus = strtolower((string) ($leaveRequest->status ?? 'pending'));
         if ($currentStatus !== 'pending') {
             return response()->json([
                 'success' => false,
@@ -456,13 +539,13 @@ class LeaveRequestController extends Controller
             ], 422);
         }
 
-        $normalizedStatus = strtolower(trim((string) $validated['approval_status']));
+        $normalizedStatus = strtolower(trim((string) $validated['status']));
         if ($normalizedStatus === 'rejected') {
             $normalizedStatus = 'refused';
         }
 
         $leaveRequest->update([
-            'approval_status' => $normalizedStatus,
+            'status' => $normalizedStatus,
         ]);
 
         return response()->json([
@@ -480,19 +563,12 @@ class LeaveRequestController extends Controller
         return $permissionTypes
             ->filter(static function (object $permissionType): bool {
                 return isset($permissionType->id, $permissionType->name)
-                    && is_numeric($permissionType->id)
+                    && is_string($permissionType->id)
+                    && trim($permissionType->id) !== ''
                     && is_string($permissionType->name)
                     && trim($permissionType->name) !== '';
             })
             ->values();
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function attendanceStatusPermissionTypeNames(): array
-    {
-        return ['Masuk', 'Terlambat', 'Pulang'];
     }
 
     private function isBoardOfDirectur(?User $user): bool
@@ -533,6 +609,25 @@ class LeaveRequestController extends Controller
         return $normalizedRoleNames->contains('staff');
     }
 
+    private function normalizeUploadedAttachmentPath(mixed $attachmentPath): ?string
+    {
+        if (! is_string($attachmentPath)) {
+            return null;
+        }
+
+        $normalizedAttachmentPath = trim(str_replace('\\', '/', $attachmentPath));
+        $normalizedAttachmentPath = ltrim($normalizedAttachmentPath, '/');
+        if ($normalizedAttachmentPath === '') {
+            return null;
+        }
+
+        if (! Str::startsWith($normalizedAttachmentPath, 'leave-request-temp/')) {
+            return null;
+        }
+
+        return $normalizedAttachmentPath;
+    }
+
     private function canManagePermissionStatus(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
     {
         if (! $authenticatedUser instanceof User) {
@@ -547,14 +642,18 @@ class LeaveRequestController extends Controller
             return false;
         }
 
-        $authenticatedUser->loadMissing('employee.deployment');
+        $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
+        if (! $authenticatedUser instanceof User) {
+            return false;
+        }
+
         $userCompanyId = $authenticatedUser->employee?->deployment?->current_company_id;
         if (! is_string($userCompanyId) || trim($userCompanyId) === '') {
             return false;
         }
 
-        return $leaveRequest->user()
-            ->whereHas('employee.deployment', function ($query) use ($userCompanyId): void {
+        return $leaveRequest->employee()
+            ->whereHas('deployment', function ($query) use ($userCompanyId): void {
                 $query->where('current_company_id', $userCompanyId);
             })
             ->exists();
@@ -568,19 +667,18 @@ class LeaveRequestController extends Controller
      *     remaining_annual_balance:int
      * }
      */
-    private function calculateStaffLeaveSummary(string $userId, int $year, int $currentMonth): array
+    private function calculateStaffLeaveSummary(string $employeeId, int $year, int $currentMonth): array
     {
-        $leaveBalance = DB::table('leave_balances')
-            ->select(['annual_balance', 'created_at'])
-            ->where('user_id', $userId)
-            ->where('year', $year)
-            ->first();
-
-        $baseAnnualBalance = max((int) ($leaveBalance->annual_balance ?? 0), 0);
-        $employmentStartDateRaw = DB::table('employee_deployments')
-            ->join('employees', 'employee_deployments.employee_id', '=', 'employees.id')
-            ->where('employees.user_id', $userId)
-            ->value('employee_deployments.join_date');
+        $baseAnnualBalance = (int) round((float) LeaveBalance::query()
+            ->where('employee_id', $employeeId)
+            ->where('period_year', $year)
+            ->whereHas('leaveType', function ($query): void {
+                $query->whereRaw('LOWER(name) IN (?, ?)', ['cuti tahunan', 'cuti khusus']);
+            })
+            ->sum('earned_quota'));
+        $employmentStartDateRaw = EmployeeDeployment::query()
+            ->where('employee_id', $employeeId)
+            ->value('join_date');
 
         $calculationStartDate = Carbon::create($year, 1, 1)->startOfMonth();
         if (is_string($employmentStartDateRaw) && trim($employmentStartDateRaw) !== '') {
@@ -598,13 +696,14 @@ class LeaveRequestController extends Controller
 
         $baseAnnualBalance = min($baseAnnualBalance, $accruedMonthLimit);
 
-        $usedAnnualBalance = (int) DB::table('leave_requests')
-            ->where('user_id', $userId)
+        $usedAnnualBalance = (int) LeaveRequest::query()
+            ->where('employee_id', $employeeId)
             ->whereYear('start_date', $year)
-            ->whereRaw('LOWER(permission_types) IN (?, ?)', ['cuti tahunan', 'cuti khusus'])
-            ->whereRaw('LOWER(approval_status) NOT IN (?, ?)', ['rejected', 'refused'])
-            ->selectRaw('COALESCE(SUM(DATEDIFF(end_date, start_date) + 1), 0) as used_days')
-            ->value('used_days');
+            ->whereHas('leaveType', function ($query): void {
+                $query->whereRaw('LOWER(name) IN (?, ?)', ['cuti tahunan', 'cuti khusus']);
+            })
+            ->whereRaw('LOWER(status) NOT IN (?, ?)', ['rejected', 'refused'])
+            ->sum('total_days');
 
         $monthlyBonus = 0;
         $remainingAnnualBalance = max($baseAnnualBalance - $usedAnnualBalance, 0);
@@ -615,5 +714,102 @@ class LeaveRequestController extends Controller
             'used_annual_balance' => $usedAnnualBalance,
             'remaining_annual_balance' => $remainingAnnualBalance,
         ];
+    }
+
+    /**
+     * @param  Collection<int, string>  $employeeIds
+     * @return Collection<string, string>
+     */
+    private function fetchEmployeeProfileNamesByEmployeeIds(Collection $employeeIds): Collection
+    {
+        $filteredEmployeeIds = $employeeIds
+            ->filter(static fn (mixed $employeeId): bool => is_string($employeeId) && trim($employeeId) !== '')
+            ->values();
+
+        if ($filteredEmployeeIds->isEmpty()) {
+            return collect();
+        }
+
+        return EmployeeProfile::query()
+            ->whereIn('employee_id', $filteredEmployeeIds)
+            ->pluck('name', 'employee_id')
+            ->map(static fn (mixed $name): string => is_string($name) ? trim($name) : '')
+            ->filter(static fn (string $name): bool => $name !== '');
+    }
+
+    /**
+     * @param  Collection<int, User>  $users
+     * @return Collection<string, string>
+     */
+    private function fetchEmployeeProfileNamesByUsers(Collection $users): Collection
+    {
+        $employeeIds = $users
+            ->map(static fn (User $user): mixed => $user->employee?->id)
+            ->filter(static fn (mixed $employeeId): bool => is_string($employeeId) && trim($employeeId) !== '')
+            ->values();
+
+        if ($employeeIds->isEmpty()) {
+            return collect();
+        }
+
+        return EmployeeProfile::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->pluck('name', 'employee_id')
+            ->map(static fn (mixed $name): string => is_string($name) ? trim($name) : '')
+            ->filter(static fn (string $name): bool => $name !== '');
+    }
+
+    /**
+     * @param  Collection<string, string>  $employeeProfileNamesByEmployeeId
+     */
+    private function resolveUserDisplayName(?User $user, Collection $employeeProfileNamesByEmployeeId): string
+    {
+        if (! $user instanceof User) {
+            return '-';
+        }
+
+        $employeeId = $user->employee?->id;
+        if (is_string($employeeId) && $employeeProfileNamesByEmployeeId->has($employeeId)) {
+            $profileName = $employeeProfileNamesByEmployeeId->get($employeeId);
+            if (is_string($profileName) && trim($profileName) !== '') {
+                return trim($profileName);
+            }
+        }
+
+        if (is_string($user->username) && trim($user->username) !== '') {
+            return trim($user->username);
+        }
+
+        if (is_string($user->email) && trim($user->email) !== '') {
+            return (string) explode('@', trim($user->email))[0];
+        }
+
+        return '-';
+    }
+
+    /**
+     * @param  array<int, string>  $relations
+     */
+    private function resolveAuthenticatedUser(array $relations = []): ?User
+    {
+        $authenticatedUserId = Auth::id();
+        if (! is_string($authenticatedUserId) && ! is_int($authenticatedUserId)) {
+            return null;
+        }
+
+        $authenticatedUserQuery = User::query();
+        if ($relations !== []) {
+            $authenticatedUserQuery->with($relations);
+        }
+
+        return $authenticatedUserQuery->find($authenticatedUserId);
+    }
+
+    private function publicDisk(): FilesystemAdapter
+    {
+        /** @var FilesystemAdapter $disk */
+        $disk = Storage::disk('public');
+
+        return $disk;
     }
 }

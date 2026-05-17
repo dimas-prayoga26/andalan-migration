@@ -13,6 +13,8 @@ class Permission extends SpatiePermission
 
     protected $primaryKey = 'uuid';
 
+    protected $guarded = [];
+
     protected $keyType = 'string';
 
     public $incrementing = false;

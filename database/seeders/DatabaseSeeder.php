@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
             MetaDataGenderSeeder::class,
             MetaDataMaritalStatusSeeder::class,
             PositionSeeder::class,
-            // MetaDataPermissionTypeSeeder::class,
+            LeaveTypeSeeder::class,
             UserSeeder::class,
             EmployeeProfileSeeder::class,
             EmployeeIdentitySeeder::class,

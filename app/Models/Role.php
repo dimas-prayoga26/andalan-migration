@@ -13,6 +13,8 @@ class Role extends SpatieRole
 
     protected $primaryKey = 'uuid';
 
+    protected $guarded = [];
+
     protected $keyType = 'string';
 
     public $incrementing = false;

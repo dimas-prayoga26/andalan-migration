@@ -2,10 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Models\LeaveBalance;
+use App\Models\LeaveRequest;
+use App\Models\LeaveType;
+use App\Models\MetaDataLeaveCompany;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Throwable;
 
@@ -20,35 +23,58 @@ class LeaveBalanceSeeder extends Seeder
             $now = now();
             $currentYear = (int) $now->year;
             $defaultAnnualQuota = 12;
+
+            $annualLeaveTypeId = LeaveType::query()
+                ->whereRaw('LOWER(name) = ?', ['cuti tahunan'])
+                ->value('id');
+            if (! is_string($annualLeaveTypeId) || trim($annualLeaveTypeId) === '') {
+                $annualLeaveTypeId = LeaveType::query()
+                    ->whereRaw('LOWER(name) = ?', ['cuti khusus'])
+                    ->value('id');
+            }
+            if (! is_string($annualLeaveTypeId) || trim($annualLeaveTypeId) === '') {
+                throw new RuntimeException('Leave type cuti tahunan/cuti khusus tidak ditemukan.');
+            }
+
             /** @var array<string, int> $annualQuotaByCompany */
             $annualQuotaByCompany = [];
 
             $users = User::query()
                 ->select(['id'])
+                ->with([
+                    'employee:id,user_id',
+                    'employee.deployment:id,employee_id,join_date,current_company_id',
+                ])
                 ->get();
 
             foreach ($users as $user) {
-                $employment = DB::table('employee_deployments')
-                    ->select(['join_date', 'current_company_id'])
-                    ->join('employees', 'employee_deployments.employee_id', '=', 'employees.id')
-                    ->where('employees.user_id', $user->id)
-                    ->first();
+                $employeeId = is_string($user->employee?->id) ? trim($user->employee->id) : '';
+                if ($employeeId === '') {
+                    continue;
+                }
 
-                $employmentStartDateRaw = $employment?->join_date;
-                $companyId = $employment?->current_company_id;
+                $employment = $user->employee?->deployment;
+                $employmentStartDateRaw = $employment?->join_date?->toDateString();
+                $companyId = is_string($employment?->current_company_id) ? trim($employment->current_company_id) : null;
+                if ($companyId === '') {
+                    $companyId = null;
+                }
+
                 $companyKey = $companyId === null ? 'none' : (string) $companyId;
 
                 if (! array_key_exists($companyKey, $annualQuotaByCompany)) {
                     $annualQuotaByCompany[$companyKey] = $companyId !== null
-                        ? (int) (DB::table('meta_data_leave_companies')
+                        ? (int) (MetaDataLeaveCompany::query()
                             ->where('company_id', $companyId)
+                            ->where('is_active', true)
+                            ->orderByDesc('id')
                             ->value('annual_quota') ?? $defaultAnnualQuota)
                         : $defaultAnnualQuota;
                 }
 
                 $annualQuota = max($annualQuotaByCompany[$companyKey], 0);
                 $annualBalance = $this->resolveAnnualBalance(
-                    (string) $user->id,
+                    $employeeId,
                     $employmentStartDateRaw,
                     $currentYear,
                     $annualQuota,
@@ -60,13 +86,17 @@ class LeaveBalanceSeeder extends Seeder
                     $timestamp = Carbon::parse($employmentStartDateRaw)->startOfDay();
                 }
 
-                DB::table('leave_balances')->updateOrInsert(
+                LeaveBalance::withTrashed()->updateOrCreate(
                     [
-                        'user_id' => $user->id,
-                        'year' => $currentYear,
+                        'employee_id' => $employeeId,
+                        'leave_type_id' => $annualLeaveTypeId,
+                        'period_year' => $currentYear,
                     ],
                     [
-                        'annual_balance' => $annualBalance,
+                        'earned_quota' => $annualBalance,
+                        'used_quota' => 0,
+                        'remaining_quota' => $annualBalance,
+                        'deleted_at' => null,
                         'updated_at' => $now,
                         'created_at' => $timestamp,
                     ]
@@ -78,7 +108,7 @@ class LeaveBalanceSeeder extends Seeder
     }
 
     private function resolveAnnualBalance(
-        string $userId,
+        string $employeeId,
         mixed $employmentStartDateRaw,
         int $currentYear,
         int $annualQuota,
@@ -108,7 +138,7 @@ class LeaveBalanceSeeder extends Seeder
         }
 
         $usedLeaveMonths = $this->resolveUsedLeaveMonths(
-            $userId,
+            $employeeId,
             $currentYear,
             $accrualPeriodStart,
             $lastCompletedMonthStart
@@ -133,21 +163,23 @@ class LeaveBalanceSeeder extends Seeder
      * @return array<int, true>
      */
     private function resolveUsedLeaveMonths(
-        string $userId,
+        string $employeeId,
         int $currentYear,
         Carbon $accrualPeriodStart,
         Carbon $lastCompletedMonthStart
     ): array {
         /** @var array<int, int|string> $months */
-        $months = DB::table('leave_requests')
-            ->where('user_id', $userId)
+        $months = LeaveRequest::query()
+            ->where('employee_id', $employeeId)
             ->whereYear('start_date', $currentYear)
             ->whereBetween('start_date', [
                 $accrualPeriodStart->toDateString(),
                 $lastCompletedMonthStart->copy()->endOfMonth()->toDateString(),
             ])
-            ->whereRaw('LOWER(permission_types) IN (?, ?)', ['cuti tahunan', 'cuti khusus'])
-            ->whereRaw('LOWER(approval_status) NOT IN (?, ?)', ['rejected', 'refused'])
+            ->whereHas('leaveType', function ($query): void {
+                $query->whereRaw('LOWER(name) IN (?, ?)', ['cuti tahunan', 'cuti khusus']);
+            })
+            ->whereRaw('LOWER(status) NOT IN (?, ?)', ['rejected', 'refused'])
             ->selectRaw('DISTINCT MONTH(start_date) as month_number')
             ->pluck('month_number')
             ->all();

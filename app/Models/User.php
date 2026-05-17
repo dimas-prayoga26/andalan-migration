@@ -5,7 +5,6 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,21 +13,6 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable([
-    'company_id',
-    'username',
-    'name',
-    'phone',
-    'email',
-    'business_email',
-    'password',
-    'is_active',
-    'email_token',
-    'password_token',
-    'email_verified_at',
-    'phone_verified_at',
-    'last_login_at',
-])]
 #[Hidden(['password', 'remember_token', 'email_token', 'password_token'])]
 class User extends Authenticatable
 {
@@ -40,6 +24,8 @@ class User extends Authenticatable
     protected $keyType = 'string';
 
     public $incrementing = false;
+
+    protected $guarded = [];
 
     protected static function booted(): void
     {
@@ -69,6 +55,11 @@ class User extends Authenticatable
     public function employee(): HasOne
     {
         return $this->hasOne(Employee::class, 'user_id', 'id');
+    }
+
+    public function userProfile(): HasOne
+    {
+        return $this->hasOne(UserProfile::class, 'user_id', 'id');
     }
 
     public function company(): BelongsTo

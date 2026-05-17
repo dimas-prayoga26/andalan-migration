@@ -15,6 +15,8 @@ class Attendance extends Model
 
     protected $table = 'attendances';
 
+    protected $guarded = [];
+
     protected $keyType = 'string';
 
     public $incrementing = false;
@@ -25,21 +27,6 @@ class Attendance extends Model
         'clock_out' => 'datetime:H:i:s',
         'is_overtime' => 'boolean',
         'work_hours' => 'decimal:2',
-    ];
-
-    protected $fillable = [
-        'employee_id',
-        'leave_request_id',
-        'date',
-        'clock_in',
-        'clock_out',
-        'late_minutes',
-        'work_hours',
-        'overtime_id',
-        'is_overtime',
-        'status',
-        'location_in',
-        'location_out',
     ];
 
     protected static function booted(): void

@@ -3,21 +3,18 @@
 namespace App\Models;
 
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable([
-    'user_id',
-    'employee_code',
-    'status',
-])]
 class Employee extends Model
 {
     use GeneratesCustomSequenceUuid;
 
     protected $table = 'employees';
+
+    protected $guarded = [];
 
     protected $keyType = 'string';
 
@@ -40,5 +37,20 @@ class Employee extends Model
     public function deployment(): HasOne
     {
         return $this->hasOne(EmployeeDeployment::class, 'employee_id', 'id');
+    }
+
+    public function profile(): HasOne
+    {
+        return $this->hasOne(EmployeeProfile::class, 'employee_id', 'id');
+    }
+
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(EmployeeAddress::class, 'employee_id', 'id');
+    }
+
+    public function latestAddress(): HasOne
+    {
+        return $this->hasOne(EmployeeAddress::class, 'employee_id', 'id')->latestOfMany('created_at');
     }
 }

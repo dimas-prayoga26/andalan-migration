@@ -317,11 +317,18 @@
                             <thead>
                                 <tr>
                                     <th class="mw-50">No</th>
+                                    @if ($showStaffPeriodFilter ?? false)
+                                    <th class="mw-120">Date</th>
+                                    @endif
+                                    @if (! ($showStaffPeriodFilter ?? false))
                                     <th class="mw-150">Nama Staff</th>
+                                    @endif
                                     <th class="mw-100">Masuk</th>
                                     <th class="mw-150">Pulang</th>
+                                    @if (! ($showStaffPeriodFilter ?? false))
                                     <th class="mw-100">Nama PT</th>
                                     <th class="text-end mw-100">Action</th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -480,6 +487,7 @@
             var attendanceDatatableUrl = @json(route('absensi.datatable'));
             var projectManagementIndexUrl = @json(route('project_management'));
             var currentIpUrl = @json(route('absensi.current-ip'));
+            var isStaffTableView = @json($showStaffPeriodFilter ?? false);
             var csrfToken = @json(csrf_token());
             var browserPublicIp = null;
             var attendanceState = {
@@ -529,6 +537,98 @@
                     return;
                 }
 
+                var attendanceColumns = [
+                    { data: null, defaultContent: '' }
+                ];
+                if (isStaffTableView) {
+                    attendanceColumns.push({ data: 'attendance_created_at', defaultContent: '-' });
+                }
+                if (!isStaffTableView) {
+                    attendanceColumns.push({ data: 'staff_name', defaultContent: '-' });
+                }
+                attendanceColumns.push(
+                    { data: 'check_in', defaultContent: '' },
+                    { data: 'check_out', defaultContent: '' }
+                );
+                if (!isStaffTableView) {
+                    attendanceColumns.push(
+                        { data: 'company_name', defaultContent: '-' },
+                        { data: null, defaultContent: '' }
+                    );
+                }
+
+                var checkInColumnIndex = isStaffTableView ? 1 : 2;
+                var checkOutColumnIndex = isStaffTableView ? 2 : 3;
+                if (isStaffTableView) {
+                    checkInColumnIndex = 2;
+                    checkOutColumnIndex = 3;
+                }
+                var actionColumnIndex = attendanceColumns.length - 1;
+                var attendanceColumnDefs = [
+                    {
+                        targets: 0,
+                        searchable: false,
+                        orderable: false
+                    },
+                    {
+                        targets: checkInColumnIndex,
+                        render: function (data) {
+                            if (data) {
+                                var timeParts = String(data).split(':');
+                                var checkInHour = parseInt(timeParts[0], 10);
+                                var checkInMinute = parseInt(timeParts[1], 10);
+                                var checkInTotalMinutes = (checkInHour * 60) + checkInMinute;
+
+                                if (!Number.isNaN(checkInTotalMinutes) && checkInTotalMinutes > officeStartTotalMinutes) {
+                                    return '<span class="text-danger fw-semibold">' + data + '</span>';
+                                }
+
+                                return '<span class="text-success fw-semibold">' + data + '</span>';
+                            }
+
+                            return '<span class="badge-attendance-empty">Belum Absen Masuk</span>';
+                        }
+                    },
+                    {
+                        targets: checkOutColumnIndex,
+                        render: function (data) {
+                            if (data) {
+                                return data;
+                            }
+
+                            return '<span class="badge-attendance-empty">Belum Absen Pulang</span>';
+                        }
+                    }
+                ];
+                if (isStaffTableView) {
+                    attendanceColumnDefs.push({
+                        targets: 1,
+                        render: function (data) {
+                            if (!data) {
+                                return '-';
+                            }
+
+                            return data;
+                        }
+                    });
+                }
+                if (!isStaffTableView) {
+                    attendanceColumnDefs.push({
+                        targets: actionColumnIndex,
+                        searchable: false,
+                        orderable: false,
+                        className: 'text-end',
+                        render: function () {
+                            return '<div class="dropdown dropdown-sm">'
+                                + '<button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Options</button>'
+                                + '<ul class="dropdown-menu dropdown-menu-end">'
+                                + '<li><a class="dropdown-item" href="javascript:void(0)" onclick="onClickAttendanceDetail(this)">Detail</a></li>'
+                                + '</ul>'
+                                + '</div>';
+                        }
+                    });
+                }
+
                 attendanceTable = $('#tableLogs').DataTable({
                     ajax: {
                         url: attendanceDatatableUrl,
@@ -547,64 +647,8 @@
                     lengthChange: false,
                     paging: true,
                     bInfo: true,
-                    columns: [
-                        { data: null, defaultContent: '' },
-                        { data: 'staff_name', defaultContent: '-' },
-                        { data: 'check_in', defaultContent: '' },
-                        { data: 'check_out', defaultContent: '' },
-                        { data: 'company_name', defaultContent: '-' },
-                        { data: null, defaultContent: '' }
-                    ],
-                    columnDefs: [
-                        {
-                            targets: 0,
-                            searchable: false,
-                            orderable: false
-                        },
-                        {
-                            targets: 2,
-                            render: function (data) {
-                                if (data) {
-                                    var timeParts = String(data).split(':');
-                                    var checkInHour = parseInt(timeParts[0], 10);
-                                    var checkInMinute = parseInt(timeParts[1], 10);
-                                    var checkInTotalMinutes = (checkInHour * 60) + checkInMinute;
-
-                                    if (!Number.isNaN(checkInTotalMinutes) && checkInTotalMinutes > officeStartTotalMinutes) {
-                                        return '<span class="text-danger fw-semibold">' + data + '</span>';
-                                    }
-
-                                    return '<span class="text-success fw-semibold">' + data + '</span>';
-                                }
-
-                                return '<span class="badge-attendance-empty">Belum Absen Masuk</span>';
-                            }
-                        },
-                        {
-                            targets: 3,
-                            render: function (data) {
-                                if (data) {
-                                    return data;
-                                }
-
-                                return '<span class="badge-attendance-empty">Belum Absen Pulang</span>';
-                            }
-                        },
-                        {
-                            targets: 5,
-                            searchable: false,
-                            orderable: false,
-                            className: 'text-end',
-                            render: function () {
-                                return '<div class="dropdown dropdown-sm">'
-                                    + '<button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Options</button>'
-                                    + '<ul class="dropdown-menu dropdown-menu-end">'
-                                    + '<li><a class="dropdown-item" href="javascript:void(0)" onclick="onClickAttendanceDetail(this)">Detail</a></li>'
-                                    + '</ul>'
-                                    + '</div>';
-                            }
-                        }
-                    ],
+                    columns: attendanceColumns,
+                    columnDefs: attendanceColumnDefs,
                     language: {
                         emptyTable: 'No data available in table',
                         paginate: {

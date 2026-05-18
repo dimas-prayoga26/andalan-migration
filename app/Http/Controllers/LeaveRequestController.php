@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Attendance;
 use App\Models\EmployeeDeployment;
 use App\Models\EmployeeProfile;
 use App\Models\LeaveBalance;
@@ -197,6 +198,19 @@ class LeaveRequestController extends Controller
         }
 
         if ($normalizedPermissionType === 'cuti tahunan') {
+            $hasCheckedInToday = Attendance::query()
+                ->where('employee_id', $employeeId)
+                ->whereDate('date', now('Asia/Jakarta')->toDateString())
+                ->whereNotNull('clock_in')
+                ->exists();
+
+            if (! $hasCheckedInToday) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cuti Tahunan hanya dapat diajukan setelah Anda absen masuk hari ini.',
+                ], 422);
+            }
+
             $leaveSummary = $this->calculateStaffLeaveSummary($employeeId, $currentYear, $currentMonth);
             $remainingAnnualBalance = (int) $leaveSummary['remaining_annual_balance'];
 
@@ -600,6 +614,10 @@ class LeaveRequestController extends Controller
         $leaveRequestYear = (int) Carbon::parse($leaveRequest->start_date)->year;
         $leaveRequestMonth = (int) Carbon::parse($leaveRequest->start_date)->month;
         $leaveRequestTypeId = is_string($leaveRequest->leave_type_id) ? trim($leaveRequest->leave_type_id) : '';
+
+        if ($normalizedStatus === 'approved') {
+            $this->syncApprovedAnnualLeaveAttendanceLink($leaveRequest);
+        }
 
         $this->syncAnnualLeaveBalance((string) $leaveRequest->employee_id, $leaveRequestYear, $leaveRequestMonth);
         if ($this->isSpecialLeaveTypeId($leaveRequestTypeId)) {
@@ -1119,6 +1137,36 @@ class LeaveRequestController extends Controller
             'ok' => true,
             'message' => '',
         ];
+    }
+
+    private function syncApprovedAnnualLeaveAttendanceLink(LeaveRequest $leaveRequest): void
+    {
+        $leaveTypeName = LeaveType::query()
+            ->where('id', $leaveRequest->leave_type_id)
+            ->value('name');
+        $normalizedLeaveTypeName = is_string($leaveTypeName) ? strtolower(trim($leaveTypeName)) : '';
+
+        if ($normalizedLeaveTypeName !== 'cuti tahunan') {
+            return;
+        }
+
+        $employeeId = is_string($leaveRequest->employee_id) ? trim($leaveRequest->employee_id) : '';
+        if ($employeeId === '') {
+            return;
+        }
+
+        $latestAttendance = Attendance::query()
+            ->where('employee_id', $employeeId)
+            ->whereNull('leave_request_id')
+            ->orderByDesc('date')
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($latestAttendance instanceof Attendance) {
+            $latestAttendance->update([
+                'leave_request_id' => $leaveRequest->id,
+            ]);
+        }
     }
 
     /**

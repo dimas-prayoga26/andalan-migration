@@ -333,7 +333,7 @@ class AttendanceController extends Controller
                 ->whereYear('date', $selectedYear)
                 ->orderByDesc('date')
                 ->orderByDesc('created_at')
-                ->get(['id', 'date', 'status', 'clock_in', 'clock_out']);
+                ->get(['id', 'date', 'status', 'clock_in', 'clock_out', 'created_at']);
             $staffProfileName = EmployeeProfile::query()
                 ->where('employee_id', $staffEmployeeId)
                 ->value('name');
@@ -369,6 +369,7 @@ class AttendanceController extends Controller
                 return [
                     'attendance_id' => $attendanceItem->id,
                     'attendance_date' => $attendanceItem->date?->format('Y-m-d'),
+                    'attendance_created_at' => $attendanceItem->created_at?->format('Y-m-d'),
                     'staff_name' => $staffDisplayName,
                     'company_name' => $staffUser->employee?->deployment?->company?->name,
                     'check_in' => $attendanceItem->clock_in?->format('H:i'),

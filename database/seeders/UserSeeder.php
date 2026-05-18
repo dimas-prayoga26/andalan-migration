@@ -8,6 +8,7 @@ use App\Models\EmployeeDeployment;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
@@ -189,13 +190,15 @@ class UserSeeder extends Seeder
             ],
         );
 
+        $joinDate = $this->resolveRandomJoinDateFromYearStart((string) $employee->id, $now);
+
         EmployeeDeployment::query()->updateOrCreate(
             ['employee_id' => $employee->id],
             [
                 'current_company_id' => $companyId,
                 'current_position_id' => $positionId,
                 'current_department_id' => $divisionId,
-                'join_date' => now()->toDateString(),
+                'join_date' => $joinDate,
                 'resignation_date' => null,
                 'workplace' => 'Onsite',
                 'status' => 'Active',
@@ -285,5 +288,17 @@ class UserSeeder extends Seeder
         $decimalValue = (string) hexdec(substr($hexHash, 0, 8));
 
         return str_pad(substr($decimalValue, 0, 8), 8, '0', STR_PAD_LEFT);
+    }
+
+    private function resolveRandomJoinDateFromYearStart(string $employeeId, Carbon $now): string
+    {
+        $startOfYear = $now->copy()->startOfYear();
+        $today = $now->copy()->startOfDay();
+        $dayRange = $startOfYear->diffInDays($today);
+        $slotCount = $dayRange + 1;
+        $slotHash = substr(hash('sha256', 'join-date|'.$employeeId.'|'.$now->format('Y')), 0, 8);
+        $slot = hexdec($slotHash) % max(1, $slotCount);
+
+        return $startOfYear->addDays($slot)->toDateString();
     }
 }

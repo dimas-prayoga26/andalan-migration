@@ -28,8 +28,8 @@ class LeaveTypeSeeder extends Seeder
                 [
                     'code' => 'SPECIAL',
                     'name' => 'Cuti Khusus',
-                    'accrual_method' => 'monthly',
-                    'monthly_accrual_rate' => 1,
+                    'accrual_method' => 'yearly',
+                    'monthly_accrual_rate' => 0,
                     'is_encashable' => false,
                     'is_active' => true,
                 ],
@@ -41,23 +41,11 @@ class LeaveTypeSeeder extends Seeder
                     'is_encashable' => false,
                     'is_active' => true,
                 ],
-                [
-                    'code' => 'BUSINESS_TRIP_CITY',
-                    'name' => 'Izin Dinas Dalam Kota',
-                    'accrual_method' => 'yearly',
-                    'monthly_accrual_rate' => 0,
-                    'is_encashable' => false,
-                    'is_active' => true,
-                ],
-                [
-                    'code' => 'BUSINESS_TRIP_OUT_CITY',
-                    'name' => 'Izin Dinas Luar Kota',
-                    'accrual_method' => 'yearly',
-                    'monthly_accrual_rate' => 0,
-                    'is_encashable' => false,
-                    'is_active' => true,
-                ],
             ];
+
+            DB::table('leave_types')
+                ->whereIn('code', ['BUSINESS_TRIP_CITY', 'BUSINESS_TRIP_OUT_CITY'])
+                ->delete();
 
             foreach ($leaveTypes as $leaveType) {
                 $exists = DB::table('leave_types')

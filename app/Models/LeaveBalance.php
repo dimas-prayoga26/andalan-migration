@@ -16,6 +16,10 @@ class LeaveBalance extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'is_monthly_limit_used' => 'boolean',
+    ];
+
     protected $keyType = 'string';
 
     public $incrementing = false;

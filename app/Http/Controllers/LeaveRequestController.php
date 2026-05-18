@@ -16,9 +16,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class LeaveRequestController extends Controller
 {
@@ -31,6 +34,7 @@ class LeaveRequestController extends Controller
         $isStaffUser = $this->isStaffUser($authenticatedUser);
         $canFilterEmployees = $isBoardOfDirectur || $isAdminUser;
         $canUpdatePermissionStatus = $isBoardOfDirectur || $isAdminUser;
+        $canDeletePermission = $isBoardOfDirectur || $this->isSuperuser($authenticatedUser);
         $userCompanyId = $authenticatedUser?->employee?->deployment?->current_company_id;
         $approvalSummary = [
             'pending' => 0,
@@ -101,8 +105,8 @@ class LeaveRequestController extends Controller
             $currentYear = (int) now()->year;
             $currentMonth = (int) now()->month;
             $currentMonthYearLabel = now()->format('F Y');
-            $userId = (string) $authenticatedUser->id;
             $employeeId = (string) ($authenticatedUser->employee?->id ?? '');
+            $holidaySummary = $this->fetchHolidaySummaryByYear($currentYear);
 
             $monthlyLeaveLimit = 0;
             if ($userCompanyId) {
@@ -115,22 +119,22 @@ class LeaveRequestController extends Controller
             $remainingAnnualLeave = $leaveSummary['remaining_annual_balance'];
             $annualLeaveUsage = $leaveSummary['used_annual_balance'];
 
-            $isMonthlySpecialLeaveUsed = LeaveRequest::query()
+            $approvedAnnualLeaveDaysInCurrentMonth = (int) LeaveRequest::query()
                 ->where('employee_id', $employeeId)
                 ->whereHas('leaveType', function ($query): void {
-                    $query->whereRaw('LOWER(name) = ?', ['cuti khusus']);
+                    $query->whereRaw('LOWER(name) = ?', ['cuti tahunan']);
                 })
                 ->whereYear('start_date', $currentYear)
                 ->whereMonth('start_date', $currentMonth)
-                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['rejected', 'refused'])
-                ->exists();
+                ->whereRaw('LOWER(status) = ?', ['approved'])
+                ->sum('total_days');
 
-            $remainingMonthlyLeave = $isMonthlySpecialLeaveUsed ? 0 : $monthlyLeaveLimit;
+            $remainingMonthlyLeave = max($monthlyLeaveLimit - $approvedAnnualLeaveDaysInCurrentMonth, 0);
 
             $summaryCards = [
                 ['label' => 'Sisa Cuti '.$currentYear, 'value' => $remainingAnnualLeave],
                 ['label' => 'Cuti '.$currentYear, 'value' => $annualLeaveUsage],
-                ['label' => 'Cuti Bersama '.$currentYear, 'value' => $monthlyLeaveLimit],
+                ['label' => 'Cuti Bersama '.$currentYear, 'value' => $holidaySummary['remaining_collective_leaves']],
                 ['label' => 'Cuti '.$currentMonthYearLabel, 'value' => $remainingMonthlyLeave],
             ];
         }
@@ -144,6 +148,7 @@ class LeaveRequestController extends Controller
             'canSubmitPermission' => $isStaffUser,
             'canFilterEmployees' => $canFilterEmployees,
             'canUpdatePermissionStatus' => $canUpdatePermissionStatus,
+            'canDeletePermission' => $canDeletePermission,
         ]);
     }
 
@@ -177,7 +182,6 @@ class LeaveRequestController extends Controller
         $currentYear = (int) $startDate->year;
         $currentMonth = (int) $startDate->month;
         $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
-        $userId = (string) ($authenticatedUser?->id ?? '');
         $employeeId = (string) ($authenticatedUser?->employee?->id ?? '');
         $userCompanyId = (string) ($authenticatedUser?->employee?->deployment?->current_company_id ?? '');
 
@@ -189,39 +193,10 @@ class LeaveRequestController extends Controller
         }
 
         if ($normalizedPermissionType === 'cuti khusus') {
-            $monthlyLeaveLimit = 0;
-            if ($userCompanyId !== '') {
-                $monthlyLeaveLimit = (int) MetaDataLeaveCompany::query()
-                    ->where('company_id', $userCompanyId)
-                    ->value('montly_leave_limit');
-            }
-
-            if ($monthlyLeaveLimit <= 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Limit cuti khusus bulanan belum tersedia untuk perusahaan Anda.',
-                ], 422);
-            }
-
-            $isMonthlySpecialLeaveUsed = LeaveRequest::query()
-                ->where('employee_id', $employeeId)
-                ->whereHas('leaveType', function ($query): void {
-                    $query->whereRaw('LOWER(name) = ?', ['cuti khusus']);
-                })
-                ->whereYear('start_date', $currentYear)
-                ->whereMonth('start_date', $currentMonth)
-                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['rejected', 'refused'])
-                ->exists();
-
-            if ($isMonthlySpecialLeaveUsed) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Limit cuti khusus bulan ini sudah digunakan.',
-                ], 422);
-            }
+            // Tidak ada validasi pembatasan khusus saat submit.
         }
 
-        if (in_array($normalizedPermissionType, ['cuti khusus', 'cuti tahunan'], true)) {
+        if ($normalizedPermissionType === 'cuti tahunan') {
             $leaveSummary = $this->calculateStaffLeaveSummary($employeeId, $currentYear, $currentMonth);
             $remainingAnnualBalance = (int) $leaveSummary['remaining_annual_balance'];
 
@@ -438,8 +413,11 @@ class LeaveRequestController extends Controller
 
     public function show(LeaveRequest $leaveRequest): JsonResponse
     {
-        $currentEmployeeId = (string) (Auth::user()?->employee?->id ?? '');
-        if ((string) $leaveRequest->employee_id !== $currentEmployeeId) {
+        $authenticatedUser = Auth::user();
+        $currentEmployeeId = (string) ($authenticatedUser?->employee?->id ?? '');
+        $canManagePermission = $this->canManagePermissionStatus($authenticatedUser, $leaveRequest);
+
+        if (! $canManagePermission && (string) $leaveRequest->employee_id !== $currentEmployeeId) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses ke data izin ini.',
@@ -473,7 +451,7 @@ class LeaveRequestController extends Controller
         if ($attachmentPath !== '') {
             $attachments->push([
                 'file_name' => basename($attachmentPath),
-                'file_url' => $this->publicDisk()->url($attachmentPath),
+                'file_url' => route('absensi.izin.attachment', ['leaveRequest' => $leaveRequest->id]),
                 'attachment_type' => '',
             ]);
         }
@@ -493,10 +471,49 @@ class LeaveRequestController extends Controller
         ]);
     }
 
+    public function showAttachment(LeaveRequest $leaveRequest): BinaryFileResponse|JsonResponse
+    {
+        $authenticatedUser = Auth::user();
+        $currentEmployeeId = (string) ($authenticatedUser?->employee?->id ?? '');
+        $canManagePermission = $this->canManagePermissionStatus($authenticatedUser, $leaveRequest);
+
+        if (! $canManagePermission && (string) $leaveRequest->employee_id !== $currentEmployeeId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak memiliki akses ke lampiran izin ini.',
+            ], 403);
+        }
+
+        $attachmentPath = is_string($leaveRequest->attachment_path) ? trim($leaveRequest->attachment_path) : '';
+        if ($attachmentPath === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lampiran tidak tersedia.',
+            ], 404);
+        }
+
+        $disk = $this->publicDisk();
+        if (! $disk->exists($attachmentPath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File lampiran tidak ditemukan.',
+            ], 404);
+        }
+
+        $fullPath = $disk->path($attachmentPath);
+        $mimeType = $disk->mimeType($attachmentPath) ?: 'application/octet-stream';
+        $fileName = basename($attachmentPath);
+
+        return response()->file($fullPath, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="'.$fileName.'"',
+        ]);
+    }
+
     public function destroy(LeaveRequest $leaveRequest): JsonResponse
     {
-        $currentEmployeeId = (string) (Auth::user()?->employee?->id ?? '');
-        if ((string) $leaveRequest->employee_id !== $currentEmployeeId) {
+        $authenticatedUser = Auth::user();
+        if (! $this->canDeletePermissionRequest($authenticatedUser, $leaveRequest)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk menghapus data izin ini.',
@@ -510,6 +527,15 @@ class LeaveRequestController extends Controller
 
             $leaveRequest->delete();
         });
+
+        $leaveRequestYear = (int) Carbon::parse($leaveRequest->start_date)->year;
+        $leaveRequestMonth = (int) Carbon::parse($leaveRequest->start_date)->month;
+        $leaveRequestTypeId = is_string($leaveRequest->leave_type_id) ? trim($leaveRequest->leave_type_id) : '';
+
+        $this->syncAnnualLeaveBalance((string) $leaveRequest->employee_id, $leaveRequestYear, $leaveRequestMonth);
+        if ($this->isSpecialLeaveTypeId($leaveRequestTypeId)) {
+            $this->syncMonthlySpecialLeaveLimitFlag((string) $leaveRequest->employee_id, $leaveRequestYear, $leaveRequestMonth);
+        }
 
         return response()->json([
             'success' => true,
@@ -544,9 +570,41 @@ class LeaveRequestController extends Controller
             $normalizedStatus = 'refused';
         }
 
-        $leaveRequest->update([
+        if ($normalizedStatus === 'approved') {
+            $approvalValidation = $this->validateLeaveApprovalLimit($leaveRequest);
+            if ($approvalValidation['ok'] === false) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $approvalValidation['message'],
+                ], 422);
+            }
+        }
+
+        $updatePayload = [
             'status' => $normalizedStatus,
-        ]);
+        ];
+
+        $shouldWriteApprovalActor = $this->isBoardOfDirectur($authenticatedUser)
+            || $this->isSuperuser($authenticatedUser);
+        $authenticatedUserId = is_string($authenticatedUser?->id) || is_int($authenticatedUser?->id)
+            ? (string) $authenticatedUser->id
+            : '';
+
+        if ($shouldWriteApprovalActor && $authenticatedUserId !== '' && in_array($normalizedStatus, ['approved', 'refused'], true)) {
+            $updatePayload['approved_by'] = $authenticatedUserId;
+            $updatePayload['approved_at'] = now('Asia/Jakarta');
+        }
+
+        $leaveRequest->update($updatePayload);
+
+        $leaveRequestYear = (int) Carbon::parse($leaveRequest->start_date)->year;
+        $leaveRequestMonth = (int) Carbon::parse($leaveRequest->start_date)->month;
+        $leaveRequestTypeId = is_string($leaveRequest->leave_type_id) ? trim($leaveRequest->leave_type_id) : '';
+
+        $this->syncAnnualLeaveBalance((string) $leaveRequest->employee_id, $leaveRequestYear, $leaveRequestMonth);
+        if ($this->isSpecialLeaveTypeId($leaveRequestTypeId)) {
+            $this->syncMonthlySpecialLeaveLimitFlag((string) $leaveRequest->employee_id, $leaveRequestYear, $leaveRequestMonth);
+        }
 
         return response()->json([
             'success' => true,
@@ -595,6 +653,17 @@ class LeaveRequestController extends Controller
 
         return $normalizedRoleNames->contains('admin')
             || $normalizedRoleNames->contains('superuser');
+    }
+
+    private function isSuperuser(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return $user->getRoleNames()
+            ->map(static fn (string $roleName): string => strtolower(trim($roleName)))
+            ->contains('superuser');
     }
 
     private function isStaffUser(?User $user): bool
@@ -659,6 +728,37 @@ class LeaveRequestController extends Controller
             ->exists();
     }
 
+    private function canDeletePermissionRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
+    {
+        if (! $authenticatedUser instanceof User) {
+            return false;
+        }
+
+        if ($this->isSuperuser($authenticatedUser)) {
+            return true;
+        }
+
+        if (! $this->isBoardOfDirectur($authenticatedUser)) {
+            return false;
+        }
+
+        $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
+        if (! $authenticatedUser instanceof User) {
+            return false;
+        }
+
+        $userCompanyId = $authenticatedUser->employee?->deployment?->current_company_id;
+        if (! is_string($userCompanyId) || trim($userCompanyId) === '') {
+            return false;
+        }
+
+        return $leaveRequest->employee()
+            ->whereHas('deployment', function ($query) use ($userCompanyId): void {
+                $query->where('current_company_id', $userCompanyId);
+            })
+            ->exists();
+    }
+
     /**
      * @return array{
      *     base_annual_balance:int,
@@ -673,7 +773,7 @@ class LeaveRequestController extends Controller
             ->where('employee_id', $employeeId)
             ->where('period_year', $year)
             ->whereHas('leaveType', function ($query): void {
-                $query->whereRaw('LOWER(name) IN (?, ?)', ['cuti tahunan', 'cuti khusus']);
+                $query->whereRaw('LOWER(name) = ?', ['cuti tahunan']);
             })
             ->sum('earned_quota'));
         $employmentStartDateRaw = EmployeeDeployment::query()
@@ -700,9 +800,9 @@ class LeaveRequestController extends Controller
             ->where('employee_id', $employeeId)
             ->whereYear('start_date', $year)
             ->whereHas('leaveType', function ($query): void {
-                $query->whereRaw('LOWER(name) IN (?, ?)', ['cuti tahunan', 'cuti khusus']);
+                $query->whereRaw('LOWER(name) = ?', ['cuti tahunan']);
             })
-            ->whereRaw('LOWER(status) NOT IN (?, ?)', ['rejected', 'refused'])
+            ->whereRaw('LOWER(status) = ?', ['approved'])
             ->sum('total_days');
 
         $monthlyBonus = 0;
@@ -811,5 +911,316 @@ class LeaveRequestController extends Controller
         $disk = Storage::disk('public');
 
         return $disk;
+    }
+
+    private function syncAnnualLeaveBalance(string $employeeId, int $year, ?int $month = null): void
+    {
+        if (trim($employeeId) === '' || $year <= 0) {
+            return;
+        }
+
+        $annualLeaveTypeId = LeaveType::query()
+            ->whereRaw('LOWER(name) = ?', ['cuti tahunan'])
+            ->value('id');
+
+        if (! is_string($annualLeaveTypeId) || trim($annualLeaveTypeId) === '') {
+            return;
+        }
+
+        $existingLeaveBalance = LeaveBalance::withTrashed()
+            ->where('employee_id', $employeeId)
+            ->where('leave_type_id', $annualLeaveTypeId)
+            ->where('period_year', $year)
+            ->first();
+
+        $earnedQuota = (float) ($existingLeaveBalance?->earned_quota ?? 0);
+        $usedQuota = (float) LeaveRequest::query()
+            ->where('employee_id', $employeeId)
+            ->where('leave_type_id', $annualLeaveTypeId)
+            ->whereYear('start_date', $year)
+            ->whereRaw('LOWER(status) = ?', ['approved'])
+            ->sum('total_days');
+        $remainingQuota = max($earnedQuota - $usedQuota, 0);
+        $isMonthlyLimitUsed = (bool) ($existingLeaveBalance?->is_monthly_limit_used ?? false);
+        if (is_int($month) && $month >= 1 && $month <= 12) {
+            $isMonthlyLimitUsed = LeaveRequest::query()
+                ->where('employee_id', $employeeId)
+                ->where('leave_type_id', $annualLeaveTypeId)
+                ->whereYear('start_date', $year)
+                ->whereMonth('start_date', $month)
+                ->whereRaw('LOWER(status) = ?', ['approved'])
+                ->exists();
+        }
+
+        LeaveBalance::withTrashed()->updateOrCreate(
+            [
+                'employee_id' => $employeeId,
+                'leave_type_id' => $annualLeaveTypeId,
+                'period_year' => $year,
+            ],
+            [
+                'earned_quota' => $earnedQuota,
+                'used_quota' => $usedQuota,
+                'remaining_quota' => $remainingQuota,
+                'is_monthly_limit_used' => $isMonthlyLimitUsed,
+                'deleted_at' => null,
+            ]
+        );
+    }
+
+    private function syncMonthlySpecialLeaveLimitFlag(string $employeeId, int $year, int $month): void
+    {
+        if (trim($employeeId) === '' || $year <= 0 || $month < 1 || $month > 12) {
+            return;
+        }
+
+        $specialLeaveTypeId = $this->resolveSpecialLeaveTypeId();
+        if ($specialLeaveTypeId === null) {
+            return;
+        }
+
+        $isMonthlyLimitUsed = LeaveRequest::query()
+            ->where('employee_id', $employeeId)
+            ->where('leave_type_id', $specialLeaveTypeId)
+            ->whereYear('start_date', $year)
+            ->whereMonth('start_date', $month)
+            ->whereRaw('LOWER(status) = ?', ['approved'])
+            ->exists();
+
+        $existingLeaveBalance = LeaveBalance::withTrashed()
+            ->where('employee_id', $employeeId)
+            ->where('leave_type_id', $specialLeaveTypeId)
+            ->where('period_year', $year)
+            ->first();
+
+        $earnedQuota = (float) ($existingLeaveBalance?->earned_quota ?? 0);
+        $usedQuota = (float) ($existingLeaveBalance?->used_quota ?? 0);
+        $remainingQuota = (float) ($existingLeaveBalance?->remaining_quota ?? 0);
+
+        LeaveBalance::withTrashed()->updateOrCreate(
+            [
+                'employee_id' => $employeeId,
+                'leave_type_id' => $specialLeaveTypeId,
+                'period_year' => $year,
+            ],
+            [
+                'earned_quota' => $earnedQuota,
+                'used_quota' => $usedQuota,
+                'remaining_quota' => $remainingQuota,
+                'is_monthly_limit_used' => $isMonthlyLimitUsed,
+                'deleted_at' => null,
+            ]
+        );
+    }
+
+    private function resolveSpecialLeaveTypeId(): ?string
+    {
+        $specialLeaveTypeId = LeaveType::query()
+            ->whereRaw('LOWER(name) = ?', ['cuti khusus'])
+            ->value('id');
+
+        if (! is_string($specialLeaveTypeId) || trim($specialLeaveTypeId) === '') {
+            return null;
+        }
+
+        return trim($specialLeaveTypeId);
+    }
+
+    private function isSpecialLeaveTypeId(string $leaveTypeId): bool
+    {
+        if ($leaveTypeId === '') {
+            return false;
+        }
+
+        $specialLeaveTypeId = $this->resolveSpecialLeaveTypeId();
+        if ($specialLeaveTypeId === null) {
+            return false;
+        }
+
+        return $leaveTypeId === $specialLeaveTypeId;
+    }
+
+    /**
+     * @return array{ok:bool,message:string}
+     */
+    private function validateLeaveApprovalLimit(LeaveRequest $leaveRequest): array
+    {
+        $employeeId = is_string($leaveRequest->employee_id) ? trim($leaveRequest->employee_id) : '';
+        if ($employeeId === '') {
+            return [
+                'ok' => false,
+                'message' => 'Data karyawan tidak ditemukan.',
+            ];
+        }
+
+        $leaveTypeName = LeaveType::query()
+            ->where('id', $leaveRequest->leave_type_id)
+            ->value('name');
+        $normalizedLeaveTypeName = is_string($leaveTypeName) ? strtolower(trim($leaveTypeName)) : '';
+
+        if ($normalizedLeaveTypeName === 'cuti tahunan') {
+            $startDate = $leaveRequest->start_date instanceof Carbon
+                ? $leaveRequest->start_date
+                : Carbon::parse((string) $leaveRequest->start_date);
+            $endDate = $leaveRequest->end_date instanceof Carbon
+                ? $leaveRequest->end_date
+                : Carbon::parse((string) $leaveRequest->end_date);
+            $durationDays = $startDate->diffInDays($endDate) + 1;
+            $leaveSummary = $this->calculateStaffLeaveSummary(
+                $employeeId,
+                (int) $startDate->year,
+                (int) $startDate->month
+            );
+
+            if ((int) $leaveSummary['remaining_annual_balance'] < $durationDays) {
+                return [
+                    'ok' => false,
+                    'message' => 'Sisa cuti tahunan tidak mencukupi untuk approval ini.',
+                ];
+            }
+
+            $employeeCompanyId = (string) EmployeeDeployment::query()
+                ->where('employee_id', $employeeId)
+                ->value('current_company_id');
+            $monthlyLeaveLimit = 0;
+            if ($employeeCompanyId !== '') {
+                $monthlyLeaveLimit = (int) MetaDataLeaveCompany::query()
+                    ->where('company_id', $employeeCompanyId)
+                    ->value('montly_leave_limit');
+            }
+
+            if ($monthlyLeaveLimit > 0) {
+                $approvedAnnualDaysInMonth = (int) LeaveRequest::query()
+                    ->where('employee_id', $employeeId)
+                    ->where('id', '!=', $leaveRequest->id)
+                    ->whereHas('leaveType', function ($query): void {
+                        $query->whereRaw('LOWER(name) = ?', ['cuti tahunan']);
+                    })
+                    ->whereYear('start_date', (int) $startDate->year)
+                    ->whereMonth('start_date', (int) $startDate->month)
+                    ->whereRaw('LOWER(status) = ?', ['approved'])
+                    ->sum('total_days');
+
+                $remainingMonthlyLimit = max($monthlyLeaveLimit - $approvedAnnualDaysInMonth, 0);
+                if ($durationDays > $remainingMonthlyLimit) {
+                    return [
+                        'ok' => false,
+                        'message' => 'Limit cuti bulanan untuk Cuti Tahunan tidak mencukupi pada bulan ini.',
+                    ];
+                }
+            }
+        }
+
+        if ($normalizedLeaveTypeName === 'cuti khusus') {
+            // Tidak ada validasi pembatasan khusus saat approval.
+        }
+
+        return [
+            'ok' => true,
+            'message' => '',
+        ];
+    }
+
+    /**
+     * @return array{
+     *     total_national_holidays:int,
+     *     total_collective_leaves:int,
+     *     remaining_collective_leaves:int
+     * }
+     */
+    private function fetchHolidaySummaryByYear(int $year): array
+    {
+        $timezone = 'Asia/Jakarta';
+        $cacheKey = "libur-deno:summary:{$year}";
+        $cacheUntil = now($timezone)->endOfDay();
+
+        return Cache::remember($cacheKey, $cacheUntil, function () use ($year, $timezone): array {
+            try {
+                $response = Http::timeout(10)
+                    ->connectTimeout(5)
+                    ->acceptJson()
+                    ->get('https://libur.deno.dev/api', [
+                        'year' => $year,
+                    ]);
+
+                if (! $response->successful()) {
+                    return [
+                        'total_national_holidays' => 0,
+                        'total_collective_leaves' => 0,
+                        'remaining_collective_leaves' => 0,
+                    ];
+                }
+
+                $payload = $response->json();
+                if (! is_array($payload)) {
+                    return [
+                        'total_national_holidays' => 0,
+                        'total_collective_leaves' => 0,
+                        'remaining_collective_leaves' => 0,
+                    ];
+                }
+
+                $items = $payload['value'] ?? $payload;
+                if (! is_array($items)) {
+                    return [
+                        'total_national_holidays' => 0,
+                        'total_collective_leaves' => 0,
+                        'remaining_collective_leaves' => 0,
+                    ];
+                }
+
+                $today = now($timezone)->startOfDay();
+                $nationalHolidayTotal = 0;
+                $collectiveLeaveTotal = 0;
+                $remainingCollectiveLeaveTotal = 0;
+
+                foreach ($items as $item) {
+                    if (! is_array($item)) {
+                        continue;
+                    }
+
+                    $name = is_string($item['name'] ?? null) ? trim((string) $item['name']) : '';
+                    $date = is_string($item['date'] ?? null) ? trim((string) $item['date']) : '';
+                    $isNationalHoliday = (bool) ($item['is_national_holiday'] ?? false);
+
+                    if ($isNationalHoliday) {
+                        $nationalHolidayTotal++;
+
+                        continue;
+                    }
+
+                    if ($name === '' || $date === '') {
+                        continue;
+                    }
+
+                    if (! Str::contains(Str::lower($name), 'cuti bersama')) {
+                        continue;
+                    }
+
+                    $collectiveLeaveTotal++;
+
+                    try {
+                        $collectiveLeaveDate = Carbon::createFromFormat('Y-m-d', $date, $timezone)->startOfDay();
+                        if ($collectiveLeaveDate->gte($today)) {
+                            $remainingCollectiveLeaveTotal++;
+                        }
+                    } catch (\Throwable) {
+                        continue;
+                    }
+                }
+
+                return [
+                    'total_national_holidays' => $nationalHolidayTotal,
+                    'total_collective_leaves' => $collectiveLeaveTotal,
+                    'remaining_collective_leaves' => $remainingCollectiveLeaveTotal,
+                ];
+            } catch (\Throwable) {
+                return [
+                    'total_national_holidays' => 0,
+                    'total_collective_leaves' => 0,
+                    'remaining_collective_leaves' => 0,
+                ];
+            }
+        });
     }
 }

@@ -11,9 +11,6 @@
             <button type="button" data-href="{{ route('absensi.izin') }}" class="nav-link py-3 px-1 border-3 absensi-tab-btn {{ request()->routeIs('absensi.izin*') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.izin*') ? 'true' : 'false' }}">Izin / Cuti</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button type="button" class="nav-link py-3 px-1 border-3 absensi-tab-btn" aria-selected="false">List</button>
-        </li>
-        <li class="nav-item" role="presentation">
             <button type="button" data-href="{{ route('absensi.dinas') }}" class="nav-link py-3 px-1 border-3 absensi-tab-btn {{ request()->routeIs('absensi.dinas') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.dinas') ? 'true' : 'false' }}">Perjalanan Dinas</button>
         </li>
         <li class="nav-item" role="presentation">

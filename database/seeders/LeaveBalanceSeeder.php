@@ -28,12 +28,7 @@ class LeaveBalanceSeeder extends Seeder
                 ->whereRaw('LOWER(name) = ?', ['cuti tahunan'])
                 ->value('id');
             if (! is_string($annualLeaveTypeId) || trim($annualLeaveTypeId) === '') {
-                $annualLeaveTypeId = LeaveType::query()
-                    ->whereRaw('LOWER(name) = ?', ['cuti khusus'])
-                    ->value('id');
-            }
-            if (! is_string($annualLeaveTypeId) || trim($annualLeaveTypeId) === '') {
-                throw new RuntimeException('Leave type cuti tahunan/cuti khusus tidak ditemukan.');
+                throw new RuntimeException('Leave type cuti tahunan tidak ditemukan.');
             }
 
             /** @var array<string, int> $annualQuotaByCompany */
@@ -96,6 +91,7 @@ class LeaveBalanceSeeder extends Seeder
                         'earned_quota' => $annualBalance,
                         'used_quota' => 0,
                         'remaining_quota' => $annualBalance,
+                        'is_monthly_limit_used' => false,
                         'deleted_at' => null,
                         'updated_at' => $now,
                         'created_at' => $timestamp,
@@ -177,9 +173,9 @@ class LeaveBalanceSeeder extends Seeder
                 $lastCompletedMonthStart->copy()->endOfMonth()->toDateString(),
             ])
             ->whereHas('leaveType', function ($query): void {
-                $query->whereRaw('LOWER(name) IN (?, ?)', ['cuti tahunan', 'cuti khusus']);
+                $query->whereRaw('LOWER(name) = ?', ['cuti tahunan']);
             })
-            ->whereRaw('LOWER(status) NOT IN (?, ?)', ['rejected', 'refused'])
+            ->whereRaw('LOWER(status) = ?', ['approved'])
             ->selectRaw('DISTINCT MONTH(start_date) as month_number')
             ->pluck('month_number')
             ->all();

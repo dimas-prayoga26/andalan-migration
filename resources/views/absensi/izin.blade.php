@@ -190,9 +190,41 @@
 
         .izin-summary-value {
             color: #111827;
-            font-size: 2rem;
+            font-size: 2.2rem;
             font-weight: 700;
             line-height: 1;
+        }
+
+        #tableLogs thead th {
+            color: #25314c;
+            font-size: 1.05rem;
+            font-weight: 600;
+            padding-top: 0.95rem;
+            padding-bottom: 0.95rem;
+            border-bottom: 1px solid #e6eaf2;
+        }
+
+        #tableLogs tbody td {
+            color: #5f6c87;
+            font-size: 1.02rem;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+            vertical-align: middle;
+            border-top: 1px solid #eef2f7;
+        }
+
+        #tableLogs tbody td:nth-child(1),
+        #tableLogs tbody td:nth-child(3),
+        #tableLogs tbody td:nth-child(8) {
+            text-align: center;
+        }
+
+        #tableLogs tbody td:nth-child(2),
+        #tableLogs tbody td:nth-child(4),
+        #tableLogs tbody td:nth-child(5),
+        #tableLogs tbody td:nth-child(6),
+        #tableLogs tbody td:nth-child(7) {
+            white-space: nowrap;
         }
 
         .submission-list-title {
@@ -228,6 +260,23 @@
             background: #ffe8ed;
             color: #ff3355;
             border-color: #ff3355;
+        }
+
+        .izin-status-badge.approved {
+            background: #eafbf1;
+            color: #0f9d58;
+            border-color: #9de0bc;
+        }
+
+        .permission-status-select {
+            min-width: 150px;
+            max-width: 170px;
+            margin: 0 auto;
+            border-radius: 0.65rem;
+            border: 1px solid #d9e1ee;
+            font-weight: 600;
+            color: #4c5d7c;
+            background-color: #f8fbff;
         }
 
         .izin-action-group {
@@ -515,6 +564,7 @@
         var leaveRequestUploadImageUrl = '{{ route('absensi.izin.upload-image') }}';
         var leaveRequestDeleteUploadedImageUrl = '{{ route('absensi.izin.delete-uploaded-image') }}';
         var canUpdatePermissionStatus = @json($canUpdatePermissionStatus ?? false);
+        var canDeletePermission = @json($canDeletePermission ?? false);
 
         $(function () {
             var attendanceDateElement = document.getElementById('attendanceDateTime');
@@ -703,11 +753,21 @@
                             orderable: false,
                             className: 'text-center',
                             render: function (data, type, row) {
-                                var permissionId = row && row.id ? row.id : '';
+                                var permissionId = row && row.id ? String(row.id) : '';
+                                var safePermissionId = escapeHtml(permissionId);
+
+                                if (safePermissionId === '') {
+                                    return '-';
+                                }
+
+                                var deleteButtonHtml = '';
+                                if (canDeletePermission) {
+                                    deleteButtonHtml = '<button type="button" class="izin-action-btn delete js-izin-delete" data-id="' + safePermissionId + '"><i class="bi bi-trash"></i></button>';
+                                }
 
                                 return '<div class="izin-action-group">'
-                                    + '<button type="button" class="izin-action-btn info" onclick="infoData(' + permissionId + ')"><i class="bi bi-info-circle"></i></button>'
-                                    + '<button type="button" class="izin-action-btn delete" onclick="deleteData(' + permissionId + ')"><i class="bi bi-trash"></i></button>'
+                                    + '<button type="button" class="izin-action-btn info js-izin-info" data-id="' + safePermissionId + '"><i class="bi bi-info-circle"></i></button>'
+                                    + deleteButtonHtml
                                     + '</div>';
                             }
                         }
@@ -741,6 +801,16 @@
                     }
                 });
             }
+
+            $('#tableLogs').on('click', '.js-izin-info', function () {
+                var permissionId = $(this).attr('data-id') || '';
+                infoData(permissionId);
+            });
+
+            $('#tableLogs').on('click', '.js-izin-delete', function () {
+                var permissionId = $(this).attr('data-id') || '';
+                deleteData(permissionId);
+            });
 
             $('#tableLogs').on('change', '.permission-status-select', function () {
                 var $statusSelect = $(this);
@@ -886,11 +956,11 @@
                     uploadMultiple: false,
                     maxFiles: 1,
                     acceptedFiles: '.jpg,.jpeg,.png,.pdf',
-                    maxFilesize: 5,
+                    maxFilesize: 1,
                     dictDefaultMessage: '<div class="text-center">'
                         + '<div class="dropzone-icon"><i class="bi bi-cloud-arrow-up"></i></div>'
                         + '<div class="dropzone-main">Drop file di sini atau klik untuk upload</div>'
-                        + '<div class="dropzone-sub">Format: JPG, JPEG, PNG, PDF (Maks. 5 MB)</div>'
+                        + '<div class="dropzone-sub">Format: JPG, JPEG, PNG, PDF (Maks. 1 MB)</div>'
                         + '</div>',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -1174,7 +1244,7 @@
         }
 
         function deleteData(permissionId) {
-            if (!permissionId) {
+            if (!permissionId || !canDeletePermission) {
                 return;
             }
 

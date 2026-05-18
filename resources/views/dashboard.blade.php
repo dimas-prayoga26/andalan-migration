@@ -226,86 +226,60 @@
                             </span>
                             <span class="dashboard-shortcut-text">Profile</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--desktop-extra shortcut-card" aria-label="Laporan">
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--laporan shortcut-card" aria-label="Laporan">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bxs-report.svg.svg') }}" alt="Icon Lainnya" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Laporan</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--desktop-extra shortcut-card" aria-label="Pelamar">
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--pelamar shortcut-card" aria-label="Pelamar">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bx-user-plus.svg.svg') }}" alt="Icon Pelamar" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Pelamar</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--desktop-extra shortcut-card" aria-label="Karyawan">
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--karyawan shortcut-card" aria-label="Karyawan">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bxs-user-detail.svg.svg') }}" alt="Icon Karyawan" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Karyawan</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--desktop-extra shortcut-card" aria-label="Setting">
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--setting shortcut-card" aria-label="Setting">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bx-slider-alt.svg.svg') }}" alt="Icon Setting" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Setting</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--desktop-extra shortcut-card" aria-label="Administration">
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--administration shortcut-card" aria-label="Administration">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bxs-credit-card.svg.svg') }}" alt="Icon Administration" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Administration</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--mobile-only shortcut-card" aria-label="Lainnya" data-bs-toggle="modal" data-bs-target="#mobileMoreMenuModal" role="button">
-                            <span class="dashboard-shortcut-box">
-                                <img src="{{ asset('assets/icon-menus/upload-rounded-symbol 1.svg') }}" alt="Icon Lainnya" class="dashboard-shortcut-icon-image">
-                            </span>
-                            <span class="dashboard-shortcut-text">Lainnya</span>
-                        </a>
                     </div>
                 </div>
             </div>
 
-            <div class="modal fade" id="mobileMoreMenuModal" tabindex="-1" aria-labelledby="mobileMoreMenuModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content dashboard-more-menu-modal">
-                        <div class="modal-header border-0 justify-content-center pb-0">
-                            <h5 class="modal-title fw-semibold" id="mobileMoreMenuModalLabel">Menu Lainnya</h5>
-                        </div>
-                        <div class="modal-body pt-3">
-                            <div class="dashboard-more-menu-track">
-                                <a href="javascript:void(0)" class="dashboard-more-menu-item">
-                                    <span class="dashboard-more-menu-box">
-                                        <img src="{{ asset('assets/icon-menus/bxs-report.svg.svg') }}" alt="Icon Laporan" class="dashboard-more-menu-icon">
-                                    </span>
-                                    <span class="dashboard-more-menu-text">Laporan</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dashboard-more-menu-item">
-                                    <span class="dashboard-more-menu-box">
-                                        <img src="{{ asset('assets/icon-menus/bx-user-plus.svg.svg') }}" alt="Icon Pelamar" class="dashboard-more-menu-icon">
-                                    </span>
-                                    <span class="dashboard-more-menu-text">Pelamar</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dashboard-more-menu-item">
-                                    <span class="dashboard-more-menu-box">
-                                        <img src="{{ asset('assets/icon-menus/bxs-user-detail.svg.svg') }}" alt="Icon Karyawan" class="dashboard-more-menu-icon">
-                                    </span>
-                                    <span class="dashboard-more-menu-text">Karyawan</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dashboard-more-menu-item">
-                                    <span class="dashboard-more-menu-box">
-                                        <img src="{{ asset('assets/icon-menus/bx-slider-alt.svg.svg') }}" alt="Icon Setting" class="dashboard-more-menu-icon">
-                                    </span>
-                                    <span class="dashboard-more-menu-text">Setting</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dashboard-more-menu-item">
-                                    <span class="dashboard-more-menu-box">
-                                        <img src="{{ asset('assets/icon-menus/bxs-credit-card.svg.svg') }}" alt="Icon Administration" class="dashboard-more-menu-icon">
-                                    </span>
-                                    <span class="dashboard-more-menu-text">Admin</span>
-                                </a>
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <div class="row g-3">
+                        <div class="col-6 col-lg-6">
+                            <div class="card h-auto">
+                                <div class="card-body">
+                                    <h6 class="mb-1">Jam Masuk</h6>
+                                    <h3 class="mb-2 fw-semibold" id="dashboardCheckInTime">--:--</h3>
+                                    <button type="button" class="btn btn-success btn-sm w-100" id="dashboardCheckInButton">Masuk</button>
+                                </div>
                             </div>
-                            <button type="button" class="btn btn-danger w-100 mt-4 dashboard-more-menu-back" data-bs-dismiss="modal">Kembali</button>
+                        </div>
+                        <div class="col-6 col-lg-6">
+                            <div class="card h-auto">
+                                <div class="card-body">
+                                    <h6 class="mb-1">Jam Keluar</h6>
+                                    <h3 class="mb-2 fw-semibold" id="dashboardCheckOutTime">--:--</h3>
+                                    <button type="button" class="btn btn-danger btn-sm w-100" id="dashboardCheckOutButton">Keluar</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -400,6 +374,42 @@
             }
 
             window.ReactDOM.render(React.createElement(AttendanceDateFilter), rootElement);
+        })();
+
+        (function () {
+            function getJakartaTimeString() {
+                var now = new Date();
+                var parts = new Intl.DateTimeFormat('id-ID', {
+                    timeZone: 'Asia/Jakarta',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hourCycle: 'h23'
+                }).formatToParts(now);
+
+                var map = {};
+                parts.forEach(function (part) {
+                    map[part.type] = part.value;
+                });
+
+                return map.hour + ':' + map.minute;
+            }
+
+            var checkInText = document.getElementById('dashboardCheckInTime');
+            var checkOutText = document.getElementById('dashboardCheckOutTime');
+            var checkInButton = document.getElementById('dashboardCheckInButton');
+            var checkOutButton = document.getElementById('dashboardCheckOutButton');
+
+            if (checkInButton && checkInText) {
+                checkInButton.addEventListener('click', function () {
+                    checkInText.textContent = getJakartaTimeString();
+                });
+            }
+
+            if (checkOutButton && checkOutText) {
+                checkOutButton.addEventListener('click', function () {
+                    checkOutText.textContent = getJakartaTimeString();
+                });
+            }
         })();
     </script>
 @endsection

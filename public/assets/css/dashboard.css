@@ -434,32 +434,52 @@
         order: 8;
     }
 
-    .dashboard-shortcut-item--absensi {
+    .dashboard-shortcut-item--laporan {
         order: 1;
     }
 
-    .dashboard-shortcut-item--agenda {
+    .dashboard-shortcut-item--pelamar {
         order: 2;
     }
 
-    .dashboard-shortcut-item--blog {
+    .dashboard-shortcut-item--karyawan {
         order: 3;
     }
 
-    .dashboard-shortcut-item--project {
+    .dashboard-shortcut-item--setting {
         order: 4;
     }
 
-    .dashboard-shortcut-item--profile {
+    .dashboard-shortcut-item--administration {
         order: 5;
     }
 
-    .dashboard-shortcut-item--meeting {
+    .dashboard-shortcut-item--agenda {
         order: 6;
     }
 
-    .dashboard-shortcut-item--finance {
+    .dashboard-shortcut-item--absensi {
         order: 7;
+    }
+
+    .dashboard-shortcut-item--project {
+        order: 8;
+    }
+
+    .dashboard-shortcut-item--blog {
+        order: 9;
+    }
+
+    .dashboard-shortcut-item--profile {
+        order: 10;
+    }
+
+    .dashboard-shortcut-item--meeting {
+        order: 11;
+    }
+
+    .dashboard-shortcut-item--finance {
+        order: 12;
     }
 
     .dashboard-shortcut-hero {

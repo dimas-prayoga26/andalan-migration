@@ -9,6 +9,120 @@
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
     <link rel="stylesheet" href="https://unpkg.com/antd@6.2.3/dist/antd.css">
+    <!-- FAVICONS ICON -->
+	<link rel="shortcut icon" type="image/png" href="{{ asset('assets-workload/images/favicon.png') }}" />
+	<link href="{{ asset('assets-workload/vendor/jquery-nice-select/css/nice-select.css') }}" rel="stylesheet">
+	<link href="{{ asset('assets-workload/vendor/owl-carousel/owl.carousel.css') }}" rel="stylesheet">
+	<link rel="stylesheet" href="{{ asset('assets-workload/vendor/nouislider/nouislider.min.css') }}">
+	
+	<!-- Style css -->
+    {{-- <link href="{{ asset('assets-workload/css/style.css') }}" rel="stylesheet"> --}}
+    <style>
+        .project-kanban-page .kanban-bx {
+            display: flex;
+            width: 100%;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            align-items: flex-start;
+            gap: 1.25rem;
+            padding-bottom: 0.5rem;
+            margin-left: 0;
+            margin-right: 0;
+        }
+
+        .project-kanban-page .kanban-bx .col {
+            width: 360px;
+            min-width: 360px;
+            flex-grow: 0;
+            flex-shrink: 0;
+            flex-basis: 360px;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .project-kanban-page .kanban-bx .col .card {
+            height: auto;
+            cursor: grab;
+            will-change: transform;
+        }
+
+        .project-kanban-page .kanban-bx .col .card.draggable-source--is-dragging {
+            cursor: grabbing;
+            opacity: 0.45;
+        }
+
+        .project-kanban-page .draggable.card {
+            transition: none;
+        }
+
+        .project-kanban-page .kanban-user .users {
+            display: flex;
+        }
+
+        .project-kanban-page .kanban-user .users li {
+            margin-right: -10px;
+        }
+
+        .project-kanban-page .kanban-user .users li img {
+            border-radius: 32px;
+            height: 32px;
+            width: 32px;
+            border: 2px solid #fff;
+        }
+
+        .project-kanban-page .dropzoneContainer {
+            min-height: 96px;
+        }
+
+        .project-kanban-page .dropzoneContainer > .sub-card {
+            margin-bottom: 1.5rem;
+            min-height: 32px;
+        }
+
+        .project-kanban-page .kanban-empty-state {
+            min-height: 235px;
+            border: 1px dashed #d8dde8;
+            border-radius: 1rem;
+            background: rgba(245, 248, 253, 0.5);
+        }
+
+        .project-kanban-page .dropzoneContainer:has(.draggable-handle) .kanban-empty-state {
+            display: none;
+        }
+
+        .project-kanban-page .kanban-bx::-webkit-scrollbar {
+            background-color: #ececec;
+            width: 8px;
+            height: 8px;
+        }
+
+        .project-kanban-page .kanban-bx::-webkit-scrollbar-thumb {
+            background-color: #7e7e7e;
+            border-radius: 10px;
+        }
+
+        .project-kanban-page .draggable-mirror {
+            z-index: 1060 !important;
+            pointer-events: none;
+        }
+
+        @media (max-width: 767.98px) {
+            .project-kanban-page .kanban-bx {
+                gap: 0.75rem;
+                padding: 0 0.75rem 0.75rem;
+                scroll-snap-type: x proximity;
+                scroll-padding-left: 0.75rem;
+                overscroll-behavior-x: contain;
+            }
+
+            .project-kanban-page .kanban-bx .col {
+                width: 82vw;
+                min-width: 82vw;
+                max-width: 82vw;
+                scroll-snap-align: start;
+            }
+        }
+    </style>
 @endsection
 
 @section('navbarTitle', 'Reports')
@@ -34,221 +148,634 @@
 </div>
 <!-- End - Page Title & Breadcrumb -->
 
-<div class="tab-content d-flex flex-column" id="tabContentMyProfileBottom" style="min-height: calc(100vh - 310px);">
+<div class="tab-content d-flex flex-column project-kanban-page" id="tabContentMyProfileBottom" style="min-height: calc(100vh - 310px);">
     <div class="row">
 
-        <!-- Start - My Projects -->
-        <div class="col-lg-12">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <h5 class="mb-0">My Projects</h5>
-                    <input type="text" class="form-control form-control" placeholder="Search project..." aria-label="Search project" style="width: auto;">
-                    <button type="button" class="btn btn-primary">Button</button>
-                </div>
-                <div class="d-flex align-items-center">
-                    <a href="javascript:void(0)" class="btn btn-primary btn-sm ms-2">+ New Project</a>
-                </div>
-            </div>
-        </div>
-        <!-- End - My Projects -->
+        <div class="row kanban-bx">
+			<div class="col">
+				<div class="kanbanPreview-bx">
+					<div class="draggable-zone dropzoneContainer">
+						<div class="sub-card align-items-center d-flex justify-content-between mb-4">
+							<div>
+								<h4 class="fs-20 mb-0 font-w600">To-Do List (<span class="totalCount">24</span>)</h4>
+							</div>
+							<div class="plus-bx">
+								<a href="javascript:void(0)"><i class="fas fa-plus"></i></a>
+							</div>
+						</div>
+						<div class="card draggable-handle draggable">
+							<div class="card-body">
+								<div class="d-flex justify-content-between mb-2">
+									<span class="sub-title">
+										<svg class="me-2" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<circle cx="5" cy="5" r="5" fill="#FFA7D7"/>
+										</svg>
+										Deisgner
+									</span>
+									<div class="dropdown">
+										<div class="btn-link" data-bs-toggle="dropdown">
+											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<circle cx="3.5" cy="11.5" r="2.5" transform="rotate(-90 3.5 11.5)" fill="#717579"/>
+												<circle cx="11.5" cy="11.5" r="2.5" transform="rotate(-90 11.5 11.5)" fill="#717579"/>
+												<circle cx="19.5" cy="11.5" r="2.5" transform="rotate(-90 19.5 11.5)" fill="#717579"/>
+											</svg>
+										</div>
+										<div class="dropdown-menu dropdown-menu-right">
+											<a class="dropdown-item" href="javascript:void(0)">Delete</a>
+											<a class="dropdown-item" href="javascript:void(0)">Edit</a>
+										</div>
+									</div>
+								</div>
+								<p class="font-w600 fs-18"><a href="javascript:void(0);" class="text-black">Create wireframe for landing page phase 1</a></p>
+								<div class="progress default-progress my-4">
+									<div class="progress-bar bg-design progress-animated" style="width: 45%; height:10px;" role="progressbar">
+										<span class="sr-only">45% Complete</span>
+									</div>
+								</div>
+								<div class="row justify-content-between align-items-center kanban-user">
+									<ul class="users col-6">
+										<li><img src="{{ asset('assets-workload/images/contacts/pic11.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic22.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic33.jpg') }}" alt=""></li>
+									</ul>
+									<div class="col-6 d-flex justify-content-end">
+										<span class="fs-14"><i class="far fa-clock me-2"></i>Due in 4 days</span>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="card draggable-handle draggable">
+							<div class="card-body">
+								<div class="d-flex justify-content-between mb-2">
+									<span class="text-warning">
+										<svg class="me-2" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<circle cx="5" cy="5" r="5" fill="#FFCF6D"/>
+										</svg>
+										Important
+									</span>
+									<div class="dropdown">
+										<div class="btn-link" data-bs-toggle="dropdown">
+											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<circle cx="3.5" cy="11.5" r="2.5" transform="rotate(-90 3.5 11.5)" fill="#717579"/>
+												<circle cx="11.5" cy="11.5" r="2.5" transform="rotate(-90 11.5 11.5)" fill="#717579"/>
+												<circle cx="19.5" cy="11.5" r="2.5" transform="rotate(-90 19.5 11.5)" fill="#717579"/>
+											</svg>
+										</div>
+										<div class="dropdown-menu dropdown-menu-right">
+											<a class="dropdown-item" href="javascript:void(0)">Delete</a>
+											<a class="dropdown-item" href="javascript:void(0)">Edit</a>
+										</div>
+									</div>
+								</div>
+								<p class="font-w600 fs-18"><a href="javascript:void(0);" class="text-black">Visual Graphic for Presentation to Client</a></p>
+								<div class="progress default-progress my-4">
+									<div class="progress-bar bg-warning progress-animated" style="width: 45%; height:10px;" role="progressbar">
+										<span class="sr-only">45% Complete</span>
+									</div>
+								</div>
+								<div class="row justify-content-between align-items-center kanban-user">
+									<ul class="users col-6">
+										<li><img src="{{ asset('assets-workload/images/contacts/pic11.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic22.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic33.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic222.jpg') }}" alt=""></li>
+									</ul>
+									<div class="col-6 d-flex justify-content-end">
+										<span class="fs-14"><i class="far fa-clock me-2"></i>Due in 4 days</span>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="card draggable-handle draggable">
+							<div class="card-body">
+								<div class="d-flex justify-content-between mb-2">
+									<span class="text-success">
+										<svg class="me-2" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<circle cx="5" cy="5" r="5" fill="#09BD3C"/>
+										</svg>
 
-
-        <div class="col-xxl-4 col-xl-4 col-sm-6 mb-3">
-            <div class="card h-120 overflow-hidden position-relative">
-                <div class="row g-0">
-                    <div class="col-md-4">
-                    <img src="https://picsum.photos/seed/figma-design/640/480" class="img-fluid rounded-start w-100 h-100 object-fit-cover" alt="...">
-                    </div>
-                    <div class="col-md-8">
-                    <div class="card-body">
-                        <h5 class="card-title">Silaturahmi Ramadhan 1445 H</h5>
-                        <a href="{{ url('/project-management/detail') }}" class="stretched-link" aria-label="Buka detail Silaturahmi Ramadhan 1445 H"></a>
-                        <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-                        <p class="card-text"><small class="text-body-secondary">25 Mar 2024 - 25 Mar 2024</small></p>
-                    </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xxl-4 col-xl-4 col-sm-6 mb-3">
-            <div class="card h-120 overflow-hidden position-relative">
-                <div class="row g-0">
-                    <div class="col-md-4">
-                    <img src="https://picsum.photos/seed/figma-design/640/480" class="img-fluid rounded-start w-100 h-100 object-fit-cover" alt="...">
-                    </div>
-                    <div class="col-md-8">
-                    <div class="card-body">
-                        <h5 class="card-title">Mudik Ceria 2024</h5>
-                        <a href="{{ url('/project-management/detail') }}" class="stretched-link" aria-label="Buka detail Mudik Ceria 2024"></a>
-                        <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-                        <p class="card-text"><small class="text-body-secondary">25 Mar 2024 - 25 Mar 2024</small></p>
-                    </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xxl-4 col-xl-4 col-sm-6 mb-3">
-            <div class="card h-120 overflow-hidden position-relative">
-                <div class="row g-0">
-                    <div class="col-md-4">
-                    <img src="https://picsum.photos/seed/figma-design/640/480" class="img-fluid rounded-start w-100 h-100 object-fit-cover" alt="...">
-                    </div>
-                    <div class="col-md-8">
-                    <div class="card-body">
-                        <h5 class="card-title">Rakor Pendampingan Desa</h5>
-                        <a href="{{ url('/project-management/detail') }}" class="stretched-link" aria-label="Buka detail Rakor Pendampingan Desa"></a>
-                        <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-                        <p class="card-text"><small class="text-body-secondary">25 Mar 2024 - 25 Mar 2024</small></p>
-                    </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xxl-4 col-xl-4 col-sm-6 mb-3">
-            <div class="card h-120 overflow-hidden position-relative">
-                <div class="row g-0">
-                    <div class="col-md-4">
-                    <img src="https://picsum.photos/seed/figma-design/640/480" class="img-fluid rounded-start w-100 h-100 object-fit-cover" alt="...">
-                    </div>
-                    <div class="col-md-8">
-                    <div class="card-body">
-                        <h5 class="card-title">Silaturahmi Ramadhan 1445 H</h5>
-                        <a href="{{ url('/project-management/detail') }}" class="stretched-link" aria-label="Buka detail Silaturahmi Ramadhan 1445 H"></a>
-                        <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-                        <p class="card-text"><small class="text-body-secondary">25 Mar 2024 - 25 Mar 2024</small></p>
-                    </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xxl-4 col-xl-4 col-sm-6 mb-3">
-            <div class="card h-120 overflow-hidden position-relative">
-                <div class="row g-0">
-                    <div class="col-md-4">
-                    <img src="https://picsum.photos/seed/figma-design/640/480" class="img-fluid rounded-start w-100 h-100 object-fit-cover" alt="...">
-                    </div>
-                    <div class="col-md-8">
-                    <div class="card-body">
-                        <h5 class="card-title">Mudik Ceria 2024</h5>
-                        <a href="{{ url('/project-management/detail') }}" class="stretched-link" aria-label="Buka detail Mudik Ceria 2024"></a>
-                        <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-                        <p class="card-text"><small class="text-body-secondary">25 Mar 2024 - 25 Mar 2024</small></p>
-                    </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xxl-4 col-xl-4 col-sm-6 mb-3">
-            <div class="card h-120 overflow-hidden position-relative">
-                <div class="row g-0">
-                    <div class="col-md-4">
-                    <img src="https://picsum.photos/seed/figma-design/640/480" class="img-fluid rounded-start w-100 h-100 object-fit-cover" alt="...">
-                    </div>
-                    <div class="col-md-8">
-                    <div class="card-body">
-                        <h5 class="card-title">Rakor Pendampingan Desa</h5>
-                        <a href="{{ url('/project-management/detail') }}" class="stretched-link" aria-label="Buka detail Rakor Pendampingan Desa"></a>
-                        <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-                        <p class="card-text"><small class="text-body-secondary">25 Mar 2024 - 25 Mar 2024</small></p>
-                    </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-        {{-- <div class="col-xxl-4 col-xl-4 col-sm-6 mb-3">
-            <div class="card h-120 overflow-hidden position-relative">
-                <div class="card-body p-0">
-                    <div class="row g-0">
-                        <div class="col-4">
-                            <img src="https://picsum.photos/seed/figma-design/640/480" alt="Figma Design" class="d-block w-100 h-100 object-fit-cover">
-                        </div>
-                        <div class="col-8">
-                            <div class="card-body">
-                                <h6 class="mb-0 fw-semibold"><a href="profile/projects-details.html" class="stretched-link">Figma Design</a></h6>
-                                <p class="my-3">Lorem Ipsum is simply dummy text of the printing and typesetting industry.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer d-flex justify-content-between flex-wrap">
-                    <p class="mb-0 fw-medium">Due <span class="text-purple">: 2023-06-02</span></p>
-                    <span class="badge badge-sm badge-primary light">In Progress</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xxl-4 col-xl-4 col-sm-6 mb-3">
-            <div class="card h-120 overflow-hidden position-relative">
-                <div class="card-body p-0">
-                    <div class="row g-0">
-                        <div class="col-4">
-                            <img src="https://picsum.photos/seed/github-repository/640/480" alt="Github Repository" class="img-fluid w-100 h-100 object-fit-cover">
-                        </div>
-                        <div class="col-8">
-                            <div class="card-body">
-                                <h6 class="mb-0 fw-semibold"><a href="profile/projects-details.html" class="stretched-link">Github Repository</a></h6>
-                                <p class="my-3">Lorem Ipsum is simply dummy text of the printing and typesetting industry.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer d-flex justify-content-between flex-wrap">
-                    <p class="mb-0 fw-medium">Due <span class="text-danger">: 2023-06-02</span></p>
-                    <span class="badge badge-sm badge-danger light">Pending</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xxl-4 col-xl-4 col-sm-6 mb-3">
-            <div class="card h-120 overflow-hidden position-relative">
-                <div class="card-body p-0">
-                    <div class="row g-0">
-                        <div class="col-4">
-                            <img src="https://picsum.photos/seed/github-repository/640/480" alt="Github Repository" class="img-fluid w-100 h-100 object-fit-cover">
-                        </div>
-                        <div class="col-8">
-                            <div class="card-body">
-                                <h6 class="mb-0 fw-semibold"><a href="profile/projects-details.html" class="stretched-link">Github Repository</a></h6>
-                                <p class="my-3">Lorem Ipsum is simply dummy text of the printing and typesetting industry.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer d-flex justify-content-between flex-wrap">
-                    <p class="mb-0 fw-medium">Due <span class="text-danger">: 2023-06-02</span></p>
-                    <span class="badge badge-sm badge-danger light">Pending</span>
-                </div>
-            </div>
-        </div> --}}
+										Databse
+									</span>
+									<div class="dropdown">
+										<div class="btn-link" data-bs-toggle="dropdown">
+											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<circle cx="3.5" cy="11.5" r="2.5" transform="rotate(-90 3.5 11.5)" fill="#717579"/>
+												<circle cx="11.5" cy="11.5" r="2.5" transform="rotate(-90 11.5 11.5)" fill="#717579"/>
+												<circle cx="19.5" cy="11.5" r="2.5" transform="rotate(-90 19.5 11.5)" fill="#717579"/>
+											</svg>
+										</div>
+										<div class="dropdown-menu dropdown-menu-right">
+											<a class="dropdown-item" href="javascript:void(0)">Delete</a>
+											<a class="dropdown-item" href="javascript:void(0)">Edit</a>
+										</div>
+									</div>
+								</div>
+								<p class="font-w600 fs-18"><a href="javascript:void(0);" class="text-black">Setup database for create API connection</a></p>
+								<div class="progress default-progress my-4">
+									<div class="progress-bar bg-success progress-animated" style="width: 45%; height:10px;" role="progressbar">
+										<span class="sr-only">45% Complete</span>
+									</div>
+								</div>
+								<div class="row justify-content-between align-items-center kanban-user">
+									<ul class="users col-6">
+										<li><img src="{{ asset('assets-workload/images/contacts/pic33.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic222.jpg') }}" alt=""></li>
+									</ul>
+									<div class="col-6 d-flex justify-content-end">
+										<span class="fs-14"><i class="far fa-clock me-2"></i>Due in 4 days</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="col">
+				<div class="kanbanPreview-bx">
+					<div class="draggable-zone dropzoneContainer">
+						<div class="sub-card align-items-center d-flex justify-content-between mb-4">
+							<div>
+								<h4 class="fs-20 mb-0 font-w600">On Progress(<span class="totalCount">2</span>)</h4>
+							</div>
+							<div class="plus-bx">
+								<a href="javascript:void(0)"><i class="fas fa-plus"></i></a>
+							</div>
+						</div>
+						<div class="card draggable-handle draggable">
+							<div class="card-body">
+								<div class="d-flex justify-content-between mb-2">
+									<span class="text-sucess">
+										<svg class="me-2" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<circle cx="5" cy="5" r="5" fill="#09BD3C"/>
+										</svg>
+										UPDATE
+									</span>
+									<div class="dropdown">
+										<div class="btn-link" data-bs-toggle="dropdown">
+											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<circle cx="3.5" cy="11.5" r="2.5" transform="rotate(-90 3.5 11.5)" fill="#717579"/>
+												<circle cx="11.5" cy="11.5" r="2.5" transform="rotate(-90 11.5 11.5)" fill="#717579"/>
+												<circle cx="19.5" cy="11.5" r="2.5" transform="rotate(-90 19.5 11.5)" fill="#717579"/>
+											</svg>
+										</div>
+										<div class="dropdown-menu dropdown-menu-right">
+											<a class="dropdown-item" href="javascript:void(0)">Delete</a>
+											<a class="dropdown-item" href="javascript:void(0)">Edit</a>
+										</div>
+									</div>
+								</div>
+								<p class="font-w600 fs-18"><a href="javascript:void(0);" class="text-black">Update information in footer section</a></p>
+								<div class="progress default-progress my-4">
+									<div class="progress-bar bg-success progress-animated" style="width: 45%; height:10px;" role="progressbar">
+										<span class="sr-only">45% Complete</span>
+									</div>
+								</div>
+								<div class="row justify-content-between align-items-center kanban-user">
+									<ul class="users col-6">
+										<li><img src="{{ asset('assets-workload/images/contacts/pic11.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic22.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic33.jpg') }}" alt=""></li>
+									</ul>
+									<div class="col-6 d-flex justify-content-end">
+										<span class="fs-14"><i class="far fa-clock me-2"></i>Due in 4 days</span>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="card draggable-handle draggable">
+							<div class="card-body">
+								<div class="d-flex justify-content-between mb-2">
+									<span class="text-info">
+										<svg class="me-2" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<circle cx="5" cy="5" r="5" fill="#D653C1"/>
+										</svg>
+										Video
+									</span>
+									<div class="dropdown">
+										<div class="btn-link" data-bs-toggle="dropdown">
+											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<circle cx="3.5" cy="11.5" r="2.5" transform="rotate(-90 3.5 11.5)" fill="#717579"/>
+												<circle cx="11.5" cy="11.5" r="2.5" transform="rotate(-90 11.5 11.5)" fill="#717579"/>
+												<circle cx="19.5" cy="11.5" r="2.5" transform="rotate(-90 19.5 11.5)" fill="#717579"/>
+											</svg>
+										</div>
+										<div class="dropdown-menu dropdown-menu-right">
+											<a class="dropdown-item" href="javascript:void(0)">Delete</a>
+											<a class="dropdown-item" href="javascript:void(0)">Edit</a>
+										</div>
+									</div>
+								</div>
+								<p class="font-w600 fs-18"><a href="javascript:void(0);" class="text-black">Update information in footer section</a></p>
+								<div class="progress default-progress my-4">
+									<div class="progress-bar bg-info progress-animated" style="width: 45%; height:10px;" role="progressbar">
+										<span class="sr-only">45% Complete</span>
+									</div>
+								</div>
+								<div class="row justify-content-between align-items-center kanban-user">
+									<ul class="users col-6">
+										<li><img src="{{ asset('assets-workload/images/contacts/pic11.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic22.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic33.jpg') }}" alt=""></li>
+									</ul>
+									<div class="col-6 d-flex justify-content-end">
+										<span class="fs-14"><i class="far fa-clock me-2"></i>Due in 4 days</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="col">
+				<div class="kanbanPreview-bx">
+					<div class="draggable-zone dropzoneContainer">
+						<div class="sub-card align-items-center d-flex justify-content-between mb-4">
+							<div>
+								<h4 class="fs-20 mb-0 font-w600">Done(<span class="totalCount">3</span>)</h4>
+							</div>
+							<div class="plus-bx">
+								<a href="javascript:void(0)"><i class="fas fa-plus"></i></a>
+							</div>
+						</div>
+						<div class="card draggable-handle draggable">
+							<div class="card-body">
+								<div class="d-flex justify-content-between mb-2">
+									<span class="text-danger">
+										<svg class="me-2" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<circle cx="5" cy="5" r="5" fill="#FC2E53"/>
+										</svg>
+										BUGS FIXING
+									</span>
+									<div class="dropdown">
+										<div class="btn-link" data-bs-toggle="dropdown">
+											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<circle cx="3.5" cy="11.5" r="2.5" transform="rotate(-90 3.5 11.5)" fill="#717579"/>
+												<circle cx="11.5" cy="11.5" r="2.5" transform="rotate(-90 11.5 11.5)" fill="#717579"/>
+												<circle cx="19.5" cy="11.5" r="2.5" transform="rotate(-90 19.5 11.5)" fill="#717579"/>
+											</svg>
+										</div>
+										<div class="dropdown-menu dropdown-menu-right">
+											<a class="dropdown-item" href="javascript:void(0)">Delete</a>
+											<a class="dropdown-item" href="javascript:void(0)">Edit</a>
+										</div>
+									</div>
+								</div>
+								<p class="font-w600 fs-18"><a href="javascript:void(0);" class="text-black">Update information in footer section</a></p>
+								<div class="progress default-progress my-4">
+									<div class="progress-bar bg-danger progress-animated" style="width: 45%; height:10px;" role="progressbar">
+										<span class="sr-only">45% Complete</span>
+									</div>
+								</div>
+								<div class="row justify-content-between align-items-center kanban-user">
+									<ul class="users col-6">
+										<li><img src="{{ asset('assets-workload/images/contacts/pic11.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic22.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic33.jpg') }}" alt=""></li>
+									</ul>
+									<div class="col-6 d-flex justify-content-end">
+										<span class="fs-14"><i class="far fa-clock me-2"></i>Due in 4 days</span>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="card draggable-handle draggable">
+							<div class="card-body">
+								<div class="d-flex justify-content-between mb-2">
+									<span class="text-danger">
+										<svg class="me-2" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<circle cx="5" cy="5" r="5" fill="#FC2E53"/>
+										</svg>
+										BUGS FIXING
+									</span>
+									<div class="dropdown">
+										<div class="btn-link" data-bs-toggle="dropdown">
+											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<circle cx="3.5" cy="11.5" r="2.5" transform="rotate(-90 3.5 11.5)" fill="#717579"/>
+												<circle cx="11.5" cy="11.5" r="2.5" transform="rotate(-90 11.5 11.5)" fill="#717579"/>
+												<circle cx="19.5" cy="11.5" r="2.5" transform="rotate(-90 19.5 11.5)" fill="#717579"/>
+											</svg>
+										</div>
+										<div class="dropdown-menu dropdown-menu-right">
+											<a class="dropdown-item" href="javascript:void(0)">Delete</a>
+											<a class="dropdown-item" href="javascript:void(0)">Edit</a>
+										</div>
+									</div>
+								</div>
+								<p class="font-w600 fs-18"><a href="javascript:void(0);" class="text-black">Update information in footer section</a></p>
+								<div class="progress default-progress my-4">
+									<div class="progress-bar bg-danger progress-animated" style="width: 45%; height:10px;" role="progressbar">
+										<span class="sr-only">45% Complete</span>
+									</div>
+								</div>
+								<div class="row justify-content-between align-items-center kanban-user">
+									<ul class="users col-6">
+										<li><img src="{{ asset('assets-workload/images/contacts/pic11.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic22.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic33.jpg') }}" alt=""></li>
+									</ul>
+									<div class="col-6 d-flex justify-content-end">
+										<span class="fs-14"><i class="far fa-clock me-2"></i>Due in 4 days</span>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="card draggable-handle draggable">
+							<div class="card-body">
+								<div class="d-flex justify-content-between mb-2">
+									<span class="sub-title">
+										<svg class="me-2" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<circle cx="5" cy="5" r="5" fill="#FFA7D7"/>
+										</svg>
+										HTML
+									</span>
+									<div class="dropdown">
+										<div class="btn-link" data-bs-toggle="dropdown">
+											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<circle cx="3.5" cy="11.5" r="2.5" transform="rotate(-90 3.5 11.5)" fill="#717579"/>
+												<circle cx="11.5" cy="11.5" r="2.5" transform="rotate(-90 11.5 11.5)" fill="#717579"/>
+												<circle cx="19.5" cy="11.5" r="2.5" transform="rotate(-90 19.5 11.5)" fill="#717579"/>
+											</svg>
+										</div>
+										<div class="dropdown-menu dropdown-menu-right">
+											<a class="dropdown-item" href="javascript:void(0)">Delete</a>
+											<a class="dropdown-item" href="javascript:void(0)">Edit</a>
+										</div>
+									</div>
+								</div>
+								<p class="font-w600 fs-18"><a href="javascript:void(0);" class="text-black">Create wireframe for landing page phase 1</a></p>
+								<div class="progress default-progress my-4">
+									<div class="progress-bar bg-design progress-animated" style="width: 45%; height:10px;" role="progressbar">
+										<span class="sr-only">45% Complete</span>
+									</div>
+								</div>
+								<div class="row justify-content-between align-items-center kanban-user">
+									<ul class="users col-6">
+										<li><img src="{{ asset('assets-workload/images/contacts/pic11.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic22.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic33.jpg') }}" alt=""></li>
+									</ul>
+									<div class="col-6 d-flex justify-content-end">
+										<span class="fs-14"><i class="far fa-clock me-2"></i>Due in 4 days</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="col">
+				<div class="kanbanPreview-bx">
+					<div class="draggable-zone dropzoneContainer">
+						<div class="sub-card align-items-center d-flex justify-content-between mb-4">
+							<div>
+								<h4 class="fs-20 mb-0 font-w600">Done(<span class="totalCount">3</span>)</h4>
+							</div>
+							<div class="plus-bx">
+								<a href="javascript:void(0)"><i class="fas fa-plus"></i></a>
+							</div>
+						</div>
+                        <div class="kanban-empty-state"></div>
+					</div>
+				</div>
+			</div>
+			
+			<div class="col">
+				<div class="kanbanPreview-bx">
+					<div class="draggable-zone dropzoneContainer">
+						<div class="sub-card align-items-center d-flex justify-content-between mb-4">
+							<div>
+								<h4 class="fs-20 mb-0 font-w600">On Progress(<span class="totalCount">2</span>)</h4>
+							</div>
+							<div class="plus-bx">
+								<a href="javascript:void(0)"><i class="fas fa-plus"></i></a>
+							</div>
+						</div>
+						<div class="card draggable-handle draggable">
+							<div class="card-body">
+								<div class="d-flex justify-content-between mb-2">
+									<span class="text-sucess">
+										<svg class="me-2" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<circle cx="5" cy="5" r="5" fill="#09BD3C"/>
+										</svg>
+										UPDATE
+									</span>
+									<div class="dropdown">
+										<div class="btn-link" data-bs-toggle="dropdown">
+											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<circle cx="3.5" cy="11.5" r="2.5" transform="rotate(-90 3.5 11.5)" fill="#717579"/>
+												<circle cx="11.5" cy="11.5" r="2.5" transform="rotate(-90 11.5 11.5)" fill="#717579"/>
+												<circle cx="19.5" cy="11.5" r="2.5" transform="rotate(-90 19.5 11.5)" fill="#717579"/>
+											</svg>
+										</div>
+										<div class="dropdown-menu dropdown-menu-right">
+											<a class="dropdown-item" href="javascript:void(0)">Delete</a>
+											<a class="dropdown-item" href="javascript:void(0)">Edit</a>
+										</div>
+									</div>
+								</div>
+								<p class="font-w600 fs-18"><a href="javascript:void(0);" class="text-black">Update information in footer section</a></p>
+								<div class="progress default-progress my-4">
+									<div class="progress-bar bg-success progress-animated" style="width: 45%; height:10px;" role="progressbar">
+										<span class="sr-only">45% Complete</span>
+									</div>
+								</div>
+								<div class="row justify-content-between align-items-center kanban-user">
+									<ul class="users col-6">
+										<li><img src="{{ asset('assets-workload/images/contacts/pic11.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic22.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic33.jpg') }}" alt=""></li>
+									</ul>
+									<div class="col-6 d-flex justify-content-end">
+										<span class="fs-14"><i class="far fa-clock me-2"></i>Due in 4 days</span>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="card draggable-handle draggable">
+							<div class="card-body">
+								<div class="d-flex justify-content-between mb-2">
+									<span class="text-info">
+										<svg class="me-2" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<circle cx="5" cy="5" r="5" fill="#D653C1"/>
+										</svg>
+										Video
+									</span>
+									<div class="dropdown">
+										<div class="btn-link" data-bs-toggle="dropdown">
+											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<circle cx="3.5" cy="11.5" r="2.5" transform="rotate(-90 3.5 11.5)" fill="#717579"/>
+												<circle cx="11.5" cy="11.5" r="2.5" transform="rotate(-90 11.5 11.5)" fill="#717579"/>
+												<circle cx="19.5" cy="11.5" r="2.5" transform="rotate(-90 19.5 11.5)" fill="#717579"/>
+											</svg>
+										</div>
+										<div class="dropdown-menu dropdown-menu-right">
+											<a class="dropdown-item" href="javascript:void(0)">Delete</a>
+											<a class="dropdown-item" href="javascript:void(0)">Edit</a>
+										</div>
+									</div>
+								</div>
+								<p class="font-w600 fs-18"><a href="javascript:void(0);" class="text-black">Update information in footer section</a></p>
+								<div class="progress default-progress my-4">
+									<div class="progress-bar bg-info progress-animated" style="width: 45%; height:10px;" role="progressbar">
+										<span class="sr-only">45% Complete</span>
+									</div>
+								</div>
+								<div class="row justify-content-between align-items-center kanban-user">
+									<ul class="users col-6">
+										<li><img src="{{ asset('assets-workload/images/contacts/pic11.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic22.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic33.jpg') }}" alt=""></li>
+									</ul>
+									<div class="col-6 d-flex justify-content-end">
+										<span class="fs-14"><i class="far fa-clock me-2"></i>Due in 4 days</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="col">
+				<div class="kanbanPreview-bx">
+					<div class="draggable-zone dropzoneContainer">
+						<div class="sub-card align-items-center d-flex justify-content-between mb-4">
+							<div>
+								<h4 class="fs-20 mb-0 font-w600">Done(<span class="totalCount">3</span>)</h4>
+							</div>
+							<div class="plus-bx">
+								<a href="javascript:void(0)"><i class="fas fa-plus"></i></a>
+							</div>
+						</div>
+						<div class="card draggable-handle draggable">
+							<div class="card-body">
+								<div class="d-flex justify-content-between mb-2">
+									<span class="text-danger">
+										<svg class="me-2" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<circle cx="5" cy="5" r="5" fill="#FC2E53"/>
+										</svg>
+										BUGS FIXING
+									</span>
+									<div class="dropdown">
+										<div class="btn-link" data-bs-toggle="dropdown">
+											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<circle cx="3.5" cy="11.5" r="2.5" transform="rotate(-90 3.5 11.5)" fill="#717579"/>
+												<circle cx="11.5" cy="11.5" r="2.5" transform="rotate(-90 11.5 11.5)" fill="#717579"/>
+												<circle cx="19.5" cy="11.5" r="2.5" transform="rotate(-90 19.5 11.5)" fill="#717579"/>
+											</svg>
+										</div>
+										<div class="dropdown-menu dropdown-menu-right">
+											<a class="dropdown-item" href="javascript:void(0)">Delete</a>
+											<a class="dropdown-item" href="javascript:void(0)">Edit</a>
+										</div>
+									</div>
+								</div>
+								<p class="font-w600 fs-18"><a href="javascript:void(0);" class="text-black">Update information in footer section</a></p>
+								<div class="progress default-progress my-4">
+									<div class="progress-bar bg-danger progress-animated" style="width: 45%; height:10px;" role="progressbar">
+										<span class="sr-only">45% Complete</span>
+									</div>
+								</div>
+								<div class="row justify-content-between align-items-center kanban-user">
+									<ul class="users col-6">
+										<li><img src="{{ asset('assets-workload/images/contacts/pic11.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic22.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic33.jpg') }}" alt=""></li>
+									</ul>
+									<div class="col-6 d-flex justify-content-end">
+										<span class="fs-14"><i class="far fa-clock me-2"></i>Due in 4 days</span>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="card draggable-handle draggable">
+							<div class="card-body">
+								<div class="d-flex justify-content-between mb-2">
+									<span class="text-danger">
+										<svg class="me-2" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<circle cx="5" cy="5" r="5" fill="#FC2E53"/>
+										</svg>
+										BUGS FIXING
+									</span>
+									<div class="dropdown">
+										<div class="btn-link" data-bs-toggle="dropdown">
+											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<circle cx="3.5" cy="11.5" r="2.5" transform="rotate(-90 3.5 11.5)" fill="#717579"/>
+												<circle cx="11.5" cy="11.5" r="2.5" transform="rotate(-90 11.5 11.5)" fill="#717579"/>
+												<circle cx="19.5" cy="11.5" r="2.5" transform="rotate(-90 19.5 11.5)" fill="#717579"/>
+											</svg>
+										</div>
+										<div class="dropdown-menu dropdown-menu-right">
+											<a class="dropdown-item" href="javascript:void(0)">Delete</a>
+											<a class="dropdown-item" href="javascript:void(0)">Edit</a>
+										</div>
+									</div>
+								</div>
+								<p class="font-w600 fs-18"><a href="javascript:void(0);" class="text-black">Update information in footer section</a></p>
+								<div class="progress default-progress my-4">
+									<div class="progress-bar bg-danger progress-animated" style="width: 45%; height:10px;" role="progressbar">
+										<span class="sr-only">45% Complete</span>
+									</div>
+								</div>
+								<div class="row justify-content-between align-items-center kanban-user">
+									<ul class="users col-6">
+										<li><img src="{{ asset('assets-workload/images/contacts/pic11.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic22.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic33.jpg') }}" alt=""></li>
+									</ul>
+									<div class="col-6 d-flex justify-content-end">
+										<span class="fs-14"><i class="far fa-clock me-2"></i>Due in 4 days</span>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="card draggable-handle draggable">
+							<div class="card-body">
+								<div class="d-flex justify-content-between mb-2">
+									<span class="sub-title">
+										<svg class="me-2" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<circle cx="5" cy="5" r="5" fill="#FFA7D7"/>
+										</svg>
+										HTML
+									</span>
+									<div class="dropdown">
+										<div class="btn-link" data-bs-toggle="dropdown">
+											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<circle cx="3.5" cy="11.5" r="2.5" transform="rotate(-90 3.5 11.5)" fill="#717579"/>
+												<circle cx="11.5" cy="11.5" r="2.5" transform="rotate(-90 11.5 11.5)" fill="#717579"/>
+												<circle cx="19.5" cy="11.5" r="2.5" transform="rotate(-90 19.5 11.5)" fill="#717579"/>
+											</svg>
+										</div>
+										<div class="dropdown-menu dropdown-menu-right">
+											<a class="dropdown-item" href="javascript:void(0)">Delete</a>
+											<a class="dropdown-item" href="javascript:void(0)">Edit</a>
+										</div>
+									</div>
+								</div>
+								<p class="font-w600 fs-18"><a href="javascript:void(0);" class="text-black">Create wireframe for landing page phase 1</a></p>
+								<div class="progress default-progress my-4">
+									<div class="progress-bar bg-design progress-animated" style="width: 45%; height:10px;" role="progressbar">
+										<span class="sr-only">45% Complete</span>
+									</div>
+								</div>
+								<div class="row justify-content-between align-items-center kanban-user">
+									<ul class="users col-6">
+										<li><img src="{{ asset('assets-workload/images/contacts/pic11.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic22.jpg') }}" alt=""></li>
+										<li><img src="{{ asset('assets-workload/images/contacts/pic33.jpg') }}" alt=""></li>
+									</ul>
+									<div class="col-6 d-flex justify-content-end">
+										<span class="fs-14"><i class="far fa-clock me-2"></i>Due in 4 days</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>	
+        
 
     </div>
-</div>
-
-<div class="d-flex justify-content-center mt-auto pt-3 mb-2">
-    <nav aria-label="Page navigation example">
-        <ul class="pagination mb-0">
-            <li class="page-item">
-                <a class="page-link" href="javascript:void(0);" aria-label="Previous">
-                    <span aria-hidden="true">&laquo;</span>
-                </a>
-            </li>
-            <li class="page-item"><a class="page-link" href="javascript:void(0);">1</a></li>
-            <li class="page-item"><a class="page-link" href="javascript:void(0);">2</a></li>
-            <li class="page-item"><a class="page-link" href="javascript:void(0);">3</a></li>
-            <li class="page-item">
-                <a class="page-link" href="javascript:void(0);" aria-label="Next">
-                    <span aria-hidden="true">&raquo;</span>
-                </a>
-            </li>
-        </ul>
-    </nav>
 </div>
 
 <!-- End - Content Body -->
@@ -261,5 +788,37 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+        <!-- Required vendors -->
+    <script src="{{ asset('assets-workload/vendor/global/global.min.js') }}"></script>
+	<script src="{{ asset('assets-workload/vendor/jquery-nice-select/js/jquery.nice-select.min.js') }}"></script>
+	
+	<!-- Apex Chart -->
+	<!-- Chart piety plugin files -->
+   
+	<!-- Dashboard 1 -->	
+	<script src="{{ asset('assets-workload/vendor/draggable/draggable.js') }}"></script>
+    <script>
+        (function () {
+            if (typeof window.Sortable === 'undefined' || typeof window.Sortable.default === 'undefined') {
+                return;
+            }
+
+            var OriginalSortable = window.Sortable.default;
+
+            window.Sortable.default = function (containers, options) {
+                var sortableOptions = options || {};
+                sortableOptions.mirror = Object.assign({}, sortableOptions.mirror || {}, {
+                    appendTo: '.project-kanban-page .kanban-bx',
+                    constrainDimensions: true
+                });
+
+                return new OriginalSortable(containers, sortableOptions);
+            };
+
+            window.Sortable.default.prototype = OriginalSortable.prototype;
+        })();
+    </script>
+    <script src="{{ asset('assets-workload/js/custom.min.js') }}"></script>
+	<script src="{{ asset('assets-workload/js/dlabnav-init.js') }}"></script>
 @endsection
 

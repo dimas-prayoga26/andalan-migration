@@ -46,7 +46,6 @@
 
         #myTable tbody td {
             font-size: 1rem;
-            padding: 0.9rem 0.75rem;
         }
 
         #myTable thead th:first-child,
@@ -281,6 +280,58 @@
             border-color: var(--bs-danger) !important;
             color: #fff !important;
         }
+
+        .overtime-forbidden-modal {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+
+        .overtime-forbidden-modal .error-page {
+            min-height: 250px !important;
+            height: auto !important;
+            margin-bottom: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: transparent !important;
+        }
+
+        .overtime-forbidden-modal .error-page::before {
+            display: none !important;
+        }
+
+        .overtime-forbidden-modal .error-page .error-inner {
+            position: relative !important;
+            left: auto !important;
+            top: auto !important;
+            transform: none !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+
+        .overtime-forbidden-modal .error-page .dz-error {
+            font-size: clamp(4.5rem, 15vw, 6.8rem) !important;
+            line-height: 1 !important;
+            margin: 0 auto 0.35rem !important;
+            animation: none !important;
+        }
+
+        .overtime-forbidden-modal .error-page .dz-error::before,
+        .overtime-forbidden-modal .error-page .dz-error::after {
+            display: none !important;
+        }
+
+        .overtime-forbidden-modal .error-page .error-head {
+            font-size: clamp(1.55rem, 4.8vw, 2rem) !important;
+            margin-bottom: 0.3rem !important;
+        }
+
+        .overtime-forbidden-modal .error-page .fs-16 {
+            font-size: 1rem !important;
+            margin-bottom: 0 !important;
+        }
+
     </style>
 
 @endsection
@@ -304,9 +355,8 @@
             @if($canSubmitOvertime ?? false)
             <button
                 type="button"
+                id="openSubmitLemburModalButton"
                 class="me-2 btn btn-success light btn-sm"
-                data-bs-toggle="modal"
-                data-bs-target="#submitLemburModal"
             >Submit Lembur</button>
             @endif
         </div>
@@ -325,13 +375,23 @@
                                 <thead>
                                 <tr>
                                     <th class="mw-80">No</th>
-                                    <th class="mw-180">Tanggal</th>
-                                    <th class="mw-220">Nama</th>
-                                    <th class="mw-150">Jam</th>
-                                    <th class="mw-160">Durasi</th>
-                                    <th class="mw-140">Status</th>
-                                    <th class="mw-300">Deskripsi</th>
-                                    <th class="mw-130 text-center">Action</th>
+                                    @if($canManageOvertimeActions ?? false)
+                                        <th class="mw-150">Staff</th>
+                                        <th class="mw-150">PIC</th>
+                                        <th class="mw-180">Tanggal</th>
+                                        <th class="mw-180">Actual Start</th>
+                                        <th class="mw-180">Actual End</th>
+                                        <th class="mw-200">Calculated Hours</th>
+                                        <th class="mw-200">Instruction</th>
+                                        <th class="mw-130 text-center">Action</th>
+                                    @else
+                                        <th class="mw-150">PIC</th>
+                                        <th class="mw-180">Tanggal</th>
+                                        <th class="mw-180">Planned Start</th>
+                                        <th class="mw-180">Planned End</th>
+                                        <th class="mw-200">Instruction</th>
+                                        <th class="mw-130 text-center">Action</th>
+                                    @endif
                                 </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -352,68 +412,148 @@
                     <h5 class="modal-title" id="submitLemburModalLabel">Submit Lembur</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <form id="overtimeSubmissionForm" action="{{ route('absensi.lembur.store') }}" method="POST">
-                        @csrf
-                        <input type="hidden" id="overtimeIdInput" value="">
-                        <div class="mb-3">
-                            <label class="form-label" for="overtimeDateInput">Tanggal Lembur</label>
-                            <input
-                                type="text"
-                                class="form-control"
-                                id="overtimeDateInput"
-                                name="overtime_date"
-                                placeholder="DD/MM/YYYY"
-                                autocomplete="off"
-                            >
-                        </div>
-                        <div class="mb-3">
-                            <div class="row g-2">
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label small mb-1" for="overtimeStartTimeInput">Jam Mulai</label>
-                                    <input
-                                        type="time"
-                                        step="1"
-                                        class="form-control"
-                                        id="overtimeStartTimeInput"
-                                        name="start_time"
-                                    >
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label small mb-1" for="overtimeEndTimeInput">Jam Selesai</label>
-                                    <input
-                                        type="time"
-                                        step="1"
-                                        class="form-control"
-                                        id="overtimeEndTimeInput"
-                                        name="end_time"
-                                    >
+                <div class="modal-body {{ (($isStaffOvertimeUser ?? false) && !($hasStaffOvertimeAssignment ?? false)) ? 'overtime-forbidden-modal' : '' }}">
+                    @if(($isStaffOvertimeUser ?? false) && !($hasStaffOvertimeAssignment ?? false))
+                        <div class="clearfix">
+                            <div class="container px-0">
+                                <div class="row justify-content-center h-100 align-items-center">
+                                    <div class="col-12 error-page">
+                                        <div class="error-inner text-center">
+                                            <div class="dz-error" data-text="403">403</div>
+                                            <h2 class="error-head"><i class="fa fa-thumbs-down text-danger"></i> Forbidden Error!</h2>
+                                            <p class="fs-16">You do not have permission to view this resource.</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-0">
-                            <label class="form-label" for="overtimeDescriptionInput">Deskripsi</label>
-                            <textarea
-                                class="form-control"
-                                id="overtimeDescriptionInput"
-                                name="description"
-                                rows="4"
-                                placeholder="Tulis deskripsi lembur"
-                            ></textarea>
-                        </div>
-                        <div class="mb-0 mt-3 d-none" id="overtimeApprovalStatusGroup">
-                            <label class="form-label" for="overtimeApprovalStatusInput">Approval Status</label>
-                            <select class="form-select" id="overtimeApprovalStatusInput" name="approval_status">
-                                <option value="pending">Pending</option>
-                                <option value="approved">Approved</option>
-                                <option value="rejected">Rejected</option>
-                            </select>
-                        </div>
-                    </form>
+                    @else
+                        <form id="overtimeSubmissionForm" action="{{ route('absensi.lembur.store') }}" method="POST">
+                            @csrf
+                            <input type="hidden" id="overtimeIdInput" value="">
+                            <div class="mb-3" id="overtimeStaffGroup">
+                                <label class="form-label" for="overtimeStaffInput">Staff</label>
+                                <select class="form-select" id="overtimeStaffInput" name="employee_id" @if($isStaffOvertimeUser ?? false) disabled @endif>
+                                    @foreach(($staffOptions ?? collect()) as $staffOption)
+                                        <option value="{{ $staffOption['id'] }}" @selected(($defaultStaffEmployeeId ?? '') === ($staffOption['id'] ?? ''))>
+                                            {{ $staffOption['name'] ?? '-' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @if($isStaffOvertimeUser ?? false)
+                                    <input type="hidden" name="employee_id" id="overtimeStaffInputHidden" value="{{ $defaultStaffEmployeeId ?? '' }}">
+                                @endif
+                            </div>
+                            <div class="mb-3" id="overtimePicGroup">
+                                <label class="form-label" for="overtimePicInput">PIC</label>
+                                <select class="form-select" id="overtimePicInput" name="pic_user_id" @if($isStaffOvertimeUser ?? false) disabled @endif>
+                                    @foreach(($picOptions ?? collect()) as $picOption)
+                                        <option value="{{ $picOption['id'] }}" @selected(($defaultPicUserId ?? '') === ($picOption['id'] ?? ''))>
+                                            {{ $picOption['name'] ?? '-' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @if($isStaffOvertimeUser ?? false)
+                                    <input type="hidden" name="pic_user_id" id="overtimePicInputHidden" value="{{ $defaultPicUserId ?? '' }}">
+                                @endif
+                            </div>
+                            <div class="mb-3 d-none" id="overtimePicReadonlyGroup">
+                                <label class="form-label" for="overtimePicReadonlyInput">PIC</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="overtimePicReadonlyInput"
+                                    value="-"
+                                    readonly
+                                >
+                            </div>
+                            <div class="mb-3" id="overtimeDateGroup">
+                                <label class="form-label" for="overtimeDateInput">Tanggal Lembur</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="overtimeDateInput"
+                                    name="overtime_date"
+                                    placeholder="DD/MM/YYYY"
+                                    autocomplete="off"
+                                >
+                            </div>
+                            <div class="mb-3" id="overtimePlannedTimeGroup">
+                                <div class="row g-2">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label small mb-1" for="overtimeStartTimeInput">Planned Start Time</label>
+                                        <input
+                                            type="time"
+                                            step="1"
+                                            class="form-control"
+                                            id="overtimeStartTimeInput"
+                                            name="planned_start_time"
+                                            @if($isStaffOvertimeUser ?? false) readonly @endif
+                                        >
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label small mb-1" for="overtimeEndTimeInput">Planned End Time</label>
+                                        <input
+                                            type="time"
+                                            step="1"
+                                            class="form-control"
+                                            id="overtimeEndTimeInput"
+                                            name="planned_end_time"
+                                            @if($isStaffOvertimeUser ?? false) readonly @endif
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3 d-none" id="overtimeActualTimeGroup">
+                                <div class="row g-2">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label small mb-1" for="overtimeActualStartTimeInput">Actual Start Time</label>
+                                        <input
+                                            type="time"
+                                            step="1"
+                                            class="form-control"
+                                            id="overtimeActualStartTimeInput"
+                                            name="actual_start_time"
+                                        >
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label small mb-1" for="overtimeActualEndTimeInput">Actual End Time</label>
+                                        <input
+                                            type="time"
+                                            step="1"
+                                            class="form-control"
+                                            id="overtimeActualEndTimeInput"
+                                            name="actual_end_time"
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-0" id="overtimeInstructionGroup">
+                                <label class="form-label" for="overtimeDescriptionInput">Instruction</label>
+                                <textarea
+                                    class="form-control"
+                                    id="overtimeDescriptionInput"
+                                    name="instruction"
+                                    rows="4"
+                                    placeholder="Tulis deskripsi lembur"
+                                    @if($isStaffOvertimeUser ?? false) readonly @endif
+                                ></textarea>
+                            </div>
+                            <div class="mb-0 mt-3 d-none" id="overtimeApprovalStatusGroup">
+                                <label class="form-label" for="overtimeApprovalStatusInput">Status</label>
+                                <select class="form-select" id="overtimeApprovalStatusInput" name="status">
+                                    <option value="pending">Pending</option>
+                                    <option value="approved">Approved</option>
+                                </select>
+                            </div>
+                        </form>
+                    @endif
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-primary btn-sm" id="submitOvertimeButton">Submit Lembur</button>
+                    @if(!(($isStaffOvertimeUser ?? false) && !($hasStaffOvertimeAssignment ?? false)))
+                        <button type="button" class="btn btn-primary btn-sm" id="submitOvertimeButton">Submit Lembur</button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -435,6 +575,12 @@
         var overtimeUpdateUrlTemplate = '{{ route('absensi.lembur.update', ['attendanceOvertime' => '__ID__']) }}';
         var overtimeDestroyUrlTemplate = '{{ route('absensi.lembur.destroy', ['attendanceOvertime' => '__ID__']) }}';
         var canManageOvertimeActions = @json($canManageOvertimeActions ?? false);
+        var isStaffOvertimeUser = @json($isStaffOvertimeUser ?? false);
+        var assignedOvertimeEmployeeIds = @json(($assignedOvertimeEmployeeIds ?? collect())->values());
+        var defaultStaffEmployeeId = @json($defaultStaffEmployeeId ?? '');
+        var defaultPicUserId = @json($defaultPicUserId ?? '');
+        var hasStaffOvertimeAssignment = @json($hasStaffOvertimeAssignment ?? false);
+        var staffEditableOvertimeId = @json($staffEditableOvertimeId ?? null);
         var overtimeTableInstance = null;
         var overtimeModalInstance = null;
         var overtimeFormMode = 'create';
@@ -524,6 +670,86 @@
                 }
             }
 
+            var overtimeTableColumns = canManageOvertimeActions
+                ? [
+                    { data: null, defaultContent: '' },
+                    { data: 'staff_name', defaultContent: '-' },
+                    { data: 'pic_name', defaultContent: '-' },
+                    { data: 'overtime_date', defaultContent: '-' },
+                    { data: 'actual_start_time', defaultContent: '-' },
+                    { data: 'actual_end_time', defaultContent: '-' },
+                    { data: 'calculated_hours_display', defaultContent: '-' },
+                    { data: 'instruction', defaultContent: '-' },
+                    { data: null, defaultContent: '' }
+                ]
+                : [
+                    { data: null, defaultContent: '' },
+                    { data: 'pic_name', defaultContent: '-' },
+                    { data: 'overtime_date', defaultContent: '-' },
+                    { data: 'planned_start_time', defaultContent: '-' },
+                    { data: 'planned_end_time', defaultContent: '-' },
+                    { data: 'instruction', defaultContent: '-' },
+                    { data: null, defaultContent: '' }
+                ];
+            var managerActualStartColumnIndex = canManageOvertimeActions ? 4 : -1;
+            var managerActualEndColumnIndex = canManageOvertimeActions ? 5 : -1;
+            var managerCalculatedColumnIndex = canManageOvertimeActions ? 6 : -1;
+            var actionColumnIndex = overtimeTableColumns.length - 1;
+            var overtimeColumnDefinitions = [
+                {
+                    targets: 0,
+                    searchable: false,
+                    orderable: false
+                },
+                {
+                    targets: actionColumnIndex,
+                    searchable: false,
+                    orderable: false,
+                    className: 'text-center',
+                    render: function (data, type, row) {
+                        var overtimeId = row && row.id ? row.id : '';
+                        var actionButtons = '<button type="button" class="lembur-action-btn info" onclick="infoDataOvertime(' + overtimeId + ')"><i class="bi bi-info-circle"></i></button>';
+
+                        if (canManageOvertimeActions || isStaffOvertimeUser) {
+                            actionButtons += '<button type="button" class="lembur-action-btn edit" onclick="editDataOvertime(' + overtimeId + ')"><i class="bi bi-pencil"></i></button>';
+                        }
+
+                        if (canManageOvertimeActions) {
+                            actionButtons += '<button type="button" class="lembur-action-btn delete" onclick="deleteDataOvertime(' + overtimeId + ')"><i class="bi bi-trash"></i></button>';
+                        }
+
+                        return '<div class="lembur-action-group">'
+                            + actionButtons
+                            + '</div>';
+                    }
+                }
+            ];
+
+            if (canManageOvertimeActions) {
+                overtimeColumnDefinitions.push(
+                    {
+                        targets: [managerActualStartColumnIndex, managerActualEndColumnIndex],
+                        render: function (data, type, row) {
+                            if (!row || row.has_actual_time !== true) {
+                                return buildPendingBadgeHtml();
+                            }
+
+                            return data && data !== '-' ? data : buildPendingBadgeHtml();
+                        }
+                    },
+                    {
+                        targets: managerCalculatedColumnIndex,
+                        render: function (data, type, row) {
+                            if (!row || row.has_actual_time !== true) {
+                                return buildPendingBadgeHtml();
+                            }
+
+                            return data && data !== '-' ? data : buildPendingBadgeHtml();
+                        }
+                    }
+                );
+            }
+
             overtimeTableInstance = $('#myTable').DataTable({
                 ajax: {
                     url: '{{ route('absensi.lembur.datatable') }}',
@@ -535,60 +761,8 @@
                 scrollCollapse: true,
                 searching: false,
                 lengthChange: false,
-                columns: [
-                    { data: null, defaultContent: '' },
-                    { data: 'overtime_date', defaultContent: '-' },
-                    { data: 'staff_name', defaultContent: '-' },
-                    { data: 'time_range', defaultContent: '-' },
-                    { data: 'duration', defaultContent: '-' },
-                    { data: 'status', defaultContent: 'pending' },
-                    { data: 'description', defaultContent: '-' },
-                    { data: null, defaultContent: '' }
-                ],
-                columnDefs: [
-                    {
-                        targets: 0,
-                        searchable: false,
-                        orderable: false
-                    },
-                    {
-                        targets: 5,
-                        render: function (data) {
-                            var normalizedStatus = String(data || 'pending').toLowerCase();
-                            var statusLabel = 'Pending';
-                            var statusClass = 'warning';
-
-                            if (normalizedStatus === 'approved') {
-                                statusLabel = 'Approved';
-                                statusClass = 'success';
-                            } else if (normalizedStatus === 'rejected') {
-                                statusLabel = 'Rejected';
-                                statusClass = 'danger';
-                            }
-
-                            return '<span class="lembur-status-badge ' + statusClass + '">' + statusLabel + '</span>';
-                        }
-                    },
-                    {
-                        targets: 7,
-                        searchable: false,
-                        orderable: false,
-                        className: 'text-center',
-                        render: function (data, type, row) {
-                            var overtimeId = row && row.id ? row.id : '';
-                            var actionButtons = '<button type="button" class="lembur-action-btn info" onclick="infoDataOvertime(' + overtimeId + ')"><i class="bi bi-info-circle"></i></button>';
-
-                            if (canManageOvertimeActions) {
-                                actionButtons += '<button type="button" class="lembur-action-btn edit" onclick="editDataOvertime(' + overtimeId + ')"><i class="bi bi-pencil"></i></button>'
-                                    + '<button type="button" class="lembur-action-btn delete" onclick="deleteDataOvertime(' + overtimeId + ')"><i class="bi bi-trash"></i></button>';
-                            }
-
-                            return '<div class="lembur-action-group">'
-                                + actionButtons
-                                + '</div>';
-                        }
-                    }
-                ],
+                columns: overtimeTableColumns,
+                columnDefs: overtimeColumnDefinitions,
                 initComplete: function () {
                     var tableApi = this.api();
                     var tableContainer = $(tableApi.table().container());
@@ -658,6 +832,10 @@
                     refreshOvertimeTable();
                     shouldReloadOvertimeTable = false;
                 }
+            });
+
+            $('#overtimeStaffInput').on('change', function () {
+                toggleActualOvertimeFields();
             });
 
             function handleOvertimeFormSubmit() {
@@ -736,16 +914,16 @@
                             });
                         },
                         complete: function () {
+                            if (isStaffOvertimeUser) {
+                                $submitButton.prop('disabled', false).text('Simpan Jam Aktual');
+                                return;
+                            }
+
                             $submitButton.prop('disabled', false).text(overtimeFormMode === 'edit' ? 'Update Lembur' : 'Submit Lembur');
                         }
                     });
                 });
             }
-
-            $('#openSubmitLemburModalButton').on('click', function () {
-                resetOvertimeFormFields();
-                setOvertimeModalCreateMode();
-            });
 
             initOvertimeDatePicker();
             setOvertimeModalCreateMode();
@@ -767,11 +945,19 @@
                 return 'Approved';
             }
 
+            if (normalizedStatus === 'completed') {
+                return 'Completed';
+            }
+
             if (normalizedStatus === 'rejected' || normalizedStatus === 'refused') {
                 return 'Rejected';
             }
 
             return 'Pending';
+        }
+
+        function buildPendingBadgeHtml() {
+            return '<span class="badge light border-warning text-warning">Pending</span>';
         }
 
         function refreshOvertimeTable() {
@@ -791,36 +977,95 @@
             });
         }
 
+        function hasAssignedOvertimeForSelectedStaff(employeeId) {
+            if (!employeeId) {
+                return false;
+            }
+
+            return (assignedOvertimeEmployeeIds || []).map(function (item) {
+                return String(item);
+            }).indexOf(String(employeeId)) !== -1;
+        }
+
+        function toggleActualOvertimeFields() {
+            if (isStaffOvertimeUser) {
+                $('#overtimeStaffGroup, #overtimePicGroup, #overtimeDateGroup, #overtimePlannedTimeGroup, #overtimeApprovalStatusGroup').addClass('d-none');
+                $('#overtimePicReadonlyGroup').removeClass('d-none');
+                $('#overtimeActualTimeGroup').removeClass('d-none');
+                $('#overtimeActualStartTimeInput, #overtimeActualEndTimeInput').prop('disabled', false);
+                $('#overtimeApprovalStatusInput').prop('disabled', true);
+                $('#overtimeDescriptionInput').prop('readonly', true);
+                return;
+            }
+
+            $('#overtimeStaffGroup, #overtimePicGroup, #overtimeDateGroup, #overtimePlannedTimeGroup').removeClass('d-none');
+            $('#overtimePicReadonlyGroup').addClass('d-none');
+            $('#overtimeActualTimeGroup').addClass('d-none');
+            $('#overtimeApprovalStatusGroup').addClass('d-none');
+            $('#overtimeActualStartTimeInput, #overtimeActualEndTimeInput').prop('disabled', true);
+            $('#overtimeApprovalStatusInput').prop('disabled', true);
+            $('#overtimeDescriptionInput').prop('readonly', false);
+        }
+
         function resetOvertimeFormFields() {
-            $('#overtimeSubmissionForm')[0].reset();
+            var overtimeFormElement = $('#overtimeSubmissionForm')[0];
+            if (!overtimeFormElement) {
+                return;
+            }
+
+            overtimeFormElement.reset();
             $('#overtimeIdInput').val('');
+            $('#overtimeStaffInput').val(defaultStaffEmployeeId);
+            $('#overtimeStaffInputHidden').val(defaultStaffEmployeeId);
+            $('#overtimePicInput').val(defaultPicUserId);
+            $('#overtimePicInputHidden').val(defaultPicUserId);
+            $('#overtimePicReadonlyInput').val('-');
             $('#overtimeDateInput').val('');
             $('#overtimeStartTimeInput').val('');
             $('#overtimeEndTimeInput').val('');
+            $('#overtimeActualStartTimeInput').val('');
+            $('#overtimeActualEndTimeInput').val('');
             $('#overtimeDescriptionInput').val('');
         }
 
         function setOvertimeModalCreateMode() {
             overtimeFormMode = 'create';
-            $('#submitLemburModalLabel').text('Submit Lembur');
-            $('#submitOvertimeButton').text('Submit Lembur');
+            if (isStaffOvertimeUser) {
+                $('#submitLemburModalLabel').text('Isi Jam Lembur');
+                $('#submitOvertimeButton').text('Simpan Jam Aktual');
+            } else {
+                $('#submitLemburModalLabel').text('Submit Lembur');
+                $('#submitOvertimeButton').text('Submit Lembur');
+            }
             $('#overtimeIdInput').val('');
             $('#overtimeApprovalStatusInput').val('pending');
-            $('#overtimeApprovalStatusGroup').addClass('d-none');
+            toggleActualOvertimeFields();
         }
 
         function setOvertimeModalEditMode(detailData) {
             overtimeFormMode = 'edit';
-            $('#submitLemburModalLabel').text('Edit Lembur');
-            $('#submitOvertimeButton').text('Update Lembur');
+            if (isStaffOvertimeUser) {
+                $('#submitLemburModalLabel').text('Isi Jam Lembur');
+                $('#submitOvertimeButton').text('Simpan Jam Aktual');
+            } else {
+                $('#submitLemburModalLabel').text('Edit Lembur');
+                $('#submitOvertimeButton').text('Update Lembur');
+            }
 
             $('#overtimeIdInput').val(detailData.id || '');
+            $('#overtimeStaffInput').val(detailData.employee_id || defaultStaffEmployeeId);
+            $('#overtimeStaffInputHidden').val(detailData.employee_id || defaultStaffEmployeeId);
+            $('#overtimePicInput').val(detailData.pic_user_id || defaultPicUserId);
+            $('#overtimePicInputHidden').val(detailData.pic_user_id || defaultPicUserId);
+            $('#overtimePicReadonlyInput').val(detailData.pic_name || '-');
             $('#overtimeDateInput').val(detailData.overtime_date_input || '');
-            $('#overtimeStartTimeInput').val(detailData.start_time || '');
-            $('#overtimeEndTimeInput').val(detailData.end_time || '');
-            $('#overtimeDescriptionInput').val(detailData.description && detailData.description !== '-' ? detailData.description : '');
+            $('#overtimeStartTimeInput').val(detailData.planned_start_time || '');
+            $('#overtimeEndTimeInput').val(detailData.planned_end_time || '');
+            $('#overtimeActualStartTimeInput').val(detailData.actual_start_time || '');
+            $('#overtimeActualEndTimeInput').val(detailData.actual_end_time || '');
+            $('#overtimeDescriptionInput').val(detailData.instruction && detailData.instruction !== '-' ? detailData.instruction : '');
             $('#overtimeApprovalStatusInput').val(String(detailData.status || 'pending').toLowerCase());
-            $('#overtimeApprovalStatusGroup').removeClass('d-none');
+            toggleActualOvertimeFields();
 
             var datePickerInstance = $('#overtimeDateInput').data('daterangepicker');
             if (datePickerInstance && detailData.overtime_date_input && window.moment) {
@@ -859,11 +1104,13 @@
                         + '<table class="table table-sm align-middle mb-0">'
                         + '<tbody>'
                         + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="width: 38%; color: #334155;">Nama Staff</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.staff_name) + '</td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">PIC</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.pic_name || '-') + '</td></tr>'
                         + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Tanggal</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.overtime_date) + '</td></tr>'
-                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Jam</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.start_time) + ' - ' + escapeHtml(detailData.end_time) + '</td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Planned Time</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.planned_start_time) + ' - ' + escapeHtml(detailData.planned_end_time) + '</td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Actual Time</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.actual_start_time || '-') + ' - ' + escapeHtml(detailData.actual_end_time || '-') + '</td></tr>'
                         + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Durasi</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.duration) + '</td></tr>'
                         + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Status</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(normalizeOvertimeStatusLabel(detailData.status)) + '</td></tr>'
-                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Deskripsi</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.description) + '</td></tr>'
+                        + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Instruction</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(detailData.instruction) + '</td></tr>'
                         + '</tbody>'
                         + '</table>'
                         + '</div>'
@@ -887,7 +1134,7 @@
         }
 
         function editDataOvertime(overtimeId) {
-            if (!canManageOvertimeActions) {
+            if (!canManageOvertimeActions && !isStaffOvertimeUser) {
                 return;
             }
 
@@ -922,6 +1169,65 @@
                 }
             });
         }
+
+        function openOvertimeModalForStaff() {
+            if (!overtimeModalInstance) {
+                return;
+            }
+
+            if (!hasStaffOvertimeAssignment) {
+                resetOvertimeFormFields();
+                setOvertimeModalCreateMode();
+                overtimeModalInstance.show();
+                return;
+            }
+
+            if (!staffEditableOvertimeId) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Info',
+                    text: 'Tidak ada assignment lembur yang perlu diisi saat ini.'
+                });
+                return;
+            }
+
+            $.ajax({
+                url: buildOvertimeUrl(overtimeShowUrlTemplate, staffEditableOvertimeId),
+                type: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function (response) {
+                    if (!response || response.success !== true || !response.data) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Gagal',
+                            text: response && response.message ? response.message : 'Data lembur tidak ditemukan.'
+                        });
+                        return;
+                    }
+
+                    setOvertimeModalEditMode(response.data);
+                    overtimeModalInstance.show();
+                },
+                error: function (xhr) {
+                    showOvertimeAjaxError(xhr);
+                }
+            });
+        }
+
+        $('#openSubmitLemburModalButton').on('click', function () {
+            if (isStaffOvertimeUser) {
+                openOvertimeModalForStaff();
+                return;
+            }
+
+            resetOvertimeFormFields();
+            setOvertimeModalCreateMode();
+            if (overtimeModalInstance) {
+                overtimeModalInstance.show();
+            }
+        });
 
         function deleteDataOvertime(overtimeId) {
             if (!canManageOvertimeActions) {

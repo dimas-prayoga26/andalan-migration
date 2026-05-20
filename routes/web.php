@@ -4,6 +4,7 @@ use App\Http\Controllers\ActivityScheduleController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceOvertimeController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BusinessTripController;
 use App\Http\Controllers\LeaveRequestController;
 use Illuminate\Support\Facades\Route;
 
@@ -83,9 +84,12 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/absensi/cuti', function () {
         return view('absensi.cuti');
     })->name('absensi.cuti');
-    Route::get('/absensi/dinas', function () {
-        return view('absensi.dinas');
-    })->name('absensi.dinas');
+
+    // Attendance business trip routes
+    Route::get('/absensi/dinas/datatable', [BusinessTripController::class, 'datatable'])->name('absensi.dinas.datatable');
+    Route::resource('absensi/dinas', BusinessTripController::class)
+        ->only(['index'])
+        ->names(['index' => 'absensi.dinas']);
 
     // Error page
     Route::get('/error-503', function () {

@@ -53,4 +53,9 @@ class Employee extends Model
     {
         return $this->hasOne(EmployeeAddress::class, 'employee_id', 'id')->latestOfMany('created_at');
     }
+
+    public function businessTrips(): HasMany
+    {
+        return $this->hasMany(BusinessTrip::class, 'employee_id', 'id');
+    }
 }

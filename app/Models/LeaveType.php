@@ -20,15 +20,6 @@ class LeaveType extends Model
 
     public $timestamps = false;
 
-    protected function casts(): array
-    {
-        return [
-            'monthly_accrual_rate' => 'decimal:2',
-            'is_encashable' => 'boolean',
-            'is_active' => 'boolean',
-        ];
-    }
-
     protected static function booted(): void
     {
         static::creating(function (self $leaveType): void {

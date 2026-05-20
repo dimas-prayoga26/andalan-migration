@@ -42,4 +42,9 @@ class Attendance extends Model
     {
         return $this->belongsTo(Employee::class, 'employee_id', 'id');
     }
+
+    public function businessTrip(): BelongsTo
+    {
+        return $this->belongsTo(BusinessTrip::class, 'business_trip_id', 'id');
+    }
 }

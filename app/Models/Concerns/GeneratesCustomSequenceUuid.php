@@ -2,6 +2,7 @@
 
 namespace App\Models\Concerns;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -9,6 +10,8 @@ trait GeneratesCustomSequenceUuid
 {
     protected static function generateCustomSequenceUuid(string $columnName = 'uuid'): string
     {
+        /** @var Model $model */
+        $model = new static;
         $timezone = config('app.timezone', 'Asia/Jakarta');
         $datePrefix = now($timezone)->format('dmY');
         $sequencePartLength = 4;
@@ -17,6 +20,7 @@ trait GeneratesCustomSequenceUuid
         return Cache::lock(static::class.':'.$datePrefix.':'.$columnName, 5)->block(5, function () use (
             $columnName,
             $datePrefix,
+            $model,
             $sequencePartLength,
             $maxSequence,
             $timezone
@@ -29,7 +33,7 @@ trait GeneratesCustomSequenceUuid
                 $rawSequenceIdentifier = $datePrefix.str_pad((string) $nextSequence, $sequencePartLength, '0', STR_PAD_LEFT);
                 $uuidIdentifier = static::obfuscateSequenceToUuid($rawSequenceIdentifier, $columnName);
 
-                $isUsed = static::query()
+                $isUsed = $model->newQuery()
                     ->where($columnName, $uuidIdentifier)
                     ->exists();
 

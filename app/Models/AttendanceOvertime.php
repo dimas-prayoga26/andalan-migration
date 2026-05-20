@@ -18,14 +18,6 @@ class AttendanceOvertime extends Model
 
     public $incrementing = false;
 
-    protected function casts(): array
-    {
-        return [
-            'overtime_date' => 'date',
-            'calculated_hours' => 'decimal:2',
-        ];
-    }
-
     protected static function booted(): void
     {
         static::creating(function (self $overtime): void {

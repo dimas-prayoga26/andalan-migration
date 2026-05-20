@@ -804,6 +804,161 @@
             }
 
             var OriginalSortable = window.Sortable.default;
+            var isMobileViewport = window.matchMedia('(max-width: 767.98px)').matches;
+            var EDGE_THRESHOLD_PX = isMobileViewport ? 170 : 120;
+            var MAX_SCROLL_SPEED_PX = isMobileViewport ? 32 : 24;
+
+            function extractClientX(value) {
+                if (!value) {
+                    return null;
+                }
+
+                if (typeof value.clientX === 'number') {
+                    return value.clientX;
+                }
+
+                if (value.touches && value.touches.length > 0 && typeof value.touches[0].clientX === 'number') {
+                    return value.touches[0].clientX;
+                }
+
+                if (value.changedTouches && value.changedTouches.length > 0 && typeof value.changedTouches[0].clientX === 'number') {
+                    return value.changedTouches[0].clientX;
+                }
+
+                return null;
+            }
+
+            function getClientXFromEvent(event) {
+                var candidates = [
+                    event && event.sensorEvent,
+                    event && event.sensorEvent && event.sensorEvent.originalEvent,
+                    event && event.data && event.data.sensorEvent,
+                    event && event.data && event.data.sensorEvent && event.data.sensorEvent.originalEvent,
+                    event && event.originalEvent,
+                    event && event.data && event.data.originalEvent,
+                    event
+                ];
+
+                for (var i = 0; i < candidates.length; i += 1) {
+                    var clientX = extractClientX(candidates[i]);
+
+                    if (typeof clientX === 'number') {
+                        return clientX;
+                    }
+                }
+
+                return null;
+            }
+
+            function attachKanbanAutoScroll(sortableInstance) {
+                if (!sortableInstance || typeof sortableInstance.on !== 'function') {
+                    return;
+                }
+
+                var board = document.querySelector('.project-kanban-page .kanban-bx');
+
+                if (!board) {
+                    return;
+                }
+
+                var isDragging = false;
+                var latestClientX = null;
+                var rafId = null;
+                var onPointerMove = function (nativeEvent) {
+                    if (!isDragging) {
+                        return;
+                    }
+
+                    var clientX = extractClientX(nativeEvent);
+
+                    if (typeof clientX === 'number') {
+                        latestClientX = clientX;
+                    }
+                };
+
+                function bindPointerListeners() {
+                    window.addEventListener('mousemove', onPointerMove, { passive: true });
+                    window.addEventListener('touchmove', onPointerMove, { passive: true });
+                    window.addEventListener('pointermove', onPointerMove, { passive: true });
+                }
+
+                function unbindPointerListeners() {
+                    window.removeEventListener('mousemove', onPointerMove);
+                    window.removeEventListener('touchmove', onPointerMove);
+                    window.removeEventListener('pointermove', onPointerMove);
+                }
+
+                function stopAutoScroll() {
+                    isDragging = false;
+                    latestClientX = null;
+                    unbindPointerListeners();
+
+                    if (rafId !== null) {
+                        window.cancelAnimationFrame(rafId);
+                        rafId = null;
+                    }
+                }
+
+                function autoScrollTick() {
+                    if (!isDragging) {
+                        rafId = null;
+                        return;
+                    }
+
+                    if (latestClientX === null) {
+                        var dragMirror = document.querySelector('.draggable-mirror');
+
+                        if (dragMirror) {
+                            var mirrorRect = dragMirror.getBoundingClientRect();
+                            latestClientX = mirrorRect.left + (mirrorRect.width / 2);
+                        }
+                    }
+
+                    if (latestClientX === null) {
+                        rafId = window.requestAnimationFrame(autoScrollTick);
+                        return;
+                    }
+
+                    var boardRect = board.getBoundingClientRect();
+                    var nextDelta = 0;
+
+                    if (latestClientX < boardRect.left + EDGE_THRESHOLD_PX) {
+                        var leftRatio = (boardRect.left + EDGE_THRESHOLD_PX - latestClientX) / EDGE_THRESHOLD_PX;
+                        nextDelta = -Math.max(1, Math.round(leftRatio * MAX_SCROLL_SPEED_PX));
+                    } else if (latestClientX > boardRect.right - EDGE_THRESHOLD_PX) {
+                        var rightRatio = (latestClientX - (boardRect.right - EDGE_THRESHOLD_PX)) / EDGE_THRESHOLD_PX;
+                        nextDelta = Math.max(1, Math.round(rightRatio * MAX_SCROLL_SPEED_PX));
+                    }
+
+                    if (nextDelta !== 0) {
+                        board.scrollLeft += nextDelta;
+                    }
+
+                    rafId = window.requestAnimationFrame(autoScrollTick);
+                }
+
+                sortableInstance.on('drag:start', function (event) {
+                    isDragging = true;
+                    latestClientX = getClientXFromEvent(event);
+                    bindPointerListeners();
+
+                    if (rafId === null) {
+                        rafId = window.requestAnimationFrame(autoScrollTick);
+                    }
+                });
+
+                sortableInstance.on('drag:move', function (event) {
+                    latestClientX = getClientXFromEvent(event);
+                });
+
+                sortableInstance.on('drag:stop', function () {
+                    stopAutoScroll();
+                });
+
+                sortableInstance.on('sortable:stop', function () {
+                    stopAutoScroll();
+                });
+            }
 
             window.Sortable.default = function (containers, options) {
                 var sortableOptions = options || {};
@@ -812,7 +967,10 @@
                     constrainDimensions: true
                 });
 
-                return new OriginalSortable(containers, sortableOptions);
+                var sortableInstance = new OriginalSortable(containers, sortableOptions);
+                attachKanbanAutoScroll(sortableInstance);
+
+                return sortableInstance;
             };
 
             window.Sortable.default.prototype = OriginalSortable.prototype;

@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class LeaveRequest extends Model
+class BusinessTrip extends Model
 {
     use GeneratesCustomSequenceUuid;
 
-    protected $table = 'leave_requests';
+    protected $table = 'business_trips';
 
     protected $guarded = [];
 
@@ -21,9 +21,9 @@ class LeaveRequest extends Model
 
     protected static function booted(): void
     {
-        static::creating(function (self $leaveRequest): void {
-            if (! is_string($leaveRequest->id) || trim($leaveRequest->id) === '') {
-                $leaveRequest->id = static::generateCustomSequenceUuid('id');
+        static::creating(function (self $businessTrip): void {
+            if (! is_string($businessTrip->id) || trim($businessTrip->id) === '') {
+                $businessTrip->id = static::generateCustomSequenceUuid('id');
             }
         });
     }
@@ -33,13 +33,13 @@ class LeaveRequest extends Model
         return $this->belongsTo(Employee::class, 'employee_id', 'id');
     }
 
-    public function leaveType(): BelongsTo
+    public function approvedBy(): BelongsTo
     {
-        return $this->belongsTo(LeaveType::class, 'leave_type_id', 'id');
+        return $this->belongsTo(User::class, 'approved_by', 'id');
     }
 
-    public function attachments(): HasMany
+    public function attendances(): HasMany
     {
-        return $this->hasMany(LeaveRequestAttachment::class);
+        return $this->hasMany(Attendance::class, 'business_trip_id', 'id');
     }
 }

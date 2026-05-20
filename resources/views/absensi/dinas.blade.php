@@ -8,36 +8,7 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
-    <link rel="stylesheet" href="https://unpkg.com/antd@6.2.3/dist/antd.css">
-    <!-- Start - All Required Plugins -->
     <style>
-        .absensi-tabs {
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            overflow-y: hidden;
-            scrollbar-width: thin;
-            -webkit-overflow-scrolling: touch;
-            white-space: nowrap;
-            gap: 0.25rem;
-        }
-
-        .absensi-tabs .nav-item {
-            flex: 0 0 auto;
-        }
-
-        .absensi-tabs .nav-link {
-            white-space: nowrap;
-        }
-
-        .absensi-tabs .absensi-tab-btn {
-            border: 0;
-            background: transparent;
-        }
-
-        .absensi-tabs .absensi-tab-btn:focus {
-            box-shadow: none;
-        }
-
         #myTable thead th {
             font-size: 1.1rem;
             font-weight: 600;
@@ -46,7 +17,7 @@
 
         #myTable tbody td {
             font-size: 1rem;
-            padding: 0.9rem 0.75rem;
+            vertical-align: middle;
         }
 
         #myTable thead th:first-child,
@@ -54,23 +25,71 @@
             text-align: center !important;
         }
 
-        .badge-attendance-empty {
-            background: #fff1f2;
-            color: #be123c;
-            border: 1px solid #fecdd3;
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.35rem 0.6rem;
-            border-radius: 999px;
-            display: inline-block;
+        #myTable thead th[class*="mw-"] {
+            text-align: center !important;
         }
 
-        .attendance-datetime {
-            font-size: 1rem;
-            font-weight: 600;
+        #myTable.dataTable tbody td.dataTables_empty {
+            text-align: center !important;
+        }
+
+        .dinas-table-title {
+            font-size: 1.05rem;
+            font-weight: 700;
             color: #25314c;
-            margin-bottom: 1rem;
-            text-align: center;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .dinas-status-badge {
+            display: inline-block;
+            border-radius: 0.4rem;
+            padding: 0.25rem 0.6rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            line-height: 1.2;
+            border: 1px solid transparent;
+        }
+
+        .dinas-status-badge.warning {
+            background: #fff7e6;
+            border-color: #ffd591;
+            color: #ad6800;
+        }
+
+        .dinas-status-badge.success {
+            background: #f6ffed;
+            border-color: #b7eb8f;
+            color: #237804;
+        }
+
+        .dinas-status-badge.danger {
+            background: #fff1f0;
+            border-color: #ffa39e;
+            color: #a8071a;
+        }
+
+        .dinas-action-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+        }
+
+        .dinas-action-btn {
+            width: 34px;
+            height: 34px;
+            border: 0;
+            border-radius: 0.35rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .dinas-action-btn.info {
+            background: #d9f2f4;
+            color: #4aa3ad;
         }
 
         #myTable_wrapper .dt-length label,
@@ -129,6 +148,47 @@
             outline: 0;
         }
 
+        #myTable_wrapper .dt-scroll,
+        #myTable_wrapper .dataTables_scroll {
+            overflow: hidden;
+        }
+
+        #myTable_wrapper .dt-scroll-head table,
+        #myTable_wrapper .dt-scroll-body table,
+        #myTable_wrapper .dataTables_scrollHead table,
+        #myTable_wrapper .dataTables_scrollBody table {
+            min-width: 1240px;
+        }
+
+        #myTable_wrapper .dt-scroll-body,
+        #myTable_wrapper .dataTables_scrollBody {
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #myTable_wrapper .dt-scroll-body thead,
+        #myTable_wrapper .dataTables_scrollBody thead {
+            visibility: hidden !important;
+        }
+
+        #myTable_wrapper .dt-scroll-body thead tr,
+        #myTable_wrapper .dt-scroll-body thead th,
+        #myTable_wrapper .dataTables_scrollBody thead tr,
+        #myTable_wrapper .dataTables_scrollBody thead th {
+            height: 0 !important;
+            line-height: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            border-top: 0 !important;
+            border-bottom: 0 !important;
+            margin: 0 !important;
+        }
+
+        #myTable_wrapper table.dataTable thead > tr > th span.dt-column-order {
+            display: none !important;
+        }
+
         @media only screen and (max-width: 767.98px) {
             #myTable_wrapper .dt-layout-row:first-child {
                 flex-direction: column;
@@ -164,100 +224,65 @@
             color: #fff !important;
         }
     </style>
-
 @endsection
 
-@section('navbarTitle', 'Attendances-data')
+@section('navbarTitle', 'Attendances')
 
 @section('content')
-<!-- Start - Page Title & Breadcrumb -->
-<div class="page-title">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li><h1>Attendances-data</h1></li>
-            <li class="breadcrumb-item">
-                <a href="{{ route('dashboard') }}">
-                    <svg width="18" height="18" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2.125 6.375L8.5 1.41667L14.875 6.375V14.1667C14.875 14.5424 14.7257 14.9027 14.4601 15.1684C14.1944 15.4341 13.8341 15.5833 13.4583 15.5833H3.54167C3.16594 15.5833 2.80561 15.4341 2.53993 15.1684C2.27426 14.9027 2.125 14.5424 2.125 14.1667V6.375Z" stroke="var(--bs-body-color)" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M6.375 15.5833V8.5H10.625V15.5833" stroke="var(--bs-body-color)" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    Home
-                </a>
-            </li>
-            <li class="breadcrumb-item active" aria-current="page">Attendances-data</li>
-        </ol>
-    </nav>
+@include('layouts.breadcrumb', [
+    'title' => 'Attendances',
+    'current' => 'Perjalanan Dinas',
+    'homeRoute' => 'dashboard',
+])
+
+@include('absensi.layouts_absensi.profileIndex')
+
+<div class="col-lg-12">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Perjalanan Dinas</h5>
+        <div class="d-flex align-items-center">
+            <button
+                type="button"
+                id="openSubmitLemburModalButton"
+                class="me-2 btn btn-success light btn-sm"
+            >Submit Dinas</button>
+        </div>
+    </div>
 </div>
-<!-- End - Page Title & Breadcrumb -->
+
 <div class="row">
     <div class="col-xl-12 col-xxl-12">
         <div class="card h-auto">
-            <div class="card-header">
-                <ul class="nav nav-underline card-header-tabs absensi-tabs" id="nav-tab" role="tablist">
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi') ? 'true' : 'false' }}">Absensi Hari Ini</button>
-                    </li>
-                    <li class="nav-item">
-                    </li>
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.reports') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.reports') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.reports') ? 'true' : 'false' }}">Reports</button>
-                    </li>
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.izin') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.izin') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.izin') ? 'true' : 'false' }}">Izin</button>
-                    </li>
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.lembur') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.lembur') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.lembur') ? 'true' : 'false' }}">Lembur</button>
-                    </li>
-                    <li class="nav-item">
-                        <button type="button" data-href="{{ route('absensi.cuti') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('absensi.cuti') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.cuti') ? 'true' : 'false' }}">Libur Nasional dan Cuti Bersama</button>
-                    </li>
-                </ul>
-            </div>
             <div class="row">
                 <div class="col-xxl-12 col-xl-12">
                     <div class="card-body">
-                        <div class="attendance-datetime" id="attendanceDateTime"></div>
+                        <div class="dinas-table-title">Data Perjalanan Dinas</div>
                         <div class="table-responsive">
                             <table id="myTable" class="display table">
                                 <thead>
-                                <tr>
-                                    <th class="mw-100">No</th>
-                                    <th class="mw-200">Nama Staff</th>
-                                    <th class="mw-150">Masuk</th>
-                                    <th class="mw-150">Pulang</th>
-                                </tr>
+                                    <tr>
+                                        <th class="mw-80">No</th>
+                                        <th class="mw-150">Staff</th>
+                                        <th class="mw-150">PIC</th>
+                                        <th class="mw-210">Tanggal Dinas</th>
+                                        <th class="mw-150">Total Hari</th>
+                                        <th class="mw-200">Tujuan</th>
+                                        <th class="mw-200">Keperluan</th>
+                                        <th class="mw-170">Approval</th>
+                                        <th class="mw-170">Pembayaran</th>
+                                        <th class="mw-250">Payment Reference</th>
+                                        <th class="mw-120 text-center">Action</th>
+                                    </tr>
                                 </thead>
-                                <tbody>
-                                <tr>
-                                    <td>1</td>
-                                    <td>Gavin Cortez</td>
-                                    <td>08:00</td>
-                                    <td>17:00</td>
-                                </tr>
-                                <tr>
-                                    <td>2</td>
-                                    <td>Martena Mccray</td>
-                                    <td>08:10</td>
-                                    <td><span class="badge-attendance-empty">Belum Absen Pulang</span></td>
-                                </tr>
-                                <tr>
-                                    <td>3</td>
-                                    <td>Peter Parkur</td>
-                                    <td><span class="badge-attendance-empty">Belum Absen Masuk</span></td>
-                                    <td><span class="badge-attendance-empty">Belum Absen Pulang</span></td>
-                                </tr>
-                                </tbody>
+                                <tbody></tbody>
                             </table>
-                            </div>
-
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-<!-- End - Content Body -->
-
 @endsection
 
 @section('script')
@@ -267,52 +292,67 @@
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
-        $(function () {
-            var attendanceDateElement = document.getElementById('attendanceDateTime');
+        var businessTripTableInstance;
 
-            function renderAttendanceDateTime() {
-                if (!attendanceDateElement) {
-                    return;
-                }
+        function renderStatusBadge(statusValue) {
+            var normalized = String(statusValue || 'pending').toLowerCase();
+            var badgeClass = 'warning';
+            var badgeLabel = 'Pending';
 
-                var now = new Date();
-
-                var dateParts = new Intl.DateTimeFormat('id-ID', {
-                    timeZone: 'Asia/Jakarta',
-                    weekday: 'long',
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric'
-                }).formatToParts(now);
-
-                var timeParts = new Intl.DateTimeFormat('id-ID', {
-                    timeZone: 'Asia/Jakarta',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hourCycle: 'h23'
-                }).formatToParts(now);
-
-                var dateMap = {};
-                dateParts.forEach(function (part) {
-                    dateMap[part.type] = part.value;
-                });
-
-                var timeMap = {};
-                timeParts.forEach(function (part) {
-                    timeMap[part.type] = part.value;
-                });
-
-                var hourNumber = parseInt(timeMap.hour, 10);
-                var meridiem = hourNumber < 12 ? 'AM' : 'PM';
-                var formattedDateTime = dateMap.weekday + ', ' + dateMap.day + ' ' + dateMap.month + ' ' + dateMap.year
-                    + ' | ' + timeMap.hour + ':' + timeMap.minute + ':' + timeMap.second + ' ' + meridiem;
-
-                attendanceDateElement.textContent = formattedDateTime;
+            if (normalized === 'approved' || normalized === 'paid') {
+                badgeClass = 'success';
+                badgeLabel = normalized === 'paid' ? 'Paid' : 'Approved';
             }
 
-            renderAttendanceDateTime();
-            setInterval(renderAttendanceDateTime, 1000);
+            if (normalized === 'rejected' || normalized === 'failed' || normalized === 'cancelled') {
+                badgeClass = 'danger';
+                badgeLabel = normalized === 'rejected' ? 'Rejected' : 'Failed';
+            }
+
+            return '<span class="dinas-status-badge ' + badgeClass + '">' + badgeLabel + '</span>';
+        }
+
+        function escapeHtml(value) {
+            return $('<div>').text(value || '-').html();
+        }
+
+        function infoDataBusinessTrip(rowData) {
+            if (!rowData) {
+                return;
+            }
+
+            var detailHtml = '<div class="text-start px-2">'
+                + '<div class="table-responsive">'
+                + '<table class="table table-sm align-middle mb-0">'
+                + '<tbody>'
+                + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="width: 38%; color: #334155;">Staff</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(rowData.staff_name) + '</td></tr>'
+                + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">PIC</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(rowData.pic_name) + '</td></tr>'
+                + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Tanggal Dinas</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(rowData.trip_date) + '</td></tr>'
+                + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Total Hari</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(rowData.total_days) + '</td></tr>'
+                + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Tujuan</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(rowData.destination) + '</td></tr>'
+                + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Keperluan</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(rowData.purpose) + '</td></tr>'
+                + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Approval</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(rowData.approval_status) + '</td></tr>'
+                + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Pembayaran</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(rowData.payment_status) + '</td></tr>'
+                + '<tr><th class="fw-semibold border-0 ps-0 pe-3" style="color: #334155;">Payment Reference</th><td class="border-0 px-0" style="color: #1f2937;">' + escapeHtml(rowData.payment_reference) + '</td></tr>'
+                + '</tbody>'
+                + '</table>'
+                + '</div>'
+                + '</div>';
+
+            Swal.fire({
+                title: 'Detail Perjalanan Dinas',
+                html: detailHtml,
+                confirmButtonText: 'Tutup',
+                confirmButtonColor: '#475569',
+                customClass: {
+                    popup: 'p-3',
+                    title: 'mb-2'
+                }
+            });
+        }
+
+        $(function () {
+            var businessTripDatatableUrl = '{{ route('absensi.dinas.datatable') }}';
 
             $('.absensi-tab-btn').on('click', function (event) {
                 event.preventDefault();
@@ -323,13 +363,132 @@
                 }
             });
 
-            $('#myTable').DataTable({
+            function ensureEmptyPageOne(tableApi) {
+                var tableWrapper = $(tableApi.table().container());
+                var pageInfo = tableApi.page.info();
+
+                tableWrapper.find('.absensi-empty-page-btn').remove();
+
+                if (!pageInfo || pageInfo.recordsTotal !== 0) {
+                    return;
+                }
+
+                var modernNextButton = tableWrapper.find('.dt-paging .dt-paging-button.next');
+                if (modernNextButton.length > 0) {
+                    $('<button type="button" class="dt-paging-button current absensi-empty-page-btn" disabled>1</button>')
+                        .insertBefore(modernNextButton.first());
+                    return;
+                }
+
+                var legacyNextButton = tableWrapper.find('.dataTables_paginate .paginate_button.next');
+                if (legacyNextButton.length > 0) {
+                    $('<span class="paginate_button current absensi-empty-page-btn">1</span>')
+                        .insertBefore(legacyNextButton.first());
+                }
+            }
+
+            businessTripTableInstance = $('#myTable').DataTable({
+                ajax: {
+                    url: businessTripDatatableUrl,
+                    dataSrc: 'data',
+                    error: function (xhr) {
+                        var responseJson = xhr.responseJSON || {};
+                        var errorMessage = responseJson.message || 'Gagal memproses permintaan.';
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Terjadi Kesalahan',
+                            text: errorMessage
+                        });
+                    }
+                },
+                processing: true,
+                autoWidth: false,
+                scrollX: true,
+                scrollCollapse: true,
+                searching: false,
+                lengthChange: false,
+                columns: [
+                    { data: null, defaultContent: '' },
+                    { data: 'staff_name' },
+                    { data: 'pic_name' },
+                    { data: 'trip_date' },
+                    { data: 'total_days' },
+                    { data: 'destination' },
+                    { data: 'purpose' },
+                    {
+                        data: 'approval_status',
+                        render: function (data) {
+                            return renderStatusBadge(data);
+                        }
+                    },
+                    {
+                        data: 'payment_status',
+                        render: function (data) {
+                            return renderStatusBadge(data);
+                        }
+                    },
+                    { data: 'payment_reference' },
+                    {
+                        data: null,
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-center',
+                        render: function () {
+                            return '<div class="dinas-action-group">'
+                                + '<button type="button" class="dinas-action-btn info js-dinas-info"><i class="bi bi-info-circle"></i></button>'
+                                + '</div>';
+                        }
+                    }
+                ],
                 columnDefs: [
                     {
+                        targets: '_all',
+                        className: 'text-center'
+                    },
+                    {
                         targets: 0,
-                        type: 'string'
+                        searchable: false,
+                        orderable: false
                     }
-                ]
+                ],
+                initComplete: function () {
+                    var tableApi = this.api();
+                    var tableContainer = $(tableApi.table().container());
+                    var scrollBody = tableContainer.find('.dt-scroll-body');
+
+                    scrollBody.css({
+                        overflowX: 'auto',
+                        overflowY: 'hidden',
+                        WebkitOverflowScrolling: 'touch'
+                    });
+
+                    scrollBody.scrollLeft(0);
+                    tableApi.columns.adjust();
+                },
+                drawCallback: function () {
+                    ensureEmptyPageOne(this.api());
+                }
+            });
+
+            businessTripTableInstance.on('order.dt search.dt draw.dt', function () {
+                var pageInfo = businessTripTableInstance.page.info();
+                businessTripTableInstance.column(0, { page: 'current' }).nodes().each(function (cell, index) {
+                    cell.innerHTML = pageInfo.start + index + 1;
+                });
+            });
+
+            businessTripTableInstance.on('draw', function () {
+                businessTripTableInstance.columns.adjust();
+            });
+
+            $(window).on('resize', function () {
+                businessTripTableInstance.columns.adjust();
+            });
+
+            $('#myTable').on('click', '.js-dinas-info', function () {
+                var rowData = businessTripTableInstance.row($(this).closest('tr')).data();
+                infoDataBusinessTrip(rowData);
             });
         });
     </script>

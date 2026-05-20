@@ -80,7 +80,7 @@
             font-size: 1.05rem;
             font-weight: 700;
             color: #25314c;
-            margin-bottom: 0.6rem;
+            margin-bottom: 2rem;
             text-align: left;
         }
 
@@ -336,7 +336,7 @@
 
 @endsection
 
-@section('navbarTitle', 'Attendances-data')
+@section('navbarTitle', 'Attendances')
 
 @section('content')
 

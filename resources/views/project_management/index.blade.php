@@ -121,6 +121,10 @@
                 max-width: 82vw;
                 scroll-snap-align: start;
             }
+
+            .project-kanban-page .kanban-bx.is-dragging {
+                scroll-snap-type: none;
+            }
         }
     </style>
 @endsection
@@ -808,6 +812,41 @@
             var EDGE_THRESHOLD_PX = isMobileViewport ? 170 : 120;
             var MAX_SCROLL_SPEED_PX = isMobileViewport ? 32 : 24;
 
+            function hasCardsInDropzone(dropzone) {
+                var directCards = dropzone.querySelectorAll(':scope > .card.draggable-handle');
+
+                if (directCards.length > 0) {
+                    return true;
+                }
+
+                var fallbackCards = dropzone.querySelectorAll('.card.draggable-handle');
+                return fallbackCards.length > 0;
+            }
+
+            function refreshDropzoneEmptyStates() {
+                var dropzones = document.querySelectorAll('.project-kanban-page .dropzoneContainer');
+
+                dropzones.forEach(function (dropzone) {
+                    var emptyState = dropzone.querySelector('.kanban-empty-state');
+
+                    if (!emptyState) {
+                        emptyState = document.createElement('div');
+                        emptyState.className = 'kanban-empty-state';
+                        dropzone.appendChild(emptyState);
+                    }
+
+                    var hasCards = hasCardsInDropzone(dropzone);
+                    emptyState.style.display = hasCards ? 'none' : '';
+                });
+            }
+
+            function scheduleRefreshDropzoneEmptyStates() {
+                refreshDropzoneEmptyStates();
+                window.requestAnimationFrame(refreshDropzoneEmptyStates);
+                window.setTimeout(refreshDropzoneEmptyStates, 60);
+                window.setTimeout(refreshDropzoneEmptyStates, 180);
+            }
+
             function extractClientX(value) {
                 if (!value) {
                     return null;
@@ -905,8 +944,15 @@
                         return;
                     }
 
+                    var dragMirror = document.querySelector('.draggable-mirror');
+
+                    if (dragMirror) {
+                        var dynamicMirrorRect = dragMirror.getBoundingClientRect();
+                        latestClientX = dynamicMirrorRect.left + (dynamicMirrorRect.width / 2);
+                    }
+
                     if (latestClientX === null) {
-                        var dragMirror = document.querySelector('.draggable-mirror');
+                        dragMirror = document.querySelector('.draggable-mirror');
 
                         if (dragMirror) {
                             var mirrorRect = dragMirror.getBoundingClientRect();
@@ -941,6 +987,7 @@
                     isDragging = true;
                     latestClientX = getClientXFromEvent(event);
                     bindPointerListeners();
+                    board.classList.add('is-dragging');
 
                     if (rafId === null) {
                         rafId = window.requestAnimationFrame(autoScrollTick);
@@ -951,12 +998,24 @@
                     latestClientX = getClientXFromEvent(event);
                 });
 
+                sortableInstance.on('mirror:move', function (event) {
+                    latestClientX = getClientXFromEvent(event);
+                });
+
                 sortableInstance.on('drag:stop', function () {
+                    board.classList.remove('is-dragging');
                     stopAutoScroll();
+                    scheduleRefreshDropzoneEmptyStates();
                 });
 
                 sortableInstance.on('sortable:stop', function () {
+                    board.classList.remove('is-dragging');
                     stopAutoScroll();
+                    scheduleRefreshDropzoneEmptyStates();
+                });
+
+                sortableInstance.on('sortable:sorted', function () {
+                    scheduleRefreshDropzoneEmptyStates();
                 });
             }
 
@@ -969,11 +1028,13 @@
 
                 var sortableInstance = new OriginalSortable(containers, sortableOptions);
                 attachKanbanAutoScroll(sortableInstance);
+                scheduleRefreshDropzoneEmptyStates();
 
                 return sortableInstance;
             };
 
             window.Sortable.default.prototype = OriginalSortable.prototype;
+            document.addEventListener('DOMContentLoaded', scheduleRefreshDropzoneEmptyStates);
         })();
     </script>
     <script src="{{ asset('assets-workload/js/custom.min.js') }}"></script>

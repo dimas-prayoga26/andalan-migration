@@ -7,6 +7,13 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-05-21 (Kamis)
+- Penambahan halaman `Report` pada modul absensi beserta route dan controller terpisah.
+- Revamp modal absensi: state `Clock In`/`Clock Out` dipisah, alur verifikasi onsite diperjelas, dan status tombol submit lebih ketat.
+- Perubahan skema attendance: `distance` dipecah jadi `distance_in`/`distance_out` dan `late_grace_minutes` dihapus dari rules.
+- Perbaikan logic backend: hitung `late_minutes`, hitung `work_hours` lebih akurat, serta update `location_out`/`distance_out` saat clock out.
+- Perbaikan seeder agar kompatibel dengan skema baru.
+
 ### 2026-05-13 (Rabu)
 - Perbaikan seeder pasca penghapusan tabel `meta_data_divisions` dan `meta_data_positions`.
 - `DatabaseSeeder` dan `UserSeeder` disesuaikan ke `departments` + `positions` (UUID).
@@ -34,6 +41,9 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-05-21
+- `2026-05-21-1015-revamp-absensi-report-modal-dan-skema-attendance.md`
 
 ### 2026-05-13
 - `2026-05-13-0110-fix-seeder-metadata-ke-departments-positions.md`

@@ -191,8 +191,7 @@ class ReportController extends Controller
      *     radius_meters:int,
      *     ip_range:string|null,
      *     office_start_time:string,
-     *     office_end_time:string,
-     *     late_grace_minutes:int|null
+     *     office_end_time:string
      * }|null
      */
     private function resolveOfficeContext(int|string|null $userId): ?array
@@ -212,7 +211,6 @@ class ReportController extends Controller
                         'rules_of_attendaces.ip_range',
                         'rules_of_attendaces.office_start_time',
                         'rules_of_attendaces.office_end_time',
-                        'rules_of_attendaces.late_grace_minutes',
                     ]);
                 },
             ])
@@ -239,9 +237,6 @@ class ReportController extends Controller
             'office_end_time' => isset($attendanceRule?->office_end_time) && is_string($attendanceRule->office_end_time)
                 ? $attendanceRule->office_end_time
                 : '17:00:00',
-            'late_grace_minutes' => isset($attendanceRule?->late_grace_minutes)
-                ? max((int) $attendanceRule->late_grace_minutes, 0)
-                : null,
         ];
     }
 

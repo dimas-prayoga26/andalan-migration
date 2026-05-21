@@ -96,6 +96,16 @@ class AttendanceController extends Controller
                 ->first();
         }
         $todayAttendanceId = $absensiHariIni?->id;
+        $todayAttendanceDistanceKm = null;
+        if (is_string($todayAttendanceId) && trim($todayAttendanceId) !== '') {
+            $todayAttendanceDistanceMeters = AttendanceLog::query()
+                ->where('attendance_id', $todayAttendanceId)
+                ->value('distance_in');
+
+            if (is_numeric($todayAttendanceDistanceMeters)) {
+                $todayAttendanceDistanceKm = round(((float) $todayAttendanceDistanceMeters) / 1000, 2);
+            }
+        }
         $hasCheckedInToday = ! empty($absensiHariIni?->clock_in);
         $hasCheckedOutToday = ! empty($absensiHariIni?->clock_out);
         $totalLemburJam = 0;
@@ -147,6 +157,7 @@ class AttendanceController extends Controller
             'defaultStaffMonth',
             'defaultStaffYear',
             'todayAttendanceId',
+            'todayAttendanceDistanceKm',
             'hasCheckedInToday',
             'hasCheckedOutToday',
         ));
@@ -172,6 +183,7 @@ class AttendanceController extends Controller
         $currentTime = $nowJakarta->format('H:i:s');
         $officeContext = $this->resolveOfficeContext($userId);
         $attendanceStatus = $this->resolveAttendanceStatus($nowJakarta, $officeContext);
+        $lateMinutes = $this->calculateLateMinutes($nowJakarta, $officeContext);
 
         if (Attendance::where('employee_id', $employeeId)
             ->whereDate('date', $todayDate)
@@ -187,6 +199,8 @@ class AttendanceController extends Controller
             'date' => $todayDate,
             'clock_in' => $currentTime,
             'clock_out' => null,
+            'late_minutes' => $lateMinutes,
+            'work_hours' => null,
             'status' => $attendanceStatus,
         ]);
 
@@ -228,7 +242,8 @@ class AttendanceController extends Controller
             'latitude' => $latitude,
             'longitude' => $longitude,
             'radius_result' => $radiusResult,
-            'distance' => round($distance, 2),
+            'distance_in' => round($distance, 2),
+            'distance_out' => null,
             'ip_address' => $ipAddress,
             'user_agent' => $request->userAgent(),
             'device_hash' => hash('sha256', ($request->userAgent() ?? 'unknown').'|'.$ipAddress),
@@ -285,9 +300,59 @@ class AttendanceController extends Controller
             ], 422);
         }
 
+        $clockOutTime = now('Asia/Jakarta');
+        $clockOutTimeString = $clockOutTime->format('H:i:s');
+        $attendanceDate = $absensi->date?->format('Y-m-d') ?? $todayDate;
+        $clockInRaw = $absensi->getRawOriginal('clock_in');
+        $clockInTimeString = is_string($clockInRaw) && trim($clockInRaw) !== ''
+            ? $clockInRaw
+            : (string) $clockOutTimeString;
+        try {
+            $clockInTime = Carbon::createFromFormat('Y-m-d H:i:s', $attendanceDate.' '.$clockInTimeString, 'Asia/Jakarta');
+        } catch (\Throwable) {
+            $clockInTime = Carbon::parse($attendanceDate.' '.$clockInTimeString, 'Asia/Jakarta');
+        }
+        $workHours = $this->calculateWorkHours($clockInTime, $clockOutTime);
+
         $absensi->update([
-            'clock_out' => now('Asia/Jakarta')->format('H:i:s'),
+            'clock_out' => $clockOutTimeString,
+            'work_hours' => $workHours,
         ]);
+
+        $officeContext = $this->resolveOfficeContext(Auth::id());
+        $clientIpAddress = $this->resolveClientIpAddress($request, $request->input('client_ip'));
+        $ipdataData = $this->fetchIpdata($clientIpAddress);
+        $requestLatitude = $request->input('latitude');
+        $requestLongitude = $request->input('longitude');
+        $hasRequestCoordinates = is_numeric($requestLatitude)
+            && is_numeric($requestLongitude)
+            && $this->isValidCoordinate((float) $requestLatitude, (float) $requestLongitude);
+        $hasIpCoordinates = isset($ipdataData['latitude'], $ipdataData['longitude'])
+            && is_numeric($ipdataData['latitude'])
+            && is_numeric($ipdataData['longitude'])
+            && $this->isValidCoordinate((float) $ipdataData['latitude'], (float) $ipdataData['longitude']);
+        $latitude = $hasRequestCoordinates ? (float) $requestLatitude : ($hasIpCoordinates ? (float) $ipdataData['latitude'] : 0.0);
+        $longitude = $hasRequestCoordinates ? (float) $requestLongitude : ($hasIpCoordinates ? (float) $ipdataData['longitude'] : 0.0);
+        $hasCoordinates = $hasRequestCoordinates || $hasIpCoordinates;
+
+        $distanceOut = 0.0;
+        if ($officeContext !== null && $hasCoordinates) {
+            $distanceOut = $this->calculateDistanceInMeters(
+                $latitude,
+                $longitude,
+                $officeContext['latitude'],
+                $officeContext['longitude']
+            );
+        }
+
+        $locationMetadata = $hasCoordinates ? $this->reverseGeocodeCoordinates($latitude, $longitude) : [];
+
+        AttendanceLog::query()
+            ->where('attendance_id', $absensi->id)
+            ->update([
+                'location_out' => $locationMetadata['formatted_address'] ?? null,
+                'distance_out' => round($distanceOut, 2),
+            ]);
 
         $authenticatedUser = Auth::user();
         if ($authenticatedUser instanceof User) {
@@ -368,7 +433,8 @@ class AttendanceController extends Controller
                     'location_out',
                     'latitude',
                     'longitude',
-                    'distance',
+                    'distance_in',
+                    'distance_out',
                     'radius_result',
                     'address_village',
                     'address_district',
@@ -393,7 +459,8 @@ class AttendanceController extends Controller
                     'status' => $attendanceItem->status,
                     'check_in_latitude' => isset($attendanceLog?->latitude) ? (float) $attendanceLog->latitude : null,
                     'check_in_longitude' => isset($attendanceLog?->longitude) ? (float) $attendanceLog->longitude : null,
-                    'distance_meters' => isset($attendanceLog?->distance) ? (float) $attendanceLog->distance : null,
+                    'distance_meters' => isset($attendanceLog?->distance_in) ? (float) $attendanceLog->distance_in : null,
+                    'distance_out_meters' => isset($attendanceLog?->distance_out) ? (float) $attendanceLog->distance_out : null,
                     'radius_result' => isset($attendanceLog?->radius_result) ? (string) $attendanceLog->radius_result : null,
                     'location_in' => isset($attendanceLog?->location_in) ? (string) $attendanceLog->location_in : null,
                     'location_out' => isset($attendanceLog?->location_out) ? (string) $attendanceLog->location_out : null,
@@ -461,7 +528,8 @@ class AttendanceController extends Controller
                 'location_out',
                 'latitude',
                 'longitude',
-                'distance',
+                'distance_in',
+                'distance_out',
                 'radius_result',
                 'address_village',
                 'address_district',
@@ -494,7 +562,8 @@ class AttendanceController extends Controller
                 'status' => $attendanceToday?->status,
                 'check_in_latitude' => isset($attendanceLog?->latitude) ? (float) $attendanceLog->latitude : null,
                 'check_in_longitude' => isset($attendanceLog?->longitude) ? (float) $attendanceLog->longitude : null,
-                'distance_meters' => isset($attendanceLog?->distance) ? (float) $attendanceLog->distance : null,
+                'distance_meters' => isset($attendanceLog?->distance_in) ? (float) $attendanceLog->distance_in : null,
+                'distance_out_meters' => isset($attendanceLog?->distance_out) ? (float) $attendanceLog->distance_out : null,
                 'radius_result' => isset($attendanceLog?->radius_result) ? (string) $attendanceLog->radius_result : null,
                 'location_in' => isset($attendanceLog?->location_in) ? (string) $attendanceLog->location_in : null,
                 'location_out' => isset($attendanceLog?->location_out) ? (string) $attendanceLog->location_out : null,
@@ -867,8 +936,7 @@ class AttendanceController extends Controller
      *     radius_meters:int,
      *     ip_range:string|null,
      *     office_start_time:string,
-     *     office_end_time:string,
-     *     late_grace_minutes:int|null
+     *     office_end_time:string
      * }|null
      */
     private function resolveOfficeContext(int|string|null $userId): ?array
@@ -888,7 +956,6 @@ class AttendanceController extends Controller
                         'rules_of_attendaces.ip_range',
                         'rules_of_attendaces.office_start_time',
                         'rules_of_attendaces.office_end_time',
-                        'rules_of_attendaces.late_grace_minutes',
                     ]);
                 },
             ])
@@ -915,9 +982,6 @@ class AttendanceController extends Controller
             'office_end_time' => isset($attendanceRule?->office_end_time) && is_string($attendanceRule->office_end_time)
                 ? $attendanceRule->office_end_time
                 : '17:00:00',
-            'late_grace_minutes' => isset($attendanceRule?->late_grace_minutes)
-                ? max((int) $attendanceRule->late_grace_minutes, 0)
-                : null,
         ];
     }
 
@@ -930,10 +994,28 @@ class AttendanceController extends Controller
             ? $officeContext['office_start_time']
             : '08:00:00';
 
-        $lateGraceMinutes = is_array($officeContext) && array_key_exists('late_grace_minutes', $officeContext)
-            && $officeContext['late_grace_minutes'] !== null
-            ? max((int) $officeContext['late_grace_minutes'], 0)
-            : 0;
+        $officeStartDateTime = $attendanceTime->copy();
+        try {
+            $officeStartDateTime->setTimeFromTimeString($officeStartTime);
+        } catch (\Throwable) {
+            $officeStartDateTime->setTime(8, 0, 0);
+        }
+
+        if ($attendanceTime->greaterThan($officeStartDateTime)) {
+            return 'Terlambat';
+        }
+
+        return 'Masuk';
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $officeContext
+     */
+    private function calculateLateMinutes(Carbon $attendanceTime, ?array $officeContext): int
+    {
+        $officeStartTime = is_array($officeContext) && isset($officeContext['office_start_time']) && is_string($officeContext['office_start_time'])
+            ? $officeContext['office_start_time']
+            : '08:00:00';
 
         $officeStartDateTime = $attendanceTime->copy();
         try {
@@ -942,13 +1024,22 @@ class AttendanceController extends Controller
             $officeStartDateTime->setTime(8, 0, 0);
         }
 
-        $lateThresholdDateTime = $officeStartDateTime->copy()->addMinutes($lateGraceMinutes);
-
-        if ($attendanceTime->greaterThan($lateThresholdDateTime)) {
-            return 'Terlambat';
+        if ($attendanceTime->lessThanOrEqualTo($officeStartDateTime)) {
+            return 0;
         }
 
-        return 'Masuk';
+        return max(0, (int) $officeStartDateTime->diffInMinutes($attendanceTime, true));
+    }
+
+    private function calculateWorkHours(Carbon $clockInTime, Carbon $clockOutTime): float
+    {
+        $workedMinutes = (int) $clockInTime->diffInMinutes($clockOutTime, false);
+
+        if ($workedMinutes < 0) {
+            return 0.0;
+        }
+
+        return round($workedMinutes / 60, 2);
     }
 
     private function extractIpTwoOctets(?string $ipValue): ?string

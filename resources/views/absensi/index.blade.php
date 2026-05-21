@@ -103,49 +103,16 @@
             text-align: center;
         }
 
-        .onsite-map-container {
-            border: 1px solid #e6eaf2;
-            border-radius: 0.75rem;
-            overflow: hidden;
-            background: #fff;
-        }
-
-        #onsiteRunningTime {
-            padding: 0.85rem 1rem;
+        .onsite-running-time {
             font-size: 1.05rem;
             letter-spacing: 0.02em;
-            transition: color 0.2s ease, background-color 0.2s ease;
-        }
-
-        #onsiteRunningTime.time-green {
-            color: #166534;
-            background: #dcfce7;
-        }
-
-        #onsiteRunningTime.time-yellow {
-            color: #854d0e;
-            background: #fef9c3;
-        }
-
-        #onsiteRunningTime.time-red {
-            color: #b91c1c;
-            background: #fee2e2;
-        }
-
-        #onsiteRunningTime.time-gray {
-            color: #374151;
-            background: #e5e7eb;
         }
 
         .onsite-map-canvas {
             width: 100%;
-            height: 360px;
+            height: 250px;
+            border: 1px solid #e6eaf2;
             background: #f8fafc;
-        }
-
-        .onsite-map-meta {
-            border-top: 1px solid #e6eaf2;
-            padding: 1.2rem 1.2rem;
         }
 
         .attendance-detail-label {
@@ -297,7 +264,7 @@
                 type="button"
                 class="me-2 btn btn-success light btn-sm"
                 data-bs-toggle="modal"
-                data-bs-target="#attendanceActionModal"
+                data-bs-target="#clockIn"
             >Presensi Check in</button>
         </div>
     </div>
@@ -326,19 +293,30 @@
                 <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
                     <div class="text-center">
                         <p class="fs-14 mb-2">Distance</p>
-                        <span class="fs-20 text-black">1 KM</span>
+                        <span class="fs-20 text-black">{{ $todayAttendanceDistanceKm !== null ? number_format($todayAttendanceDistanceKm, 2).' KM' : '- KM' }}</span>
                     </div>
                     <div class="text-center">
                         <p class="fs-14 mb-2">Time</p>
-                        <span class="fs-20 text-black">08:34:53</span>
+                        <span class="fs-20 text-success" id="attendanceSummaryTimeValue">--:--:--</span>
                     </div>
                     <div class="text-center">
                         <p class="fs-14 mb-2">Clock In</p>
-                        <span class="fs-20 text-black">08:00</span>
+                        <span class="fs-20 text-black">{{ $absensiHariIni?->clock_in?->format('H:i') ?? '-' }}</span>
                     </div>
                 </div>
             </div>
-            <a class="btn light btn-success m-3 mb-2 btn-lg" data-bs-toggle="modal" data-bs-target="#clockIn">Clock In</a>
+            <a
+                id="clockInCardButton"
+                class="btn light btn-success m-3 mb-2 btn-lg {{ ($hasCheckedInToday ?? false) ? 'disabled' : '' }}"
+                @if (!($hasCheckedInToday ?? false))
+                    data-bs-toggle="modal"
+                    data-bs-target="#clockIn"
+                @endif
+                @if (($hasCheckedInToday ?? false))
+                    aria-disabled="true"
+                    tabindex="-1"
+                @endif
+            >Clock In</a>
             <div class="mb-3"></div>
         </div>
     </div>
@@ -377,7 +355,18 @@
                     </div>
                 </div>
             </div>
-            <a class="btn light btn-danger m-3 mb-2 btn-lg" data-bs-toggle="modal" data-bs-target="#clockOut">Clock Out</a>
+            <a
+                id="clockOutCardButton"
+                class="btn light btn-danger m-3 mb-2 btn-lg {{ ($hasCheckedOutToday ?? false) ? 'disabled' : '' }}"
+                @if (!($hasCheckedOutToday ?? false))
+                    data-bs-toggle="modal"
+                    data-bs-target="#clockOut"
+                @endif
+                @if (($hasCheckedOutToday ?? false))
+                    aria-disabled="true"
+                    tabindex="-1"
+                @endif
+            >Clock Out</a>
             <div class="mb-3"></div>
         </div>
     </div>
@@ -488,52 +477,6 @@
     </div>
 </div>
 <!-- Login Sessions table temporarily removed -->
-<div class="modal fade" id="attendanceActionModal" tabindex="-1" aria-labelledby="attendanceActionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="attendanceActionModalLabel">Absen {{ now('Asia/Jakarta')->format('d/m/Y') }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="onsite-map-container">
-                    <div class="px-3 py-2 border-bottom text-center fw-semibold" id="onsiteRunningTime">--:--:--</div>
-                    <div id="onsiteMapCanvas" class="onsite-map-canvas"></div>
-                    <div class="onsite-map-meta">
-                        <h6 class="mb-3">Validasi Lokasi Onsite</h6>
-                        <div class="small text-muted mb-2">
-                            <strong>Status:</strong> <span id="onsiteStatusText">Menunggu cek lokasi</span>
-                        </div>
-                        <div class="small mb-3">
-                            <strong>IP:</strong>
-                            @if (!empty($publicIp))
-                                <span id="onsiteIpText" class="{{ ($isIpPrefixMatch ?? false) ? 'text-success fw-semibold' : 'text-danger fw-semibold' }}">
-                                    {{ $publicIp }}
-                                </span>
-                                <span id="onsiteIpBadge" class="badge ms-2 {{ ($isIpPrefixMatch ?? false) ? 'bg-success' : 'bg-danger' }}">
-                                    {{ ($isIpPrefixMatch ?? false) ? 'Valid' : 'Tidak Valid' }}
-                                </span>
-                            @else
-                                <span id="onsiteIpText" class="text-muted">
-                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                    Memuat...
-                                </span>
-                                <span id="onsiteIpBadge" class="badge ms-2 d-none"></span>
-                            @endif
-                        </div>
-                        <div class="d-flex gap-3">
-                            <button type="button" class="btn btn-outline-primary btn-sm" id="checkOnsiteLocationBtn">Mulai Verifikasi</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary btn-sm w-100" id="submitOnsiteAttendanceBtn">Masuk</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="modal fade" id="attendanceDetailModal" tabindex="-1" aria-labelledby="attendanceDetailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -595,33 +538,38 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form>
-                    <div class="row">
-                        <div class="col-xl-12">
-                            <p class="form-label mb-3 text-center">Wed, 20 May 2026 - 
-                                <span class="text-success fw-semibold">08:00:10</span>
-                            </p>
-                            <p class="form-label text-muted mb-3">
-                                Grab your coffee and let's get things done. Clock in when you're ready to kick off your shift!
-                            </p>
-                            <div class="mb-3">
-                                <label for="exampleFormControlInput1" class="form-label">Current Location</label>
-                                <iframe class="border-0 rounded" height="250"  width="100%" id="gmap_canvas" src="https://maps.google.com/maps?q=&t=&z=13&ie=UTF8&iwloc=&output=embed"></iframe>
-                            </div>
-                            <div class="mb-3">
-                                <label for="exampleFormControlInput1" class="form-label">Status</label>
-                                <p class="fs-13 mb-0">Ensure your device location is enabled and you are within the authorized work area.</p>
-                            </div>
-                            <div class="mb-3">
-                                <label for="exampleFormControlInput1" class="form-label">IP Address</label>
-                                <p>
-                                    <span class="fs-13 mb-0 text-success">182.8.226.88</span> | <span class="fs-13 mb-0 text-danger">182.8.226.88</span>
-                                </p>
-                            </div>
-                        </div>
+                <p class="form-label mb-3 text-center">
+                    <span id="clockInCurrentDate">--</span> -
+                    <span id="clockInRunningTime" class="onsite-running-time text-success fw-semibold">--:--:--</span>
+                </p>
+                <p class="form-label text-muted mb-3">
+                    Grab your coffee and let's get things done. Clock in when you're ready to kick off your shift!
+                </p>
+                <div class="mb-3">
+                    <label class="form-label">Current Location</label>
+                    <div id="clockInMapCanvas" class="onsite-map-canvas rounded"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Status</label>
+                    <div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="clockInVerifyBtn">Mulai Verifikasi</button>
                     </div>
-                </form>
-                <a class="btn light btn-success mb-2 btn-lg w-100" data-bs-toggle="modal" data-bs-target="#clockIn">Clock In</a>
+                    <p class="small d-none mt-2 mb-0" id="clockInVerifyMessage"></p>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label">IP Address</label>
+                    <p class="mb-0">
+                        @if (! empty($publicIp))
+                            <span id="clockInIpText" class="{{ ($isIpPrefixMatch ?? false) ? 'text-success' : 'text-danger' }}">{{ $publicIp }}</span>
+                        @else
+                            <span id="clockInIpText" class="text-muted">Memuat...</span>
+                        @endif
+                        <span id="clockInIpBadge" class="ms-1 {{ ($isIpPrefixMatch ?? false) ? 'text-success' : 'text-danger' }}">{{ ($isIpPrefixMatch ?? false) ? 'Valid' : 'Tidak Valid' }}</span>
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn light btn-success btn-lg w-100" id="clockInSubmitBtn">Clock In</button>
             </div>
         </div>
     </div>
@@ -637,33 +585,38 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form>
-                    <div class="row">
-                        <div class="col-xl-12">
-                            <p class="form-label mb-3 text-center">Wed, 20 May 2026 - 
-                                <span class="fw-semibold">17:00:10</span>
-                            </p>
-                            <p class="form-label text-muted mb-3">
-                                Please make sure your daily tasks are wrapped up before clocking out. Thank you for your hard work, and enjoy the rest of your day!
-                            </p>
-                            <div class="mb-3">
-                                <label for="exampleFormControlInput1" class="form-label">Current Location</label>
-                                <iframe class="border-0 rounded" height="250"  width="100%" id="gmap_canvas" src="https://maps.google.com/maps?q=&t=&z=13&ie=UTF8&iwloc=&output=embed"></iframe>
-                            </div>
-                            <div class="mb-3">
-                                <label for="exampleFormControlInput1" class="form-label">Status</label>
-                                <p class="fs-13 mb-0">Ensure your device location is enabled and you are within the authorized work area.</p>
-                            </div>
-                            <div class="mb-3">
-                                <label for="exampleFormControlInput1" class="form-label">IP Address</label>
-                                <p>
-                                    <span class="fs-13 mb-0 text-success">182.8.226.88</span> | <span class="fs-13 mb-0 text-danger">182.8.226.88</span>
-                                </p>
-                            </div>
-                        </div>
+                <p class="form-label mb-3 text-center">
+                    <span id="clockOutCurrentDate">--</span> -
+                    <span id="clockOutRunningTime" class="onsite-running-time text-success fw-semibold">--:--:--</span>
+                </p>
+                <p class="form-label text-muted mb-3">
+                    Please make sure your daily tasks are wrapped up before clocking out. Thank you for your hard work, and enjoy the rest of your day!
+                </p>
+                <div class="mb-3">
+                    <label class="form-label">Current Location</label>
+                    <div id="clockOutMapCanvas" class="onsite-map-canvas rounded"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Status</label>
+                    <div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="clockOutVerifyBtn">Mulai Verifikasi</button>
                     </div>
-                </form>
-                <a class="btn light btn-danger mb-2 btn-lg w-100" data-bs-toggle="modal" data-bs-target="#clockOut">See You Tomorrow</a>
+                    <p class="small d-none mt-2 mb-0" id="clockOutVerifyMessage"></p>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label">IP Address</label>
+                    <p class="mb-0">
+                        @if (! empty($publicIp))
+                            <span id="clockOutIpText" class="{{ ($isIpPrefixMatch ?? false) ? 'text-success' : 'text-danger' }}">{{ $publicIp }}</span>
+                        @else
+                            <span id="clockOutIpText" class="text-muted">Memuat...</span>
+                        @endif
+                        <span id="clockOutIpBadge" class="ms-1 {{ ($isIpPrefixMatch ?? false) ? 'text-success' : 'text-danger' }}">{{ ($isIpPrefixMatch ?? false) ? 'Valid' : 'Tidak Valid' }}</span>
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn light btn-danger btn-lg w-100" id="clockOutSubmitBtn">Clock Out</button>
             </div>
         </div>
     </div>
@@ -742,20 +695,36 @@
     <script>
         $(function () {
             var attendanceDateElement = document.getElementById('attendanceDateTime');
+            var attendanceSummaryTimeElement = document.getElementById('attendanceSummaryTimeValue');
+            var clockInCardButtonElement = document.getElementById('clockInCardButton');
+            var clockOutCardButtonElement = document.getElementById('clockOutCardButton');
             var attendanceCompanyFilter = document.getElementById('attendanceCompanyFilter');
             var attendanceMonthFilter = document.getElementById('attendanceMonthFilter');
             var attendanceYearFilter = document.getElementById('attendanceYearFilter');
             var googleMapsApiKey = @json(config('services.google_maps.api_key'));
             var officeLocation = @json($officeLocation);
-            var attendanceModalElement = document.getElementById('attendanceActionModal');
+            var clockInModalElement = document.getElementById('clockIn');
+            var clockOutModalElement = document.getElementById('clockOut');
             var attendanceDetailModalElement = document.getElementById('attendanceDetailModal');
             var attendanceDetailModalLabel = document.getElementById('attendanceDetailModalLabel');
-            var checkOnsiteLocationButton = document.getElementById('checkOnsiteLocationBtn');
-            var submitOnsiteAttendanceButton = document.getElementById('submitOnsiteAttendanceBtn');
-            var onsiteStatusText = document.getElementById('onsiteStatusText');
-            var onsiteIpText = document.getElementById('onsiteIpText');
-            var onsiteIpBadge = document.getElementById('onsiteIpBadge');
-            var onsiteRunningTimeElement = document.getElementById('onsiteRunningTime');
+            var clockInCurrentDateElement = document.getElementById('clockInCurrentDate');
+            var clockOutCurrentDateElement = document.getElementById('clockOutCurrentDate');
+            var clockInRunningTimeElement = document.getElementById('clockInRunningTime');
+            var clockOutRunningTimeElement = document.getElementById('clockOutRunningTime');
+            var clockInMapCanvasElement = document.getElementById('clockInMapCanvas');
+            var clockOutMapCanvasElement = document.getElementById('clockOutMapCanvas');
+            var clockInStatusTextElement = document.getElementById('clockInStatusText');
+            var clockOutStatusTextElement = document.getElementById('clockOutStatusText');
+            var clockInVerifyButton = document.getElementById('clockInVerifyBtn');
+            var clockOutVerifyButton = document.getElementById('clockOutVerifyBtn');
+            var clockInVerifyMessageElement = document.getElementById('clockInVerifyMessage');
+            var clockOutVerifyMessageElement = document.getElementById('clockOutVerifyMessage');
+            var clockInIpTextElement = document.getElementById('clockInIpText');
+            var clockOutIpTextElement = document.getElementById('clockOutIpText');
+            var clockInIpBadgeElement = document.getElementById('clockInIpBadge');
+            var clockOutIpBadgeElement = document.getElementById('clockOutIpBadge');
+            var clockInSubmitButton = document.getElementById('clockInSubmitBtn');
+            var clockOutSubmitButton = document.getElementById('clockOutSubmitBtn');
             var attendanceDetailFormattedAddressElement = document.getElementById('attendanceDetailFormattedAddress');
             var attendanceDetailVillageElement = document.getElementById('attendanceDetailVillage');
             var attendanceDetailDistrictElement = document.getElementById('attendanceDetailDistrict');
@@ -765,11 +734,6 @@
             var attendanceDetailLocationInfoElement = document.getElementById('attendanceDetailLocationInfo');
             var attendanceDetailMapCanvasElement = document.getElementById('attendanceDetailMapCanvas');
             var attendanceDetailMapEmptyElement = document.getElementById('attendanceDetailMapEmpty');
-            var onsiteMapInstance = null;
-            var officeMarker = null;
-            var officeRadiusCircle = null;
-            var userMarker = null;
-            var userToOfficeLine = null;
             var attendanceDetailMapInstance = null;
             var attendanceDetailUserMarker = null;
             var attendanceDetailOfficeMarker = null;
@@ -786,11 +750,52 @@
             var attendanceState = {
                 todayAttendanceId: @json($todayAttendanceId ?? null),
                 hasCheckedInToday: @json($hasCheckedInToday ?? false),
-                hasCheckedOutToday: @json($hasCheckedOutToday ?? false),
-                hasVerifiedOnsite: false,
-                hasVerifiedTelegram: false
+                hasCheckedOutToday: @json($hasCheckedOutToday ?? false)
             };
-            var latestUserCoordinates = null;
+            var modalContext = {
+                clockIn: {
+                    type: 'clock_in',
+                    modalElement: clockInModalElement,
+                    currentDateElement: clockInCurrentDateElement,
+                    runningTimeElement: clockInRunningTimeElement,
+                    mapCanvasElement: clockInMapCanvasElement,
+                    statusTextElement: clockInStatusTextElement,
+                    verifyButtonElement: clockInVerifyButton,
+                    verifyMessageElement: clockInVerifyMessageElement,
+                    ipTextElement: clockInIpTextElement,
+                    ipBadgeElement: clockInIpBadgeElement,
+                    submitButtonElement: clockInSubmitButton,
+                    hasVerifiedOnsite: false,
+                    hasVerifiedTelegram: false,
+                    latestUserCoordinates: null,
+                    mapInstance: null,
+                    officeMarker: null,
+                    officeRadiusCircle: null,
+                    userMarker: null,
+                    userToOfficeLine: null
+                },
+                clockOut: {
+                    type: 'clock_out',
+                    modalElement: clockOutModalElement,
+                    currentDateElement: clockOutCurrentDateElement,
+                    runningTimeElement: clockOutRunningTimeElement,
+                    mapCanvasElement: clockOutMapCanvasElement,
+                    statusTextElement: clockOutStatusTextElement,
+                    verifyButtonElement: clockOutVerifyButton,
+                    verifyMessageElement: clockOutVerifyMessageElement,
+                    ipTextElement: clockOutIpTextElement,
+                    ipBadgeElement: clockOutIpBadgeElement,
+                    submitButtonElement: clockOutSubmitButton,
+                    hasVerifiedOnsite: false,
+                    hasVerifiedTelegram: false,
+                    latestUserCoordinates: null,
+                    mapInstance: null,
+                    officeMarker: null,
+                    officeRadiusCircle: null,
+                    userMarker: null,
+                    userToOfficeLine: null
+                }
+            };
             var officeStartTotalMinutes = parseTimeStringToMinutes(officeLocation && officeLocation.office_start_time, 8 * 60);
             var officeEndTotalMinutes = parseTimeStringToMinutes(officeLocation && officeLocation.office_end_time, 17 * 60);
             var lateGraceMinutes = Number(officeLocation && officeLocation.late_grace_minutes);
@@ -986,67 +991,95 @@
                 return (hourValue * 60) + minuteValue;
             }
 
-            function setOnsiteIpIndicator(ipAddress, isValidIpPrefix) {
-                if (!onsiteIpText) {
+            function eachModalContext(callback) {
+                callback(modalContext.clockIn);
+                callback(modalContext.clockOut);
+            }
+
+            function setOnsiteStatus(context, text) {
+                if (!context || !context.statusTextElement) {
                     return;
                 }
 
-                if (!ipAddress || ipAddress === '-') {
-                    setOnsiteIpUnavailableState();
+                context.statusTextElement.textContent = text;
+            }
+
+            function setVerificationMessage(context, text, type) {
+                if (!context || !context.verifyMessageElement) {
                     return;
                 }
 
-                onsiteIpText.textContent = ipAddress;
-                onsiteIpText.classList.remove('text-success', 'text-danger', 'text-muted', 'fw-semibold');
-                if (onsiteIpBadge) {
-                    onsiteIpBadge.classList.remove('d-none');
-                    onsiteIpBadge.classList.remove('bg-success', 'bg-danger', 'bg-secondary');
+                context.verifyMessageElement.classList.remove('d-none', 'text-success', 'text-danger', 'text-warning', 'text-muted');
+                context.verifyMessageElement.textContent = text;
+                if (type === 'success') {
+                    context.verifyMessageElement.classList.add('text-success');
+                    return;
                 }
+                if (type === 'error') {
+                    context.verifyMessageElement.classList.add('text-danger');
+                    return;
+                }
+                if (type === 'warning') {
+                    context.verifyMessageElement.classList.add('text-warning');
+                    return;
+                }
+                context.verifyMessageElement.classList.add('text-muted');
+            }
 
-                if (isValidIpPrefix) {
-                    onsiteIpText.classList.add('text-success', 'fw-semibold');
-                    if (onsiteIpBadge) {
-                        onsiteIpBadge.classList.add('bg-success');
-                        onsiteIpBadge.textContent = 'Valid';
-                    }
+            function resetVerificationUi(context) {
+                if (!context) {
                     return;
                 }
 
-                onsiteIpText.classList.add('text-danger', 'fw-semibold');
-                if (onsiteIpBadge) {
-                    onsiteIpBadge.classList.add('bg-danger');
-                    onsiteIpBadge.textContent = 'Tidak Valid';
+                context.hasVerifiedOnsite = false;
+                context.hasVerifiedTelegram = false;
+                context.latestUserCoordinates = null;
+                if (context.verifyButtonElement) {
+                    context.verifyButtonElement.classList.remove('d-none');
+                    context.verifyButtonElement.disabled = false;
+                }
+                if (context.verifyMessageElement) {
+                    context.verifyMessageElement.classList.add('d-none');
+                    context.verifyMessageElement.textContent = '';
+                }
+                setOnsiteStatus(context, 'Harap verifikasi terlebih dahulu sebelum absen');
+            }
+
+            function setOnsiteIpIndicator(context, ipAddress, isValidIpPrefix) {
+                if (!context || !context.ipTextElement) {
+                    return;
+                }
+
+                var normalizedIp = (!ipAddress || ipAddress === '-') ? 'Tidak tersedia' : ipAddress;
+                context.ipTextElement.textContent = normalizedIp;
+                context.ipTextElement.classList.remove('text-success', 'text-danger', 'text-muted');
+                if (normalizedIp === 'Tidak tersedia') {
+                    context.ipTextElement.classList.add('text-muted');
+                } else {
+                    context.ipTextElement.classList.add(isValidIpPrefix ? 'text-success' : 'text-danger');
+                }
+
+                if (context.ipBadgeElement) {
+                    context.ipBadgeElement.textContent = normalizedIp === 'Tidak tersedia'
+                        ? 'Tidak tersedia'
+                        : (isValidIpPrefix ? 'Valid' : 'Tidak Valid');
+                    context.ipBadgeElement.classList.remove('text-success', 'text-danger', 'text-muted');
+                    context.ipBadgeElement.classList.add(normalizedIp === 'Tidak tersedia'
+                        ? 'text-muted'
+                        : (isValidIpPrefix ? 'text-success' : 'text-danger'));
                 }
             }
 
-            function setOnsiteIpLoadingState() {
-                if (!onsiteIpText) {
+            function setOnsiteIpLoadingState(context) {
+                if (!context || !context.ipTextElement) {
                     return;
                 }
 
-                onsiteIpText.classList.remove('text-success', 'text-danger', 'fw-semibold');
-                onsiteIpText.classList.add('text-muted');
-                onsiteIpText.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Memuat...';
-                if (onsiteIpBadge) {
-                    onsiteIpBadge.classList.add('d-none');
-                    onsiteIpBadge.classList.remove('bg-success', 'bg-danger', 'bg-secondary');
-                    onsiteIpBadge.textContent = '';
-                }
-            }
-
-            function setOnsiteIpUnavailableState() {
-                if (!onsiteIpText) {
-                    return;
-                }
-
-                onsiteIpText.textContent = 'Tidak tersedia';
-                onsiteIpText.classList.remove('text-success', 'text-danger', 'fw-semibold');
-                onsiteIpText.classList.add('text-muted');
-                if (onsiteIpBadge) {
-                    onsiteIpBadge.classList.remove('d-none');
-                    onsiteIpBadge.classList.remove('bg-success', 'bg-danger');
-                    onsiteIpBadge.classList.add('bg-secondary');
-                    onsiteIpBadge.textContent = 'Tidak tersedia';
+                context.ipTextElement.textContent = 'Memuat...';
+                context.ipTextElement.classList.remove('text-success', 'text-danger');
+                context.ipTextElement.classList.add('text-muted');
+                if (context.ipBadgeElement) {
+                    context.ipBadgeElement.textContent = '';
                 }
             }
 
@@ -1063,9 +1096,13 @@
                 }).done(function (response) {
                     var ipAddress = response && response.ip ? response.ip : '-';
                     var isValidIpPrefix = !!(response && response.is_ip_prefix_match);
-                    setOnsiteIpIndicator(ipAddress, isValidIpPrefix);
+                    eachModalContext(function (context) {
+                        setOnsiteIpIndicator(context, ipAddress, isValidIpPrefix);
+                    });
                 }).fail(function () {
-                    setOnsiteIpUnavailableState();
+                    eachModalContext(function (context) {
+                        setOnsiteIpIndicator(context, '-', false);
+                    });
                 });
             }
 
@@ -1087,54 +1124,47 @@
                 return updateAttendanceUrlTemplate.replace('__ATTENDANCE_ID__', String(attendanceId));
             }
 
-            function renderSubmitAttendanceButton() {
-                if (!submitOnsiteAttendanceButton) {
-                    return;
+            function renderSubmitButtons() {
+                if (clockInSubmitButton) {
+                    clockInSubmitButton.disabled = !modalContext.clockIn.hasVerifiedOnsite
+                        || !modalContext.clockIn.hasVerifiedTelegram
+                        || attendanceState.hasCheckedInToday;
+                }
+                if (clockOutSubmitButton) {
+                    clockOutSubmitButton.disabled = !modalContext.clockOut.hasVerifiedOnsite
+                        || !modalContext.clockOut.hasVerifiedTelegram
+                        || !attendanceState.hasCheckedInToday
+                        || attendanceState.hasCheckedOutToday;
                 }
 
-                submitOnsiteAttendanceButton.classList.remove('btn-primary', 'btn-success', 'btn-danger', 'btn-secondary');
-                submitOnsiteAttendanceButton.disabled = false;
-
-                if (attendanceState.hasCheckedOutToday) {
-                    submitOnsiteAttendanceButton.classList.add('btn-secondary');
-                    submitOnsiteAttendanceButton.textContent = 'Sudah Pulang';
-                    submitOnsiteAttendanceButton.disabled = true;
-                    return;
+                if (clockInCardButtonElement) {
+                    clockInCardButtonElement.classList.toggle('disabled', attendanceState.hasCheckedInToday);
+                    if (attendanceState.hasCheckedInToday) {
+                        clockInCardButtonElement.removeAttribute('data-bs-toggle');
+                        clockInCardButtonElement.removeAttribute('data-bs-target');
+                        clockInCardButtonElement.setAttribute('aria-disabled', 'true');
+                        clockInCardButtonElement.setAttribute('tabindex', '-1');
+                    } else {
+                        clockInCardButtonElement.setAttribute('data-bs-toggle', 'modal');
+                        clockInCardButtonElement.setAttribute('data-bs-target', '#clockIn');
+                        clockInCardButtonElement.removeAttribute('aria-disabled');
+                        clockInCardButtonElement.removeAttribute('tabindex');
+                    }
                 }
 
-                if (attendanceState.hasCheckedInToday) {
-                    submitOnsiteAttendanceButton.classList.add('btn-danger');
-                    submitOnsiteAttendanceButton.textContent = 'Keluar';
-                    submitOnsiteAttendanceButton.disabled = !(attendanceState.hasVerifiedOnsite && attendanceState.hasVerifiedTelegram);
-                    return;
-                }
-
-                submitOnsiteAttendanceButton.classList.add('btn-success');
-                submitOnsiteAttendanceButton.textContent = 'Masuk';
-                submitOnsiteAttendanceButton.disabled = !(attendanceState.hasVerifiedOnsite && attendanceState.hasVerifiedTelegram);
-            }
-
-            function setOnsiteStatus(text) {
-                if (onsiteStatusText) {
-                    onsiteStatusText.textContent = text;
-                    onsiteStatusText.classList.remove('text-success', 'text-danger', 'text-warning', 'text-muted');
-
-                    if (text === 'Di dalam radius kantor') {
-                        onsiteStatusText.classList.add('text-success');
-                        return;
+                if (clockOutCardButtonElement) {
+                    clockOutCardButtonElement.classList.toggle('disabled', attendanceState.hasCheckedOutToday);
+                    if (attendanceState.hasCheckedOutToday) {
+                        clockOutCardButtonElement.removeAttribute('data-bs-toggle');
+                        clockOutCardButtonElement.removeAttribute('data-bs-target');
+                        clockOutCardButtonElement.setAttribute('aria-disabled', 'true');
+                        clockOutCardButtonElement.setAttribute('tabindex', '-1');
+                    } else {
+                        clockOutCardButtonElement.setAttribute('data-bs-toggle', 'modal');
+                        clockOutCardButtonElement.setAttribute('data-bs-target', '#clockOut');
+                        clockOutCardButtonElement.removeAttribute('aria-disabled');
+                        clockOutCardButtonElement.removeAttribute('tabindex');
                     }
-
-                    if (text === 'Di luar radius kantor') {
-                        onsiteStatusText.classList.add('text-danger');
-                        return;
-                    }
-
-                    if (text === 'Harap verifikasi terlebih dahulu sebelum absen') {
-                        onsiteStatusText.classList.add('text-warning');
-                        return;
-                    }
-
-                    onsiteStatusText.classList.add('text-muted');
                 }
             }
 
@@ -1192,18 +1222,21 @@
                 });
             }
 
-            function initializeOnsiteMap() {
+            function initializeOnsiteMap(context) {
+                if (!context || !context.mapCanvasElement) {
+                    return;
+                }
+
                 if (!officeLocation || officeLocation.latitude === null || officeLocation.longitude === null) {
-                    setOnsiteStatus('Koordinat kantor belum tersedia di database perusahaan');
+                    setOnsiteStatus(context, 'Koordinat kantor belum tersedia di database perusahaan');
                     return;
                 }
 
-                if (onsiteMapInstance) {
+                if (context.mapInstance) {
                     return;
                 }
 
-                var mapElement = document.getElementById('onsiteMapCanvas');
-                if (!mapElement || !window.google || !window.google.maps) {
+                if (!window.google || !window.google.maps) {
                     return;
                 }
 
@@ -1213,7 +1246,7 @@
                 };
                 var officeRadius = Number(officeLocation.radius_meters || 100);
 
-                onsiteMapInstance = new window.google.maps.Map(mapElement, {
+                context.mapInstance = new window.google.maps.Map(context.mapCanvasElement, {
                     center: officePosition,
                     zoom: 17,
                     mapTypeControl: false,
@@ -1221,14 +1254,14 @@
                     fullscreenControl: false
                 });
 
-                officeMarker = new window.google.maps.Marker({
+                context.officeMarker = new window.google.maps.Marker({
                     position: officePosition,
-                    map: onsiteMapInstance,
+                    map: context.mapInstance,
                     title: officeLocation.name || 'Office'
                 });
 
-                officeRadiusCircle = new window.google.maps.Circle({
-                    map: onsiteMapInstance,
+                context.officeRadiusCircle = new window.google.maps.Circle({
+                    map: context.mapInstance,
                     center: officePosition,
                     radius: officeRadius,
                     strokeColor: '#2563eb',
@@ -1237,19 +1270,14 @@
                     fillColor: '#60a5fa',
                     fillOpacity: 0.14
                 });
-
-                attendanceState.hasVerifiedOnsite = false;
-                attendanceState.hasVerifiedTelegram = false;
-                renderSubmitAttendanceButton();
-                setOnsiteStatus('Harap verifikasi terlebih dahulu sebelum absen');
             }
 
-            function updateUserLocationOnMap(position) {
-                if (!onsiteMapInstance || !officeLocation) {
+            function updateUserLocationOnMap(context, position) {
+                if (!context || !context.mapInstance || !officeLocation) {
                     return;
                 }
 
-                latestUserCoordinates = {
+                context.latestUserCoordinates = {
                     latitude: Number(position.coords.latitude),
                     longitude: Number(position.coords.longitude)
                 };
@@ -1270,12 +1298,12 @@
                 );
                 var allowedRadius = Number(officeLocation.radius_meters || 100);
                 var inRadius = distance <= allowedRadius;
-                attendanceState.hasVerifiedOnsite = true;
+                context.hasVerifiedOnsite = true;
 
-                if (!userMarker) {
-                    userMarker = new window.google.maps.Marker({
+                if (!context.userMarker) {
+                    context.userMarker = new window.google.maps.Marker({
                         position: userPosition,
-                        map: onsiteMapInstance,
+                        map: context.mapInstance,
                         title: 'Lokasi Saya',
                         icon: {
                             path: window.google.maps.SymbolPath.CIRCLE,
@@ -1287,26 +1315,25 @@
                         }
                     });
                 } else {
-                    userMarker.setPosition(userPosition);
+                    context.userMarker.setPosition(userPosition);
                 }
 
-                if (userToOfficeLine) {
-                    userToOfficeLine.setMap(null);
+                if (context.userToOfficeLine) {
+                    context.userToOfficeLine.setMap(null);
                 }
 
-                userToOfficeLine = new window.google.maps.Polyline({
+                context.userToOfficeLine = new window.google.maps.Polyline({
                     path: [officePosition, userPosition],
                     geodesic: true,
                     strokeColor: '#dc2626',
                     strokeOpacity: 0.8,
                     strokeWeight: 2,
-                    map: onsiteMapInstance
+                    map: context.mapInstance
                 });
 
-                onsiteMapInstance.panTo(userPosition);
-
-                setOnsiteStatus(inRadius ? 'Di dalam radius kantor' : 'Di luar radius kantor');
-                renderSubmitAttendanceButton();
+                context.mapInstance.panTo(userPosition);
+                setOnsiteStatus(context, inRadius ? 'Di dalam radius kantor' : 'Di luar radius kantor');
+                renderSubmitButtons();
             }
 
             function verifyTelegramUsernameSync() {
@@ -1324,15 +1351,12 @@
                         }
                     }).done(function (response) {
                         if (response && response.success) {
-                            attendanceState.hasVerifiedTelegram = true;
                             resolve(response);
                             return;
                         }
 
-                        attendanceState.hasVerifiedTelegram = false;
                         reject(new Error(response && response.message ? response.message : 'Verifikasi Telegram gagal.'));
                     }).fail(function (xhr) {
-                        attendanceState.hasVerifiedTelegram = false;
                         var errorMessage = 'Verifikasi Telegram gagal.';
                         if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
                             errorMessage = xhr.responseJSON.message;
@@ -1342,59 +1366,76 @@
                 });
             }
 
-            function checkOnsiteLocation() {
+            function checkOnsiteLocation(context) {
+                if (!context) {
+                    return;
+                }
+
                 if (!navigator.geolocation) {
-                    attendanceState.hasVerifiedOnsite = false;
-                    attendanceState.hasVerifiedTelegram = false;
-                    renderSubmitAttendanceButton();
-                    setOnsiteStatus('Browser tidak mendukung geolocation');
+                    context.hasVerifiedOnsite = false;
+                    context.hasVerifiedTelegram = false;
+                    setOnsiteStatus(context, 'Browser tidak mendukung geolocation');
+                    setVerificationMessage(context, 'Browser tidak mendukung geolocation', 'error');
+                    renderSubmitButtons();
                     return;
                 }
 
                 if (!window.isSecureContext) {
-                    attendanceState.hasVerifiedOnsite = false;
-                    attendanceState.hasVerifiedTelegram = false;
-                    renderSubmitAttendanceButton();
-                    setOnsiteStatus('Geolocation hanya jalan di HTTPS atau localhost');
+                    context.hasVerifiedOnsite = false;
+                    context.hasVerifiedTelegram = false;
+                    setOnsiteStatus(context, 'Geolocation hanya jalan di HTTPS atau localhost');
+                    setVerificationMessage(context, 'Geolocation hanya jalan di HTTPS atau localhost', 'error');
+                    renderSubmitButtons();
                     return;
                 }
 
-                attendanceState.hasVerifiedOnsite = false;
-                attendanceState.hasVerifiedTelegram = false;
-                renderSubmitAttendanceButton();
-                setOnsiteStatus('Memverifikasi Telegram dan lokasi...');
+                context.hasVerifiedOnsite = false;
+                context.hasVerifiedTelegram = false;
+                if (context.verifyButtonElement) {
+                    context.verifyButtonElement.classList.add('d-none');
+                }
+                setOnsiteStatus(context, 'Memverifikasi Telegram dan lokasi...');
+                setVerificationMessage(context, 'Memverifikasi Telegram dan lokasi...', 'muted');
+                renderSubmitButtons();
 
                 verifyTelegramUsernameSync().then(function () {
+                    context.hasVerifiedTelegram = true;
                     navigator.geolocation.getCurrentPosition(
                         function (position) {
-                            updateUserLocationOnMap(position);
-                            setOnsiteStatus('Verifikasi lokasi dan Telegram berhasil.');
+                            updateUserLocationOnMap(context, position);
+                            setOnsiteStatus(context, 'Verifikasi lokasi dan Telegram berhasil.');
+                            setVerificationMessage(context, 'Verifikasi berhasil. Kamu bisa lanjut submit.', 'success');
                         },
                         function (error) {
-                            attendanceState.hasVerifiedOnsite = false;
-                            renderSubmitAttendanceButton();
+                            context.hasVerifiedOnsite = false;
+                            renderSubmitButtons();
 
                             if (!error || typeof error.code === 'undefined') {
-                                setOnsiteStatus('Gagal mendapatkan lokasi');
+                                setOnsiteStatus(context, 'Gagal mendapatkan lokasi');
+                                setVerificationMessage(context, 'Gagal mendapatkan lokasi', 'error');
                                 return;
                             }
 
                             if (error.code === 1) {
-                                setOnsiteStatus('Izin lokasi ditolak. Izinkan lokasi di browser.');
+                                setOnsiteStatus(context, 'Izin lokasi ditolak. Izinkan lokasi di browser.');
+                                setVerificationMessage(context, 'Izin lokasi ditolak. Izinkan lokasi di browser.', 'error');
                                 return;
                             }
 
                             if (error.code === 2) {
-                                setOnsiteStatus('Lokasi tidak tersedia. Aktifkan GPS/lokasi perangkat.');
+                                setOnsiteStatus(context, 'Lokasi tidak tersedia. Aktifkan GPS/lokasi perangkat.');
+                                setVerificationMessage(context, 'Lokasi tidak tersedia. Aktifkan GPS/lokasi perangkat.', 'error');
                                 return;
                             }
 
                             if (error.code === 3) {
-                                setOnsiteStatus('Timeout saat mengambil lokasi. Coba lagi.');
+                                setOnsiteStatus(context, 'Timeout saat mengambil lokasi. Coba lagi.');
+                                setVerificationMessage(context, 'Timeout saat mengambil lokasi. Coba lagi.', 'error');
                                 return;
                             }
 
-                            setOnsiteStatus('Gagal mendapatkan lokasi');
+                            setOnsiteStatus(context, 'Gagal mendapatkan lokasi');
+                            setVerificationMessage(context, 'Gagal mendapatkan lokasi', 'error');
                         },
                         {
                             enableHighAccuracy: true,
@@ -1403,30 +1444,31 @@
                         }
                     );
                 }).catch(function (error) {
-                    attendanceState.hasVerifiedTelegram = false;
-                    attendanceState.hasVerifiedOnsite = false;
-                    renderSubmitAttendanceButton();
-                    setOnsiteStatus(error && error.message ? error.message : 'Verifikasi Telegram gagal.');
+                    context.hasVerifiedTelegram = false;
+                    context.hasVerifiedOnsite = false;
+                    renderSubmitButtons();
+                    setOnsiteStatus(context, error && error.message ? error.message : 'Verifikasi Telegram gagal.');
+                    setVerificationMessage(context, error && error.message ? error.message : 'Verifikasi Telegram gagal.', 'error');
                 });
             }
 
-            function resolveCurrentCoordinatesForAttendance() {
+            function resolveCurrentCoordinatesForAttendance(context) {
                 return new Promise(function (resolve) {
                     if (!navigator.geolocation || !window.isSecureContext) {
-                        resolve(latestUserCoordinates);
+                        resolve(context.latestUserCoordinates);
                         return;
                     }
 
                     navigator.geolocation.getCurrentPosition(
                         function (position) {
-                            latestUserCoordinates = {
+                            context.latestUserCoordinates = {
                                 latitude: Number(position.coords.latitude),
                                 longitude: Number(position.coords.longitude)
                             };
-                            resolve(latestUserCoordinates);
+                            resolve(context.latestUserCoordinates);
                         },
                         function () {
-                            resolve(latestUserCoordinates);
+                            resolve(context.latestUserCoordinates);
                         },
                         {
                             enableHighAccuracy: true,
@@ -1437,34 +1479,44 @@
                 });
             }
 
-            function submitOnsiteAttendance() {
-                if (!submitOnsiteAttendanceButton) {
+            function submitOnsiteAttendance(actionType, context) {
+                if (!context || !context.submitButtonElement) {
                     return;
                 }
 
-                if (attendanceState.hasCheckedOutToday) {
-                    setOnsiteStatus('Kamu sudah absen pulang hari ini');
+                if (actionType === 'clock_in' && attendanceState.hasCheckedInToday) {
+                    setOnsiteStatus(context, 'Kamu sudah absen masuk hari ini');
                     return;
                 }
 
-                if (!(attendanceState.hasVerifiedOnsite && attendanceState.hasVerifiedTelegram)) {
-                    setOnsiteStatus('Harap verifikasi terlebih dahulu sebelum absen');
-                    renderSubmitAttendanceButton();
+                if (actionType === 'clock_out' && !attendanceState.hasCheckedInToday) {
+                    setOnsiteStatus(context, 'Kamu belum absen masuk hari ini');
                     return;
                 }
 
-                submitOnsiteAttendanceButton.disabled = true;
-                setOnsiteStatus('Memproses submit absen...');
+                if (actionType === 'clock_out' && attendanceState.hasCheckedOutToday) {
+                    setOnsiteStatus(context, 'Kamu sudah absen pulang hari ini');
+                    return;
+                }
 
-                var isCheckInAction = !attendanceState.hasCheckedInToday;
-                var requestMethod = attendanceState.hasCheckedInToday ? 'PATCH' : 'POST';
-                var requestUrl = attendanceState.hasCheckedInToday && attendanceState.todayAttendanceId
-                    ? getUpdateAttendanceUrl(attendanceState.todayAttendanceId)
-                    : storeAttendanceUrl;
+                if (!(context.hasVerifiedOnsite && context.hasVerifiedTelegram)) {
+                    setOnsiteStatus(context, 'Harap verifikasi terlebih dahulu sebelum absen');
+                    renderSubmitButtons();
+                    return;
+                }
 
-                resolveCurrentCoordinatesForAttendance().then(function (coordinates) {
+                context.submitButtonElement.disabled = true;
+                setOnsiteStatus(context, 'Memproses submit absen...');
+
+                var isCheckInAction = actionType === 'clock_in';
+                var requestMethod = isCheckInAction ? 'POST' : 'PATCH';
+                var requestUrl = isCheckInAction
+                    ? storeAttendanceUrl
+                    : getUpdateAttendanceUrl(attendanceState.todayAttendanceId);
+
+                resolveCurrentCoordinatesForAttendance(context).then(function (coordinates) {
                     var payload = {
-                        client_ip: browserPublicIp || (onsiteIpText ? onsiteIpText.textContent.trim() : null)
+                        client_ip: browserPublicIp || (context.ipTextElement ? context.ipTextElement.textContent.trim() : null)
                     };
 
                     if (coordinates && Number.isFinite(coordinates.latitude) && Number.isFinite(coordinates.longitude)) {
@@ -1480,7 +1532,7 @@
                         },
                         data: payload
                     }).done(function (response) {
-                        setOnsiteStatus(response && response.message ? response.message : 'Absen berhasil disimpan');
+                        setOnsiteStatus(context, response && response.message ? response.message : 'Absen berhasil disimpan');
                         if (isCheckInAction) {
                             attendanceState.hasCheckedInToday = true;
                             if (response && response.attendance_id) {
@@ -1489,7 +1541,7 @@
                         } else {
                             attendanceState.hasCheckedOutToday = true;
                         }
-                        renderSubmitAttendanceButton();
+                        renderSubmitButtons();
                         resolveBrowserPublicIpAndRefresh();
                         if (projectManagementIndexUrl) {
                             window.location.href = projectManagementIndexUrl;
@@ -1501,18 +1553,14 @@
                             errorMessage = xhr.responseJSON.message;
                         }
 
-                        setOnsiteStatus(errorMessage);
+                        setOnsiteStatus(context, errorMessage);
                     }).always(function () {
-                        renderSubmitAttendanceButton();
+                        renderSubmitButtons();
                     });
                 });
             }
 
             function renderAttendanceDateTime() {
-                if (!attendanceDateElement) {
-                    return;
-                }
-
                 var now = new Date();
 
                 var dateParts = new Intl.DateTimeFormat('id-ID', {
@@ -1546,14 +1594,20 @@
                 var formattedDateTime = dateMap.weekday + ', ' + dateMap.day + ' ' + dateMap.month + ' ' + dateMap.year
                     + ' | ' + timeMap.hour + ':' + timeMap.minute + ':' + timeMap.second + ' ' + meridiem;
 
-                attendanceDateElement.textContent = formattedDateTime;
+                if (attendanceDateElement) {
+                    attendanceDateElement.textContent = formattedDateTime;
+                }
+
+                var modalDate = dateMap.weekday + ', ' + dateMap.day + ' ' + dateMap.month + ' ' + dateMap.year;
+                if (clockInCurrentDateElement) {
+                    clockInCurrentDateElement.textContent = modalDate;
+                }
+                if (clockOutCurrentDateElement) {
+                    clockOutCurrentDateElement.textContent = modalDate;
+                }
             }
 
             function renderOnsiteRunningTime() {
-                if (!onsiteRunningTimeElement) {
-                    return;
-                }
-
                 var now = new Date();
 
                 var timeParts = new Intl.DateTimeFormat('id-ID', {
@@ -1574,18 +1628,30 @@
                 var totalMinutes = (hour * 60) + minute;
                 var formattedTime = timeMap.hour + ':' + timeMap.minute + ':' + timeMap.second;
 
-                onsiteRunningTimeElement.textContent = formattedTime;
-                onsiteRunningTimeElement.classList.remove('time-green', 'time-yellow', 'time-red', 'time-gray');
-
-                if (totalMinutes < officeStartTotalMinutes) {
-                    onsiteRunningTimeElement.classList.add('time-green');
-                } else if (totalMinutes <= lateThresholdTotalMinutes) {
-                    onsiteRunningTimeElement.classList.add('time-yellow');
-                } else if (totalMinutes > officeEndTotalMinutes) {
-                    onsiteRunningTimeElement.classList.add('time-gray');
-                } else {
-                    onsiteRunningTimeElement.classList.add('time-red');
+                if (attendanceSummaryTimeElement) {
+                    attendanceSummaryTimeElement.textContent = formattedTime;
+                    attendanceSummaryTimeElement.classList.remove('text-success', 'text-danger');
+                    attendanceSummaryTimeElement.classList.add(totalMinutes <= lateThresholdTotalMinutes ? 'text-success' : 'text-danger');
                 }
+
+                [clockInRunningTimeElement, clockOutRunningTimeElement].forEach(function (runningTimeElement) {
+                    if (!runningTimeElement) {
+                        return;
+                    }
+
+                    runningTimeElement.textContent = formattedTime;
+                    runningTimeElement.classList.remove('text-success', 'text-warning', 'text-danger', 'text-secondary');
+
+                    if (totalMinutes < officeStartTotalMinutes) {
+                        runningTimeElement.classList.add('text-success');
+                    } else if (totalMinutes <= lateThresholdTotalMinutes) {
+                        runningTimeElement.classList.add('text-warning');
+                    } else if (totalMinutes > officeEndTotalMinutes) {
+                        runningTimeElement.classList.add('text-secondary');
+                    } else {
+                        runningTimeElement.classList.add('text-danger');
+                    }
+                });
             }
 
             function showAttendanceDetail(rowData) {
@@ -1786,7 +1852,7 @@
             setInterval(renderAttendanceDateTime, 1000);
             renderOnsiteRunningTime();
             setInterval(renderOnsiteRunningTime, 1000);
-            renderSubmitAttendanceButton();
+            renderSubmitButtons();
             tableLogs();
 
             $('.absensi-tab-btn').on('click', function (event) {
@@ -1798,31 +1864,36 @@
                 }
             });
 
-            if (attendanceModalElement) {
-                attendanceModalElement.addEventListener('shown.bs.modal', function () {
-                    attendanceState.hasVerifiedOnsite = false;
-                    attendanceState.hasVerifiedTelegram = false;
-                    renderSubmitAttendanceButton();
-                    setOnsiteStatus('Harap verifikasi terlebih dahulu sebelum absen');
+            eachModalContext(function (context) {
+                if (!context.modalElement) {
+                    return;
+                }
 
+                context.modalElement.addEventListener('shown.bs.modal', function () {
+                    resetVerificationUi(context);
                     if (!browserPublicIp) {
-                        setOnsiteIpLoadingState();
+                        eachModalContext(function (item) {
+                            setOnsiteIpLoadingState(item);
+                        });
                     }
 
                     resolveBrowserPublicIpAndRefresh();
                     loadGoogleMapsApi()
                         .then(function () {
-                            initializeOnsiteMap();
-                            if (onsiteMapInstance && officeRadiusCircle) {
-                                window.google.maps.event.trigger(onsiteMapInstance, 'resize');
-                                onsiteMapInstance.fitBounds(officeRadiusCircle.getBounds());
+                            initializeOnsiteMap(context);
+                            if (context.mapInstance && context.officeRadiusCircle) {
+                                window.google.maps.event.trigger(context.mapInstance, 'resize');
+                                context.mapInstance.fitBounds(context.officeRadiusCircle.getBounds());
                             }
                         })
                         .catch(function (error) {
-                            setOnsiteStatus(error.message);
+                            setOnsiteStatus(context, error.message);
+                            setVerificationMessage(context, error.message, 'error');
                         });
+
+                    renderSubmitButtons();
                 });
-            }
+            });
 
             if (attendanceDetailModalElement) {
                 attendanceDetailModalElement.addEventListener('hidden.bs.modal', function () {
@@ -1837,15 +1908,27 @@
                 });
             }
 
-            if (checkOnsiteLocationButton) {
-                checkOnsiteLocationButton.addEventListener('click', function () {
-                    checkOnsiteLocation();
+            if (clockInVerifyButton) {
+                clockInVerifyButton.addEventListener('click', function () {
+                    checkOnsiteLocation(modalContext.clockIn);
                 });
             }
 
-            if (submitOnsiteAttendanceButton) {
-                submitOnsiteAttendanceButton.addEventListener('click', function () {
-                    submitOnsiteAttendance();
+            if (clockOutVerifyButton) {
+                clockOutVerifyButton.addEventListener('click', function () {
+                    checkOnsiteLocation(modalContext.clockOut);
+                });
+            }
+
+            if (clockInSubmitButton) {
+                clockInSubmitButton.addEventListener('click', function () {
+                    submitOnsiteAttendance('clock_in', modalContext.clockIn);
+                });
+            }
+
+            if (clockOutSubmitButton) {
+                clockOutSubmitButton.addEventListener('click', function () {
+                    submitOnsiteAttendance('clock_out', modalContext.clockOut);
                 });
             }
 

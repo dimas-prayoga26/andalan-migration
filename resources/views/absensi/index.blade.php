@@ -375,7 +375,7 @@
                             @endif
                         </div>
                         <div class="d-flex gap-3">
-                            <button type="button" class="btn btn-outline-primary btn-sm" id="checkOnsiteLocationBtn">Cek Lokasi Saya</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="checkOnsiteLocationBtn">Mulai Verifikasi</button>
                         </div>
                     </div>
                 </div>
@@ -493,7 +493,8 @@
             var attendanceState = {
                 todayAttendanceId: @json($todayAttendanceId ?? null),
                 hasCheckedInToday: @json($hasCheckedInToday ?? false),
-                hasCheckedOutToday: @json($hasCheckedOutToday ?? false)
+                hasCheckedOutToday: @json($hasCheckedOutToday ?? false),
+                hasVerifiedOnsite: false
             };
             var latestUserCoordinates = null;
             var officeStartTotalMinutes = parseTimeStringToMinutes(officeLocation && officeLocation.office_start_time, 8 * 60);
@@ -810,17 +811,19 @@
                 if (attendanceState.hasCheckedInToday) {
                     submitOnsiteAttendanceButton.classList.add('btn-danger');
                     submitOnsiteAttendanceButton.textContent = 'Keluar';
+                    submitOnsiteAttendanceButton.disabled = !attendanceState.hasVerifiedOnsite;
                     return;
                 }
 
                 submitOnsiteAttendanceButton.classList.add('btn-success');
                 submitOnsiteAttendanceButton.textContent = 'Masuk';
+                submitOnsiteAttendanceButton.disabled = !attendanceState.hasVerifiedOnsite;
             }
 
             function setOnsiteStatus(text) {
                 if (onsiteStatusText) {
                     onsiteStatusText.textContent = text;
-                    onsiteStatusText.classList.remove('text-success', 'text-danger', 'text-muted');
+                    onsiteStatusText.classList.remove('text-success', 'text-danger', 'text-warning', 'text-muted');
 
                     if (text === 'Di dalam radius kantor') {
                         onsiteStatusText.classList.add('text-success');
@@ -829,6 +832,11 @@
 
                     if (text === 'Di luar radius kantor') {
                         onsiteStatusText.classList.add('text-danger');
+                        return;
+                    }
+
+                    if (text === 'Harap verifikasi terlebih dahulu sebelum absen') {
+                        onsiteStatusText.classList.add('text-warning');
                         return;
                     }
 
@@ -936,7 +944,9 @@
                     fillOpacity: 0.14
                 });
 
-                setOnsiteStatus('Peta siap. Klik "Cek Lokasi Saya" untuk validasi.');
+                attendanceState.hasVerifiedOnsite = false;
+                renderSubmitAttendanceButton();
+                setOnsiteStatus('Harap verifikasi terlebih dahulu sebelum absen');
             }
 
             function updateUserLocationOnMap(position) {
@@ -965,6 +975,7 @@
                 );
                 var allowedRadius = Number(officeLocation.radius_meters || 100);
                 var inRadius = distance <= allowedRadius;
+                attendanceState.hasVerifiedOnsite = true;
 
                 if (!userMarker) {
                     userMarker = new window.google.maps.Marker({
@@ -1000,19 +1011,26 @@
                 onsiteMapInstance.panTo(userPosition);
 
                 setOnsiteStatus(inRadius ? 'Di dalam radius kantor' : 'Di luar radius kantor');
+                renderSubmitAttendanceButton();
             }
 
             function checkOnsiteLocation() {
                 if (!navigator.geolocation) {
+                    attendanceState.hasVerifiedOnsite = false;
+                    renderSubmitAttendanceButton();
                     setOnsiteStatus('Browser tidak mendukung geolocation');
                     return;
                 }
 
                 if (!window.isSecureContext) {
+                    attendanceState.hasVerifiedOnsite = false;
+                    renderSubmitAttendanceButton();
                     setOnsiteStatus('Geolocation hanya jalan di HTTPS atau localhost');
                     return;
                 }
 
+                attendanceState.hasVerifiedOnsite = false;
+                renderSubmitAttendanceButton();
                 setOnsiteStatus('Mengambil lokasi saat ini...');
 
                 navigator.geolocation.getCurrentPosition(
@@ -1020,6 +1038,9 @@
                         updateUserLocationOnMap(position);
                     },
                     function (error) {
+                        attendanceState.hasVerifiedOnsite = false;
+                        renderSubmitAttendanceButton();
+
                         if (!error || typeof error.code === 'undefined') {
                             setOnsiteStatus('Gagal mendapatkan lokasi');
                             return;
@@ -1087,6 +1108,12 @@
                     return;
                 }
 
+                if (!attendanceState.hasVerifiedOnsite) {
+                    setOnsiteStatus('Harap verifikasi terlebih dahulu sebelum absen');
+                    renderSubmitAttendanceButton();
+                    return;
+                }
+
                 submitOnsiteAttendanceButton.disabled = true;
                 setOnsiteStatus('Memproses submit absen...');
 
@@ -1137,9 +1164,7 @@
 
                         setOnsiteStatus(errorMessage);
                     }).always(function () {
-                        if (!attendanceState.hasCheckedOutToday) {
-                            submitOnsiteAttendanceButton.disabled = false;
-                        }
+                        renderSubmitAttendanceButton();
                     });
                 });
             }
@@ -1436,6 +1461,10 @@
 
             if (attendanceModalElement) {
                 attendanceModalElement.addEventListener('shown.bs.modal', function () {
+                    attendanceState.hasVerifiedOnsite = false;
+                    renderSubmitAttendanceButton();
+                    setOnsiteStatus('Harap verifikasi terlebih dahulu sebelum absen');
+
                     if (!browserPublicIp) {
                         setOnsiteIpLoadingState();
                     }

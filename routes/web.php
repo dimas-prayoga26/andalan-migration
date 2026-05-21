@@ -6,12 +6,15 @@ use App\Http\Controllers\AttendanceOvertimeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BusinessTripController;
 use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
     Route::post('/login', [AuthController::class, 'store'])->name('login.store');
 });
+
+Route::post('/telegram/webhook', TelegramWebhookController::class)->name('telegram.webhook');
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/', function () {

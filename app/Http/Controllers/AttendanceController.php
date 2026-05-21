@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Support\TelegramAttendanceNotifier;
 use App\Models\Attendance;
 use App\Models\AttendanceLog;
 use App\Models\EmployeeProfile;
@@ -155,7 +156,7 @@ class AttendanceController extends Controller
         $userId = Auth::id();
         $authenticatedUser = Auth::user();
         if ($authenticatedUser instanceof User) {
-            $authenticatedUser->loadMissing('employee');
+            $authenticatedUser->loadMissing('employee.profile');
         }
         $employeeId = $authenticatedUser?->employee?->id;
         if (! is_string($employeeId) || trim($employeeId) === '') {
@@ -239,6 +240,10 @@ class AttendanceController extends Controller
             'geocoded_at' => isset($locationMetadata['geocoded_at']) ? Carbon::parse($locationMetadata['geocoded_at']) : null,
         ]);
 
+        if ($authenticatedUser instanceof User && $this->isStaffUser($authenticatedUser)) {
+            app(TelegramAttendanceNotifier::class)->notifyCheckIn($authenticatedUser, $attendance);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Absen berhasil disimpan',
@@ -282,6 +287,16 @@ class AttendanceController extends Controller
         $absensi->update([
             'clock_out' => now('Asia/Jakarta')->format('H:i:s'),
         ]);
+
+        $authenticatedUser = Auth::user();
+        if ($authenticatedUser instanceof User) {
+            $authenticatedUser->loadMissing('employee.profile');
+        }
+
+        if ($authenticatedUser instanceof User && $this->isStaffUser($authenticatedUser)) {
+            $absensi->refresh();
+            app(TelegramAttendanceNotifier::class)->notifyCheckOut($authenticatedUser, $absensi);
+        }
 
         return response()->json([
             'success' => true,

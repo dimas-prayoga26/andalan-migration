@@ -43,6 +43,35 @@
 	<link class="main-css" href="css/style.css" rel="stylesheet">	
 	<!-- End - Style Css -->
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+	<style>
+		html,
+		body {
+			height: 100%;
+			overflow: hidden;
+		}
+
+		.authincation .card {
+			max-height: calc(100vh - 2rem);
+			overflow-y: auto;
+		}
+
+		.show-pass {
+			cursor: pointer;
+			user-select: none;
+		}
+
+		.show-pass .hide {
+			display: none;
+		}
+
+		.show-pass.is-visible .show {
+			display: none;
+		}
+
+		.show-pass.is-visible .hide {
+			display: inline;
+		}
+	</style>
     
 </head>
 <body class="vh-100">
@@ -95,7 +124,7 @@
 							<div class="form-row d-flex justify-content-between mt-4 mb-2 flex-wrap">
 								<div class="form-group mb-3">
 								   <div class="custom-control custom-checkbox ms-1">
-										<input type="checkbox" name="remember" class="form-check-input" id="basic_checkbox_1" {{ old('remember') ? 'checked' : '' }}>
+										<input type="checkbox" name="remember" value="1" class="form-check-input" id="basic_checkbox_1" {{ old('remember') ? 'checked' : '' }}>
 										<label class="form-check-label" for="basic_checkbox_1">Remember my preference</label>
 									</div>
 								</div>
@@ -131,9 +160,19 @@
 		(function () {
 			const loginForm = document.getElementById('login-form');
 			const submitButton = loginForm?.querySelector('button[type="submit"]');
+			const passwordInput = loginForm?.querySelector('input[name="password"]');
+			const showPassButton = loginForm?.querySelector('.show-pass');
 
 			if (!loginForm || typeof Swal === 'undefined') {
 				return;
+			}
+
+			if (passwordInput && showPassButton) {
+				showPassButton.addEventListener('click', function () {
+					const isCurrentlyVisible = passwordInput.type === 'text';
+					passwordInput.type = isCurrentlyVisible ? 'password' : 'text';
+					showPassButton.classList.toggle('is-visible', !isCurrentlyVisible);
+				});
 			}
 
 			loginForm.addEventListener('submit', async function (event) {

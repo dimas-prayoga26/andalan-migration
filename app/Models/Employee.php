@@ -58,4 +58,9 @@ class Employee extends Model
     {
         return $this->hasMany(BusinessTrip::class, 'employee_id', 'id');
     }
+
+    public function telegramUser(): HasOne
+    {
+        return $this->hasOne(TelegramUser::class, 'employee_id', 'id');
+    }
 }

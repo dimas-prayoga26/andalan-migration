@@ -6,6 +6,7 @@ use App\Http\Controllers\Support\TelegramAttendanceNotifier;
 use App\Models\Attendance;
 use App\Models\AttendanceLog;
 use App\Models\EmployeeProfile;
+use App\Models\TelegramUser;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -537,6 +538,144 @@ class AttendanceController extends Controller
             'allowed_ip_prefix' => $allowedIpPrefix,
             'is_ip_prefix_match' => $isIpPrefixMatch,
         ]);
+    }
+
+    public function verifyTelegramUsername(Request $request): JsonResponse
+    {
+        $authenticatedUser = Auth::user();
+        if (! $authenticatedUser instanceof User) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User tidak terautentikasi.',
+            ], 401);
+        }
+
+        $authenticatedUser->loadMissing('employee.telegramUser');
+        $employeeId = $authenticatedUser?->employee?->id;
+        if (! is_string($employeeId) || trim($employeeId) === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Employee untuk user ini belum tersedia.',
+            ], 422);
+        }
+
+        if ($authenticatedUser->employee?->telegramUser instanceof TelegramUser) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Verifikasi Telegram berhasil.',
+            ]);
+        }
+
+        $applicationUsername = is_string($authenticatedUser->username) ? trim($authenticatedUser->username) : '';
+        if ($applicationUsername === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Username akun aplikasi belum tersedia.',
+            ], 422);
+        }
+
+        $botToken = config('services.telegram.bot_token');
+        if (! is_string($botToken) || trim($botToken) === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'TELEGRAM_BOT_TOKEN belum diset.',
+            ], 422);
+        }
+
+        try {
+            $telegramResponse = Http::connectTimeout(8)
+                ->timeout(20)
+                ->retry(3, 500)
+                ->withOptions([
+                    'version' => 1.1,
+                    'curl' => [
+                        CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                    ],
+                ])
+                ->acceptJson()
+                ->get("https://api.telegram.org/bot{$botToken}/getUpdates");
+
+            if (! $telegramResponse->successful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal mengambil data update Telegram.',
+                ], 422);
+            }
+
+            $payload = $telegramResponse->json();
+            if (! is_array($payload)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payload Telegram tidak valid.',
+                ], 422);
+            }
+
+            $updates = isset($payload['result']) && is_array($payload['result']) ? $payload['result'] : [];
+            $matchedFrom = null;
+            $matchedChat = null;
+
+            foreach ($updates as $update) {
+                if (! is_array($update)) {
+                    continue;
+                }
+
+                $message = $update['message'] ?? $update['edited_message'] ?? null;
+                if (! is_array($message)) {
+                    continue;
+                }
+
+                $from = $message['from'] ?? null;
+                if (! is_array($from)) {
+                    continue;
+                }
+
+                $telegramUsername = isset($from['username']) && is_string($from['username']) ? trim($from['username']) : '';
+                if ($telegramUsername === '') {
+                    continue;
+                }
+
+                if (mb_strtolower($telegramUsername) !== mb_strtolower($applicationUsername)) {
+                    continue;
+                }
+
+                $matchedFrom = $from;
+                $matchedChat = isset($message['chat']) && is_array($message['chat']) ? $message['chat'] : null;
+            }
+
+            if (! is_array($matchedFrom)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Username Telegram belum ditemukan. Silakan kirim /start ke bot terlebih dahulu.',
+                ], 422);
+            }
+
+            TelegramUser::updateOrCreate(
+                ['employee_id' => $employeeId],
+                [
+                    'chat_id' => is_array($matchedChat) && isset($matchedChat['id']) ? (string) $matchedChat['id'] : null,
+                    'first_name' => isset($matchedFrom['first_name']) && is_string($matchedFrom['first_name']) ? $matchedFrom['first_name'] : null,
+                    'last_name' => isset($matchedFrom['last_name']) && is_string($matchedFrom['last_name']) ? $matchedFrom['last_name'] : null,
+                    'username' => isset($matchedFrom['username']) && is_string($matchedFrom['username']) ? $matchedFrom['username'] : null,
+                    'language_code' => isset($matchedFrom['language_code']) && is_string($matchedFrom['language_code']) ? $matchedFrom['language_code'] : null,
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Verifikasi Telegram berhasil.',
+            ]);
+        } catch (\Throwable $throwable) {
+            $errorMessage = 'Terjadi kesalahan saat verifikasi Telegram.';
+            if (str_contains($throwable->getMessage(), 'cURL error 35')) {
+                $errorMessage = 'Koneksi ke Telegram terputus. Silakan coba lagi.';
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $errorMessage,
+            ], 500);
+        }
     }
 
     /**

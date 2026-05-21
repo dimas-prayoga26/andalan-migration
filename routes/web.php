@@ -6,15 +6,12 @@ use App\Http\Controllers\AttendanceOvertimeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BusinessTripController;
 use App\Http\Controllers\LeaveRequestController;
-use App\Http\Controllers\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
     Route::post('/login', [AuthController::class, 'store'])->name('login.store');
 });
-
-Route::post('/telegram/webhook', TelegramWebhookController::class)->name('telegram.webhook');
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/', function () {
@@ -62,6 +59,7 @@ Route::middleware('auth')->group(function (): void {
     // Attendance support routes
     Route::get('/absensi/datatable', [AttendanceController::class, 'datatable'])->name('absensi.datatable');
     Route::get('/absensi/current-ip', [AttendanceController::class, 'currentIp'])->name('absensi.current-ip');
+    Route::post('/absensi/verify-telegram-username', [AttendanceController::class, 'verifyTelegramUsername'])->name('absensi.verify-telegram-username');
     Route::get('/absensi/reports', function () {
         return view('absensi.reports');
     })->name('absensi.reports');

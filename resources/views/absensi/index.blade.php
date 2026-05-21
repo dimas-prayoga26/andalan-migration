@@ -487,6 +487,7 @@
             var attendanceDatatableUrl = @json(route('absensi.datatable'));
             var projectManagementIndexUrl = @json(route('project_management'));
             var currentIpUrl = @json(route('absensi.current-ip'));
+            var verifyTelegramUsernameUrl = @json(route('absensi.verify-telegram-username'));
             var isStaffTableView = @json($showStaffPeriodFilter ?? false);
             var csrfToken = @json(csrf_token());
             var browserPublicIp = null;
@@ -494,7 +495,8 @@
                 todayAttendanceId: @json($todayAttendanceId ?? null),
                 hasCheckedInToday: @json($hasCheckedInToday ?? false),
                 hasCheckedOutToday: @json($hasCheckedOutToday ?? false),
-                hasVerifiedOnsite: false
+                hasVerifiedOnsite: false,
+                hasVerifiedTelegram: false
             };
             var latestUserCoordinates = null;
             var officeStartTotalMinutes = parseTimeStringToMinutes(officeLocation && officeLocation.office_start_time, 8 * 60);
@@ -811,13 +813,13 @@
                 if (attendanceState.hasCheckedInToday) {
                     submitOnsiteAttendanceButton.classList.add('btn-danger');
                     submitOnsiteAttendanceButton.textContent = 'Keluar';
-                    submitOnsiteAttendanceButton.disabled = !attendanceState.hasVerifiedOnsite;
+                    submitOnsiteAttendanceButton.disabled = !(attendanceState.hasVerifiedOnsite && attendanceState.hasVerifiedTelegram);
                     return;
                 }
 
                 submitOnsiteAttendanceButton.classList.add('btn-success');
                 submitOnsiteAttendanceButton.textContent = 'Masuk';
-                submitOnsiteAttendanceButton.disabled = !attendanceState.hasVerifiedOnsite;
+                submitOnsiteAttendanceButton.disabled = !(attendanceState.hasVerifiedOnsite && attendanceState.hasVerifiedTelegram);
             }
 
             function setOnsiteStatus(text) {
@@ -945,6 +947,7 @@
                 });
 
                 attendanceState.hasVerifiedOnsite = false;
+                attendanceState.hasVerifiedTelegram = false;
                 renderSubmitAttendanceButton();
                 setOnsiteStatus('Harap verifikasi terlebih dahulu sebelum absen');
             }
@@ -1014,9 +1017,43 @@
                 renderSubmitAttendanceButton();
             }
 
+            function verifyTelegramUsernameSync() {
+                return new Promise(function (resolve, reject) {
+                    if (!verifyTelegramUsernameUrl) {
+                        reject(new Error('Endpoint verifikasi Telegram belum tersedia.'));
+                        return;
+                    }
+
+                    $.ajax({
+                        url: verifyTelegramUsernameUrl,
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken
+                        }
+                    }).done(function (response) {
+                        if (response && response.success) {
+                            attendanceState.hasVerifiedTelegram = true;
+                            resolve(response);
+                            return;
+                        }
+
+                        attendanceState.hasVerifiedTelegram = false;
+                        reject(new Error(response && response.message ? response.message : 'Verifikasi Telegram gagal.'));
+                    }).fail(function (xhr) {
+                        attendanceState.hasVerifiedTelegram = false;
+                        var errorMessage = 'Verifikasi Telegram gagal.';
+                        if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        reject(new Error(errorMessage));
+                    });
+                });
+            }
+
             function checkOnsiteLocation() {
                 if (!navigator.geolocation) {
                     attendanceState.hasVerifiedOnsite = false;
+                    attendanceState.hasVerifiedTelegram = false;
                     renderSubmitAttendanceButton();
                     setOnsiteStatus('Browser tidak mendukung geolocation');
                     return;
@@ -1024,51 +1061,61 @@
 
                 if (!window.isSecureContext) {
                     attendanceState.hasVerifiedOnsite = false;
+                    attendanceState.hasVerifiedTelegram = false;
                     renderSubmitAttendanceButton();
                     setOnsiteStatus('Geolocation hanya jalan di HTTPS atau localhost');
                     return;
                 }
 
                 attendanceState.hasVerifiedOnsite = false;
+                attendanceState.hasVerifiedTelegram = false;
                 renderSubmitAttendanceButton();
-                setOnsiteStatus('Mengambil lokasi saat ini...');
+                setOnsiteStatus('Memverifikasi Telegram dan lokasi...');
 
-                navigator.geolocation.getCurrentPosition(
-                    function (position) {
-                        updateUserLocationOnMap(position);
-                    },
-                    function (error) {
-                        attendanceState.hasVerifiedOnsite = false;
-                        renderSubmitAttendanceButton();
+                verifyTelegramUsernameSync().then(function () {
+                    navigator.geolocation.getCurrentPosition(
+                        function (position) {
+                            updateUserLocationOnMap(position);
+                            setOnsiteStatus('Verifikasi lokasi dan Telegram berhasil.');
+                        },
+                        function (error) {
+                            attendanceState.hasVerifiedOnsite = false;
+                            renderSubmitAttendanceButton();
 
-                        if (!error || typeof error.code === 'undefined') {
+                            if (!error || typeof error.code === 'undefined') {
+                                setOnsiteStatus('Gagal mendapatkan lokasi');
+                                return;
+                            }
+
+                            if (error.code === 1) {
+                                setOnsiteStatus('Izin lokasi ditolak. Izinkan lokasi di browser.');
+                                return;
+                            }
+
+                            if (error.code === 2) {
+                                setOnsiteStatus('Lokasi tidak tersedia. Aktifkan GPS/lokasi perangkat.');
+                                return;
+                            }
+
+                            if (error.code === 3) {
+                                setOnsiteStatus('Timeout saat mengambil lokasi. Coba lagi.');
+                                return;
+                            }
+
                             setOnsiteStatus('Gagal mendapatkan lokasi');
-                            return;
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 15000,
+                            maximumAge: 0
                         }
-
-                        if (error.code === 1) {
-                            setOnsiteStatus('Izin lokasi ditolak. Izinkan lokasi di browser.');
-                            return;
-                        }
-
-                        if (error.code === 2) {
-                            setOnsiteStatus('Lokasi tidak tersedia. Aktifkan GPS/lokasi perangkat.');
-                            return;
-                        }
-
-                        if (error.code === 3) {
-                            setOnsiteStatus('Timeout saat mengambil lokasi. Coba lagi.');
-                            return;
-                        }
-
-                        setOnsiteStatus('Gagal mendapatkan lokasi');
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 15000,
-                        maximumAge: 0
-                    }
-                );
+                    );
+                }).catch(function (error) {
+                    attendanceState.hasVerifiedTelegram = false;
+                    attendanceState.hasVerifiedOnsite = false;
+                    renderSubmitAttendanceButton();
+                    setOnsiteStatus(error && error.message ? error.message : 'Verifikasi Telegram gagal.');
+                });
             }
 
             function resolveCurrentCoordinatesForAttendance() {
@@ -1108,7 +1155,7 @@
                     return;
                 }
 
-                if (!attendanceState.hasVerifiedOnsite) {
+                if (!(attendanceState.hasVerifiedOnsite && attendanceState.hasVerifiedTelegram)) {
                     setOnsiteStatus('Harap verifikasi terlebih dahulu sebelum absen');
                     renderSubmitAttendanceButton();
                     return;
@@ -1462,6 +1509,7 @@
             if (attendanceModalElement) {
                 attendanceModalElement.addEventListener('shown.bs.modal', function () {
                     attendanceState.hasVerifiedOnsite = false;
+                    attendanceState.hasVerifiedTelegram = false;
                     renderSubmitAttendanceButton();
                     setOnsiteStatus('Harap verifikasi terlebih dahulu sebelum absen');
 

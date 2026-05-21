@@ -8,6 +8,9 @@
             <button type="button" data-href="{{ route('absensi') }}" class="nav-link py-3 px-1 border-3 absensi-tab-btn {{ request()->routeIs('absensi') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi') ? 'true' : 'false' }}">Presensi</button>
         </li>
         <li class="nav-item" role="presentation">
+            <button type="button" data-href="{{ route('absensi.reports') }}" class="nav-link py-3 px-1 border-3 absensi-tab-btn {{ request()->routeIs('absensi.reports') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.reports') ? 'true' : 'false' }}">Report</button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button type="button" data-href="{{ route('absensi.izin') }}" class="nav-link py-3 px-1 border-3 absensi-tab-btn {{ request()->routeIs('absensi.izin*') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.izin*') ? 'true' : 'false' }}">Izin / Cuti</button>
         </li>
         <li class="nav-item" role="presentation">

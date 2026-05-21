@@ -75,6 +75,26 @@
             border-color: #93c5fd;
         }
 
+        .attendance-card-icon {
+            width: 51px;
+            height: 51px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.2rem;
+            flex: 0 0 51px;
+        }
+
+        .attendance-card-icon--success {
+            background: #2BC155;
+        }
+
+        .attendance-card-icon--danger {
+            background: #F94687;
+        }
+
         .attendance-datetime {
             font-size: 1rem;
             font-weight: 600;
@@ -283,6 +303,133 @@
     </div>
 </div>
 
+<div class="row">
+    <!-- Start - Workout Details -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header border-0 pb-3">
+                <div>
+                    <h4 class="card-title">Attendance Confirmation</h4>
+                    <p class="fs-13 mb-0">Ensure your device location is enabled and you are within the authorized work area.</p>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="d-flex gap-3 align-items-center avatar-success p-4">
+                    <div class="attendance-card-icon attendance-card-icon--success">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                    </div>
+                    <div>
+                        <h6 class="fs-16 text-black mb-0">Ready to Start Your Day?</h6>
+                        <span class="fs-12">Good morning. Don't forget to clock in to keep your attendance records up to date.</span>
+                    </div>
+                </div>
+                <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
+                    <div class="text-center">
+                        <p class="fs-14 mb-2">Distance</p>
+                        <span class="fs-20 text-black">1 KM</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="fs-14 mb-2">Time</p>
+                        <span class="fs-20 text-black">08:34:53</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="fs-14 mb-2">Clock In</p>
+                        <span class="fs-20 text-black">08:00</span>
+                    </div>
+                </div>
+            </div>
+            <a class="btn light btn-success m-3 mb-2 btn-lg" data-bs-toggle="modal" data-bs-target="#clockIn">Clock In</a>
+            <div class="mb-3"></div>
+        </div>
+    </div>
+    <!-- End - Maps Route -->
+    <!-- Start - Workout Details -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header border-0 pb-3">
+                <div>
+                    <h4 class="card-title">End of Shift</h4>
+                    <p class="fs-13 mb-0">Ensure all your daily tasks and status reports have been updated before clocking out.</p>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="d-flex gap-3 align-items-center avatar-danger p-4">
+                    <div class="attendance-card-icon attendance-card-icon--danger">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </div>
+                    <div>
+                        <h6 class="fs-16 text-black mb-0"><i class="fa-solid fa-moon me-1 text-secondary"></i>Time to Recharge!</h6>
+                        <span class="fs-12">Thank you for your hard work today. Please clock out and enjoy the rest of your day.</span>
+                    </div>
+                </div>
+                <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
+                    <div class="text-center">
+                        <p class="fs-14 mb-2">Distance</p>
+                        <span class="fs-20 text-black">- KM</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="fs-14 mb-2">Time</p>
+                        <span class="fs-20 text-black">08:34:53</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="fs-14 mb-2">Clock Out</p>
+                        <span class="fs-20 text-black">17:00</span>
+                    </div>
+                </div>
+            </div>
+            <a class="btn light btn-danger m-3 mb-2 btn-lg" data-bs-toggle="modal" data-bs-target="#clockOut">Clock Out</a>
+            <div class="mb-3"></div>
+        </div>
+    </div>
+    <!-- End - Maps Route -->
+        <!-- Start - Workout Details -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header border-0 pb-3">
+                <div>
+                    <h4 class="card-title">Attendance Exception</h4>
+                    <p class="fs-13 mb-0">Your logged time is outside the standard. Please ensure your supervisor is aware of this adjustment.</p>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="d-flex gap-3 align-items-center avatar-secondary p-4">
+                    <svg width="51" height="51" viewBox="0 0 51 51" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="51" height="51" rx="25.5" fill="#A02CFA"></rect>
+                        <g clip-path="url()">
+                        <path d="M23.8586 19.226L18.8712 24.5542C18.5076 25.0845 18.6439 25.8068 19.1717 26.1679L24.1945 29.6098L24.1945 32.9558C24.1945 33.5921 24.6995 34.125 25.3359 34.1376C25.9874 34.1477 26.5177 33.6249 26.5177 32.976L26.5177 29.0012C26.5177 28.6174 26.3283 28.2588 26.0126 28.0442L22.7904 25.8346L25.5025 22.9583L26.8914 26.1225C27.0758 26.5442 27.4949 26.8169 27.9546 26.8169L32.1844 26.8169C32.8207 26.8169 33.3536 26.3119 33.3662 25.6755C33.3763 25.024 32.8536 24.4937 32.2046 24.4937L28.7172 24.4937C28.2576 23.4482 27.7677 22.4129 27.3409 21.3522C27.1237 20.8169 27.0025 20.5846 26.6036 20.2159C26.5227 20.1401 25.9596 19.625 25.4571 19.1654C24.995 18.7462 24.2828 18.7739 23.8586 19.226Z" fill="white"></path>
+                        <path d="M28.6162 19.8068C30.0861 19.8068 31.2778 18.6151 31.2778 17.1452C31.2778 15.6752 30.0861 14.4836 28.6162 14.4836C27.1462 14.4836 25.9545 15.6752 25.9545 17.1452C25.9545 18.6151 27.1462 19.8068 28.6162 19.8068Z" fill="white"></path>
+                        <path d="M17.899 37.5164C20.6046 37.5164 22.798 35.323 22.798 32.6174C22.798 29.9117 20.6046 27.7184 17.899 27.7184C15.1934 27.7184 13 29.9117 13 32.6174C13 35.323 15.1934 37.5164 17.899 37.5164Z" fill="white"></path>
+                        <path d="M32.101 37.5164C34.8066 37.5164 37 35.323 37 32.6174C37 29.9118 34.8066 27.7184 32.101 27.7184C29.3954 27.7184 27.202 29.9118 27.202 32.6174C27.202 35.323 29.3954 37.5164 32.101 37.5164Z" fill="white"></path>
+                        </g>
+                        <defs>
+                        <clipPath id="clip8">
+                        <rect width="24" height="24" fill="white" transform="translate(13 14)"></rect>
+                        </clipPath>
+                        </defs>
+                    </svg>
+                    <div>
+                        <h6 class="fs-16 text-black mb-0">Schedule Deviation?</h6>
+                        <span class="fs-12">Adjusting your schedule? Please leave a brief note for your records.</span>
+                    </div>
+                </div>
+                <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
+                    <div class="text-center">
+                        <p class="fs-14 mb-2">Time</p>
+                        <span class="fs-20 text-black">13:00-17:00</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="fs-14 mb-2">Variance</p>
+                        <span class="fs-20 text-black">04.00</span>
+                    </div>
+                </div>
+            </div>
+            <a class="btn light btn-secondary m-3 mb-2 btn-lg" data-bs-toggle="modal" data-bs-target="#exception">Exception</a>
+            <div class="mb-3"></div>
+        </div>
+    </div>
+    <!-- End - Maps Route -->
+</div>
+
 <div class="tab-content" id="tabContentMyProfileBottom">
     <div class="row">
 
@@ -386,6 +533,7 @@
         </div>
     </div>
 </div>
+
 <div class="modal fade" id="attendanceDetailModal" tabindex="-1" aria-labelledby="attendanceDetailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -437,6 +585,150 @@
     </div>
 </div>
 <!-- End - Content Body -->
+
+<!-- Modal Box Start -->
+<div class="modal fade" id="clockIn" tabindex="-1" aria-labelledby="clockInLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="clockInLabel">Attendance Confirmation</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <p class="form-label mb-3 text-center">Wed, 20 May 2026 - 
+                                <span class="text-success fw-semibold">08:00:10</span>
+                            </p>
+                            <p class="form-label text-muted mb-3">
+                                Grab your coffee and let's get things done. Clock in when you're ready to kick off your shift!
+                            </p>
+                            <div class="mb-3">
+                                <label for="exampleFormControlInput1" class="form-label">Current Location</label>
+                                <iframe class="border-0 rounded" height="250"  width="100%" id="gmap_canvas" src="https://maps.google.com/maps?q=&t=&z=13&ie=UTF8&iwloc=&output=embed"></iframe>
+                            </div>
+                            <div class="mb-3">
+                                <label for="exampleFormControlInput1" class="form-label">Status</label>
+                                <p class="fs-13 mb-0">Ensure your device location is enabled and you are within the authorized work area.</p>
+                            </div>
+                            <div class="mb-3">
+                                <label for="exampleFormControlInput1" class="form-label">IP Address</label>
+                                <p>
+                                    <span class="fs-13 mb-0 text-success">182.8.226.88</span> | <span class="fs-13 mb-0 text-danger">182.8.226.88</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                <a class="btn light btn-success mb-2 btn-lg w-100" data-bs-toggle="modal" data-bs-target="#clockIn">Clock In</a>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal-Box-End -->
+
+<!-- Modal Box Start -->
+<div class="modal fade" id="clockOut" tabindex="-1" aria-labelledby="clockOutLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="clockOutLabel">End of Shift</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <p class="form-label mb-3 text-center">Wed, 20 May 2026 - 
+                                <span class="fw-semibold">17:00:10</span>
+                            </p>
+                            <p class="form-label text-muted mb-3">
+                                Please make sure your daily tasks are wrapped up before clocking out. Thank you for your hard work, and enjoy the rest of your day!
+                            </p>
+                            <div class="mb-3">
+                                <label for="exampleFormControlInput1" class="form-label">Current Location</label>
+                                <iframe class="border-0 rounded" height="250"  width="100%" id="gmap_canvas" src="https://maps.google.com/maps?q=&t=&z=13&ie=UTF8&iwloc=&output=embed"></iframe>
+                            </div>
+                            <div class="mb-3">
+                                <label for="exampleFormControlInput1" class="form-label">Status</label>
+                                <p class="fs-13 mb-0">Ensure your device location is enabled and you are within the authorized work area.</p>
+                            </div>
+                            <div class="mb-3">
+                                <label for="exampleFormControlInput1" class="form-label">IP Address</label>
+                                <p>
+                                    <span class="fs-13 mb-0 text-success">182.8.226.88</span> | <span class="fs-13 mb-0 text-danger">182.8.226.88</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                <a class="btn light btn-danger mb-2 btn-lg w-100" data-bs-toggle="modal" data-bs-target="#clockOut">See You Tomorrow</a>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal-Box-End -->
+
+<!-- Modal Box Start -->
+<div class="modal fade" id="exception" tabindex="-1" aria-labelledby="exceptionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exceptionLabel">Attendance Exception</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <p class="form-label mb-3 text-center">Wed, 20 May 2026 - 
+                                <span class="fw-semibold">17:00:10</span>
+                            </p>
+                            <p class="form-label text-muted mb-3">
+                                Clocking in late or heading out early? Just make sure your <span class="fw-bold">supervisor</span> is in the loop 
+                                and there are <span class="fw-bold">no urgent tasks</span> left behind. <br> Oh, and don't forget to leave a quick note!
+                            </p>
+                            <div class="mb-3">
+                                <label for="exampleFormControlInput1" class="form-label text-secondary">Quick Note</label>
+                                <input type="email" class="form-control" id="exampleFormControlInput1" placeholder="Contoh: Izin ke dokter, macet, atau ada urusan keluarga">
+                            </div>
+                            <div class="mb-3">
+                                <label for="exampleFormControlInput1" class="form-label text-secondary">Request Type</label>
+                                <div class="form-group mb-0">
+                                    <div class="form-check d-inline-block">
+                                        <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault4">
+                                        <label class="form-check-label" for="flexRadioDefault4">Late Arrival</label>
+                                    </div>
+                                    <div class="form-check d-inline-block mx-2">
+                                        <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault5">
+                                        <label class="form-check-label" for="flexRadioDefault5">Early Departure</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="mb-3">
+                                        <label for="exampleFormControlInput1" class="form-label text-secondary">From</label>
+                                        <input type="time" class="form-control" id="exampleFormControlInput1">
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="mb-3">
+                                        <label for="exampleFormControlInput1" class="form-label text-secondary">To</label>
+                                        <input type="time" class="form-control" id="exampleFormControlInput1">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                <a class="btn light btn-secondary mt-2 mb-2 btn-lg w-100" data-bs-toggle="modal" data-bs-target="#clockOut">Got it!</a>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal-Box-End -->
 
 @endsection
 

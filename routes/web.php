@@ -6,6 +6,7 @@ use App\Http\Controllers\AttendanceOvertimeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BusinessTripController;
 use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -60,9 +61,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/absensi/datatable', [AttendanceController::class, 'datatable'])->name('absensi.datatable');
     Route::get('/absensi/current-ip', [AttendanceController::class, 'currentIp'])->name('absensi.current-ip');
     Route::post('/absensi/verify-telegram-username', [AttendanceController::class, 'verifyTelegramUsername'])->name('absensi.verify-telegram-username');
-    Route::get('/absensi/reports', function () {
-        return view('absensi.reports');
-    })->name('absensi.reports');
+    Route::get('/absensi/reports', [ReportController::class, 'index'])->name('absensi.reports');
 
     // Attendance permission routes
     Route::get('/absensi/izin/datatable', [LeaveRequestController::class, 'datatable'])->name('absensi.izin.datatable');

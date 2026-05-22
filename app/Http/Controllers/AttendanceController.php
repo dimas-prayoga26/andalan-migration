@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Support\TelegramAttendanceNotifier;
 use App\Models\Attendance;
+use App\Models\AttendanceException;
 use App\Models\AttendanceLog;
 use App\Models\TelegramUser;
 use App\Models\User;
@@ -35,6 +36,9 @@ class AttendanceController extends Controller
         $todayAttendanceId = $absensiHariIni?->id;
         $todayAttendanceDistanceKm = null;
         $todayAttendanceDistanceOutKm = null;
+        $todayAttendanceExceptionTimeRange = '--:-- - --:--';
+        $todayAttendanceExceptionVariance = '--.--';
+        $hasEarlyDepartureExceptionToday = false;
         if (is_string($todayAttendanceId) && trim($todayAttendanceId) !== '') {
             $latestDistanceIn = AttendanceLog::query()
                 ->where('attendance_id', $todayAttendanceId)
@@ -55,6 +59,57 @@ class AttendanceController extends Controller
 
             if (is_numeric($latestDistanceOut)) {
                 $todayAttendanceDistanceOutKm = round(((float) $latestDistanceOut) / 1000, 2);
+            }
+        }
+
+        if (is_string($employeeId) && trim($employeeId) !== '') {
+            $todayAttendanceException = AttendanceException::query()
+                ->where('employee_id', $employeeId)
+                ->whereDate('exception_date', now('Asia/Jakarta')->toDateString())
+                ->latest('created_at')
+                ->first(['exception_date', 'from_time', 'to_time', 'type']);
+
+            if ($todayAttendanceException instanceof AttendanceException) {
+                $hasEarlyDepartureExceptionToday = $todayAttendanceException->type === 'early_departure';
+                $fromTimeRaw = $todayAttendanceException->getRawOriginal('from_time');
+                $toTimeRaw = $todayAttendanceException->getRawOriginal('to_time');
+                $formattedFromTime = '--:--';
+                $formattedToTime = '--:--';
+
+                if (is_string($fromTimeRaw) && trim($fromTimeRaw) !== '') {
+                    try {
+                        $formattedFromTime = Carbon::createFromFormat('H:i:s', $fromTimeRaw, 'Asia/Jakarta')->format('H:i');
+                    } catch (\Throwable) {
+                        $formattedFromTime = '--:--';
+                    }
+                }
+
+                if (is_string($toTimeRaw) && trim($toTimeRaw) !== '') {
+                    try {
+                        $formattedToTime = Carbon::createFromFormat('H:i:s', $toTimeRaw, 'Asia/Jakarta')->format('H:i');
+                    } catch (\Throwable) {
+                        $formattedToTime = '--:--';
+                    }
+                }
+
+                $todayAttendanceExceptionTimeRange = $formattedFromTime.' - '.$formattedToTime;
+
+                if (
+                    is_string($fromTimeRaw)
+                    && trim($fromTimeRaw) !== ''
+                    && is_string($toTimeRaw)
+                    && trim($toTimeRaw) !== ''
+                ) {
+                    try {
+                        $exceptionDate = $todayAttendanceException->exception_date?->format('Y-m-d') ?? now('Asia/Jakarta')->toDateString();
+                        $fromDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $exceptionDate.' '.$fromTimeRaw, 'Asia/Jakarta');
+                        $toDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $exceptionDate.' '.$toTimeRaw, 'Asia/Jakarta');
+                        $varianceHours = round(abs((int) $fromDateTime->diffInMinutes($toDateTime, false)) / 60, 2);
+                        $todayAttendanceExceptionVariance = number_format($varianceHours, 2, '.', '');
+                    } catch (\Throwable) {
+                        $todayAttendanceExceptionVariance = '--.--';
+                    }
+                }
             }
         }
 
@@ -85,6 +140,9 @@ class AttendanceController extends Controller
             'todayAttendanceId',
             'todayAttendanceDistanceKm',
             'todayAttendanceDistanceOutKm',
+            'todayAttendanceExceptionTimeRange',
+            'todayAttendanceExceptionVariance',
+            'hasEarlyDepartureExceptionToday',
             'hasCheckedInToday',
             'hasCheckedOutToday',
         ));
@@ -95,7 +153,7 @@ class AttendanceController extends Controller
         $userId = Auth::id();
         $authenticatedUser = Auth::user();
         if ($authenticatedUser instanceof User) {
-            $authenticatedUser->loadMissing('employee.profile');
+            $authenticatedUser->loadMissing('employee.profile', 'employee.telegramUser');
         }
         $employeeId = $authenticatedUser?->employee?->id;
         if (! is_string($employeeId) || trim($employeeId) === '') {
@@ -182,7 +240,12 @@ class AttendanceController extends Controller
             'geocoded_at' => isset($locationMetadata['geocoded_at']) ? Carbon::parse($locationMetadata['geocoded_at']) : null,
         ]);
 
-        if ($authenticatedUser instanceof User && $this->isStaffUser($authenticatedUser)) {
+        if (
+            $authenticatedUser instanceof User
+            && $this->isStaffUser($authenticatedUser)
+            && $authenticatedUser->is_telegram_verified
+            && $authenticatedUser->employee?->telegramUser instanceof TelegramUser
+        ) {
             app(TelegramAttendanceNotifier::class)->notifyCheckIn($authenticatedUser, $attendance);
         }
 
@@ -298,10 +361,15 @@ class AttendanceController extends Controller
 
         $authenticatedUser = Auth::user();
         if ($authenticatedUser instanceof User) {
-            $authenticatedUser->loadMissing('employee.profile');
+            $authenticatedUser->loadMissing('employee.profile', 'employee.telegramUser');
         }
 
-        if ($authenticatedUser instanceof User && $this->isStaffUser($authenticatedUser)) {
+        if (
+            $authenticatedUser instanceof User
+            && $this->isStaffUser($authenticatedUser)
+            && $authenticatedUser->is_telegram_verified
+            && $authenticatedUser->employee?->telegramUser instanceof TelegramUser
+        ) {
             $absensi->refresh();
             app(TelegramAttendanceNotifier::class)->notifyCheckOut($authenticatedUser, $absensi);
         }
@@ -358,7 +426,29 @@ class AttendanceController extends Controller
             ], 422);
         }
 
+        if ($authenticatedUser->is_telegram_verified) {
+            if ($authenticatedUser->employee?->telegramUser instanceof TelegramUser) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Verifikasi Telegram berhasil.',
+                ]);
+            }
+
+            $authenticatedUser->forceFill([
+                'is_telegram_verified' => false,
+            ])->save();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Data Telegram user tidak ditemukan. Silakan verifikasi ulang.',
+            ], 422);
+        }
+
         if ($authenticatedUser->employee?->telegramUser instanceof TelegramUser) {
+            $authenticatedUser->forceFill([
+                'is_telegram_verified' => true,
+            ])->save();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Verifikasi Telegram berhasil.',
@@ -460,6 +550,10 @@ class AttendanceController extends Controller
                 ]
             );
 
+            $authenticatedUser->forceFill([
+                'is_telegram_verified' => true,
+            ])->save();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Verifikasi Telegram berhasil.',
@@ -475,6 +569,130 @@ class AttendanceController extends Controller
                 'message' => $errorMessage,
             ], 500);
         }
+    }
+
+    public function storeException(Request $request): JsonResponse
+    {
+        $authenticatedUser = Auth::user();
+        if ($authenticatedUser instanceof User) {
+            $authenticatedUser->loadMissing('employee');
+        }
+
+        $employeeId = $authenticatedUser?->employee?->id;
+        if (! is_string($employeeId) || trim($employeeId) === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data employee belum tersedia untuk user ini.',
+            ], 422);
+        }
+
+        $validatedData = $request->validate([
+            'type' => ['required', 'in:late_arrival,early_departure'],
+            'note' => ['nullable', 'string', 'max:1000'],
+            'from_time' => ['nullable', 'date_format:H:i'],
+            'to_time' => ['nullable', 'date_format:H:i'],
+            'exception_date' => ['nullable', 'date'],
+        ]);
+
+        $exceptionDate = isset($validatedData['exception_date']) && is_string($validatedData['exception_date']) && trim($validatedData['exception_date']) !== ''
+            ? Carbon::parse($validatedData['exception_date'], 'Asia/Jakarta')->toDateString()
+            : now('Asia/Jakarta')->toDateString();
+        $officeContext = $this->resolveOfficeContext(Auth::id());
+        $officeStartTime = is_array($officeContext) && isset($officeContext['office_start_time']) && is_string($officeContext['office_start_time'])
+            ? $officeContext['office_start_time']
+            : '08:00:00';
+        $currentJakartaTime = now('Asia/Jakarta')->format('H:i:s');
+        $fromTimeInput = isset($validatedData['from_time']) && is_string($validatedData['from_time']) ? trim($validatedData['from_time']) : '';
+        $toTimeInput = isset($validatedData['to_time']) && is_string($validatedData['to_time']) ? trim($validatedData['to_time']) : '';
+        $fromTime = $this->normalizeTimeToSeconds($fromTimeInput === '' ? $currentJakartaTime : $fromTimeInput);
+        $toTime = $this->normalizeTimeToSeconds($toTimeInput === '' ? $currentJakartaTime : $toTimeInput);
+
+        $todayAttendance = Attendance::query()
+            ->where('employee_id', $employeeId)
+            ->whereDate('date', $exceptionDate)
+            ->first();
+        if (! $todayAttendance instanceof Attendance) {
+            $todayAttendance = Attendance::create([
+                'employee_id' => $employeeId,
+                'date' => $exceptionDate,
+                'clock_in' => null,
+                'clock_out' => null,
+                'late_minutes' => 0,
+                'work_hours' => null,
+                'status' => 'Masuk',
+            ]);
+        }
+
+        $existingAttendanceException = AttendanceException::query()
+            ->where('attendance_id', $todayAttendance->id)
+            ->latest('created_at')
+            ->first(['id']);
+        if ($existingAttendanceException instanceof AttendanceException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Attendance exception untuk tanggal ini sudah pernah diajukan.',
+            ], 422);
+        }
+
+        $lateMinutes = 0;
+        $workHours = $todayAttendance->work_hours;
+        $attendanceStatus = $todayAttendance->status ?: 'Masuk';
+        if (($validatedData['type'] ?? null) === 'late_arrival') {
+            $todayAttendance->clock_in = $toTime;
+            $lateMinutes = $this->calculateMinutesBetweenTimes($exceptionDate, $officeStartTime, $toTime);
+            $attendanceStatus = $lateMinutes > 0 ? 'Terlambat' : 'Masuk';
+            if (! empty($todayAttendance->clock_out)) {
+                try {
+                    $clockInTime = Carbon::createFromFormat('Y-m-d H:i:s', $exceptionDate.' '.$toTime, 'Asia/Jakarta');
+                    $clockOutTime = Carbon::createFromFormat('Y-m-d H:i:s', $exceptionDate.' '.(string) $todayAttendance->clock_out, 'Asia/Jakarta');
+                    $workHours = $this->calculateWorkHours($clockInTime, $clockOutTime);
+                } catch (\Throwable) {
+                    $workHours = null;
+                }
+            } else {
+                $workHours = null;
+            }
+        }
+
+        if (($validatedData['type'] ?? null) === 'early_departure') {
+            if (empty($todayAttendance->clock_in)) {
+                $todayAttendance->clock_in = $officeStartTime;
+            }
+            $todayAttendance->clock_out = $fromTime;
+            $lateMinutes = $this->calculateMinutesBetweenTimes($exceptionDate, $officeStartTime, $toTime);
+            $workedMinutes = $this->calculateMinutesBetweenTimes($exceptionDate, $officeStartTime, $fromTime);
+            $workHours = round($workedMinutes / 60, 2);
+            $attendanceStatus = 'Masuk';
+        }
+
+        $todayAttendance->late_minutes = $lateMinutes;
+        $todayAttendance->work_hours = $workHours;
+        $todayAttendance->status = $attendanceStatus;
+        $todayAttendance->save();
+
+        $attendanceException = AttendanceException::create([
+            'attendance_id' => $todayAttendance->id,
+            'employee_id' => $employeeId,
+            'exception_date' => $exceptionDate,
+            'type' => $validatedData['type'],
+            'note' => $validatedData['note'] ?? null,
+            'from_time' => $fromTime,
+            'to_time' => $toTime,
+            'status' => 'approved',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Attendance exception berhasil disimpan.',
+            'data' => $attendanceException,
+            'attendance_id' => $todayAttendance->id,
+            'exception_type' => $validatedData['type'],
+            'has_early_departure_exception' => $validatedData['type'] === 'early_departure',
+            'has_checked_in_today' => ! empty($todayAttendance->clock_in),
+            'has_checked_out_today' => ! empty($todayAttendance->clock_out),
+            'summary_time_range' => substr($fromTime, 0, 5).' - '.substr($toTime, 0, 5),
+            'summary_variance' => number_format(abs($this->calculateMinutesBetweenTimes($exceptionDate, $fromTime, $toTime)) / 60, 2, '.', ''),
+        ]);
     }
 
     /**
@@ -770,6 +988,42 @@ class AttendanceController extends Controller
         }
 
         return round($workedMinutes / 60, 2);
+    }
+
+    private function normalizeTimeToSeconds(string $timeValue): string
+    {
+        $normalizedTime = trim($timeValue);
+        if ($normalizedTime === '') {
+            return '00:00:00';
+        }
+
+        try {
+            if (preg_match('/^\d{2}:\d{2}$/', $normalizedTime) === 1) {
+                return Carbon::createFromFormat('H:i', $normalizedTime, 'Asia/Jakarta')->format('H:i:s');
+            }
+
+            if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $normalizedTime) === 1) {
+                return Carbon::createFromFormat('H:i:s', $normalizedTime, 'Asia/Jakarta')->format('H:i:s');
+            }
+        } catch (\Throwable) {
+            return '00:00:00';
+        }
+
+        return '00:00:00';
+    }
+
+    private function calculateMinutesBetweenTimes(string $dateValue, string $startTimeValue, string $endTimeValue): int
+    {
+        try {
+            $startTime = Carbon::createFromFormat('Y-m-d H:i:s', $dateValue.' '.$this->normalizeTimeToSeconds($startTimeValue), 'Asia/Jakarta');
+            $endTime = Carbon::createFromFormat('Y-m-d H:i:s', $dateValue.' '.$this->normalizeTimeToSeconds($endTimeValue), 'Asia/Jakarta');
+        } catch (\Throwable) {
+            return 0;
+        }
+
+        $minutes = (int) $startTime->diffInMinutes($endTime, false);
+
+        return max(0, $minutes);
     }
 
     private function extractIpTwoOctets(?string $ipValue): ?string

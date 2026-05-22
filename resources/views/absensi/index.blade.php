@@ -208,12 +208,12 @@
             </div>
             <a
                 id="clockOutCardButton"
-                class="btn light btn-danger m-3 mb-2 btn-lg {{ ($hasCheckedOutToday ?? false) ? 'disabled' : '' }}"
-                @if (!($hasCheckedOutToday ?? false))
+                class="btn light btn-danger m-3 mb-2 btn-lg {{ (($hasCheckedOutToday ?? false) || ($hasEarlyDepartureExceptionToday ?? false)) ? 'disabled' : '' }}"
+                @if (!(($hasCheckedOutToday ?? false) || ($hasEarlyDepartureExceptionToday ?? false)))
                     data-bs-toggle="modal"
                     data-bs-target="#clockOut"
                 @endif
-                @if (($hasCheckedOutToday ?? false))
+                @if ((($hasCheckedOutToday ?? false) || ($hasEarlyDepartureExceptionToday ?? false)))
                     aria-disabled="true"
                     tabindex="-1"
                 @endif
@@ -250,11 +250,11 @@
                 <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
                     <div class="text-center">
                         <p class="fs-14 mb-2">Time</p>
-                        <span class="fs-20 text-black">13:00 - 17:00</span>
+                        <span class="fs-20 text-black" id="attendanceExceptionSummaryTimeValue">{{ $todayAttendanceExceptionTimeRange ?? '--:-- - --:--' }}</span>
                     </div>
                     <div class="text-center">
                         <p class="fs-14 mb-2">Variance</p>
-                        <span class="fs-20 text-black">04.00</span>
+                        <span class="fs-20 text-black" id="attendanceExceptionSummaryVarianceValue">{{ $todayAttendanceExceptionVariance ?? '--.--' }}</span>
                     </div>
                 </div>
             </div>
@@ -376,14 +376,16 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form>
+                <form id="attendanceExceptionForm">
                     <div class="row">
                         <div class="col-xl-12">
                             <p class="form-label mb-3 text-center">
-                                Jumat, 22 Mei 2026 - <span class="fw-semibold">17:00:10</span>
+                                <span id="exceptionCurrentDate">--</span> -
+                                <span id="exceptionRunningTime" class="fw-semibold">--:--:--</span>
                             </p>
                             <p class="form-label text-muted mb-3">
-                                Clocking in late or heading out early? Leave a quick note for your records.
+                                Clocking in late or heading out early? Just make sure your <span class="fw-bold">supervisor</span> is in the loop
+                                and there are <span class="fw-bold">no urgent tasks</span> left behind. <br> Oh, and don't forget to leave a quick note!
                             </p>
                             <div class="mb-3">
                                 <label for="exceptionNoteInput" class="form-label text-secondary">Quick Note</label>
@@ -391,12 +393,12 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label text-secondary">Request Type</label>
-                                <div class="d-flex gap-3">
-                                    <div class="form-check">
+                                <div class="form-group mb-0">
+                                    <div class="form-check d-inline-block">
                                         <input class="form-check-input" type="radio" name="type" id="exceptionTypeLateArrival" value="late_arrival" checked>
                                         <label class="form-check-label" for="exceptionTypeLateArrival">Late Arrival</label>
                                     </div>
-                                    <div class="form-check">
+                                    <div class="form-check d-inline-block mx-2">
                                         <input class="form-check-input" type="radio" name="type" id="exceptionTypeEarlyDeparture" value="early_departure">
                                         <label class="form-check-label" for="exceptionTypeEarlyDeparture">Early Departure</label>
                                     </div>
@@ -404,18 +406,23 @@
                             </div>
                             <div class="row">
                                 <div class="col-6">
+                                    <div class="mb-3">
                                     <label for="exceptionFromTimeInput" class="form-label text-secondary">From</label>
-                                    <input type="time" class="form-control" value="13:00">
+                                    <input type="time" class="form-control" id="exceptionFromTimeInput" name="from_time">
+                                    </div>
                                 </div>
                                 <div class="col-6">
+                                    <div class="mb-3">
                                     <label for="exceptionToTimeInput" class="form-label text-secondary">To</label>
-                                    <input type="time" class="form-control" value="17:00">
+                                    <input type="time" class="form-control" id="exceptionToTimeInput" name="to_time">
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </form>
-                <button type="button" class="btn light btn-secondary mt-2 mb-2 btn-lg w-100" data-bs-dismiss="modal">Got it!</button>
+                <button type="button" class="btn light btn-secondary mt-2 mb-2 btn-lg w-100" id="exceptionSubmitButton">Got it!</button>
+                <p class="small mt-2 mb-0 d-none" id="attendanceExceptionFeedback"></p>
             </div>
         </div>
     </div>
@@ -480,6 +487,7 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         (function () {
@@ -712,12 +720,23 @@
             var attendanceDateElement = document.getElementById('attendanceDateTime');
             var attendanceSummaryTimeElement = document.getElementById('attendanceSummaryTimeValue');
             var attendanceClockOutSummaryTimeElement = document.getElementById('attendanceClockOutSummaryTimeValue');
+            var attendanceExceptionSummaryTimeElement = document.getElementById('attendanceExceptionSummaryTimeValue');
+            var attendanceExceptionSummaryVarianceElement = document.getElementById('attendanceExceptionSummaryVarianceValue');
             var clockInCardButtonElement = document.getElementById('clockInCardButton');
             var clockOutCardButtonElement = document.getElementById('clockOutCardButton');
             var googleMapsApiKey = @json(config('services.google_maps.api_key'));
             var officeLocation = @json($officeLocation);
             var clockInModalElement = document.getElementById('clockIn');
             var clockOutModalElement = document.getElementById('clockOut');
+            var attendanceExceptionModalElement = document.getElementById('exception');
+            var attendanceExceptionFormElement = document.getElementById('attendanceExceptionForm');
+            var attendanceExceptionSubmitButtonElement = document.getElementById('exceptionSubmitButton');
+            var attendanceExceptionFeedbackElement = document.getElementById('attendanceExceptionFeedback');
+            var exceptionCurrentDateElement = document.getElementById('exceptionCurrentDate');
+            var exceptionRunningTimeElement = document.getElementById('exceptionRunningTime');
+            var exceptionFromTimeInputElement = document.getElementById('exceptionFromTimeInput');
+            var exceptionToTimeInputElement = document.getElementById('exceptionToTimeInput');
+            var exceptionTypeLateArrivalElement = document.getElementById('exceptionTypeLateArrival');
             var clockInCurrentDateElement = document.getElementById('clockInCurrentDate');
             var clockOutCurrentDateElement = document.getElementById('clockOutCurrentDate');
             var clockInRunningTimeElement = document.getElementById('clockInRunningTime');
@@ -741,12 +760,14 @@
             var projectManagementIndexUrl = @json(route('project_management'));
             var currentIpUrl = @json(route('absensi.current-ip'));
             var verifyTelegramUsernameUrl = @json(route('absensi.verify-telegram-username'));
+            var storeAttendanceExceptionUrl = @json(route('absensi.exceptions.store'));
             var csrfToken = @json(csrf_token());
             var browserPublicIp = null;
             var attendanceState = {
                 todayAttendanceId: @json($todayAttendanceId ?? null),
                 hasCheckedInToday: @json($hasCheckedInToday ?? false),
-                hasCheckedOutToday: @json($hasCheckedOutToday ?? false)
+                hasCheckedOutToday: @json($hasCheckedOutToday ?? false),
+                hasEarlyDepartureExceptionToday: @json($hasEarlyDepartureExceptionToday ?? false)
             };
             var modalContext = {
                 clockIn: {
@@ -821,6 +842,42 @@
             function eachModalContext(callback) {
                 callback(modalContext.clockIn);
                 callback(modalContext.clockOut);
+            }
+
+            function setAttendanceExceptionFeedback(message, type) {
+                if (!attendanceExceptionFeedbackElement) {
+                    return;
+                }
+
+                attendanceExceptionFeedbackElement.classList.remove('d-none', 'text-success', 'text-danger', 'text-muted');
+                attendanceExceptionFeedbackElement.textContent = message;
+
+                if (type === 'success') {
+                    attendanceExceptionFeedbackElement.classList.add('text-success');
+                    return;
+                }
+
+                if (type === 'error') {
+                    attendanceExceptionFeedbackElement.classList.add('text-danger');
+                    return;
+                }
+
+                attendanceExceptionFeedbackElement.classList.add('text-muted');
+            }
+
+            function showSwalAlert(iconType, titleText, messageText) {
+                if (typeof Swal !== 'undefined' && Swal && typeof Swal.fire === 'function') {
+                    Swal.fire({
+                        icon: iconType,
+                        title: titleText,
+                        text: messageText
+                    });
+                    return;
+                }
+
+                if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                    window.alert(titleText + ': ' + messageText);
+                }
             }
 
             function setOnsiteStatus(context, text) {
@@ -961,7 +1018,8 @@
                     clockOutSubmitButton.disabled = !modalContext.clockOut.hasVerifiedOnsite
                         || !modalContext.clockOut.hasVerifiedTelegram
                         || !attendanceState.hasCheckedInToday
-                        || attendanceState.hasCheckedOutToday;
+                        || attendanceState.hasCheckedOutToday
+                        || attendanceState.hasEarlyDepartureExceptionToday;
                 }
 
                 if (clockInCardButtonElement) {
@@ -980,8 +1038,9 @@
                 }
 
                 if (clockOutCardButtonElement) {
-                    clockOutCardButtonElement.classList.toggle('disabled', attendanceState.hasCheckedOutToday);
-                    if (attendanceState.hasCheckedOutToday) {
+                    var isClockOutDisabled = attendanceState.hasCheckedOutToday || attendanceState.hasEarlyDepartureExceptionToday;
+                    clockOutCardButtonElement.classList.toggle('disabled', isClockOutDisabled);
+                    if (isClockOutDisabled) {
                         clockOutCardButtonElement.removeAttribute('data-bs-toggle');
                         clockOutCardButtonElement.removeAttribute('data-bs-target');
                         clockOutCardButtonElement.setAttribute('aria-disabled', 'true');
@@ -1326,6 +1385,11 @@
                     return;
                 }
 
+                if (actionType === 'clock_out' && attendanceState.hasEarlyDepartureExceptionToday) {
+                    setOnsiteStatus(context, 'Clock out dinonaktifkan karena exception Early Departure sudah diajukan');
+                    return;
+                }
+
                 if (!(context.hasVerifiedOnsite && context.hasVerifiedTelegram)) {
                     setOnsiteStatus(context, 'Harap verifikasi terlebih dahulu sebelum absen');
                     renderSubmitButtons();
@@ -1432,6 +1496,9 @@
                 if (clockOutCurrentDateElement) {
                     clockOutCurrentDateElement.textContent = modalDate;
                 }
+                if (exceptionCurrentDateElement) {
+                    exceptionCurrentDateElement.textContent = modalDate;
+                }
             }
 
             function renderOnsiteRunningTime() {
@@ -1498,6 +1565,10 @@
                         runningTimeElement.classList.add('text-danger');
                     }
                 });
+
+                if (exceptionRunningTimeElement) {
+                    exceptionRunningTimeElement.textContent = formattedTime;
+                }
 
             }
 
@@ -1568,6 +1639,116 @@
             if (clockOutSubmitButton) {
                 clockOutSubmitButton.addEventListener('click', function () {
                     submitOnsiteAttendance('clock_out', modalContext.clockOut);
+                });
+            }
+
+            if (attendanceExceptionModalElement) {
+                attendanceExceptionModalElement.addEventListener('shown.bs.modal', function () {
+                    if (attendanceExceptionFormElement) {
+                        attendanceExceptionFormElement.reset();
+                    }
+
+                    if (exceptionTypeLateArrivalElement) {
+                        exceptionTypeLateArrivalElement.checked = true;
+                    }
+
+                    var currentJakartaTimeParts = new Intl.DateTimeFormat('id-ID', {
+                        timeZone: 'Asia/Jakarta',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hourCycle: 'h23'
+                    }).formatToParts(new Date());
+                    var currentJakartaTimeMap = {};
+                    currentJakartaTimeParts.forEach(function (part) {
+                        currentJakartaTimeMap[part.type] = part.value;
+                    });
+
+                    var currentJakartaTimeHHmm = currentJakartaTimeMap.hour + ':' + currentJakartaTimeMap.minute;
+                    if (exceptionFromTimeInputElement) {
+                        exceptionFromTimeInputElement.value = currentJakartaTimeHHmm;
+                    }
+                    if (exceptionToTimeInputElement) {
+                        exceptionToTimeInputElement.value = currentJakartaTimeHHmm;
+                    }
+
+                    if (attendanceExceptionFeedbackElement) {
+                        attendanceExceptionFeedbackElement.classList.add('d-none');
+                        attendanceExceptionFeedbackElement.textContent = '';
+                    }
+                });
+            }
+
+            if (attendanceExceptionSubmitButtonElement) {
+                attendanceExceptionSubmitButtonElement.addEventListener('click', function () {
+                    if (!attendanceExceptionFormElement) {
+                        return;
+                    }
+
+                    var selectedTypeElement = attendanceExceptionFormElement.querySelector('input[name="type"]:checked');
+                    var payload = {
+                        type: selectedTypeElement ? selectedTypeElement.value : '',
+                        note: (attendanceExceptionFormElement.querySelector('input[name="note"]') || {}).value || '',
+                        from_time: (attendanceExceptionFormElement.querySelector('input[name="from_time"]') || {}).value || '',
+                        to_time: (attendanceExceptionFormElement.querySelector('input[name="to_time"]') || {}).value || ''
+                    };
+
+                    if (!payload.type) {
+                        setAttendanceExceptionFeedback('Pilih Request Type terlebih dahulu.', 'error');
+                        showSwalAlert('warning', 'Perhatian', 'Pilih Request Type terlebih dahulu.');
+                        return;
+                    }
+
+                    attendanceExceptionSubmitButtonElement.disabled = true;
+                    setAttendanceExceptionFeedback('Memproses exception...', 'muted');
+
+                    $.ajax({
+                        url: storeAttendanceExceptionUrl,
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken
+                        },
+                        data: payload
+                    }).done(function (response) {
+                        var successMessage = response && response.message ? response.message : 'Attendance exception berhasil disimpan.';
+                        setAttendanceExceptionFeedback(successMessage, 'success');
+
+                        if (attendanceExceptionSummaryTimeElement && response && response.summary_time_range) {
+                            attendanceExceptionSummaryTimeElement.textContent = response.summary_time_range;
+                        }
+
+                        if (attendanceExceptionSummaryVarianceElement && response && response.summary_variance) {
+                            attendanceExceptionSummaryVarianceElement.textContent = response.summary_variance;
+                        }
+
+                        if (response && response.attendance_id) {
+                            attendanceState.todayAttendanceId = response.attendance_id;
+                        }
+                        if (response && typeof response.has_checked_in_today !== 'undefined') {
+                            attendanceState.hasCheckedInToday = !!response.has_checked_in_today;
+                        }
+                        if (response && typeof response.has_checked_out_today !== 'undefined') {
+                            attendanceState.hasCheckedOutToday = !!response.has_checked_out_today;
+                        }
+                        if (response && typeof response.has_early_departure_exception !== 'undefined') {
+                            attendanceState.hasEarlyDepartureExceptionToday = !!response.has_early_departure_exception;
+                        }
+                        renderSubmitButtons();
+
+                        showSwalAlert('success', 'Berhasil', successMessage);
+
+                        if (attendanceExceptionModalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                            bootstrap.Modal.getOrCreateInstance(attendanceExceptionModalElement).hide();
+                        }
+                    }).fail(function (xhr) {
+                        var errorMessage = 'Gagal menyimpan attendance exception.';
+                        if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        setAttendanceExceptionFeedback(errorMessage, 'error');
+                        showSwalAlert('error', 'Gagal', errorMessage);
+                    }).always(function () {
+                        attendanceExceptionSubmitButtonElement.disabled = false;
+                    });
                 });
             }
 

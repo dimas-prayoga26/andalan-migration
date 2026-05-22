@@ -28,6 +28,13 @@ class User extends Authenticatable
 
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return [
+            'is_telegram_verified' => 'boolean',
+        ];
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $user): void {

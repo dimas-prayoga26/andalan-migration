@@ -58,6 +58,48 @@
             background: #F94687;
         }
 
+        .attendance-mobile-slider {
+            overflow: visible;
+        }
+
+        .attendance-mobile-slide {
+            min-width: 0;
+        }
+
+        @media (max-width: 767.98px) {
+            .attendance-mobile-slider {
+                display: flex;
+                flex-wrap: nowrap;
+                gap: 0;
+                overflow-x: auto;
+                overflow-y: hidden;
+                scroll-snap-type: x mandatory;
+                -webkit-overflow-scrolling: touch;
+                margin-right: 0;
+                margin-left: 0;
+                padding: 0 0 0.25rem;
+            }
+
+            .attendance-mobile-slider::-webkit-scrollbar {
+                height: 6px;
+            }
+
+            .attendance-mobile-slider::-webkit-scrollbar-thumb {
+                background: #d7deef;
+                border-radius: 999px;
+            }
+
+            .attendance-mobile-slide {
+                flex: 0 0 100%;
+                max-width: 100%;
+                scroll-snap-align: start;
+            }
+
+            .attendance-mobile-slide .card {
+                margin-bottom: 0;
+            }
+        }
+
         .attendance-datetime {
             font-size: 1rem;
             font-weight: 600;
@@ -121,9 +163,9 @@
 
 @include('absensi.layouts_absensi.profileIndex')
 
-<div class="row">
+<div class="row attendance-mobile-slider">
     <!-- Start - Workout Details -->
-    <div class="col-md-4">
+    <div class="col-md-4 attendance-mobile-slide" id="attendanceConfirmationCardSlide">
         <div class="card">
             <div class="card-header border-0 pb-3">
                 <div>
@@ -173,7 +215,7 @@
     </div>
     <!-- End - Maps Route -->
     <!-- Start - Workout Details -->
-    <div class="col-md-4">
+    <div class="col-md-4 attendance-mobile-slide" id="endOfShiftCardSlide">
         <div class="card">
             <div class="card-header border-0 pb-3">
                 <div>
@@ -223,7 +265,7 @@
     </div>
     <!-- End - Maps Route -->
     <!-- Start - Workout Details -->
-    <div class="col-md-4">
+    <div class="col-md-4 attendance-mobile-slide">
         <div class="card">
             <div class="card-header border-0 pb-3">
                 <div>
@@ -724,6 +766,8 @@
             var attendanceExceptionSummaryVarianceElement = document.getElementById('attendanceExceptionSummaryVarianceValue');
             var clockInCardButtonElement = document.getElementById('clockInCardButton');
             var clockOutCardButtonElement = document.getElementById('clockOutCardButton');
+            var attendanceConfirmationCardSlideElement = document.getElementById('attendanceConfirmationCardSlide');
+            var endOfShiftCardSlideElement = document.getElementById('endOfShiftCardSlide');
             var googleMapsApiKey = @json(config('services.google_maps.api_key'));
             var officeLocation = @json($officeLocation);
             var clockInModalElement = document.getElementById('clockIn');
@@ -818,6 +862,7 @@
             var lateGraceMinutes = Number(officeLocation && officeLocation.late_grace_minutes);
             lateGraceMinutes = Number.isNaN(lateGraceMinutes) ? 0 : Math.max(lateGraceMinutes, 0);
             var lateThresholdTotalMinutes = officeStartTotalMinutes + lateGraceMinutes;
+            var mobileAttendanceMediaQuery = window.matchMedia('(max-width: 767.98px)');
 
             function parseTimeStringToMinutes(timeString, fallbackMinutes) {
                 if (typeof timeString !== 'string' || timeString.trim() === '') {
@@ -1052,6 +1097,29 @@
                         clockOutCardButtonElement.removeAttribute('tabindex');
                     }
                 }
+
+                renderMobileAttendanceCards();
+            }
+
+            function renderMobileAttendanceCards() {
+                if (!attendanceConfirmationCardSlideElement || !endOfShiftCardSlideElement) {
+                    return;
+                }
+
+                if (!mobileAttendanceMediaQuery.matches) {
+                    attendanceConfirmationCardSlideElement.classList.remove('d-none');
+                    endOfShiftCardSlideElement.classList.remove('d-none');
+                    return;
+                }
+
+                if (attendanceState.hasCheckedInToday) {
+                    attendanceConfirmationCardSlideElement.classList.add('d-none');
+                    endOfShiftCardSlideElement.classList.remove('d-none');
+                    return;
+                }
+
+                attendanceConfirmationCardSlideElement.classList.remove('d-none');
+                endOfShiftCardSlideElement.classList.add('d-none');
             }
 
             function toRadians(value) {
@@ -1577,6 +1645,12 @@
             renderOnsiteRunningTime();
             setInterval(renderOnsiteRunningTime, 1000);
             renderSubmitButtons();
+
+            if (typeof mobileAttendanceMediaQuery.addEventListener === 'function') {
+                mobileAttendanceMediaQuery.addEventListener('change', renderMobileAttendanceCards);
+            } else if (typeof mobileAttendanceMediaQuery.addListener === 'function') {
+                mobileAttendanceMediaQuery.addListener(renderMobileAttendanceCards);
+            }
 
             $('.absensi-tab-btn').on('click', function (event) {
                 event.preventDefault();

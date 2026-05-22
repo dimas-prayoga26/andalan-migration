@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Support\TelegramAttendanceNotifier;
 use App\Models\Attendance;
 use App\Models\AttendanceLog;
-use App\Models\EmployeeProfile;
 use App\Models\TelegramUser;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -25,69 +24,7 @@ class AttendanceController extends Controller
         }
         $userId = Auth::id();
         $employeeId = $authenticatedUser?->employee?->id;
-        $isSuperUser = $this->isSuperUser($authenticatedUser);
-        $isStaffUser = $this->isStaffUser($authenticatedUser);
-        $nowJakarta = now('Asia/Jakarta');
         $publicIp = '-';
-        $attendance = collect();
-        if (is_string($employeeId) && trim($employeeId) !== '') {
-            $attendance = Attendance::query()
-                ->where('employee_id', $employeeId)
-                ->get();
-        }
-        $showCompanyFilter = $isSuperUser;
-        $showStaffPeriodFilter = $isStaffUser;
-        $companies = collect();
-        $staffMonthOptions = collect(range(1, 12));
-        $staffYearOptions = collect();
-        $defaultStaffMonth = (int) $request->integer('month', (int) $nowJakarta->month);
-        $defaultStaffYear = (int) $request->integer('year', (int) $nowJakarta->year);
-
-        if ($defaultStaffMonth < 1 || $defaultStaffMonth > 12) {
-            $defaultStaffMonth = (int) $nowJakarta->month;
-        }
-
-        if ($defaultStaffYear < 2000 || $defaultStaffYear > 2100) {
-            $defaultStaffYear = (int) $nowJakarta->year;
-        }
-
-        if ($isStaffUser) {
-            $staffYearOptions = Attendance::query()
-                ->where('employee_id', $employeeId)
-                ->selectRaw('DISTINCT YEAR(`date`) as year_value')
-                ->orderByDesc('year_value')
-                ->pluck('year_value')
-                ->filter(static fn (mixed $yearValue): bool => is_numeric($yearValue))
-                ->map(static fn (mixed $yearValue): int => (int) $yearValue)
-                ->values();
-
-            if ($staffYearOptions->isEmpty()) {
-                $staffYearOptions = collect([(int) $nowJakarta->year]);
-            }
-
-            if (! $staffYearOptions->contains($defaultStaffYear)) {
-                $staffYearOptions = $staffYearOptions
-                    ->push($defaultStaffYear)
-                    ->unique()
-                    ->sortDesc()
-                    ->values();
-            }
-        }
-
-        if ($showCompanyFilter) {
-            $companies = User::query()
-                ->with([
-                    'employee.deployment.company:id,name',
-                ])
-                ->get()
-                ->pluck('employee.deployment.company')
-                ->filter()
-                ->unique('id')
-                ->sortBy('name')
-                ->values();
-        }
-        $izin = collect();
-        $lembur = collect();
         $absensiHariIni = null;
         if (is_string($employeeId) && trim($employeeId) !== '') {
             $absensiHariIni = Attendance::query()
@@ -97,31 +34,32 @@ class AttendanceController extends Controller
         }
         $todayAttendanceId = $absensiHariIni?->id;
         $todayAttendanceDistanceKm = null;
+        $todayAttendanceDistanceOutKm = null;
         if (is_string($todayAttendanceId) && trim($todayAttendanceId) !== '') {
-            $todayAttendanceDistanceMeters = AttendanceLog::query()
+            $latestDistanceIn = AttendanceLog::query()
                 ->where('attendance_id', $todayAttendanceId)
-                ->value('distance_in');
+                ->where('type', true)
+                ->whereNotNull('distance')
+                ->orderByDesc('created_at')
+                ->value('distance');
+            $latestDistanceOut = AttendanceLog::query()
+                ->where('attendance_id', $todayAttendanceId)
+                ->where('type', false)
+                ->whereNotNull('distance')
+                ->orderByDesc('created_at')
+                ->value('distance');
 
-            if (is_numeric($todayAttendanceDistanceMeters)) {
-                $todayAttendanceDistanceKm = round(((float) $todayAttendanceDistanceMeters) / 1000, 2);
+            if (is_numeric($latestDistanceIn)) {
+                $todayAttendanceDistanceKm = round(((float) $latestDistanceIn) / 1000, 2);
+            }
+
+            if (is_numeric($latestDistanceOut)) {
+                $todayAttendanceDistanceOutKm = round(((float) $latestDistanceOut) / 1000, 2);
             }
         }
+
         $hasCheckedInToday = ! empty($absensiHariIni?->clock_in);
         $hasCheckedOutToday = ! empty($absensiHariIni?->clock_out);
-        $totalLemburJam = 0;
-
-        $agEvent = $attendance->groupBy(function ($data) {
-            return Carbon::parse($data->date)->format('Y-m-d');
-        })->map(function ($items) {
-            return $items->map(function ($data) {
-                return [
-                    'check_in' => $data->clock_in?->format('H:i'),
-                    'check_out' => $data->clock_out?->format('H:i'),
-                    'status' => $data->status,
-                ];
-            })->values();
-        });
-
         $officeLocation = $this->resolveOfficeContext($userId);
 
         $clientIpAddress = $this->resolveClientIpAddress($request);
@@ -138,26 +76,15 @@ class AttendanceController extends Controller
             && $publicIpPrefix === $allowedIpPrefix;
 
         return view('absensi.index', compact(
-            'attendance',
-            'izin',
-            'lembur',
-            'agEvent',
-            'totalLemburJam',
             'absensiHariIni',
             'officeLocation',
             'publicIp',
             'publicIpPrefix',
             'allowedIpPrefix',
             'isIpPrefixMatch',
-            'companies',
-            'showCompanyFilter',
-            'showStaffPeriodFilter',
-            'staffMonthOptions',
-            'staffYearOptions',
-            'defaultStaffMonth',
-            'defaultStaffYear',
             'todayAttendanceId',
             'todayAttendanceDistanceKm',
+            'todayAttendanceDistanceOutKm',
             'hasCheckedInToday',
             'hasCheckedOutToday',
         ));
@@ -237,13 +164,12 @@ class AttendanceController extends Controller
 
         AttendanceLog::create([
             'attendance_id' => $attendance->id,
-            'location_in' => $locationMetadata['formatted_address'] ?? null,
-            'location_out' => null,
+            'type' => true,
+            'location' => $locationMetadata['formatted_address'] ?? null,
             'latitude' => $latitude,
             'longitude' => $longitude,
             'radius_result' => $radiusResult,
-            'distance_in' => round($distance, 2),
-            'distance_out' => null,
+            'distance' => round($distance, 2),
             'ip_address' => $ipAddress,
             'user_agent' => $request->userAgent(),
             'device_hash' => hash('sha256', ($request->userAgent() ?? 'unknown').'|'.$ipAddress),
@@ -336,6 +262,7 @@ class AttendanceController extends Controller
         $hasCoordinates = $hasRequestCoordinates || $hasIpCoordinates;
 
         $distanceOut = 0.0;
+        $radiusResult = 'outside';
         if ($officeContext !== null && $hasCoordinates) {
             $distanceOut = $this->calculateDistanceInMeters(
                 $latitude,
@@ -343,16 +270,31 @@ class AttendanceController extends Controller
                 $officeContext['latitude'],
                 $officeContext['longitude']
             );
+            $radiusResult = $distanceOut <= $officeContext['radius_meters'] ? 'inside' : 'outside';
         }
 
         $locationMetadata = $hasCoordinates ? $this->reverseGeocodeCoordinates($latitude, $longitude) : [];
+        $ipAddress = $ipdataData['ip'] ?? $clientIpAddress ?? $request->ip();
 
-        AttendanceLog::query()
-            ->where('attendance_id', $absensi->id)
-            ->update([
-                'location_out' => $locationMetadata['formatted_address'] ?? null,
-                'distance_out' => round($distanceOut, 2),
-            ]);
+        AttendanceLog::create([
+            'attendance_id' => $absensi->id,
+            'type' => false,
+            'location' => $locationMetadata['formatted_address'] ?? null,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'radius_result' => $radiusResult,
+            'distance' => round($distanceOut, 2),
+            'ip_address' => $ipAddress,
+            'user_agent' => $request->userAgent(),
+            'device_hash' => hash('sha256', ($request->userAgent() ?? 'unknown').'|'.$ipAddress),
+            'address_village' => $locationMetadata['address_village'] ?? null,
+            'address_district' => $locationMetadata['address_district'] ?? null,
+            'address_regency' => $locationMetadata['address_regency'] ?? null,
+            'address_city' => $locationMetadata['address_city'] ?? null,
+            'address_province' => $locationMetadata['address_province'] ?? null,
+            'address_postal_code' => $locationMetadata['address_postal_code'] ?? null,
+            'geocoded_at' => isset($locationMetadata['geocoded_at']) ? Carbon::parse($locationMetadata['geocoded_at']) : null,
+        ]);
 
         $authenticatedUser = Auth::user();
         if ($authenticatedUser instanceof User) {
@@ -367,218 +309,6 @@ class AttendanceController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Absen pulang berhasil disimpan',
-        ]);
-    }
-
-    public function datatable(Request $request): JsonResponse
-    {
-        $authenticatedUser = Auth::user();
-        if ($authenticatedUser instanceof User) {
-            $authenticatedUser->loadMissing('employee.deployment');
-        }
-
-        $isSuperUser = $this->isSuperUser($authenticatedUser);
-        $isBoardOfDirectur = $this->isBoardOfDirectur($authenticatedUser);
-        $isStaffUser = $this->isStaffUser($authenticatedUser);
-        $userCompanyId = $authenticatedUser?->employee?->deployment?->current_company_id;
-        $nowJakarta = now('Asia/Jakarta');
-        $todayDate = $nowJakarta->toDateString();
-        $selectedMonth = (int) $request->integer('month', (int) $nowJakarta->month);
-        $selectedYear = (int) $request->integer('year', (int) $nowJakarta->year);
-        $selectedCompanyId = trim((string) $request->input('company_id', ''));
-
-        if ($selectedMonth < 1 || $selectedMonth > 12) {
-            $selectedMonth = (int) $nowJakarta->month;
-        }
-
-        if ($selectedYear < 2000 || $selectedYear > 2100) {
-            $selectedYear = (int) $nowJakarta->year;
-        }
-
-        if ($isStaffUser) {
-            $staffUser = User::query()
-                ->with(['employee.deployment.company:id,name'])
-                ->find(Auth::id());
-
-            if (! $staffUser) {
-                return response()->json(['data' => []]);
-            }
-            $staffEmployeeId = $staffUser->employee?->id;
-            if (! is_string($staffEmployeeId) || trim($staffEmployeeId) === '') {
-                return response()->json(['data' => []]);
-            }
-
-            $staffAttendances = Attendance::query()
-                ->where('employee_id', $staffEmployeeId)
-                ->whereMonth('date', $selectedMonth)
-                ->whereYear('date', $selectedYear)
-                ->orderByDesc('date')
-                ->orderByDesc('created_at')
-                ->get(['id', 'date', 'status', 'clock_in', 'clock_out', 'created_at']);
-            $staffProfileName = EmployeeProfile::query()
-                ->where('employee_id', $staffEmployeeId)
-                ->value('name');
-            $staffDisplayName = is_string($staffProfileName) && trim($staffProfileName) !== ''
-                ? trim($staffProfileName)
-                : ((is_string($staffUser->username) && trim($staffUser->username) !== '')
-                    ? trim($staffUser->username)
-                    : ((is_string($staffUser->email) && trim($staffUser->email) !== '') ? trim($staffUser->email) : '-'));
-
-            $attendanceLogsByAttendanceId = AttendanceLog::query()
-                ->whereIn('attendance_id', $staffAttendances->pluck('id'))
-                ->orderByDesc('created_at')
-                ->get([
-                    'attendance_id',
-                    'location_in',
-                    'location_out',
-                    'latitude',
-                    'longitude',
-                    'distance_in',
-                    'distance_out',
-                    'radius_result',
-                    'address_village',
-                    'address_district',
-                    'address_regency',
-                    'address_city',
-                    'address_province',
-                    'address_postal_code',
-                ])
-                ->groupBy('attendance_id')
-                ->map(fn ($attendanceLogs) => $attendanceLogs->first());
-            $tableRows = $staffAttendances->map(function (Attendance $attendanceItem) use ($attendanceLogsByAttendanceId, $staffDisplayName, $staffUser): array {
-                $attendanceLog = $attendanceLogsByAttendanceId->get($attendanceItem->id);
-
-                return [
-                    'attendance_id' => $attendanceItem->id,
-                    'attendance_date' => $attendanceItem->date?->format('Y-m-d'),
-                    'attendance_created_at' => $attendanceItem->created_at?->format('Y-m-d'),
-                    'staff_name' => $staffDisplayName,
-                    'company_name' => $staffUser->employee?->deployment?->company?->name,
-                    'check_in' => $attendanceItem->clock_in?->format('H:i'),
-                    'check_out' => $attendanceItem->clock_out?->format('H:i'),
-                    'status' => $attendanceItem->status,
-                    'check_in_latitude' => isset($attendanceLog?->latitude) ? (float) $attendanceLog->latitude : null,
-                    'check_in_longitude' => isset($attendanceLog?->longitude) ? (float) $attendanceLog->longitude : null,
-                    'distance_meters' => isset($attendanceLog?->distance_in) ? (float) $attendanceLog->distance_in : null,
-                    'distance_out_meters' => isset($attendanceLog?->distance_out) ? (float) $attendanceLog->distance_out : null,
-                    'radius_result' => isset($attendanceLog?->radius_result) ? (string) $attendanceLog->radius_result : null,
-                    'location_in' => isset($attendanceLog?->location_in) ? (string) $attendanceLog->location_in : null,
-                    'location_out' => isset($attendanceLog?->location_out) ? (string) $attendanceLog->location_out : null,
-                    'formatted_address' => isset($attendanceLog?->location_in) ? (string) $attendanceLog->location_in : null,
-                    'address_village' => isset($attendanceLog?->address_village) ? (string) $attendanceLog->address_village : null,
-                    'address_district' => isset($attendanceLog?->address_district) ? (string) $attendanceLog->address_district : null,
-                    'address_regency' => isset($attendanceLog?->address_regency) ? (string) $attendanceLog->address_regency : null,
-                    'address_city' => isset($attendanceLog?->address_city) ? (string) $attendanceLog->address_city : null,
-                    'address_province' => isset($attendanceLog?->address_province) ? (string) $attendanceLog->address_province : null,
-                    'address_postal_code' => isset($attendanceLog?->address_postal_code) ? (string) $attendanceLog->address_postal_code : null,
-                ];
-            })->values();
-
-            return response()->json([
-                'data' => $tableRows,
-            ]);
-        }
-
-        $tableUsersQuery = User::query()
-            ->with([
-                'employee.deployment.company:id,name',
-                'employee:id,user_id',
-            ]);
-
-        if ($isBoardOfDirectur) {
-            if ($userCompanyId) {
-                $tableUsersQuery->whereHas('employee.deployment', function ($query) use ($userCompanyId): void {
-                    $query->where('current_company_id', $userCompanyId);
-                });
-            } else {
-                $tableUsersQuery->whereRaw('1 = 0');
-            }
-        } elseif ($isSuperUser && $selectedCompanyId !== '') {
-            $tableUsersQuery->whereHas('employee.deployment', function ($query) use ($selectedCompanyId): void {
-                $query->where('current_company_id', $selectedCompanyId);
-            });
-        }
-
-        $tableUsers = $tableUsersQuery->get();
-        $employeeIds = $tableUsers
-            ->map(fn (User $user): mixed => $user->employee?->id)
-            ->filter()
-            ->values();
-        $employeeProfileNamesByEmployeeId = EmployeeProfile::query()
-            ->whereIn('employee_id', $employeeIds)
-            ->orderBy('created_at')
-            ->pluck('name', 'employee_id');
-        $attendancesTodayByEmployeeId = Attendance::query()
-            ->whereIn('employee_id', $employeeIds)
-            ->whereDate('date', $todayDate)
-            ->orderByDesc('created_at')
-            ->get(['id', 'employee_id', 'date', 'clock_in', 'clock_out', 'status'])
-            ->groupBy('employee_id')
-            ->map(fn ($attendanceItems) => $attendanceItems->first());
-        $attendanceIds = $tableUsers
-            ->map(fn (User $user): mixed => $attendancesTodayByEmployeeId->get($user->employee?->id)?->id)
-            ->filter()
-            ->values();
-        $attendanceLogsByAttendanceId = AttendanceLog::query()
-            ->whereIn('attendance_id', $attendanceIds)
-            ->orderByDesc('created_at')
-            ->get([
-                'attendance_id',
-                'location_in',
-                'location_out',
-                'latitude',
-                'longitude',
-                'distance_in',
-                'distance_out',
-                'radius_result',
-                'address_village',
-                'address_district',
-                'address_regency',
-                'address_city',
-                'address_province',
-                'address_postal_code',
-            ])
-            ->groupBy('attendance_id')
-            ->map(fn ($attendanceLogs) => $attendanceLogs->first());
-
-        $tableRows = $tableUsers->map(function (User $user) use ($attendanceLogsByAttendanceId, $attendancesTodayByEmployeeId, $todayDate, $employeeProfileNamesByEmployeeId): array {
-            $attendanceToday = $attendancesTodayByEmployeeId->get($user->employee?->id);
-            $attendanceLog = $attendanceToday ? $attendanceLogsByAttendanceId->get($attendanceToday->id) : null;
-            $employeeId = $user->employee?->id;
-            $profileName = is_string($employeeId) ? $employeeProfileNamesByEmployeeId->get($employeeId) : null;
-            $staffDisplayName = is_string($profileName) && trim($profileName) !== ''
-                ? trim($profileName)
-                : ((is_string($user->username) && trim($user->username) !== '')
-                    ? trim($user->username)
-                    : ((is_string($user->email) && trim($user->email) !== '') ? trim($user->email) : '-'));
-
-            return [
-                'attendance_id' => $attendanceToday?->id,
-                'attendance_date' => $attendanceToday?->date?->format('Y-m-d') ?? $todayDate,
-                'staff_name' => $staffDisplayName,
-                'company_name' => $user->employee?->deployment?->company?->name,
-                'check_in' => $attendanceToday?->clock_in?->format('H:i'),
-                'check_out' => $attendanceToday?->clock_out?->format('H:i'),
-                'status' => $attendanceToday?->status,
-                'check_in_latitude' => isset($attendanceLog?->latitude) ? (float) $attendanceLog->latitude : null,
-                'check_in_longitude' => isset($attendanceLog?->longitude) ? (float) $attendanceLog->longitude : null,
-                'distance_meters' => isset($attendanceLog?->distance_in) ? (float) $attendanceLog->distance_in : null,
-                'distance_out_meters' => isset($attendanceLog?->distance_out) ? (float) $attendanceLog->distance_out : null,
-                'radius_result' => isset($attendanceLog?->radius_result) ? (string) $attendanceLog->radius_result : null,
-                'location_in' => isset($attendanceLog?->location_in) ? (string) $attendanceLog->location_in : null,
-                'location_out' => isset($attendanceLog?->location_out) ? (string) $attendanceLog->location_out : null,
-                'formatted_address' => isset($attendanceLog?->location_in) ? (string) $attendanceLog->location_in : null,
-                'address_village' => isset($attendanceLog?->address_village) ? (string) $attendanceLog->address_village : null,
-                'address_district' => isset($attendanceLog?->address_district) ? (string) $attendanceLog->address_district : null,
-                'address_regency' => isset($attendanceLog?->address_regency) ? (string) $attendanceLog->address_regency : null,
-                'address_city' => isset($attendanceLog?->address_city) ? (string) $attendanceLog->address_city : null,
-                'address_province' => isset($attendanceLog?->address_province) ? (string) $attendanceLog->address_province : null,
-                'address_postal_code' => isset($attendanceLog?->address_postal_code) ? (string) $attendanceLog->address_postal_code : null,
-            ];
-        })->values();
-
-        return response()->json([
-            'data' => $tableRows,
         ]);
     }
 
@@ -1084,30 +814,6 @@ class AttendanceController extends Controller
             && $longitude >= -180
             && $longitude <= 180
             && ! (abs($latitude) < 0.000001 && abs($longitude) < 0.000001);
-    }
-
-    private function isSuperUser(?User $user): bool
-    {
-        if (! $user) {
-            return false;
-        }
-
-        return $user->getRoleNames()
-            ->map(fn (string $roleName): string => strtolower(trim($roleName)))
-            ->contains('superuser');
-    }
-
-    private function isBoardOfDirectur(?User $user): bool
-    {
-        if (! $user) {
-            return false;
-        }
-
-        $normalizedRoleNames = $user->getRoleNames()
-            ->map(fn (string $roleName): string => strtolower(trim($roleName)));
-
-        return $normalizedRoleNames->contains('board of directur')
-            || $normalizedRoleNames->contains('board of directors');
     }
 
     private function isStaffUser(?User $user): bool

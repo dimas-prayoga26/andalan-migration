@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::create('attendance_logs', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('attendance_id')->constrained('attendances')->cascadeOnDelete();
-            $table->text('location_in')->nullable();
-            $table->text('location_out')->nullable();
+            $table->boolean('type')->comment('1 = in, 0 = out');
+            $table->text('location')->nullable();
             $table->decimal('latitude', 10, 7);
             $table->decimal('longitude', 10, 7);
             $table->enum('radius_result', ['inside', 'outside']);
-            $table->decimal('distance', 8, 2)->unsigned();
+            $table->decimal('distance', 12, 2)->unsigned();
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             $table->string('device_hash')->nullable();

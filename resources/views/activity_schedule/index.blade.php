@@ -66,7 +66,9 @@
     @php
         $dashboardJsPath = public_path('assets/js/dashboard.js');
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
+        $fullCalendarInitJsPath = public_path('assets/js/plugins-init/fullcalendar-init.js');
+        $fullCalendarInitJsVersion = file_exists($fullCalendarInitJsPath) ? filemtime($fullCalendarInitJsPath) : time();
     @endphp
+    <script src="{{ asset('assets/js/plugins-init/fullcalendar-init.js') }}?v={{ $fullCalendarInitJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 @endsection
-

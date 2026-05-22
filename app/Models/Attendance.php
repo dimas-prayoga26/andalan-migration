@@ -6,6 +6,7 @@ use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\Permission\Traits\HasRoles;
 
 class Attendance extends Model
@@ -46,5 +47,10 @@ class Attendance extends Model
     public function businessTrip(): BelongsTo
     {
         return $this->belongsTo(BusinessTrip::class, 'business_trip_id', 'id');
+    }
+
+    public function attendanceException(): HasOne
+    {
+        return $this->hasOne(AttendanceException::class, 'attendance_id', 'id');
     }
 }

@@ -34,6 +34,8 @@
     function createCalendarOptions(calendarEl, containerEl, dropRemove) {
         const eventSourceUrl = calendarEl.dataset.eventSourceUrl;
         const timeZone = calendarEl.dataset.timeZone || 'local';
+        const showWeekendOff = calendarEl.dataset.showWeekendOff === '1';
+        const disableDefaultEvents = calendarEl.dataset.disableDefaultEvents === '1';
         const options = {
             initialView: 'dayGridMonth',
             headerToolbar: {
@@ -63,6 +65,30 @@
             dateClick: function (info) {
                 if (info.view.type === 'dayGridMonth' || info.view.type === 'dayGridWeek') {
                     info.view.calendar.changeView('dayGridDay', info.date);
+                }
+            },
+            dayCellDidMount: function (info) {
+                if (!showWeekendOff) {
+                    return;
+                }
+
+                const dayNumber = info.date.getDay();
+                if (dayNumber !== 0 && dayNumber !== 6) {
+                    return;
+                }
+
+                info.el.classList.add('fc-dayoff-cell');
+
+                const eventsContainer = info.el.querySelector('.fc-daygrid-day-events');
+                if (!eventsContainer) {
+                    return;
+                }
+
+                if (!eventsContainer.querySelector('.fc-dayoff-card')) {
+                    const card = document.createElement('div');
+                    card.className = 'fc-dayoff-card';
+                    card.textContent = 'Weekend / Day Off';
+                    eventsContainer.appendChild(card);
                 }
             },
             editable: true,
@@ -103,7 +129,7 @@
             options.droppable = false;
         } else {
             options.initialDate = '2021-02-13';
-            options.events = buildDefaultEvents();
+            options.events = disableDefaultEvents ? [] : buildDefaultEvents();
         }
 
         return options;

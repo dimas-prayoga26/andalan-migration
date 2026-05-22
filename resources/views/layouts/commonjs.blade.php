@@ -30,7 +30,6 @@
 
 <!-- Script For Full Calendar -->
 <script src="vendor/fullcalendar/js/main.js"></script>
-<script src="js/plugins-init/fullcalendar-init.js"></script>
 
 <!-- Script For Datatables -->
 <script src="vendor/datatables/js/jquery.dataTables.bundle.min.js"></script>

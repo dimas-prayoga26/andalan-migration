@@ -372,7 +372,7 @@
             var attendanceDetailUserMarker = null;
             var attendanceDetailOfficeMarker = null;
             var attendanceDetailLine = null;
-            var attendanceDatatableUrl = @json(route('absensi.datatable'));
+            var attendanceDatatableUrl = null;
             var isStaffTableView = @json($showStaffPeriodFilter ?? false);
             var officeStartTotalMinutes = parseTimeStringToMinutes(officeLocation && officeLocation.office_start_time, 8 * 60);
 
@@ -840,7 +840,6 @@
 
             renderAttendanceDateTime();
             setInterval(renderAttendanceDateTime, 1000);
-            tableLogs();
 
             $('.absensi-tab-btn').on('click', function (event) {
                 event.preventDefault();

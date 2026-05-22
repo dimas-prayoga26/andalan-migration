@@ -61,6 +61,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/absensi/current-ip', [AttendanceController::class, 'currentIp'])->name('absensi.current-ip');
     Route::post('/absensi/verify-telegram-username', [AttendanceController::class, 'verifyTelegramUsername'])->name('absensi.verify-telegram-username');
     Route::get('/absensi/reports', [ReportController::class, 'index'])->name('absensi.reports');
+    Route::get('/absensi/reports/datatable', [ReportController::class, 'datatable'])->name('absensi.reports.datatable');
 
     // Attendance permission routes
     Route::get('/absensi/izin/datatable', [LeaveRequestController::class, 'datatable'])->name('absensi.izin.datatable');

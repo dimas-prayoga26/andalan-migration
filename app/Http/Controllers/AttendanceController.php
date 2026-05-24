@@ -25,11 +25,12 @@ class AttendanceController extends Controller
         }
         $userId = Auth::id();
         $employeeId = $authenticatedUser?->employee?->id;
+        $todayJakartaDate = now('Asia/Jakarta')->toDateString();
         $publicIp = '-';
         $absensiHariIni = null;
         if (is_string($employeeId) && trim($employeeId) !== '') {
             $absensiHariIni = Attendance::query()
-                ->where('date', now()->format('Y-m-d'))
+                ->where('date', $todayJakartaDate)
                 ->where('employee_id', $employeeId)
                 ->first();
         }
@@ -39,6 +40,7 @@ class AttendanceController extends Controller
         $todayAttendanceExceptionTimeRange = '--:-- - --:--';
         $todayAttendanceExceptionVariance = '--.--';
         $hasEarlyDepartureExceptionToday = false;
+        $attendanceHistoryEvents = [];
         if (is_string($todayAttendanceId) && trim($todayAttendanceId) !== '') {
             $latestDistanceIn = AttendanceLog::query()
                 ->where('attendance_id', $todayAttendanceId)
@@ -60,6 +62,42 @@ class AttendanceController extends Controller
             if (is_numeric($latestDistanceOut)) {
                 $todayAttendanceDistanceOutKm = round(((float) $latestDistanceOut) / 1000, 2);
             }
+        }
+
+        if (is_string($employeeId) && trim($employeeId) !== '') {
+            $attendanceHistoryEvents = Attendance::query()
+                ->where('employee_id', $employeeId)
+                ->whereNotNull('clock_in')
+                ->orderBy('date')
+                ->get(['date', 'clock_in', 'clock_out', 'late_minutes', 'status'])
+                ->map(static function (Attendance $attendanceItem): ?array {
+                    $attendanceDateLabel = $attendanceItem->date?->format('Y-m-d');
+                    $clockInLabel = $attendanceItem->clock_in?->format('H:i');
+                    if (! is_string($attendanceDateLabel) || trim($attendanceDateLabel) === '' || ! is_string($clockInLabel) || trim($clockInLabel) === '') {
+                        return null;
+                    }
+
+                    $clockOutLabel = $attendanceItem->clock_out?->format('H:i') ?? '--:--';
+                    $normalizedStatus = is_string($attendanceItem->status)
+                        ? strtolower(trim($attendanceItem->status))
+                        : '';
+                    $isLate = (int) ($attendanceItem->late_minutes ?? 0) > 0 || $normalizedStatus === 'terlambat';
+                    $eventBackgroundColor = $isLate ? '#fd7e14' : '#20c997';
+                    $eventBorderColor = $isLate ? '#d3680d' : '#1aa179';
+
+                    return [
+                        'title' => 'In : '.$clockInLabel.' - Out : '.$clockOutLabel,
+                        'start' => $attendanceDateLabel,
+                        'allDay' => true,
+                        'classNames' => ['fc-attendance-log-card'],
+                        'backgroundColor' => $eventBackgroundColor,
+                        'borderColor' => $eventBorderColor,
+                        'textColor' => '#ffffff',
+                    ];
+                })
+                ->filter(static fn (mixed $eventItem): bool => is_array($eventItem))
+                ->values()
+                ->all();
         }
 
         if (is_string($employeeId) && trim($employeeId) !== '') {
@@ -145,6 +183,7 @@ class AttendanceController extends Controller
             'hasEarlyDepartureExceptionToday',
             'hasCheckedInToday',
             'hasCheckedOutToday',
+            'attendanceHistoryEvents',
         ));
     }
 

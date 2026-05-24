@@ -6,6 +6,9 @@
 <script src="vendor/metismenu/dist/metisMenu.min.js"></script>
 <script src="vendor/chart-js/chart.bundle.min.js"></script>
 
+<!-- Script For Apexchart -->
+<script src="vendor/apexcharts/dist/apexcharts.min.js"></script>
+
 <!-- Script for Owl Carousel -->
 <script src="vendor/owl-carousel/owl.carousel.js"></script>
 
@@ -19,6 +22,9 @@
 
 <!-- Script For Dashboard 1 -->
 <script src="js/dashboard/dashboard-1.js"></script>
+
+<!-- Script For Account And Profile -->
+<script src="js/dashboard/profile.js"></script>
 
 <!-- Script For Multiple Languages -->
 <script src="vendor/i18n/i18n.js"></script>

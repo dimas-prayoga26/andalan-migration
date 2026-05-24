@@ -122,7 +122,8 @@
 
         .app-fullcalendar .fc-event.fc-weekend-dayoff-card,
         .app-fullcalendar .fc-event.fc-national-holiday-card,
-        .app-fullcalendar .fc-event.fc-joint-leave-card {
+        .app-fullcalendar .fc-event.fc-joint-leave-card,
+        .app-fullcalendar .fc-event.fc-attendance-log-card {
             display: block;
             width: 100%;
             border-radius: 999px;
@@ -131,20 +132,7 @@
             font-weight: 700;
             padding: 0.42rem 0.7rem;
             border: 0 !important;
-            background: #a80000 !important;
-            color: #fff !important;
             cursor: pointer;
-        }
-
-        .app-fullcalendar .fc-event.fc-weekend-dayoff-card,
-        .app-fullcalendar .fc-event.fc-national-holiday-card {
-            background: #a80000 !important;
-            color: #fff !important;
-        }
-
-        .app-fullcalendar .fc-event.fc-joint-leave-card {
-            background: #a80000 !important;
-            color: #fff !important;
         }
 
     </style>
@@ -545,6 +533,7 @@
 
                 var showWeekendOff = calendarEl.dataset.showWeekendOff === '1';
                 var holidayEventsByYear = {};
+                var attendanceHistoryEvents = @json($attendanceHistoryEvents ?? []);
 
                 function formatDateToIso(dateObject) {
                     var year = dateObject.getFullYear();
@@ -623,12 +612,16 @@
                                 .map(function (item) {
                                     var isNationalHoliday = Boolean(item.is_national_holiday);
                                     var eventTypeLabel = isNationalHoliday ? 'Hari Libur Nasional' : 'Cuti Bersama';
+                                    var eventBackgroundColor = isNationalHoliday ? '#dc3545' : '#cd5c5c';
 
                                     return {
                                         title: item.name,
                                         start: item.date,
                                         allDay: true,
                                         classNames: [isNationalHoliday ? 'fc-national-holiday-card' : 'fc-joint-leave-card'],
+                                        backgroundColor: eventBackgroundColor,
+                                        borderColor: eventBackgroundColor,
+                                        textColor: '#ffffff',
                                         extendedProps: {
                                             dayOffEventType: eventTypeLabel,
                                             dayOffHolidayName: item.name,
@@ -656,6 +649,9 @@
                                 start: isoDate,
                                 allDay: true,
                                 classNames: ['fc-weekend-dayoff-card'],
+                                backgroundColor: '#8b0000',
+                                borderColor: '#8b0000',
+                                textColor: '#ffffff',
                                 extendedProps: {
                                     dayOffEventType: 'Weekend / Day Off',
                                     dayOffHolidayName: 'Weekend',
@@ -668,6 +664,39 @@
                     }
 
                     return weekendEvents;
+                }
+
+                function buildAttendanceHistoryEventsInRange(startDate, endDate) {
+                    if (!Array.isArray(attendanceHistoryEvents) || attendanceHistoryEvents.length === 0) {
+                        return [];
+                    }
+
+                    var normalizedStartDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+                    var normalizedEndDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+                    return attendanceHistoryEvents
+                        .filter(function (eventItem) {
+                            if (!eventItem || typeof eventItem.start !== 'string' || eventItem.start.trim() === '') {
+                                return false;
+                            }
+
+                            var eventDate = new Date(eventItem.start + 'T00:00:00');
+                            if (Number.isNaN(eventDate.getTime())) {
+                                return false;
+                            }
+
+                            return eventDate >= normalizedStartDate && eventDate < normalizedEndDate;
+                        })
+                        .map(function (eventItem) {
+                            return {
+                                title: eventItem.title,
+                                start: eventItem.start,
+                                allDay: eventItem.allDay !== false,
+                                classNames: Array.isArray(eventItem.classNames) ? eventItem.classNames : ['fc-attendance-log-card'],
+                                backgroundColor: eventItem.backgroundColor || '#20c997',
+                                borderColor: eventItem.borderColor || '#1aa179',
+                                textColor: eventItem.textColor || '#ffffff'
+                            };
+                        });
                 }
 
                 var calendar = new FullCalendar.Calendar(calendarEl, {
@@ -728,13 +757,14 @@
                         Promise.all(years.map(fetchHolidayEventsByYear))
                             .then(function (eventsByYear) {
                                 var holidayEvents = eventsByYear.flat();
+                                var attendanceLogEvents = buildAttendanceHistoryEventsInRange(fetchInfo.start, fetchInfo.end);
                                 if (!showWeekendOff) {
-                                    successCallback(holidayEvents);
+                                    successCallback(holidayEvents.concat(attendanceLogEvents));
                                     return;
                                 }
 
                                 var weekendEvents = buildWeekendEventsInRange(fetchInfo.start, fetchInfo.end);
-                                successCallback(holidayEvents.concat(weekendEvents));
+                                successCallback(holidayEvents.concat(weekendEvents, attendanceLogEvents));
                             })
                             .catch(function (error) {
                                 console.error(error);

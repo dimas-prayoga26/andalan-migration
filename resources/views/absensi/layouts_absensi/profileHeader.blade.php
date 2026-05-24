@@ -158,6 +158,21 @@
                     </div>
                 @endif
             </div>
+            <div class="clearfix mt-3 mt-xl-0 ms-auto d-flex flex-column col-xl-3">
+                <div class="mt-auto d-flex align-items-center">
+                    <div class="clearfix me-3">
+                        <span class="fw-medium text-black d-block mb-1">Progress</span>
+                        <p class="mb-0 d-flex">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5.83334 14.1668L14.1667 5.8335" stroke="var(--bs-success)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="M5.83334 5.8335H14.1667V14.1668" stroke="var(--bs-success)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                            <span class="text-success me-1">+3.50%</span>
+                        </p>
+                    </div>
+                    <div id="chartProfileProgress"></div>
+                </div>
+            </div>
         </div>
     </div>
     <div class="card-body pt-0 d-md-none mobile-stats-offset">

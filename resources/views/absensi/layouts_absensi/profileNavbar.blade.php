@@ -5,19 +5,19 @@
             <button type="button" class="nav-link py-3 px-1 border-3 absensi-tab-btn" aria-selected="false">Overview</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button type="button" data-href="{{ route('absensi') }}" class="nav-link py-3 px-1 border-3 absensi-tab-btn {{ request()->routeIs('absensi') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi') ? 'true' : 'false' }}">Presensi</button>
+            <button type="button" data-href="{{ route('absensi') }}" class="nav-link py-3 px-1 border-3 absensi-tab-btn {{ request()->routeIs('absensi') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi') ? 'true' : 'false' }}">Attendance</button>
         </li>
         <li class="nav-item" role="presentation">
             <button type="button" data-href="{{ route('absensi.reports') }}" class="nav-link py-3 px-1 border-3 absensi-tab-btn {{ request()->routeIs('absensi.reports') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.reports') ? 'true' : 'false' }}">Report</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button type="button" data-href="{{ route('absensi.izin') }}" class="nav-link py-3 px-1 border-3 absensi-tab-btn {{ request()->routeIs('absensi.izin*') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.izin*') ? 'true' : 'false' }}">Izin / Cuti</button>
+            <button type="button" data-href="{{ route('absensi.izin') }}" class="nav-link py-3 px-1 border-3 absensi-tab-btn {{ request()->routeIs('absensi.izin*') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.izin*') ? 'true' : 'false' }}">Leaves & Sick</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button type="button" data-href="{{ route('absensi.dinas') }}" class="nav-link py-3 px-1 border-3 absensi-tab-btn {{ request()->routeIs('absensi.dinas') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.dinas') ? 'true' : 'false' }}">Perjalanan Dinas</button>
+            <button type="button" data-href="{{ route('absensi.dinas') }}" class="nav-link py-3 px-1 border-3 absensi-tab-btn {{ request()->routeIs('absensi.dinas') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.dinas') ? 'true' : 'false' }}">Business Trip</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button type="button" data-href="{{ route('absensi.lembur') }}" class="nav-link py-3 px-1 border-3 absensi-tab-btn {{ request()->routeIs('absensi.lembur') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.lembur') ? 'true' : 'false' }}">Lembur</button>
+            <button type="button" data-href="{{ route('absensi.lembur') }}" class="nav-link py-3 px-1 border-3 absensi-tab-btn {{ request()->routeIs('absensi.lembur') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('absensi.lembur') ? 'true' : 'false' }}">Overtime</button>
         </li>
     </ul>
 </div>

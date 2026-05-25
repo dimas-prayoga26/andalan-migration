@@ -1388,7 +1388,7 @@
                         function (position) {
                             updateUserLocationOnMap(context, position);
                             setOnsiteStatus(context, 'Verifikasi lokasi dan Telegram berhasil.');
-                            setVerificationMessage(context, 'Verifikasi berhasil. Kamu bisa lanjut submit.', 'success');
+                            setVerificationMessage(context, 'Verifikasi berhasil.', 'success');
                         },
                         function (error) {
                             context.hasVerifiedOnsite = false;
@@ -1401,8 +1401,8 @@
                             }
 
                             if (error.code === 1) {
-                                setOnsiteStatus(context, 'Izin lokasi ditolak. Izinkan lokasi di browser.');
-                                setVerificationMessage(context, 'Izin lokasi ditolak. Izinkan lokasi di browser.', 'error');
+                                setOnsiteStatus(context, 'Izin lokasi ditolak. Izinkan lokasi.');
+                                setVerificationMessage(context, 'Izin lokasi ditolak. Izinkan lokasi.', 'error');
                                 return;
                             }
 

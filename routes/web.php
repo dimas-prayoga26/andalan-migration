@@ -5,6 +5,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceOvertimeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BusinessTripController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
@@ -15,9 +16,7 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::middleware('auth')->group(function (): void {
-    Route::get('/', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // Activity Schedule
     Route::get('/activity-schadule', [ActivityScheduleController::class, 'index'])->name('activity-schadule');

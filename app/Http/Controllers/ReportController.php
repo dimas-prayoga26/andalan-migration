@@ -552,7 +552,8 @@ class ReportController extends Controller
             ->map(fn (string $roleName): string => strtolower(trim($roleName)));
 
         return $normalizedRoleNames->contains('board of directur')
-            || $normalizedRoleNames->contains('board of directors');
+            || $normalizedRoleNames->contains('board of directors')
+            || $normalizedRoleNames->contains('supervisor');
     }
 
     private function isStaffUser(?User $user): bool
@@ -680,17 +681,6 @@ class ReportController extends Controller
     {
         if (! is_string($employeeId) || trim($employeeId) === '') {
             return $nowJakarta->copy()->startOfYear();
-        }
-
-        $organizationStartDateRaw = DB::table('employee_organization')
-            ->where('employee_id', $employeeId)
-            ->whereNull('deleted_at')
-            ->whereNotNull('start_date')
-            ->orderBy('start_date')
-            ->value('start_date');
-
-        if (is_string($organizationStartDateRaw) && trim($organizationStartDateRaw) !== '') {
-            return Carbon::parse($organizationStartDateRaw, 'Asia/Jakarta')->startOfMonth();
         }
 
         $deploymentJoinDateRaw = DB::table('employee_deployments')

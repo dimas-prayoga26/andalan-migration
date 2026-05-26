@@ -177,7 +177,8 @@ class BusinessTripController extends Controller
             ->map(static fn (string $roleName): string => strtolower(trim($roleName)));
 
         return $normalizedRoleNames->contains('board of directur')
-            || $normalizedRoleNames->contains('board of directors');
+            || $normalizedRoleNames->contains('board of directors')
+            || $normalizedRoleNames->contains('supervisor');
     }
 
     private function isAdminUser(?User $user): bool

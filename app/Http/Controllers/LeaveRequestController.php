@@ -7,6 +7,7 @@ use App\Models\EmployeeDeployment;
 use App\Models\EmployeeProfile;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
+use App\Models\LeaveRequestHistory;
 use App\Models\LeaveType;
 use App\Models\MetaDataLeaveCompany;
 use App\Models\User;
@@ -28,129 +29,7 @@ class LeaveRequestController extends Controller
 {
     public function index(): View
     {
-        $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
-
-        $isBoardOfDirectur = $this->isBoardOfDirectur($authenticatedUser);
-        $isAdminUser = $this->isAdminUser($authenticatedUser);
-        $isStaffUser = $this->isStaffUser($authenticatedUser);
-        $canFilterEmployees = $isBoardOfDirectur || $isAdminUser;
-        $canUpdatePermissionStatus = $isBoardOfDirectur || $isAdminUser;
-        $canDeletePermission = $isBoardOfDirectur || $this->isSuperuser($authenticatedUser);
-        $userCompanyId = $authenticatedUser?->employee?->deployment?->current_company_id;
-        $approvalSummary = [
-            'pending' => 0,
-            'approved' => 0,
-            'refused' => 0,
-            'total' => 0,
-        ];
-        $staffUsersQuery = User::query()
-            ->select(['id', 'username', 'email'])
-            ->with(['employee:id,user_id'])
-            ->whereHas('employee.deployment')
-            ->orderBy('username');
-
-        if ($isBoardOfDirectur && $userCompanyId) {
-            $staffUsersQuery->whereHas('employee.deployment', function ($query) use ($userCompanyId): void {
-                $query->where('current_company_id', $userCompanyId);
-            });
-        } elseif (! $isAdminUser) {
-            $staffUsersQuery->whereKey(Auth::id());
-        }
-
-        $staffUsersQuery->whereKeyNot(Auth::id());
-
-        $staffUsers = $staffUsersQuery->get();
-        $staffUsersProfileNamesByEmployeeId = $this->fetchEmployeeProfileNamesByUsers($staffUsers);
-        $staffUsers = $staffUsers->map(function (User $staffUser) use ($staffUsersProfileNamesByEmployeeId): object {
-            return (object) [
-                'id' => $staffUser->id,
-                'name' => $this->resolveUserDisplayName($staffUser, $staffUsersProfileNamesByEmployeeId),
-            ];
-        });
-
-        $permissionTypes = LeaveType::query()
-            ->select(['id', 'name'])
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
-
-        $summaryQuery = LeaveRequest::query();
-
-        if ($isBoardOfDirectur && $userCompanyId) {
-            $summaryQuery->whereHas('employee.deployment', function ($query) use ($userCompanyId): void {
-                $query->where('current_company_id', $userCompanyId);
-            });
-        } elseif (! $isAdminUser) {
-            $currentEmployeeId = $authenticatedUser?->employee?->id;
-            $summaryQuery->where('employee_id', $currentEmployeeId);
-        }
-
-        $approvalCounts = $summaryQuery
-            ->selectRaw('LOWER(status) as status, COUNT(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status');
-
-        $approvalSummary['pending'] = (int) ($approvalCounts['pending'] ?? 0);
-        $approvalSummary['approved'] = (int) ($approvalCounts['approved'] ?? 0);
-        $approvalSummary['refused'] = (int) ($approvalCounts['refused'] ?? 0);
-        $approvalSummary['total'] = $approvalSummary['pending'] + $approvalSummary['approved'] + $approvalSummary['refused'];
-
-        $summaryCards = [
-            ['label' => 'Pending', 'value' => $approvalSummary['pending']],
-            ['label' => 'Approved', 'value' => $approvalSummary['approved']],
-            ['label' => 'Refused', 'value' => $approvalSummary['refused']],
-            ['label' => 'Total', 'value' => $approvalSummary['total']],
-        ];
-
-        if ($isStaffUser && $authenticatedUser instanceof User) {
-            $currentYear = (int) now()->year;
-            $currentMonth = (int) now()->month;
-            $currentMonthYearLabel = now()->format('F Y');
-            $employeeId = (string) ($authenticatedUser->employee?->id ?? '');
-            $holidaySummary = $this->fetchHolidaySummaryByYear($currentYear);
-
-            $monthlyLeaveLimit = 0;
-            if ($userCompanyId) {
-                $monthlyLeaveLimit = (int) MetaDataLeaveCompany::query()
-                    ->where('company_id', $userCompanyId)
-                    ->value('montly_leave_limit');
-            }
-
-            $leaveSummary = $this->calculateStaffLeaveSummary($employeeId, $currentYear, $currentMonth);
-            $remainingAnnualLeave = $leaveSummary['remaining_annual_balance'];
-            $annualLeaveUsage = $leaveSummary['used_annual_balance'];
-
-            $approvedAnnualLeaveDaysInCurrentMonth = (int) LeaveRequest::query()
-                ->where('employee_id', $employeeId)
-                ->whereHas('leaveType', function ($query): void {
-                    $query->whereRaw('LOWER(name) = ?', ['cuti tahunan']);
-                })
-                ->whereYear('start_date', $currentYear)
-                ->whereMonth('start_date', $currentMonth)
-                ->whereRaw('LOWER(status) = ?', ['approved'])
-                ->sum('total_days');
-
-            $remainingMonthlyLeave = max($monthlyLeaveLimit - $approvedAnnualLeaveDaysInCurrentMonth, 0);
-
-            $summaryCards = [
-                ['label' => 'Sisa Cuti '.$currentYear, 'value' => $remainingAnnualLeave],
-                ['label' => 'Cuti '.$currentYear, 'value' => $annualLeaveUsage],
-                ['label' => 'Cuti Bersama '.$currentYear, 'value' => $holidaySummary['remaining_collective_leaves']],
-                ['label' => 'Cuti '.$currentMonthYearLabel, 'value' => $remainingMonthlyLeave],
-            ];
-        }
-
-        return view('absensi.izin', [
-            'permissionTypes' => $this->normalizePermissionTypes($permissionTypes),
-            'approvalSummary' => $approvalSummary,
-            'summaryCards' => $summaryCards,
-            'staffUsers' => $staffUsers,
-            'defaultStaffUserId' => '',
-            'canSubmitPermission' => $isStaffUser,
-            'canFilterEmployees' => $canFilterEmployees,
-            'canUpdatePermissionStatus' => $canUpdatePermissionStatus,
-            'canDeletePermission' => $canDeletePermission,
-        ]);
+        return view('absensi.izin');
     }
 
     public function store(Request $request): JsonResponse
@@ -184,7 +63,9 @@ class LeaveRequestController extends Controller
         $currentMonth = (int) $startDate->month;
         $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
         $employeeId = (string) ($authenticatedUser?->employee?->id ?? '');
-        $userCompanyId = (string) ($authenticatedUser?->employee?->deployment?->current_company_id ?? '');
+        $authenticatedUserId = is_string($authenticatedUser?->id) || is_int($authenticatedUser?->id)
+            ? (string) $authenticatedUser->id
+            : '';
 
         if ($employeeId === '') {
             return response()->json([
@@ -230,7 +111,7 @@ class LeaveRequestController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($request, $validated, $durationDays, $employeeId, $temporaryAttachmentPath): void {
+        DB::transaction(function () use ($request, $validated, $durationDays, $employeeId, $temporaryAttachmentPath, $authenticatedUserId): void {
             $storedAttachmentPath = null;
             $attachmentDirectory = 'leave-request-attachments';
             if (! $this->publicDisk()->directoryExists($attachmentDirectory)) {
@@ -275,6 +156,16 @@ class LeaveRequestController extends Controller
                 'attachment_path' => $storedAttachmentPath,
                 'status' => 'pending',
             ]);
+
+            $this->writeLeaveRequestHistory(
+                leaveRequest: $leaveRequest,
+                eventType: 'submitted',
+                title: 'Request Submitted',
+                fromStatus: null,
+                toStatus: 'pending',
+                notes: null,
+                actorUserId: $authenticatedUserId !== '' ? $authenticatedUserId : null,
+            );
         });
 
         return response()->json([
@@ -534,7 +425,26 @@ class LeaveRequestController extends Controller
             ], 403);
         }
 
-        DB::transaction(function () use ($leaveRequest): void {
+        $authenticatedUserId = is_string($authenticatedUser?->id) || is_int($authenticatedUser?->id)
+            ? (string) $authenticatedUser->id
+            : '';
+
+        DB::transaction(function () use ($leaveRequest, $authenticatedUserId): void {
+            $currentStatus = is_string($leaveRequest->status) ? strtolower(trim($leaveRequest->status)) : null;
+            if (! in_array($currentStatus, ['pending', 'approved', 'refused', 'rejected'], true)) {
+                $currentStatus = null;
+            }
+
+            $this->writeLeaveRequestHistory(
+                leaveRequest: $leaveRequest,
+                eventType: 'deleted',
+                title: 'Request Deleted',
+                fromStatus: $currentStatus,
+                toStatus: $currentStatus,
+                notes: null,
+                actorUserId: $authenticatedUserId !== '' ? $authenticatedUserId : null,
+            );
+
             if (is_string($leaveRequest->attachment_path) && trim($leaveRequest->attachment_path) !== '') {
                 $this->publicDisk()->delete($leaveRequest->attachment_path);
             }
@@ -583,6 +493,7 @@ class LeaveRequestController extends Controller
         if ($normalizedStatus === 'rejected') {
             $normalizedStatus = 'refused';
         }
+        $previousStatus = $currentStatus;
 
         if ($normalizedStatus === 'approved') {
             $approvalValidation = $this->validateLeaveApprovalLimit($leaveRequest);
@@ -610,6 +521,21 @@ class LeaveRequestController extends Controller
         }
 
         $leaveRequest->update($updatePayload);
+
+        $historyTitle = match ($normalizedStatus) {
+            'approved' => 'Approved',
+            'refused' => 'Rejected',
+            default => 'Status Updated',
+        };
+        $this->writeLeaveRequestHistory(
+            leaveRequest: $leaveRequest,
+            eventType: 'status_updated',
+            title: $historyTitle,
+            fromStatus: in_array($previousStatus, ['pending', 'approved', 'refused', 'rejected'], true) ? $previousStatus : null,
+            toStatus: in_array($normalizedStatus, ['pending', 'approved', 'refused', 'rejected'], true) ? $normalizedStatus : null,
+            notes: null,
+            actorUserId: $authenticatedUserId !== '' ? $authenticatedUserId : null,
+        );
 
         $leaveRequestYear = (int) Carbon::parse($leaveRequest->start_date)->year;
         $leaveRequestMonth = (int) Carbon::parse($leaveRequest->start_date)->month;
@@ -657,7 +583,8 @@ class LeaveRequestController extends Controller
             ->map(static fn (string $roleName): string => strtolower(trim($roleName)));
 
         return $normalizedRoleNames->contains('board of directur')
-            || $normalizedRoleNames->contains('board of directors');
+            || $normalizedRoleNames->contains('board of directors')
+            || $normalizedRoleNames->contains('supervisor');
     }
 
     private function isAdminUser(?User $user): bool
@@ -921,6 +848,36 @@ class LeaveRequestController extends Controller
         }
 
         return $authenticatedUserQuery->find($authenticatedUserId);
+    }
+
+    private function writeLeaveRequestHistory(
+        LeaveRequest $leaveRequest,
+        string $eventType,
+        string $title,
+        ?string $fromStatus,
+        ?string $toStatus,
+        ?string $notes = null,
+        ?string $actorUserId = null,
+        ?array $metadata = null
+    ): void {
+        $normalizedFromStatus = is_string($fromStatus) && in_array($fromStatus, ['pending', 'approved', 'refused', 'rejected'], true)
+            ? $fromStatus
+            : null;
+        $normalizedToStatus = is_string($toStatus) && in_array($toStatus, ['pending', 'approved', 'refused', 'rejected'], true)
+            ? $toStatus
+            : null;
+
+        LeaveRequestHistory::query()->create([
+            'leave_request_id' => $leaveRequest->id,
+            'actor_user_id' => is_string($actorUserId) && trim($actorUserId) !== '' ? $actorUserId : null,
+            'event_type' => trim($eventType),
+            'title' => trim($title),
+            'from_status' => $normalizedFromStatus,
+            'to_status' => $normalizedToStatus,
+            'notes' => is_string($notes) && trim($notes) !== '' ? trim($notes) : null,
+            'metadata' => $metadata,
+            'happened_at' => now('Asia/Jakarta'),
+        ]);
     }
 
     private function publicDisk(): FilesystemAdapter

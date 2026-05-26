@@ -42,4 +42,9 @@ class LeaveRequest extends Model
     {
         return $this->hasMany(LeaveRequestAttachment::class);
     }
+
+    public function histories(): HasMany
+    {
+        return $this->hasMany(LeaveRequestHistory::class, 'leave_request_id', 'id');
+    }
 }

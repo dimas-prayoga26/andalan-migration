@@ -25,7 +25,7 @@ class UserSeeder extends Seeder
         try {
             app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-            $roles = ['superuser', 'Board of Directors', 'Staff'];
+            $roles = ['superuser', 'Board of Directors', 'Supervisor', 'Staff'];
 
             foreach ($roles as $roleName) {
                 Role::query()->firstOrCreate([
@@ -53,10 +53,20 @@ class UserSeeder extends Seeder
                 DB::table('departments')->where('name', 'Information and Communications Technology')->value('id')
                     ?? DB::table('departments')->where('name', 'Operations')->value('id'),
             );
+            $supervisorDivisionId = $this->toNullableString(
+                DB::table('departments')->where('name', 'Operations')->value('id')
+                    ?? DB::table('departments')->where('name', 'Information and Communications Technology')->value('id'),
+            );
             $adminDivisionId = $this->toNullableString(DB::table('departments')->where('name', 'Administrator')->value('id'));
             $directorPositionId = $this->toNullableString(DB::table('positions')->where('name', 'Director')->value('id'));
             $staffPositionId = $this->toNullableString(
                 DB::table('positions')->where('name', 'Web Developer')->value('id')
+                    ?? DB::table('positions')->orderBy('name')->value('id'),
+            );
+            $supervisorPositionId = $this->toNullableString(
+                DB::table('positions')->where('name', 'Supervisor')->value('id')
+                    ?? DB::table('positions')->where('name', 'Team Lead')->value('id')
+                    ?? DB::table('positions')->where('name', 'Manager')->value('id')
                     ?? DB::table('positions')->orderBy('name')->value('id'),
             );
             $adminPositionId = $this->toNullableString(
@@ -110,6 +120,26 @@ class UserSeeder extends Seeder
                     companyId: $company->id,
                     divisionId: $directorDivisionId,
                     positionId: $directorPositionId,
+                    domicileId: $domicileId,
+                    genderId: $genderId,
+                    maritalStatusId: $maritalStatusId,
+                );
+
+                $supervisor = User::query()->updateOrCreate(
+                    ['email' => "supervisor{$directorNumber}@gmail.com"],
+                    [
+                        'username' => "supervisor{$directorNumber}",
+                        'business_email' => "supervisor{$directorNumber}@{$this->resolveCompanyEmailDomain((string) $company->name)}",
+                        'is_active' => true,
+                        'password' => Hash::make('password'),
+                    ],
+                );
+                $supervisor->syncRoles(['Supervisor']);
+                $this->seedUserRelations(
+                    $supervisor,
+                    companyId: $company->id,
+                    divisionId: $supervisorDivisionId,
+                    positionId: $supervisorPositionId,
                     domicileId: $domicileId,
                     genderId: $genderId,
                     maritalStatusId: $maritalStatusId,

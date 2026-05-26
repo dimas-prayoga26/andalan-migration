@@ -3,30 +3,47 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Models\AttendanceException;
 use App\Models\AttendanceLog;
 use App\Models\EmployeeProfile;
 use App\Models\User;
+use App\Services\Attendance\AttendanceCardsViewDataService;
+use App\Services\Attendance\AttendanceMutationService;
+use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Spatie\LaravelPdf\Enums\Format;
+use Spatie\LaravelPdf\Facades\Pdf;
 
 class ReportController extends Controller
 {
+    public function __construct(
+        private AttendanceCardsViewDataService $attendanceCardsViewDataService,
+        private AttendanceMutationService $attendanceMutationService
+    ) {}
+
     public function index(Request $request): View
     {
         $authenticatedUser = Auth::user();
         if ($authenticatedUser instanceof User) {
             $authenticatedUser->loadMissing('employee.deployment');
         }
-        $userId = Auth::id();
-        $employeeId = $authenticatedUser?->employee?->id;
+        $attendanceCardsData = $this->attendanceCardsViewDataService->build(
+            $authenticatedUser instanceof User ? $authenticatedUser : null,
+            Auth::id(),
+            $request
+        );
+        $employeeId = $attendanceCardsData['employeeId'];
         $isSuperUser = $this->isSuperUser($authenticatedUser);
         $isStaffUser = $this->isStaffUser($authenticatedUser);
         $nowJakarta = now('Asia/Jakarta');
-        $publicIp = '-';
         $attendance = collect();
         if (is_string($employeeId) && trim($employeeId) !== '') {
             $attendance = Attendance::query()
@@ -50,25 +67,22 @@ class ReportController extends Controller
         }
 
         if ($isStaffUser) {
-            $staffYearOptions = Attendance::query()
-                ->where('employee_id', $employeeId)
-                ->selectRaw('DISTINCT YEAR(`date`) as year_value')
-                ->orderByDesc('year_value')
-                ->pluck('year_value')
-                ->filter(static fn (mixed $yearValue): bool => is_numeric($yearValue))
-                ->map(static fn (mixed $yearValue): int => (int) $yearValue)
-                ->values();
-
-            if ($staffYearOptions->isEmpty()) {
-                $staffYearOptions = collect([(int) $nowJakarta->year]);
-            }
+            $employmentStartMonth = $this->resolveStaffEmploymentStartMonth(
+                is_string($employeeId) ? $employeeId : null,
+                $nowJakarta
+            );
+            $staffYearOptions = $this->buildStaffYearOptions($employmentStartMonth, $nowJakarta);
 
             if (! $staffYearOptions->contains($defaultStaffYear)) {
-                $staffYearOptions = $staffYearOptions
-                    ->push($defaultStaffYear)
-                    ->unique()
-                    ->sortDesc()
-                    ->values();
+                $defaultStaffYear = $staffYearOptions->contains((int) $nowJakarta->year)
+                    ? (int) $nowJakarta->year
+                    : (int) $staffYearOptions->first();
+            }
+
+            $staffMonthOptions = $this->buildStaffMonthOptionsByYear($employmentStartMonth, $nowJakarta, $defaultStaffYear);
+
+            if (! $staffMonthOptions->contains($defaultStaffMonth)) {
+                $defaultStaffMonth = (int) $staffMonthOptions->last();
             }
         }
 
@@ -86,16 +100,6 @@ class ReportController extends Controller
         }
         $izin = collect();
         $lembur = collect();
-        $absensiHariIni = null;
-        if (is_string($employeeId) && trim($employeeId) !== '') {
-            $absensiHariIni = Attendance::query()
-                ->where('date', now()->format('Y-m-d'))
-                ->where('employee_id', $employeeId)
-                ->first();
-        }
-        $todayAttendanceId = $absensiHariIni?->id;
-        $hasCheckedInToday = ! empty($absensiHariIni?->clock_in);
-        $hasCheckedOutToday = ! empty($absensiHariIni?->clock_out);
         $totalLemburJam = 0;
 
         $agEvent = $attendance->groupBy(function ($data) {
@@ -110,44 +114,64 @@ class ReportController extends Controller
             })->values();
         });
 
-        $officeLocation = $this->resolveOfficeContext($userId);
-
-        $clientIpAddress = $this->resolveClientIpAddress($request);
-        $ipdataData = $this->fetchIpdata($clientIpAddress);
-        if (! empty($ipdataData['ip'])) {
-            $publicIp = (string) $ipdataData['ip'];
-        }
-
-        $allowedIpRange = is_array($officeLocation) ? ($officeLocation['ip_range'] ?? null) : null;
-        $publicIpPrefix = $this->extractIpTwoOctets($publicIp);
-        $allowedIpPrefix = $this->extractIpTwoOctets($allowedIpRange);
-        $isIpPrefixMatch = $publicIpPrefix !== null
-            && $allowedIpPrefix !== null
-            && $publicIpPrefix === $allowedIpPrefix;
-
-        return view('absensi.report', compact(
-            'attendance',
-            'izin',
-            'lembur',
-            'agEvent',
-            'totalLemburJam',
-            'absensiHariIni',
-            'officeLocation',
-            'publicIp',
-            'publicIpPrefix',
-            'allowedIpPrefix',
-            'isIpPrefixMatch',
-            'companies',
-            'showCompanyFilter',
-            'showStaffPeriodFilter',
-            'staffMonthOptions',
-            'staffYearOptions',
-            'defaultStaffMonth',
-            'defaultStaffYear',
-            'todayAttendanceId',
-            'hasCheckedInToday',
-            'hasCheckedOutToday',
+        return view('absensi.report', array_merge(
+            $attendanceCardsData,
+            compact(
+                'attendance',
+                'izin',
+                'lembur',
+                'agEvent',
+                'totalLemburJam',
+                'companies',
+                'showCompanyFilter',
+                'showStaffPeriodFilter',
+                'staffMonthOptions',
+                'staffYearOptions',
+                'defaultStaffMonth',
+                'defaultStaffYear',
+            )
         ));
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        try {
+            $storeResult = $this->attendanceMutationService->store(
+                $request,
+                Auth::user(),
+                Auth::id(),
+            );
+
+            return response()->json($storeResult['payload'], $storeResult['status']);
+        } catch (\Throwable $throwable) {
+            report($throwable);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memproses absen masuk.',
+            ], 500);
+        }
+    }
+
+    public function update(Request $request, Attendance $absensi): JsonResponse
+    {
+        try {
+            $updateResult = $this->attendanceMutationService->update(
+                $request,
+                $absensi,
+                Auth::user(),
+                Auth::id(),
+            );
+
+            return response()->json($updateResult['payload'], $updateResult['status']);
+        } catch (\Throwable $throwable) {
+            report($throwable);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memproses absen pulang.',
+            ], 500);
+        }
     }
 
     public function datatable(Request $request): JsonResponse
@@ -189,13 +213,26 @@ class ReportController extends Controller
                 return response()->json(['data' => []]);
             }
 
+            $employmentStartMonth = $this->resolveStaffEmploymentStartMonth($staffEmployeeId, $nowJakarta);
+            $currentMonthStart = $nowJakarta->copy()->startOfMonth();
+            $selectedPeriodStart = Carbon::create($selectedYear, $selectedMonth, 1, 0, 0, 0, 'Asia/Jakarta')->startOfMonth();
+
+            if ($selectedPeriodStart->lt($employmentStartMonth)) {
+                $selectedYear = (int) $employmentStartMonth->year;
+                $selectedMonth = (int) $employmentStartMonth->month;
+                $selectedPeriodStart = $employmentStartMonth->copy();
+            }
+
+            if ($selectedPeriodStart->gt($currentMonthStart)) {
+                $selectedYear = (int) $currentMonthStart->year;
+                $selectedMonth = (int) $currentMonthStart->month;
+            }
+
             $staffAttendances = Attendance::query()
                 ->where('employee_id', $staffEmployeeId)
                 ->whereMonth('date', $selectedMonth)
                 ->whereYear('date', $selectedYear)
-                ->orderByDesc('date')
-                ->orderByDesc('created_at')
-                ->get(['id', 'date', 'status', 'clock_in', 'clock_out', 'created_at']);
+                ->get(['id', 'date', 'status', 'clock_in', 'clock_out', 'work_hours', 'created_at']);
 
             $staffProfileName = EmployeeProfile::query()
                 ->where('employee_id', $staffEmployeeId)
@@ -226,32 +263,128 @@ class ReportController extends Controller
                 ])
                 ->groupBy('attendance_id')
                 ->map(fn ($attendanceLogs) => $attendanceLogs->first());
+            $attendanceExceptionsByAttendanceId = AttendanceException::query()
+                ->whereIn('attendance_id', $staffAttendances->pluck('id'))
+                ->orderByDesc('created_at')
+                ->get(['attendance_id', 'note', 'from_time', 'to_time'])
+                ->groupBy('attendance_id')
+                ->map(fn ($attendanceExceptions) => $attendanceExceptions->first());
+            $attendanceByDate = $staffAttendances
+                ->filter(fn (Attendance $attendanceItem): bool => $attendanceItem->date !== null)
+                ->sortBy('date')
+                ->keyBy(fn (Attendance $attendanceItem): string => $attendanceItem->date->format('Y-m-d'));
+            $holidayMapByDate = $this->buildHolidayMapByMonth($selectedYear, $selectedMonth);
+            $periodStart = Carbon::create($selectedYear, $selectedMonth, 1, 0, 0, 0, 'Asia/Jakarta')->startOfDay();
+            $periodEnd = $periodStart->copy()->endOfMonth()->startOfDay();
+            $todayJakarta = now('Asia/Jakarta')->startOfDay();
+            if ($selectedYear === (int) $todayJakarta->year && $selectedMonth === (int) $todayJakarta->month) {
+                $periodEnd = $todayJakarta->copy();
+            }
+            $tableRows = collect();
 
-            $tableRows = $staffAttendances->map(function (Attendance $attendanceItem) use ($attendanceLogsByAttendanceId, $staffDisplayName, $staffUser): array {
-                $attendanceLog = $attendanceLogsByAttendanceId->get($attendanceItem->id);
+            for ($cursorDate = $periodStart->copy(); $cursorDate->lte($periodEnd); $cursorDate->addDay()) {
+                $isoDate = $cursorDate->toDateString();
+                $attendanceItem = $attendanceByDate->get($isoDate);
 
-                return [
-                    'attendance_id' => $attendanceItem->id,
-                    'attendance_date' => $attendanceItem->date?->format('Y-m-d'),
-                    'attendance_created_at' => $attendanceItem->date?->format('Y-m-d'),
-                    'staff_name' => $staffDisplayName,
-                    'company_name' => $staffUser->employee?->deployment?->company?->name,
-                    'check_in' => $attendanceItem->clock_in?->format('H:i'),
-                    'check_out' => $attendanceItem->clock_out?->format('H:i'),
-                    'status' => $attendanceItem->status,
-                    'check_in_latitude' => isset($attendanceLog?->latitude) ? (float) $attendanceLog->latitude : null,
-                    'check_in_longitude' => isset($attendanceLog?->longitude) ? (float) $attendanceLog->longitude : null,
-                    'distance_meters' => isset($attendanceLog?->distance) ? (float) $attendanceLog->distance : null,
-                    'radius_result' => isset($attendanceLog?->radius_result) ? (string) $attendanceLog->radius_result : null,
-                    'formatted_address' => isset($attendanceLog?->location) ? (string) $attendanceLog->location : null,
-                    'address_village' => isset($attendanceLog?->address_village) ? (string) $attendanceLog->address_village : null,
-                    'address_district' => isset($attendanceLog?->address_district) ? (string) $attendanceLog->address_district : null,
-                    'address_regency' => isset($attendanceLog?->address_regency) ? (string) $attendanceLog->address_regency : null,
-                    'address_city' => isset($attendanceLog?->address_city) ? (string) $attendanceLog->address_city : null,
-                    'address_province' => isset($attendanceLog?->address_province) ? (string) $attendanceLog->address_province : null,
-                    'address_postal_code' => isset($attendanceLog?->address_postal_code) ? (string) $attendanceLog->address_postal_code : null,
-                ];
-            })->values();
+                if ($attendanceItem instanceof Attendance) {
+                    $attendanceLog = $attendanceLogsByAttendanceId->get($attendanceItem->id);
+                    $attendanceException = $attendanceExceptionsByAttendanceId->get($attendanceItem->id);
+                    $variance = $this->formatVariance($attendanceException?->from_time, $attendanceException?->to_time);
+                    $checkInValue = $attendanceItem->clock_in?->format('H:i');
+                    $checkOutValue = $attendanceItem->clock_out?->format('H:i');
+
+                    $tableRows->push([
+                        'attendance_id' => $attendanceItem->id,
+                        'attendance_date' => $attendanceItem->date?->translatedFormat('d M Y'),
+                        'attendance_date_iso' => $isoDate,
+                        'staff_name' => $staffDisplayName,
+                        'company_name' => $staffUser->employee?->deployment?->company?->name,
+                        'check_in' => $checkInValue,
+                        'check_out' => $checkOutValue,
+                        'variance' => $variance,
+                        'work_hours' => $this->formatWorkHoursLabel($checkInValue, $checkOutValue, $attendanceItem->work_hours),
+                        'notes' => is_string($attendanceException?->note) && trim($attendanceException->note) !== '' ? trim($attendanceException->note) : null,
+                        'status' => $attendanceItem->status,
+                        'row_type' => 'attendance',
+                        'is_virtual' => false,
+                        'check_in_latitude' => isset($attendanceLog?->latitude) ? (float) $attendanceLog->latitude : null,
+                        'check_in_longitude' => isset($attendanceLog?->longitude) ? (float) $attendanceLog->longitude : null,
+                        'distance_meters' => isset($attendanceLog?->distance) ? (float) $attendanceLog->distance : null,
+                        'radius_result' => isset($attendanceLog?->radius_result) ? (string) $attendanceLog->radius_result : null,
+                        'formatted_address' => isset($attendanceLog?->location) ? (string) $attendanceLog->location : null,
+                        'address_village' => isset($attendanceLog?->address_village) ? (string) $attendanceLog->address_village : null,
+                        'address_district' => isset($attendanceLog?->address_district) ? (string) $attendanceLog->address_district : null,
+                        'address_regency' => isset($attendanceLog?->address_regency) ? (string) $attendanceLog->address_regency : null,
+                        'address_city' => isset($attendanceLog?->address_city) ? (string) $attendanceLog->address_city : null,
+                        'address_province' => isset($attendanceLog?->address_province) ? (string) $attendanceLog->address_province : null,
+                        'address_postal_code' => isset($attendanceLog?->address_postal_code) ? (string) $attendanceLog->address_postal_code : null,
+                    ]);
+
+                    continue;
+                }
+
+                $holidayData = $holidayMapByDate[$isoDate] ?? null;
+                if (is_array($holidayData)) {
+                    $isNationalHoliday = (bool) ($holidayData['is_national_holiday'] ?? false);
+                    $tableRows->push([
+                        'attendance_id' => null,
+                        'attendance_date' => $cursorDate->translatedFormat('d M Y'),
+                        'attendance_date_iso' => $isoDate,
+                        'staff_name' => $staffDisplayName,
+                        'company_name' => $staffUser->employee?->deployment?->company?->name,
+                        'check_in' => (string) ($holidayData['name'] ?? '-'),
+                        'check_out' => '-',
+                        'variance' => $isNationalHoliday ? 'Libur Nasional' : 'Cuti Bersama',
+                        'work_hours' => '0 hours',
+                        'notes' => null,
+                        'status' => null,
+                        'row_type' => $isNationalHoliday ? 'national_holiday' : 'joint_leave',
+                        'is_virtual' => true,
+                        'check_in_latitude' => null,
+                        'check_in_longitude' => null,
+                        'distance_meters' => null,
+                        'radius_result' => null,
+                        'formatted_address' => null,
+                        'address_village' => null,
+                        'address_district' => null,
+                        'address_regency' => null,
+                        'address_city' => null,
+                        'address_province' => null,
+                        'address_postal_code' => null,
+                    ]);
+
+                    continue;
+                }
+
+                if ($cursorDate->isWeekend()) {
+                    $tableRows->push([
+                        'attendance_id' => null,
+                        'attendance_date' => $cursorDate->translatedFormat('d M Y'),
+                        'attendance_date_iso' => $isoDate,
+                        'staff_name' => $staffDisplayName,
+                        'company_name' => $staffUser->employee?->deployment?->company?->name,
+                        'check_in' => 'Weekend / Day Off',
+                        'check_out' => '-',
+                        'variance' => 'Weekend / Day Off',
+                        'work_hours' => '0 hours',
+                        'notes' => null,
+                        'status' => null,
+                        'row_type' => 'weekend',
+                        'is_virtual' => true,
+                        'check_in_latitude' => null,
+                        'check_in_longitude' => null,
+                        'distance_meters' => null,
+                        'radius_result' => null,
+                        'formatted_address' => null,
+                        'address_village' => null,
+                        'address_district' => null,
+                        'address_regency' => null,
+                        'address_city' => null,
+                        'address_province' => null,
+                        'address_postal_code' => null,
+                    ]);
+                }
+            }
 
             return response()->json([
                 'data' => $tableRows,
@@ -291,7 +424,7 @@ class ReportController extends Controller
             ->whereIn('employee_id', $employeeIds)
             ->whereDate('date', $todayDate)
             ->orderByDesc('created_at')
-            ->get(['id', 'employee_id', 'date', 'clock_in', 'clock_out', 'status'])
+            ->get(['id', 'employee_id', 'date', 'clock_in', 'clock_out', 'work_hours', 'status'])
             ->groupBy('employee_id')
             ->map(fn ($attendanceItems) => $attendanceItems->first());
         $attendanceIds = $tableUsers
@@ -318,10 +451,21 @@ class ReportController extends Controller
             ])
             ->groupBy('attendance_id')
             ->map(fn ($attendanceLogs) => $attendanceLogs->first());
+        $attendanceExceptionsByAttendanceId = AttendanceException::query()
+            ->whereIn('attendance_id', $attendanceIds)
+            ->orderByDesc('created_at')
+            ->get(['attendance_id', 'note', 'from_time', 'to_time'])
+            ->groupBy('attendance_id')
+            ->map(fn ($attendanceExceptions) => $attendanceExceptions->first());
 
-        $tableRows = $tableUsers->map(function (User $user) use ($attendanceLogsByAttendanceId, $attendancesTodayByEmployeeId, $todayDate, $employeeProfileNamesByEmployeeId): array {
+        $tableRows = $tableUsers->map(function (User $user) use ($attendanceLogsByAttendanceId, $attendanceExceptionsByAttendanceId, $attendancesTodayByEmployeeId, $todayDate, $employeeProfileNamesByEmployeeId): array {
             $attendanceToday = $attendancesTodayByEmployeeId->get($user->employee?->id);
             $attendanceLog = $attendanceToday ? $attendanceLogsByAttendanceId->get($attendanceToday->id) : null;
+            $attendanceException = $attendanceToday ? $attendanceExceptionsByAttendanceId->get($attendanceToday->id) : null;
+            $variance = $this->formatVariance($attendanceException?->from_time, $attendanceException?->to_time);
+            $checkInValue = $attendanceToday?->clock_in?->format('H:i');
+            $checkOutValue = $attendanceToday?->clock_out?->format('H:i');
+            $workHours = $this->formatWorkHoursLabel($checkInValue, $checkOutValue, $attendanceToday?->work_hours);
             $employeeId = $user->employee?->id;
             $profileName = is_string($employeeId) ? $employeeProfileNamesByEmployeeId->get($employeeId) : null;
             $staffDisplayName = is_string($profileName) && trim($profileName) !== ''
@@ -332,12 +476,18 @@ class ReportController extends Controller
 
             return [
                 'attendance_id' => $attendanceToday?->id,
-                'attendance_date' => $attendanceToday?->date?->format('Y-m-d') ?? $todayDate,
+                'attendance_date' => $attendanceToday?->date?->translatedFormat('d M Y') ?? Carbon::parse($todayDate, 'Asia/Jakarta')->translatedFormat('d M Y'),
+                'attendance_date_iso' => $attendanceToday?->date?->format('Y-m-d') ?? $todayDate,
                 'staff_name' => $staffDisplayName,
                 'company_name' => $user->employee?->deployment?->company?->name,
-                'check_in' => $attendanceToday?->clock_in?->format('H:i'),
-                'check_out' => $attendanceToday?->clock_out?->format('H:i'),
+                'check_in' => $checkInValue,
+                'check_out' => $checkOutValue,
+                'variance' => $variance,
+                'work_hours' => $workHours,
+                'notes' => is_string($attendanceException?->note) && trim($attendanceException->note) !== '' ? trim($attendanceException->note) : null,
                 'status' => $attendanceToday?->status,
+                'row_type' => 'attendance',
+                'is_virtual' => false,
                 'check_in_latitude' => isset($attendanceLog?->latitude) ? (float) $attendanceLog->latitude : null,
                 'check_in_longitude' => isset($attendanceLog?->longitude) ? (float) $attendanceLog->longitude : null,
                 'distance_meters' => isset($attendanceLog?->distance) ? (float) $attendanceLog->distance : null,
@@ -357,118 +507,28 @@ class ReportController extends Controller
         ]);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function fetchIpdata(?string $ipAddress = null): array
+    public function exportReport(Request $request): Responsable
     {
-        $ipdataApiKey = config('services.ipdata.api_key');
+        $datatableResponse = $this->datatable($request);
+        $payload = $datatableResponse->getData(true);
+        $reportRows = collect($payload['data'] ?? []);
+        $nowJakarta = now('Asia/Jakarta');
+        $selectedMonth = (int) $request->integer('month', (int) $nowJakarta->month);
+        $selectedYear = (int) $request->integer('year', (int) $nowJakarta->year);
 
-        if (empty($ipdataApiKey)) {
-            return [];
-        }
+        $periodLabel = Carbon::create($selectedYear, max(1, min(12, $selectedMonth)), 1, 0, 0, 0, 'Asia/Jakarta')
+            ->translatedFormat('F Y');
 
-        try {
-            $endpoint = 'https://api.ipdata.co';
-            if ($ipAddress) {
-                $endpoint .= '/'.rawurlencode($ipAddress);
-            }
-
-            $ipdataResponse = Http::timeout(7)
-                ->acceptJson()
-                ->get($endpoint, [
-                    'api-key' => $ipdataApiKey,
-                ]);
-
-            if (! $ipdataResponse->successful()) {
-                return [];
-            }
-
-            $ipdataData = $ipdataResponse->json();
-
-            return is_array($ipdataData) ? $ipdataData : [];
-        } catch (\Throwable) {
-            return [];
-        }
-    }
-
-    /**
-     * @return array{
-     *     name:string|null,
-     *     address:string|null,
-     *     latitude:float,
-     *     longitude:float,
-     *     radius_meters:int,
-     *     ip_range:string|null,
-     *     office_start_time:string,
-     *     office_end_time:string
-     * }|null
-     */
-    private function resolveOfficeContext(int|string|null $userId): ?array
-    {
-        if (! is_string($userId) && ! is_int($userId)) {
-            return null;
-        }
-
-        $currentUser = User::query()
-            ->with([
-                'employee.deployment.company:id,name,address,latitude,longitude',
-                'employee.deployment.company.activeAttendanceRule' => static function ($query): void {
-                    $query->select([
-                        'rules_of_attendaces.id',
-                        'rules_of_attendaces.companies_id',
-                        'rules_of_attendaces.radius',
-                        'rules_of_attendaces.ip_range',
-                        'rules_of_attendaces.office_start_time',
-                        'rules_of_attendaces.office_end_time',
-                    ]);
-                },
-            ])
-            ->find($userId);
-
-        $officeCompany = $currentUser?->employee?->deployment?->company;
-
-        if (! $officeCompany || $officeCompany->latitude === null || $officeCompany->longitude === null) {
-            return null;
-        }
-
-        $attendanceRule = $officeCompany->activeAttendanceRule;
-
-        return [
-            'name' => $officeCompany->name,
-            'address' => $officeCompany->address,
-            'latitude' => (float) $officeCompany->latitude,
-            'longitude' => (float) $officeCompany->longitude,
-            'radius_meters' => (int) ($attendanceRule->radius ?? 10),
-            'ip_range' => isset($attendanceRule?->ip_range) ? (string) $attendanceRule->ip_range : null,
-            'office_start_time' => isset($attendanceRule?->office_start_time) && is_string($attendanceRule->office_start_time)
-                ? $attendanceRule->office_start_time
-                : '08:00:00',
-            'office_end_time' => isset($attendanceRule?->office_end_time) && is_string($attendanceRule->office_end_time)
-                ? $attendanceRule->office_end_time
-                : '17:00:00',
-        ];
-    }
-
-    private function extractIpTwoOctets(?string $ipValue): ?string
-    {
-        if ($ipValue === null) {
-            return null;
-        }
-
-        $matches = [];
-        if (preg_match('/(\d{1,3})\.(\d{1,3})/', $ipValue, $matches) !== 1) {
-            return null;
-        }
-
-        $firstOctet = (int) $matches[1];
-        $secondOctet = (int) $matches[2];
-
-        if ($firstOctet > 255 || $secondOctet > 255) {
-            return null;
-        }
-
-        return $firstOctet.'.'.$secondOctet;
+        return Pdf::view('absensi.report-pdf', [
+            'rows' => $reportRows,
+            'periodLabel' => $periodLabel,
+            'generatedAt' => $nowJakarta->translatedFormat('d M Y H:i'),
+            'userLabel' => Auth::user()?->username ?? Auth::user()?->email ?? '-',
+        ])
+            ->driver('dompdf')
+            ->format(Format::A4)
+            ->name('attendance-report-'.$selectedYear.'-'.str_pad((string) $selectedMonth, 2, '0', STR_PAD_LEFT).'.pdf')
+            ->download();
     }
 
     private function isSuperUser(?User $user): bool
@@ -506,17 +566,184 @@ class ReportController extends Controller
             ->contains('staff');
     }
 
-    private function resolveClientIpAddress(Request $request, mixed $preferredIpAddress = null): ?string
+    private function formatVariance(mixed $fromTime, mixed $toTime): ?string
     {
-        if (is_string($preferredIpAddress) && filter_var($preferredIpAddress, FILTER_VALIDATE_IP)) {
-            return $preferredIpAddress;
+        if (! $fromTime || ! $toTime) {
+            return null;
         }
 
-        $requestIpAddress = $request->ip();
-        if (is_string($requestIpAddress) && filter_var($requestIpAddress, FILTER_VALIDATE_IP)) {
-            return $requestIpAddress;
+        $fromDateTime = Carbon::parse($fromTime);
+        $toDateTime = Carbon::parse($toTime);
+        $minutes = abs($fromDateTime->diffInMinutes($toDateTime, false));
+
+        return number_format($minutes / 60, 2, '.', '');
+    }
+
+    /**
+     * @return array<string, array{name:string,is_national_holiday:bool}>
+     */
+    private function buildHolidayMapByMonth(int $year, int $month): array
+    {
+        $holidayItems = $this->fetchPublicHolidaysByYear($year);
+        $holidayMapByDate = [];
+
+        foreach ($holidayItems as $holidayItem) {
+            if (! is_array($holidayItem)) {
+                continue;
+            }
+
+            $dateValue = isset($holidayItem['date']) ? trim((string) $holidayItem['date']) : '';
+            $nameValue = isset($holidayItem['name']) ? trim((string) $holidayItem['name']) : '';
+            if ($dateValue === '' || $nameValue === '') {
+                continue;
+            }
+
+            $parsedDate = Carbon::parse($dateValue, 'Asia/Jakarta');
+            if ((int) $parsedDate->month !== $month) {
+                continue;
+            }
+
+            $holidayMapByDate[$parsedDate->toDateString()] = [
+                'name' => $nameValue,
+                'is_national_holiday' => (bool) ($holidayItem['is_national_holiday'] ?? false),
+            ];
         }
 
-        return null;
+        return $holidayMapByDate;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function fetchPublicHolidaysByYear(int $year): array
+    {
+        $cacheKey = 'public-holidays-deno-year-'.$year;
+
+        return Cache::remember($cacheKey, now('Asia/Jakarta')->addHours(12), function () use ($year): array {
+            try {
+                $response = Http::timeout(8)
+                    ->retry(2, 300)
+                    ->acceptJson()
+                    ->get('https://libur.deno.dev/api', ['year' => $year]);
+
+                if (! $response->successful()) {
+                    return [];
+                }
+
+                $payload = $response->json();
+
+                return is_array($payload) ? $payload : [];
+            } catch (\Throwable) {
+                return [];
+            }
+        });
+    }
+
+    private function formatWorkHoursLabel(?string $clockInValue, ?string $clockOutValue, mixed $storedWorkHours): string
+    {
+        if (is_string($clockInValue) && is_string($clockOutValue)) {
+            $clockInTimestamp = strtotime($clockInValue);
+            $clockOutTimestamp = strtotime($clockOutValue);
+
+            if ($clockInTimestamp !== false && $clockOutTimestamp !== false) {
+                $minutes = max(0, (int) round(abs(($clockOutTimestamp - $clockInTimestamp) / 60)));
+
+                return $this->formatMinutesToHoursLabel($minutes);
+            }
+        }
+
+        if (is_numeric($storedWorkHours)) {
+            $minutes = max(0, (int) round(((float) $storedWorkHours) * 60));
+
+            return $this->formatMinutesToHoursLabel($minutes);
+        }
+
+        return '0 hours';
+    }
+
+    private function formatMinutesToHoursLabel(int $minutes): string
+    {
+        if ($minutes <= 0) {
+            return '0 hours';
+        }
+
+        $hoursPart = intdiv($minutes, 60);
+        $minutesPart = $minutes % 60;
+        if ($minutesPart === 0) {
+            return $hoursPart.' hours';
+        }
+
+        return $hoursPart.' hours, '.$minutesPart.' minutes';
+    }
+
+    private function resolveStaffEmploymentStartMonth(?string $employeeId, Carbon $nowJakarta): Carbon
+    {
+        if (! is_string($employeeId) || trim($employeeId) === '') {
+            return $nowJakarta->copy()->startOfYear();
+        }
+
+        $organizationStartDateRaw = DB::table('employee_organization')
+            ->where('employee_id', $employeeId)
+            ->whereNull('deleted_at')
+            ->whereNotNull('start_date')
+            ->orderBy('start_date')
+            ->value('start_date');
+
+        if (is_string($organizationStartDateRaw) && trim($organizationStartDateRaw) !== '') {
+            return Carbon::parse($organizationStartDateRaw, 'Asia/Jakarta')->startOfMonth();
+        }
+
+        $deploymentJoinDateRaw = DB::table('employee_deployments')
+            ->where('employee_id', $employeeId)
+            ->whereNull('deleted_at')
+            ->whereNotNull('join_date')
+            ->orderBy('join_date')
+            ->value('join_date');
+
+        if (is_string($deploymentJoinDateRaw) && trim($deploymentJoinDateRaw) !== '') {
+            return Carbon::parse($deploymentJoinDateRaw, 'Asia/Jakarta')->startOfMonth();
+        }
+
+        return $nowJakarta->copy()->startOfYear();
+    }
+
+    /**
+     * @return Collection<int, int>
+     */
+    private function buildStaffYearOptions(Carbon $employmentStartMonth, Carbon $nowJakarta): Collection
+    {
+        $startYear = (int) $employmentStartMonth->year;
+        $endYear = (int) $nowJakarta->year;
+
+        if ($startYear > $endYear) {
+            $startYear = $endYear;
+        }
+
+        return collect(range($startYear, $endYear))->values();
+    }
+
+    /**
+     * @return Collection<int, int>
+     */
+    private function buildStaffMonthOptionsByYear(Carbon $employmentStartMonth, Carbon $nowJakarta, int $selectedYear): Collection
+    {
+        $startMonth = 1;
+        $endMonth = 12;
+        $currentYear = (int) $nowJakarta->year;
+        $employmentStartYear = (int) $employmentStartMonth->year;
+
+        if ($selectedYear === $employmentStartYear) {
+            $startMonth = (int) $employmentStartMonth->month;
+        }
+
+        if ($selectedYear === $currentYear) {
+            $endMonth = (int) $nowJakarta->month;
+        }
+
+        if ($startMonth > $endMonth) {
+            $startMonth = $endMonth;
+        }
+
+        return collect(range($startMonth, $endMonth))->values();
     }
 }

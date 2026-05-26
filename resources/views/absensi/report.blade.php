@@ -6,8 +6,11 @@
     @php
         $dashboardCssPath = public_path('assets/css/dashboard.css');
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
+        $absensiCssPath = public_path('assets/css/absensi.css');
+        $absensiCssVersion = file_exists($absensiCssPath) ? filemtime($absensiCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/absensi.css') }}?v={{ $absensiCssVersion }}">
     <link rel="stylesheet" href="https://unpkg.com/antd@6.2.3/dist/antd.css">
     <!-- Start - All Required Plugins -->
     <style>
@@ -83,26 +86,33 @@
             text-align: center;
         }
 
-        .attendance-detail-label {
-            width: 150px;
-            color: #64748b;
+        .attendance-tag {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.25rem 0.65rem;
+            font-size: 0.75rem;
             font-weight: 600;
         }
 
-        .attendance-detail-map-canvas {
-            width: 100%;
-            height: 260px;
-            border-radius: 0.65rem;
-            border: 1px solid #e2e8f0;
-            background: #f8fafc;
-            overflow: hidden;
+        .attendance-tag--holiday {
+            background: #f3e8ff;
+            color: #7e22ce;
         }
 
-        .attendance-detail-map-empty {
-            display: none;
-            margin-top: 0.65rem;
-            font-size: 0.9rem;
-            color: #64748b;
+        .attendance-tag--joint {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .attendance-tag--weekend {
+            background: #fee2e2;
+            color: #7f1d1d;
+        }
+
+        .attendance-tag--empty-note {
+            background: #f1f5f9;
+            color: #475569;
         }
 
         #tableLogs.dataTable tbody td.dataTables_empty {
@@ -230,6 +240,9 @@
     </div>
 </div>
 
+@include('absensi.components.attendance-cards')
+
+
 <div class="tab-content" id="tabContentMyProfileBottom">
     <div class="row">
 
@@ -237,24 +250,44 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header border-0 align-items-center logs-card-header">
-                    <h4 class="card-title">Logs</h4>
+                    <h4 class="card-title">Attandance Report</h4>
                     <div class="d-flex align-items-center gap-2 logs-toolbar">
+                        @if ($showCompanyFilter ?? false)
+                            <div class="clearfix">
+                                <select id="attendanceCompanyFilter" class="selectpicker" data-live-search="true" title="Pilih PT">
+                                    <option value="">Semua PT</option>
+                                    @foreach (($companies ?? collect()) as $company)
+                                        <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+
+                        @if ($showStaffPeriodFilter ?? false)
+                            <div class="clearfix">
+                                <select id="attendanceMonthFilter" class="selectpicker" title="Pilih Bulan">
+                                    @foreach (($staffMonthOptions ?? collect()) as $monthValue)
+                                        <option value="{{ $monthValue }}" @selected((int) ($defaultStaffMonth ?? 0) === (int) $monthValue)>
+                                            {{ \Illuminate\Support\Carbon::create(null, (int) $monthValue, 1)->translatedFormat('F') }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="clearfix">
+                                <select id="attendanceYearFilter" class="selectpicker" title="Pilih Tahun">
+                                    @foreach (($staffYearOptions ?? collect()) as $yearValue)
+                                        <option value="{{ $yearValue }}" @selected((int) ($defaultStaffYear ?? 0) === (int) $yearValue)>
+                                            {{ $yearValue }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+
                         <div class="clearfix">
-                            <select class="selectpicker">
-                                <option value="All Time">All Time</option>
-                                <option value="Weekly">Week</option>
-                                <option value="Monthly">Month</option>
-                            </select>
-                        </div>
-                        <div class="clearfix">
-                            <select class="selectpicker">
-                                <option value="View All">View All</option>
-                                <option value="Top 10">Top 10</option>
-                                <option value="Top 20">Top 20</option>
-                            </select>
-                        </div>
-                        <div class="clearfix">
-                            <button class="btn btn-sm btn-primary">Reset</button>
+                            <button type="button" id="attendanceExportButton" class="btn btn-sm btn-primary">
+                                Export report
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -263,19 +296,12 @@
                         <table id="tableLogs" class="table table-sm table-sm-responsive text-nowrap">
                             <thead>
                                 <tr>
-                                    <th class="mw-50">No</th>
-                                    @if ($showStaffPeriodFilter ?? false)
                                     <th class="mw-120">Date</th>
-                                    @endif
-                                    @if (! ($showStaffPeriodFilter ?? false))
-                                    <th class="mw-150">Nama Staff</th>
-                                    @endif
-                                    <th class="mw-100">Masuk</th>
-                                    <th class="mw-150">Pulang</th>
-                                    @if (! ($showStaffPeriodFilter ?? false))
-                                    <th class="mw-100">Nama PT</th>
-                                    <th class="text-end mw-100">Action</th>
-                                    @endif
+                                    <th class="mw-100">Clock In</th>
+                                    <th class="mw-150">Clock Out</th>
+                                    <th class="mw-100">Variance</th>
+                                    <th class="mw-100">Work Hours</th>
+                                    <th class="mw-150">Notes</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -288,56 +314,6 @@
     </div>
 </div>
 <!-- Login Sessions table temporarily removed -->
-<div class="modal fade" id="attendanceDetailModal" tabindex="-1" aria-labelledby="attendanceDetailModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="attendanceDetailModalLabel">Detail Absensi</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                        <tbody>
-                        <tr>
-                            <td class="attendance-detail-label">Alamat</td>
-                            <td id="attendanceDetailFormattedAddress">-</td>
-                        </tr>
-                        <tr>
-                            <td class="attendance-detail-label">Desa/Kelurahan</td>
-                            <td id="attendanceDetailVillage">-</td>
-                        </tr>
-                        <tr>
-                            <td class="attendance-detail-label">Kecamatan</td>
-                            <td id="attendanceDetailDistrict">-</td>
-                        </tr>
-                        <tr>
-                            <td class="attendance-detail-label">Kabupaten/Kota</td>
-                            <td id="attendanceDetailRegency">-</td>
-                        </tr>
-                        <tr>
-                            <td class="attendance-detail-label">Provinsi</td>
-                            <td id="attendanceDetailProvince">-</td>
-                        </tr>
-                        <tr>
-                            <td class="attendance-detail-label">Kode Pos</td>
-                            <td id="attendanceDetailPostalCode">-</td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-3">
-                    <div id="attendanceDetailLocationInfo" class="small text-muted mb-2">Lokasi absen: -</div>
-                    <div id="attendanceDetailMapCanvas" class="attendance-detail-map-canvas"></div>
-                    <div id="attendanceDetailMapEmpty" class="attendance-detail-map-empty">Lokasi absen tidak tersedia.</div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
-            </div>
-        </div>
-    </div>
-</div>
 <!-- End - Content Body -->
 
 @endsection
@@ -355,25 +331,10 @@
             var attendanceCompanyFilter = document.getElementById('attendanceCompanyFilter');
             var attendanceMonthFilter = document.getElementById('attendanceMonthFilter');
             var attendanceYearFilter = document.getElementById('attendanceYearFilter');
-            var googleMapsApiKey = @json(config('services.google_maps.api_key'));
+            var attendanceExportButton = document.getElementById('attendanceExportButton');
             var officeLocation = @json($officeLocation);
-            var attendanceDetailModalElement = document.getElementById('attendanceDetailModal');
-            var attendanceDetailModalLabel = document.getElementById('attendanceDetailModalLabel');
-            var attendanceDetailFormattedAddressElement = document.getElementById('attendanceDetailFormattedAddress');
-            var attendanceDetailVillageElement = document.getElementById('attendanceDetailVillage');
-            var attendanceDetailDistrictElement = document.getElementById('attendanceDetailDistrict');
-            var attendanceDetailRegencyElement = document.getElementById('attendanceDetailRegency');
-            var attendanceDetailProvinceElement = document.getElementById('attendanceDetailProvince');
-            var attendanceDetailPostalCodeElement = document.getElementById('attendanceDetailPostalCode');
-            var attendanceDetailLocationInfoElement = document.getElementById('attendanceDetailLocationInfo');
-            var attendanceDetailMapCanvasElement = document.getElementById('attendanceDetailMapCanvas');
-            var attendanceDetailMapEmptyElement = document.getElementById('attendanceDetailMapEmpty');
-            var attendanceDetailMapInstance = null;
-            var attendanceDetailUserMarker = null;
-            var attendanceDetailOfficeMarker = null;
-            var attendanceDetailLine = null;
             var attendanceDatatableUrl = @json(route('absensi.reports.datatable'));
-            var isStaffTableView = @json($showStaffPeriodFilter ?? false);
+            var attendanceExportUrl = @json(route('absensi.reports.export'));
             var officeStartTotalMinutes = parseTimeStringToMinutes(officeLocation && officeLocation.office_start_time, 8 * 60);
 
             var attendanceTable = null;
@@ -412,41 +373,43 @@
                 }
 
                 var attendanceColumns = [
-                    { data: null, defaultContent: '' }
-                ];
-                if (isStaffTableView) {
-                    attendanceColumns.push({ data: 'attendance_created_at', defaultContent: '-' });
-                }
-                if (!isStaffTableView) {
-                    attendanceColumns.push({ data: 'staff_name', defaultContent: '-' });
-                }
-                attendanceColumns.push(
+                    { data: 'attendance_date', defaultContent: '-' },
                     { data: 'check_in', defaultContent: '' },
-                    { data: 'check_out', defaultContent: '' }
-                );
-                if (!isStaffTableView) {
-                    attendanceColumns.push(
-                        { data: 'company_name', defaultContent: '-' },
-                        { data: null, defaultContent: '' }
-                    );
-                }
+                    { data: 'check_out', defaultContent: '' },
+                    { data: 'variance', defaultContent: '-' },
+                    { data: 'work_hours', defaultContent: '-' },
+                    { data: 'notes', defaultContent: '-' }
+                ];
 
-                var checkInColumnIndex = isStaffTableView ? 1 : 2;
-                var checkOutColumnIndex = isStaffTableView ? 2 : 3;
-                if (isStaffTableView) {
-                    checkInColumnIndex = 2;
-                    checkOutColumnIndex = 3;
-                }
-                var actionColumnIndex = attendanceColumns.length - 1;
+                var checkInColumnIndex = 1;
+                var checkOutColumnIndex = 2;
                 var attendanceColumnDefs = [
                     {
                         targets: 0,
-                        searchable: false,
-                        orderable: false
+                        render: function (data, type, rowData) {
+                            if (type === 'sort' || type === 'type') {
+                                return rowData && rowData.attendance_date_iso ? rowData.attendance_date_iso : (data || '');
+                            }
+
+                            return data || '-';
+                        }
                     },
                     {
                         targets: checkInColumnIndex,
-                        render: function (data) {
+                        render: function (data, type, rowData) {
+                            var rowType = rowData && rowData.row_type ? String(rowData.row_type) : '';
+                            if (rowType === 'national_holiday') {
+                                return '<span class="attendance-tag attendance-tag--holiday">' + (data || 'Libur Nasional') + '</span>';
+                            }
+
+                            if (rowType === 'joint_leave') {
+                                return '<span class="attendance-tag attendance-tag--joint">' + (data || 'Cuti Bersama') + '</span>';
+                            }
+
+                            if (rowType === 'weekend') {
+                                return '<span class="attendance-tag attendance-tag--weekend">' + (data || 'Weekend / Day Off') + '</span>';
+                            }
+
                             if (data) {
                                 var timeParts = String(data).split(':');
                                 var checkInHour = parseInt(timeParts[0], 10);
@@ -465,43 +428,42 @@
                     },
                     {
                         targets: checkOutColumnIndex,
-                        render: function (data) {
+                        render: function (data, type, rowData) {
+                            var rowType = rowData && rowData.row_type ? String(rowData.row_type) : '';
+                            if (rowType === 'national_holiday' || rowType === 'joint_leave' || rowType === 'weekend') {
+                                return '-';
+                            }
+
                             if (data) {
                                 return data;
                             }
 
                             return '<span class="badge-attendance-empty">Belum Absen Pulang</span>';
                         }
-                    }
-                ];
-                if (isStaffTableView) {
-                    attendanceColumnDefs.push({
-                        targets: 1,
+                    },
+                    {
+                        targets: 3,
                         render: function (data) {
-                            if (!data) {
-                                return '-';
+                            return data || '-';
+                        }
+                    },
+                    {
+                        targets: 4,
+                        render: function (data) {
+                            return data || '-';
+                        }
+                    },
+                    {
+                        targets: 5,
+                        render: function (data) {
+                            if (data && String(data).trim() !== '') {
+                                return data;
                             }
 
-                            return data;
+                            return '<span class="attendance-tag attendance-tag--empty-note">No Notes</span>';
                         }
-                    });
-                }
-                if (!isStaffTableView) {
-                    attendanceColumnDefs.push({
-                        targets: actionColumnIndex,
-                        searchable: false,
-                        orderable: false,
-                        className: 'text-end',
-                        render: function () {
-                            return '<div class="dropdown dropdown-sm">'
-                                + '<button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Options</button>'
-                                + '<ul class="dropdown-menu dropdown-menu-end">'
-                                + '<li><a class="dropdown-item" href="javascript:void(0)" onclick="onClickAttendanceDetail(this)">Detail</a></li>'
-                                + '</ul>'
-                                + '</div>';
-                        }
-                    });
-                }
+                    }
+                ];
 
                 attendanceTable = $('#tableLogs').DataTable({
                     ajax: {
@@ -516,8 +478,8 @@
                     autoWidth: false,
                     scrollX: true,
                     searching: false,
-                    pageLength: 6,
-                    select: false,
+                    pageLength: 10,
+                    select: false,            
                     lengthChange: false,
                     paging: true,
                     bInfo: true,
@@ -527,7 +489,7 @@
                         emptyTable: 'No data available in table',
                         paginate: {
                             next: '<i class="fa-solid fa-angle-right"></i>',
-                            previous: '<i class="fa-solid fa-angle-left"></i>'
+                            previous: '<i class="fa-solid fa-angle-left"></i>' 
                         }
                     },
                     drawCallback: function () {
@@ -536,10 +498,7 @@
                 });
 
                 attendanceTable.on('order.dt search.dt draw.dt', function () {
-                    var pageInfo = attendanceTable.page.info();
-                    attendanceTable.column(0, { page: 'current' }).nodes().each(function (cell, index) {
-                        cell.innerHTML = pageInfo.start + index + 1;
-                    });
+                    // keep draw event to retain empty-page handler behavior
                 });
 
                 ensureEmptyPageOne(attendanceTable);
@@ -563,44 +522,6 @@
                 }
 
                 return (hourValue * 60) + minuteValue;
-            }
-
-            function loadGoogleMapsApi() {
-                return new Promise(function (resolve, reject) {
-                    if (window.google && window.google.maps) {
-                        resolve();
-                        return;
-                    }
-
-                    if (!googleMapsApiKey) {
-                        reject(new Error('GOOGLE_MAPS_API_KEY belum diset'));
-                        return;
-                    }
-
-                    var existingScript = document.getElementById('googleMapsScript');
-                    if (existingScript) {
-                        existingScript.addEventListener('load', function () {
-                            resolve();
-                        });
-                        existingScript.addEventListener('error', function () {
-                            reject(new Error('Gagal memuat Google Maps API'));
-                        });
-                        return;
-                    }
-
-                    var script = document.createElement('script');
-                    script.id = 'googleMapsScript';
-                    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(googleMapsApiKey);
-                    script.async = true;
-                    script.defer = true;
-                    script.onload = function () {
-                        resolve();
-                    };
-                    script.onerror = function () {
-                        reject(new Error('Gagal memuat Google Maps API'));
-                    };
-                    document.head.appendChild(script);
-                });
             }
 
             function renderAttendanceDateTime() {
@@ -644,200 +565,6 @@
                 attendanceDateElement.textContent = formattedDateTime;
             }
 
-            function showAttendanceDetail(rowData) {
-                var staffName = rowData && rowData.staff_name ? rowData.staff_name : '-';
-                var formattedAddress = rowData && rowData.formatted_address ? rowData.formatted_address : '-';
-                var villageName = rowData && rowData.address_village ? rowData.address_village : '-';
-                var districtName = rowData && rowData.address_district ? rowData.address_district : '-';
-                var regencyName = rowData && rowData.address_regency ? rowData.address_regency : (rowData && rowData.address_city ? rowData.address_city : '-');
-                var provinceName = rowData && rowData.address_province ? rowData.address_province : '-';
-                var postalCode = rowData && rowData.address_postal_code ? rowData.address_postal_code : '-';
-
-                if (!attendanceDetailModalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
-                    return;
-                }
-
-                if (attendanceDetailModalLabel) {
-                    attendanceDetailModalLabel.textContent = 'Detail Absensi - ' + staffName;
-                }
-
-                if (attendanceDetailFormattedAddressElement) {
-                    attendanceDetailFormattedAddressElement.textContent = formattedAddress;
-                }
-                if (attendanceDetailVillageElement) {
-                    attendanceDetailVillageElement.textContent = villageName;
-                }
-                if (attendanceDetailDistrictElement) {
-                    attendanceDetailDistrictElement.textContent = districtName;
-                }
-                if (attendanceDetailRegencyElement) {
-                    attendanceDetailRegencyElement.textContent = regencyName;
-                }
-                if (attendanceDetailProvinceElement) {
-                    attendanceDetailProvinceElement.textContent = provinceName;
-                }
-                if (attendanceDetailPostalCodeElement) {
-                    attendanceDetailPostalCodeElement.textContent = postalCode;
-                }
-                bootstrap.Modal.getOrCreateInstance(attendanceDetailModalElement).show();
-                renderAttendanceDetailMap(rowData || {});
-            }
-
-            window.onClickAttendanceDetail = function (buttonElement) {
-                if (!buttonElement || !attendanceTable) {
-                    return;
-                }
-
-                var rowData = attendanceTable.row($(buttonElement).closest('tr')).data();
-                showAttendanceDetail(rowData || {});
-            };
-
-            function isValidCoordinate(latitudeValue, longitudeValue) {
-                if (!Number.isFinite(latitudeValue) || !Number.isFinite(longitudeValue)) {
-                    return false;
-                }
-
-                if (latitudeValue < -90 || latitudeValue > 90 || longitudeValue < -180 || longitudeValue > 180) {
-                    return false;
-                }
-
-                return !(Math.abs(latitudeValue) < 0.000001 && Math.abs(longitudeValue) < 0.000001);
-            }
-
-            function setAttendanceDetailMapState(showMap, emptyText) {
-                if (attendanceDetailMapCanvasElement) {
-                    attendanceDetailMapCanvasElement.style.display = showMap ? 'block' : 'none';
-                }
-
-                if (attendanceDetailMapEmptyElement) {
-                    attendanceDetailMapEmptyElement.style.display = showMap ? 'none' : 'block';
-                    attendanceDetailMapEmptyElement.textContent = emptyText || 'Lokasi absen tidak tersedia.';
-                }
-            }
-
-            function clearAttendanceDetailMapElements() {
-                if (attendanceDetailUserMarker) {
-                    attendanceDetailUserMarker.setMap(null);
-                    attendanceDetailUserMarker = null;
-                }
-
-                if (attendanceDetailOfficeMarker) {
-                    attendanceDetailOfficeMarker.setMap(null);
-                    attendanceDetailOfficeMarker = null;
-                }
-
-                if (attendanceDetailLine) {
-                    attendanceDetailLine.setMap(null);
-                    attendanceDetailLine = null;
-                }
-            }
-
-            function renderAttendanceDetailMap(rowData) {
-                var latitudeValue = Number(rowData && rowData.check_in_latitude);
-                var longitudeValue = Number(rowData && rowData.check_in_longitude);
-                var hasValidAttendanceCoordinate = isValidCoordinate(latitudeValue, longitudeValue);
-                var officeLatitudeValue = Number(officeLocation && officeLocation.latitude);
-                var officeLongitudeValue = Number(officeLocation && officeLocation.longitude);
-                var hasValidOfficeCoordinate = isValidCoordinate(officeLatitudeValue, officeLongitudeValue);
-                var distanceMetersValue = Number(rowData && rowData.distance_meters);
-                var distanceLabel = Number.isFinite(distanceMetersValue) ? distanceMetersValue.toFixed(2) + ' m' : '-';
-                var radiusResultValue = rowData && rowData.radius_result ? String(rowData.radius_result) : '-';
-
-                if (attendanceDetailLocationInfoElement) {
-                    if (hasValidAttendanceCoordinate) {
-                        attendanceDetailLocationInfoElement.textContent = 'Lokasi absen: '
-                            + latitudeValue.toFixed(6) + ', ' + longitudeValue.toFixed(6)
-                            + ' | Jarak: ' + distanceLabel
-                            + ' | Radius: ' + radiusResultValue;
-                    } else {
-                        attendanceDetailLocationInfoElement.textContent = 'Lokasi absen: -';
-                    }
-                }
-
-                if (!hasValidAttendanceCoordinate) {
-                    setAttendanceDetailMapState(false, 'Lokasi absen tidak tersedia.');
-                    clearAttendanceDetailMapElements();
-                    return;
-                }
-
-                setAttendanceDetailMapState(true, '');
-
-                if (!attendanceDetailMapCanvasElement) {
-                    return;
-                }
-
-                loadGoogleMapsApi()
-                    .then(function () {
-                        var attendancePosition = {
-                            lat: latitudeValue,
-                            lng: longitudeValue
-                        };
-
-                        if (!attendanceDetailMapInstance) {
-                            attendanceDetailMapInstance = new window.google.maps.Map(attendanceDetailMapCanvasElement, {
-                                center: attendancePosition,
-                                zoom: 16,
-                                mapTypeControl: false,
-                                streetViewControl: false,
-                                fullscreenControl: false
-                            });
-                        }
-
-                        clearAttendanceDetailMapElements();
-
-                        attendanceDetailUserMarker = new window.google.maps.Marker({
-                            position: attendancePosition,
-                            map: attendanceDetailMapInstance,
-                            title: 'Titik Absen',
-                            icon: {
-                                path: window.google.maps.SymbolPath.CIRCLE,
-                                scale: 7,
-                                fillColor: '#dc2626',
-                                fillOpacity: 1,
-                                strokeColor: '#ffffff',
-                                strokeWeight: 2
-                            }
-                        });
-
-                        if (hasValidOfficeCoordinate) {
-                            var officePosition = {
-                                lat: officeLatitudeValue,
-                                lng: officeLongitudeValue
-                            };
-
-                            attendanceDetailOfficeMarker = new window.google.maps.Marker({
-                                position: officePosition,
-                                map: attendanceDetailMapInstance,
-                                title: 'Titik Kantor'
-                            });
-
-                            attendanceDetailLine = new window.google.maps.Polyline({
-                                path: [officePosition, attendancePosition],
-                                geodesic: true,
-                                strokeColor: '#2563eb',
-                                strokeOpacity: 0.85,
-                                strokeWeight: 2,
-                                map: attendanceDetailMapInstance
-                            });
-
-                            var bounds = new window.google.maps.LatLngBounds();
-                            bounds.extend(attendancePosition);
-                            bounds.extend(officePosition);
-                            attendanceDetailMapInstance.fitBounds(bounds);
-                        } else {
-                            attendanceDetailMapInstance.setCenter(attendancePosition);
-                            attendanceDetailMapInstance.setZoom(16);
-                        }
-
-                        window.google.maps.event.trigger(attendanceDetailMapInstance, 'resize');
-                    })
-                    .catch(function () {
-                        setAttendanceDetailMapState(false, 'Gagal memuat peta lokasi absen.');
-                    });
-            }
-
-            setAttendanceDetailMapState(false, 'Lokasi absen tidak tersedia.');
-
             renderAttendanceDateTime();
             setInterval(renderAttendanceDateTime, 1000);
 
@@ -849,19 +576,6 @@
                     window.location.href = targetUrl;
                 }
             });
-
-            if (attendanceDetailModalElement) {
-                attendanceDetailModalElement.addEventListener('hidden.bs.modal', function () {
-                    clearAttendanceDetailMapElements();
-                    if (attendanceDetailModalLabel) {
-                        attendanceDetailModalLabel.textContent = 'Detail Absensi';
-                    }
-                    if (attendanceDetailLocationInfoElement) {
-                        attendanceDetailLocationInfoElement.textContent = 'Lokasi absen: -';
-                    }
-                    setAttendanceDetailMapState(false, 'Lokasi absen tidak tersedia.');
-                });
-            }
 
             if (attendanceCompanyFilter) {
                 attendanceCompanyFilter.addEventListener('change', function () {
@@ -881,9 +595,42 @@
 
             if (attendanceYearFilter) {
                 attendanceYearFilter.addEventListener('change', function () {
-                    if (attendanceTable) {
-                        attendanceTable.ajax.reload();
+                    var currentUrl = new URL(window.location.href);
+                    var selectedYear = attendanceYearFilter.value || '';
+                    var selectedMonth = attendanceMonthFilter ? (attendanceMonthFilter.value || '') : '';
+
+                    if (selectedYear !== '') {
+                        currentUrl.searchParams.set('year', selectedYear);
                     }
+
+                    if (selectedMonth !== '') {
+                        currentUrl.searchParams.set('month', selectedMonth);
+                    }
+
+                    window.location.href = currentUrl.toString();
+                });
+            }
+
+            if (attendanceExportButton) {
+                attendanceExportButton.addEventListener('click', function () {
+                    var exportUrl = new URL(attendanceExportUrl, window.location.origin);
+                    var selectedMonth = attendanceMonthFilter ? (attendanceMonthFilter.value || '') : '';
+                    var selectedYear = attendanceYearFilter ? (attendanceYearFilter.value || '') : '';
+                    var selectedCompanyId = attendanceCompanyFilter ? (attendanceCompanyFilter.value || '') : '';
+
+                    if (selectedMonth !== '') {
+                        exportUrl.searchParams.set('month', selectedMonth);
+                    }
+
+                    if (selectedYear !== '') {
+                        exportUrl.searchParams.set('year', selectedYear);
+                    }
+
+                    if (selectedCompanyId !== '') {
+                        exportUrl.searchParams.set('company_id', selectedCompanyId);
+                    }
+
+                    window.location.href = exportUrl.toString();
                 });
             }
 

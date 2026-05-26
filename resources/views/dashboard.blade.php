@@ -356,9 +356,7 @@
                     </div>
                 </div>
             </div>
-
         </div>
-
     </div>
 
     <div class="modal fade" id="dashboardClockIn" tabindex="-1" aria-labelledby="dashboardClockInLabel" aria-hidden="true">

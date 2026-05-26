@@ -62,6 +62,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/absensi/exceptions', [AttendanceController::class, 'storeException'])->name('absensi.exceptions.store');
     Route::get('/absensi/reports', [ReportController::class, 'index'])->name('absensi.reports');
     Route::get('/absensi/reports/datatable', [ReportController::class, 'datatable'])->name('absensi.reports.datatable');
+    Route::get('/absensi/reports/export', [ReportController::class, 'exportReport'])->name('absensi.reports.export');
 
     // Attendance permission routes
     Route::get('/absensi/izin/datatable', [LeaveRequestController::class, 'datatable'])->name('absensi.izin.datatable');

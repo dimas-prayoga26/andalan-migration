@@ -3,22 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
-use App\Models\AttendanceException;
 use App\Models\TelegramUser;
 use App\Models\User;
+use App\Services\Attendance\AttendanceCardsViewDataService;
 use App\Services\Attendance\AttendanceMutationService;
-use App\Services\Attendance\AttendanceTodayStateService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 
 class AttendanceController extends Controller
 {
     public function __construct(
-        private AttendanceTodayStateService $attendanceTodayStateService,
+        private AttendanceCardsViewDataService $attendanceCardsViewDataService,
         private AttendanceMutationService $attendanceMutationService
     ) {}
 
@@ -29,23 +27,12 @@ class AttendanceController extends Controller
             $authenticatedUser->loadMissing('employee.deployment');
         }
 
-        $todayAttendanceState = $this->attendanceTodayStateService->getTodayStateForUser(
-            $authenticatedUser instanceof User ? $authenticatedUser : null
+        $attendanceCardsData = $this->attendanceCardsViewDataService->build(
+            $authenticatedUser instanceof User ? $authenticatedUser : null,
+            Auth::id(),
+            $request
         );
-
-        $userId = Auth::id();
-        $employeeId = $todayAttendanceState['employeeId'];
-        $todayJakartaDate = $todayAttendanceState['todayJakartaDate'];
-        $publicIp = '-';
-        $absensiHariIni = $todayAttendanceState['absensiHariIni'];
-        $todayAttendanceId = $todayAttendanceState['todayAttendanceId'];
-        $todayAttendanceDistanceKm = $todayAttendanceState['todayAttendanceDistanceKm'];
-        $todayAttendanceDistanceOutKm = $todayAttendanceState['todayAttendanceDistanceOutKm'];
-        $hasEarlyDepartureExceptionToday = $todayAttendanceState['hasEarlyDepartureExceptionToday'];
-        $hasCheckedInToday = $todayAttendanceState['hasCheckedInToday'];
-        $hasCheckedOutToday = $todayAttendanceState['hasCheckedOutToday'];
-        $todayAttendanceExceptionTimeRange = '--:-- - --:--';
-        $todayAttendanceExceptionVariance = '--.--';
+        $employeeId = $attendanceCardsData['employeeId'];
         $attendanceHistoryEvents = [];
 
         if (is_string($employeeId) && trim($employeeId) !== '') {
@@ -84,86 +71,11 @@ class AttendanceController extends Controller
                 ->all();
         }
 
-        if (is_string($employeeId) && trim($employeeId) !== '') {
-            $todayAttendanceException = AttendanceException::query()
-                ->where('employee_id', $employeeId)
-                ->whereDate('exception_date', $todayJakartaDate)
-                ->latest('created_at')
-                ->first(['exception_date', 'from_time', 'to_time', 'type']);
-
-            if ($todayAttendanceException instanceof AttendanceException) {
-                $fromTimeRaw = $todayAttendanceException->getRawOriginal('from_time');
-                $toTimeRaw = $todayAttendanceException->getRawOriginal('to_time');
-                $formattedFromTime = '--:--';
-                $formattedToTime = '--:--';
-
-                if (is_string($fromTimeRaw) && trim($fromTimeRaw) !== '') {
-                    try {
-                        $formattedFromTime = Carbon::createFromFormat('H:i:s', $fromTimeRaw, 'Asia/Jakarta')->format('H:i');
-                    } catch (\Throwable) {
-                        $formattedFromTime = '--:--';
-                    }
-                }
-
-                if (is_string($toTimeRaw) && trim($toTimeRaw) !== '') {
-                    try {
-                        $formattedToTime = Carbon::createFromFormat('H:i:s', $toTimeRaw, 'Asia/Jakarta')->format('H:i');
-                    } catch (\Throwable) {
-                        $formattedToTime = '--:--';
-                    }
-                }
-
-                $todayAttendanceExceptionTimeRange = $formattedFromTime.' - '.$formattedToTime;
-
-                if (
-                    is_string($fromTimeRaw)
-                    && trim($fromTimeRaw) !== ''
-                    && is_string($toTimeRaw)
-                    && trim($toTimeRaw) !== ''
-                ) {
-                    try {
-                        $exceptionDate = $todayAttendanceException->exception_date?->format('Y-m-d') ?? $todayJakartaDate;
-                        $fromDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $exceptionDate.' '.$fromTimeRaw, 'Asia/Jakarta');
-                        $toDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $exceptionDate.' '.$toTimeRaw, 'Asia/Jakarta');
-                        $varianceHours = round(abs((int) $fromDateTime->diffInMinutes($toDateTime, false)) / 60, 2);
-                        $todayAttendanceExceptionVariance = number_format($varianceHours, 2, '.', '');
-                    } catch (\Throwable) {
-                        $todayAttendanceExceptionVariance = '--.--';
-                    }
-                }
-            }
-        }
-        $officeLocation = $this->attendanceMutationService->resolveOfficeContext($userId);
-
-        $clientIpAddress = $this->attendanceMutationService->resolveClientIpAddress($request);
-        $ipdataData = $this->attendanceMutationService->fetchIpdata($clientIpAddress);
-        if (! empty($ipdataData['ip'])) {
-            $publicIp = (string) $ipdataData['ip'];
-        }
-
-        $allowedIpRange = is_array($officeLocation) ? ($officeLocation['ip_range'] ?? null) : null;
-        $publicIpPrefix = $this->attendanceMutationService->extractIpTwoOctets($publicIp);
-        $allowedIpPrefix = $this->attendanceMutationService->extractIpTwoOctets($allowedIpRange);
-        $isIpPrefixMatch = $publicIpPrefix !== null
-            && $allowedIpPrefix !== null
-            && $publicIpPrefix === $allowedIpPrefix;
-
-        return view('absensi.index', compact(
-            'absensiHariIni',
-            'officeLocation',
-            'publicIp',
-            'publicIpPrefix',
-            'allowedIpPrefix',
-            'isIpPrefixMatch',
-            'todayAttendanceId',
-            'todayAttendanceDistanceKm',
-            'todayAttendanceDistanceOutKm',
-            'todayAttendanceExceptionTimeRange',
-            'todayAttendanceExceptionVariance',
-            'hasEarlyDepartureExceptionToday',
-            'hasCheckedInToday',
-            'hasCheckedOutToday',
-            'attendanceHistoryEvents',
+        return view('absensi.index', array_merge(
+            $attendanceCardsData,
+            [
+                'attendanceHistoryEvents' => $attendanceHistoryEvents,
+            ]
         ));
     }
 

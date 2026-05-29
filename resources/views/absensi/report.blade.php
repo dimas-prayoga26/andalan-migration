@@ -120,7 +120,9 @@
         }
 
         .attendance-table-scroll-area {
-            overflow: hidden;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
         }
 
         .attendance-table-scroll-area #tableLogs {
@@ -129,7 +131,9 @@
 
         #tableLogs_wrapper .dt-scroll,
         #tableLogs_wrapper .dataTables_scroll {
-            overflow: hidden;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
         }
 
         #tableLogs_wrapper .dt-scroll-head table,

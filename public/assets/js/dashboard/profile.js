@@ -1233,7 +1233,7 @@ var dzProfile = function(){
 				},
 				y: {
 					formatter: function(val) {
-						return "$" + val
+						return val + "%"
 					}
 				}
 			}
@@ -1241,7 +1241,52 @@ var dzProfile = function(){
 
 		['#chartProfileProgress', '#chartProfileProgressDesktop'].forEach(function(selector){
 			if($(selector).length > 0){
-				var handleProfileProgress = new ApexCharts(document.querySelector(selector), options);
+				var selectorElement = document.querySelector(selector);
+				var datasetSeries = null;
+				var datasetLabels = null;
+
+				if (selectorElement && selectorElement.getAttribute('data-progress-series')) {
+					try {
+						datasetSeries = JSON.parse(selectorElement.getAttribute('data-progress-series'));
+					} catch (error) {
+						datasetSeries = null;
+					}
+				}
+
+				if (selectorElement && selectorElement.getAttribute('data-progress-labels')) {
+					try {
+						datasetLabels = JSON.parse(selectorElement.getAttribute('data-progress-labels'));
+					} catch (error) {
+						datasetLabels = null;
+					}
+				}
+
+				var normalizedSeries = Array.isArray(datasetSeries)
+					? datasetSeries.map(function(item){
+						var numericValue = Number(item);
+						return Number.isFinite(numericValue) ? numericValue : 0;
+					})
+					: options.series[0].data;
+
+				var normalizedLabels = Array.isArray(datasetLabels) && datasetLabels.length === normalizedSeries.length
+					? datasetLabels.map(function(item){
+						return String(item);
+					})
+					: options.xaxis.categories;
+
+				var chartOptions = Object.assign({}, options, {
+					series: [
+						{
+							name: 'Attendance',
+							data: normalizedSeries,
+						},
+					],
+					xaxis: Object.assign({}, options.xaxis, {
+						categories: normalizedLabels,
+					}),
+				});
+
+				var handleProfileProgress = new ApexCharts(selectorElement, chartOptions);
 				handleProfileProgress.render();
 			}
 		});

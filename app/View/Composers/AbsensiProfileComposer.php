@@ -3,13 +3,12 @@
 namespace App\View\Composers;
 
 use App\Models\Attendance;
+use App\Models\AttendanceHoliday;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
 
 class AbsensiProfileComposer
@@ -26,6 +25,13 @@ class AbsensiProfileComposer
             'profileAttendanceDaysCount' => 0,
             'profileWorkingDaysCount' => 0,
             'profileWorkingMonthLabel' => $nowJakarta->format('F'),
+            'profileLateInCount' => 0,
+            'profileLeavesAndSickCount' => 0,
+            'profileWeeklyAttendancePercent' => 0,
+            'profileWeeklyOnTimePercent' => 0,
+            'profileMonthlyAttendanceLabels' => [],
+            'profileMonthlyAttendanceSeries' => [],
+            'profileMonthlyAttendanceDelta' => 0.0,
             'profileStatsMode' => 'staff',
             'managementTotalEmployeesCount' => 0,
             'managementPresentTodayCount' => 0,
@@ -109,6 +115,79 @@ class AbsensiProfileComposer
                 ->whereMonth('date', (int) $nowJakarta->month)
                 ->whereNotNull('clock_in')
                 ->count();
+
+            $profileData['profileLateInCount'] = Attendance::query()
+                ->where('employee_id', $employeeId)
+                ->whereYear('date', (int) $nowJakarta->year)
+                ->whereMonth('date', (int) $nowJakarta->month)
+                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['terlambat'])
+                ->count();
+
+            $profileData['profileLeavesAndSickCount'] = LeaveRequest::query()
+                ->where('employee_id', $employeeId)
+                ->whereYear('start_date', (int) $nowJakarta->year)
+                ->whereMonth('start_date', (int) $nowJakarta->month)
+                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['approved'])
+                ->where('is_active', true)
+                ->whereNull('deleted_at')
+                ->count();
+
+            $weekStart = $nowJakarta->copy()->startOfWeek(Carbon::MONDAY);
+            $weekEnd = $nowJakarta->copy()->endOfWeek(Carbon::SUNDAY);
+            $weeklyWorkingDaysCount = $this->calculateWorkingDaysInPeriod($weekStart, $weekEnd);
+
+            $weeklyAttendanceQuery = Attendance::query()
+                ->where('employee_id', $employeeId)
+                ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()]);
+
+            $weeklyCheckedInCount = (clone $weeklyAttendanceQuery)
+                ->whereNotNull('clock_in')
+                ->count();
+            $weeklyOnTimeCount = (clone $weeklyAttendanceQuery)
+                ->whereNotNull('clock_in')
+                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['masuk'])
+                ->count();
+
+            $profileData['profileWeeklyAttendancePercent'] = $weeklyWorkingDaysCount > 0
+                ? max(0, min((int) round(($weeklyCheckedInCount / $weeklyWorkingDaysCount) * 100), 100))
+                : 0;
+            $profileData['profileWeeklyOnTimePercent'] = $weeklyCheckedInCount > 0
+                ? max(0, min((int) round(($weeklyOnTimeCount / $weeklyCheckedInCount) * 100), 100))
+                : 0;
+
+            $monthlyCheckedInCountsByMonth = Attendance::query()
+                ->where('employee_id', $employeeId)
+                ->whereYear('date', (int) $nowJakarta->year)
+                ->whereNotNull('clock_in')
+                ->selectRaw('MONTH(date) as month_number, COUNT(*) as total_count')
+                ->groupBy('month_number')
+                ->pluck('total_count', 'month_number');
+
+            $monthlyAttendanceLabels = [];
+            $monthlyAttendanceSeries = [];
+
+            for ($month = 1; $month <= 12; $month++) {
+                $monthStart = Carbon::create((int) $nowJakarta->year, $month, 1, 0, 0, 0, 'Asia/Jakarta')->startOfMonth();
+                $monthEnd = $monthStart->copy()->endOfMonth();
+                $workingDaysInMonth = $this->calculateWorkingDaysInPeriod($monthStart, $monthEnd);
+                $checkedInCount = (int) ($monthlyCheckedInCountsByMonth[$month] ?? 0);
+                $attendancePercent = $workingDaysInMonth > 0
+                    ? max(0, min((int) round(($checkedInCount / $workingDaysInMonth) * 100), 100))
+                    : 0;
+
+                $monthlyAttendanceLabels[] = $monthStart->format('M');
+                $monthlyAttendanceSeries[] = $attendancePercent;
+            }
+
+            $currentMonthIndex = max((int) $nowJakarta->month - 1, 0);
+            $currentMonthPercent = (float) ($monthlyAttendanceSeries[$currentMonthIndex] ?? 0);
+            $previousMonthPercent = $currentMonthIndex > 0
+                ? (float) ($monthlyAttendanceSeries[$currentMonthIndex - 1] ?? 0)
+                : 0.0;
+
+            $profileData['profileMonthlyAttendanceLabels'] = $monthlyAttendanceLabels;
+            $profileData['profileMonthlyAttendanceSeries'] = $monthlyAttendanceSeries;
+            $profileData['profileMonthlyAttendanceDelta'] = round($currentMonthPercent - $previousMonthPercent, 2);
         }
 
         $profileData['profileWorkingDaysCount'] = $this->calculateWorkingDaysInMonth($nowJakarta);
@@ -166,11 +245,39 @@ class AbsensiProfileComposer
     {
         $monthStart = $referenceDate->copy()->startOfMonth();
         $monthEnd = $referenceDate->copy()->endOfMonth();
-        $holidayDates = $this->fetchIndonesiaHolidayDates((int) $referenceDate->year);
+
+        return $this->calculateWorkingDaysInPeriod($monthStart, $monthEnd);
+    }
+
+    private function calculateWorkingDaysInPeriod(Carbon $periodStart, Carbon $periodEnd): int
+    {
+        $normalizedStart = $periodStart->copy()->startOfDay();
+        $normalizedEnd = $periodEnd->copy()->startOfDay();
+        if ($normalizedStart->greaterThan($normalizedEnd)) {
+            return 0;
+        }
+
+        $holidayDates = AttendanceHoliday::query()
+            ->whereBetween('date', [$normalizedStart->toDateString(), $normalizedEnd->toDateString()])
+            ->pluck('date')
+            ->map(static function (mixed $holidayDate): ?string {
+                if ($holidayDate instanceof \DateTimeInterface) {
+                    return Carbon::instance($holidayDate)->toDateString();
+                }
+
+                if (is_string($holidayDate) && trim($holidayDate) !== '') {
+                    return trim($holidayDate);
+                }
+
+                return null;
+            })
+            ->filter(static fn (mixed $holidayDate): bool => is_string($holidayDate) && $holidayDate !== '')
+            ->values()
+            ->all();
         $holidayMap = array_fill_keys($holidayDates, true);
         $workingDays = 0;
 
-        for ($day = $monthStart->copy(); $day->lte($monthEnd); $day->addDay()) {
+        for ($day = $normalizedStart->copy(); $day->lte($normalizedEnd); $day->addDay()) {
             if ($day->isWeekend()) {
                 continue;
             }
@@ -183,57 +290,6 @@ class AbsensiProfileComposer
         }
 
         return $workingDays;
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function fetchIndonesiaHolidayDates(int $year): array
-    {
-        $cacheKey = "libur-deno:indonesia:{$year}";
-        $cacheExpiry = now('Asia/Jakarta')->endOfDay();
-
-        return Cache::remember($cacheKey, $cacheExpiry, function () use ($year): array {
-            try {
-                $response = Http::timeout(10)
-                    ->acceptJson()
-                    ->get('https://libur.deno.dev/api', [
-                        'year' => $year,
-                    ]);
-
-                if (! $response->successful()) {
-                    return [];
-                }
-
-                $payload = $response->json();
-                if (! is_array($payload)) {
-                    return [];
-                }
-
-                $items = $payload['value'] ?? $payload;
-                if (! is_array($items)) {
-                    return [];
-                }
-
-                $holidayDates = [];
-                foreach ($items as $item) {
-                    if (! is_array($item)) {
-                        continue;
-                    }
-
-                    $dateValue = $item['date'] ?? null;
-                    if (! is_string($dateValue) || trim($dateValue) === '') {
-                        continue;
-                    }
-
-                    $holidayDates[] = trim($dateValue);
-                }
-
-                return array_values(array_unique($holidayDates));
-            } catch (\Throwable) {
-                return [];
-            }
-        });
     }
 
     private function isBoardOfDirectur(?User $user): bool

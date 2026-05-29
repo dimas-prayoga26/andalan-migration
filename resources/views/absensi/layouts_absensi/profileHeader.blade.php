@@ -60,6 +60,16 @@
                     $workingMonthLabel = is_string($profileWorkingMonthLabel ?? null) && trim($profileWorkingMonthLabel) !== ''
                         ? trim($profileWorkingMonthLabel)
                         : now('Asia/Jakarta')->format('F');
+                    $lateInCount = (int) ($profileLateInCount ?? 0);
+                    $leavesAndSickCount = (int) ($profileLeavesAndSickCount ?? 0);
+                    $weeklyAttendancePercent = (int) ($profileWeeklyAttendancePercent ?? 0);
+                    $weeklyOnTimePercent = (int) ($profileWeeklyOnTimePercent ?? 0);
+                    $monthlyAttendanceLabels = is_array($profileMonthlyAttendanceLabels ?? null) ? $profileMonthlyAttendanceLabels : [];
+                    $monthlyAttendanceSeries = is_array($profileMonthlyAttendanceSeries ?? null) ? $profileMonthlyAttendanceSeries : [];
+                    $monthlyAttendanceDelta = (float) ($profileMonthlyAttendanceDelta ?? 0);
+                    $monthlyAttendanceDeltaLabel = ($monthlyAttendanceDelta >= 0 ? '+' : '').number_format($monthlyAttendanceDelta, 2).'%';
+                    $monthlyAttendanceDeltaClass = $monthlyAttendanceDelta >= 0 ? 'text-success' : 'text-danger';
+                    $monthlyAttendanceDeltaStrokeColor = $monthlyAttendanceDelta >= 0 ? 'var(--bs-success)' : 'var(--bs-danger)';
                     $profileStatsModeValue = is_string($profileStatsMode ?? null) ? $profileStatsMode : 'staff';
                     $managementTotalEmployees = (int) ($managementTotalEmployeesCount ?? 0);
                     $managementPresentToday = (int) ($managementPresentTodayCount ?? 0);
@@ -93,7 +103,7 @@
                                 </svg>
                             </div>
                             <div class="clearfix ms-2">
-                                <h3 class="mb-0 fw-semibold lh-1">5</h3>
+                                <h3 class="mb-0 fw-semibold lh-1">{{ $lateInCount }}</h3>
                                 <span class="small">Late In</span>
                             </div>
                         </div>
@@ -105,7 +115,7 @@
                                 </svg>
                             </div>
                             <div class="clearfix ms-2">
-                                <h3 class="mb-0 fw-semibold lh-1">1</h3>
+                                <h3 class="mb-0 fw-semibold lh-1">{{ $leavesAndSickCount }}</h3>
                                 <span class="small">Leaves & Sick</span>
                             </div>
                         </div>
@@ -117,7 +127,7 @@
                                 </svg>
                             </div>
                             <div class="clearfix ms-2">
-                                <h3 class="mb-0 fw-semibold lh-1">95%</h3>
+                                <h3 class="mb-0 fw-semibold lh-1">{{ $weeklyAttendancePercent }}%</h3>
                                 <span class="small">Attendance</span>
                             </div>
                         </div>
@@ -129,7 +139,7 @@
                                 </svg>
                             </div>
                             <div class="clearfix ms-2">
-                                <h3 class="mb-0 fw-semibold lh-1">98%</h3>
+                                <h3 class="mb-0 fw-semibold lh-1">{{ $weeklyOnTimePercent }}%</h3>
                                 <span class="small">On-Time</span>
                             </div>
                         </div>
@@ -189,13 +199,16 @@
                         <span class="fw-medium text-black d-block mb-1">Progress</span>
                         <p class="mb-0 d-flex">
                             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M5.83334 14.1668L14.1667 5.8335" stroke="var(--bs-success)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                <path d="M5.83334 5.8335H14.1667V14.1668" stroke="var(--bs-success)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="M5.83334 14.1668L14.1667 5.8335" stroke="{{ $monthlyAttendanceDeltaStrokeColor }}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="M5.83334 5.8335H14.1667V14.1668" stroke="{{ $monthlyAttendanceDeltaStrokeColor }}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
                             </svg>
-                            <span class="text-success me-1">+3.50%</span>
+                            <span class="{{ $monthlyAttendanceDeltaClass }} me-1">{{ $monthlyAttendanceDeltaLabel }}</span>
                         </p>
                     </div>
-                    <div id="chartProfileProgressDesktop"></div>
+                    <div
+                        id="chartProfileProgressDesktop"
+                        data-progress-series='@json($monthlyAttendanceSeries)'
+                        data-progress-labels='@json($monthlyAttendanceLabels)'></div>
                 </div>
             </div>
         </div>
@@ -210,13 +223,16 @@
                     <span class="fw-medium text-black d-block mb-1">Progress</span>
                     <p class="mb-0 d-flex">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M5.83334 14.1668L14.1667 5.8335" stroke="var(--bs-success)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                            <path d="M5.83334 5.8335H14.1667V14.1668" stroke="var(--bs-success)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <path d="M5.83334 14.1668L14.1667 5.8335" stroke="{{ $monthlyAttendanceDeltaStrokeColor }}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <path d="M5.83334 5.8335H14.1667V14.1668" stroke="{{ $monthlyAttendanceDeltaStrokeColor }}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
                         </svg>
-                        <span class="text-success me-1">+3.50%</span>
+                        <span class="{{ $monthlyAttendanceDeltaClass }} me-1">{{ $monthlyAttendanceDeltaLabel }}</span>
                     </p>
                 </div>
-                <div id="chartProfileProgress"></div>
+                <div
+                    id="chartProfileProgress"
+                    data-progress-series='@json($monthlyAttendanceSeries)'
+                    data-progress-labels='@json($monthlyAttendanceLabels)'></div>
             </div>
         </div>
         @if ($profileStatsModeValue === 'staff')
@@ -245,7 +261,7 @@
                         </svg>
                     </div>
                     <div class="clearfix ms-2">
-                        <h3 class="mb-0 fw-semibold lh-1">5</h3>
+                        <h3 class="mb-0 fw-semibold lh-1">{{ $lateInCount }}</h3>
                         <span class="small">Late In</span>
                     </div>
                 </div>
@@ -257,7 +273,7 @@
                         </svg>
                     </div>
                     <div class="clearfix ms-2">
-                        <h3 class="mb-0 fw-semibold lh-1">1</h3>
+                        <h3 class="mb-0 fw-semibold lh-1">{{ $leavesAndSickCount }}</h3>
                         <span class="small">Leaves & Sick</span>
                     </div>
                 </div>
@@ -269,7 +285,7 @@
                         </svg>
                     </div>
                     <div class="clearfix ms-2">
-                        <h3 class="mb-0 fw-semibold lh-1">95%</h3>
+                        <h3 class="mb-0 fw-semibold lh-1">{{ $weeklyAttendancePercent }}%</h3>
                         <span class="small">Attendance</span>
                     </div>
                 </div>
@@ -281,7 +297,7 @@
                         </svg>
                     </div>
                     <div class="clearfix ms-2">
-                        <h3 class="mb-0 fw-semibold lh-1">98%</h3>
+                        <h3 class="mb-0 fw-semibold lh-1">{{ $weeklyOnTimePercent }}%</h3>
                         <span class="small">On-Time</span>
                     </div>
                 </div>

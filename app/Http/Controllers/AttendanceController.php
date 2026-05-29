@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Models\AttendanceHoliday;
 use App\Models\TelegramUser;
 use App\Models\User;
 use App\Services\Attendance\AttendanceCardsViewDataService;
@@ -34,11 +35,47 @@ class AttendanceController extends Controller
         );
         $employeeId = $attendanceCardsData['employeeId'];
         $attendanceHistoryEvents = [];
+        $holidayEvents = AttendanceHoliday::query()
+            ->orderBy('date')
+            ->get(['date', 'name', 'type'])
+            ->map(static function (AttendanceHoliday $attendanceHoliday): ?array {
+                $holidayDateLabel = $attendanceHoliday->date?->format('Y-m-d');
+                $holidayNameLabel = is_string($attendanceHoliday->name) ? trim($attendanceHoliday->name) : '';
+                if (! is_string($holidayDateLabel) || trim($holidayDateLabel) === '' || $holidayNameLabel === '') {
+                    return null;
+                }
+
+                $holidayType = (int) ($attendanceHoliday->type ?? 1);
+                $isNationalHoliday = $holidayType === 1;
+                $eventTypeLabel = $isNationalHoliday ? 'Hari Libur Nasional' : 'Cuti Bersama';
+                $eventBackgroundColor = $isNationalHoliday ? '#dc3545' : '#cd5c5c';
+
+                return [
+                    'title' => $holidayNameLabel,
+                    'start' => $holidayDateLabel,
+                    'allDay' => true,
+                    'classNames' => [$isNationalHoliday ? 'fc-national-holiday-card' : 'fc-joint-leave-card'],
+                    'backgroundColor' => $eventBackgroundColor,
+                    'borderColor' => $eventBackgroundColor,
+                    'textColor' => '#ffffff',
+                    'extendedProps' => [
+                        'dayOffEventType' => $eventTypeLabel,
+                        'dayOffHolidayName' => $holidayNameLabel,
+                        'dayOffDate' => $holidayDateLabel,
+                    ],
+                ];
+            })
+            ->filter(static fn (mixed $eventItem): bool => is_array($eventItem))
+            ->values()
+            ->all();
 
         if (is_string($employeeId) && trim($employeeId) !== '') {
             $attendanceHistoryEvents = Attendance::query()
                 ->where('employee_id', $employeeId)
                 ->whereNotNull('clock_in')
+                ->with([
+                    'attendanceException:id,attendance_id,type,status',
+                ])
                 ->orderBy('date')
                 ->get(['date', 'clock_in', 'clock_out', 'late_minutes', 'status'])
                 ->map(static function (Attendance $attendanceItem): ?array {
@@ -52,9 +89,20 @@ class AttendanceController extends Controller
                     $normalizedStatus = is_string($attendanceItem->status)
                         ? strtolower(trim($attendanceItem->status))
                         : '';
+                    $exceptionType = is_string($attendanceItem->attendanceException?->type)
+                        ? strtolower(trim($attendanceItem->attendanceException->type))
+                        : '';
+                    $hasAttendanceExceptionColorOverride = in_array($exceptionType, ['early_departure', 'late_arrival'], true);
                     $isLate = (int) ($attendanceItem->late_minutes ?? 0) > 0 || $normalizedStatus === 'terlambat';
-                    $eventBackgroundColor = $isLate ? '#fd7e14' : '#20c997';
-                    $eventBorderColor = $isLate ? '#d3680d' : '#1aa179';
+                    $eventBackgroundColor = '#20c997';
+                    $eventBorderColor = '#1aa179';
+                    if ($hasAttendanceExceptionColorOverride) {
+                        $eventBackgroundColor = '#17a2b8';
+                        $eventBorderColor = '#117a8b';
+                    } elseif ($isLate) {
+                        $eventBackgroundColor = '#fd7e14';
+                        $eventBorderColor = '#d3680d';
+                    }
 
                     return [
                         'title' => 'In : '.$clockInLabel.' - Out : '.$clockOutLabel,
@@ -75,6 +123,7 @@ class AttendanceController extends Controller
             $attendanceCardsData,
             [
                 'attendanceHistoryEvents' => $attendanceHistoryEvents,
+                'holidayEvents' => $holidayEvents,
             ]
         ));
     }

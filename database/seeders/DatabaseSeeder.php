@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             MetaDataMaritalStatusSeeder::class,
             PositionSeeder::class,
             LeaveTypeSeeder::class,
+            AttendanceHolidaySeeder::class,
             LeaveSubTypeSeeder::class,
             UserSeeder::class,
             EmployeePicAssignmentSeeder::class,

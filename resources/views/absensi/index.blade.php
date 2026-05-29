@@ -233,18 +233,33 @@
 
     <script>
         (function () {
+            var absensiCalendarInitAttempts = 0;
+            var maxAbsensiCalendarInitAttempts = 10;
+
             function initializeAbsensiCalendar() {
                 var calendarEl = document.getElementById('calendar');
                 var dayOffModalElement = document.getElementById('dayOff');
                 var dayOffEventTypeTextElement = document.getElementById('dayOffEventTypeText');
                 var dayOffHolidayNameTextElement = document.getElementById('dayOffHolidayNameText');
                 var dayOffDateTextElement = document.getElementById('dayOffDateText');
-                if (!calendarEl || typeof FullCalendar === 'undefined' || calendarEl.dataset.fcInitialized === '1') {
+
+                if (!calendarEl || calendarEl.dataset.fcInitialized === '1') {
+                    return;
+                }
+
+                if (typeof FullCalendar === 'undefined') {
+                    absensiCalendarInitAttempts += 1;
+                    console.warn('FullCalendar belum tersedia, retry init ke-' + absensiCalendarInitAttempts);
+
+                    if (absensiCalendarInitAttempts < maxAbsensiCalendarInitAttempts) {
+                        setTimeout(initializeAbsensiCalendar, 300);
+                    }
+
                     return;
                 }
 
                 var showWeekendOff = calendarEl.dataset.showWeekendOff === '1';
-                var holidayEventsByYear = {};
+                var holidayEvents = @json($holidayEvents ?? []);
                 var attendanceHistoryEvents = @json($attendanceHistoryEvents ?? []);
 
                 function formatDateToIso(dateObject) {
@@ -293,60 +308,6 @@
                     bootstrap.Modal.getOrCreateInstance(dayOffModalElement).show();
                 }
 
-                function fetchHolidayEventsByYear(yearValue) {
-                    if (holidayEventsByYear[yearValue]) {
-                        return Promise.resolve(holidayEventsByYear[yearValue]);
-                    }
-
-                    return fetch('https://libur.deno.dev/api?year=' + yearValue, {
-                        method: 'GET',
-                        headers: {
-                            Accept: 'application/json'
-                        }
-                    })
-                        .then(function (response) {
-                            if (!response.ok) {
-                                throw new Error('Gagal mengambil data hari libur tahun ' + yearValue);
-                            }
-
-                            return response.json();
-                        })
-                        .then(function (items) {
-                            if (!Array.isArray(items)) {
-                                holidayEventsByYear[yearValue] = [];
-                                return [];
-                            }
-
-                            var mappedEvents = items
-                                .filter(function (item) {
-                                    return item && item.date && item.name;
-                                })
-                                .map(function (item) {
-                                    var isNationalHoliday = Boolean(item.is_national_holiday);
-                                    var eventTypeLabel = isNationalHoliday ? 'Hari Libur Nasional' : 'Cuti Bersama';
-                                    var eventBackgroundColor = isNationalHoliday ? '#dc3545' : '#cd5c5c';
-
-                                    return {
-                                        title: item.name,
-                                        start: item.date,
-                                        allDay: true,
-                                        classNames: [isNationalHoliday ? 'fc-national-holiday-card' : 'fc-joint-leave-card'],
-                                        backgroundColor: eventBackgroundColor,
-                                        borderColor: eventBackgroundColor,
-                                        textColor: '#ffffff',
-                                        extendedProps: {
-                                            dayOffEventType: eventTypeLabel,
-                                            dayOffHolidayName: item.name,
-                                            dayOffDate: item.date
-                                        }
-                                    };
-                                });
-
-                            holidayEventsByYear[yearValue] = mappedEvents;
-                            return mappedEvents;
-                        });
-                }
-
                 function buildWeekendEventsInRange(startDate, endDate) {
                     var weekendEvents = [];
                     var cursorDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
@@ -376,6 +337,41 @@
                     }
 
                     return weekendEvents;
+                }
+
+                function buildHolidayEventsInRange(startDate, endDate) {
+                    if (!Array.isArray(holidayEvents) || holidayEvents.length === 0) {
+                        return [];
+                    }
+
+                    var normalizedStartDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+                    var normalizedEndDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+                    return holidayEvents
+                        .filter(function (eventItem) {
+                            if (!eventItem || typeof eventItem.start !== 'string' || eventItem.start.trim() === '') {
+                                return false;
+                            }
+
+                            var eventDate = new Date(eventItem.start + 'T00:00:00');
+                            if (Number.isNaN(eventDate.getTime())) {
+                                return false;
+                            }
+
+                            return eventDate >= normalizedStartDate && eventDate < normalizedEndDate;
+                        })
+                        .map(function (eventItem) {
+                            return {
+                                title: eventItem.title || '-',
+                                start: eventItem.start,
+                                allDay: eventItem.allDay !== false,
+                                classNames: Array.isArray(eventItem.classNames) ? eventItem.classNames : ['fc-joint-leave-card'],
+                                backgroundColor: eventItem.backgroundColor || '#cd5c5c',
+                                borderColor: eventItem.borderColor || '#cd5c5c',
+                                textColor: eventItem.textColor || '#ffffff',
+                                extendedProps: eventItem.extendedProps || {}
+                            };
+                        });
                 }
 
                 function buildAttendanceHistoryEventsInRange(startDate, endDate) {
@@ -458,30 +454,20 @@
                         );
                     },
                     events: function (fetchInfo, successCallback, failureCallback) {
-                        var startYear = fetchInfo.start.getFullYear();
-                        var endYear = fetchInfo.end.getFullYear();
-                        var years = [];
+                        try {
+                            var holidayEventsInRange = buildHolidayEventsInRange(fetchInfo.start, fetchInfo.end);
+                            var attendanceLogEvents = buildAttendanceHistoryEventsInRange(fetchInfo.start, fetchInfo.end);
+                            if (!showWeekendOff) {
+                                successCallback(holidayEventsInRange.concat(attendanceLogEvents));
+                                return;
+                            }
 
-                        for (var yearCursor = startYear; yearCursor <= endYear; yearCursor += 1) {
-                            years.push(yearCursor);
+                            var weekendEvents = buildWeekendEventsInRange(fetchInfo.start, fetchInfo.end);
+                            successCallback(holidayEventsInRange.concat(weekendEvents, attendanceLogEvents));
+                        } catch (error) {
+                            console.error(error);
+                            failureCallback(error);
                         }
-
-                        Promise.all(years.map(fetchHolidayEventsByYear))
-                            .then(function (eventsByYear) {
-                                var holidayEvents = eventsByYear.flat();
-                                var attendanceLogEvents = buildAttendanceHistoryEventsInRange(fetchInfo.start, fetchInfo.end);
-                                if (!showWeekendOff) {
-                                    successCallback(holidayEvents.concat(attendanceLogEvents));
-                                    return;
-                                }
-
-                                var weekendEvents = buildWeekendEventsInRange(fetchInfo.start, fetchInfo.end);
-                                successCallback(holidayEvents.concat(weekendEvents, attendanceLogEvents));
-                            })
-                            .catch(function (error) {
-                                console.error(error);
-                                failureCallback(error);
-                            });
                     }
                 });
 

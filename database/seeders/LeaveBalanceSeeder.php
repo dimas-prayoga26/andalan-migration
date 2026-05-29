@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
-use App\Models\MetaDataLeaveCompany;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -31,14 +30,11 @@ class LeaveBalanceSeeder extends Seeder
                 throw new RuntimeException('Leave type cuti tahunan tidak ditemukan.');
             }
 
-            /** @var array<string, int> $annualQuotaByCompany */
-            $annualQuotaByCompany = [];
-
             $users = User::query()
                 ->select(['id'])
                 ->with([
                     'employee:id,user_id',
-                    'employee.deployment:id,employee_id,join_date,current_company_id',
+                    'employee.deployment:id,employee_id,join_date',
                 ])
                 ->get();
 
@@ -50,24 +46,7 @@ class LeaveBalanceSeeder extends Seeder
 
                 $employment = $user->employee?->deployment;
                 $employmentStartDateRaw = $employment?->join_date?->toDateString();
-                $companyId = is_string($employment?->current_company_id) ? trim($employment->current_company_id) : null;
-                if ($companyId === '') {
-                    $companyId = null;
-                }
-
-                $companyKey = $companyId === null ? 'none' : (string) $companyId;
-
-                if (! array_key_exists($companyKey, $annualQuotaByCompany)) {
-                    $annualQuotaByCompany[$companyKey] = $companyId !== null
-                        ? (int) (MetaDataLeaveCompany::query()
-                            ->where('company_id', $companyId)
-                            ->where('is_active', true)
-                            ->orderByDesc('id')
-                            ->value('annual_quota') ?? $defaultAnnualQuota)
-                        : $defaultAnnualQuota;
-                }
-
-                $annualQuota = max($annualQuotaByCompany[$companyKey], 0);
+                $annualQuota = max($defaultAnnualQuota, 0);
                 $annualBalance = $this->resolveAnnualBalance(
                     $employeeId,
                     $employmentStartDateRaw,
@@ -91,7 +70,6 @@ class LeaveBalanceSeeder extends Seeder
                         'earned_quota' => $annualBalance,
                         'used_quota' => 0,
                         'remaining_quota' => $annualBalance,
-                        'is_monthly_limit_used' => false,
                         'deleted_at' => null,
                         'updated_at' => $now,
                         'created_at' => $timestamp,

@@ -15,7 +15,6 @@ class DatabaseSeeder extends Seeder
     {
         $seeders = [
             CompanySeeder::class,
-            MetaDataLeaveCompanySeeder::class,
             RulesOfAttendacesSeeder::class,
             MetaDataDomiciliSeeder::class,
             MetaDataGenderSeeder::class,
@@ -32,6 +31,7 @@ class DatabaseSeeder extends Seeder
             EmployeeBankAccountSeeder::class,
             EmployeeAddressSeeder::class,
             LeaveBalanceSeeder::class,
+            LeaveRequestHistorySeeder::class,
         ];
 
         foreach ($seeders as $seederClass) {

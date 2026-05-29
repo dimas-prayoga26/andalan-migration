@@ -65,14 +65,10 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/absensi/reports/export', [ReportController::class, 'exportReport'])->name('absensi.reports.export');
 
     // Attendance permission routes
-    Route::get('/absensi/izin/datatable', [LeaveRequestController::class, 'datatable'])->name('absensi.izin.datatable');
     Route::get('/absensi/izin', [LeaveRequestController::class, 'index'])->name('absensi.izin');
     Route::post('/absensi/izin/upload-image', [LeaveRequestController::class, 'uploadImage'])->name('absensi.izin.upload-image');
     Route::post('/absensi/izin/delete-uploaded-image', [LeaveRequestController::class, 'deleteUploadedImage'])->name('absensi.izin.delete-uploaded-image');
     Route::post('/absensi/izin', [LeaveRequestController::class, 'store'])->name('absensi.izin.store');
-    Route::get('/absensi/izin/{leaveRequest}', [LeaveRequestController::class, 'show'])->name('absensi.izin.show');
-    Route::get('/absensi/izin/{leaveRequest}/attachment', [LeaveRequestController::class, 'showAttachment'])->name('absensi.izin.attachment');
-    Route::put('/absensi/izin/{leaveRequest}/status', [LeaveRequestController::class, 'updateStatus'])->name('absensi.izin.update-status');
 
     // Attendance permission routes
     Route::delete('/absensi/izin/{leaveRequest}', [LeaveRequestController::class, 'destroy'])->name('absensi.izin.destroy');

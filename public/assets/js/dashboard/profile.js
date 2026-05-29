@@ -1239,10 +1239,12 @@ var dzProfile = function(){
 			}
 		};
 
-		if($('#chartProfileProgress').length > 0){
-			var handleProfileProgress = new ApexCharts(document.querySelector("#chartProfileProgress"), options);
-			handleProfileProgress.render();
-		}
+		['#chartProfileProgress', '#chartProfileProgressDesktop'].forEach(function(selector){
+			if($(selector).length > 0){
+				var handleProfileProgress = new ApexCharts(document.querySelector(selector), options);
+				handleProfileProgress.render();
+			}
+		});
 	 
 	}
 	

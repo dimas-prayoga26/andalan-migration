@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\View\Composers\AttendanceProfileComposer;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Tests\TestCase;
@@ -86,5 +87,40 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertFileExists(public_path('assets/css/attendance.css'));
         $this->assertFileDoesNotExist(public_path('assets/css/absensi.css'));
         $this->assertTrue(class_exists(AttendanceProfileComposer::class));
+
+        $attendanceOverviewView = File::get(resource_path('views/attendance/index.blade.php'));
+
+        foreach ([
+            'function pieChart()',
+            'function radialBar()',
+            'function donut()',
+            'function barChart_3()',
+            'function lineChart_3()',
+            'function barChart_1()',
+            'function lineChart_2()',
+            'pieChart();',
+            'radialBar();',
+            'donut();',
+            'barChart_3();',
+            'lineChart_3();',
+            'barChart_1();',
+            'lineChart_2();',
+        ] as $chartInitializer) {
+            $this->assertStringContainsString($chartInitializer, $attendanceOverviewView);
+        }
+
+        $this->assertStringContainsString('<div class="row align-items-stretch">', $attendanceOverviewView);
+        $this->assertSame(2, substr_count($attendanceOverviewView, '<div class="card flex-fill">'));
+        $this->assertStringContainsString('row row-cols-2 g-2 list-unstyled mb-0 mx-auto w-100', $attendanceOverviewView);
+
+        $commonJsView = File::get(resource_path('views/layouts/commonjs.blade.php'));
+
+        foreach ([
+            'vendor/chart-js/chart.bundle.min.js',
+            'vendor/apexcharts/dist/apexcharts.min.js',
+            'vendor/peity/jquery.peity.min.js',
+        ] as $chartDependency) {
+            $this->assertStringContainsString($chartDependency, $commonJsView);
+        }
     }
 }

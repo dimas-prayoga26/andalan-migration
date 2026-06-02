@@ -10,12 +10,12 @@
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
 @endsection
 
-@section('navbarTitle', 'Attendances')
+@section('navbarTitle', 'Overview')
 
 @section('content')
 @include('layouts.breadcrumb', [
-    'title' => 'Attendances',
-    'current' => 'Overtime',
+    'title' => 'Overview',
+    'current' => 'Overview',
     'homeRoute' => 'dashboard',
 ])
 
@@ -23,13 +23,9 @@
 
 <div class="col-lg-12">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Overtime</h5>
-        <div class="d-flex align-items-center">
-            <a data-bs-toggle="modal" data-bs-target="#create" class="btn btn-success light btn-sm ms-2">+ Overtime</a>
-        </div>
+        <h5 class="mb-0">Overview</h5>
     </div>
 </div>
-
 @endsection
 
 @section('script')

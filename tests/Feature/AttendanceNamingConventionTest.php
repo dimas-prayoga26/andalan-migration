@@ -13,6 +13,7 @@ class AttendanceNamingConventionTest extends TestCase
     {
         $expectedRouteNames = [
             'attendance',
+            'attendance.today',
             'attendance.store',
             'attendance.update',
             'attendance.current-ip',
@@ -39,6 +40,9 @@ class AttendanceNamingConventionTest extends TestCase
             $this->assertNotNull(Route::getRoutes()->getByName($expectedRouteName), $expectedRouteName);
         }
 
+        $this->assertSame('attendance', Route::getRoutes()->getByName('attendance')?->uri());
+        $this->assertSame('attendance/today', Route::getRoutes()->getByName('attendance.today')?->uri());
+
         $this->assertNull(Route::getRoutes()->getByName('absensi'));
         $this->assertNull(Route::getRoutes()->getByName('absensi.izin'));
         $this->assertNull(Route::getRoutes()->getByName('absensi.lembur'));
@@ -48,6 +52,7 @@ class AttendanceNamingConventionTest extends TestCase
 
         $expectedViewNames = [
             'attendance.attendance.index',
+            'attendance.index',
             'attendance.reports.index',
             'attendance.reports.pdf',
             'attendance.leave-requests.index',

@@ -51,10 +51,13 @@ Route::middleware('auth')->group(function (): void {
         return view('agenda');
     })->name('agenda');
 
-    // Attendance main resource (index, check-in, check-out)
+    // Attendance overview and daily attendance
+    Route::view('/attendance', 'attendance.index')->name('attendance');
+    Route::get('/attendance/today', [AttendanceController::class, 'index'])->name('attendance.today');
+
+    // Attendance check-in and check-out
     Route::resource('attendance', AttendanceController::class)
-        ->only(['index', 'store', 'update'])
-        ->names(['index' => 'attendance']);
+        ->only(['store', 'update']);
 
     // Attendance support routes
     Route::get('/attendance/current-ip', [AttendanceController::class, 'currentIp'])->name('attendance.current-ip');

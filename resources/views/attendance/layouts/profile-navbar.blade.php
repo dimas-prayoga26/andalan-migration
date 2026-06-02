@@ -2,10 +2,10 @@
 <div class="card-footer py-0 d-flex flex-wrap justify-content-between align-items-center mx-sm-4 px-0">
     <ul class="nav nav-underline gap-3 nav-scroll nav-scroll-auto-xl px-3 px-sm-0 attendance-tabs" id="tabMyProfileBottom" role="tablist">
         <li class="nav-item" role="presentation">
-            <button type="button" class="nav-link py-3 px-1 border-3 attendance-tab-btn" aria-selected="false">Overview</button>
+            <button type="button" data-href="{{ route('attendance') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance') ? 'true' : 'false' }}">Overview</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button type="button" data-href="{{ route('attendance') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance') ? 'true' : 'false' }}">Attendance</button>
+            <button type="button" data-href="{{ route('attendance.today') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.today') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.today') ? 'true' : 'false' }}">Attendance</button>
         </li>
         <li class="nav-item" role="presentation">
             <button type="button" data-href="{{ route('attendance.reports') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.reports') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.reports') ? 'true' : 'false' }}">Report</button>

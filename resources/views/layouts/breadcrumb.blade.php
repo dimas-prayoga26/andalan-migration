@@ -1,7 +1,7 @@
 @php
     $title = $title ?? 'Page';
     $current = $current ?? $title;
-    $homeLabel = $homeLabel ?? 'Home';
+    $homeLabel = $homeLabel ?? 'Dashboard';
     $homeRoute = $homeRoute ?? 'dashboard';
 @endphp
 

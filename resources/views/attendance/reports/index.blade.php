@@ -6,15 +6,15 @@
     @php
         $dashboardCssPath = public_path('assets/css/dashboard.css');
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
-        $absensiCssPath = public_path('assets/css/absensi.css');
-        $absensiCssVersion = file_exists($absensiCssPath) ? filemtime($absensiCssPath) : time();
+        $attendanceCssPath = public_path('assets/css/attendance.css');
+        $attendanceCssVersion = file_exists($attendanceCssPath) ? filemtime($attendanceCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
-    <link rel="stylesheet" href="{{ asset('assets/css/absensi.css') }}?v={{ $absensiCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/attendance.css') }}?v={{ $attendanceCssVersion }}">
     <link rel="stylesheet" href="https://unpkg.com/antd@6.2.3/dist/antd.css">
     <!-- Start - All Required Plugins -->
     <style>
-        .absensi-tabs {
+        .attendance-tabs {
             flex-wrap: nowrap;
             overflow-x: auto;
             overflow-y: hidden;
@@ -24,20 +24,20 @@
             gap: 0.25rem;
         }
 
-        .absensi-tabs .nav-item {
+        .attendance-tabs .nav-item {
             flex: 0 0 auto;
         }
 
-        .absensi-tabs .nav-link {
+        .attendance-tabs .nav-link {
             white-space: nowrap;
         }
 
-        .absensi-tabs .absensi-tab-btn {
+        .attendance-tabs .attendance-tab-btn {
             border: 0;
             background: transparent;
         }
 
-        .absensi-tabs .absensi-tab-btn:focus {
+        .attendance-tabs .attendance-tab-btn:focus {
             box-shadow: none;
         }
 
@@ -236,7 +236,7 @@
     'homeRoute' => 'dashboard',
 ])
 
-@include('absensi.layouts_absensi.profileIndex')
+@include('attendance.layouts.profile-index')
 
 <div class="col-lg-12">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -244,7 +244,7 @@
     </div>
 </div>
 
-@include('absensi.components.attendance-cards')
+@include('attendance.components.attendance-cards')
 
 
 <div class="tab-content" id="tabContentMyProfileBottom">
@@ -337,8 +337,8 @@
             var attendanceYearFilter = document.getElementById('attendanceYearFilter');
             var attendanceExportButton = document.getElementById('attendanceExportButton');
             var officeLocation = @json($officeLocation);
-            var attendanceDatatableUrl = @json(route('absensi.reports.datatable'));
-            var attendanceExportUrl = @json(route('absensi.reports.export'));
+            var attendanceDatatableUrl = @json(route('attendance.reports.datatable'));
+            var attendanceExportUrl = @json(route('attendance.reports.export'));
             var officeStartTotalMinutes = parseTimeStringToMinutes(officeLocation && officeLocation.office_start_time, 8 * 60);
 
             var attendanceTable = null;
@@ -351,7 +351,7 @@
                 var pageInfo = datatableApi.page.info();
                 var tableWrapper = $(datatableApi.table().container());
 
-                tableWrapper.find('.absensi-empty-page-btn').remove();
+                tableWrapper.find('.attendance-empty-page-btn').remove();
 
                 if (!pageInfo || pageInfo.recordsTotal !== 0) {
                     return;
@@ -359,14 +359,14 @@
 
                 var modernNextButton = tableWrapper.find('.dt-paging .dt-paging-button.next');
                 if (modernNextButton.length > 0) {
-                    $('<button type="button" class="dt-paging-button current absensi-empty-page-btn" disabled>1</button>')
+                    $('<button type="button" class="dt-paging-button current attendance-empty-page-btn" disabled>1</button>')
                         .insertBefore(modernNextButton.first());
                     return;
                 }
 
                 var legacyNextButton = tableWrapper.find('.dataTables_paginate .paginate_button.next');
                 if (legacyNextButton.length > 0) {
-                    $('<span class="paginate_button current absensi-empty-page-btn">1</span>')
+                    $('<span class="paginate_button current attendance-empty-page-btn">1</span>')
                         .insertBefore(legacyNextButton.first());
                 }
             }
@@ -572,7 +572,7 @@
             renderAttendanceDateTime();
             setInterval(renderAttendanceDateTime, 1000);
 
-            $('.absensi-tab-btn').on('click', function (event) {
+            $('.attendance-tab-btn').on('click', function (event) {
                 event.preventDefault();
                 event.stopPropagation();
                 var targetUrl = $(this).data('href');

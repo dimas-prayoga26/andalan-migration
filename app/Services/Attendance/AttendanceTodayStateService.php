@@ -13,7 +13,7 @@ class AttendanceTodayStateService
      * @return array{
      *   employeeId:?string,
      *   todayJakartaDate:string,
-     *   absensiHariIni:?Attendance,
+     *   todayAttendance:?Attendance,
      *   todayAttendanceId:?string,
      *   todayAttendanceDistanceKm:?float,
      *   todayAttendanceDistanceOutKm:?float,
@@ -32,19 +32,19 @@ class AttendanceTodayStateService
             ? trim($authenticatedUser->employee->id)
             : '';
         $todayJakartaDate = now('Asia/Jakarta')->toDateString();
-        $absensiHariIni = null;
+        $todayAttendance = null;
         $todayAttendanceDistanceKm = null;
         $todayAttendanceDistanceOutKm = null;
         $hasEarlyDepartureExceptionToday = false;
 
         if ($employeeId !== '') {
-            $absensiHariIni = Attendance::query()
+            $todayAttendance = Attendance::query()
                 ->where('date', $todayJakartaDate)
                 ->where('employee_id', $employeeId)
                 ->first();
         }
 
-        $todayAttendanceId = is_string($absensiHariIni?->id) ? trim($absensiHariIni->id) : null;
+        $todayAttendanceId = is_string($todayAttendance?->id) ? trim($todayAttendance->id) : null;
         if (is_string($todayAttendanceId) && $todayAttendanceId !== '') {
             $latestDistanceIn = AttendanceLog::query()
                 ->where('attendance_id', $todayAttendanceId)
@@ -81,13 +81,13 @@ class AttendanceTodayStateService
         }
 
         $normalizedEmployeeId = $employeeId !== '' ? $employeeId : null;
-        $hasCheckedInToday = ! empty($absensiHariIni?->clock_in);
-        $hasCheckedOutToday = ! empty($absensiHariIni?->clock_out);
+        $hasCheckedInToday = ! empty($todayAttendance?->clock_in);
+        $hasCheckedOutToday = ! empty($todayAttendance?->clock_out);
 
         return [
             'employeeId' => $normalizedEmployeeId,
             'todayJakartaDate' => $todayJakartaDate,
-            'absensiHariIni' => $absensiHariIni,
+            'todayAttendance' => $todayAttendance,
             'todayAttendanceId' => $todayAttendanceId,
             'todayAttendanceDistanceKm' => $todayAttendanceDistanceKm,
             'todayAttendanceDistanceOutKm' => $todayAttendanceDistanceOutKm,

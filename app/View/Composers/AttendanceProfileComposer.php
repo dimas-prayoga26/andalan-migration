@@ -11,7 +11,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
-class AbsensiProfileComposer
+class AttendanceProfileComposer
 {
     public function compose(View $view): void
     {

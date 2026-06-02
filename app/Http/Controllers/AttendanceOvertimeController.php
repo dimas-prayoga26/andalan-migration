@@ -58,7 +58,7 @@ class AttendanceOvertimeController extends Controller
             $defaultPicUserId = (string) ($picOptionIds[0] ?? '');
         }
 
-        return view('absensi.lembur', [
+        return view('attendance.overtimes.index', [
             'canSubmitOvertime' => $isStaffUser || $canManageOvertimeActions,
             'isStaffOvertimeUser' => $isStaffUser,
             'hasStaffOvertimeAssignment' => $hasStaffOvertimeAssignment,

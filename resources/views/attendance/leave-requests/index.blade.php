@@ -6,11 +6,11 @@
     @php
         $dashboardCssPath = public_path('assets/css/dashboard.css');
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
-        $absensiCssPath = public_path('assets/css/absensi.css');
-        $absensiCssVersion = file_exists($absensiCssPath) ? filemtime($absensiCssPath) : time();
+        $attendanceCssPath = public_path('assets/css/attendance.css');
+        $attendanceCssVersion = file_exists($attendanceCssPath) ? filemtime($attendanceCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
-    <link rel="stylesheet" href="{{ asset('assets/css/absensi.css') }}?v={{ $absensiCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/attendance.css') }}?v={{ $attendanceCssVersion }}">
     <style>
         .leave-history-timeline .timeline-status {
             left: -8px;
@@ -59,7 +59,7 @@
     'homeRoute' => 'dashboard',
 ])
 
-@include('absensi.layouts_absensi.profileIndex')
+@include('attendance.layouts.profile-index')
 
 <div class="col-lg-12">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -257,7 +257,7 @@
         </div>
     </div>
     <div class="col-12 d-flex justify-content-end mb-3">
-        <form method="GET" action="{{ route('absensi.izin') }}" class="d-flex align-items-end gap-2">
+        <form method="GET" action="{{ route('attendance.leave-requests') }}" class="d-flex align-items-end gap-2">
             <div>
                 <label for="leaveHistoryYearFilter" class="form-label mb-1">History Year</label>
                 <select
@@ -343,7 +343,7 @@
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
         $(function () {
-            $('.absensi-tab-btn').on('click', function (event) {
+            $('.attendance-tab-btn').on('click', function (event) {
                 event.preventDefault();
                 event.stopPropagation();
                 var targetUrl = $(this).data('href');
@@ -354,7 +354,7 @@
 
             var specialLeaveTypeId = @json($specialLeaveTypeId ?? null);
             var sickLeaveTypeId = @json($sickLeaveTypeId ?? null);
-            var leaveStoreUrl = @json(route('absensi.izin.store'));
+            var leaveStoreUrl = @json(route('attendance.leave-requests.store'));
             var attachmentPreviewPlaceholderUrl = @json(asset('assets/images/avatar/placeholder.avif'));
 
             var $leaveForm = $('#leaveRequestForm');

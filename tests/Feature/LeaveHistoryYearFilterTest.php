@@ -32,7 +32,7 @@ class LeaveHistoryYearFilterTest extends TestCase
             'status' => 'Active',
         ]);
 
-        $response = $this->actingAs($user)->get(route('absensi.izin'));
+        $response = $this->actingAs($user)->get(route('attendance.leave-requests'));
 
         $response->assertOk();
         $response->assertSee('2024');
@@ -76,7 +76,7 @@ class LeaveHistoryYearFilterTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $response = $this->actingAs($user)->get(route('absensi.izin', [
+        $response = $this->actingAs($user)->get(route('attendance.leave-requests', [
             'history_year' => 2026,
         ]));
 

@@ -18,7 +18,7 @@ class AttendanceCardsViewDataService
      * @return array{
      *   employeeId:?string,
      *   todayJakartaDate:string,
-     *   absensiHariIni:mixed,
+     *   todayAttendance:mixed,
      *   todayAttendanceId:?string,
      *   todayAttendanceDistanceKm:?float,
      *   todayAttendanceDistanceOutKm:?float,
@@ -114,7 +114,7 @@ class AttendanceCardsViewDataService
         return [
             'employeeId' => $employeeId,
             'todayJakartaDate' => $todayJakartaDate,
-            'absensiHariIni' => $todayAttendanceState['absensiHariIni'],
+            'todayAttendance' => $todayAttendanceState['todayAttendance'],
             'todayAttendanceId' => $todayAttendanceState['todayAttendanceId'],
             'todayAttendanceDistanceKm' => $todayAttendanceState['todayAttendanceDistanceKm'],
             'todayAttendanceDistanceOutKm' => $todayAttendanceState['todayAttendanceDistanceOutKm'],

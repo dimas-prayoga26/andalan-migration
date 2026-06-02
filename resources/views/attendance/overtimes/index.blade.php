@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://unpkg.com/antd@6.2.3/dist/antd.css">
     <!-- Start - All Required Plugins -->
     <style>
-        .absensi-tabs {
+        .attendance-tabs {
             flex-wrap: nowrap;
             overflow-x: auto;
             overflow-y: hidden;
@@ -21,20 +21,20 @@
             gap: 0.25rem;
         }
 
-        .absensi-tabs .nav-item {
+        .attendance-tabs .nav-item {
             flex: 0 0 auto;
         }
 
-        .absensi-tabs .nav-link {
+        .attendance-tabs .nav-link {
             white-space: nowrap;
         }
 
-        .absensi-tabs .absensi-tab-btn {
+        .attendance-tabs .attendance-tab-btn {
             border: 0;
             background: transparent;
         }
 
-        .absensi-tabs .absensi-tab-btn:focus {
+        .attendance-tabs .attendance-tab-btn:focus {
             box-shadow: none;
         }
 
@@ -76,7 +76,7 @@
             text-align: center;
         }
 
-        .lembur-table-title {
+        .overtime-table-title {
             font-size: 1.05rem;
             font-weight: 700;
             color: #25314c;
@@ -88,7 +88,7 @@
             vertical-align: middle;
         }
 
-        .lembur-status-badge {
+        .overtime-status-badge {
             display: inline-block;
             border-radius: 0.4rem;
             padding: 0.25rem 0.6rem;
@@ -98,32 +98,32 @@
             border: 1px solid transparent;
         }
 
-        .lembur-status-badge.warning {
+        .overtime-status-badge.warning {
             background: #fff7e6;
             border-color: #ffd591;
             color: #ad6800;
         }
 
-        .lembur-status-badge.success {
+        .overtime-status-badge.success {
             background: #f6ffed;
             border-color: #b7eb8f;
             color: #237804;
         }
 
-        .lembur-status-badge.danger {
+        .overtime-status-badge.danger {
             background: #fff1f0;
             border-color: #ffa39e;
             color: #a8071a;
         }
 
-        .lembur-action-group {
+        .overtime-action-group {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.35rem;
         }
 
-        .lembur-action-btn {
+        .overtime-action-btn {
             width: 34px;
             height: 34px;
             border: 0;
@@ -134,17 +134,17 @@
             font-size: 1rem;
         }
 
-        .lembur-action-btn.info {
+        .overtime-action-btn.info {
             background: #d9f2f4;
             color: #4aa3ad;
         }
 
-        .lembur-action-btn.edit {
+        .overtime-action-btn.edit {
             background: #f8e8b7;
             color: #f2ad00;
         }
 
-        .lembur-action-btn.delete {
+        .overtime-action-btn.delete {
             background: #f8d6e2;
             color: #ff4f7b;
         }
@@ -342,22 +342,22 @@
 
 @include('layouts.breadcrumb', [
     'title' => 'Attendances',
-    'current' => 'Izin',
+    'current' => 'Overtime',
     'homeRoute' => 'dashboard',
 ])
 
-@include('absensi.layouts_absensi.profileIndex')
+@include('attendance.layouts.profile-index')
 
 <div class="col-lg-12">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Lembur</h5>
+        <h5 class="mb-0">Overtime</h5>
         <div class="d-flex align-items-center">
             @if($canSubmitOvertime ?? false)
             <button
                 type="button"
-                id="openSubmitLemburModalButton"
+                id="openSubmitOvertimeModalButton"
                 class="me-2 btn btn-success light btn-sm"
-            >Submit Lembur</button>
+            >Submit Overtime</button>
             @endif
         </div>
     </div>
@@ -369,7 +369,7 @@
             <div class="row">
                 <div class="col-xxl-12 col-xl-12">
                     <div class="card-body">
-                        <div class="lembur-table-title">Data Lembur</div>
+                        <div class="overtime-table-title">Data Overtime</div>
                         <div class="table-responsive">
                             <table id="myTable" class="display table">
                                 <thead>
@@ -405,11 +405,11 @@
     </div>
 </div>
 @if(($canSubmitOvertime ?? false) || ($canManageOvertimeActions ?? false))
-    <div class="modal fade" id="submitLemburModal" tabindex="-1" aria-labelledby="submitLemburModalLabel" aria-hidden="true">
+    <div class="modal fade" id="submitOvertimeModal" tabindex="-1" aria-labelledby="submitOvertimeModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="submitLemburModalLabel">Submit Lembur</h5>
+                    <h5 class="modal-title" id="submitOvertimeModalLabel">Submit Overtime</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body {{ (($isStaffOvertimeUser ?? false) && !($hasStaffOvertimeAssignment ?? false)) ? 'overtime-forbidden-modal' : '' }}">
@@ -428,7 +428,7 @@
                             </div>
                         </div>
                     @else
-                        <form id="overtimeSubmissionForm" action="{{ route('absensi.lembur.store') }}" method="POST">
+                        <form id="overtimeSubmissionForm" action="{{ route('attendance.overtimes.store') }}" method="POST">
                             @csrf
                             <input type="hidden" id="overtimeIdInput" value="">
                             <div class="mb-3" id="overtimeStaffGroup">
@@ -468,7 +468,7 @@
                                 >
                             </div>
                             <div class="mb-3" id="overtimeDateGroup">
-                                <label class="form-label" for="overtimeDateInput">Tanggal Lembur</label>
+                                <label class="form-label" for="overtimeDateInput">Tanggal Overtime</label>
                                 <input
                                     type="text"
                                     class="form-control"
@@ -552,7 +552,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Batal</button>
                     @if(!(($isStaffOvertimeUser ?? false) && !($hasStaffOvertimeAssignment ?? false)))
-                        <button type="button" class="btn btn-primary btn-sm" id="submitOvertimeButton">Submit Lembur</button>
+                        <button type="button" class="btn btn-primary btn-sm" id="submitOvertimeButton">Submit Overtime</button>
                     @endif
                 </div>
             </div>
@@ -571,9 +571,9 @@
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        var overtimeShowUrlTemplate = '{{ route('absensi.lembur.show', ['attendanceOvertime' => '__ID__']) }}';
-        var overtimeUpdateUrlTemplate = '{{ route('absensi.lembur.update', ['attendanceOvertime' => '__ID__']) }}';
-        var overtimeDestroyUrlTemplate = '{{ route('absensi.lembur.destroy', ['attendanceOvertime' => '__ID__']) }}';
+        var overtimeShowUrlTemplate = '{{ route('attendance.overtimes.show', ['attendanceOvertime' => '__ID__']) }}';
+        var overtimeUpdateUrlTemplate = '{{ route('attendance.overtimes.update', ['attendanceOvertime' => '__ID__']) }}';
+        var overtimeDestroyUrlTemplate = '{{ route('attendance.overtimes.destroy', ['attendanceOvertime' => '__ID__']) }}';
         var canManageOvertimeActions = @json($canManageOvertimeActions ?? false);
         var isStaffOvertimeUser = @json($isStaffOvertimeUser ?? false);
         var assignedOvertimeEmployeeIds = @json(($assignedOvertimeEmployeeIds ?? collect())->values());
@@ -588,7 +588,7 @@
 
         $(function () {
             var attendanceDateElement = document.getElementById('attendanceDateTime');
-            var overtimeModalElement = document.getElementById('submitLemburModal');
+            var overtimeModalElement = document.getElementById('submitOvertimeModal');
             overtimeModalInstance = window.bootstrap && overtimeModalElement
                 ? bootstrap.Modal.getOrCreateInstance(overtimeModalElement)
                 : null;
@@ -637,7 +637,7 @@
             renderAttendanceDateTime();
             setInterval(renderAttendanceDateTime, 1000);
 
-            $('.absensi-tab-btn').on('click', function (event) {
+            $('.attendance-tab-btn').on('click', function (event) {
                 event.preventDefault();
                 event.stopPropagation();
                 var targetUrl = $(this).data('href');
@@ -650,7 +650,7 @@
                 var tableWrapper = $(tableApi.table().container());
                 var pageInfo = tableApi.page.info();
 
-                tableWrapper.find('.absensi-empty-page-btn').remove();
+                tableWrapper.find('.attendance-empty-page-btn').remove();
 
                 if (!pageInfo || pageInfo.recordsTotal !== 0) {
                     return;
@@ -658,14 +658,14 @@
 
                 var modernNextButton = tableWrapper.find('.dt-paging .dt-paging-button.next');
                 if (modernNextButton.length > 0) {
-                    $('<button type="button" class="dt-paging-button current absensi-empty-page-btn" disabled>1</button>')
+                    $('<button type="button" class="dt-paging-button current attendance-empty-page-btn" disabled>1</button>')
                         .insertBefore(modernNextButton.first());
                     return;
                 }
 
                 var legacyNextButton = tableWrapper.find('.dataTables_paginate .paginate_button.next');
                 if (legacyNextButton.length > 0) {
-                    $('<span class="paginate_button current absensi-empty-page-btn">1</span>')
+                    $('<span class="paginate_button current attendance-empty-page-btn">1</span>')
                         .insertBefore(legacyNextButton.first());
                 }
             }
@@ -708,17 +708,17 @@
                     className: 'text-center',
                     render: function (data, type, row) {
                         var overtimeId = row && row.id ? row.id : '';
-                        var actionButtons = '<button type="button" class="lembur-action-btn info" onclick="infoDataOvertime(' + overtimeId + ')"><i class="bi bi-info-circle"></i></button>';
+                        var actionButtons = '<button type="button" class="overtime-action-btn info" onclick="infoDataOvertime(' + overtimeId + ')"><i class="bi bi-info-circle"></i></button>';
 
                         if (canManageOvertimeActions || isStaffOvertimeUser) {
-                            actionButtons += '<button type="button" class="lembur-action-btn edit" onclick="editDataOvertime(' + overtimeId + ')"><i class="bi bi-pencil"></i></button>';
+                            actionButtons += '<button type="button" class="overtime-action-btn edit" onclick="editDataOvertime(' + overtimeId + ')"><i class="bi bi-pencil"></i></button>';
                         }
 
                         if (canManageOvertimeActions) {
-                            actionButtons += '<button type="button" class="lembur-action-btn delete" onclick="deleteDataOvertime(' + overtimeId + ')"><i class="bi bi-trash"></i></button>';
+                            actionButtons += '<button type="button" class="overtime-action-btn delete" onclick="deleteDataOvertime(' + overtimeId + ')"><i class="bi bi-trash"></i></button>';
                         }
 
-                        return '<div class="lembur-action-group">'
+                        return '<div class="overtime-action-group">'
                             + actionButtons
                             + '</div>';
                     }
@@ -752,7 +752,7 @@
 
             overtimeTableInstance = $('#myTable').DataTable({
                 ajax: {
-                    url: '{{ route('absensi.lembur.datatable') }}',
+                    url: '{{ route('attendance.overtimes.datatable') }}',
                     dataSrc: 'data'
                 },
                 processing: true,
@@ -805,7 +805,7 @@
                 }
 
                 $overtimeDateInput.daterangepicker({
-                    parentEl: '#submitLemburModal .modal-body',
+                    parentEl: '#submitOvertimeModal .modal-body',
                     singleDatePicker: true,
                     autoApply: true,
                     autoUpdateInput: false,
@@ -824,7 +824,7 @@
                 });
             }
 
-            $('#submitLemburModal').on('hidden.bs.modal', function () {
+            $('#submitOvertimeModal').on('hidden.bs.modal', function () {
                 resetOvertimeFormFields();
                 setOvertimeModalCreateMode();
 
@@ -846,7 +846,7 @@
                     var $overtimeForm = $('#overtimeSubmissionForm');
                     var formData = new FormData($overtimeForm[0]);
                     var overtimeId = $('#overtimeIdInput').val();
-                    var requestUrl = '{{ route('absensi.lembur.store') }}';
+                    var requestUrl = '{{ route('attendance.overtimes.store') }}';
 
                     if (overtimeFormMode === 'edit' && overtimeId) {
                         requestUrl = buildOvertimeUrl(overtimeUpdateUrlTemplate, overtimeId);
@@ -919,7 +919,7 @@
                                 return;
                             }
 
-                            $submitButton.prop('disabled', false).text(overtimeFormMode === 'edit' ? 'Update Lembur' : 'Submit Lembur');
+                            $submitButton.prop('disabled', false).text(overtimeFormMode === 'edit' ? 'Update Overtime' : 'Submit Overtime');
                         }
                     });
                 });
@@ -1031,11 +1031,11 @@
         function setOvertimeModalCreateMode() {
             overtimeFormMode = 'create';
             if (isStaffOvertimeUser) {
-                $('#submitLemburModalLabel').text('Isi Jam Lembur');
+                $('#submitOvertimeModalLabel').text('Isi Jam Overtime');
                 $('#submitOvertimeButton').text('Simpan Jam Aktual');
             } else {
-                $('#submitLemburModalLabel').text('Submit Lembur');
-                $('#submitOvertimeButton').text('Submit Lembur');
+                $('#submitOvertimeModalLabel').text('Submit Overtime');
+                $('#submitOvertimeButton').text('Submit Overtime');
             }
             $('#overtimeIdInput').val('');
             $('#overtimeApprovalStatusInput').val('pending');
@@ -1045,11 +1045,11 @@
         function setOvertimeModalEditMode(detailData) {
             overtimeFormMode = 'edit';
             if (isStaffOvertimeUser) {
-                $('#submitLemburModalLabel').text('Isi Jam Lembur');
+                $('#submitOvertimeModalLabel').text('Isi Jam Overtime');
                 $('#submitOvertimeButton').text('Simpan Jam Aktual');
             } else {
-                $('#submitLemburModalLabel').text('Edit Lembur');
-                $('#submitOvertimeButton').text('Update Lembur');
+                $('#submitOvertimeModalLabel').text('Edit Overtime');
+                $('#submitOvertimeButton').text('Update Overtime');
             }
 
             $('#overtimeIdInput').val(detailData.id || '');
@@ -1117,7 +1117,7 @@
                         + '</div>';
 
                     Swal.fire({
-                        title: 'Detail Lembur',
+                        title: 'Detail Overtime',
                         html: detailHtml,
                         confirmButtonText: 'Tutup',
                         confirmButtonColor: '#475569',
@@ -1216,7 +1216,7 @@
             });
         }
 
-        $('#openSubmitLemburModalButton').on('click', function () {
+        $('#openSubmitOvertimeModalButton').on('click', function () {
             if (isStaffOvertimeUser) {
                 openOvertimeModalForStaff();
                 return;
@@ -1240,7 +1240,7 @@
 
             Swal.fire({
                 icon: 'warning',
-                title: 'Hapus Data Lembur?',
+                title: 'Hapus Data Overtime?',
                 text: 'Data yang dihapus tidak dapat dikembalikan.',
                 showCancelButton: true,
                 confirmButtonText: 'Ya, Hapus',

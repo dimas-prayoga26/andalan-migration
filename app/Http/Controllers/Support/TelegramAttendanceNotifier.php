@@ -119,7 +119,7 @@ class TelegramAttendanceNotifier
                 $throwable->getMessage()
             );
 
-            Log::warning('Gagal mengirim notifikasi telegram absensi.', [
+            Log::warning('Failed to send Telegram attendance notification.', [
                 'error' => $throwable->getMessage(),
                 'attendance_id' => $attendance->id,
                 'employee_id' => $attendance->employee_id,

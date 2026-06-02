@@ -85,7 +85,7 @@
                     </div>
                     <!-- End - Agenda Kegiatan -->
 
-                    <!-- Start - Data Absensi -->
+                    <!-- Start - Attendance Data -->
                     <div class="dashboard-activity-item">
                         <div class="card overflow-hidden avtivity-card">
                             <div class="card-body">
@@ -94,7 +94,7 @@
                                         <i class="bx bx-fingerprint fs-1 text-danger"></i>
                                     </span>
                                     <div>
-                                        <p class="fs-12 mb-2">Data Absensi</p>
+                                        <p class="fs-12 mb-2">Attendance Data</p>
                                         <span class="title text-black fs-20 fw-semibold">97% Kehadiran</span>
                                     </div>
                                 </div>
@@ -109,7 +109,7 @@
                             <div class="effect bg-danger"></div>
                         </div>
                     </div>
-                    <!-- End - Data Absensi -->
+                    <!-- End - Attendance Data -->
 
                     <!-- Start - Data Pelamar -->
                     <div class="dashboard-activity-item">
@@ -215,7 +215,7 @@
                                         </div>
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Clock In</p>
-                                            <span class="fs-20 text-black">{{ $absensiHariIni?->clock_in?->format('H:i') ?? '--:--' }}</span>
+                                            <span class="fs-20 text-black">{{ $todayAttendance?->clock_in?->format('H:i') ?? '--:--' }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -254,7 +254,7 @@
                                         </div>
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Clock Out</p>
-                                            <span class="fs-20 text-black">{{ $absensiHariIni?->clock_out?->format('H:i') ?? '--:--' }}</span>
+                                            <span class="fs-20 text-black">{{ $todayAttendance?->clock_out?->format('H:i') ?? '--:--' }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -281,11 +281,11 @@
                 <div class="col-xl-12 mb-3">
                     <h4 class="mb-3">Menu</h4>
                     <div class="dashboard-shortcut-menu">
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--absensi shortcut-card" aria-label="Absensi">
+                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--attendance shortcut-card" aria-label="Attendance">
                             <span class="dashboard-shortcut-box">
-                                <img src="{{ asset('assets/icon-menus/bx-calendar-check.svg.svg') }}" alt="Icon Absensi" class="dashboard-shortcut-icon-image">
+                                <img src="{{ asset('assets/icon-menus/bx-calendar-check.svg.svg') }}" alt="Attendance icon" class="dashboard-shortcut-icon-image">
                             </span>
-                            <span class="dashboard-shortcut-text">Absensi</span>
+                            <span class="dashboard-shortcut-text">Attendance</span>
                         </a>
                         <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--agenda shortcut-card" aria-label="Agenda">
                             <span class="dashboard-shortcut-box">
@@ -488,10 +488,10 @@
             var clockOutIpBadgeElement = document.getElementById('dashboardClockOutIpBadge');
             var clockInSubmitButton = document.getElementById('dashboardClockInSubmitBtn');
             var clockOutSubmitButton = document.getElementById('dashboardClockOutSubmitBtn');
-            var storeAttendanceUrl = @json(route('absensi.store'));
-            var updateAttendanceUrlTemplate = @json(url('/absensi/__ATTENDANCE_ID__'));
-            var currentIpUrl = @json(route('absensi.current-ip'));
-            var verifyTelegramUsernameUrl = @json(route('absensi.verify-telegram-username'));
+            var storeAttendanceUrl = @json(route('attendance.store'));
+            var updateAttendanceUrlTemplate = @json(url('/attendance/__ATTENDANCE_ID__'));
+            var currentIpUrl = @json(route('attendance.current-ip'));
+            var verifyTelegramUsernameUrl = @json(route('attendance.verify-telegram-username'));
             var csrfToken = @json(csrf_token());
             var browserPublicIp = null;
             var attendanceState = {

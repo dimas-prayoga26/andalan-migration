@@ -52,41 +52,36 @@ Route::middleware('auth')->group(function (): void {
     })->name('agenda');
 
     // Attendance main resource (index, check-in, check-out)
-    Route::resource('absensi', AttendanceController::class)
+    Route::resource('attendance', AttendanceController::class)
         ->only(['index', 'store', 'update'])
-        ->names(['index' => 'absensi']);
+        ->names(['index' => 'attendance']);
 
     // Attendance support routes
-    Route::get('/absensi/current-ip', [AttendanceController::class, 'currentIp'])->name('absensi.current-ip');
-    Route::post('/absensi/verify-telegram-username', [AttendanceController::class, 'verifyTelegramUsername'])->name('absensi.verify-telegram-username');
-    Route::post('/absensi/exceptions', [AttendanceController::class, 'storeException'])->name('absensi.exceptions.store');
-    Route::get('/absensi/reports', [ReportController::class, 'index'])->name('absensi.reports');
-    Route::get('/absensi/reports/datatable', [ReportController::class, 'datatable'])->name('absensi.reports.datatable');
-    Route::get('/absensi/reports/export', [ReportController::class, 'exportReport'])->name('absensi.reports.export');
+    Route::get('/attendance/current-ip', [AttendanceController::class, 'currentIp'])->name('attendance.current-ip');
+    Route::post('/attendance/verify-telegram-username', [AttendanceController::class, 'verifyTelegramUsername'])->name('attendance.verify-telegram-username');
+    Route::post('/attendance/exceptions', [AttendanceController::class, 'storeException'])->name('attendance.exceptions.store');
+    Route::get('/attendance/reports', [ReportController::class, 'index'])->name('attendance.reports');
+    Route::get('/attendance/reports/datatable', [ReportController::class, 'datatable'])->name('attendance.reports.datatable');
+    Route::get('/attendance/reports/export', [ReportController::class, 'exportReport'])->name('attendance.reports.export');
 
-    // Attendance permission routes
-    Route::get('/absensi/izin', [LeaveRequestController::class, 'index'])->name('absensi.izin');
-    Route::post('/absensi/izin/upload-image', [LeaveRequestController::class, 'uploadImage'])->name('absensi.izin.upload-image');
-    Route::post('/absensi/izin/delete-uploaded-image', [LeaveRequestController::class, 'deleteUploadedImage'])->name('absensi.izin.delete-uploaded-image');
-    Route::post('/absensi/izin', [LeaveRequestController::class, 'store'])->name('absensi.izin.store');
+    // Attendance leave request routes
+    Route::get('/attendance/leave-requests', [LeaveRequestController::class, 'index'])->name('attendance.leave-requests');
+    Route::post('/attendance/leave-requests/upload-image', [LeaveRequestController::class, 'uploadImage'])->name('attendance.leave-requests.upload-image');
+    Route::post('/attendance/leave-requests/delete-uploaded-image', [LeaveRequestController::class, 'deleteUploadedImage'])->name('attendance.leave-requests.delete-uploaded-image');
+    Route::post('/attendance/leave-requests', [LeaveRequestController::class, 'store'])->name('attendance.leave-requests.store');
+    Route::delete('/attendance/leave-requests/{leaveRequest}', [LeaveRequestController::class, 'destroy'])->name('attendance.leave-requests.destroy');
 
-    // Attendance permission routes
-    Route::delete('/absensi/izin/{leaveRequest}', [LeaveRequestController::class, 'destroy'])->name('absensi.izin.destroy');
-    Route::get('/absensi/lembur/datatable', [AttendanceOvertimeController::class, 'datatable'])->name('absensi.lembur.datatable');
-    Route::get('/absensi/lembur', [AttendanceOvertimeController::class, 'index'])->name('absensi.lembur');
-    Route::post('/absensi/lembur', [AttendanceOvertimeController::class, 'store'])->name('absensi.lembur.store');
-    Route::get('/absensi/lembur/{attendanceOvertime}', [AttendanceOvertimeController::class, 'show'])->name('absensi.lembur.show');
-    Route::put('/absensi/lembur/{attendanceOvertime}', [AttendanceOvertimeController::class, 'update'])->name('absensi.lembur.update');
-    Route::delete('/absensi/lembur/{attendanceOvertime}', [AttendanceOvertimeController::class, 'destroy'])->name('absensi.lembur.destroy');
-    Route::get('/absensi/cuti', function () {
-        return view('absensi.cuti');
-    })->name('absensi.cuti');
-
+    // Attendance overtime routes
+    Route::get('/attendance/overtimes/datatable', [AttendanceOvertimeController::class, 'datatable'])->name('attendance.overtimes.datatable');
+    Route::get('/attendance/overtimes', [AttendanceOvertimeController::class, 'index'])->name('attendance.overtimes');
+    Route::post('/attendance/overtimes', [AttendanceOvertimeController::class, 'store'])->name('attendance.overtimes.store');
+    Route::get('/attendance/overtimes/{attendanceOvertime}', [AttendanceOvertimeController::class, 'show'])->name('attendance.overtimes.show');
+    Route::put('/attendance/overtimes/{attendanceOvertime}', [AttendanceOvertimeController::class, 'update'])->name('attendance.overtimes.update');
+    Route::delete('/attendance/overtimes/{attendanceOvertime}', [AttendanceOvertimeController::class, 'destroy'])->name('attendance.overtimes.destroy');
     // Attendance business trip routes
-    Route::get('/absensi/dinas/datatable', [BusinessTripController::class, 'datatable'])->name('absensi.dinas.datatable');
-    Route::resource('absensi/dinas', BusinessTripController::class)
+    Route::resource('attendance/business-trips', BusinessTripController::class)
         ->only(['index'])
-        ->names(['index' => 'absensi.dinas']);
+        ->names(['index' => 'attendance.business-trips']);
 
     // Error page
     Route::get('/error-503', function () {

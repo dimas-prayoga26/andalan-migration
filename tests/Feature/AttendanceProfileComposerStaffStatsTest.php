@@ -8,13 +8,13 @@ use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\Role;
 use App\Models\User;
-use App\View\Composers\AbsensiProfileComposer;
+use App\View\Composers\AttendanceProfileComposer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
-class AbsensiProfileComposerStaffStatsTest extends TestCase
+class AttendanceProfileComposerStaffStatsTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -98,8 +98,8 @@ class AbsensiProfileComposerStaffStatsTest extends TestCase
 
             $this->actingAs($user);
 
-            $view = view('absensi.layouts_absensi.profileHeader');
-            app(AbsensiProfileComposer::class)->compose($view);
+            $view = view('attendance.layouts.profile-header');
+            app(AttendanceProfileComposer::class)->compose($view);
             $data = $view->getData();
 
             $this->assertSame('staff', $data['profileStatsMode']);

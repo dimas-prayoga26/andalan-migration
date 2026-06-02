@@ -119,7 +119,7 @@ class AttendanceController extends Controller
                 ->all();
         }
 
-        return view('absensi.index', array_merge(
+        return view('attendance.attendance.index', array_merge(
             $attendanceCardsData,
             [
                 'attendanceHistoryEvents' => $attendanceHistoryEvents,
@@ -148,12 +148,12 @@ class AttendanceController extends Controller
         }
     }
 
-    public function update(Request $request, Attendance $absensi): JsonResponse
+    public function update(Request $request, Attendance $attendance): JsonResponse
     {
         try {
             $updateResult = $this->attendanceMutationService->update(
                 $request,
-                $absensi,
+                $attendance,
                 Auth::user(),
                 Auth::id(),
             );

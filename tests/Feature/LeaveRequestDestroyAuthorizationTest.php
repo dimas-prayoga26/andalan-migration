@@ -26,7 +26,7 @@ class LeaveRequestDestroyAuthorizationTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $response = $this->actingAs($adminUser)->deleteJson(route('absensi.izin.destroy', $leaveRequest));
+        $response = $this->actingAs($adminUser)->deleteJson(route('attendance.leave-requests.destroy', $leaveRequest));
 
         $response->assertOk()
             ->assertJson([
@@ -52,7 +52,7 @@ class LeaveRequestDestroyAuthorizationTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $response = $this->actingAs($staffUser)->deleteJson(route('absensi.izin.destroy', $leaveRequest));
+        $response = $this->actingAs($staffUser)->deleteJson(route('attendance.leave-requests.destroy', $leaveRequest));
 
         $response->assertForbidden()
             ->assertJson([

@@ -18,7 +18,7 @@ class AttendanceExceptionStoreTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->postJson(route('absensi.exceptions.store'), [
+            ->postJson(route('attendance.exceptions.store'), [
                 'type' => 'early_departure',
                 'note' => 'Pulang lebih awal untuk keperluan keluarga',
                 'from_time' => '12:00',

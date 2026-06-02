@@ -6,15 +6,15 @@
     @php
         $dashboardCssPath = public_path('assets/css/dashboard.css');
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
-        $absensiCssPath = public_path('assets/css/absensi.css');
-        $absensiCssVersion = file_exists($absensiCssPath) ? filemtime($absensiCssPath) : time();
+        $attendanceCssPath = public_path('assets/css/attendance.css');
+        $attendanceCssVersion = file_exists($attendanceCssPath) ? filemtime($attendanceCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
-    <link rel="stylesheet" href="{{ asset('assets/css/absensi.css') }}?v={{ $absensiCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/attendance.css') }}?v={{ $attendanceCssVersion }}">
     <link rel="stylesheet" href="https://unpkg.com/antd@6.2.3/dist/antd.css">
     <!-- Start - All Required Plugins -->
     <style>
-        .absensi-tabs {
+        .attendance-tabs {
             flex-wrap: nowrap;
             overflow-x: auto;
             overflow-y: hidden;
@@ -24,20 +24,20 @@
             gap: 0.25rem;
         }
 
-        .absensi-tabs .nav-item {
+        .attendance-tabs .nav-item {
             flex: 0 0 auto;
         }
 
-        .absensi-tabs .nav-link {
+        .attendance-tabs .nav-link {
             white-space: nowrap;
         }
 
-        .absensi-tabs .absensi-tab-btn {
+        .attendance-tabs .attendance-tab-btn {
             border: 0;
             background: transparent;
         }
 
-        .absensi-tabs .absensi-tab-btn:focus {
+        .attendance-tabs .attendance-tab-btn:focus {
             box-shadow: none;
         }
 
@@ -152,7 +152,7 @@
     'homeRoute' => 'dashboard',
 ])
 
-@include('absensi.layouts_absensi.profileIndex')
+@include('attendance.layouts.profile-index')
 
 <div class="col-lg-12">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -160,7 +160,7 @@
     </div>
 </div>
 
-@include('absensi.components.attendance-cards')
+@include('attendance.components.attendance-cards')
 
 <div class="col-xxl-12 col-xl-12">
     <div class="card card-body">
@@ -233,10 +233,10 @@
 
     <script>
         (function () {
-            var absensiCalendarInitAttempts = 0;
-            var maxAbsensiCalendarInitAttempts = 10;
+            var attendanceCalendarInitAttempts = 0;
+            var maxAttendanceCalendarInitAttempts = 10;
 
-            function initializeAbsensiCalendar() {
+            function initializeAttendanceCalendar() {
                 var calendarEl = document.getElementById('calendar');
                 var dayOffModalElement = document.getElementById('dayOff');
                 var dayOffEventTypeTextElement = document.getElementById('dayOffEventTypeText');
@@ -248,11 +248,11 @@
                 }
 
                 if (typeof FullCalendar === 'undefined') {
-                    absensiCalendarInitAttempts += 1;
-                    console.warn('FullCalendar belum tersedia, retry init ke-' + absensiCalendarInitAttempts);
+                    attendanceCalendarInitAttempts += 1;
+                    console.warn('FullCalendar belum tersedia, retry init ke-' + attendanceCalendarInitAttempts);
 
-                    if (absensiCalendarInitAttempts < maxAbsensiCalendarInitAttempts) {
-                        setTimeout(initializeAbsensiCalendar, 300);
+                    if (attendanceCalendarInitAttempts < maxAttendanceCalendarInitAttempts) {
+                        setTimeout(initializeAttendanceCalendar, 300);
                     }
 
                     return;
@@ -475,11 +475,11 @@
                 calendarEl.dataset.fcInitialized = '1';
             }
 
-            document.addEventListener('DOMContentLoaded', initializeAbsensiCalendar);
+            document.addEventListener('DOMContentLoaded', initializeAttendanceCalendar);
 
             if (typeof jQuery !== 'undefined') {
                 jQuery(window).on('load', function () {
-                    setTimeout(initializeAbsensiCalendar, 300);
+                    setTimeout(initializeAttendanceCalendar, 300);
                 });
             }
         })();

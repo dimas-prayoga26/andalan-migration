@@ -116,7 +116,7 @@
     border-radius: 8px;
 }
 
-.absensi-tabs {
+.attendance-tabs {
     flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
@@ -126,20 +126,20 @@
     gap: 0.25rem;
 }
 
-.absensi-tabs .nav-item {
+.attendance-tabs .nav-item {
     flex: 0 0 auto;
 }
 
-.absensi-tabs .nav-link {
+.attendance-tabs .nav-link {
     white-space: nowrap;
 }
 
-.absensi-tabs .absensi-tab-btn {
+.attendance-tabs .attendance-tab-btn {
     border: 0;
     background: transparent;
 }
 
-.absensi-tabs .absensi-tab-btn:focus {
+.attendance-tabs .attendance-tab-btn:focus {
     box-shadow: none;
 }
 

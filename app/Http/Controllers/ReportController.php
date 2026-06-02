@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\AttendanceException;
+use App\Models\AttendanceHoliday;
 use App\Models\AttendanceLog;
 use App\Models\EmployeeProfile;
 use App\Models\User;
@@ -16,9 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Spatie\LaravelPdf\Enums\Format;
 use Spatie\LaravelPdf\Facades\Pdf;
 
@@ -44,12 +43,6 @@ class ReportController extends Controller
         $isSuperUser = $this->isSuperUser($authenticatedUser);
         $isStaffUser = $this->isStaffUser($authenticatedUser);
         $nowJakarta = now('Asia/Jakarta');
-        $attendance = collect();
-        if (is_string($employeeId) && trim($employeeId) !== '') {
-            $attendance = Attendance::query()
-                ->where('employee_id', $employeeId)
-                ->get();
-        }
         $showCompanyFilter = $isSuperUser;
         $showStaffPeriodFilter = $isStaffUser;
         $companies = collect();
@@ -98,30 +91,10 @@ class ReportController extends Controller
                 ->sortBy('name')
                 ->values();
         }
-        $izin = collect();
-        $lembur = collect();
-        $totalLemburJam = 0;
 
-        $agEvent = $attendance->groupBy(function ($data) {
-            return Carbon::parse($data->date)->format('Y-m-d');
-        })->map(function ($items) {
-            return $items->map(function ($data) {
-                return [
-                    'check_in' => $data->clock_in?->format('H:i'),
-                    'check_out' => $data->clock_out?->format('H:i'),
-                    'status' => $data->status,
-                ];
-            })->values();
-        });
-
-        return view('absensi.report', array_merge(
+        return view('attendance.reports.index', array_merge(
             $attendanceCardsData,
             compact(
-                'attendance',
-                'izin',
-                'lembur',
-                'agEvent',
-                'totalLemburJam',
                 'companies',
                 'showCompanyFilter',
                 'showStaffPeriodFilter',
@@ -153,12 +126,12 @@ class ReportController extends Controller
         }
     }
 
-    public function update(Request $request, Attendance $absensi): JsonResponse
+    public function update(Request $request, Attendance $attendance): JsonResponse
     {
         try {
             $updateResult = $this->attendanceMutationService->update(
                 $request,
-                $absensi,
+                $attendance,
                 Auth::user(),
                 Auth::id(),
             );
@@ -519,7 +492,7 @@ class ReportController extends Controller
         $periodLabel = Carbon::create($selectedYear, max(1, min(12, $selectedMonth)), 1, 0, 0, 0, 'Asia/Jakarta')
             ->translatedFormat('F Y');
 
-        return Pdf::view('absensi.report-pdf', [
+        return Pdf::view('attendance.reports.pdf', [
             'rows' => $reportRows,
             'periodLabel' => $periodLabel,
             'generatedAt' => $nowJakarta->translatedFormat('d M Y H:i'),
@@ -585,59 +558,28 @@ class ReportController extends Controller
      */
     private function buildHolidayMapByMonth(int $year, int $month): array
     {
-        $holidayItems = $this->fetchPublicHolidaysByYear($year);
         $holidayMapByDate = [];
 
+        $holidayItems = AttendanceHoliday::query()
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->orderBy('date')
+            ->get(['date', 'name', 'type']);
+
         foreach ($holidayItems as $holidayItem) {
-            if (! is_array($holidayItem)) {
+            $holidayDate = $holidayItem->date?->toDateString();
+            $holidayName = is_string($holidayItem->name) ? trim($holidayItem->name) : '';
+            if (! is_string($holidayDate) || $holidayDate === '' || $holidayName === '') {
                 continue;
             }
 
-            $dateValue = isset($holidayItem['date']) ? trim((string) $holidayItem['date']) : '';
-            $nameValue = isset($holidayItem['name']) ? trim((string) $holidayItem['name']) : '';
-            if ($dateValue === '' || $nameValue === '') {
-                continue;
-            }
-
-            $parsedDate = Carbon::parse($dateValue, 'Asia/Jakarta');
-            if ((int) $parsedDate->month !== $month) {
-                continue;
-            }
-
-            $holidayMapByDate[$parsedDate->toDateString()] = [
-                'name' => $nameValue,
-                'is_national_holiday' => (bool) ($holidayItem['is_national_holiday'] ?? false),
+            $holidayMapByDate[$holidayDate] = [
+                'name' => $holidayName,
+                'is_national_holiday' => (int) $holidayItem->type === 1,
             ];
         }
 
         return $holidayMapByDate;
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function fetchPublicHolidaysByYear(int $year): array
-    {
-        $cacheKey = 'public-holidays-deno-year-'.$year;
-
-        return Cache::remember($cacheKey, now('Asia/Jakarta')->addHours(12), function () use ($year): array {
-            try {
-                $response = Http::timeout(8)
-                    ->retry(2, 300)
-                    ->acceptJson()
-                    ->get('https://libur.deno.dev/api', ['year' => $year]);
-
-                if (! $response->successful()) {
-                    return [];
-                }
-
-                $payload = $response->json();
-
-                return is_array($payload) ? $payload : [];
-            } catch (\Throwable) {
-                return [];
-            }
-        });
     }
 
     private function formatWorkHoursLabel(?string $clockInValue, ?string $clockOutValue, mixed $storedWorkHours): string

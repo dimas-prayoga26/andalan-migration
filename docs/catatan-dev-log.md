@@ -7,6 +7,17 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-06-02 (Selasa)
+- Mengubah sumber data hari libur pada Attendance Report dari API eksternal `libur.deno.dev` menjadi tabel lokal `attendances_holidays`.
+- Menambahkan test terfokus untuk memastikan pemetaan libur nasional dan cuti bersama berasal dari database tanpa HTTP request eksternal.
+
+### 2026-05-29 (Jumat)
+- Penyelesaian modul `Leaves & Sick`: halaman izin memakai data database, form pengajuan aktif, validasi cuti khusus dan sakit ditambahkan, serta riwayat pengajuan dapat difilter berdasarkan tahun.
+- Penyederhanaan konfigurasi cuti: hapus `meta_data_leave_companies` dan flag lama `is_monthly_limit_used`, tambah role `admin`, otorisasi hapus pengajuan, serta seeder histori cuti.
+- Perbaikan horizontal scroll pada tabel report absensi.
+- Penambahan kalender hari libur berbasis tabel `attendances_holidays`, termasuk seeder hari libur 2026 dan warna khusus untuk attendance exception.
+- Statistik staff pada profile header dibuat dinamis dari database: `Late In`, `Leaves & Sick`, persentase kehadiran mingguan, `On-Time`, serta grafik progress bulanan.
+
 ### 2026-05-21 (Kamis)
 - Penambahan halaman `Report` pada modul absensi beserta route dan controller terpisah.
 - Revamp modal absensi: state `Clock In`/`Clock Out` dipisah, alur verifikasi onsite diperjelas, dan status tombol submit lebih ketat.
@@ -41,6 +52,12 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-06-02
+- `2026-06-02-1005-report-holidays-gunakan-table-lokal.md`
+
+### 2026-05-29
+- `2026-05-29-1704-ringkasan-perubahan-leaves-holidays-profile-stats.md`
 
 ### 2026-05-21
 - `2026-05-21-1015-revamp-absensi-report-modal-dan-skema-attendance.md`

@@ -5,7 +5,7 @@
 					@php
 						$isDashboardMenu = request()->routeIs('dashboard');
 						$isCalendarMenu = request()->routeIs('activity-schadule*');
-						$isAttendanceMenu = request()->routeIs('absensi') || request()->is('absensi');
+						$isAttendanceMenu = request()->routeIs('attendance*') || request()->is('attendance*');
 						$isReportingMenu = request()->routeIs('project_management', 'project_management.detail') || request()->is('project-management*');
 						$isMeetingMenu = request()->routeIs('agenda');
 						$isOrganizationMenu = request()->routeIs('employee_data*') || request()->is('employee-data*');
@@ -31,7 +31,7 @@
 						<p class="mb-1"><strong>Siap</strong> </p>
 					</div>
 					<li class="{{ $isAttendanceMenu ? 'mm-active' : '' }}">
-						<a class="{{ $isAttendanceMenu ? 'active' : '' }}" href="{{ route('absensi') }}" aria-expanded="{{ $isAttendanceMenu ? 'true' : 'false' }}">
+						<a class="{{ $isAttendanceMenu ? 'active' : '' }}" href="{{ route('attendance') }}" aria-expanded="{{ $isAttendanceMenu ? 'true' : 'false' }}">
 							<i class="fa-regular fa-clock"></i>
 							<span class="nav-text" data-i18n="Attendance">Attendance </span>
 						</a>
@@ -100,7 +100,7 @@
 						<p class="mb-1"><strong>HR Management</strong> </p>
 					</div>
 					<li class="{{ $isAttendanceMenu ? 'mm-active' : '' }}">
-						<a class="{{ $isAttendanceMenu ? 'active' : '' }}" href="{{ route('absensi') }}" aria-expanded="{{ $isAttendanceMenu ? 'true' : 'false' }}">
+						<a class="{{ $isAttendanceMenu ? 'active' : '' }}" href="{{ route('attendance') }}" aria-expanded="{{ $isAttendanceMenu ? 'true' : 'false' }}">
 							<i class="fa-regular fa-clock"></i>
 							<span class="nav-text" data-i18n="Time & Attendance">Time & Attendance </span>
 						</a>

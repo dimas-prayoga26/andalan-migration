@@ -29,7 +29,7 @@
                     </div>
                     <div class="text-center">
                         <p class="fs-14 mb-2">Clock In</p>
-                        <span class="fs-20 text-black">{{ $absensiHariIni?->clock_in?->format('H:i') ?? '--:--' }}</span>
+                        <span class="fs-20 text-black">{{ $todayAttendance?->clock_in?->format('H:i') ?? '--:--' }}</span>
                     </div>
                 </div>
             </div>
@@ -79,7 +79,7 @@
                     </div>
                     <div class="text-center">
                         <p class="fs-14 mb-2">Clock Out</p>
-                        <span class="fs-20 text-black">{{ $absensiHariIni?->clock_out?->format('H:i') ?? '--:--' }}</span>
+                        <span class="fs-20 text-black">{{ $todayAttendance?->clock_out?->format('H:i') ?? '--:--' }}</span>
                     </div>
                 </div>
             </div>
@@ -344,12 +344,12 @@
             var clockOutIpBadgeElement = document.getElementById('clockOutIpBadge');
             var clockInSubmitButton = document.getElementById('clockInSubmitBtn');
             var clockOutSubmitButton = document.getElementById('clockOutSubmitBtn');
-            var storeAttendanceUrl = @json(route('absensi.store'));
-            var updateAttendanceUrlTemplate = @json(url('/absensi/__ATTENDANCE_ID__'));
+            var storeAttendanceUrl = @json(route('attendance.store'));
+            var updateAttendanceUrlTemplate = @json(url('/attendance/__ATTENDANCE_ID__'));
             var projectManagementIndexUrl = @json(route('project_management'));
-            var currentIpUrl = @json(route('absensi.current-ip'));
-            var verifyTelegramUsernameUrl = @json(route('absensi.verify-telegram-username'));
-            var storeAttendanceExceptionUrl = @json(route('absensi.exceptions.store'));
+            var currentIpUrl = @json(route('attendance.current-ip'));
+            var verifyTelegramUsernameUrl = @json(route('attendance.verify-telegram-username'));
+            var storeAttendanceExceptionUrl = @json(route('attendance.exceptions.store'));
             var csrfToken = @json(csrf_token());
             var browserPublicIp = null;
             var attendanceState = {
@@ -1197,7 +1197,7 @@
                 mobileAttendanceMediaQuery.addListener(renderMobileAttendanceCards);
             }
 
-            $('.absensi-tab-btn').on('click', function (event) {
+            $('.attendance-tab-btn').on('click', function (event) {
                 event.preventDefault();
                 event.stopPropagation();
                 var targetUrl = $(this).data('href');

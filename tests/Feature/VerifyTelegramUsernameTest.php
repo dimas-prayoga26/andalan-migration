@@ -33,7 +33,7 @@ class VerifyTelegramUsernameTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->postJson(route('absensi.verify-telegram-username'));
+            ->postJson(route('attendance.verify-telegram-username'));
 
         $response
             ->assertOk()
@@ -77,7 +77,7 @@ class VerifyTelegramUsernameTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->postJson(route('absensi.verify-telegram-username'));
+            ->postJson(route('attendance.verify-telegram-username'));
 
         $response
             ->assertOk()
@@ -105,7 +105,7 @@ class VerifyTelegramUsernameTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->postJson(route('absensi.verify-telegram-username'));
+            ->postJson(route('attendance.verify-telegram-username'));
 
         $response
             ->assertStatus(422)

@@ -57,7 +57,7 @@ class LeaveRequestController extends Controller
                 ->get();
         }
 
-        return view('absensi.izin', [
+        return view('attendance.leave-requests.index', [
             'leaveEligibility' => $this->buildLeaveEligibilityData($authenticatedUser),
             'leaveTypes' => $leaveTypes,
             'specialLeaveTypeId' => $specialLeaveType?->id,

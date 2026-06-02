@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\View\Composers\AbsensiProfileComposer;
+use App\View\Composers\AttendanceProfileComposer;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -21,6 +21,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        View::composer('absensi.layouts_absensi.profileHeader', AbsensiProfileComposer::class);
+        View::composer('attendance.layouts.profile-header', AttendanceProfileComposer::class);
     }
 }

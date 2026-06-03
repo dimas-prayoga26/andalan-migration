@@ -1076,6 +1076,7 @@ class LeaveRequestController extends Controller
                 return $holidayDate->isSameDay($today) || $holidayDate->lessThan($today);
             })
             ->count();
+        $remainingDays = max($totalDays - $passedDays, 0);
 
         $items = $jointHolidayRows
             ->groupBy(static fn (AttendanceHoliday $attendanceHoliday): string => trim((string) $attendanceHoliday->name) !== '' ? trim((string) $attendanceHoliday->name) : 'Joint Holiday')
@@ -1096,7 +1097,7 @@ class LeaveRequestController extends Controller
             ->all();
 
         return [
-            'label' => $totalDays.' '.Str::plural('Day', $totalDays).' ('.$passedDays.' '.Str::plural('Day', $passedDays).' Passed)',
+            'label' => $remainingDays.' / '.$totalDays.' '.Str::plural('Day', $totalDays),
             'items' => $items !== [] ? $items : ['No joint holiday scheduled.'],
         ];
     }

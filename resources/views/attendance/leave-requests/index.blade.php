@@ -106,14 +106,18 @@
     </div>
 </div>
 
+@php
+    $leaveSummaryYear = (int) ($leaveTracker['year'] ?? now('Asia/Jakarta')->year);
+@endphp
+
 <div class="row leave-balance-mobile-slider">
     <div class="col-md-2 col-sm-6 leave-balance-mobile-slide">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
                     <div>
-                        <p class="fs-14 mb-2">Leave Balance (2026)</p>
-                        <span class="title text-success fs-28 fw-semibold">2 days</span>
+                        <p class="fs-14 mb-2">Leave Balance ({{ $leaveSummaryYear }})</p>
+                        <span class="title text-success fs-28 fw-semibold">{{ $leaveEligibility['available_balance_label'] ?? '0 Days' }}</span>
                     </div>
                 </div>
                 <div>
@@ -132,8 +136,8 @@
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
                     <div>
-                        <p class="fs-14 mb-2">Joint Holiday (2026)</p>
-                        <span class="title text-black fs-28 fw-semibold">6 / 8 days</span>
+                        <p class="fs-14 mb-2">Joint Holiday ({{ $leaveSummaryYear }})</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $leaveEligibility['joint_holiday_label'] ?? '0 / 0 Days' }}</span>
                     </div>
                 </div>
                 <div>
@@ -152,8 +156,8 @@
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
                     <div>
-                        <p class="fs-14 mb-2">Annual Leave (2026)</p>
-                        <span class="title text-black fs-28 fw-semibold">1 days</span>
+                        <p class="fs-14 mb-2">Annual Leave ({{ $leaveSummaryYear }})</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $leaveTracker['annual_leave_taken_label'] ?? '0 Days' }}</span>
                     </div>
                 </div>
                 <div>
@@ -173,8 +177,8 @@
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
                     <div>
-                        <p class="fs-14 mb-2">Sick Leave (2026)</p>
-                        <span class="title text-black fs-28 fw-semibold">2 days</span>
+                        <p class="fs-14 mb-2">Sick Leave ({{ $leaveSummaryYear }})</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $leaveTracker['sick_leave_taken_label'] ?? '0 Days' }}</span>
                     </div>
                 </div>
                 <div>
@@ -194,8 +198,8 @@
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
                     <div>
-                        <p class="fs-14 mb-2">Special Leave (2026)</p>
-                        <span class="title text-black fs-28 fw-semibold">0 days</span>
+                        <p class="fs-14 mb-2">Special Leave ({{ $leaveSummaryYear }})</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $leaveTracker['special_leave_taken_label'] ?? '0 Days' }}</span>
                     </div>
                 </div>
                 <div>
@@ -215,8 +219,8 @@
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
                     <div>
-                        <p class="fs-14 mb-2">Unpaid Leave (2026)</p>
-                        <span class="title text-black fs-28 fw-semibold">0 days</span>
+                        <p class="fs-14 mb-2">Unpaid Leave ({{ $leaveSummaryYear }})</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $leaveTracker['unpaid_leave_taken_label'] ?? '0 Days' }}</span>
                     </div>
                 </div>
                 <div>
@@ -348,7 +352,7 @@
                                 <span>Joint Holiday</span>
                             </div>
                             <div class="col-md-6 col-12">
-                                <span class="text-gray fw-semibold">{{ $leaveEligibility['joint_holiday_label'] ?? '0 Days (0 Days Passed)' }}</span> <br>
+                                <span class="text-gray fw-semibold">{{ $leaveEligibility['joint_holiday_label'] ?? '0 / 0 Days' }}</span> <br>
                                 <ul class="list-unstyled mb-0 text-gray">
                                     @forelse (($leaveEligibility['joint_holiday_items'] ?? []) as $jointHolidayItem)
                                         <li>{{ $jointHolidayItem }}</li>
@@ -489,7 +493,7 @@
                         <input type="text" class="form-control" id="leaveDateRangeInput" placeholder="Add Date" readonly>
                     </div>
                     <div class="row">
-                        <div class="col-12 col-md-6 mb-3">
+                        <div class="col-12 col-md-12 mb-3" id="leaveTypeWrapper">
                             <label class="form-label">Leave Type <span class="text-danger">*</span></label>
                             <select id="leaveTypeSelect" name="permission_type_id" class="selectpicker form-select" required data-live-search="true" title="Choose Leave Type">
                                 @foreach (($leaveTypes ?? collect()) as $leaveType)
@@ -695,6 +699,7 @@
             var $leaveDateRangeInput = $('#leaveDateRangeInput');
             var $leaveStartDateInput = $('#leaveStartDateInput');
             var $leaveEndDateInput = $('#leaveEndDateInput');
+            var $leaveTypeWrapper = $('#leaveTypeWrapper');
             var $leaveTypeSelect = $('#leaveTypeSelect');
             var $specialLeaveTypeWrapper = $('#specialLeaveTypeWrapper');
             var $specialLeaveSubTypeSelect = $('#specialLeaveSubTypeSelect');
@@ -724,9 +729,11 @@
                 var isSickLeave = sickLeaveTypeId && selectedLeaveTypeId === String(sickLeaveTypeId);
 
                 if (isSpecialLeave) {
+                    $leaveTypeWrapper.removeClass('col-md-12').addClass('col-md-6');
                     $specialLeaveTypeWrapper.removeClass('d-none');
                     $specialLeaveSubTypeSelect.prop('required', true);
                 } else {
+                    $leaveTypeWrapper.removeClass('col-md-6').addClass('col-md-12');
                     $specialLeaveTypeWrapper.addClass('d-none');
                     $specialLeaveSubTypeSelect.prop('required', false);
                     $specialLeaveSubTypeSelect.selectpicker('val', '');

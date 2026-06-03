@@ -8,6 +8,32 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <style>
+        @media (max-width: 767.98px) {
+            .business-trip-summary-mobile-slider {
+                display: flex;
+                flex-wrap: nowrap;
+                gap: 12px;
+                overflow-x: auto;
+                scroll-snap-type: x mandatory;
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+
+            .business-trip-summary-mobile-slider::-webkit-scrollbar {
+                display: none;
+                width: 0;
+                height: 0;
+            }
+
+            .business-trip-summary-mobile-slide {
+                flex: 0 0 100%;
+                width: 100%;
+                max-width: 100%;
+                scroll-snap-align: start;
+            }
+        }
+    </style>
 @endsection
 
 @section('navbarTitle', 'Attendances')
@@ -30,8 +56,8 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-3 col-sm-6">
+<div class="row business-trip-summary-mobile-slider">
+    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -58,7 +84,7 @@
             <div class="effect bg-secondary"></div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6">
+    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -91,7 +117,7 @@
         </div>
     </div>
     <!-- Start - Daily Cycling -->
-    <div class="col-md-3 col-sm-6">
+    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -120,7 +146,7 @@
         </div>
     </div>
     <!-- End - Daily Cycling -->
-    <div class="col-md-3 col-sm-6">
+    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -147,7 +173,7 @@
             <div class="effect bg-secondary"></div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6">
+    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -174,7 +200,7 @@
             <div class="effect bg-secondary"></div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6">
+    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -207,7 +233,7 @@
         </div>
     </div>
     <!-- Start - Daily Cycling -->
-    <div class="col-md-3 col-sm-6">
+    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -236,7 +262,7 @@
         </div>
     </div>
     <!-- End - Daily Cycling -->
-    <div class="col-md-3 col-sm-6">
+    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">

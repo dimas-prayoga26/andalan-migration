@@ -4,7 +4,9 @@ use App\Http\Controllers\ActivityScheduleController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceOvertimeController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BusinessTripCashAdvanceController;
 use App\Http\Controllers\BusinessTripController;
+use App\Http\Controllers\BusinessTripReimbursementController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\ReportController;
@@ -82,9 +84,18 @@ Route::middleware('auth')->group(function (): void {
     Route::put('/attendance/overtimes/{attendanceOvertime}', [AttendanceOvertimeController::class, 'update'])->name('attendance.overtimes.update');
     Route::delete('/attendance/overtimes/{attendanceOvertime}', [AttendanceOvertimeController::class, 'destroy'])->name('attendance.overtimes.destroy');
     // Attendance business trip routes
+    Route::get('/attendance/business-trips/provinces', [BusinessTripController::class, 'provinces'])->name('attendance.business-trips.provinces');
+    Route::get('/attendance/business-trips/regencies/{provinceCode}', [BusinessTripController::class, 'regencies'])->name('attendance.business-trips.regencies');
+    Route::get('/attendance/business-trips/{businessTrip}/cash-advances/create', [BusinessTripCashAdvanceController::class, 'create'])->name('attendance.business-trips.cash-advances.create');
+    Route::get('/attendance/business-trips/{businessTrip}/reimbursements/create', [BusinessTripReimbursementController::class, 'create'])->name('attendance.business-trips.reimbursements.create');
     Route::resource('attendance/business-trips', BusinessTripController::class)
-        ->only(['index'])
-        ->names(['index' => 'attendance.business-trips']);
+        ->only(['index', 'create', 'store', 'show'])
+        ->names([
+            'index' => 'attendance.business-trips',
+            'create' => 'attendance.business-trips.create',
+            'store' => 'attendance.business-trips.store',
+            'show' => 'attendance.business-trips.show',
+        ]);
 
     // Error page
     Route::get('/error-503', function () {

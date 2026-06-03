@@ -6,10 +6,12 @@ use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BusinessTrip extends Model
 {
     use GeneratesCustomSequenceUuid;
+    use SoftDeletes;
 
     protected $table = 'business_trips';
 
@@ -18,6 +20,19 @@ class BusinessTrip extends Model
     protected $keyType = 'string';
 
     public $incrementing = false;
+
+    protected $casts = [
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'daily_rate' => 'decimal:2',
+        'total_allowance' => 'decimal:2',
+        'departure_date' => 'date',
+        'check_in_date' => 'date',
+        'check_out_date' => 'date',
+        'submitted_at' => 'datetime',
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
+    ];
 
     protected static function booted(): void
     {
@@ -41,5 +56,25 @@ class BusinessTrip extends Model
     public function attendances(): HasMany
     {
         return $this->hasMany(Attendance::class, 'business_trip_id', 'id');
+    }
+
+    public function expenseItems(): HasMany
+    {
+        return $this->hasMany(BusinessTripExpenseItem::class, 'business_trip_id', 'id');
+    }
+
+    public function cashAdvances(): HasMany
+    {
+        return $this->hasMany(BusinessTripCashAdvance::class, 'business_trip_id', 'id');
+    }
+
+    public function reimbursements(): HasMany
+    {
+        return $this->hasMany(BusinessTripReimbursement::class, 'business_trip_id', 'id');
+    }
+
+    public function lifecycleLogs(): HasMany
+    {
+        return $this->hasMany(BusinessTripLifecycleLog::class, 'business_trip_id', 'id');
     }
 }

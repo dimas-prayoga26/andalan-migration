@@ -15,7 +15,7 @@
 @section('content')
 @include('layouts.breadcrumb', [
     'title' => 'Attendances',
-    'current' => 'Overtime',
+    'current' => 'Business Trip - Reimbursement',
     'homeRoute' => 'dashboard',
 ])
 
@@ -87,7 +87,7 @@
             </div>
         </div>
         <div class="d-flex justify-content-end mt-3">
-            <a class="btn light btn-danger me-2 mb-2 btn-lg" href="attendance-business-trip-details.html">Back</a>
+            <a class="btn light btn-danger me-2 mb-2 btn-lg" href="{{ isset($businessTrip) ? route('attendance.business-trips.show', $businessTrip) : route('attendance.business-trips') }}">Back</a>
             <a class="btn light btn-success mb-2 btn-lg" data-bs-toggle="modal" data-bs-target="#reimbursement">Submit</a>
         </div>
     </div>

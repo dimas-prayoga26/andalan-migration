@@ -51,10 +51,18 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0">Business Trip</h5>
         <div class="d-flex align-items-center">
-            <a data-bs-toggle="modal" data-bs-target="#create" class="btn btn-success light btn-sm ms-2">+ Business Trip</a>
+            <a href="{{ route('attendance.business-trips.create') }}" class="btn btn-success light btn-sm ms-2">+ Business Trip</a>
         </div>
     </div>
 </div>
+
+@if (session('success'))
+    <div class="col-12">
+        <div class="alert alert-success">
+            {{ session('success') }}
+        </div>
+    </div>
+@endif
 
 <div class="row business-trip-summary-mobile-slider">
     <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
@@ -70,7 +78,7 @@
                     </span>
                     <div>
                         <p class="fs-14 mb-2">Total Trips</p>
-                        <span class="title text-black fs-28 fw-semibold">8 Trips</span>
+                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['total_trips'] ?? 0 }} Trips</span>
                     </div>
                 </div>
                 <div>
@@ -102,7 +110,7 @@
                     </span>
                     <div>
                         <p class="fs-14 mb-2">Total Days Away</p>
-                        <span class="title text-black fs-28 fw-semibold">10 Days</span>
+                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['total_days_away'] ?? 0 }} Days</span>
                     </div>
                 </div>
                 <div>
@@ -131,7 +139,7 @@
                     </span>
                     <div>
                         <p class="fs-14 mb-2">Pending Approvals</p>
-                        <span class="title text-black fs-28 fw-semibold">1 Request</span>
+                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['pending_approvals'] ?? 0 }} Request</span>
                     </div>
                 </div>
                 <div>
@@ -159,7 +167,7 @@
                     </span>
                     <div>
                         <p class="fs-14 mb-2">Upcoming Scheduled</p>
-                        <span class="title text-black fs-28 fw-semibold">1 Trip</span>
+                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['upcoming_scheduled'] ?? 0 }} Trip</span>
                     </div>
                 </div>
                 <div>
@@ -186,7 +194,7 @@
                     </span>
                     <div>
                         <p class="fs-14 mb-2">Active Cash Advance</p>
-                        <span class="title text-black fs-28 fw-semibold">Rp 2.500.000</span>
+                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['active_cash_advance'] ?? 'Rp 0' }}</span>
                     </div>
                 </div>
                 <div>
@@ -218,7 +226,7 @@
                     </span>
                     <div>
                         <p class="fs-14 mb-2">Pending Reimbursement</p>
-                        <span class="title text-black fs-28 fw-semibold">Rp 1.600.000</span>
+                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['pending_reimbursement'] ?? 'Rp 0' }}</span>
                     </div>
                 </div>
                 <div>
@@ -247,7 +255,7 @@
                     </span>
                     <div>
                         <p class="fs-14 mb-2">Overdue Reports</p>
-                        <span class="title text-black fs-28 fw-semibold">1 Task</span>
+                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['overdue_reports'] ?? 0 }} Task</span>
                     </div>
                 </div>
                 <div>
@@ -275,7 +283,7 @@
                     </span>
                     <div>
                         <p class="fs-14 mb-2">Successfully Settled</p>
-                        <span class="title text-black fs-28 fw-semibold">6 Trips</span>
+                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['successfully_settled'] ?? 0 }} Trips</span>
                     </div>
                 </div>
                 <div>
@@ -307,34 +315,61 @@
         </div>
     </div>
 
-    <div class="col-xxl-3 col-xl-4 col-sm-6">
-        <div class="card">
-            <div class="card-body">
-                <div class="clearfix d-flex">
-                    <div class="avatar avatar-sm rounded me-3 p-2">
-                        <img src="{{ asset('assets/images/logo/figma.avif') }}" alt="">
+    @forelse (($businessTripCards ?? collect()) as $businessTripCard)
+        <div class="col-xxl-3 col-xl-4 col-sm-6">
+            <a href="{{ $businessTripCard['detail_url'] ?? '#' }}" class="text-decoration-none text-reset d-block">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="clearfix d-flex">
+                            <div class="avatar avatar-sm rounded me-3 p-2">
+                                <img src="{{ asset('assets/images/logo/figma.avif') }}" alt="Business Trip">
+                            </div>
+                            <div class="clearfix">
+                                <h6 class="mb-0 fw-semibold">{{ $businessTripCard['request_number'] ?? '-' }}</h6>
+                                <span class="small">{{ $businessTripCard['location'] ?? '-' }}</span>
+                            </div>
+                        </div>
+                        <p class="my-3">{{ $businessTripCard['purpose'] ?? '-' }}</p>
+                        <div class="row py-1">
+                            <div class="col-12">
+                                <span>Date :</span>
+                            </div>
+                            <div class="col-12">
+                                <span>{{ $businessTripCard['date_label'] ?? '-' }}</span> <br>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span>Complete</span>
+                            <span>{{ $businessTripCard['progress_percentage'] ?? 0 }}%</span>
+                        </div>
+                        <div class="progress mt-2" style="height: 4px;">
+                            <div
+                                class="progress-bar bg-primary"
+                                style="width: {{ $businessTripCard['progress_percentage'] ?? 0 }}%;"
+                                aria-label="Business trip progress"
+                                role="progressbar"
+                                aria-valuenow="{{ $businessTripCard['progress_percentage'] ?? 0 }}"
+                                aria-valuemin="0"
+                                aria-valuemax="100"
+                            ></div>
+                        </div>
                     </div>
-                    <div class="clearfix">
-                        <h6 class="mb-0 fw-semibold">#TRP-2026-054</h6>
-                        <span class="small">Surabaya, Jawa Timur</span>
+                    <div class="card-footer d-flex justify-content-between flex-wrap">
+                        <p class="mb-0 fw-medium">Due <span class="text-purple">: {{ $businessTripCard['due_label'] ?? '-' }}</span></p>
+                        <span class="badge badge-sm {{ $businessTripCard['status_badge_class'] ?? 'badge-primary light' }}">{{ $businessTripCard['status_label'] ?? 'Pending' }}</span>
                     </div>
                 </div>
-                <p class="my-3">Presentasi dan survei lokasi serta pengukuran cafe & finalisasi kontrak dengan klien.</p>
-                <div class="row py-1">
-                    <div class="col-12">
-                        <span>Date :</span>
-                    </div>
-                    <div class="col-12">
-                        <span>10 Jun 2026 - 12 Jun 2026 (3 Days)</span> <br>
-                    </div>
+            </a>
+        </div>
+    @empty
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <span class="text-gray">Belum ada business trip request.</span>
                 </div>
-            </div>
-            <div class="card-footer d-flex justify-content-between flex-wrap">
-                <p class="mb-0 fw-medium">Due <span class="text-purple">: 12 Jun 2026</span></p>
-                <span class="badge badge-sm badge-primary light">Pending</span>
             </div>
         </div>
-    </div>
+    @endforelse
 
 </div>
 @endsection

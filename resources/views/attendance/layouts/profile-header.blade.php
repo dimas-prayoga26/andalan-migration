@@ -7,6 +7,7 @@
 
             .mobile-stats-slider {
                 gap: 8px;
+                margin-top: 1rem;
                 scroll-snap-type: x mandatory;
                 -ms-overflow-style: none;
                 scrollbar-width: none;

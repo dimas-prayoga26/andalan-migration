@@ -113,6 +113,11 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertSame(2, substr_count($attendanceOverviewView, '<div class="card flex-fill">'));
         $this->assertStringContainsString('row row-cols-2 g-2 list-unstyled mb-0 mx-auto w-100', $attendanceOverviewView);
 
+        $profileHeaderView = File::get(resource_path('views/attendance/layouts/profile-header.blade.php'));
+
+        $this->assertStringContainsString('.mobile-stats-slider {', $profileHeaderView);
+        $this->assertStringContainsString('margin-top: 1rem;', $profileHeaderView);
+
         $commonJsView = File::get(resource_path('views/layouts/commonjs.blade.php'));
 
         foreach ([

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Models\AttendanceHoliday;
 use App\Models\EmployeeDeployment;
 use App\Models\EmployeeProfile;
 use App\Models\LeaveBalance;
@@ -23,10 +24,9 @@ use Illuminate\Support\Str;
 
 class LeaveRequestController extends Controller
 {
-    public function index(Request $request): View
+    public function index(): View
     {
         $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
-        $selectedLeaveHistoryYear = $this->resolveLeaveHistoryYearFilter($request->query('history_year'));
         $leaveTypes = LeaveType::query()
             ->select(['id', 'code', 'name'])
             ->where('is_active', true)
@@ -59,13 +59,12 @@ class LeaveRequestController extends Controller
 
         return view('attendance.leave-requests.index', [
             'leaveEligibility' => $this->buildLeaveEligibilityData($authenticatedUser),
+            'leaveTracker' => $this->buildLeaveTrackerData($authenticatedUser),
             'leaveTypes' => $leaveTypes,
             'specialLeaveTypeId' => $specialLeaveType?->id,
             'sickLeaveTypeId' => $sickLeaveType?->id,
             'specialLeaveSubTypes' => $specialLeaveSubTypes,
-            'leaveHistoryCards' => $this->buildLeaveHistoryCards($authenticatedUser, $selectedLeaveHistoryYear),
-            'leaveHistoryYearOptions' => $this->buildLeaveHistoryYearOptions($authenticatedUser),
-            'selectedLeaveHistoryYear' => $selectedLeaveHistoryYear,
+            'leaveHistoryCards' => $this->buildLeaveHistoryCards($authenticatedUser),
         ]);
     }
 
@@ -565,7 +564,7 @@ class LeaveRequestController extends Controller
      *     status_badge_class:string
      * }>
      */
-    private function buildLeaveHistoryCards(?User $authenticatedUser, ?int $selectedYear = null): Collection
+    private function buildLeaveHistoryCards(?User $authenticatedUser): Collection
     {
         $employeeId = is_string($authenticatedUser?->employee?->id)
             ? trim((string) $authenticatedUser->employee->id)
@@ -585,10 +584,6 @@ class LeaveRequestController extends Controller
             ])
             ->where('employee_id', $employeeId)
             ->where('is_active', true)
-            ->when(
-                is_int($selectedYear),
-                static fn ($query) => $query->whereYear('start_date', $selectedYear)
-            )
             ->orderByDesc('created_at')
             ->limit(12)
             ->get(['id', 'leave_type_id', 'start_date', 'end_date', 'total_days', 'reason', 'status', 'created_at']);
@@ -635,56 +630,6 @@ class LeaveRequestController extends Controller
                 },
             ];
         });
-    }
-
-    /**
-     * @return Collection<int, int>
-     */
-    private function buildLeaveHistoryYearOptions(?User $authenticatedUser): Collection
-    {
-        $currentYear = (int) now('Asia/Jakarta')->year;
-
-        $employeeId = is_string($authenticatedUser?->employee?->id)
-            ? trim((string) $authenticatedUser->employee->id)
-            : '';
-        if ($employeeId === '') {
-            return collect([$currentYear]);
-        }
-
-        $joinDateRaw = EmployeeDeployment::query()
-            ->where('employee_id', $employeeId)
-            ->value('join_date');
-
-        $joinYear = $currentYear;
-        if ($joinDateRaw instanceof \DateTimeInterface) {
-            $joinYear = (int) Carbon::instance($joinDateRaw)->year;
-        } elseif (is_string($joinDateRaw) && trim($joinDateRaw) !== '') {
-            $joinYear = (int) Carbon::parse($joinDateRaw)->year;
-        }
-
-        if ($joinYear > $currentYear) {
-            $joinYear = $currentYear;
-        }
-
-        if ($joinYear < 2000) {
-            $joinYear = 2000;
-        }
-
-        return collect(range($joinYear, $currentYear))
-            ->sortDesc()
-            ->values()
-            ->map(static fn (mixed $year): int => (int) $year);
-    }
-
-    private function resolveLeaveHistoryYearFilter(mixed $historyYear): ?int
-    {
-        if (! is_string($historyYear) && ! is_int($historyYear)) {
-            return null;
-        }
-
-        $year = (int) $historyYear;
-
-        return $year >= 2000 && $year <= 2100 ? $year : null;
     }
 
     /**
@@ -792,17 +737,10 @@ class LeaveRequestController extends Controller
      *     is_eligible:bool,
      *     available_balance_label:string,
      *     available_balance_note:string,
-     *     leave_used_label:string,
-     *     leave_used_breakdown:string,
-     *     leave_used_year:int,
-     *     leave_taken_month_label:string,
-     *     leave_taken_month_value_label:string,
-     *     monthly_limit_label:string,
      *     next_accrual_label:string,
      *     next_accrual_note:string,
-     *     pending_requests_label:string,
-     *     approved_requests_label:string,
-     *     rejected_requests_label:string
+     *     joint_holiday_label:string,
+     *     joint_holiday_items:list<string>
      * }
      */
     private function buildLeaveEligibilityData(?User $authenticatedUser): array
@@ -810,7 +748,7 @@ class LeaveRequestController extends Controller
         $now = now('Asia/Jakarta');
         $currentYear = (int) $now->year;
         $currentMonth = (int) $now->month;
-        $monthLabel = $now->format('F');
+        $jointHolidaySummary = $this->buildJointHolidaySummary($currentYear, $now);
 
         $defaultData = [
             'full_name' => '-',
@@ -820,17 +758,10 @@ class LeaveRequestController extends Controller
             'is_eligible' => false,
             'available_balance_label' => '0 Days',
             'available_balance_note' => 'No balance available yet.',
-            'leave_used_label' => '0 Days',
-            'leave_used_breakdown' => 'No leave used yet.',
-            'leave_used_year' => $currentYear,
-            'leave_taken_month_label' => $monthLabel,
-            'leave_taken_month_value_label' => '0 Days',
-            'monthly_limit_label' => 'Maximum limit is 2 days per month',
             'next_accrual_label' => '+0 Day',
             'next_accrual_note' => 'No automatic accrual configured.',
-            'pending_requests_label' => '0 Requests',
-            'approved_requests_label' => '0 Requests',
-            'rejected_requests_label' => '0 Requests',
+            'joint_holiday_label' => $jointHolidaySummary['label'],
+            'joint_holiday_items' => $jointHolidaySummary['items'],
         ];
 
         $employeeId = is_string($authenticatedUser?->employee?->id)
@@ -887,77 +818,12 @@ class LeaveRequestController extends Controller
         if ($joinDate instanceof Carbon) {
             $joinDateLabel = $joinDate->format('d F Y');
             $tenureMonths = max((int) floor($joinDate->diffInMonths($now, true)), 0);
-            $tenureLabel = $tenureMonths.' '.Str::plural('Month', $tenureMonths);
+            $tenureLabel = $this->formatTenureLabel($tenureMonths);
             $isEligible = $tenureMonths >= 12;
         }
 
         $leaveSummary = $this->calculateStaffLeaveSummary($employeeId, $currentYear, $currentMonth);
         $remainingAnnualBalance = (int) ($leaveSummary['remaining_annual_balance'] ?? 0);
-        $usedAnnualBalance = (int) ($leaveSummary['used_annual_balance'] ?? 0);
-
-        $annualLeaveTypeId = LeaveType::query()
-            ->whereRaw('LOWER(name) = ?', ['cuti tahunan'])
-            ->value('id');
-
-        $approvedAnnualLeavesInYear = collect();
-        if (is_string($annualLeaveTypeId) && trim($annualLeaveTypeId) !== '') {
-            $approvedAnnualLeavesInYear = LeaveRequest::query()
-                ->where('employee_id', $employeeId)
-                ->where('leave_type_id', trim($annualLeaveTypeId))
-                ->whereYear('start_date', $currentYear)
-                ->whereRaw('LOWER(status) = ?', ['approved'])
-                ->get(['start_date', 'total_days']);
-        }
-
-        $leaveUsedBreakdown = $approvedAnnualLeavesInYear
-            ->groupBy(function (LeaveRequest $leaveRequest): string {
-                $startDate = $leaveRequest->start_date instanceof Carbon
-                    ? $leaveRequest->start_date
-                    : Carbon::parse((string) $leaveRequest->start_date);
-
-                return $startDate->format('M');
-            })
-            ->map(function (Collection $items): string {
-                $totalDays = (int) round((float) $items->sum('total_days'));
-                $monthLabel = $items->first() instanceof LeaveRequest
-                    ? Carbon::parse((string) $items->first()->start_date)->format('M')
-                    : '-';
-
-                return $monthLabel.' ('.$totalDays.' '.Str::plural('day', $totalDays).')';
-            })
-            ->values()
-            ->implode(', ');
-
-        if (trim($leaveUsedBreakdown) === '') {
-            $leaveUsedBreakdown = 'No leave used yet.';
-        }
-
-        $leaveTakenThisMonth = 0;
-        if (is_string($annualLeaveTypeId) && trim($annualLeaveTypeId) !== '') {
-            $leaveTakenThisMonth = (int) LeaveRequest::query()
-                ->where('employee_id', $employeeId)
-                ->where('leave_type_id', trim($annualLeaveTypeId))
-                ->whereYear('start_date', $currentYear)
-                ->whereMonth('start_date', $currentMonth)
-                ->whereRaw('LOWER(status) = ?', ['approved'])
-                ->sum('total_days');
-        }
-
-        $pendingRequests = (int) LeaveRequest::query()
-            ->where('employee_id', $employeeId)
-            ->whereRaw('LOWER(status) = ?', ['pending'])
-            ->count();
-        $approvedRequests = (int) LeaveRequest::query()
-            ->where('employee_id', $employeeId)
-            ->whereRaw('LOWER(status) = ?', ['approved'])
-            ->count();
-        $rejectedRequests = (int) LeaveRequest::query()
-            ->where('employee_id', $employeeId)
-            ->where(function ($query): void {
-                $query->whereRaw('LOWER(status) = ?', ['rejected'])
-                    ->orWhereRaw('LOWER(status) = ?', ['refused']);
-            })
-            ->count();
 
         $annualLeaveMonthlyAccrual = (float) LeaveType::query()
             ->whereRaw('LOWER(name) = ?', ['cuti tahunan'])
@@ -976,18 +842,294 @@ class LeaveRequestController extends Controller
             'is_eligible' => $isEligible,
             'available_balance_label' => $remainingAnnualBalance.' '.Str::plural('Day', $remainingAnnualBalance),
             'available_balance_note' => $remainingAnnualBalance > 0 ? 'Rolled over from previous months' : 'No available annual leave balance.',
-            'leave_used_label' => $usedAnnualBalance.' '.Str::plural('Day', $usedAnnualBalance),
-            'leave_used_breakdown' => $leaveUsedBreakdown,
-            'leave_used_year' => $currentYear,
-            'leave_taken_month_label' => $monthLabel,
-            'leave_taken_month_value_label' => $leaveTakenThisMonth.' '.Str::plural('Day', $leaveTakenThisMonth),
-            'monthly_limit_label' => 'Maximum limit is 2 days per month',
             'next_accrual_label' => $nextAccrualLabel,
             'next_accrual_note' => $nextAccrualNote,
+            'joint_holiday_label' => $jointHolidaySummary['label'],
+            'joint_holiday_items' => $jointHolidaySummary['items'],
+        ];
+    }
+
+    /**
+     * @return array{
+     *     year:int,
+     *     month_label:string,
+     *     annual_leave_taken_label:string,
+     *     annual_leave_taken_breakdown:string,
+     *     annual_leave_taken_month_label:string,
+     *     annual_leave_taken_month_breakdown:string,
+     *     annual_leave_monthly_limit_label:string,
+     *     sick_leave_taken_label:string,
+     *     sick_leave_taken_breakdown:string,
+     *     sick_leave_taken_month_label:string,
+     *     sick_leave_taken_month_breakdown:string,
+     *     special_leave_taken_label:string,
+     *     special_leave_taken_breakdown:string,
+     *     special_leave_taken_month_label:string,
+     *     special_leave_taken_month_breakdown:string,
+     *     unpaid_leave_taken_label:string,
+     *     unpaid_leave_taken_breakdown:string,
+     *     unpaid_leave_taken_month_label:string,
+     *     unpaid_leave_taken_month_breakdown:string,
+     *     pending_requests_label:string,
+     *     approved_requests_label:string,
+     *     rejected_requests_label:string
+     * }
+     */
+    private function buildLeaveTrackerData(?User $authenticatedUser): array
+    {
+        $now = now('Asia/Jakarta');
+        $currentYear = (int) $now->year;
+        $currentMonth = (int) $now->month;
+        $monthLabel = $now->format('F');
+
+        $defaultUsageSummary = [
+            'year_label' => '0 Days',
+            'year_breakdown' => 'No leave taken yet.',
+            'month_label' => '0 Days',
+            'month_breakdown' => 'No leave taken this month.',
+        ];
+
+        $defaultData = [
+            'year' => $currentYear,
+            'month_label' => $monthLabel,
+            'annual_leave_taken_label' => $defaultUsageSummary['year_label'],
+            'annual_leave_taken_breakdown' => $defaultUsageSummary['year_breakdown'],
+            'annual_leave_taken_month_label' => $defaultUsageSummary['month_label'],
+            'annual_leave_taken_month_breakdown' => $defaultUsageSummary['month_breakdown'],
+            'annual_leave_monthly_limit_label' => 'Maximum limit is 2 days per month',
+            'sick_leave_taken_label' => $defaultUsageSummary['year_label'],
+            'sick_leave_taken_breakdown' => $defaultUsageSummary['year_breakdown'],
+            'sick_leave_taken_month_label' => $defaultUsageSummary['month_label'],
+            'sick_leave_taken_month_breakdown' => $defaultUsageSummary['month_breakdown'],
+            'special_leave_taken_label' => $defaultUsageSummary['year_label'],
+            'special_leave_taken_breakdown' => $defaultUsageSummary['year_breakdown'],
+            'special_leave_taken_month_label' => $defaultUsageSummary['month_label'],
+            'special_leave_taken_month_breakdown' => $defaultUsageSummary['month_breakdown'],
+            'unpaid_leave_taken_label' => $defaultUsageSummary['year_label'],
+            'unpaid_leave_taken_breakdown' => $defaultUsageSummary['year_breakdown'],
+            'unpaid_leave_taken_month_label' => $defaultUsageSummary['month_label'],
+            'unpaid_leave_taken_month_breakdown' => $defaultUsageSummary['month_breakdown'],
+            'pending_requests_label' => '0 Requests',
+            'approved_requests_label' => '0 Requests',
+            'rejected_requests_label' => '0 Requests',
+        ];
+
+        $employeeId = is_string($authenticatedUser?->employee?->id)
+            ? trim((string) $authenticatedUser->employee->id)
+            : '';
+        if ($employeeId === '') {
+            return $defaultData;
+        }
+
+        $annualLeaveUsage = $this->buildLeaveTypeUsageSummary($employeeId, $currentYear, $currentMonth, ['annual', 'annual_leave'], ['cuti tahunan', 'annual leave']);
+        $sickLeaveUsage = $this->buildLeaveTypeUsageSummary($employeeId, $currentYear, $currentMonth, ['sick', 'sick_leave'], ['sakit', 'sick leave']);
+        $specialLeaveUsage = $this->buildLeaveTypeUsageSummary($employeeId, $currentYear, $currentMonth, ['special', 'special_leave'], ['cuti khusus', 'special leave']);
+        $unpaidLeaveUsage = $this->buildLeaveTypeUsageSummary($employeeId, $currentYear, $currentMonth, ['unpaid', 'unpaid_leave'], ['cuti tidak dibayar', 'unpaid leave']);
+
+        $pendingRequests = $this->countStaffLeaveRequestsByStatus($employeeId, $currentYear, ['pending']);
+        $approvedRequests = $this->countStaffLeaveRequestsByStatus($employeeId, $currentYear, ['approved']);
+        $rejectedRequests = $this->countStaffLeaveRequestsByStatus($employeeId, $currentYear, ['rejected', 'refused']);
+
+        return [
+            'year' => $currentYear,
+            'month_label' => $monthLabel,
+            'annual_leave_taken_label' => $annualLeaveUsage['year_label'],
+            'annual_leave_taken_breakdown' => $annualLeaveUsage['year_breakdown'],
+            'annual_leave_taken_month_label' => $annualLeaveUsage['month_label'],
+            'annual_leave_taken_month_breakdown' => $annualLeaveUsage['month_breakdown'],
+            'annual_leave_monthly_limit_label' => 'Maximum limit is 2 days per month',
+            'sick_leave_taken_label' => $sickLeaveUsage['year_label'],
+            'sick_leave_taken_breakdown' => $sickLeaveUsage['year_breakdown'],
+            'sick_leave_taken_month_label' => $sickLeaveUsage['month_label'],
+            'sick_leave_taken_month_breakdown' => $sickLeaveUsage['month_breakdown'],
+            'special_leave_taken_label' => $specialLeaveUsage['year_label'],
+            'special_leave_taken_breakdown' => $specialLeaveUsage['year_breakdown'],
+            'special_leave_taken_month_label' => $specialLeaveUsage['month_label'],
+            'special_leave_taken_month_breakdown' => $specialLeaveUsage['month_breakdown'],
+            'unpaid_leave_taken_label' => $unpaidLeaveUsage['year_label'],
+            'unpaid_leave_taken_breakdown' => $unpaidLeaveUsage['year_breakdown'],
+            'unpaid_leave_taken_month_label' => $unpaidLeaveUsage['month_label'],
+            'unpaid_leave_taken_month_breakdown' => $unpaidLeaveUsage['month_breakdown'],
             'pending_requests_label' => $pendingRequests.' '.Str::plural('Request', $pendingRequests),
             'approved_requests_label' => $approvedRequests.' '.Str::plural('Request', $approvedRequests),
             'rejected_requests_label' => $rejectedRequests.' '.Str::plural('Request', $rejectedRequests),
         ];
+    }
+
+    /**
+     * @param  list<string>  $codeCandidates
+     * @param  list<string>  $nameCandidates
+     * @return array{year_label:string, year_breakdown:string, month_label:string, month_breakdown:string}
+     */
+    private function buildLeaveTypeUsageSummary(string $employeeId, int $year, int $month, array $codeCandidates, array $nameCandidates): array
+    {
+        $yearRequests = $this->queryApprovedStaffLeaveRequestsByType($employeeId, $year, null, $codeCandidates, $nameCandidates);
+        $monthRequests = $this->queryApprovedStaffLeaveRequestsByType($employeeId, $year, $month, $codeCandidates, $nameCandidates);
+        $yearTotalDays = (int) round((float) $yearRequests->sum('total_days'));
+        $monthTotalDays = (int) round((float) $monthRequests->sum('total_days'));
+
+        return [
+            'year_label' => $yearTotalDays.' '.Str::plural('Day', $yearTotalDays),
+            'year_breakdown' => $this->formatLeaveRequestDateList($yearRequests, 'No leave taken yet.'),
+            'month_label' => $monthTotalDays.' '.Str::plural('Day', $monthTotalDays),
+            'month_breakdown' => $this->formatLeaveRequestDateList($monthRequests, 'No leave taken this month.'),
+        ];
+    }
+
+    /**
+     * @param  list<string>  $codeCandidates
+     * @param  list<string>  $nameCandidates
+     * @return Collection<int, LeaveRequest>
+     */
+    private function queryApprovedStaffLeaveRequestsByType(string $employeeId, int $year, ?int $month, array $codeCandidates, array $nameCandidates): Collection
+    {
+        $normalizedCodeCandidates = $this->normalizeTextCandidates($codeCandidates);
+        $normalizedNameCandidates = $this->normalizeTextCandidates($nameCandidates);
+
+        return LeaveRequest::query()
+            ->where('employee_id', $employeeId)
+            ->whereYear('start_date', $year)
+            ->when(is_int($month), static fn ($query) => $query->whereMonth('start_date', $month))
+            ->whereRaw('LOWER(status) = ?', ['approved'])
+            ->whereHas('leaveType', function ($query) use ($normalizedCodeCandidates, $normalizedNameCandidates): void {
+                $query->where(function ($nestedQuery) use ($normalizedCodeCandidates, $normalizedNameCandidates): void {
+                    if ($normalizedCodeCandidates !== []) {
+                        $nestedQuery->whereIn(DB::raw('LOWER(code)'), $normalizedCodeCandidates);
+                    }
+
+                    if ($normalizedNameCandidates !== []) {
+                        $method = $normalizedCodeCandidates === [] ? 'whereIn' : 'orWhereIn';
+                        $nestedQuery->{$method}(DB::raw('LOWER(name)'), $normalizedNameCandidates);
+                    }
+                });
+            })
+            ->orderBy('start_date')
+            ->get(['id', 'leave_type_id', 'start_date', 'end_date', 'total_days']);
+    }
+
+    /**
+     * @param  Collection<int, LeaveRequest>  $leaveRequests
+     */
+    private function formatLeaveRequestDateList(Collection $leaveRequests, string $emptyLabel): string
+    {
+        if ($leaveRequests->isEmpty()) {
+            return $emptyLabel;
+        }
+
+        return $leaveRequests
+            ->map(function (LeaveRequest $leaveRequest): string {
+                $startDate = $leaveRequest->start_date instanceof Carbon
+                    ? $leaveRequest->start_date
+                    : Carbon::parse((string) $leaveRequest->start_date);
+                $endDate = $leaveRequest->end_date instanceof Carbon
+                    ? $leaveRequest->end_date
+                    : Carbon::parse((string) ($leaveRequest->end_date ?? $leaveRequest->start_date));
+
+                if ($startDate->isSameDay($endDate)) {
+                    return $startDate->format('d M');
+                }
+
+                if ($startDate->isSameMonth($endDate)) {
+                    return $startDate->format('d').'-'.$endDate->format('d M');
+                }
+
+                return $startDate->format('d M').'-'.$endDate->format('d M');
+            })
+            ->implode(', ');
+    }
+
+    /**
+     * @param  list<string>  $statuses
+     */
+    private function countStaffLeaveRequestsByStatus(string $employeeId, int $year, array $statuses): int
+    {
+        $normalizedStatuses = $this->normalizeTextCandidates($statuses);
+        if ($normalizedStatuses === []) {
+            return 0;
+        }
+
+        return (int) LeaveRequest::query()
+            ->where('employee_id', $employeeId)
+            ->whereYear('start_date', $year)
+            ->whereIn(DB::raw('LOWER(status)'), $normalizedStatuses)
+            ->count();
+    }
+
+    /**
+     * @return array{label:string, items:list<string>}
+     */
+    private function buildJointHolidaySummary(int $year, Carbon $today): array
+    {
+        $jointHolidayRows = AttendanceHoliday::query()
+            ->whereYear('date', $year)
+            ->where('type', 2)
+            ->orderBy('date')
+            ->get(['date', 'name']);
+
+        $totalDays = $jointHolidayRows->count();
+        $passedDays = $jointHolidayRows
+            ->filter(function (AttendanceHoliday $attendanceHoliday) use ($today): bool {
+                $holidayDate = $attendanceHoliday->date instanceof Carbon
+                    ? $attendanceHoliday->date
+                    : Carbon::parse((string) $attendanceHoliday->date);
+
+                return $holidayDate->isSameDay($today) || $holidayDate->lessThan($today);
+            })
+            ->count();
+
+        $items = $jointHolidayRows
+            ->groupBy(static fn (AttendanceHoliday $attendanceHoliday): string => trim((string) $attendanceHoliday->name) !== '' ? trim((string) $attendanceHoliday->name) : 'Joint Holiday')
+            ->map(function (Collection $items, string $holidayName): string {
+                $dateLabels = $items
+                    ->map(function (AttendanceHoliday $attendanceHoliday): string {
+                        $holidayDate = $attendanceHoliday->date instanceof Carbon
+                            ? $attendanceHoliday->date
+                            : Carbon::parse((string) $attendanceHoliday->date);
+
+                        return $holidayDate->format('d M');
+                    })
+                    ->implode(', ');
+
+                return $holidayName.' ('.$dateLabels.')';
+            })
+            ->values()
+            ->all();
+
+        return [
+            'label' => $totalDays.' '.Str::plural('Day', $totalDays).' ('.$passedDays.' '.Str::plural('Day', $passedDays).' Passed)',
+            'items' => $items !== [] ? $items : ['No joint holiday scheduled.'],
+        ];
+    }
+
+    private function formatTenureLabel(int $tenureMonths): string
+    {
+        $years = intdiv($tenureMonths, 12);
+        $months = $tenureMonths % 12;
+        $segments = [];
+
+        if ($years > 0) {
+            $segments[] = $years.' '.Str::plural('Year', $years);
+        }
+
+        if ($months > 0 || $segments === []) {
+            $segments[] = $months.' '.Str::plural('Month', $months);
+        }
+
+        return implode(', ', $segments);
+    }
+
+    /**
+     * @param  list<string>  $candidates
+     * @return list<string>
+     */
+    private function normalizeTextCandidates(array $candidates): array
+    {
+        return collect($candidates)
+            ->filter(static fn (mixed $candidate): bool => is_string($candidate) && trim($candidate) !== '')
+            ->map(static fn (string $candidate): string => strtolower(trim($candidate)))
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function writeLeaveRequestHistory(

@@ -71,6 +71,7 @@ Route::middleware('auth')->group(function (): void {
 
     // Attendance leave request routes
     Route::get('/attendance/leave-requests', [LeaveRequestController::class, 'index'])->name('attendance.leave-requests');
+    Route::get('/attendance/leave-requests/cards', [LeaveRequestController::class, 'cards'])->name('attendance.leave-requests.cards');
     Route::post('/attendance/leave-requests/upload-image', [LeaveRequestController::class, 'uploadImage'])->name('attendance.leave-requests.upload-image');
     Route::post('/attendance/leave-requests/delete-uploaded-image', [LeaveRequestController::class, 'deleteUploadedImage'])->name('attendance.leave-requests.delete-uploaded-image');
     Route::post('/attendance/leave-requests', [LeaveRequestController::class, 'store'])->name('attendance.leave-requests.store');

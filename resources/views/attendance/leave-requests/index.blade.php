@@ -563,60 +563,10 @@
             </div>
         </div>
     </div>
-    <div class="col-12">
-        <div class="row leave-history-mobile-slider">
-            @forelse (($leaveHistoryCards ?? collect()) as $leaveHistoryCard)
-                <div class="col-xxl-3 col-xl-4 col-sm-6 leave-history-mobile-slide">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="clearfix d-flex">
-                                <div class="avatar avatar-sm rounded me-3 p-2">
-                                    <img src="{{ asset('assets/images/logo/figma.avif') }}" alt="Leave Type">
-                                </div>
-                                <div class="clearfix">
-                                    <h6 class="mb-0 fw-semibold">{{ $leaveHistoryCard['title'] ?? 'Leave Request' }}</h6>
-                                    <span class="small">{{ $leaveHistoryCard['period_label'] ?? '-' }}</span>
-                                </div>
-                            </div>
-                            <p class="my-3">{{ $leaveHistoryCard['reason'] ?? '-' }}</p>
-                            <div class="widget-timeline1 leave-history-timeline">
-                                <ul class="timeline">
-                                    @foreach (($leaveHistoryCard['timeline'] ?? []) as $timelineItem)
-                                        <li>
-                                            <span class="timeline-status">
-                                                @if (($timelineItem['date_label'] ?? '') === 'Waiting')
-                                                    <span class="badge badge-sm badge-secondary light leave-history-waiting-badge">Waiting</span>
-                                                @else
-                                                    {{ $timelineItem['date_label'] ?? '' }}
-                                                @endif
-                                            </span>
-                                            <div class="timeline-badge {{ $timelineItem['badge_class'] ?? 'border-dark' }}"></div>
-                                            <div class="timeline-panel">
-                                                <span>{{ $timelineItem['title'] ?? '-' }}</span>
-                                            </div>
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="card-footer d-flex justify-content-between flex-wrap">
-                            <p class="mb-0 fw-medium">Due <span class="text-purple">: {{ $leaveHistoryCard['due_date_label'] ?? '-' }}</span></p>
-                            <span class="badge badge-sm {{ $leaveHistoryCard['status_badge_class'] ?? 'badge-primary light' }}">
-                                {{ $leaveHistoryCard['status_label'] ?? 'Pending' }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            @empty
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-body text-center py-5">
-                            <span class="text-gray">Belum ada history leave request.</span>
-                        </div>
-                    </div>
-                </div>
-            @endforelse
-        </div>
+    <div class="col-12" id="leaveHistoryCardsContainer">
+        @include('attendance.leave-requests.partials.history-cards', [
+            'leaveHistoryCards' => $leaveHistoryCards ?? collect(),
+        ])
     </div>
 </div>
 
@@ -628,36 +578,36 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form>
+                <form id="leaveHistoryFilterForm">
                     <div class="row">
                         <div class="col-xl-12">
                             <div class="mb-3">
                                 <label class="form-label">Filter by Status</label>
-                                <select class="form-control selectpicker">
-                                    <option selected="">Select All</option>
-                                    <option>Approved</option>
-                                    <option>Pending Review</option>
-                                    <option>Rejected</option>
-                                    <option>Canceled</option>
+                                <select class="form-control selectpicker" id="leaveHistoryStatusFilter" name="status">
+                                    <option value="all" selected="">Select All</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="pending">Pending Review</option>
+                                    <option value="rejected">Rejected</option>
+                                    <option value="canceled">Canceled</option>
                                 </select>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Filter by Leave Type</label>
-                                <select class="form-control selectpicker">
-                                    <option selected="">Select All</option>
-                                    <option>Annual Leave</option>
-                                    <option>Sick Leave</option>
-                                    <option>Special Leave</option>
-                                    <option>Unpaid Leave</option>
+                                <select class="form-control selectpicker" id="leaveHistoryTypeFilter" name="leave_type">
+                                    <option value="all" selected="">Select All</option>
+                                    <option value="annual_leave">Annual Leave</option>
+                                    <option value="sick_leave">Sick Leave</option>
+                                    <option value="special_leave">Special Leave</option>
+                                    <option value="unpaid_leave">Unpaid Leave</option>
                                 </select>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Filter by Timeframe</label>
-                                <select class="form-control selectpicker">
-                                    <option>Select All</option>
-                                    <option>This Month</option>
-                                    <option>Last Month</option>
-                                    <option selected="">Year-to-Date</option>
+                                <select class="form-control selectpicker" id="leaveHistoryTimeframeFilter" name="timeframe">
+                                    <option value="all">Select All</option>
+                                    <option value="this_month">This Month</option>
+                                    <option value="last_month">Last Month</option>
+                                    <option value="year_to_date" selected="">Year-to-Date</option>
                                 </select>
                             </div>
                         </div>
@@ -666,7 +616,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary">Save changes</button>
+                <button type="submit" class="btn btn-primary" form="leaveHistoryFilterForm" id="leaveHistoryFilterApplyButton">Save changes</button>
             </div>
         </div>
     </div>
@@ -693,9 +643,16 @@
             var specialLeaveTypeId = @json($specialLeaveTypeId ?? null);
             var sickLeaveTypeId = @json($sickLeaveTypeId ?? null);
             var leaveStoreUrl = @json(route('attendance.leave-requests.store'));
+            var leaveHistoryCardsUrl = @json(route('attendance.leave-requests.cards'));
             var attachmentPreviewPlaceholderUrl = @json(asset('assets/images/avatar/placeholder.avif'));
 
             var $leaveForm = $('#leaveRequestForm');
+            var $leaveHistoryFilterForm = $('#leaveHistoryFilterForm');
+            var $leaveHistoryStatusFilter = $('#leaveHistoryStatusFilter');
+            var $leaveHistoryTypeFilter = $('#leaveHistoryTypeFilter');
+            var $leaveHistoryTimeframeFilter = $('#leaveHistoryTimeframeFilter');
+            var $leaveHistoryCardsContainer = $('#leaveHistoryCardsContainer');
+            var $leaveHistoryFilterApplyButton = $('#leaveHistoryFilterApplyButton');
             var $leaveDateRangeInput = $('#leaveDateRangeInput');
             var $leaveStartDateInput = $('#leaveStartDateInput');
             var $leaveEndDateInput = $('#leaveEndDateInput');
@@ -721,6 +678,42 @@
 
             function clearAttachmentPreview() {
                 $attachmentPreview.attr('src', attachmentPreviewPlaceholderUrl);
+            }
+
+            function getLeaveHistoryFilters() {
+                return {
+                    status: $leaveHistoryStatusFilter.val() || 'all',
+                    leave_type: $leaveHistoryTypeFilter.val() || 'all',
+                    timeframe: $leaveHistoryTimeframeFilter.val() || 'all'
+                };
+            }
+
+            function refreshLeaveHistoryCards() {
+                if (!$leaveHistoryCardsContainer.length) {
+                    return $.Deferred().resolve().promise();
+                }
+
+                return $.ajax({
+                    url: leaveHistoryCardsUrl,
+                    method: 'GET',
+                    data: getLeaveHistoryFilters(),
+                    success: function (response) {
+                        if (response && response.html) {
+                            $leaveHistoryCardsContainer.html(response.html);
+                        }
+                    }
+                });
+            }
+
+            function hideLeaveHistoryFilterModal() {
+                var filterModalElement = document.getElementById('filter');
+                if (window.bootstrap && filterModalElement) {
+                    var filterModal = bootstrap.Modal.getInstance(filterModalElement) || new bootstrap.Modal(filterModalElement);
+                    filterModal.hide();
+                    return;
+                }
+
+                $('#filter').modal('hide');
             }
 
             function toggleConditionalFields() {
@@ -842,6 +835,7 @@
                             var successMessage = response && response.message ? response.message : 'Pengajuan izin berhasil disimpan.';
                             showAlert('success', successMessage);
                             resetLeaveForm();
+                            refreshLeaveHistoryCards();
                         },
                         error: function (xhr) {
                             var errorMessage = 'Gagal menyimpan pengajuan izin.';
@@ -862,9 +856,25 @@
                 });
             }
 
+            function initLeaveHistoryFilter() {
+                $leaveHistoryFilterForm.on('submit', function (event) {
+                    event.preventDefault();
+                    $leaveHistoryFilterApplyButton.prop('disabled', true);
+
+                    refreshLeaveHistoryCards()
+                        .done(function () {
+                            hideLeaveHistoryFilterModal();
+                        })
+                        .always(function () {
+                            $leaveHistoryFilterApplyButton.prop('disabled', false);
+                        });
+                });
+            }
+
             initLeaveDateRangePicker();
             initAttachmentPreview();
             initLeaveRequestSubmit();
+            initLeaveHistoryFilter();
 
             $leaveTypeSelect.on('changed.bs.select change', function () {
                 toggleConditionalFields();

@@ -12,6 +12,7 @@ use App\Models\LeaveRequestHistory;
 use App\Models\LeaveType;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -65,6 +66,22 @@ class LeaveRequestController extends Controller
             'sickLeaveTypeId' => $sickLeaveType?->id,
             'specialLeaveSubTypes' => $specialLeaveSubTypes,
             'leaveHistoryCards' => $this->buildLeaveHistoryCards($authenticatedUser),
+        ]);
+    }
+
+    public function cards(Request $request): JsonResponse
+    {
+        $authenticatedUser = $this->resolveAuthenticatedUser(['employee']);
+        $leaveHistoryCards = $this->buildLeaveHistoryCards(
+            $authenticatedUser,
+            $this->resolveLeaveHistoryFilters($request)
+        );
+
+        return response()->json([
+            'success' => true,
+            'html' => view('attendance.leave-requests.partials.history-cards', [
+                'leaveHistoryCards' => $leaveHistoryCards,
+            ])->render(),
         ]);
     }
 
@@ -554,6 +571,7 @@ class LeaveRequestController extends Controller
     }
 
     /**
+     * @param  array{status:string, leave_type:string, timeframe:string}  $filters
      * @return Collection<int, array{
      *     title:string,
      *     period_label:string,
@@ -564,7 +582,11 @@ class LeaveRequestController extends Controller
      *     status_badge_class:string
      * }>
      */
-    private function buildLeaveHistoryCards(?User $authenticatedUser): Collection
+    private function buildLeaveHistoryCards(?User $authenticatedUser, array $filters = [
+        'status' => 'all',
+        'leave_type' => 'all',
+        'timeframe' => 'year_to_date',
+    ]): Collection
     {
         $employeeId = is_string($authenticatedUser?->employee?->id)
             ? trim((string) $authenticatedUser->employee->id)
@@ -584,6 +606,15 @@ class LeaveRequestController extends Controller
             ])
             ->where('employee_id', $employeeId)
             ->where('is_active', true)
+            ->when(($filters['status'] ?? 'all') !== 'all', function (Builder $query) use ($filters): void {
+                $this->applyLeaveHistoryStatusFilter($query, (string) $filters['status']);
+            })
+            ->when(($filters['leave_type'] ?? 'all') !== 'all', function (Builder $query) use ($filters): void {
+                $this->applyLeaveHistoryTypeFilter($query, (string) $filters['leave_type']);
+            })
+            ->when(($filters['timeframe'] ?? 'all') !== 'all', function (Builder $query) use ($filters): void {
+                $this->applyLeaveHistoryTimeframeFilter($query, (string) $filters['timeframe']);
+            })
             ->orderByDesc('created_at')
             ->limit(12)
             ->get(['id', 'leave_type_id', 'start_date', 'end_date', 'total_days', 'reason', 'status', 'created_at']);
@@ -630,6 +661,106 @@ class LeaveRequestController extends Controller
                 },
             ];
         });
+    }
+
+    /**
+     * @return array{status:string, leave_type:string, timeframe:string}
+     */
+    private function resolveLeaveHistoryFilters(Request $request): array
+    {
+        $status = strtolower(trim((string) $request->input('status', 'all')));
+        $leaveType = strtolower(trim((string) $request->input('leave_type', 'all')));
+        $timeframe = strtolower(trim((string) $request->input('timeframe', 'year_to_date')));
+
+        return [
+            'status' => in_array($status, ['all', 'approved', 'pending', 'rejected', 'canceled'], true)
+                ? $status
+                : 'all',
+            'leave_type' => in_array($leaveType, ['all', 'annual_leave', 'sick_leave', 'special_leave', 'unpaid_leave'], true)
+                ? $leaveType
+                : 'all',
+            'timeframe' => in_array($timeframe, ['all', 'this_month', 'last_month', 'year_to_date'], true)
+                ? $timeframe
+                : 'year_to_date',
+        ];
+    }
+
+    private function applyLeaveHistoryStatusFilter(Builder $query, string $status): void
+    {
+        $statusMap = [
+            'approved' => ['approved'],
+            'pending' => ['pending'],
+            'rejected' => ['rejected', 'refused'],
+            'canceled' => ['canceled', 'cancelled'],
+        ];
+
+        $statuses = $statusMap[$status] ?? [];
+        if ($statuses === []) {
+            return;
+        }
+
+        $query->whereIn(DB::raw('LOWER(status)'), $statuses);
+    }
+
+    private function applyLeaveHistoryTypeFilter(Builder $query, string $leaveType): void
+    {
+        $typeMap = [
+            'annual_leave' => [
+                'codes' => ['annual', 'annual_leave'],
+                'names' => ['cuti tahunan', 'annual leave'],
+            ],
+            'sick_leave' => [
+                'codes' => ['sick', 'sick_leave'],
+                'names' => ['sakit', 'sick leave'],
+            ],
+            'special_leave' => [
+                'codes' => ['special', 'special_leave'],
+                'names' => ['cuti khusus', 'special leave'],
+            ],
+            'unpaid_leave' => [
+                'codes' => ['unpaid', 'unpaid_leave'],
+                'names' => ['cuti tidak dibayar', 'unpaid leave'],
+            ],
+        ];
+
+        $selectedType = $typeMap[$leaveType] ?? null;
+        if (! is_array($selectedType)) {
+            return;
+        }
+
+        $codes = $this->normalizeTextCandidates($selectedType['codes']);
+        $names = $this->normalizeTextCandidates($selectedType['names']);
+
+        $query->whereHas('leaveType', function (Builder $leaveTypeQuery) use ($codes, $names): void {
+            $leaveTypeQuery->where(function (Builder $nestedQuery) use ($codes, $names): void {
+                if ($codes !== []) {
+                    $nestedQuery->whereIn(DB::raw('LOWER(code)'), $codes);
+                }
+
+                if ($names !== []) {
+                    $method = $codes === [] ? 'whereIn' : 'orWhereIn';
+                    $nestedQuery->{$method}(DB::raw('LOWER(name)'), $names);
+                }
+            });
+        });
+    }
+
+    private function applyLeaveHistoryTimeframeFilter(Builder $query, string $timeframe): void
+    {
+        $today = now('Asia/Jakarta')->startOfDay();
+
+        match ($timeframe) {
+            'this_month' => $query
+                ->whereDate('start_date', '>=', $today->copy()->startOfMonth()->toDateString())
+                ->whereDate('start_date', '<=', $today->copy()->endOfMonth()->toDateString()),
+            'last_month' => $query
+                ->whereDate('start_date', '>=', $today->copy()->subMonthNoOverflow()->startOfMonth()->toDateString())
+                ->whereDate('start_date', '<=', $today->copy()->subMonthNoOverflow()->endOfMonth()->toDateString()),
+            'year_to_date' => $query
+                ->whereDate('start_date', '>=', $today->copy()->startOfYear()->toDateString())
+                ->whereDate('start_date', '<=', $today->copy()->endOfYear()->toDateString()),
+            default => null,
+        };
     }
 
     /**

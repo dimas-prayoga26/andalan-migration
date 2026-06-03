@@ -41,6 +41,14 @@ class LeaveTypeSeeder extends Seeder
                     'is_encashable' => false,
                     'is_active' => true,
                 ],
+                [
+                    'code' => 'UNPAID',
+                    'name' => 'Unpaid Leave',
+                    'accrual_method' => 'none',
+                    'monthly_accrual_rate' => 0,
+                    'is_encashable' => false,
+                    'is_active' => true,
+                ],
             ];
 
             DB::table('leave_types')

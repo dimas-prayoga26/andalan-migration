@@ -10,6 +10,7 @@ class LeaveHistoryYearFilterTest extends TestCase
     public function test_leave_history_year_filter_is_removed_from_view_and_controller(): void
     {
         $leaveRequestView = File::get(resource_path('views/attendance/leave-requests/index.blade.php'));
+        $leaveHistoryCardsPartial = File::get(resource_path('views/attendance/leave-requests/partials/history-cards.blade.php'));
         $leaveRequestController = File::get(app_path('Http/Controllers/LeaveRequestController.php'));
 
         $this->assertStringNotContainsString('action="{{ route(\'attendance.leave-requests\') }}"', $leaveRequestView);
@@ -20,12 +21,29 @@ class LeaveHistoryYearFilterTest extends TestCase
         $this->assertStringNotContainsString('selectedLeaveHistoryYear', $leaveRequestController);
         $this->assertStringNotContainsString('buildLeaveHistoryYearOptions', $leaveRequestController);
         $this->assertStringNotContainsString('resolveLeaveHistoryYearFilter', $leaveRequestController);
+        $this->assertStringContainsString('id="leaveHistoryCardsContainer"', $leaveRequestView);
+        $this->assertStringContainsString('leaveHistoryCardsUrl = @json(route(\'attendance.leave-requests.cards\'))', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveHistoryFilterForm"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveHistoryStatusFilter" name="status"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveHistoryTypeFilter" name="leave_type"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveHistoryTimeframeFilter" name="timeframe"', $leaveRequestView);
+        $this->assertStringContainsString('function refreshLeaveHistoryCards()', $leaveRequestView);
+        $this->assertStringContainsString('refreshLeaveHistoryCards();', $leaveRequestView);
+        $this->assertStringContainsString('function hideLeaveHistoryFilterModal()', $leaveRequestView);
+        $this->assertStringContainsString('public function cards(Request $request): JsonResponse', $leaveRequestController);
+        $this->assertStringContainsString('private function resolveLeaveHistoryFilters(Request $request): array', $leaveRequestController);
+        $this->assertStringContainsString('private function applyLeaveHistoryStatusFilter(Builder $query, string $status): void', $leaveRequestController);
+        $this->assertStringContainsString('private function applyLeaveHistoryTypeFilter(Builder $query, string $leaveType): void', $leaveRequestController);
+        $this->assertStringContainsString('private function applyLeaveHistoryTimeframeFilter(Builder $query, string $timeframe): void', $leaveRequestController);
+        $this->assertStringContainsString('attendance.leave-requests.partials.history-cards', $leaveRequestController);
+        $this->assertStringContainsString('id="leaveHistoryCardsSlider"', $leaveHistoryCardsPartial);
     }
 
     public function test_leave_summary_is_split_into_eligibility_and_tracker_data(): void
     {
         $leaveRequestView = File::get(resource_path('views/attendance/leave-requests/index.blade.php'));
         $leaveRequestController = File::get(app_path('Http/Controllers/LeaveRequestController.php'));
+        $leaveTypeSeeder = File::get(database_path('seeders/LeaveTypeSeeder.php'));
 
         foreach ([
             'href="#Eligibility"',
@@ -75,6 +93,9 @@ class LeaveHistoryYearFilterTest extends TestCase
         ] as $expectedControllerFragment) {
             $this->assertStringContainsString($expectedControllerFragment, $leaveRequestController);
         }
+
+        $this->assertStringContainsString("'code' => 'UNPAID'", $leaveTypeSeeder);
+        $this->assertStringContainsString("'name' => 'Unpaid Leave'", $leaveTypeSeeder);
 
         $this->assertSame(6, substr_count($leaveRequestView, 'col-md-2 col-sm-6 leave-balance-mobile-slide'));
 

@@ -7,6 +7,12 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-06-03 (Rabu)
+- Merapikan struktur route/view Attendance ke nama Inggris dan memindahkan daily attendance ke `/attendance/today`.
+- Mengaktifkan flow awal Business Trip: index dinamis, create/store, detail by id, link cash advance/reimbursement, serta proxy province/city dari `wilayah.id`.
+- Menambahkan struktur tabel/model/controller pendukung Business Trip untuk expense items, cash advances, reimbursements, dan lifecycle logs.
+- Memperbarui Leave Request: summary dipisah menjadi Eligibility dan Tracker, card mobile slider, `Unpaid Leave`, filter Leave List via AJAX, serta refresh card otomatis setelah `Request Time Off`.
+
 ### 2026-06-02 (Selasa)
 - Mengubah sumber data hari libur pada Attendance Report dari API eksternal `libur.deno.dev` menjadi tabel lokal `attendances_holidays`.
 - Menambahkan test terfokus untuk memastikan pemetaan libur nasional dan cuti bersama berasal dari database tanpa HTTP request eksternal.
@@ -52,6 +58,9 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-06-03
+- `2026-06-03-1701-ringkasan-perubahan-attendance-business-trip-leave.md`
 
 ### 2026-06-02
 - `2026-06-02-1005-report-holidays-gunakan-table-lokal.md`

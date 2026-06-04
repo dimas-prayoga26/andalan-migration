@@ -18,10 +18,12 @@ class BusinessTripLifecycleLog extends Model
 
     public $incrementing = false;
 
+    protected $attributes = [
+        'status' => 'waiting',
+    ];
+
     protected $casts = [
-        'is_completed' => 'boolean',
         'happened_at' => 'datetime',
-        'completed_at' => 'datetime',
         'metadata' => 'array',
     ];
 

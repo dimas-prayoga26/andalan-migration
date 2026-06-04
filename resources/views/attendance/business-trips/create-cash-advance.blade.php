@@ -39,96 +39,100 @@
         </div>
     </div>
     <div class="card-body">
-        <div class="row">
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Date</label>
-                    <input type="text" class="form-control" id="exampleFormControlInput1" placeholder="Date Needed">
+        <div id="businessTripCashAdvanceRequestRows">
+            <div class="row business-trip-cash-advance-request-row">
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label for="cashAdvanceRequestDate_0" class="form-label">Date</label>
+                        <input type="text" class="form-control business-trip-cash-advance-date-picker" id="cashAdvanceRequestDate_0" name="request_dates[]" data-field-base-id="cashAdvanceRequestDate" placeholder="Date Needed" readonly>
+                    </div>
                 </div>
-            </div>
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Amount</label>
-                    <input type="text" class="form-control" id="exampleFormControlInput1" placeholder="Amount">
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label for="cashAdvanceRequestAmount_0" class="form-label">Amount</label>
+                        <input type="text" class="form-control business-trip-cash-advance-currency-input" id="cashAdvanceRequestAmount_0" name="request_amounts[]" data-field-base-id="cashAdvanceRequestAmount" placeholder="Rp. 0" inputmode="numeric">
+                    </div>
                 </div>
-            </div>
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Breakdown</label>
-                    <select class="selectpicker form-select" required>
-                        <option value="AL">Accommodation</option>
-                        <option value="WY">Transportation</option>
-                        <option value="WY">Meals & Entertaintment</option>
-                        <option value="WY">Local Transport</option>
-                        <option value="WY">Others</option>
-                    </select>
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label for="cashAdvanceRequestBreakdown_0" class="form-label">Breakdown</label>
+                        <select class="form-select" id="cashAdvanceRequestBreakdown_0" name="request_breakdowns[]" data-field-base-id="cashAdvanceRequestBreakdown" required>
+                            <option value="accommodation">Accommodation</option>
+                            <option value="transportation">Transportation</option>
+                            <option value="meals_entertainment">Meals & Entertaintment</option>
+                            <option value="local_transport">Local Transport</option>
+                            <option value="others">Others</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
-            <div class="col-12 col-md-4">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Notes</label>
-                    <input type="text" class="form-control" id="exampleFormControlInput1" placeholder="Cash advance for local transportation (airport taxis), daily meals, and client entertainment">
+                <div class="col-12 col-md-4">
+                    <div class="mb-3">
+                        <label for="cashAdvanceRequestNotes_0" class="form-label">Notes</label>
+                        <input type="text" class="form-control" id="cashAdvanceRequestNotes_0" name="request_notes[]" data-field-base-id="cashAdvanceRequestNotes" placeholder="Cash advance for local transportation (airport taxis), daily meals, and client entertainment">
+                    </div>
                 </div>
-            </div>
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Action</label>
-                    <div class="d-flex align-items-center">                                                        
-                        <button type="button" class="btn btn-success light me-2" data-bs-dismiss="modal">Add</button>
-                        <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Remove</button>
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label class="form-label">Action</label>
+                        <div class="d-flex align-items-center">
+                            <button type="button" class="btn btn-success light me-2 business-trip-cash-advance-add">Add</button>
+                            <button type="button" class="btn btn-danger light business-trip-cash-advance-remove">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label for="cashAdvanceRequestAmountRealized_0" class="form-label">Amount Realized</label>
+                        <input type="text" class="form-control business-trip-cash-advance-currency-input" id="cashAdvanceRequestAmountRealized_0" name="request_amount_realized[]" data-field-base-id="cashAdvanceRequestAmountRealized" placeholder="Rp. 0" inputmode="numeric">
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="mb-3">
+                        <label for="cashAdvanceRequestAttachment_0" class="form-label">Attachments</label>
+                        <input type="file" class="form-control" id="cashAdvanceRequestAttachment_0" name="request_attachments[]" data-field-base-id="cashAdvanceRequestAttachment">
                     </div>
                 </div>
             </div>
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Amount Realized</label>
-                    <input type="text" class="form-control" id="exampleFormControlInput1" placeholder="Amount Realized">
-                </div>
-            </div>
-            <div class="col-12 col-md-4">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Attachments</label>
-                    <input type="file" class="form-control" id="exampleFormControlInput1" placeholder="Cash advance for local transportation (airport taxis), daily meals, and client entertainment">
-                </div>
-            </div>
-            <hr>
         </div>
-        <div class="row">
-            <h6 class="card-title">Approved By Finance</h6>
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Date</label>
-                    <input type="text" class="form-control" id="exampleFormControlInput1" placeholder="Date Needed" disabled>
+        <hr>
+        <h6 class="card-title">Approved By Finance</h6>
+        <div id="businessTripCashAdvanceFinanceRows">
+            <div class="row business-trip-cash-advance-finance-row">
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label for="cashAdvanceFinanceDate_0" class="form-label">Date</label>
+                        <input type="text" class="form-control" id="cashAdvanceFinanceDate_0" data-field-base-id="cashAdvanceFinanceDate" placeholder="Date Needed" disabled>
+                    </div>
                 </div>
-            </div>
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Amount</label>
-                    <input type="text" class="form-control" id="exampleFormControlInput1" placeholder="Amount" disabled>
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label for="cashAdvanceFinanceAmount_0" class="form-label">Amount</label>
+                        <input type="text" class="form-control business-trip-cash-advance-currency-input" id="cashAdvanceFinanceAmount_0" data-field-base-id="cashAdvanceFinanceAmount" placeholder="Rp. 0" inputmode="numeric" disabled>
+                    </div>
                 </div>
-            </div>
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Amount Approved</label>
-                    <input type="text" class="form-control" id="exampleFormControlInput1" placeholder="Amount Approved" disabled>
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label for="cashAdvanceFinanceAmountApproved_0" class="form-label">Amount Approved</label>
+                        <input type="text" class="form-control business-trip-cash-advance-currency-input" id="cashAdvanceFinanceAmountApproved_0" data-field-base-id="cashAdvanceFinanceAmountApproved" placeholder="Rp. 0" inputmode="numeric" disabled>
+                    </div>
                 </div>
-            </div>
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Breakdown</label>
-                    <select class="selectpicker form-select" required disabled>
-                        <option value="AL">Accommodation</option>
-                        <option value="WY">Transportation</option>
-                        <option value="WY">Meals & Entertaintment</option>
-                        <option value="WY">Local Transport</option>
-                        <option value="WY">Others</option>
-                    </select>
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label for="cashAdvanceFinanceBreakdown_0" class="form-label">Breakdown</label>
+                        <select class="form-select" id="cashAdvanceFinanceBreakdown_0" data-field-base-id="cashAdvanceFinanceBreakdown" required disabled>
+                            <option value="accommodation">Accommodation</option>
+                            <option value="transportation">Transportation</option>
+                            <option value="meals_entertainment">Meals & Entertaintment</option>
+                            <option value="local_transport">Local Transport</option>
+                            <option value="others">Others</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
-            <div class="col-12 col-md-4">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Notes</label>
-                    <input type="text" class="form-control" id="exampleFormControlInput1" placeholder="Cash advance for local transportation (airport taxis), daily meals, and client entertainment" disabled>
+                <div class="col-12 col-md-4">
+                    <div class="mb-3">
+                        <label for="cashAdvanceFinanceNotes_0" class="form-label">Notes</label>
+                        <input type="text" class="form-control" id="cashAdvanceFinanceNotes_0" data-field-base-id="cashAdvanceFinanceNotes" placeholder="Cash advance for local transportation (airport taxis), daily meals, and client entertainment" disabled>
+                    </div>
                 </div>
             </div>
         </div>
@@ -149,6 +153,163 @@
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
         $(function () {
+            var $cashAdvanceRequestRows = $('#businessTripCashAdvanceRequestRows');
+            var $cashAdvanceFinanceRows = $('#businessTripCashAdvanceFinanceRows');
+
+            function formatRupiahInputValue(value) {
+                var numericValue = String(value || '').replace(/\D/g, '');
+
+                if (!numericValue) {
+                    return '';
+                }
+
+                return 'Rp. ' + numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            }
+
+            function initializeCashAdvanceDatePickers($scope) {
+                if (!$.fn.daterangepicker) {
+                    return;
+                }
+
+                $scope.find('.business-trip-cash-advance-date-picker').each(function () {
+                    var $dateInput = $(this);
+
+                    if ($dateInput.data('daterangepicker-initialized')) {
+                        return;
+                    }
+
+                    $dateInput.daterangepicker({
+                        autoApply: true,
+                        autoUpdateInput: false,
+                        singleDatePicker: true,
+                        locale: {
+                            format: 'DD/MM/YYYY',
+                            cancelLabel: 'Clear'
+                        }
+                    });
+
+                    $dateInput.on('apply.daterangepicker', function (event, picker) {
+                        $(this).val(picker.startDate.format('DD/MM/YYYY'));
+                    });
+
+                    $dateInput.on('cancel.daterangepicker', function () {
+                        $(this).val('');
+                    });
+
+                    $dateInput.data('daterangepicker-initialized', true);
+                });
+            }
+
+            function initializeCashAdvanceCurrencyInputs($scope) {
+                $scope.find('.business-trip-cash-advance-currency-input').each(function () {
+                    var $currencyInput = $(this);
+
+                    if ($currencyInput.data('rupiah-initialized')) {
+                        return;
+                    }
+
+                    $currencyInput.on('focus', function () {
+                        if (!$(this).val()) {
+                            $(this).val('Rp. ');
+                        }
+                    });
+
+                    $currencyInput.on('input', function () {
+                        $(this).val(formatRupiahInputValue($(this).val()));
+                    });
+
+                    $currencyInput.on('blur', function () {
+                        $(this).val(formatRupiahInputValue($(this).val()));
+                    });
+
+                    $currencyInput.data('rupiah-initialized', true);
+                });
+            }
+
+            function clearCashAdvanceRow($row) {
+                $row.find('input, select').each(function () {
+                    var $field = $(this);
+
+                    if ($field.is('select')) {
+                        $field.prop('selectedIndex', 0);
+                        return;
+                    }
+
+                    $field.val('');
+                });
+            }
+
+            function renumberCashAdvanceRows() {
+                $cashAdvanceRequestRows.find('.business-trip-cash-advance-request-row').each(function (index) {
+                    $(this).find('[data-field-base-id]').each(function () {
+                        var $field = $(this);
+                        var fieldId = $field.data('field-base-id') + '_' + index;
+
+                        $field.attr('id', fieldId);
+                        $field.closest('.mb-3').find('label').attr('for', fieldId);
+                    });
+                });
+
+                $cashAdvanceFinanceRows.find('.business-trip-cash-advance-finance-row').each(function (index) {
+                    $(this).find('[data-field-base-id]').each(function () {
+                        var $field = $(this);
+                        var fieldId = $field.data('field-base-id') + '_' + index;
+
+                        $field.attr('id', fieldId);
+                        $field.closest('.mb-3').find('label').attr('for', fieldId);
+                    });
+                });
+            }
+
+            function addCashAdvanceRow() {
+                var $requestRow = $cashAdvanceRequestRows.find('.business-trip-cash-advance-request-row').first().clone();
+                var $financeRow = $cashAdvanceFinanceRows.find('.business-trip-cash-advance-finance-row').first().clone();
+
+                $requestRow.find('.business-trip-cash-advance-date-picker').removeData('daterangepicker-initialized');
+                $requestRow.find('.business-trip-cash-advance-currency-input').removeData('rupiah-initialized');
+                $financeRow.find('.business-trip-cash-advance-currency-input').removeData('rupiah-initialized');
+
+                clearCashAdvanceRow($requestRow);
+                clearCashAdvanceRow($financeRow);
+
+                $cashAdvanceRequestRows.append($requestRow);
+                $cashAdvanceFinanceRows.append($financeRow);
+
+                renumberCashAdvanceRows();
+                initializeCashAdvanceDatePickers($requestRow);
+                initializeCashAdvanceCurrencyInputs($requestRow);
+                initializeCashAdvanceCurrencyInputs($financeRow);
+            }
+
+            function removeCashAdvanceRow($requestRow) {
+                var rowIndex = $cashAdvanceRequestRows.find('.business-trip-cash-advance-request-row').index($requestRow);
+                var $requestRows = $cashAdvanceRequestRows.find('.business-trip-cash-advance-request-row');
+                var $financeRows = $cashAdvanceFinanceRows.find('.business-trip-cash-advance-finance-row');
+
+                if ($requestRows.length === 1) {
+                    clearCashAdvanceRow($requestRow);
+                    clearCashAdvanceRow($financeRows.eq(0));
+                    return;
+                }
+
+                $requestRow.remove();
+                $financeRows.eq(rowIndex).remove();
+
+                renumberCashAdvanceRows();
+            }
+
+            $cashAdvanceRequestRows.on('click', '.business-trip-cash-advance-add', function () {
+                addCashAdvanceRow();
+            });
+
+            $cashAdvanceRequestRows.on('click', '.business-trip-cash-advance-remove', function () {
+                removeCashAdvanceRow($(this).closest('.business-trip-cash-advance-request-row'));
+            });
+
+            initializeCashAdvanceDatePickers($cashAdvanceRequestRows);
+            initializeCashAdvanceCurrencyInputs($cashAdvanceRequestRows);
+            initializeCashAdvanceCurrencyInputs($cashAdvanceFinanceRows);
+
             $('.attendance-tab-btn').on('click', function (event) {
                 event.preventDefault();
                 event.stopPropagation();

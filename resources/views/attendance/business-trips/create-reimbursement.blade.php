@@ -39,49 +39,51 @@
         </div>
     </div>
     <div class="card-body">
-        <div class="row">
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Date</label>
-                    <input type="text" class="form-control" id="exampleFormControlInput1" placeholder="Date">
+        <div id="businessTripReimbursementRows">
+            <div class="row business-trip-reimbursement-row">
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label for="businessTripReimbursementDate_0" class="form-label">Date</label>
+                        <input type="text" class="form-control business-trip-reimbursement-date-picker" id="businessTripReimbursementDate_0" name="reimbursement_dates[]" data-field-base-id="businessTripReimbursementDate" placeholder="Date" readonly>
+                    </div>
                 </div>
-            </div>
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Amount</label>
-                    <input type="text" class="form-control" id="exampleFormControlInput1" placeholder="Amount">
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label for="businessTripReimbursementAmount_0" class="form-label">Amount</label>
+                        <input type="text" class="form-control business-trip-reimbursement-currency-input" id="businessTripReimbursementAmount_0" name="reimbursement_amounts[]" data-field-base-id="businessTripReimbursementAmount" placeholder="Rp. 0" inputmode="numeric">
+                    </div>
                 </div>
-            </div>
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Category</label>
-                    <select class="selectpicker form-select" required>
-                        <option value="AL">Accommodation</option>
-                        <option value="WY">Transportation</option>
-                        <option value="WY">Meals & Entertaintment</option>
-                        <option value="WY">Local Transport</option>
-                        <option value="WY">Others</option>
-                    </select>
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label for="businessTripReimbursementCategory_0" class="form-label">Category</label>
+                        <select class="form-select" id="businessTripReimbursementCategory_0" name="reimbursement_categories[]" data-field-base-id="businessTripReimbursementCategory" required>
+                            <option value="accommodation">Accommodation</option>
+                            <option value="transportation">Transportation</option>
+                            <option value="meals_entertainment">Meals & Entertaintment</option>
+                            <option value="local_transport">Local Transport</option>
+                            <option value="others">Others</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Notes</label>
-                    <input type="text" class="form-control" id="exampleFormControlInput1" placeholder="Reimbursement Notes">
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label for="businessTripReimbursementNotes_0" class="form-label">Notes</label>
+                        <input type="text" class="form-control" id="businessTripReimbursementNotes_0" name="reimbursement_notes[]" data-field-base-id="businessTripReimbursementNotes" placeholder="Reimbursement Notes">
+                    </div>
                 </div>
-            </div>
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Receipt</label>
-                    <input type="file" class="form-control" id="exampleFormControlInput1" placeholder="Amount">
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label for="businessTripReimbursementReceipt_0" class="form-label">Receipt</label>
+                        <input type="file" class="form-control" id="businessTripReimbursementReceipt_0" name="reimbursement_receipts[]" data-field-base-id="businessTripReimbursementReceipt">
+                    </div>
                 </div>
-            </div>
-            <div class="col-12 col-md-2">
-                <div class="mb-3">
-                    <label for="exampleFormControlInput1" class="form-label">Action</label>
-                    <div class="d-flex align-items-center">                                                        
-                        <button type="button" class="btn btn-success light me-2" data-bs-dismiss="modal">Add</button>
-                        <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Remove</button>
+                <div class="col-12 col-md-2">
+                    <div class="mb-3">
+                        <label class="form-label">Action</label>
+                        <div class="d-flex align-items-center">
+                            <button type="button" class="btn btn-success light me-2 business-trip-reimbursement-add">Add</button>
+                            <button type="button" class="btn btn-danger light business-trip-reimbursement-remove">Remove</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -103,6 +105,140 @@
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
         $(function () {
+            var $reimbursementRows = $('#businessTripReimbursementRows');
+
+            function formatRupiahInputValue(value) {
+                var numericValue = String(value || '').replace(/\D/g, '');
+
+                if (!numericValue) {
+                    return '';
+                }
+
+                return 'Rp. ' + numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            }
+
+            function initializeReimbursementDatePickers($scope) {
+                if (!$.fn.daterangepicker) {
+                    return;
+                }
+
+                $scope.find('.business-trip-reimbursement-date-picker').each(function () {
+                    var $dateInput = $(this);
+
+                    if ($dateInput.data('daterangepicker-initialized')) {
+                        return;
+                    }
+
+                    $dateInput.daterangepicker({
+                        autoApply: true,
+                        autoUpdateInput: false,
+                        singleDatePicker: true,
+                        locale: {
+                            format: 'DD/MM/YYYY',
+                            cancelLabel: 'Clear'
+                        }
+                    });
+
+                    $dateInput.on('apply.daterangepicker', function (event, picker) {
+                        $(this).val(picker.startDate.format('DD/MM/YYYY'));
+                    });
+
+                    $dateInput.on('cancel.daterangepicker', function () {
+                        $(this).val('');
+                    });
+
+                    $dateInput.data('daterangepicker-initialized', true);
+                });
+            }
+
+            function initializeReimbursementCurrencyInputs($scope) {
+                $scope.find('.business-trip-reimbursement-currency-input').each(function () {
+                    var $currencyInput = $(this);
+
+                    if ($currencyInput.data('rupiah-initialized')) {
+                        return;
+                    }
+
+                    $currencyInput.on('focus', function () {
+                        if (!$(this).val()) {
+                            $(this).val('Rp. ');
+                        }
+                    });
+
+                    $currencyInput.on('input', function () {
+                        $(this).val(formatRupiahInputValue($(this).val()));
+                    });
+
+                    $currencyInput.on('blur', function () {
+                        $(this).val(formatRupiahInputValue($(this).val()));
+                    });
+
+                    $currencyInput.data('rupiah-initialized', true);
+                });
+            }
+
+            function clearReimbursementRow($row) {
+                $row.find('input, select').each(function () {
+                    var $field = $(this);
+
+                    if ($field.is('select')) {
+                        $field.prop('selectedIndex', 0);
+                        return;
+                    }
+
+                    $field.val('');
+                });
+            }
+
+            function renumberReimbursementRows() {
+                $reimbursementRows.find('.business-trip-reimbursement-row').each(function (index) {
+                    $(this).find('[data-field-base-id]').each(function () {
+                        var $field = $(this);
+                        var fieldId = $field.data('field-base-id') + '_' + index;
+
+                        $field.attr('id', fieldId);
+                        $field.closest('.mb-3').find('label').attr('for', fieldId);
+                    });
+                });
+            }
+
+            function addReimbursementRow() {
+                var $row = $reimbursementRows.find('.business-trip-reimbursement-row').first().clone();
+
+                $row.find('.business-trip-reimbursement-date-picker').removeData('daterangepicker-initialized');
+                $row.find('.business-trip-reimbursement-currency-input').removeData('rupiah-initialized');
+
+                clearReimbursementRow($row);
+
+                $reimbursementRows.append($row);
+                renumberReimbursementRows();
+                initializeReimbursementDatePickers($row);
+                initializeReimbursementCurrencyInputs($row);
+            }
+
+            function removeReimbursementRow($row) {
+                var $rows = $reimbursementRows.find('.business-trip-reimbursement-row');
+
+                if ($rows.length === 1) {
+                    clearReimbursementRow($row);
+                    return;
+                }
+
+                $row.remove();
+                renumberReimbursementRows();
+            }
+
+            $reimbursementRows.on('click', '.business-trip-reimbursement-add', function () {
+                addReimbursementRow();
+            });
+
+            $reimbursementRows.on('click', '.business-trip-reimbursement-remove', function () {
+                removeReimbursementRow($(this).closest('.business-trip-reimbursement-row'));
+            });
+
+            initializeReimbursementDatePickers($reimbursementRows);
+            initializeReimbursementCurrencyInputs($reimbursementRows);
+
             $('.attendance-tab-btn').on('click', function (event) {
                 event.preventDefault();
                 event.stopPropagation();

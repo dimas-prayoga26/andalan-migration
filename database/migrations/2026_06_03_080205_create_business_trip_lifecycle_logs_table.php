@@ -15,19 +15,19 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('business_trip_id')->constrained('business_trips', 'id')->cascadeOnDelete();
             $table->string('phase', 100);
+            $table->string('event_key', 100);
             $table->unsignedInteger('step_order');
             $table->string('title');
-            $table->text('description')->nullable();
-            $table->string('status', 50)->nullable();
-            $table->boolean('is_completed')->default(false);
+            $table->string('status', 50)->default('waiting');
             $table->foreignUuid('actor_id')->nullable()->constrained('users', 'id')->nullOnDelete();
             $table->timestamp('happened_at')->nullable();
-            $table->timestamp('completed_at')->nullable();
             $table->json('metadata')->nullable();
             $table->timestamps();
 
-            $table->index(['business_trip_id', 'step_order'], 'business_trip_lifecycle_logs_trip_step_index');
-            $table->index(['business_trip_id', 'is_completed'], 'business_trip_lifecycle_logs_trip_completed_index');
+            $table->unique(['business_trip_id', 'event_key'], 'business_trip_lifecycle_logs_trip_event_unique');
+            $table->unique(['business_trip_id', 'step_order'], 'business_trip_lifecycle_logs_trip_step_unique');
+            $table->index(['business_trip_id', 'status'], 'business_trip_lifecycle_logs_trip_status_index');
+            $table->index(['business_trip_id', 'happened_at'], 'business_trip_lifecycle_logs_trip_happened_index');
         });
     }
 

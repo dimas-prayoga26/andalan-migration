@@ -38,7 +38,8 @@ class BusinessTripDetailModelsTest extends TestCase
             ],
             BusinessTripLifecycleLog::class => [
                 "protected \$table = 'business_trip_lifecycle_logs';",
-                "'is_completed' => 'boolean'",
+                "'status' => 'waiting'",
+                "'happened_at' => 'datetime'",
                 "'metadata' => 'array'",
                 'public function actor(): BelongsTo',
             ],
@@ -66,6 +67,8 @@ class BusinessTripDetailModelsTest extends TestCase
             "'end_date' => 'date'",
             'public function expenseItems(): HasMany',
             'BusinessTripExpenseItem::class',
+            'public function supervisor(): BelongsTo',
+            "'supervisor_employee_id'",
             'public function cashAdvances(): HasMany',
             'BusinessTripCashAdvance::class',
             'public function reimbursements(): HasMany',

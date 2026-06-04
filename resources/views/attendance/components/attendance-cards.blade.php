@@ -1,3 +1,9 @@
+@php
+    $attendanceCardDateLabel = isset($todayJakartaDate)
+        ? \Illuminate\Support\Carbon::parse($todayJakartaDate, 'Asia/Jakarta')->format('d M')
+        : now('Asia/Jakarta')->format('d M');
+@endphp
+
 <div class="row attendance-mobile-slider">
     <!-- Start - Workout Details -->
     <div class="col-md-4 attendance-mobile-slide" id="attendanceConfirmationCardSlide">
@@ -20,8 +26,8 @@
                 </div>
                 <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
                     <div class="text-center">
-                        <p class="fs-14 mb-2">Distance</p>
-                        <span class="fs-20 text-black">{{ $todayAttendanceDistanceKm !== null ? number_format($todayAttendanceDistanceKm, 2).' KM' : '- KM' }}</span>
+                        <p class="fs-14 mb-2">Date</p>
+                        <span class="fs-20 text-black">{{ $attendanceCardDateLabel }}</span>
                     </div>
                     <div class="text-center">
                         <p class="fs-14 mb-2">Time</p>
@@ -70,8 +76,8 @@
                 </div>
                 <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
                     <div class="text-center">
-                        <p class="fs-14 mb-2">Distance</p>
-                        <span class="fs-20 text-black">{{ $todayAttendanceDistanceOutKm !== null ? number_format($todayAttendanceDistanceOutKm, 2).' KM' : '- KM' }}</span>
+                        <p class="fs-14 mb-2">Date</p>
+                        <span class="fs-20 text-black">{{ $attendanceCardDateLabel }}</span>
                     </div>
                     <div class="text-center">
                         <p class="fs-14 mb-2">Time</p>

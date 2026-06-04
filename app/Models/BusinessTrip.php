@@ -48,6 +48,11 @@ class BusinessTrip extends Model
         return $this->belongsTo(Employee::class, 'employee_id', 'id');
     }
 
+    public function supervisor(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'supervisor_employee_id', 'id');
+    }
+
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by', 'id');

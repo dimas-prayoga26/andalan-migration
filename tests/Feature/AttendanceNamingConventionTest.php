@@ -62,6 +62,7 @@ class AttendanceNamingConventionTest extends TestCase
             'attendance.overtimes.index',
             'attendance.business-trips.index',
             'attendance.components.attendance-cards',
+            'attendance.components.card-analytics',
             'attendance.layouts.profile-header',
             'attendance.layouts.profile-index',
             'attendance.layouts.profile-navbar',
@@ -114,17 +115,22 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertStringContainsString('<div class="row align-items-stretch">', $attendanceOverviewView);
         $this->assertSame(2, substr_count($attendanceOverviewView, '<div class="card flex-fill">'));
         $this->assertStringContainsString('row row-cols-2 g-2 list-unstyled mb-0 mx-auto w-100', $attendanceOverviewView);
-        $this->assertStringContainsString('row attendance-rate-mobile-slider', $attendanceOverviewView);
+        $this->assertStringContainsString("@include('attendance.components.card-analytics')", $attendanceOverviewView);
         $this->assertStringContainsString('.attendance-rate-mobile-slider {', $attendanceOverviewView);
         $this->assertStringContainsString('.attendance-rate-mobile-slide {', $attendanceOverviewView);
-        $this->assertSame(4, substr_count($attendanceOverviewView, 'col-md-3 col-sm-6 attendance-rate-mobile-slide'));
 
         $attendanceTodayView = File::get(resource_path('views/attendance/attendance/index.blade.php'));
+        $attendanceCardAnalyticsView = File::get(resource_path('views/attendance/components/card-analytics.blade.php'));
 
-        $this->assertStringContainsString('row attendance-rate-mobile-slider', $attendanceTodayView);
+        $this->assertStringContainsString("@include('attendance.components.card-analytics')", $attendanceTodayView);
         $this->assertStringContainsString('.attendance-rate-mobile-slider {', $attendanceTodayView);
         $this->assertStringContainsString('.attendance-rate-mobile-slide {', $attendanceTodayView);
-        $this->assertSame(4, substr_count($attendanceTodayView, 'col-md-3 col-sm-6 attendance-rate-mobile-slide'));
+        $this->assertStringContainsString('row attendance-rate-mobile-slider', $attendanceCardAnalyticsView);
+        $this->assertStringContainsString('Attendance Rate', $attendanceCardAnalyticsView);
+        $this->assertStringContainsString('On Time Rate', $attendanceCardAnalyticsView);
+        $this->assertStringContainsString('Lateness Rate', $attendanceCardAnalyticsView);
+        $this->assertStringContainsString('Overtime Rate', $attendanceCardAnalyticsView);
+        $this->assertSame(4, substr_count($attendanceCardAnalyticsView, 'col-md-3 col-sm-6 attendance-rate-mobile-slide'));
 
         $businessTripView = File::get(resource_path('views/attendance/business-trips/index.blade.php'));
 

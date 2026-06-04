@@ -15,6 +15,8 @@ class BusinessTripDetailTablesMigrationTest extends TestCase
         $reimbursementsMigration = File::get(database_path('migrations/2026_06_03_080204_create_business_trip_reimbursements_table.php'));
         $lifecycleLogsMigration = File::get(database_path('migrations/2026_06_03_080205_create_business_trip_lifecycle_logs_table.php'));
 
+        $this->assertFileDoesNotExist(database_path('migrations/2026_06_04_044036_add_display_values_to_business_trip_lifecycle_logs_table.php'));
+
         foreach ([
             "Schema::table('business_trips'",
             "request_number', 50",
@@ -41,11 +43,30 @@ class BusinessTripDetailTablesMigrationTest extends TestCase
 
         foreach ([
             "Schema::create('business_trip_lifecycle_logs'",
+            'event_key',
             'step_order',
-            'is_completed',
-            'completed_at',
+            "status', 50",
+            'actor_id',
+            'happened_at',
+            'metadata',
+            'business_trip_lifecycle_logs_trip_event_unique',
+            'business_trip_lifecycle_logs_trip_step_unique',
+            'business_trip_lifecycle_logs_trip_status_index',
+            'business_trip_lifecycle_logs_trip_happened_index',
         ] as $expectedFragment) {
             $this->assertStringContainsString($expectedFragment, $lifecycleLogsMigration);
+        }
+
+        foreach ([
+            'description',
+            'is_completed',
+            'completed_at',
+            'actor_label',
+            'status_label',
+            'status_state',
+            'business_trip_lifecycle_logs_trip_state_index',
+        ] as $expectedFragment) {
+            $this->assertStringNotContainsString($expectedFragment, $lifecycleLogsMigration);
         }
 
         foreach ([

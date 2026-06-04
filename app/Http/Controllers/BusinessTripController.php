@@ -366,17 +366,29 @@ class BusinessTripController extends Controller
 
     private function buildBusinessTripDetailPermissions(BusinessTrip $businessTrip): array
     {
+        $supervisorReviewApproved = $this->isApprovedLifecycleStatus((string) $businessTrip->approval_status)
+            || $this->businessTripLifecycleEventIsApproved($businessTrip, 'supervisor_review');
         $cashAdvanceApproved = $businessTrip->cashAdvances
             ->contains(fn ($cashAdvance): bool => $this->isApprovedLifecycleStatus((string) $cashAdvance->status))
             || $this->businessTripLifecycleEventIsApproved($businessTrip, 'cash_advance_submitted')
             || $this->businessTripLifecycleEventIsApproved($businessTrip, 'finance_disbursement');
-        $supervisorReviewApproved = $this->isApprovedLifecycleStatus((string) $businessTrip->approval_status)
-            || $this->businessTripLifecycleEventIsApproved($businessTrip, 'supervisor_review');
+        $cashAdvanceDetailsReady = $businessTrip->cashAdvances->isNotEmpty()
+            && ($supervisorReviewApproved || $this->businessTripLifecycleEventHasStarted($businessTrip, 'cash_advance_submitted'));
+        $reimbursementDetailsReady = $this->businessTripHasCompletedReimbursementReport($businessTrip)
+            || $this->businessTripLifecycleEventIsApproved($businessTrip, 'trip_report');
 
         return [
             'can_view_trip_expense_values' => $cashAdvanceApproved,
+            'can_view_cash_advance_values' => $cashAdvanceDetailsReady,
+            'can_view_reimbursement_values' => $reimbursementDetailsReady,
             'can_use_action_buttons' => $supervisorReviewApproved,
         ];
+    }
+
+    private function businessTripHasCompletedReimbursementReport(BusinessTrip $businessTrip): bool
+    {
+        return $businessTrip->reimbursements->isNotEmpty()
+            && $businessTrip->reimbursements->every(fn ($reimbursement): bool => trim((string) $reimbursement->receipt_path) !== '');
     }
 
     private function businessTripLifecycleEventIsApproved(BusinessTrip $businessTrip, string $eventKey): bool
@@ -386,6 +398,15 @@ class BusinessTripController extends Controller
 
         return $lifecycleLog instanceof BusinessTripLifecycleLog
             && $this->isApprovedLifecycleStatus((string) $lifecycleLog->status);
+    }
+
+    private function businessTripLifecycleEventHasStarted(BusinessTrip $businessTrip, string $eventKey): bool
+    {
+        $lifecycleLog = $businessTrip->lifecycleLogs
+            ->first(fn (BusinessTripLifecycleLog $lifecycleLog): bool => $lifecycleLog->event_key === $eventKey);
+
+        return $lifecycleLog instanceof BusinessTripLifecycleLog
+            && ! in_array(strtolower(trim((string) $lifecycleLog->status)), ['', 'waiting'], true);
     }
 
     private function isApprovedLifecycleStatus(string $status): bool

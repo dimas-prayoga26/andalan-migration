@@ -23,6 +23,8 @@
 
 @php
     $canViewBusinessTripExpenseValues = (bool) ($businessTripDetailPermissions['can_view_trip_expense_values'] ?? false);
+    $canViewBusinessTripCashAdvanceValues = (bool) ($businessTripDetailPermissions['can_view_cash_advance_values'] ?? false);
+    $canViewBusinessTripReimbursementValues = (bool) ($businessTripDetailPermissions['can_view_reimbursement_values'] ?? false);
     $canUseBusinessTripActionButtons = (bool) ($businessTripDetailPermissions['can_use_action_buttons'] ?? false);
 @endphp
 
@@ -197,7 +199,7 @@
                                 </div>
                             @endforeach
                         @else
-                            <div class="border rounded p-5 text-center bg-light">
+                            <div class="border rounded p-5 text-center bg-light d-flex flex-column justify-content-center" style="min-height: 220px;">
                                 <span class="text-gray">Expense details will appear after cash advance approval.</span>
                             </div>
                         @endif
@@ -212,51 +214,73 @@
                         @endforeach
                     </div>
                     <div class="tab-pane fade" id="tabCashAdvance3" role="tabpanel" aria-labelledby="cash-advance-tab3" tabindex="0">
-                        <div class="row py-2">
-                            <div class="col-md-4 col-12"><span>10 Jun 2026</span></div>
-                            <div class="col-md-8 col-12">
-                                <span class="text-gray fw-semibold">Local Transport</span> <br>
-                                <span class="text-gray">Taxi from Airport etc</span> <br>
-                                <span class="text-decoration-line-through">Rp. 1.000.000</span>
-                                <span class="text-gray">Rp. 500.000</span>
+                        @if ($canViewBusinessTripCashAdvanceValues)
+                            <div class="row py-2">
+                                <div class="col-md-4 col-12"><span>10 Jun 2026</span></div>
+                                <div class="col-md-8 col-12">
+                                    <span class="text-gray fw-semibold">Local Transport</span> <br>
+                                    <span class="text-gray">Taxi from Airport etc</span> <br>
+                                    <span class="text-decoration-line-through">Rp. 1.000.000</span>
+                                    <span class="text-gray">Rp. 500.000</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-4 col-12"><span>10 Jun 2026</span></div>
-                            <div class="col-md-8 col-12">
-                                <span class="text-gray fw-semibold">Meals & Entertaintment</span> <br>
-                                <span class="text-gray">Meals, and Client Entertainment</span> <br>
-                                <span class="text-gray">Rp. 2.000.000</span>
+                            <div class="row py-2">
+                                <div class="col-md-4 col-12"><span>10 Jun 2026</span></div>
+                                <div class="col-md-8 col-12">
+                                    <span class="text-gray fw-semibold">Meals & Entertaintment</span> <br>
+                                    <span class="text-gray">Meals, and Client Entertainment</span> <br>
+                                    <span class="text-gray">Rp. 2.000.000</span>
+                                </div>
                             </div>
-                        </div>
+                        @else
+                            <div class="border rounded p-5 text-center bg-light d-flex flex-column justify-content-center" style="min-height: 220px;">
+                                <span class="text-gray">Cash advance details will appear after staff submits the cash advance request in Phase 2.</span>
+                            </div>
+                        @endif
                         <hr>
                         <div class="row py-2">
                             <div class="col-md-4 col-12"><span>Total Payment</span></div>
                             <div class="col-md-8 col-12">
-                                <span class="text-gray fw-semibold">Rp. 2.800.000</span> <br>
-                                <span class="text-success">Approved cash advance</span> <br>
+                                @if ($canViewBusinessTripCashAdvanceValues)
+                                    <span class="text-gray fw-semibold">Rp. 2.800.000</span> <br>
+                                    <span class="text-success">Approved cash advance</span> <br>
+                                @else
+                                    <span class="badge badge-sm badge-warning light">Pending</span> <br>
+                                @endif
                             </div>
                         </div>
                     </div>
                     <div class="tab-pane fade" id="tabReimbursement3" role="tabpanel" aria-labelledby="reimbursement-tab3" tabindex="0">
-                        @foreach ([
-                            ['date' => '10 Jun 2026', 'title' => 'Transportation', 'description' => 'Flight ticket', 'amount' => 'Rp. 1.500.000'],
-                            ['date' => '12 Jun 2026', 'title' => 'Accommodation', 'description' => 'Hotel (2 Nights @ Rp 500.000)', 'amount' => 'Rp. 1.000.000'],
-                        ] as $reimbursementItem)
-                            <div class="row py-2">
-                                <div class="col-md-4 col-12"><span>{{ $reimbursementItem['date'] }}</span></div>
-                                <div class="col-md-8 col-12">
-                                    <span class="text-gray fw-semibold">{{ $reimbursementItem['title'] }}</span> <br>
-                                    <span class="text-gray">{{ $reimbursementItem['description'] }}</span> <br>
-                                    <span class="text-gray">{{ $reimbursementItem['amount'] }}</span> <br>
-                                    <a href=""><span class="text-blue fw-semibold">Attachment</span></a>
+                        @if ($canViewBusinessTripReimbursementValues)
+                            @foreach ([
+                                ['date' => '10 Jun 2026', 'title' => 'Transportation', 'description' => 'Flight ticket', 'amount' => 'Rp. 1.500.000'],
+                                ['date' => '12 Jun 2026', 'title' => 'Accommodation', 'description' => 'Hotel (2 Nights @ Rp 500.000)', 'amount' => 'Rp. 1.000.000'],
+                            ] as $reimbursementItem)
+                                <div class="row py-2">
+                                    <div class="col-md-4 col-12"><span>{{ $reimbursementItem['date'] }}</span></div>
+                                    <div class="col-md-8 col-12">
+                                        <span class="text-gray fw-semibold">{{ $reimbursementItem['title'] }}</span> <br>
+                                        <span class="text-gray">{{ $reimbursementItem['description'] }}</span> <br>
+                                        <span class="text-gray">{{ $reimbursementItem['amount'] }}</span> <br>
+                                        <a href=""><span class="text-blue fw-semibold">Attachment</span></a>
+                                    </div>
                                 </div>
+                            @endforeach
+                        @else
+                            <div class="border rounded p-5 text-center bg-light d-flex flex-column justify-content-center" style="min-height: 220px;">
+                                <span class="text-gray">Reimbursement details will appear after staff submits the required report and attachments.</span>
                             </div>
-                        @endforeach
+                        @endif
                         <hr>
                         <div class="row py-2">
                             <div class="col-md-4 col-12"><span>Total</span></div>
-                            <div class="col-md-8 col-12"><span class="text-gray fw-semibold">Rp. 2.500.000</span> <br></div>
+                            <div class="col-md-8 col-12">
+                                @if ($canViewBusinessTripReimbursementValues)
+                                    <span class="text-gray fw-semibold">Rp. 2.500.000</span> <br>
+                                @else
+                                    <span class="badge badge-sm badge-warning light">Pending</span> <br>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>

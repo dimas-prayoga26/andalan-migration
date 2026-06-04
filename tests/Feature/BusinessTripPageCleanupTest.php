@@ -73,7 +73,11 @@ class BusinessTripPageCleanupTest extends TestCase
         $this->assertStringContainsString('private function buildBusinessTripRequestDetails(BusinessTrip $businessTrip): array', $businessTripController);
         $this->assertStringContainsString('private function buildBusinessTripDetailPermissions(BusinessTrip $businessTrip): array', $businessTripController);
         $this->assertStringContainsString("'can_view_trip_expense_values' => \$cashAdvanceApproved", $businessTripController);
+        $this->assertStringContainsString("'can_view_cash_advance_values' => \$cashAdvanceDetailsReady", $businessTripController);
+        $this->assertStringContainsString("'can_view_reimbursement_values' => \$reimbursementDetailsReady", $businessTripController);
         $this->assertStringContainsString("'can_use_action_buttons' => \$supervisorReviewApproved", $businessTripController);
+        $this->assertStringContainsString('private function businessTripHasCompletedReimbursementReport(BusinessTrip $businessTrip): bool', $businessTripController);
+        $this->assertStringContainsString('private function businessTripLifecycleEventHasStarted(BusinessTrip $businessTrip, string $eventKey): bool', $businessTripController);
         $this->assertStringContainsString("businessTripLifecycleEventIsApproved(\$businessTrip, 'supervisor_review')", $businessTripController);
         $this->assertStringContainsString("businessTripLifecycleEventIsApproved(\$businessTrip, 'cash_advance_submitted')", $businessTripController);
         $this->assertStringContainsString('private function buildBusinessTripLifecycleTracker(BusinessTrip $businessTrip): Collection', $businessTripController);
@@ -137,8 +141,12 @@ class BusinessTripPageCleanupTest extends TestCase
         $this->assertStringContainsString("{{ \$businessTripRequestDetails['date_range'] ?? '-' }}", $businessTripDetailView);
         $this->assertStringContainsString("{{ \$businessTripRequestDetails['duration'] ?? '-' }}", $businessTripDetailView);
         $this->assertStringContainsString("\$canViewBusinessTripExpenseValues = (bool) (\$businessTripDetailPermissions['can_view_trip_expense_values'] ?? false);", $businessTripDetailView);
+        $this->assertStringContainsString("\$canViewBusinessTripCashAdvanceValues = (bool) (\$businessTripDetailPermissions['can_view_cash_advance_values'] ?? false);", $businessTripDetailView);
+        $this->assertStringContainsString("\$canViewBusinessTripReimbursementValues = (bool) (\$businessTripDetailPermissions['can_view_reimbursement_values'] ?? false);", $businessTripDetailView);
         $this->assertStringContainsString("\$canUseBusinessTripActionButtons = (bool) (\$businessTripDetailPermissions['can_use_action_buttons'] ?? false);", $businessTripDetailView);
         $this->assertStringContainsString('@if ($canViewBusinessTripExpenseValues)', $businessTripDetailView);
+        $this->assertStringContainsString('@if ($canViewBusinessTripCashAdvanceValues)', $businessTripDetailView);
+        $this->assertStringContainsString('@if ($canViewBusinessTripReimbursementValues)', $businessTripDetailView);
         $this->assertStringContainsString('<span class="text-gray">-</span>', $businessTripDetailView);
         $this->assertStringNotContainsString('Waiting Cash Advance Approval', $businessTripDetailView);
         $this->assertStringContainsString('<span>Requested Cash Advance</span>', $businessTripDetailView);
@@ -147,7 +155,13 @@ class BusinessTripPageCleanupTest extends TestCase
         $this->assertStringContainsString('<span class="badge badge-sm badge-warning light">Pending</span>', $businessTripDetailView);
         $this->assertStringContainsString('<div class="border rounded p-5 text-center bg-light d-flex flex-column justify-content-center" style="min-height: 220px;">', $businessTripDetailView);
         $this->assertStringContainsString('Expense details will appear after cash advance approval.', $businessTripDetailView);
+        $this->assertStringContainsString('Cash advance details will appear after staff submits the cash advance request in Phase 2.', $businessTripDetailView);
+        $this->assertStringContainsString('Reimbursement details will appear after staff submits the required report and attachments.', $businessTripDetailView);
+        $this->assertStringNotContainsString('Cash advance details will appear after cash advance approval.', $businessTripDetailView);
+        $this->assertStringNotContainsString('Reimbursement details will appear after cash advance approval.', $businessTripDetailView);
         $this->assertStringContainsString("['Total Expenses', 'Cash Advance', 'Balance Due', 'Trip Incentive', 'Total Payment']", $businessTripDetailView);
+        $this->assertStringContainsString('<div class="col-md-4 col-12"><span>Total Payment</span></div>', $businessTripDetailView);
+        $this->assertStringContainsString('<div class="col-md-4 col-12"><span>Total</span></div>', $businessTripDetailView);
         $this->assertStringNotContainsString('<span class="text-gray fw-semibold">-</span>', $businessTripDetailView);
         $this->assertStringContainsString('@if ($canUseBusinessTripActionButtons)', $businessTripDetailView);
         $this->assertStringContainsString('aria-disabled="true" tabindex="-1">Update Details</a>', $businessTripDetailView);

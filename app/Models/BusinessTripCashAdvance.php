@@ -22,6 +22,7 @@ class BusinessTripCashAdvance extends Model
 
     protected $casts = [
         'date_needed' => 'date',
+        'date_needed_until' => 'date',
         'amount_requested' => 'decimal:2',
         'amount_realized' => 'decimal:2',
         'amount_approved' => 'decimal:2',

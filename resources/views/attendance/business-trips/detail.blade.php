@@ -26,6 +26,7 @@
     $canViewBusinessTripCashAdvanceValues = (bool) ($businessTripDetailPermissions['can_view_cash_advance_values'] ?? false);
     $canViewBusinessTripReimbursementValues = (bool) ($businessTripDetailPermissions['can_view_reimbursement_values'] ?? false);
     $canUseBusinessTripActionButtons = (bool) ($businessTripDetailPermissions['can_use_action_buttons'] ?? false);
+    $canUseBusinessTripReimbursementButton = (bool) ($businessTripDetailPermissions['can_use_reimbursement_button'] ?? false);
 @endphp
 
 <div class="col-lg-12">
@@ -73,39 +74,15 @@
                     <div class="col-md-6 col-12"><span>Trip Duration</span></div>
                     <div class="col-md-6 col-12"><span class="text-gray fw-semibold">{{ $businessTripRequestDetails['duration'] ?? '-' }}</span></div>
                 </div>
-                @foreach ([
-                    'Transportation' => [
-                        'amount' => 'Rp. 3.000.000',
-                        'attachment' => 'Ticket',
-                        'description' => 'Kereta Api Taksaka <br> 01 June 2026 - 20:00 WIB',
-                    ],
-                    'Local Transportation' => [
-                        'amount' => 'Rp. 500.000',
-                        'description' => 'Taxi to Airport etc',
-                    ],
-                    'Accommodation' => [
-                        'amount' => 'Rp. 1.000.000',
-                        'attachment' => 'Receipt',
-                        'description' => 'POP Hotel <br> 01 June 2026 - 02 June 2026',
-                    ],
-                    'Meals & Entertainment' => [
-                        'amount' => 'Rp. 1.000.000',
-                        'description' => 'Client dinner & daily meals',
-                    ],
-                    'Others' => [
-                        'amount' => 'Rp. 500.000',
-                        'description' => 'Others',
-                    ],
-                ] as $businessTripExpenseLabel => $businessTripExpenseValue)
+                @foreach (($businessTripApprovedExpenseBreakdownRows ?? collect()) as $businessTripExpenseValue)
                     <div class="row py-2">
-                        <div class="col-md-6 col-12"><span>{{ $businessTripExpenseLabel }}</span></div>
+                        <div class="col-md-6 col-12"><span>{{ $businessTripExpenseValue['label'] ?? '-' }}</span></div>
                         <div class="col-md-6 col-12">
-                            @if ($canViewBusinessTripExpenseValues)
-                                <span class="text-gray fw-semibold">{{ $businessTripExpenseValue['amount'] }}</span> <br>
-                                @if (isset($businessTripExpenseValue['attachment']))
-                                    <a href=""><span class="text-blue fw-semibold">{{ $businessTripExpenseValue['attachment'] }}</span></a> <br>
-                                @endif
-                                <span class="text-gray">{!! $businessTripExpenseValue['description'] !!}</span>
+                            @if ($canViewBusinessTripExpenseValues && ! empty($businessTripExpenseValue['has_value']))
+                                <span class="text-gray fw-semibold">{{ $businessTripExpenseValue['amount_label'] ?? '-' }}</span> <br>
+                                @foreach (($businessTripExpenseValue['description_lines'] ?? []) as $businessTripExpenseDescription)
+                                    <span class="text-gray">{{ $businessTripExpenseDescription }}</span> <br>
+                                @endforeach
                             @else
                                 <span class="text-gray">-</span>
                             @endif
@@ -113,34 +90,27 @@
                     </div>
                 @endforeach
                 <hr>
-                <div class="row py-2">
-                    <div class="col-md-6 col-12"><span>Requested Cash Advance</span></div>
-                    <div class="col-md-6 col-12">
-                        @if ($canViewBusinessTripExpenseValues)
-                            <span class="text-gray fw-semibold">Rp. 2.500.000</span> <br>
-                            <span class="text-gray">For local transport, meals, and client entertainment</span>
-                        @else
-                            <span class="badge badge-sm badge-warning light">Pending</span>
-                        @endif
-                    </div>
-                </div>
-                <div class="row py-2">
-                    <div class="col-md-6 col-12"><span>Business Trip Incentive</span></div>
-                    <div class="col-md-6 col-12">
-                        @if ($canViewBusinessTripExpenseValues)
-                            <span class="text-gray fw-semibold">Rp. 300.000</span> <br>
-                            <span class="text-gray">Rp. 100.000 x 3 days</span>
-                        @else
-                            <span class="badge badge-sm badge-warning light">Pending</span>
-                        @endif
-                    </div>
-                </div>
-                @foreach (['Status Cash Advance', 'Status Reimbursement', 'Status Incentive'] as $businessTripStatusLabel)
+                @foreach (($businessTripRequestFinancialRows ?? collect()) as $businessTripRequestFinancialRow)
                     <div class="row py-2">
-                        <div class="col-md-6 col-12"><span>{{ $businessTripStatusLabel }}</span></div>
+                        <div class="col-md-6 col-12"><span>{{ $businessTripRequestFinancialRow['label'] ?? '-' }}</span></div>
                         <div class="col-md-6 col-12">
                             @if ($canViewBusinessTripExpenseValues)
-                                <span class="badge badge-sm badge-success light">Paid</span>
+                                <span class="text-gray fw-semibold">{{ $businessTripRequestFinancialRow['amount_label'] ?? '-' }}</span> <br>
+                                @foreach (($businessTripRequestFinancialRow['description_lines'] ?? []) as $businessTripRequestFinancialDescription)
+                                    <span class="text-gray">{{ $businessTripRequestFinancialDescription }}</span> <br>
+                                @endforeach
+                            @else
+                                <span class="badge badge-sm badge-warning light">Pending</span>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+                @foreach (($businessTripRequestStatusRows ?? collect()) as $businessTripStatusRow)
+                    <div class="row py-2">
+                        <div class="col-md-6 col-12"><span>{{ $businessTripStatusRow['label'] ?? '-' }}</span></div>
+                        <div class="col-md-6 col-12">
+                            @if ($canViewBusinessTripExpenseValues)
+                                <span class="badge badge-sm {{ $businessTripStatusRow['badge_class'] ?? 'badge-warning light' }}">{{ $businessTripStatusRow['status_label'] ?? 'Pending' }}</span>
                             @else
                                 <span class="badge badge-sm badge-warning light">Pending</span>
                             @endif
@@ -182,56 +152,74 @@
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active" id="tabExpense3" role="tabpanel" aria-labelledby="expense-tab3" tabindex="0">
                         @if ($canViewBusinessTripExpenseValues)
-                            @foreach ([
-                                ['date' => '10 Jun 2026', 'title' => 'Transportation', 'description' => 'Flight ticket (Round trip - Economy)', 'amount' => 'Rp. 3.000.000'],
-                                ['date' => '12 Jun 2026', 'title' => 'Accommodation', 'description' => 'Hotel (2 Nights @ Rp 500.000)', 'amount' => 'Rp. 1.000.000'],
-                                ['date' => '10-12 Jun 2026', 'title' => 'Meals & Entertaintment', 'description' => 'Client dinner & daily meals', 'amount' => 'Rp. 800.000'],
-                                ['date' => '10-12 Jun 2026', 'title' => 'Local Transport', 'description' => 'Taxi to/from airport', 'amount' => 'Rp. 200.000'],
-                            ] as $expenseItem)
+                            @forelse (($businessTripExpenseRows ?? collect()) as $expenseItem)
                                 <div class="row py-2">
-                                    <div class="col-md-4 col-12"><span>{{ $expenseItem['date'] }}</span></div>
+                                    <div class="col-md-4 col-12"><span>{{ $expenseItem['date_label'] ?? '-' }}</span></div>
                                     <div class="col-md-8 col-12">
-                                        <span class="text-gray fw-semibold">{{ $expenseItem['title'] }}</span> <br>
-                                        <span class="text-gray">{{ $expenseItem['description'] }}</span> <br>
-                                        <span class="text-gray">{{ $expenseItem['amount'] }}</span> <br>
-                                        <a href=""><span class="text-blue fw-semibold">Attachment</span></a>
+                                        <span class="text-gray fw-semibold">{{ $expenseItem['category_label'] ?? '-' }}</span> <br>
+                                        <span class="text-gray">{{ $expenseItem['description'] ?? '-' }}</span> <br>
+                                        <span class="text-gray">{{ $expenseItem['amount_label'] ?? '-' }}</span> <br>
+                                        @if (! empty($expenseItem['attachment_url']))
+                                            <a href="#" class="js-business-trip-attachment-preview" data-bs-toggle="modal" data-bs-target="#businessTripAttachmentPreviewModal" data-attachment-url="{{ $expenseItem['attachment_url'] }}" data-attachment-title="Expense Attachment">
+                                                <span class="text-blue fw-semibold">Attachment</span>
+                                            </a>
+                                        @else
+                                            <span class="text-danger fw-semibold">Belum mengupload attachment.</span>
+                                        @endif
                                     </div>
                                 </div>
-                            @endforeach
+                            @empty
+                                <div class="border rounded p-5 text-center bg-light d-flex flex-column justify-content-center" style="min-height: 220px;">
+                                    <span class="text-gray">Expense details will appear after cash advance approval.</span>
+                                </div>
+                            @endforelse
                         @else
                             <div class="border rounded p-5 text-center bg-light d-flex flex-column justify-content-center" style="min-height: 220px;">
                                 <span class="text-gray">Expense details will appear after cash advance approval.</span>
                             </div>
                         @endif
                         <hr>
-                        @foreach (['Total Expenses', 'Cash Advance', 'Balance Due', 'Trip Incentive', 'Total Payment'] as $expenseSummaryLabel)
+                        @foreach (($businessTripExpenseSummaryRows ?? collect()) as $expenseSummaryRow)
                             <div class="row py-2">
-                                <div class="col-md-4 col-12"><span>{{ $expenseSummaryLabel }}</span></div>
+                                <div class="col-md-4 col-12"><span>{{ $expenseSummaryRow['label'] ?? '-' }}</span></div>
                                 <div class="col-md-8 col-12">
-                                    <span class="badge badge-sm badge-warning light">Pending</span> <br>
+                                    @if ($canViewBusinessTripExpenseValues)
+                                        <span class="{{ $expenseSummaryRow['amount_class'] ?? 'text-gray' }} fw-semibold">{{ $expenseSummaryRow['amount_label'] ?? '-' }}</span> <br>
+                                        @if (! empty($expenseSummaryRow['description']))
+                                            <span class="text-gray">{{ $expenseSummaryRow['description'] }}</span> <br>
+                                        @endif
+                                    @else
+                                        <span class="badge badge-sm badge-warning light">Pending</span> <br>
+                                    @endif
                                 </div>
                             </div>
+                            @if (! empty($expenseSummaryRow['has_bottom_divider']))
+                                <hr class="my-2">
+                            @endif
                         @endforeach
                     </div>
                     <div class="tab-pane fade" id="tabCashAdvance3" role="tabpanel" aria-labelledby="cash-advance-tab3" tabindex="0">
                         @if ($canViewBusinessTripCashAdvanceValues)
-                            <div class="row py-2">
-                                <div class="col-md-4 col-12"><span>10 Jun 2026</span></div>
-                                <div class="col-md-8 col-12">
-                                    <span class="text-gray fw-semibold">Local Transport</span> <br>
-                                    <span class="text-gray">Taxi from Airport etc</span> <br>
-                                    <span class="text-decoration-line-through">Rp. 1.000.000</span>
-                                    <span class="text-gray">Rp. 500.000</span>
+                            @forelse (($businessTripCashAdvanceRows ?? collect()) as $cashAdvanceRow)
+                                <div class="row py-2">
+                                    <div class="col-md-4 col-12"><span>{{ $cashAdvanceRow['date_label'] ?? '-' }}</span></div>
+                                    <div class="col-md-8 col-12">
+                                        <span class="text-gray fw-semibold">{{ $cashAdvanceRow['category_label'] ?? '-' }}</span> <br>
+                                        <span class="text-gray">{{ $cashAdvanceRow['notes'] ?? '-' }}</span> <br>
+                                        @if (! empty($cashAdvanceRow['has_approved_amount']))
+                                            <span class="text-decoration-line-through">{{ $cashAdvanceRow['amount_requested_label'] ?? '-' }}</span>
+                                            <span class="text-gray">{{ $cashAdvanceRow['amount_approved_label'] ?? ($cashAdvanceRow['payment_amount_label'] ?? '-') }}</span> <br>
+                                        @else
+                                            <span class="text-gray">{{ $cashAdvanceRow['amount_requested_label'] ?? '-' }}</span> <br>
+                                        @endif
+                                        <span class="badge badge-xs {{ $cashAdvanceRow['status_badge_class'] ?? 'badge-warning light' }} fw-semibold">{{ $cashAdvanceRow['status_label'] ?? 'Pending' }}</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="row py-2">
-                                <div class="col-md-4 col-12"><span>10 Jun 2026</span></div>
-                                <div class="col-md-8 col-12">
-                                    <span class="text-gray fw-semibold">Meals & Entertaintment</span> <br>
-                                    <span class="text-gray">Meals, and Client Entertainment</span> <br>
-                                    <span class="text-gray">Rp. 2.000.000</span>
+                            @empty
+                                <div class="border rounded p-5 text-center bg-light d-flex flex-column justify-content-center" style="min-height: 220px;">
+                                    <span class="text-gray">Cash advance details will appear after staff submits the cash advance request in Phase 2.</span>
                                 </div>
-                            </div>
+                            @endforelse
                         @else
                             <div class="border rounded p-5 text-center bg-light d-flex flex-column justify-content-center" style="min-height: 220px;">
                                 <span class="text-gray">Cash advance details will appear after staff submits the cash advance request in Phase 2.</span>
@@ -242,8 +230,8 @@
                             <div class="col-md-4 col-12"><span>Total Payment</span></div>
                             <div class="col-md-8 col-12">
                                 @if ($canViewBusinessTripCashAdvanceValues)
-                                    <span class="text-gray fw-semibold">Rp. 2.800.000</span> <br>
-                                    <span class="text-success">Approved cash advance</span> <br>
+                                    <span class="text-gray fw-semibold">{{ $businessTripCashAdvanceSummary['total_payment_label'] ?? 'Rp 0' }}</span> <br>
+                                    <span class="badge badge-sm {{ $businessTripCashAdvanceSummary['status_badge_class'] ?? 'badge-warning light' }}">{{ $businessTripCashAdvanceSummary['status_label'] ?? 'Pending' }}</span> <br>
                                 @else
                                     <span class="badge badge-sm badge-warning light">Pending</span> <br>
                                 @endif
@@ -252,20 +240,26 @@
                     </div>
                     <div class="tab-pane fade" id="tabReimbursement3" role="tabpanel" aria-labelledby="reimbursement-tab3" tabindex="0">
                         @if ($canViewBusinessTripReimbursementValues)
-                            @foreach ([
-                                ['date' => '10 Jun 2026', 'title' => 'Transportation', 'description' => 'Flight ticket', 'amount' => 'Rp. 1.500.000'],
-                                ['date' => '12 Jun 2026', 'title' => 'Accommodation', 'description' => 'Hotel (2 Nights @ Rp 500.000)', 'amount' => 'Rp. 1.000.000'],
-                            ] as $reimbursementItem)
+                            @forelse (($businessTripReimbursementRows ?? collect()) as $reimbursementItem)
                                 <div class="row py-2">
-                                    <div class="col-md-4 col-12"><span>{{ $reimbursementItem['date'] }}</span></div>
+                                    <div class="col-md-4 col-12"><span>{{ $reimbursementItem['date_label'] ?? '-' }}</span></div>
                                     <div class="col-md-8 col-12">
-                                        <span class="text-gray fw-semibold">{{ $reimbursementItem['title'] }}</span> <br>
-                                        <span class="text-gray">{{ $reimbursementItem['description'] }}</span> <br>
-                                        <span class="text-gray">{{ $reimbursementItem['amount'] }}</span> <br>
-                                        <a href=""><span class="text-blue fw-semibold">Attachment</span></a>
+                                        <span class="text-gray fw-semibold">{{ $reimbursementItem['category_label'] ?? '-' }}</span> <br>
+                                        <span class="text-gray">{{ $reimbursementItem['notes'] ?? '-' }}</span> <br>
+                                        <span class="text-gray">{{ $reimbursementItem['amount_label'] ?? '-' }}</span> <br>
+                                        @if (! empty($reimbursementItem['receipt_url']))
+                                            <a href="#" class="js-business-trip-attachment-preview" data-bs-toggle="modal" data-bs-target="#businessTripAttachmentPreviewModal" data-attachment-url="{{ $reimbursementItem['receipt_url'] }}" data-attachment-title="Reimbursement Receipt"><span class="text-blue fw-semibold">Receipt</span></a> <br>
+                                        @else
+                                            <span class="text-danger fw-semibold">Receipt belum diupload</span> <br>
+                                        @endif
+                                        <span class="badge badge-xs {{ $reimbursementItem['status_badge_class'] ?? 'badge-warning light' }} fw-semibold">{{ $reimbursementItem['status_label'] ?? 'Pending' }}</span>
                                     </div>
                                 </div>
-                            @endforeach
+                            @empty
+                                <div class="border rounded p-5 text-center bg-light d-flex flex-column justify-content-center" style="min-height: 220px;">
+                                    <span class="text-gray">Reimbursement details will appear after staff submits the required report and attachments.</span>
+                                </div>
+                            @endforelse
                         @else
                             <div class="border rounded p-5 text-center bg-light d-flex flex-column justify-content-center" style="min-height: 220px;">
                                 <span class="text-gray">Reimbursement details will appear after staff submits the required report and attachments.</span>
@@ -276,7 +270,7 @@
                             <div class="col-md-4 col-12"><span>Total</span></div>
                             <div class="col-md-8 col-12">
                                 @if ($canViewBusinessTripReimbursementValues)
-                                    <span class="text-gray fw-semibold">Rp. 2.500.000</span> <br>
+                                    <span class="text-gray fw-semibold">{{ $businessTripReimbursementSummary['total_label'] ?? 'Rp 0' }}</span> <br>
                                 @else
                                     <span class="badge badge-sm badge-warning light">Pending</span> <br>
                                 @endif
@@ -288,9 +282,13 @@
             <div class="d-flex justify-content-between">
                 @if ($canUseBusinessTripActionButtons)
                     <a class="btn light btn-secondary ms-3 mb-2 btn-lg" href="{{ isset($businessTrip) ? route('attendance.business-trips.cash-advances.create', $businessTrip) : '#' }}">Cash Advance</a>
-                    <a class="btn light btn-success me-3 mb-2 btn-lg" href="{{ isset($businessTrip) ? route('attendance.business-trips.reimbursements.create', $businessTrip) : '#' }}">Reimbursement</a>
                 @else
                     <a class="btn light btn-secondary ms-3 mb-2 btn-lg disabled" aria-disabled="true" tabindex="-1">Cash Advance</a>
+                @endif
+
+                @if ($canUseBusinessTripReimbursementButton)
+                    <a class="btn light btn-success me-3 mb-2 btn-lg" href="{{ isset($businessTrip) ? route('attendance.business-trips.reimbursements.create', $businessTrip) : '#' }}">Reimbursement</a>
+                @else
                     <a class="btn light btn-success me-3 mb-2 btn-lg disabled" aria-disabled="true" tabindex="-1">Reimbursement</a>
                 @endif
             </div>
@@ -343,6 +341,20 @@
     </div>
 </div>
 
+<div class="modal fade" id="businessTripAttachmentPreviewModal" tabindex="-1" aria-labelledby="businessTripAttachmentPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="businessTripAttachmentPreviewModalLabel">Attachment Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="businessTripAttachmentPreviewFrame" title="Business trip attachment preview" class="w-100 border-0 d-block" style="min-height: 70vh;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('script')
@@ -360,6 +372,20 @@
                 if (targetUrl) {
                     window.location.href = targetUrl;
                 }
+            });
+
+            $('.js-business-trip-attachment-preview').on('click', function (event) {
+                event.preventDefault();
+
+                var attachmentUrl = $(this).data('attachment-url') || '';
+                var attachmentTitle = $(this).data('attachment-title') || 'Attachment Preview';
+
+                $('#businessTripAttachmentPreviewModalLabel').text(attachmentTitle);
+                $('#businessTripAttachmentPreviewFrame').attr('src', attachmentUrl);
+            });
+
+            $('#businessTripAttachmentPreviewModal').on('hidden.bs.modal', function () {
+                $('#businessTripAttachmentPreviewFrame').attr('src', '');
             });
         });
     </script>

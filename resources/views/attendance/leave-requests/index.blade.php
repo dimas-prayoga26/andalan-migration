@@ -23,6 +23,20 @@
             transform: translateX(-10px);
         }
 
+        .leave-history-detail-trigger {
+            cursor: pointer;
+        }
+
+        .leave-history-detail-trigger:hover .card-title,
+        .leave-history-detail-trigger:focus .card-title {
+            color: var(--bs-primary) !important;
+        }
+
+        .leave-history-detail-trigger:focus-visible {
+            outline: 2px solid var(--bs-primary);
+            outline-offset: 2px;
+        }
+
         @media (max-width: 767.98px) {
             .leave-history-mobile-slider,
             .leave-balance-mobile-slider {
@@ -621,6 +635,69 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Box Start -->
+<div class="modal fade" id="annualLeave" tabindex="-1" aria-labelledby="annualLeaveLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="annualLeaveLabel">Annual Leave Details</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <h5 class="text-muted mb-0 fw-bold">Out of Office mode: ON</h5>
+                            <p class="form-label text-muted mb-3">Enjoy your well-deserved break. Disconnect, recharge, and have fun.</p>
+                            <p class="form-label text-muted mb-3 d-none">
+                                Whether you’re traveling the globe or just relaxing on the couch, enjoy your well-deserved break. Disconnect, recharge, and have fun!
+                            </p>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Leave Type</span>
+                                </div>
+                                <div class="col-8">
+                                    <span class="text-gray fw-semibold">Annual Leave</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Yearly Taken</span>
+                                </div>
+                                <div class="col-8">
+                                    <span class="text-gray fw-semibold">{{ $leaveTracker['annual_leave_taken_label'] ?? '0 Days' }}</span><br>
+                                    <span class="text-gray">{{ $leaveTracker['annual_leave_taken_breakdown'] ?? 'No leave taken yet.' }}</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>This Month</span>
+                                </div>
+                                <div class="col-8">
+                                    <span class="text-gray fw-semibold">{{ $leaveTracker['annual_leave_taken_month_label'] ?? '0 Days' }}</span><br>
+                                    <span class="text-gray">{{ $leaveTracker['annual_leave_taken_month_breakdown'] ?? 'No leave taken this month.' }}</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Monthly Limit</span>
+                                </div>
+                                <div class="col-8">
+                                    <span class="text-gray">{{ $leaveTracker['annual_leave_monthly_limit_label'] ?? 'Maximum limit is 2 days per month' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal-Box-End -->
 @endsection
 
 @section('script')

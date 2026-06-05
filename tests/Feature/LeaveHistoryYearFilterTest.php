@@ -37,6 +37,9 @@ class LeaveHistoryYearFilterTest extends TestCase
         $this->assertStringContainsString('private function applyLeaveHistoryTimeframeFilter(Builder $query, string $timeframe): void', $leaveRequestController);
         $this->assertStringContainsString('attendance.leave-requests.partials.history-cards', $leaveRequestController);
         $this->assertStringContainsString('id="leaveHistoryCardsSlider"', $leaveHistoryCardsPartial);
+        $this->assertStringContainsString('class="card leave-history-detail-trigger" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#leaveHistoryDetailModal"', $leaveHistoryCardsPartial);
+        $this->assertStringContainsString("data-detail-title=\"{{ \$leaveHistoryCard['title'] ?? 'Leave Request' }}\"", $leaveHistoryCardsPartial);
+        $this->assertStringContainsString("data-detail-timeline='@json(\$leaveHistoryCard['timeline'] ?? [])'", $leaveHistoryCardsPartial);
     }
 
     public function test_leave_summary_is_split_into_eligibility_and_tracker_data(): void
@@ -73,6 +76,20 @@ class LeaveHistoryYearFilterTest extends TestCase
             '$leaveTracker[\'sick_leave_taken_label\']',
             '$leaveTracker[\'special_leave_taken_label\']',
             '$leaveTracker[\'unpaid_leave_taken_label\']',
+            'id="leaveHistoryDetailModal"',
+            'id="leaveHistoryDetailTitle"',
+            'id="leaveHistoryDetailPeriod"',
+            'id="leaveHistoryDetailReason"',
+            'id="leaveHistoryDetailTimeline"',
+            'function fillLeaveHistoryDetailModal($card)',
+            "$(document).on('click', '.leave-history-detail-trigger', function () {",
+            '$leaveTracker[\'annual_leave_taken_breakdown\']',
+            '$leaveTracker[\'annual_leave_taken_month_label\']',
+            '$leaveTracker[\'annual_leave_taken_month_breakdown\']',
+            '$leaveTracker[\'annual_leave_monthly_limit_label\']',
+            '$leaveTracker[\'sick_leave_taken_breakdown\']',
+            '$leaveTracker[\'sick_leave_taken_month_label\']',
+            '$leaveTracker[\'sick_leave_taken_month_breakdown\']',
             '$leaveTracker[\'pending_requests_label\']',
             '$leaveTracker[\'approved_requests_label\']',
             '$leaveTracker[\'rejected_requests_label\']',
@@ -118,6 +135,13 @@ class LeaveHistoryYearFilterTest extends TestCase
             'leave_used_label',
             'leave_taken_month_value_label',
             'joint_holiday_breakdown',
+            'leave-summary-detail-trigger',
+            'data-bs-target="#annualLeave"',
+            'data-bs-target="#sick"',
+            'Demam dan Flu',
+            'Liburan keluarga dan istirahat sejenak',
+            '18 May 2026 - 19 May 2026 (2 days)',
+            'ecom-product-detail.html',
         ] as $removedFragment) {
             $this->assertStringNotContainsString($removedFragment, $leaveRequestView.$leaveRequestController);
         }

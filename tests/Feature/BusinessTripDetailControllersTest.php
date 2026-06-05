@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\BusinessTripCashAdvanceController;
-use App\Http\Controllers\BusinessTripExpenseItemController;
 use App\Http\Controllers\BusinessTripLifecycleLogController;
 use App\Http\Controllers\BusinessTripReimbursementController;
 use Illuminate\Support\Facades\File;
@@ -13,8 +12,9 @@ class BusinessTripDetailControllersTest extends TestCase
 {
     public function test_business_trip_detail_resource_controllers_exist_in_root_controller_folder(): void
     {
+        $this->assertFileDoesNotExist(app_path('Http/Controllers/BusinessTripExpenseItemController.php'));
+
         foreach ([
-            BusinessTripExpenseItemController::class => 'BusinessTripExpenseItemController.php',
             BusinessTripCashAdvanceController::class => 'BusinessTripCashAdvanceController.php',
             BusinessTripReimbursementController::class => 'BusinessTripReimbursementController.php',
             BusinessTripLifecycleLogController::class => 'BusinessTripLifecycleLogController.php',

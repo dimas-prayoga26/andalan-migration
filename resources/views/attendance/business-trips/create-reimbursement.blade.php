@@ -38,61 +38,73 @@
             <p class="fs-13 mb-0">Please itemize your trip expenses below and attach clear photos or PDFs of all receipts. Claims must be submitted within 7 days of returning from your trip.</p>
         </div>
     </div>
-    <div class="card-body">
-        <div id="businessTripReimbursementRows">
-            <div class="row business-trip-reimbursement-row">
-                <div class="col-12 col-md-2">
-                    <div class="mb-3">
-                        <label for="businessTripReimbursementDate_0" class="form-label">Date</label>
-                        <input type="text" class="form-control business-trip-reimbursement-date-picker" id="businessTripReimbursementDate_0" name="reimbursement_dates[]" data-field-base-id="businessTripReimbursementDate" placeholder="Date" readonly>
-                    </div>
-                </div>
-                <div class="col-12 col-md-2">
-                    <div class="mb-3">
-                        <label for="businessTripReimbursementAmount_0" class="form-label">Amount</label>
-                        <input type="text" class="form-control business-trip-reimbursement-currency-input" id="businessTripReimbursementAmount_0" name="reimbursement_amounts[]" data-field-base-id="businessTripReimbursementAmount" placeholder="Rp. 0" inputmode="numeric">
-                    </div>
-                </div>
-                <div class="col-12 col-md-2">
-                    <div class="mb-3">
-                        <label for="businessTripReimbursementCategory_0" class="form-label">Category</label>
-                        <select class="form-select" id="businessTripReimbursementCategory_0" name="reimbursement_categories[]" data-field-base-id="businessTripReimbursementCategory" required>
-                            <option value="accommodation">Accommodation</option>
-                            <option value="transportation">Transportation</option>
-                            <option value="meals_entertainment">Meals & Entertaintment</option>
-                            <option value="local_transport">Local Transport</option>
-                            <option value="others">Others</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-12 col-md-2">
-                    <div class="mb-3">
-                        <label for="businessTripReimbursementNotes_0" class="form-label">Notes</label>
-                        <input type="text" class="form-control" id="businessTripReimbursementNotes_0" name="reimbursement_notes[]" data-field-base-id="businessTripReimbursementNotes" placeholder="Reimbursement Notes">
-                    </div>
-                </div>
-                <div class="col-12 col-md-2">
-                    <div class="mb-3">
-                        <label for="businessTripReimbursementReceipt_0" class="form-label">Receipt</label>
-                        <input type="file" class="form-control" id="businessTripReimbursementReceipt_0" name="reimbursement_receipts[]" data-field-base-id="businessTripReimbursementReceipt">
-                    </div>
-                </div>
-                <div class="col-12 col-md-2">
-                    <div class="mb-3">
-                        <label class="form-label">Action</label>
-                        <div class="d-flex align-items-center">
-                            <button type="button" class="btn btn-success light me-2 business-trip-reimbursement-add">Add</button>
-                            <button type="button" class="btn btn-danger light business-trip-reimbursement-remove">Remove</button>
+    <form method="POST" action="{{ route('attendance.business-trips.reimbursements.store', $businessTrip) }}" enctype="multipart/form-data">
+        @csrf
+        <div class="card-body">
+            <div id="businessTripReimbursementRows">
+                @foreach (($businessTripReimbursementRows ?? collect()) as $reimbursementRowIndex => $reimbursementRow)
+                    <div class="row business-trip-reimbursement-row">
+                        <input type="hidden" name="reimbursement_ids[]" value="{{ $reimbursementRow['id'] ?? '' }}">
+                        <input type="hidden" class="business-trip-reimbursement-existing-receipt" name="existing_receipt_paths[]" value="{{ $reimbursementRow['receipt_path'] ?? '' }}">
+                        <div class="col-12 col-md-2">
+                            <div class="mb-3">
+                                <label for="businessTripReimbursementDate_{{ $reimbursementRowIndex }}" class="form-label">Date</label>
+                                <input type="text" class="form-control business-trip-reimbursement-date-picker" id="businessTripReimbursementDate_{{ $reimbursementRowIndex }}" name="reimbursement_dates[]" data-field-base-id="businessTripReimbursementDate" placeholder="Date" value="{{ $reimbursementRow['expense_date'] ?? '' }}" readonly>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <div class="mb-3">
+                                <label for="businessTripReimbursementAmount_{{ $reimbursementRowIndex }}" class="form-label">Amount</label>
+                                <input type="text" class="form-control business-trip-reimbursement-currency-input" id="businessTripReimbursementAmount_{{ $reimbursementRowIndex }}" name="reimbursement_amounts[]" data-field-base-id="businessTripReimbursementAmount" placeholder="Rp. 0" value="{{ $reimbursementRow['amount'] ?? '' }}" inputmode="numeric">
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <div class="mb-3">
+                                <label for="businessTripReimbursementCategory_{{ $reimbursementRowIndex }}" class="form-label">Category</label>
+                                <select class="form-select" id="businessTripReimbursementCategory_{{ $reimbursementRowIndex }}" name="reimbursement_categories[]" data-field-base-id="businessTripReimbursementCategory" required>
+                                    <option value="accommodation" @selected(($reimbursementRow['category'] ?? '') === 'accommodation')>Accommodation</option>
+                                    <option value="transportation" @selected(($reimbursementRow['category'] ?? '') === 'transportation')>Transportation</option>
+                                    <option value="meals_entertainment" @selected(($reimbursementRow['category'] ?? '') === 'meals_entertainment')>Meals & Entertaintment</option>
+                                    <option value="local_transport" @selected(($reimbursementRow['category'] ?? '') === 'local_transport')>Local Transport</option>
+                                    <option value="others" @selected(($reimbursementRow['category'] ?? '') === 'others')>Others</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <div class="mb-3">
+                                <label for="businessTripReimbursementNotes_{{ $reimbursementRowIndex }}" class="form-label">Notes</label>
+                                <input type="text" class="form-control" id="businessTripReimbursementNotes_{{ $reimbursementRowIndex }}" name="reimbursement_notes[]" data-field-base-id="businessTripReimbursementNotes" value="{{ $reimbursementRow['notes'] ?? '' }}" placeholder="Reimbursement Notes">
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <div class="mb-3">
+                                <label for="businessTripReimbursementReceipt_{{ $reimbursementRowIndex }}" class="form-label">Receipt</label>
+                                <input type="file" class="form-control" id="businessTripReimbursementReceipt_{{ $reimbursementRowIndex }}" name="reimbursement_receipts[]" data-field-base-id="businessTripReimbursementReceipt">
+                                @if (! empty($reimbursementRow['receipt_url']))
+                                    <a class="business-trip-reimbursement-current-receipt text-blue fw-semibold d-inline-block mt-2" href="{{ $reimbursementRow['receipt_url'] }}" target="_blank" rel="noopener">Current receipt</a>
+                                @else
+                                    <span class="business-trip-reimbursement-current-receipt text-danger fw-semibold d-inline-block mt-2 d-none">Current receipt</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label">Action</label>
+                                <div class="d-flex align-items-center">
+                                    <button type="button" class="btn btn-success light me-2 business-trip-reimbursement-add">Add</button>
+                                    <button type="button" class="btn btn-danger light business-trip-reimbursement-remove">Remove</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                @endforeach
+            </div>
+            <div class="d-flex justify-content-end mt-3">
+                <a class="btn light btn-danger me-2 mb-2 btn-lg" href="{{ isset($businessTrip) ? route('attendance.business-trips.show', $businessTrip) : route('attendance.business-trips') }}">Back</a>
+                <button type="submit" class="btn light btn-success mb-2 btn-lg">Submit</button>
             </div>
         </div>
-        <div class="d-flex justify-content-end mt-3">
-            <a class="btn light btn-danger me-2 mb-2 btn-lg" href="{{ isset($businessTrip) ? route('attendance.business-trips.show', $businessTrip) : route('attendance.business-trips') }}">Back</a>
-            <a class="btn light btn-success mb-2 btn-lg" data-bs-toggle="modal" data-bs-target="#reimbursement">Submit</a>
-        </div>
-    </div>
+    </form>
 </div>
 
 @endsection
@@ -181,6 +193,11 @@
                 $row.find('input, select').each(function () {
                     var $field = $(this);
 
+                    if ($field.attr('type') === 'hidden') {
+                        $field.val('');
+                        return;
+                    }
+
                     if ($field.is('select')) {
                         $field.prop('selectedIndex', 0);
                         return;
@@ -188,6 +205,10 @@
 
                     $field.val('');
                 });
+
+                $row.find('.business-trip-reimbursement-current-receipt')
+                    .addClass('d-none')
+                    .removeAttr('href target rel');
             }
 
             function renumberReimbursementRows() {

@@ -88,7 +88,9 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/attendance/business-trips/provinces', [BusinessTripController::class, 'provinces'])->name('attendance.business-trips.provinces');
     Route::get('/attendance/business-trips/regencies/{provinceCode}', [BusinessTripController::class, 'regencies'])->name('attendance.business-trips.regencies');
     Route::get('/attendance/business-trips/{businessTrip}/cash-advances/create', [BusinessTripCashAdvanceController::class, 'create'])->name('attendance.business-trips.cash-advances.create');
+    Route::post('/attendance/business-trips/{businessTrip}/cash-advances', [BusinessTripCashAdvanceController::class, 'store'])->name('attendance.business-trips.cash-advances.store');
     Route::get('/attendance/business-trips/{businessTrip}/reimbursements/create', [BusinessTripReimbursementController::class, 'create'])->name('attendance.business-trips.reimbursements.create');
+    Route::post('/attendance/business-trips/{businessTrip}/reimbursements', [BusinessTripReimbursementController::class, 'store'])->name('attendance.business-trips.reimbursements.store');
     Route::resource('attendance/business-trips', BusinessTripController::class)
         ->only(['index', 'create', 'store', 'show'])
         ->names([

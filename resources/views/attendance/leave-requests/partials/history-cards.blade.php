@@ -1,14 +1,14 @@
 <div class="row leave-history-mobile-slider" id="leaveHistoryCardsSlider">
     @forelse (($leaveHistoryCards ?? collect()) as $leaveHistoryCard)
         <div class="col-xxl-3 col-xl-4 col-sm-6 leave-history-mobile-slide">
-            <div class="card">
+            <div class="card leave-history-detail-trigger" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#leaveHistoryDetailModal" data-detail-title="{{ $leaveHistoryCard['title'] ?? 'Leave Request' }}" data-detail-period="{{ $leaveHistoryCard['period_label'] ?? '-' }}" data-detail-reason="{{ $leaveHistoryCard['reason'] ?? '-' }}" data-detail-due="{{ $leaveHistoryCard['due_date_label'] ?? '-' }}" data-detail-status="{{ $leaveHistoryCard['status_label'] ?? 'Pending' }}" data-detail-status-class="{{ $leaveHistoryCard['status_badge_class'] ?? 'badge-primary light' }}" data-detail-timeline='@json($leaveHistoryCard['timeline'] ?? [])'>
                 <div class="card-body">
                     <div class="clearfix d-flex">
                         <div class="avatar avatar-sm rounded me-3 p-2">
                             <img src="{{ asset('assets/images/logo/figma.avif') }}" alt="Leave Type">
                         </div>
                         <div class="clearfix">
-                            <h6 class="mb-0 fw-semibold">{{ $leaveHistoryCard['title'] ?? 'Leave Request' }}</h6>
+                            <h6 class="card-title mb-0 fw-semibold">{{ $leaveHistoryCard['title'] ?? 'Leave Request' }}</h6>
                             <span class="small">{{ $leaveHistoryCard['period_label'] ?? '-' }}</span>
                         </div>
                     </div>

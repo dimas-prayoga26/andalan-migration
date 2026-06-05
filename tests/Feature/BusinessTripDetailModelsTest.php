@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\BusinessTripCashAdvance;
-use App\Models\BusinessTripExpenseItem;
 use App\Models\BusinessTripLifecycleLog;
 use App\Models\BusinessTripReimbursement;
 use Illuminate\Support\Facades\File;
@@ -13,13 +12,9 @@ class BusinessTripDetailModelsTest extends TestCase
 {
     public function test_business_trip_detail_models_are_defined_with_relationships(): void
     {
+        $this->assertFileDoesNotExist(app_path('Models/BusinessTripExpenseItem.php'));
+
         foreach ([
-            BusinessTripExpenseItem::class => [
-                "protected \$table = 'business_trip_expense_items';",
-                'use SoftDeletes;',
-                "'amount' => 'decimal:2'",
-                'public function businessTrip(): BelongsTo',
-            ],
             BusinessTripCashAdvance::class => [
                 "protected \$table = 'business_trip_cash_advances';",
                 'use SoftDeletes;',
@@ -65,8 +60,6 @@ class BusinessTripDetailModelsTest extends TestCase
             'use SoftDeletes;',
             "'start_date' => 'date'",
             "'end_date' => 'date'",
-            'public function expenseItems(): HasMany',
-            'BusinessTripExpenseItem::class',
             'public function supervisor(): BelongsTo',
             "'supervisor_employee_id'",
             'public function cashAdvances(): HasMany',
@@ -78,5 +71,8 @@ class BusinessTripDetailModelsTest extends TestCase
         ] as $expectedFragment) {
             $this->assertStringContainsString($expectedFragment, $businessTripModel);
         }
+
+        $this->assertStringNotContainsString('public function expenseItems(): HasMany', $businessTripModel);
+        $this->assertStringNotContainsString('BusinessTripExpenseItem::class', $businessTripModel);
     }
 }

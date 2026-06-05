@@ -145,7 +145,11 @@ class UserSeeder extends Seeder
                     maritalStatusId: $maritalStatusId,
                 );
 
-                foreach ([1, 2] as $staffIndex) {
+                $staffIndexes = (string) $company->name === 'RNB'
+                    ? [1, 2, 3, 4]
+                    : [1, 2];
+
+                foreach ($staffIndexes as $staffIndex) {
                     $staff = User::query()->updateOrCreate(
                         ['email' => "staff{$directorNumber}{$staffIndex}@gmail.com"],
                         [

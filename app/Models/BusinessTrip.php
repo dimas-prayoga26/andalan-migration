@@ -63,11 +63,6 @@ class BusinessTrip extends Model
         return $this->hasMany(Attendance::class, 'business_trip_id', 'id');
     }
 
-    public function expenseItems(): HasMany
-    {
-        return $this->hasMany(BusinessTripExpenseItem::class, 'business_trip_id', 'id');
-    }
-
     public function cashAdvances(): HasMany
     {
         return $this->hasMany(BusinessTripCashAdvance::class, 'business_trip_id', 'id');

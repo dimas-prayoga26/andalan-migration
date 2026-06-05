@@ -7,6 +7,25 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-06-05 (Jumat)
+- Memindahkan modal detail Leave Request dari card analytic ke card Leave List/history pengajuan time off.
+- Memperluas trigger modal detail Annual Leave dan Sick Leave agar seluruh area card bisa diklik.
+- Menambahkan modal detail Annual Leave dan Sick Leave yang terbuka dari kartu summary leave.
+- Mengubah hitungan kartu summary Business Trip agar berbasis lifecycle, tanggal trip, cash advance, dan reimbursement.
+- Mengubah nominal `Trip Incentive` dan `Total Payment` pada Business Trip menjadi hijau.
+- Mengubah attachment Business Trip agar preview tampil di modal, bukan membuka tab baru.
+- Mengubah lifecycle seed Business Trip `staff32` agar step 3 `Cash Advance Submitted` berstatus pending.
+- Mengubah lifecycle seed Business Trip `staff31` agar berhenti di step 2 `Supervisor Review` dengan status pending.
+- Membatasi list dan detail Business Trip untuk role staff agar hanya menampilkan trip milik staff login.
+- Menambahkan seeder Business Trip untuk 4 staff RNB dengan variasi lifecycle sampai step 1, step 3, step 6, dan step 7.
+- Menambahkan 4 akun staff aktif untuk company RNB melalui `UserSeeder`.
+- Merapikan detail Business Trip agar lifecycle tracker, cash advance, expense, summary pembayaran, dan status memakai data database.
+- Mengaktifkan create/update cash advance staff, termasuk date range, amount realized, attachment report per item, dan update lifecycle saat submit.
+- Menghapus konsep `business_trip_expense_items` karena tidak dipakai pada flow saat ini.
+- Menambahkan command + scheduler cron untuk sinkronisasi otomatis lifecycle trip execution/trip report berdasarkan tanggal dinas, termasuk actor step 5 dari user staff.
+- Menambahkan modal attachment pada Expense dan kalkulasi financial summary dari cash advance approved, reimbursement, serta incentive.
+- Mengaktifkan form reimbursement staff untuk create/update data dan upload receipt, dengan tombol Reimbursement aktif setelah step 7 pending.
+
 ### 2026-06-03 (Rabu)
 - Merapikan struktur route/view Attendance ke nama Inggris dan memindahkan daily attendance ke `/attendance/today`.
 - Mengaktifkan flow awal Business Trip: index dinamis, create/store, detail by id, link cash advance/reimbursement, serta proxy province/city dari `wilayah.id`.
@@ -58,6 +77,20 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-06-05
+- `2026-06-05-1642-pindah-modal-detail-leave-ke-card-history.md`
+- `2026-06-05-1631-trigger-modal-leave-summary-di-seluruh-card.md`
+- `2026-06-05-1624-modal-detail-annual-sick-leave-dari-card.md`
+- `2026-06-05-1604-hitungan-summary-business-trip-berbasis-lifecycle.md`
+- `2026-06-05-1550-trip-incentive-total-payment-hijau.md`
+- `2026-06-05-1542-preview-attachment-business-trip-di-modal.md`
+- `2026-06-05-1532-staff32-cash-advance-submitted-pending.md`
+- `2026-06-05-1526-staff31-business-trip-supervisor-review-pending.md`
+- `2026-06-05-1510-scope-business-trip-list-untuk-staff-login.md`
+- `2026-06-05-1445-seeder-business-trip-rnb-staff-lifecycle.md`
+- `2026-06-05-1415-tambah-empat-staff-rnb-di-user-seeder.md`
+- `2026-06-05-1308-ringkasan-perubahan-business-trip-detail-cash-advance-lifecycle.md`
 
 ### 2026-06-03
 - `2026-06-03-1701-ringkasan-perubahan-attendance-business-trip-leave.md`

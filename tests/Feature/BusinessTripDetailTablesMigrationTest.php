@@ -10,12 +10,13 @@ class BusinessTripDetailTablesMigrationTest extends TestCase
     public function test_business_trip_detail_tables_and_columns_are_defined(): void
     {
         $businessTripDetailsMigration = File::get(database_path('migrations/2026_06_03_080202_add_business_trip_details_to_business_trips_table.php'));
-        $expenseItemsMigration = File::get(database_path('migrations/2026_06_03_080203_create_business_trip_expense_items_table.php'));
         $cashAdvancesMigration = File::get(database_path('migrations/2026_06_03_080204_create_business_trip_cash_advances_table.php'));
+        $cashAdvanceDateRangeMigration = File::get(database_path('migrations/2026_06_05_062930_add_date_needed_until_to_business_trip_cash_advances_table.php'));
         $reimbursementsMigration = File::get(database_path('migrations/2026_06_03_080204_create_business_trip_reimbursements_table.php'));
         $lifecycleLogsMigration = File::get(database_path('migrations/2026_06_03_080205_create_business_trip_lifecycle_logs_table.php'));
 
         $this->assertFileDoesNotExist(database_path('migrations/2026_06_04_044036_add_display_values_to_business_trip_lifecycle_logs_table.php'));
+        $this->assertFileDoesNotExist(database_path('migrations/2026_06_03_080203_create_business_trip_expense_items_table.php'));
 
         foreach ([
             "Schema::table('business_trips'",
@@ -37,8 +38,11 @@ class BusinessTripDetailTablesMigrationTest extends TestCase
             $this->assertStringContainsString($expectedFragment, $businessTripDetailsMigration);
         }
 
-        $this->assertStringContainsString("Schema::create('business_trip_expense_items'", $expenseItemsMigration);
         $this->assertStringContainsString("Schema::create('business_trip_cash_advances'", $cashAdvancesMigration);
+        $this->assertStringContainsString("Schema::table('business_trip_cash_advances'", $cashAdvanceDateRangeMigration);
+        $this->assertStringContainsString("'date_needed_until'", $cashAdvanceDateRangeMigration);
+        $this->assertStringContainsString("->after('date_needed')", $cashAdvanceDateRangeMigration);
+        $this->assertStringContainsString("dropColumn('date_needed_until')", $cashAdvanceDateRangeMigration);
         $this->assertStringContainsString("Schema::create('business_trip_reimbursements'", $reimbursementsMigration);
 
         foreach ([

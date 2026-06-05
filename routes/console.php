@@ -13,3 +13,8 @@ Schedule::command('leave-balances:sync')
     ->timezone('Asia/Jakarta')
     ->when(static fn (): bool => now('Asia/Jakarta')->day === 1)
     ->withoutOverlapping();
+
+Schedule::command('business-trips:lifecycle:sync')
+    ->dailyAt('00:05')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping();

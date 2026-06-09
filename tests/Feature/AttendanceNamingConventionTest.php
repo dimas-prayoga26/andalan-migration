@@ -58,7 +58,7 @@ class AttendanceNamingConventionTest extends TestCase
             'attendance.reports.index',
             'attendance.reports.pdf',
             'attendance.leave-requests.index',
-            'attendance.leave-requests.partials.history-cards',
+            'attendance.leave-requests.partials.history-list-cards',
             'attendance.overtimes.index',
             'attendance.business-trips.index',
             'attendance.components.attendance-cards',

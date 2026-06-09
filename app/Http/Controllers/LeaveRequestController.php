@@ -79,9 +79,7 @@ class LeaveRequestController extends Controller
 
         return response()->json([
             'success' => true,
-            'html' => view('attendance.leave-requests.partials.history-cards', [
-                'leaveHistoryCards' => $leaveHistoryCards,
-            ])->render(),
+            'cards' => $leaveHistoryCards->values(),
         ]);
     }
 
@@ -574,12 +572,19 @@ class LeaveRequestController extends Controller
      * @param  array{status:string, leave_type:string, timeframe:string}  $filters
      * @return Collection<int, array{
      *     title:string,
+     *     icon_file:string,
+     *     modal_title:string,
+     *     detail_leave_type:string,
      *     period_label:string,
      *     reason:string,
+     *     is_sick_leave:bool,
      *     timeline:array<int, array{date_label:string, title:string, badge_class:string}>,
      *     due_date_label:string,
      *     status_label:string,
-     *     status_badge_class:string
+     *     status_badge_class:string,
+     *     status_text_class:string,
+     *     status_date_label:string,
+     *     attachment_url:?string
      * }>
      */
     private function buildLeaveHistoryCards(?User $authenticatedUser, array $filters = [
@@ -597,7 +602,7 @@ class LeaveRequestController extends Controller
 
         $leaveRequests = LeaveRequest::query()
             ->with([
-                'leaveType:id,name',
+                'leaveType:id,code,name',
                 'histories' => static function ($query): void {
                     $query->select(['id', 'leave_request_id', 'event_type', 'title', 'to_status', 'happened_at'])
                         ->orderBy('happened_at')
@@ -617,7 +622,7 @@ class LeaveRequestController extends Controller
             })
             ->orderByDesc('created_at')
             ->limit(12)
-            ->get(['id', 'leave_type_id', 'start_date', 'end_date', 'total_days', 'reason', 'status', 'created_at']);
+            ->get(['id', 'leave_type_id', 'start_date', 'end_date', 'total_days', 'reason', 'status', 'attachment_path', 'created_at']);
 
         return $leaveRequests->map(function (LeaveRequest $leaveRequest): array {
             $startDate = $leaveRequest->start_date instanceof Carbon
@@ -634,19 +639,31 @@ class LeaveRequestController extends Controller
             $leaveTypeName = is_string($leaveRequest->leaveType?->name)
                 ? trim((string) $leaveRequest->leaveType?->name)
                 : '';
+            $leaveTypeCode = is_string($leaveRequest->leaveType?->code)
+                ? strtolower(trim((string) $leaveRequest->leaveType?->code))
+                : '';
             if ($leaveTypeName === '') {
                 $leaveTypeName = 'Leave Request';
             }
-            if (strtolower($leaveTypeName) === 'sakit') {
+            $normalizedLeaveTypeName = strtolower($leaveTypeName);
+            $isSickLeave = in_array($normalizedLeaveTypeName, ['sakit', 'sick leave'], true);
+            if ($isSickLeave) {
                 $leaveTypeName = 'Cuti Sakit';
             }
+            $detailLeaveType = $isSickLeave ? 'Sick Leave' : $leaveTypeName;
+            $modalTitle = $isSickLeave ? 'Attendance Sick' : $leaveTypeName;
+            $attachmentPath = is_string($leaveRequest->attachment_path) ? trim($leaveRequest->attachment_path) : '';
 
             return [
                 'title' => $leaveTypeName,
+                'icon_file' => $this->resolveLeaveHistoryIconFile($leaveTypeCode, $normalizedLeaveTypeName),
+                'modal_title' => $modalTitle,
+                'detail_leave_type' => $detailLeaveType,
                 'period_label' => $startDate->isSameDay($endDate)
                     ? $startDate->format('d M Y').' ('.$totalDays.' '.Str::plural('day', $totalDays).')'
                     : $startDate->format('d M Y').' - '.$endDate->format('d M Y').' ('.$totalDays.' '.Str::plural('day', $totalDays).')',
                 'reason' => trim((string) $leaveRequest->reason) !== '' ? trim((string) $leaveRequest->reason) : '-',
+                'is_sick_leave' => $isSickLeave,
                 'timeline' => $timelineRows,
                 'due_date_label' => $startDate->format('d M Y'),
                 'status_label' => match ($status) {
@@ -659,8 +676,30 @@ class LeaveRequestController extends Controller
                     'rejected', 'refused' => 'badge-danger light',
                     default => 'badge-primary light',
                 },
+                'status_text_class' => match ($status) {
+                    'approved' => 'text-success',
+                    'rejected', 'refused' => 'text-danger',
+                    default => 'text-primary',
+                },
+                'status_date_label' => $this->resolveLeaveStatusDateLabel($leaveRequest, $status, $startDate),
+                'attachment_url' => $attachmentPath !== '' ? $this->publicDisk()->url($attachmentPath) : null,
             ];
         });
+    }
+
+    private function resolveLeaveHistoryIconFile(string $leaveTypeCode, string $leaveTypeName): string
+    {
+        return match (true) {
+            in_array($leaveTypeCode, ['annual', 'annual_leave'], true)
+                || in_array($leaveTypeName, ['cuti tahunan', 'annual leave'], true) => 'annual_leave.svg',
+            in_array($leaveTypeCode, ['sick', 'sick_leave'], true)
+                || in_array($leaveTypeName, ['sakit', 'sick leave'], true) => 'sick_leave.svg',
+            in_array($leaveTypeCode, ['special', 'special_leave'], true)
+                || in_array($leaveTypeName, ['cuti khusus', 'special leave'], true) => 'special_leave.svg',
+            in_array($leaveTypeCode, ['unpaid', 'unpaid_leave'], true)
+                || in_array($leaveTypeName, ['unpaid leave'], true) => 'unpaid_leave.svg',
+            default => 'annual_leave.svg',
+        };
     }
 
     /**
@@ -828,7 +867,7 @@ class LeaveRequestController extends Controller
         ];
     }
 
-    private function resolveLeaveTimelineDate(Collection $histories, array $eventTypes, array $titleKeywords): string
+    private function resolveLeaveTimelineDate(Collection $histories, array $eventTypes, array $titleKeywords, string $format = 'd M'): string
     {
         /** @var LeaveRequestHistory|null $matchedHistory */
         $matchedHistory = $histories->first(static function (LeaveRequestHistory $history) use ($eventTypes, $titleKeywords): bool {
@@ -856,7 +895,27 @@ class LeaveRequestController extends Controller
             ? $matchedHistory->happened_at
             : ($matchedHistory->happened_at ? Carbon::parse((string) $matchedHistory->happened_at) : null);
 
-        return $happenedAt?->setTimezone('Asia/Jakarta')->format('d M') ?? '';
+        return $happenedAt?->copy()->setTimezone('Asia/Jakarta')->format($format) ?? '';
+    }
+
+    private function resolveLeaveStatusDateLabel(LeaveRequest $leaveRequest, string $status, Carbon $fallbackDate): string
+    {
+        if (! in_array($status, ['approved', 'rejected', 'refused'], true)) {
+            return '';
+        }
+
+        $statusDate = $this->resolveLeaveTimelineDate(
+            $leaveRequest->histories,
+            ['status_updated', 'approved', 'rejected', 'refused'],
+            ['approved', 'rejected', 'final decision'],
+            'd M Y'
+        );
+
+        if ($statusDate !== '') {
+            return $statusDate;
+        }
+
+        return $fallbackDate->copy()->setTimezone('Asia/Jakarta')->format('d M Y');
     }
 
     /**

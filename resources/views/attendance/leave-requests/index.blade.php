@@ -37,6 +37,14 @@
             outline-offset: 2px;
         }
 
+        .leave-history-medical-note-preview {
+            width: 90px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 10px;
+            background-color: #f2f2f2;
+        }
+
         @media (max-width: 767.98px) {
             .leave-history-mobile-slider,
             .leave-balance-mobile-slider {
@@ -124,131 +132,11 @@
     $leaveSummaryYear = (int) ($leaveTracker['year'] ?? now('Asia/Jakarta')->year);
 @endphp
 
-<div class="row leave-balance-mobile-slider">
-    <div class="col-md-2 col-sm-6 leave-balance-mobile-slide">
-        <div class="card overflow-hidden avtivity-card">
-            <div class="card-body">
-                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                    <div>
-                        <p class="fs-14 mb-2">Leave Balance ({{ $leaveSummaryYear }})</p>
-                        <span class="title text-success fs-28 fw-semibold">{{ $leaveEligibility['available_balance_label'] ?? '0 Days' }}</span>
-                    </div>
-                </div>
-                <div>
-                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                        <div class="progress-bar rounded bg-info" style="width: 0%; height:5px;" aria-label="Progess-info" role="progressbar">
-                            <span class="sr-only">100% Complete</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="effect bg-success"></div>
-        </div>
-    </div>
-    <div class="col-md-2 col-sm-6 leave-balance-mobile-slide">
-        <div class="card overflow-hidden avtivity-card">
-            <div class="card-body">
-                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                    <div>
-                        <p class="fs-14 mb-2">Joint Holiday ({{ $leaveSummaryYear }})</p>
-                        <span class="title text-black fs-28 fw-semibold">{{ $leaveEligibility['joint_holiday_label'] ?? '0 / 0 Days' }}</span>
-                    </div>
-                </div>
-                <div>
-                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                        <div class="progress-bar rounded bg-info" style="width: 0%; height:5px;" aria-label="Progess-info" role="progressbar">
-                            <span class="sr-only">100% Complete</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="effect bg-secondary"></div>
-        </div>
-    </div>
-    <div class="col-md-2 col-sm-6 leave-balance-mobile-slide">
-        <div class="card overflow-hidden avtivity-card">
-            <div class="card-body">
-                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                    <div>
-                        <p class="fs-14 mb-2">Annual Leave ({{ $leaveSummaryYear }})</p>
-                        <span class="title text-black fs-28 fw-semibold">{{ $leaveTracker['annual_leave_taken_label'] ?? '0 Days' }}</span>
-                    </div>
-                </div>
-                <div>
-                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                        <div class="progress-bar bg-success position-absolute rounded bootom-0" style="width: 0%; height:5px;" aria-label="Progess-success" role="progressbar">
-                            <span class="sr-only">95% Complete</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="effect bg-primary"></div>
-        </div>
-    </div>
-    <!-- End - Daily Cycling -->
-    <div class="col-md-2 col-sm-6 leave-balance-mobile-slide">
-        <div class="card overflow-hidden avtivity-card">
-            <div class="card-body">
-                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                    <div>
-                        <p class="fs-14 mb-2">Sick Leave ({{ $leaveSummaryYear }})</p>
-                        <span class="title text-black fs-28 fw-semibold">{{ $leaveTracker['sick_leave_taken_label'] ?? '0 Days' }}</span>
-                    </div>
-                </div>
-                <div>
-                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                        <div class="progress-bar rounded bg-secondary" style="width: 0%; height:5px;" aria-label="Progess-secondary" role="progressbar">
-                            <span class="sr-only">10%</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="effect bg-warning"></div>
-        </div>
-    </div>
-    <!-- Start - Daily Cycling -->
-    <div class="col-md-2 col-sm-6 leave-balance-mobile-slide">
-        <div class="card overflow-hidden avtivity-card">
-            <div class="card-body">
-                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                    <div>
-                        <p class="fs-14 mb-2">Special Leave ({{ $leaveSummaryYear }})</p>
-                        <span class="title text-black fs-28 fw-semibold">{{ $leaveTracker['special_leave_taken_label'] ?? '0 Days' }}</span>
-                    </div>
-                </div>
-                <div>
-                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                        <div class="progress-bar rounded bg-danger" style="width: 0%; height:5px;" aria-label="Progess-danger"  role="progressbar">
-                            <span class="sr-only">0% Complete</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="effect bg-info"></div>
-        </div>
-    </div>
-    <!-- Start - Daily Cycling -->
-    <div class="col-md-2 col-sm-6 leave-balance-mobile-slide">
-        <div class="card overflow-hidden avtivity-card">
-            <div class="card-body">
-                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                    <div>
-                        <p class="fs-14 mb-2">Unpaid Leave ({{ $leaveSummaryYear }})</p>
-                        <span class="title text-black fs-28 fw-semibold">{{ $leaveTracker['unpaid_leave_taken_label'] ?? '0 Days' }}</span>
-                    </div>
-                </div>
-                <div>
-                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                        <div class="progress-bar rounded bg-danger" style="width: 0%; height:5px;" aria-label="Progess-danger"  role="progressbar">
-                            <span class="sr-only">0% Complete</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="effect bg-danger"></div>
-        </div>
-    </div>
-</div>
+@include('attendance.leave-requests.partials.history-list-cards', [
+    'leaveSummaryYear' => $leaveSummaryYear,
+    'leaveEligibility' => $leaveEligibility ?? [],
+    'leaveTracker' => $leaveTracker ?? [],
+])
 
 <div class="row">
     <div class="col-md-6 col-sm-12">
@@ -578,9 +466,122 @@
         </div>
     </div>
     <div class="col-12" id="leaveHistoryCardsContainer">
-        @include('attendance.leave-requests.partials.history-cards', [
-            'leaveHistoryCards' => $leaveHistoryCards ?? collect(),
-        ])
+        <div class="row leave-history-mobile-slider" id="leaveHistoryCardsSlider">
+            @forelse (($leaveHistoryCards ?? collect()) as $leaveHistoryCard)
+                <div class="col-xxl-3 col-xl-4 col-sm-6 leave-history-mobile-slide">
+                    <div class="card leave-history-detail-trigger" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#leaveHistoryDetailModal" data-detail-title="{{ $leaveHistoryCard['title'] ?? 'Leave Request' }}" data-detail-modal-title="{{ $leaveHistoryCard['modal_title'] ?? ($leaveHistoryCard['title'] ?? 'Leave Request') }}" data-detail-leave-type="{{ $leaveHistoryCard['detail_leave_type'] ?? ($leaveHistoryCard['title'] ?? 'Leave Request') }}" data-detail-period="{{ $leaveHistoryCard['period_label'] ?? '-' }}" data-detail-reason="{{ $leaveHistoryCard['reason'] ?? '-' }}" data-detail-due="{{ $leaveHistoryCard['due_date_label'] ?? '-' }}" data-detail-status="{{ $leaveHistoryCard['status_label'] ?? 'Pending' }}" data-detail-status-class="{{ $leaveHistoryCard['status_badge_class'] ?? 'badge-primary light' }}" data-detail-status-text-class="{{ $leaveHistoryCard['status_text_class'] ?? 'text-primary' }}" data-detail-status-date="{{ $leaveHistoryCard['status_date_label'] ?? '' }}" data-detail-is-sick="{{ ! empty($leaveHistoryCard['is_sick_leave']) ? 'true' : 'false' }}" data-detail-attachment-url="{{ $leaveHistoryCard['attachment_url'] ?? '' }}" data-detail-timeline='@json($leaveHistoryCard['timeline'] ?? [])'>
+                        <div class="card-body">
+                            <div class="clearfix d-flex">
+                                <div class="avatar avatar-sm rounded me-3 p-2">
+                                    <img src="{{ asset('assets/'.($leaveHistoryCard['icon_file'] ?? 'annual_leave.svg')) }}" alt="Leave Type">
+                                </div>
+                                <div class="clearfix">
+                                    <h6 class="card-title mb-0 fw-semibold">{{ $leaveHistoryCard['title'] ?? 'Leave Request' }}</h6>
+                                    <span class="small">{{ $leaveHistoryCard['period_label'] ?? '-' }}</span>
+                                </div>
+                            </div>
+                            <p class="my-3">{{ $leaveHistoryCard['reason'] ?? '-' }}</p>
+                            <div class="widget-timeline1 leave-history-timeline">
+                                <ul class="timeline">
+                                    @foreach (($leaveHistoryCard['timeline'] ?? []) as $timelineItem)
+                                        <li>
+                                            <span class="timeline-status">
+                                                @if (($timelineItem['date_label'] ?? '') === 'Waiting')
+                                                    <span class="badge badge-sm badge-secondary light leave-history-waiting-badge">Waiting</span>
+                                                @else
+                                                    {{ $timelineItem['date_label'] ?? '' }}
+                                                @endif
+                                            </span>
+                                            <div class="timeline-badge {{ $timelineItem['badge_class'] ?? 'border-dark' }}"></div>
+                                            <div class="timeline-panel">
+                                                <span>{{ $timelineItem['title'] ?? '-' }}</span>
+                                            </div>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-footer d-flex justify-content-between flex-wrap">
+                            <p class="mb-0 fw-medium">Due <span class="text-purple">: {{ $leaveHistoryCard['due_date_label'] ?? '-' }}</span></p>
+                            <span class="badge badge-sm {{ $leaveHistoryCard['status_badge_class'] ?? 'badge-primary light' }}">
+                                {{ $leaveHistoryCard['status_label'] ?? 'Pending' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body text-center py-5">
+                            <span class="text-gray">Belum ada history leave request.</span>
+                        </div>
+                    </div>
+                </div>
+            @endforelse
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="leaveHistoryDetailModal" tabindex="-1" aria-labelledby="leaveHistoryDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="leaveHistoryDetailModalLabel">Leave Request Details</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <h6 class="fw-semibold text-gray mb-1" id="leaveHistoryDetailIntroTitle">Out of Office mode: ON</h6>
+                    <p class="mb-0 text-gray" id="leaveHistoryDetailIntroText">Whether you're traveling the globe or just relaxing on the couch, enjoy your well-deserved break. Disconnect, recharge, and have fun!</p>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4">
+                        <span>Leave Type</span>
+                    </div>
+                    <div class="col-8">
+                        <span class="text-gray fw-semibold" id="leaveHistoryDetailType">-</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4">
+                        <span>Reason</span>
+                    </div>
+                    <div class="col-8">
+                        <span class="text-gray" id="leaveHistoryDetailReason">-</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4">
+                        <span>Leave Duration</span>
+                    </div>
+                    <div class="col-8">
+                        <span class="text-gray fw-semibold" id="leaveHistoryDetailPeriod">-</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4">
+                        <span>Status</span>
+                    </div>
+                    <div class="col-8">
+                        <span class="fw-semibold" id="leaveHistoryDetailStatusText">Pending</span>
+                        <span class="text-gray" id="leaveHistoryDetailStatusDate"></span>
+                    </div>
+                </div>
+                <div class="row py-2 d-none" id="leaveHistoryDetailMedicalNotesRow">
+                    <div class="col-4">
+                        <span>Medical Notes</span>
+                    </div>
+                    <div class="col-8">
+                        <a href="{{ asset('assets/not_available_images.png') }}" target="_blank" rel="noopener" id="leaveHistoryDetailMedicalNotesLink">
+                            <img src="{{ asset('assets/not_available_images.png') }}" alt="Medical Notes" class="leave-history-medical-note-preview" id="leaveHistoryDetailMedicalNotesImage">
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -717,11 +718,148 @@
                 }
             });
 
+            function escapeHtml(value) {
+                return String(value || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function sanitizeBadgeClass(value) {
+                return String(value || 'badge-primary light').replace(/[^a-zA-Z0-9_ -]/g, '');
+            }
+
+            function renderLeaveHistoryTimeline(timelineItems) {
+                if (!Array.isArray(timelineItems) || timelineItems.length === 0) {
+                    return '<li><span class="timeline-status">-</span><div class="timeline-badge border-secondary"></div><div class="timeline-panel"><span>No timeline recorded.</span></div></li>';
+                }
+
+                return timelineItems.map(function (timelineItem) {
+                    var dateLabel = timelineItem.date_label || '';
+                    var dateHtml = dateLabel === 'Waiting'
+                        ? '<span class="badge badge-sm badge-secondary light leave-history-waiting-badge">Waiting</span>'
+                        : escapeHtml(dateLabel);
+
+                    return '<li>'
+                        + '<span class="timeline-status">' + dateHtml + '</span>'
+                        + '<div class="timeline-badge ' + sanitizeBadgeClass(timelineItem.badge_class || 'border-dark') + '"></div>'
+                        + '<div class="timeline-panel"><span>' + escapeHtml(timelineItem.title || '-') + '</span></div>'
+                        + '</li>';
+                }).join('');
+            }
+
+            function leaveHistoryCardHtml(card) {
+                card = card || {};
+
+                var title = card.title || 'Leave Request';
+                var modalTitle = card.modal_title || title;
+                var detailLeaveType = card.detail_leave_type || title;
+                var iconFile = card.icon_file || 'annual_leave.svg';
+                var periodLabel = card.period_label || '-';
+                var reason = card.reason || '-';
+                var dueDateLabel = card.due_date_label || '-';
+                var statusLabel = card.status_label || 'Pending';
+                var statusClass = sanitizeBadgeClass(card.status_badge_class || 'badge-primary light');
+                var statusTextClass = sanitizeBadgeClass(card.status_text_class || 'text-primary');
+                var statusDateLabel = card.status_date_label || '';
+                var isSickLeave = card.is_sick_leave ? 'true' : 'false';
+                var attachmentUrl = card.attachment_url || '';
+                var timelineItems = Array.isArray(card.timeline) ? card.timeline : [];
+                var timelineAttribute = escapeHtml(JSON.stringify(timelineItems));
+
+                return '<div class="col-xxl-3 col-xl-4 col-sm-6 leave-history-mobile-slide">'
+                    + '<div class="card leave-history-detail-trigger" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#leaveHistoryDetailModal"'
+                    + ' data-detail-title="' + escapeHtml(title) + '"'
+                    + ' data-detail-modal-title="' + escapeHtml(modalTitle) + '"'
+                    + ' data-detail-leave-type="' + escapeHtml(detailLeaveType) + '"'
+                    + ' data-detail-period="' + escapeHtml(periodLabel) + '"'
+                    + ' data-detail-reason="' + escapeHtml(reason) + '"'
+                    + ' data-detail-due="' + escapeHtml(dueDateLabel) + '"'
+                    + ' data-detail-status="' + escapeHtml(statusLabel) + '"'
+                    + ' data-detail-status-class="' + statusClass + '"'
+                    + ' data-detail-status-text-class="' + statusTextClass + '"'
+                    + ' data-detail-status-date="' + escapeHtml(statusDateLabel) + '"'
+                    + ' data-detail-is-sick="' + isSickLeave + '"'
+                    + ' data-detail-attachment-url="' + escapeHtml(attachmentUrl) + '"'
+                    + ' data-detail-timeline="' + timelineAttribute + '">'
+                    + '<div class="card-body">'
+                    + '<div class="clearfix d-flex">'
+                    + '<div class="avatar avatar-sm rounded me-3 p-2">'
+                    + '<img src="' + escapeHtml(leaveTypeIconBaseUrl + '/' + iconFile) + '" alt="Leave Type">'
+                    + '</div>'
+                    + '<div class="clearfix">'
+                    + '<h6 class="card-title mb-0 fw-semibold">' + escapeHtml(title) + '</h6>'
+                    + '<span class="small">' + escapeHtml(periodLabel) + '</span>'
+                    + '</div>'
+                    + '</div>'
+                    + '<p class="my-3">' + escapeHtml(reason) + '</p>'
+                    + '<div class="widget-timeline1 leave-history-timeline"><ul class="timeline">'
+                    + renderLeaveHistoryTimeline(timelineItems)
+                    + '</ul></div>'
+                    + '</div>'
+                    + '<div class="card-footer d-flex justify-content-between flex-wrap">'
+                    + '<p class="mb-0 fw-medium">Due <span class="text-purple">: ' + escapeHtml(dueDateLabel) + '</span></p>'
+                    + '<span class="badge badge-sm ' + statusClass + '">' + escapeHtml(statusLabel) + '</span>'
+                    + '</div>'
+                    + '</div>'
+                    + '</div>';
+            }
+
+            function renderLeaveHistoryCards(cards) {
+                var cardHtml = Array.isArray(cards) && cards.length > 0
+                    ? cards.map(leaveHistoryCardHtml).join('')
+                    : '<div class="col-12"><div class="card"><div class="card-body text-center py-5"><span class="text-gray">Belum ada history leave request.</span></div></div></div>';
+
+                return '<div class="row leave-history-mobile-slider" id="leaveHistoryCardsSlider">' + cardHtml + '</div>';
+            }
+
+            function fillLeaveHistoryDetailModal($card) {
+                var isSickLeave = String($card.data('detail-is-sick')) === 'true';
+                var statusTextClass = sanitizeBadgeClass($card.data('detail-status-text-class') || 'text-primary');
+                var statusDateLabel = $card.data('detail-status-date') || '';
+                var attachmentUrl = $card.data('detail-attachment-url') || '';
+
+                $('#leaveHistoryDetailModalLabel').text($card.data('detail-modal-title') || 'Leave Request Details');
+                $('#leaveHistoryDetailIntroTitle').text(isSickLeave ? 'Your health comes first' : 'Out of Office mode: ON');
+                $('#leaveHistoryDetailIntroText').text(isSickLeave
+                    ? "Take all the time you need to rest, hydrate, and recover. We've got the fort down here, so just focus on feeling better!"
+                    : "Whether you're traveling the globe or just relaxing on the couch, enjoy your well-deserved break. Disconnect, recharge, and have fun!");
+                $('#leaveHistoryDetailType').text($card.data('detail-leave-type') || $card.data('detail-title') || '-');
+                $('#leaveHistoryDetailPeriod').text($card.data('detail-period') || '-');
+                $('#leaveHistoryDetailReason').text($card.data('detail-reason') || '-');
+                $('#leaveHistoryDetailStatusText')
+                    .removeClass()
+                    .addClass('fw-semibold ' + statusTextClass)
+                    .text($card.data('detail-status') || 'Pending');
+                $('#leaveHistoryDetailStatusDate').text(statusDateLabel ? ' on ' + statusDateLabel : '');
+                $('#leaveHistoryDetailMedicalNotesRow').toggleClass('d-none', !isSickLeave);
+                $('#leaveHistoryDetailMedicalNotesImage').attr('src', attachmentUrl || medicalNotesUnavailableUrl);
+                $('#leaveHistoryDetailMedicalNotesLink').attr('href', attachmentUrl || medicalNotesUnavailableUrl);
+            }
+
+            $(document).on('click', '.leave-history-detail-trigger', function () {
+                fillLeaveHistoryDetailModal($(this));
+            });
+
+            $(document).on('keydown', '.leave-history-detail-trigger', function (event) {
+                if (event.key !== 'Enter' && event.key !== ' ') {
+                    return;
+                }
+
+                event.preventDefault();
+                fillLeaveHistoryDetailModal($(this));
+                $(this).trigger('click');
+            });
+
             var specialLeaveTypeId = @json($specialLeaveTypeId ?? null);
             var sickLeaveTypeId = @json($sickLeaveTypeId ?? null);
             var leaveStoreUrl = @json(route('attendance.leave-requests.store'));
             var leaveHistoryCardsUrl = @json(route('attendance.leave-requests.cards'));
             var attachmentPreviewPlaceholderUrl = @json(asset('assets/images/avatar/placeholder.avif'));
+            var medicalNotesUnavailableUrl = @json(asset('assets/not_available_images.png'));
+            var leaveTypeIconBaseUrl = @json(asset('assets'));
 
             var $leaveForm = $('#leaveRequestForm');
             var $leaveHistoryFilterForm = $('#leaveHistoryFilterForm');
@@ -775,8 +913,8 @@
                     method: 'GET',
                     data: getLeaveHistoryFilters(),
                     success: function (response) {
-                        if (response && response.html) {
-                            $leaveHistoryCardsContainer.html(response.html);
+                        if (response && Array.isArray(response.cards)) {
+                            $leaveHistoryCardsContainer.html(renderLeaveHistoryCards(response.cards));
                         }
                     }
                 });

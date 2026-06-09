@@ -7,6 +7,13 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-06-09 (Selasa)
+- Mengubah modal detail Leave List agar non-sick memakai format Out of Office dan Sick Leave memakai format Attendance Sick dengan preview Medical Notes.
+- Menghapus partial `history-cards` dan `request-cards`; filter AJAX Leave List sekarang mengirim data `cards` dan dirender langsung dari `index.blade.php`.
+- Memindahkan balance analytic ke partial `history-list-cards` dan memindahkan fragment AJAX Leave List ke partial `request-cards`.
+- Memindahkan isi balance card analytic ke partial `history-cards` dan memisahkan fragment AJAX Leave List ke partial khusus.
+- Memindahkan partial Leave Request agar row analytic `leave-balance-mobile-slider` yang terpisah, sementara render awal Leave List kembali inline di index.
+
 ### 2026-06-05 (Jumat)
 - Memindahkan modal detail Leave Request dari card analytic ke card Leave List/history pengajuan time off.
 - Memperluas trigger modal detail Annual Leave dan Sick Leave agar seluruh area card bisa diklik.
@@ -77,6 +84,13 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-06-09
+- `2026-06-09-1055-modal-detail-leave-history-sick-non-sick.md`
+- `2026-06-09-1038-hapus-partial-leave-history-request-cards.md`
+- `2026-06-09-1028-pindah-balance-ke-history-list-cards.md`
+- `2026-06-09-1015-pindah-balance-card-ke-history-cards-partial.md`
+- `2026-06-09-0945-pindah-partial-leave-balance-dan-inline-leave-list.md`
 
 ### 2026-06-05
 - `2026-06-05-1642-pindah-modal-detail-leave-ke-card-history.md`

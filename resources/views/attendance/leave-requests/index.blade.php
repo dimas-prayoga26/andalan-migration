@@ -435,8 +435,8 @@
                     </div>
 
                     <div id="sickAttachmentWrapper" class="d-none">
-                        <label class="form-label">Attachment (max 1 MB) <span class="text-danger">*</span></label>
-                        <div class="">
+                        <div class="d-flex flex-column align-items-start gap-2">
+                            <label class="form-label mb-0">Attachment (max 1 MB) <span class="text-danger">*</span></label>
                             <div class="avatar avatar-xl avatar-preview">
                                 <img class="imagePreview w-100 h-100" id="leaveAttachmentPreview" src="{{ asset('assets/images/avatar/placeholder.avif') }}" alt="Attachment Preview">
                                 <input type="file" class="imageUpload d-none" id="leaveAttachmentFileInput" name="attachment_file" accept=".png,.jpg,.jpeg,.pdf">
@@ -469,7 +469,7 @@
         <div class="row leave-history-mobile-slider" id="leaveHistoryCardsSlider">
             @forelse (($leaveHistoryCards ?? collect()) as $leaveHistoryCard)
                 <div class="col-xxl-3 col-xl-4 col-sm-6 leave-history-mobile-slide">
-                    <div class="card leave-history-detail-trigger" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#leaveHistoryDetailModal" data-detail-title="{{ $leaveHistoryCard['title'] ?? 'Leave Request' }}" data-detail-modal-title="{{ $leaveHistoryCard['modal_title'] ?? ($leaveHistoryCard['title'] ?? 'Leave Request') }}" data-detail-leave-type="{{ $leaveHistoryCard['detail_leave_type'] ?? ($leaveHistoryCard['title'] ?? 'Leave Request') }}" data-detail-period="{{ $leaveHistoryCard['period_label'] ?? '-' }}" data-detail-reason="{{ $leaveHistoryCard['reason'] ?? '-' }}" data-detail-due="{{ $leaveHistoryCard['due_date_label'] ?? '-' }}" data-detail-status="{{ $leaveHistoryCard['status_label'] ?? 'Pending' }}" data-detail-status-class="{{ $leaveHistoryCard['status_badge_class'] ?? 'badge-primary light' }}" data-detail-status-text-class="{{ $leaveHistoryCard['status_text_class'] ?? 'text-primary' }}" data-detail-status-date="{{ $leaveHistoryCard['status_date_label'] ?? '' }}" data-detail-is-sick="{{ ! empty($leaveHistoryCard['is_sick_leave']) ? 'true' : 'false' }}" data-detail-attachment-url="{{ $leaveHistoryCard['attachment_url'] ?? '' }}" data-detail-timeline='@json($leaveHistoryCard['timeline'] ?? [])'>
+                    <div class="card leave-history-detail-trigger" role="button" tabindex="0" data-leave-request-id="{{ $leaveHistoryCard['id'] ?? '' }}" data-leave-type-id="{{ $leaveHistoryCard['leave_type_id'] ?? '' }}" data-start-date="{{ $leaveHistoryCard['start_date_value'] ?? '' }}" data-end-date="{{ $leaveHistoryCard['end_date_value'] ?? '' }}" data-handover-notes="{{ $leaveHistoryCard['handover_notes'] ?? '' }}" data-detail-title="{{ $leaveHistoryCard['title'] ?? 'Leave Request' }}" data-detail-modal-title="{{ $leaveHistoryCard['modal_title'] ?? ($leaveHistoryCard['title'] ?? 'Leave Request') }}" data-detail-leave-type="{{ $leaveHistoryCard['detail_leave_type'] ?? ($leaveHistoryCard['title'] ?? 'Leave Request') }}" data-detail-period="{{ $leaveHistoryCard['period_label'] ?? '-' }}" data-detail-reason="{{ $leaveHistoryCard['reason'] ?? '-' }}" data-detail-due="{{ $leaveHistoryCard['due_date_label'] ?? '-' }}" data-detail-status="{{ $leaveHistoryCard['status_label'] ?? 'Pending' }}" data-detail-status-class="{{ $leaveHistoryCard['status_badge_class'] ?? 'badge-primary light' }}" data-detail-status-text-class="{{ $leaveHistoryCard['status_text_class'] ?? 'text-primary' }}" data-detail-status-date="{{ $leaveHistoryCard['status_date_label'] ?? '' }}" data-detail-is-sick="{{ ! empty($leaveHistoryCard['is_sick_leave']) ? 'true' : 'false' }}" data-detail-attachment-url="{{ $leaveHistoryCard['attachment_url'] ?? '' }}" data-detail-timeline='@json($leaveHistoryCard['timeline'] ?? [])'>
                         <div class="card-body">
                             <div class="clearfix d-flex">
                                 <div class="avatar avatar-sm rounded me-3 p-2">
@@ -478,6 +478,22 @@
                                 <div class="clearfix">
                                     <h6 class="card-title mb-0 fw-semibold">{{ $leaveHistoryCard['title'] ?? 'Leave Request' }}</h6>
                                     <span class="small">{{ $leaveHistoryCard['period_label'] ?? '-' }}</span>
+                                </div>
+                                <div class="clearfix ms-auto leave-history-card-actions">
+                                    <div class="dropdown">
+                                        <a href="javascript:void(0)" type="button" class="btn btn-sm btn-light btn-square" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-grid"></i>
+                                        </a>
+                                        <div class="dropdown-menu dropdown-menu-end">
+                                            <a href="#" class="dropdown-item leave-history-action-view">View</a>
+                                            @if (! empty($leaveHistoryCard['can_update']))
+                                                <a href="#" class="dropdown-item leave-history-action-update">Update</a>
+                                            @endif
+                                            @if (! empty($leaveHistoryCard['can_delete']))
+                                                <a href="#" class="dropdown-item leave-history-action-delete">Delete</a>
+                                            @endif
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <p class="my-3">{{ $leaveHistoryCard['reason'] ?? '-' }}</p>
@@ -699,6 +715,113 @@
     </div>
 </div>
 <!-- Modal-Box-End -->
+<!-- Modal Box Start -->
+<div class="modal fade" id="update" tabindex="-1" aria-labelledby="updateLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="updateLabel">Update Leave Request</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="leaveRequestUpdateForm" enctype="multipart/form-data">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" id="leaveUpdateRequestIdInput">
+                    <input type="hidden" name="start_date" id="leaveUpdateStartDateInput">
+                    <input type="hidden" name="end_date" id="leaveUpdateEndDateInput">
+                    <div class="alert d-none" id="leaveUpdateAlert" role="alert"></div>
+                    <div class="row">
+                        <div class="col-12 col-md-12 mb-3" id="leaveUpdateTypeWrapper">
+                            <label class="form-label">Leave Type <span class="text-danger">*</span></label>
+                            <select class="selectpicker form-select" id="leaveUpdateTypeSelect" name="permission_type_id" required>
+                                <option value="">Choose Leave Type</option>
+                                @foreach (($leaveTypes ?? collect()) as $leaveType)
+                                    <option value="{{ $leaveType->id }}">
+                                        {{ $leaveType->name }}
+                                        @if (($leaveType->code ?? '') === 'ANNUAL')
+                                            ({{ $leaveTracker['annual_leave_remaining_label'] ?? '0 Days' }} left)
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6 mb-3 d-none" id="leaveUpdateSpecialLeaveTypeWrapper">
+                            <label class="form-label">Special Leave Type <span class="text-danger">*</span></label>
+                            <select class="selectpicker form-select" id="leaveUpdateSpecialLeaveSubTypeSelect" name="special_leave_sub_type_id">
+                                <option value="">Choose Special Leave First</option>
+                                @foreach (($specialLeaveSubTypes ?? collect()) as $specialLeaveSubType)
+                                    <option value="{{ $specialLeaveSubType->id }}">{{ $specialLeaveSubType->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Date <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="leaveUpdateDateRangeInput" placeholder="Add Date" readonly required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="leaveUpdateReasonInput" name="reason" rows="3" placeholder="Misal: Istri melahirkan" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Handover Notes</label>
+                        <textarea class="form-control" id="leaveUpdateHandoverNotesInput" name="handover_notes" rows="3" placeholder="Misal: Deployment akan di-backup oleh Budi"></textarea>
+                    </div>
+                    <div class="d-none" id="leaveUpdateSickAttachmentWrapper">
+                        <div class="d-flex flex-column align-items-start gap-2">
+                            <label class="form-label mb-0">Attachment (max 1 MB)</label>
+                            <div class="avatar avatar-xl avatar-preview">
+                                <img class="imagePreview w-100 h-100" id="leaveUpdateAttachmentPreview" src="{{ asset('assets/images/avatar/placeholder.avif') }}" alt="Attachment Preview">
+                                <input type="file" class="imageUpload d-none" id="leaveUpdateAttachmentFileInput" name="attachment_file" accept=".png,.jpg,.jpeg,.pdf">
+                                <a class="avatar avatar-xs position-absolute bottom-0 end-0 bg-white shadow-sm upload-trigger" id="leaveUpdateAttachmentUploadTrigger">
+                                    <i class="fa-solid fa-upload"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-warning light" form="leaveRequestUpdateForm" id="leaveUpdateSubmitButton">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Box Start -->
+<div class="modal fade" id="delete" tabindex="-1" aria-labelledby="deleteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="deleteLabel">Delete Leave Request</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="leaveRequestDeleteForm">
+                    @csrf
+                    @method('DELETE')
+                    <input type="hidden" id="leaveDeleteRequestIdInput">
+                    <div class="alert d-none" id="leaveDeleteAlert" role="alert"></div>
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <h5 class="text-muted fw-bold text-center">Change of Plans?</h5>
+                            <p class="form-label text-muted mb-3" id="leaveDeleteDescription">
+                                Do you want to cancel this pending time off? We will simply remove the request from the approval list so you can submit a new one later if needed.
+                            </p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-dark light" data-bs-dismiss="modal">Nevermind</button>
+                <button type="submit" class="btn btn-danger light" form="leaveRequestDeleteForm" id="leaveDeleteSubmitButton">Yes, Cancel It</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal-Box-End -->
 @endsection
 
 @section('script')
@@ -707,6 +830,7 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(function () {
             $('.attendance-tab-btn').on('click', function (event) {
@@ -754,6 +878,13 @@
                 card = card || {};
 
                 var title = card.title || 'Leave Request';
+                var leaveRequestId = card.id || '';
+                var leaveTypeId = card.leave_type_id || '';
+                var startDateValue = card.start_date_value || '';
+                var endDateValue = card.end_date_value || '';
+                var handoverNotes = card.handover_notes || '';
+                var canUpdate = card.can_update === true;
+                var canDelete = card.can_delete === true;
                 var modalTitle = card.modal_title || title;
                 var detailLeaveType = card.detail_leave_type || title;
                 var iconFile = card.icon_file || 'annual_leave.svg';
@@ -770,7 +901,12 @@
                 var timelineAttribute = escapeHtml(JSON.stringify(timelineItems));
 
                 return '<div class="col-xxl-3 col-xl-4 col-sm-6 leave-history-mobile-slide">'
-                    + '<div class="card leave-history-detail-trigger" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#leaveHistoryDetailModal"'
+                    + '<div class="card leave-history-detail-trigger" role="button" tabindex="0"'
+                    + ' data-leave-request-id="' + escapeHtml(leaveRequestId) + '"'
+                    + ' data-leave-type-id="' + escapeHtml(leaveTypeId) + '"'
+                    + ' data-start-date="' + escapeHtml(startDateValue) + '"'
+                    + ' data-end-date="' + escapeHtml(endDateValue) + '"'
+                    + ' data-handover-notes="' + escapeHtml(handoverNotes) + '"'
                     + ' data-detail-title="' + escapeHtml(title) + '"'
                     + ' data-detail-modal-title="' + escapeHtml(modalTitle) + '"'
                     + ' data-detail-leave-type="' + escapeHtml(detailLeaveType) + '"'
@@ -792,6 +928,18 @@
                     + '<div class="clearfix">'
                     + '<h6 class="card-title mb-0 fw-semibold">' + escapeHtml(title) + '</h6>'
                     + '<span class="small">' + escapeHtml(periodLabel) + '</span>'
+                    + '</div>'
+                    + '<div class="clearfix ms-auto leave-history-card-actions">'
+                    + '<div class="dropdown">'
+                    + '<a href="javascript:void(0)" type="button" class="btn btn-sm btn-light btn-square" data-bs-toggle="dropdown" aria-expanded="false">'
+                    + '<i class="bi bi-grid"></i>'
+                    + '</a>'
+                    + '<div class="dropdown-menu dropdown-menu-end">'
+                    + '<a href="#" class="dropdown-item leave-history-action-view">View</a>'
+                    + (canUpdate ? '<a href="#" class="dropdown-item leave-history-action-update">Update</a>' : '')
+                    + (canDelete ? '<a href="#" class="dropdown-item leave-history-action-delete">Delete</a>' : '')
+                    + '</div>'
+                    + '</div>'
                     + '</div>'
                     + '</div>'
                     + '<p class="my-3">' + escapeHtml(reason) + '</p>'
@@ -839,8 +987,46 @@
                 $('#leaveHistoryDetailMedicalNotesLink').attr('href', attachmentUrl || medicalNotesUnavailableUrl);
             }
 
-            $(document).on('click', '.leave-history-detail-trigger', function () {
-                fillLeaveHistoryDetailModal($(this));
+            function showLeaveHistoryDetailModal($card) {
+                fillLeaveHistoryDetailModal($card);
+
+                var detailModalElement = document.getElementById('leaveHistoryDetailModal');
+                if (window.bootstrap && detailModalElement) {
+                    var detailModal = bootstrap.Modal.getInstance(detailModalElement) || new bootstrap.Modal(detailModalElement);
+                    detailModal.show();
+                    return;
+                }
+
+                $('#leaveHistoryDetailModal').modal('show');
+            }
+
+            $(document).on('click', '.leave-history-detail-trigger', function (event) {
+                if ($(event.target).closest('.leave-history-card-actions').length) {
+                    return;
+                }
+
+                showLeaveHistoryDetailModal($(this));
+            });
+
+            $(document).on('click', '.leave-history-action-view', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                showLeaveHistoryDetailModal($(this).closest('.leave-history-detail-trigger'));
+            });
+
+            $(document).on('click', '.leave-history-action-update', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                showLeaveUpdateModal($(this).closest('.leave-history-detail-trigger'));
+            });
+
+            $(document).on('click', '.leave-history-action-delete', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                showLeaveDeleteModal($(this).closest('.leave-history-detail-trigger'));
             });
 
             $(document).on('keydown', '.leave-history-detail-trigger', function (event) {
@@ -848,14 +1034,19 @@
                     return;
                 }
 
+                if ($(event.target).closest('.leave-history-card-actions').length) {
+                    return;
+                }
+
                 event.preventDefault();
-                fillLeaveHistoryDetailModal($(this));
-                $(this).trigger('click');
+                showLeaveHistoryDetailModal($(this));
             });
 
             var specialLeaveTypeId = @json($specialLeaveTypeId ?? null);
             var sickLeaveTypeId = @json($sickLeaveTypeId ?? null);
             var leaveStoreUrl = @json(route('attendance.leave-requests.store'));
+            var leaveUpdateUrlTemplate = @json(route('attendance.leave-requests.update', ['leaveRequest' => '__LEAVE_REQUEST_ID__']));
+            var leaveDeleteUrlTemplate = @json(route('attendance.leave-requests.destroy', ['leaveRequest' => '__LEAVE_REQUEST_ID__']));
             var leaveHistoryCardsUrl = @json(route('attendance.leave-requests.cards'));
             var attachmentPreviewPlaceholderUrl = @json(asset('assets/images/avatar/placeholder.avif'));
             var medicalNotesUnavailableUrl = @json(asset('assets/not_available_images.png'));
@@ -881,6 +1072,28 @@
             var $attachmentPreview = $('#leaveAttachmentPreview');
             var $submitButton = $('#leaveRequestSubmitButton');
             var $alertBox = $('#leaveRequestAlert');
+            var $leaveUpdateForm = $('#leaveRequestUpdateForm');
+            var $leaveUpdateRequestIdInput = $('#leaveUpdateRequestIdInput');
+            var $leaveUpdateDateRangeInput = $('#leaveUpdateDateRangeInput');
+            var $leaveUpdateStartDateInput = $('#leaveUpdateStartDateInput');
+            var $leaveUpdateEndDateInput = $('#leaveUpdateEndDateInput');
+            var $leaveUpdateTypeWrapper = $('#leaveUpdateTypeWrapper');
+            var $leaveUpdateTypeSelect = $('#leaveUpdateTypeSelect');
+            var $leaveUpdateSpecialLeaveTypeWrapper = $('#leaveUpdateSpecialLeaveTypeWrapper');
+            var $leaveUpdateSpecialLeaveSubTypeSelect = $('#leaveUpdateSpecialLeaveSubTypeSelect');
+            var $leaveUpdateReasonInput = $('#leaveUpdateReasonInput');
+            var $leaveUpdateHandoverNotesInput = $('#leaveUpdateHandoverNotesInput');
+            var $leaveUpdateSickAttachmentWrapper = $('#leaveUpdateSickAttachmentWrapper');
+            var $leaveUpdateAttachmentFileInput = $('#leaveUpdateAttachmentFileInput');
+            var $leaveUpdateAttachmentUploadTrigger = $('#leaveUpdateAttachmentUploadTrigger');
+            var $leaveUpdateAttachmentPreview = $('#leaveUpdateAttachmentPreview');
+            var $leaveUpdateSubmitButton = $('#leaveUpdateSubmitButton');
+            var $leaveUpdateAlert = $('#leaveUpdateAlert');
+            var $leaveDeleteForm = $('#leaveRequestDeleteForm');
+            var $leaveDeleteRequestIdInput = $('#leaveDeleteRequestIdInput');
+            var $leaveDeleteDescription = $('#leaveDeleteDescription');
+            var $leaveDeleteSubmitButton = $('#leaveDeleteSubmitButton');
+            var $leaveDeleteAlert = $('#leaveDeleteAlert');
 
             function showAlert(type, message) {
                 var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
@@ -893,6 +1106,70 @@
 
             function clearAttachmentPreview() {
                 $attachmentPreview.attr('src', attachmentPreviewPlaceholderUrl);
+            }
+
+            function showUpdateAlert(type, message) {
+                var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                $leaveUpdateAlert.removeClass('d-none alert-success alert-danger').addClass(alertClass).text(message);
+            }
+
+            function clearUpdateAlert() {
+                $leaveUpdateAlert.addClass('d-none').removeClass('alert-success alert-danger').text('');
+            }
+
+            function clearUpdateAttachmentPreview() {
+                $leaveUpdateAttachmentPreview.attr('src', attachmentPreviewPlaceholderUrl);
+            }
+
+            function buildLeaveUpdateUrl(leaveRequestId) {
+                return leaveUpdateUrlTemplate.replace('__LEAVE_REQUEST_ID__', encodeURIComponent(leaveRequestId || ''));
+            }
+
+            function showDeleteAlert(type, message) {
+                var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                $leaveDeleteAlert.removeClass('d-none alert-success alert-danger').addClass(alertClass).text(message);
+            }
+
+            function showSwalAlert(iconType, titleText, messageText) {
+                if (typeof Swal !== 'undefined' && Swal && typeof Swal.fire === 'function') {
+                    Swal.fire({
+                        icon: iconType,
+                        title: titleText,
+                        text: messageText,
+                        timer: iconType === 'success' ? 1800 : undefined,
+                        showConfirmButton: iconType !== 'success'
+                    });
+                    return;
+                }
+
+                if (iconType === 'success') {
+                    showDeleteAlert('success', messageText);
+                    return;
+                }
+
+                showDeleteAlert('error', messageText);
+            }
+
+            function clearDeleteAlert() {
+                $leaveDeleteAlert.addClass('d-none').removeClass('alert-success alert-danger').text('');
+            }
+
+            function buildLeaveDeleteUrl(leaveRequestId) {
+                return leaveDeleteUrlTemplate.replace('__LEAVE_REQUEST_ID__', encodeURIComponent(leaveRequestId || ''));
+            }
+
+            function formatDateRangeDisplay(startDateValue, endDateValue) {
+                if (!startDateValue || !endDateValue || typeof moment === 'undefined') {
+                    return '';
+                }
+
+                var startDate = moment(startDateValue, 'YYYY-MM-DD');
+                var endDate = moment(endDateValue, 'YYYY-MM-DD');
+                if (!startDate.isValid() || !endDate.isValid()) {
+                    return '';
+                }
+
+                return startDate.format('DD/MM/YYYY') + ' - ' + endDate.format('DD/MM/YYYY');
             }
 
             function getLeaveHistoryFilters() {
@@ -959,6 +1236,123 @@
                 }
             }
 
+            function toggleUpdateConditionalFields() {
+                var selectedLeaveTypeId = $leaveUpdateTypeSelect.val();
+                var isSpecialLeave = specialLeaveTypeId && selectedLeaveTypeId === String(specialLeaveTypeId);
+                var isSickLeave = sickLeaveTypeId && selectedLeaveTypeId === String(sickLeaveTypeId);
+
+                if (isSpecialLeave) {
+                    $leaveUpdateTypeWrapper.removeClass('col-md-12').addClass('col-md-6');
+                    $leaveUpdateSpecialLeaveTypeWrapper.removeClass('d-none');
+                    $leaveUpdateSpecialLeaveSubTypeSelect.prop('required', true);
+                } else {
+                    $leaveUpdateTypeWrapper.removeClass('col-md-6').addClass('col-md-12');
+                    $leaveUpdateSpecialLeaveTypeWrapper.addClass('d-none');
+                    $leaveUpdateSpecialLeaveSubTypeSelect.prop('required', false);
+                    $leaveUpdateSpecialLeaveSubTypeSelect.selectpicker('val', '');
+                    $leaveUpdateSpecialLeaveSubTypeSelect.selectpicker('refresh');
+                }
+
+                if (isSickLeave) {
+                    $leaveUpdateSickAttachmentWrapper.removeClass('d-none');
+                    $leaveUpdateAttachmentFileInput.prop('required', !($leaveUpdateForm.data('existingAttachmentUrl') || ''));
+                } else {
+                    $leaveUpdateSickAttachmentWrapper.addClass('d-none');
+                    $leaveUpdateAttachmentFileInput.prop('required', false);
+                    $leaveUpdateAttachmentFileInput.val('');
+                    clearUpdateAttachmentPreview();
+                }
+            }
+
+            function fillLeaveUpdateModal($card) {
+                var leaveRequestId = $card.data('leave-request-id') || '';
+                var leaveTypeId = $card.data('leave-type-id') || '';
+                var startDateValue = $card.data('start-date') || '';
+                var endDateValue = $card.data('end-date') || '';
+                var attachmentUrl = $card.data('detail-attachment-url') || '';
+
+                clearUpdateAlert();
+                $leaveUpdateRequestIdInput.val(leaveRequestId);
+                $leaveUpdateStartDateInput.val(startDateValue);
+                $leaveUpdateEndDateInput.val(endDateValue);
+                $leaveUpdateDateRangeInput.val(formatDateRangeDisplay(startDateValue, endDateValue));
+                if ($leaveUpdateDateRangeInput.data('daterangepicker') && typeof moment !== 'undefined') {
+                    $leaveUpdateDateRangeInput.data('daterangepicker').setStartDate(moment(startDateValue, 'YYYY-MM-DD'));
+                    $leaveUpdateDateRangeInput.data('daterangepicker').setEndDate(moment(endDateValue, 'YYYY-MM-DD'));
+                }
+                $leaveUpdateReasonInput.val($card.data('detail-reason') || '');
+                $leaveUpdateHandoverNotesInput.val($card.data('handover-notes') || '');
+                $leaveUpdateAttachmentFileInput.val('');
+                $leaveUpdateAttachmentPreview.attr('src', attachmentUrl || attachmentPreviewPlaceholderUrl);
+                $leaveUpdateForm.data('existingAttachmentUrl', attachmentUrl);
+
+                $leaveUpdateTypeSelect.selectpicker('val', leaveTypeId ? String(leaveTypeId) : '');
+                $leaveUpdateSpecialLeaveSubTypeSelect.selectpicker('val', '');
+                $leaveUpdateTypeSelect.selectpicker('refresh');
+                $leaveUpdateSpecialLeaveSubTypeSelect.selectpicker('refresh');
+                toggleUpdateConditionalFields();
+            }
+
+            function showLeaveUpdateModal($card) {
+                fillLeaveUpdateModal($card);
+
+                var updateModalElement = document.getElementById('update');
+                if (window.bootstrap && updateModalElement) {
+                    var updateModal = bootstrap.Modal.getInstance(updateModalElement) || new bootstrap.Modal(updateModalElement);
+                    updateModal.show();
+                    return;
+                }
+
+                $('#update').modal('show');
+            }
+
+            function hideLeaveUpdateModal() {
+                var updateModalElement = document.getElementById('update');
+                if (window.bootstrap && updateModalElement) {
+                    var updateModal = bootstrap.Modal.getInstance(updateModalElement) || new bootstrap.Modal(updateModalElement);
+                    updateModal.hide();
+                    return;
+                }
+
+                $('#update').modal('hide');
+            }
+
+            function fillLeaveDeleteModal($card) {
+                var leaveRequestId = $card.data('leave-request-id') || '';
+                var leaveType = $card.data('detail-title') || 'Leave Request';
+                var period = $card.data('detail-period') || '-';
+
+                clearDeleteAlert();
+                $leaveDeleteRequestIdInput.val(leaveRequestId);
+                $leaveDeleteDescription.text(
+                    'Do you want to cancel ' + leaveType + ' for ' + period + '? We will remove this request from your leave list.'
+                );
+            }
+
+            function showLeaveDeleteModal($card) {
+                fillLeaveDeleteModal($card);
+
+                var deleteModalElement = document.getElementById('delete');
+                if (window.bootstrap && deleteModalElement) {
+                    var deleteModal = bootstrap.Modal.getInstance(deleteModalElement) || new bootstrap.Modal(deleteModalElement);
+                    deleteModal.show();
+                    return;
+                }
+
+                $('#delete').modal('show');
+            }
+
+            function hideLeaveDeleteModal() {
+                var deleteModalElement = document.getElementById('delete');
+                if (window.bootstrap && deleteModalElement) {
+                    var deleteModal = bootstrap.Modal.getInstance(deleteModalElement) || new bootstrap.Modal(deleteModalElement);
+                    deleteModal.hide();
+                    return;
+                }
+
+                $('#delete').modal('hide');
+            }
+
             function initLeaveDateRangePicker() {
                 if (!$.fn.daterangepicker || !$leaveDateRangeInput.length) {
                     return;
@@ -1011,6 +1405,61 @@
                     }
 
                     clearAttachmentPreview();
+                });
+            }
+
+            function initLeaveUpdateDateRangePicker() {
+                if (!$.fn.daterangepicker || !$leaveUpdateDateRangeInput.length) {
+                    return;
+                }
+
+                $leaveUpdateDateRangeInput.daterangepicker({
+                    autoApply: true,
+                    autoUpdateInput: false,
+                    locale: {
+                        format: 'DD/MM/YYYY',
+                        cancelLabel: 'Clear'
+                    }
+                });
+
+                $leaveUpdateDateRangeInput.on('apply.daterangepicker', function (event, picker) {
+                    $(this).val(
+                        picker.startDate.format('DD/MM/YYYY') + ' - ' + picker.endDate.format('DD/MM/YYYY')
+                    );
+                    $leaveUpdateStartDateInput.val(picker.startDate.format('YYYY-MM-DD'));
+                    $leaveUpdateEndDateInput.val(picker.endDate.format('YYYY-MM-DD'));
+                });
+
+                $leaveUpdateDateRangeInput.on('cancel.daterangepicker', function () {
+                    $(this).val('');
+                    $leaveUpdateStartDateInput.val('');
+                    $leaveUpdateEndDateInput.val('');
+                });
+            }
+
+            function initLeaveUpdateAttachmentPreview() {
+                $leaveUpdateAttachmentUploadTrigger.on('click', function (event) {
+                    event.preventDefault();
+                    $leaveUpdateAttachmentFileInput.trigger('click');
+                });
+
+                $leaveUpdateAttachmentFileInput.on('change', function () {
+                    var selectedFile = this.files && this.files[0] ? this.files[0] : null;
+                    if (!selectedFile) {
+                        clearUpdateAttachmentPreview();
+                        return;
+                    }
+
+                    if (selectedFile.type && selectedFile.type.indexOf('image/') === 0) {
+                        var reader = new FileReader();
+                        reader.onload = function (loadEvent) {
+                            $leaveUpdateAttachmentPreview.attr('src', loadEvent.target.result);
+                        };
+                        reader.readAsDataURL(selectedFile);
+                        return;
+                    }
+
+                    clearUpdateAttachmentPreview();
                 });
             }
 
@@ -1071,6 +1520,101 @@
                 });
             }
 
+            function initLeaveRequestUpdateSubmit() {
+                $leaveUpdateForm.on('submit', function (event) {
+                    event.preventDefault();
+                    clearUpdateAlert();
+
+                    var leaveRequestId = $leaveUpdateRequestIdInput.val();
+                    if (!leaveRequestId) {
+                        showUpdateAlert('error', 'Data leave request tidak ditemukan.');
+                        return;
+                    }
+
+                    if (!$leaveUpdateStartDateInput.val() || !$leaveUpdateEndDateInput.val()) {
+                        showUpdateAlert('error', 'Pilih rentang tanggal izin terlebih dahulu.');
+                        return;
+                    }
+
+                    var formData = new FormData($leaveUpdateForm[0]);
+                    $leaveUpdateSubmitButton.prop('disabled', true);
+
+                    $.ajax({
+                        url: buildLeaveUpdateUrl(leaveRequestId),
+                        method: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function (response) {
+                            var successMessage = response && response.message ? response.message : 'Data izin berhasil diperbarui.';
+                            showUpdateAlert('success', successMessage);
+                            refreshLeaveHistoryCards();
+                            hideLeaveUpdateModal();
+                        },
+                        error: function (xhr) {
+                            var errorMessage = 'Gagal memperbarui data izin.';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                                var firstFieldErrors = Object.values(xhr.responseJSON.errors)[0];
+                                if (firstFieldErrors && firstFieldErrors.length > 0) {
+                                    errorMessage = firstFieldErrors[0];
+                                }
+                            }
+                            showUpdateAlert('error', errorMessage);
+                        },
+                        complete: function () {
+                            $leaveUpdateSubmitButton.prop('disabled', false);
+                        }
+                    });
+                });
+            }
+
+            function initLeaveRequestDeleteSubmit() {
+                $leaveDeleteForm.on('submit', function (event) {
+                    event.preventDefault();
+                    clearDeleteAlert();
+
+                    var leaveRequestId = $leaveDeleteRequestIdInput.val();
+                    if (!leaveRequestId) {
+                        showDeleteAlert('error', 'Data leave request tidak ditemukan.');
+                        return;
+                    }
+
+                    var formData = new FormData($leaveDeleteForm[0]);
+                    $leaveDeleteSubmitButton.prop('disabled', true);
+
+                    $.ajax({
+                        url: buildLeaveDeleteUrl(leaveRequestId),
+                        method: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function (response) {
+                            var successMessage = response && response.message ? response.message : 'Data izin berhasil dihapus.';
+                            refreshLeaveHistoryCards();
+                            hideLeaveDeleteModal();
+                            showSwalAlert('success', 'Berhasil', successMessage);
+                        },
+                        error: function (xhr) {
+                            var errorMessage = 'Gagal menghapus data izin.';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                                var firstFieldErrors = Object.values(xhr.responseJSON.errors)[0];
+                                if (firstFieldErrors && firstFieldErrors.length > 0) {
+                                    errorMessage = firstFieldErrors[0];
+                                }
+                            }
+                            showDeleteAlert('error', errorMessage);
+                        },
+                        complete: function () {
+                            $leaveDeleteSubmitButton.prop('disabled', false);
+                        }
+                    });
+                });
+            }
+
             function initLeaveHistoryFilter() {
                 $leaveHistoryFilterForm.on('submit', function (event) {
                     event.preventDefault();
@@ -1088,14 +1632,23 @@
 
             initLeaveDateRangePicker();
             initAttachmentPreview();
+            initLeaveUpdateDateRangePicker();
+            initLeaveUpdateAttachmentPreview();
             initLeaveRequestSubmit();
+            initLeaveRequestUpdateSubmit();
+            initLeaveRequestDeleteSubmit();
             initLeaveHistoryFilter();
 
             $leaveTypeSelect.on('changed.bs.select change', function () {
                 toggleConditionalFields();
             });
 
+            $leaveUpdateTypeSelect.on('changed.bs.select change', function () {
+                toggleUpdateConditionalFields();
+            });
+
             toggleConditionalFields();
+            toggleUpdateConditionalFields();
         });
     </script>
 @endsection

@@ -8,6 +8,7 @@ Aturan log:
 ## Ringkasan Harian
 
 ### 2026-06-09 (Selasa)
+- Merapikan final Leave List: ikon sesuai tipe cuti, modal detail sick/non-sick, fallback Medical Notes, format periode singkat, dan dropdown `View` yang membuka modal detail tanpa memicu klik card.
 - Mengubah modal detail Leave List agar non-sick memakai format Out of Office dan Sick Leave memakai format Attendance Sick dengan preview Medical Notes.
 - Menghapus partial `history-cards` dan `request-cards`; filter AJAX Leave List sekarang mengirim data `cards` dan dirender langsung dari `index.blade.php`.
 - Memindahkan balance analytic ke partial `history-list-cards` dan memindahkan fragment AJAX Leave List ke partial `request-cards`.
@@ -86,6 +87,7 @@ Aturan log:
 ## File Detail Entry
 
 ### 2026-06-09
+- `2026-06-09-1420-rangkuman-final-leave-history-card-modal-dropdown.md`
 - `2026-06-09-1055-modal-detail-leave-history-sick-non-sick.md`
 - `2026-06-09-1038-hapus-partial-leave-history-request-cards.md`
 - `2026-06-09-1028-pindah-balance-ke-history-list-cards.md`

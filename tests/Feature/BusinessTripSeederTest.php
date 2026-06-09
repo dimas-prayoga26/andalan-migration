@@ -11,6 +11,7 @@ class BusinessTripSeederTest extends TestCase
     {
         $databaseSeeder = File::get(database_path('seeders/DatabaseSeeder.php'));
         $businessTripSeeder = File::get(database_path('seeders/BusinessTripSeeder.php'));
+        $userSeeder = File::get(database_path('seeders/UserSeeder.php'));
 
         $this->assertStringContainsString('BusinessTripSeeder::class', $databaseSeeder);
 
@@ -21,6 +22,8 @@ class BusinessTripSeederTest extends TestCase
 
         $this->assertStringContainsString("DB::table('companies')->where('name', 'RNB')->value('id')", $businessTripSeeder);
         $this->assertStringContainsString("where('current_company_id', \$rnbCompanyId)", $businessTripSeeder);
+        $this->assertStringContainsString("'RNB' => 3", $userSeeder);
+        $this->assertStringContainsString('resolveCompanySeedNumber($company, $index + 1)', $userSeeder);
 
         foreach ([
             'submitted',

@@ -236,6 +236,7 @@ class LeaveRequestController extends Controller
                 'end_date' => $validated['end_date'],
                 'total_days' => $durationDays,
                 'reason' => $validated['reason'],
+                'handover_notes' => $validated['handover_notes'] ?? null,
                 'is_active' => true,
                 'attachment_path' => $storedAttachmentPath,
                 'status' => 'pending',
@@ -255,6 +256,151 @@ class LeaveRequestController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Pengajuan izin berhasil disimpan.',
+        ]);
+    }
+
+    public function update(Request $request, LeaveRequest $leaveRequest): JsonResponse
+    {
+        $authenticatedUser = Auth::user();
+        if (! $this->canUpdatePermissionRequest($authenticatedUser, $leaveRequest)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak memiliki akses untuk mengubah data izin ini.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'permission_type_id' => ['required', 'exists:leave_types,id'],
+            'special_leave_sub_type_id' => ['nullable', 'exists:leave_sub_types,id'],
+            'reason' => ['required', 'string', 'max:5000'],
+            'handover_notes' => ['nullable', 'string', 'max:5000'],
+            'attachment_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:1024'],
+        ]);
+
+        $permissionTypeName = LeaveType::query()
+            ->where('id', $validated['permission_type_id'])
+            ->value('name');
+        $normalizedPermissionType = is_string($permissionTypeName) ? strtolower(trim($permissionTypeName)) : '';
+        if ($normalizedPermissionType === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tipe izin tidak ditemukan.',
+            ], 422);
+        }
+
+        $specialLeaveSubTypeId = is_string($validated['special_leave_sub_type_id'] ?? null)
+            ? trim((string) $validated['special_leave_sub_type_id'])
+            : '';
+        if ($normalizedPermissionType === 'cuti khusus') {
+            if ($specialLeaveSubTypeId === '') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pilih Special Leave Type terlebih dahulu.',
+                ], 422);
+            }
+
+            $isSpecialSubTypeValid = DB::table('leave_sub_types')
+                ->where('id', $specialLeaveSubTypeId)
+                ->where('leave_type_id', $validated['permission_type_id'])
+                ->where('is_active', true)
+                ->whereNull('deleted_at')
+                ->exists();
+            if (! $isSpecialSubTypeValid) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Special Leave Type tidak valid.',
+                ], 422);
+            }
+        }
+
+        $startDate = Carbon::parse($validated['start_date']);
+        $endDate = Carbon::parse($validated['end_date']);
+        $durationDays = $startDate->diffInDays($endDate) + 1;
+        $currentStatus = is_string($leaveRequest->status) ? strtolower(trim($leaveRequest->status)) : null;
+        if (! in_array($currentStatus, ['pending', 'approved', 'refused', 'rejected'], true)) {
+            $currentStatus = null;
+        }
+
+        $existingAttachmentPath = is_string($leaveRequest->attachment_path) ? trim($leaveRequest->attachment_path) : '';
+        $hasNewAttachment = $request->hasFile('attachment_file') && $request->file('attachment_file')?->isValid() === true;
+        if ($normalizedPermissionType === 'sakit' && ! $hasNewAttachment && $existingAttachmentPath === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lampiran wajib diisi untuk Sick Leave.',
+            ], 422);
+        }
+
+        $authenticatedUserId = is_string($authenticatedUser?->id) || is_int($authenticatedUser?->id)
+            ? (string) $authenticatedUser->id
+            : '';
+        $oldLeaveRequestYear = (int) Carbon::parse((string) $leaveRequest->start_date)->year;
+        $oldLeaveRequestMonth = (int) Carbon::parse((string) $leaveRequest->start_date)->month;
+        $oldLeaveTypeId = is_string($leaveRequest->leave_type_id) ? trim($leaveRequest->leave_type_id) : '';
+
+        DB::transaction(function () use ($request, $validated, $leaveRequest, $durationDays, $existingAttachmentPath, $currentStatus, $authenticatedUserId): void {
+            $storedAttachmentPath = $existingAttachmentPath !== '' ? $existingAttachmentPath : null;
+            $attachmentFile = $request->file('attachment_file');
+            if ($attachmentFile && $attachmentFile->isValid()) {
+                $attachmentDirectory = 'leave-request-attachments';
+                if (! $this->publicDisk()->directoryExists($attachmentDirectory)) {
+                    $this->publicDisk()->makeDirectory($attachmentDirectory);
+                }
+
+                $originalName = $attachmentFile->getClientOriginalName();
+                $sanitizedName = Str::slug(pathinfo($originalName, PATHINFO_FILENAME));
+                $extension = strtolower((string) $attachmentFile->getClientOriginalExtension());
+                $storedFileName = now()->format('YmdHis').'_'.Str::random(8).'_'.$sanitizedName.'.'.$extension;
+                $newStoredPath = $attachmentFile->storeAs($attachmentDirectory, $storedFileName, 'public');
+
+                if ($newStoredPath !== false) {
+                    if ($existingAttachmentPath !== '') {
+                        $this->publicDisk()->delete($existingAttachmentPath);
+                    }
+                    $storedAttachmentPath = $newStoredPath;
+                }
+            }
+
+            $leaveRequest->update([
+                'leave_type_id' => $validated['permission_type_id'],
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'total_days' => $durationDays,
+                'reason' => $validated['reason'],
+                'handover_notes' => $validated['handover_notes'] ?? null,
+                'attachment_path' => $storedAttachmentPath,
+                'status' => 'pending',
+                'approved_by' => null,
+                'approved_at' => null,
+            ]);
+
+            $this->writeLeaveRequestHistory(
+                leaveRequest: $leaveRequest,
+                eventType: 'updated',
+                title: 'Request Updated',
+                fromStatus: $currentStatus,
+                toStatus: 'pending',
+                notes: null,
+                actorUserId: $authenticatedUserId !== '' ? $authenticatedUserId : null,
+            );
+        });
+
+        $this->syncAnnualLeaveBalance((string) $leaveRequest->employee_id, $oldLeaveRequestYear, $oldLeaveRequestMonth);
+        if ($this->isSpecialLeaveTypeId($oldLeaveTypeId)) {
+            $this->syncMonthlySpecialLeaveLimitFlag((string) $leaveRequest->employee_id, $oldLeaveRequestYear, $oldLeaveRequestMonth);
+        }
+
+        $newLeaveRequestYear = (int) Carbon::parse($validated['start_date'])->year;
+        $newLeaveRequestMonth = (int) Carbon::parse($validated['start_date'])->month;
+        $this->syncAnnualLeaveBalance((string) $leaveRequest->employee_id, $newLeaveRequestYear, $newLeaveRequestMonth);
+        if ($this->isSpecialLeaveTypeId((string) $validated['permission_type_id'])) {
+            $this->syncMonthlySpecialLeaveLimitFlag((string) $leaveRequest->employee_id, $newLeaveRequestYear, $newLeaveRequestMonth);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data izin berhasil diperbarui.',
         ]);
     }
 
@@ -464,33 +610,42 @@ class LeaveRequestController extends Controller
 
     private function canDeletePermissionRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
     {
-        if (! $authenticatedUser instanceof User) {
-            return false;
-        }
-
-        if ($this->isAdminUser($authenticatedUser)) {
-            return true;
-        }
-
-        if (! $this->isBoardOfDirectur($authenticatedUser)) {
-            return false;
-        }
-
         $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
+
+        return $this->canStaffManageOwnLeaveRequest($authenticatedUser, $leaveRequest);
+    }
+
+    private function canUpdatePermissionRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
+    {
+        $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
+
+        return $this->canStaffManageOwnLeaveRequest($authenticatedUser, $leaveRequest);
+    }
+
+    private function canStaffManageOwnLeaveRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
+    {
         if (! $authenticatedUser instanceof User) {
             return false;
         }
 
-        $userCompanyId = $authenticatedUser->employee?->deployment?->current_company_id;
-        if (! is_string($userCompanyId) || trim($userCompanyId) === '') {
+        if ($this->isAdminUser($authenticatedUser) || $this->isBoardOfDirectur($authenticatedUser)) {
             return false;
         }
 
-        return $leaveRequest->employee()
-            ->whereHas('deployment', function ($query) use ($userCompanyId): void {
-                $query->where('current_company_id', $userCompanyId);
-            })
-            ->exists();
+        return $this->isLeaveRequestOwner($authenticatedUser, $leaveRequest);
+    }
+
+    private function isLeaveRequestOwner(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
+    {
+        if (! $authenticatedUser instanceof User) {
+            return false;
+        }
+
+        $authenticatedEmployeeId = $authenticatedUser->employee?->id;
+
+        return is_string($authenticatedEmployeeId)
+            && trim($authenticatedEmployeeId) !== ''
+            && $authenticatedEmployeeId === (string) $leaveRequest->employee_id;
     }
 
     /**
@@ -571,12 +726,18 @@ class LeaveRequestController extends Controller
     /**
      * @param  array{status:string, leave_type:string, timeframe:string}  $filters
      * @return Collection<int, array{
-     *     title:string,
+     *     id:string,
+     *     can_update:bool,
+     *     can_delete:bool,
+     *     leave_type_id:string,
+     *     start_date_value:string,
+     *     end_date_value:string,
      *     icon_file:string,
      *     modal_title:string,
      *     detail_leave_type:string,
      *     period_label:string,
      *     reason:string,
+     *     handover_notes:string,
      *     is_sick_leave:bool,
      *     timeline:array<int, array{date_label:string, title:string, badge_class:string}>,
      *     due_date_label:string,
@@ -622,9 +783,21 @@ class LeaveRequestController extends Controller
             })
             ->orderByDesc('created_at')
             ->limit(12)
-            ->get(['id', 'leave_type_id', 'start_date', 'end_date', 'total_days', 'reason', 'status', 'attachment_path', 'created_at']);
+            ->get([
+                'id',
+                'employee_id',
+                'leave_type_id',
+                'start_date',
+                'end_date',
+                'total_days',
+                'reason',
+                'handover_notes',
+                'status',
+                'attachment_path',
+                'created_at',
+            ]);
 
-        return $leaveRequests->map(function (LeaveRequest $leaveRequest): array {
+        return $leaveRequests->map(function (LeaveRequest $leaveRequest) use ($authenticatedUser): array {
             $startDate = $leaveRequest->start_date instanceof Carbon
                 ? $leaveRequest->start_date
                 : Carbon::parse((string) $leaveRequest->start_date);
@@ -655,14 +828,19 @@ class LeaveRequestController extends Controller
             $attachmentPath = is_string($leaveRequest->attachment_path) ? trim($leaveRequest->attachment_path) : '';
 
             return [
+                'id' => (string) $leaveRequest->id,
+                'can_update' => $this->canStaffManageOwnLeaveRequest($authenticatedUser, $leaveRequest),
+                'can_delete' => $this->canStaffManageOwnLeaveRequest($authenticatedUser, $leaveRequest),
+                'leave_type_id' => (string) $leaveRequest->leave_type_id,
+                'start_date_value' => $startDate->toDateString(),
+                'end_date_value' => $endDate->toDateString(),
                 'title' => $leaveTypeName,
                 'icon_file' => $this->resolveLeaveHistoryIconFile($leaveTypeCode, $normalizedLeaveTypeName),
                 'modal_title' => $modalTitle,
                 'detail_leave_type' => $detailLeaveType,
-                'period_label' => $startDate->isSameDay($endDate)
-                    ? $startDate->format('d M Y').' ('.$totalDays.' '.Str::plural('day', $totalDays).')'
-                    : $startDate->format('d M Y').' - '.$endDate->format('d M Y').' ('.$totalDays.' '.Str::plural('day', $totalDays).')',
+                'period_label' => $this->formatLeaveHistoryPeriodLabel($startDate, $endDate, $totalDays),
                 'reason' => trim((string) $leaveRequest->reason) !== '' ? trim((string) $leaveRequest->reason) : '-',
+                'handover_notes' => trim((string) ($leaveRequest->handover_notes ?? '')),
                 'is_sick_leave' => $isSickLeave,
                 'timeline' => $timelineRows,
                 'due_date_label' => $startDate->format('d M Y'),
@@ -685,6 +863,18 @@ class LeaveRequestController extends Controller
                 'attachment_url' => $attachmentPath !== '' ? $this->publicDisk()->url($attachmentPath) : null,
             ];
         });
+    }
+
+    private function formatLeaveHistoryPeriodLabel(Carbon $startDate, Carbon $endDate, int $totalDays): string
+    {
+        $dayCount = max($totalDays, 1);
+        $dayLabel = $dayCount.' '.Str::plural('day', $dayCount);
+
+        if ($startDate->isSameDay($endDate)) {
+            return $startDate->format('d M Y').' ('.$dayLabel.')';
+        }
+
+        return $startDate->format('d M').' - '.$endDate->format('d M Y').' ('.$dayLabel.')';
     }
 
     private function resolveLeaveHistoryIconFile(string $leaveTypeCode, string $leaveTypeName): string

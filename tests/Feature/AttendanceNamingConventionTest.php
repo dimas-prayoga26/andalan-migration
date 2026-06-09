@@ -28,6 +28,7 @@ class AttendanceNamingConventionTest extends TestCase
             'attendance.leave-requests.upload-image',
             'attendance.leave-requests.delete-uploaded-image',
             'attendance.leave-requests.store',
+            'attendance.leave-requests.update',
             'attendance.leave-requests.destroy',
             'attendance.overtimes',
             'attendance.overtimes.datatable',

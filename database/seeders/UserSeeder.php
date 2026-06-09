@@ -34,7 +34,12 @@ class UserSeeder extends Seeder
                 ]);
             }
 
-            $companies = Company::query()->orderBy('id')->take(7)->get();
+            $companySeedOrder = $this->companySeedOrder();
+            $companies = Company::query()
+                ->get()
+                ->sortBy(static fn (Company $company): int => $companySeedOrder[(string) $company->name] ?? PHP_INT_MAX)
+                ->values()
+                ->take(7);
 
             if ($companies->isEmpty()) {
                 return;
@@ -97,7 +102,7 @@ class UserSeeder extends Seeder
             );
 
             foreach ($companies as $index => $company) {
-                $directorNumber = $index + 1;
+                $directorNumber = $this->resolveCompanySeedNumber($company, $index + 1);
                 $domicileId = $this->resolveDomicileId(
                     companyCity: (string) $company->city,
                     jakartaDomicileId: $jakartaDomicileId,
@@ -224,7 +229,7 @@ class UserSeeder extends Seeder
             ],
         );
 
-        $joinDate = $this->resolveRandomJoinDateFromYearStart((string) $employee->id, $now);
+        $joinDate = $this->resolveJoinDate($user, (string) $employee->id, $now);
 
         EmployeeDeployment::query()->updateOrCreate(
             ['employee_id' => $employee->id],
@@ -299,6 +304,27 @@ class UserSeeder extends Seeder
         return (string) explode('@', (string) $user->email)[0];
     }
 
+    /**
+     * @return array<string, int>
+     */
+    private function companySeedOrder(): array
+    {
+        return [
+            'AndalanKu' => 1,
+            'KMA' => 2,
+            'RNB' => 3,
+            'Niskala' => 4,
+            'RNE' => 5,
+            'TMS' => 6,
+            'Trah' => 7,
+        ];
+    }
+
+    private function resolveCompanySeedNumber(Company $company, int $fallbackNumber): int
+    {
+        return $this->companySeedOrder()[(string) $company->name] ?? $fallbackNumber;
+    }
+
     private function resolveCompanyEmailDomain(string $companyName): string
     {
         $slug = strtolower((string) preg_replace('/[^a-z0-9]+/i', '-', trim($companyName)));
@@ -334,5 +360,14 @@ class UserSeeder extends Seeder
         $slot = hexdec($slotHash) % max(1, $slotCount);
 
         return $startOfYear->addDays($slot)->toDateString();
+    }
+
+    private function resolveJoinDate(User $user, string $employeeId, Carbon $now): string
+    {
+        if ((string) $user->username === 'staff31') {
+            return $now->copy()->subYear()->subDay()->toDateString();
+        }
+
+        return $this->resolveRandomJoinDateFromYearStart($employeeId, $now);
     }
 }

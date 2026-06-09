@@ -75,6 +75,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/attendance/leave-requests/upload-image', [LeaveRequestController::class, 'uploadImage'])->name('attendance.leave-requests.upload-image');
     Route::post('/attendance/leave-requests/delete-uploaded-image', [LeaveRequestController::class, 'deleteUploadedImage'])->name('attendance.leave-requests.delete-uploaded-image');
     Route::post('/attendance/leave-requests', [LeaveRequestController::class, 'store'])->name('attendance.leave-requests.store');
+    Route::put('/attendance/leave-requests/{leaveRequest}', [LeaveRequestController::class, 'update'])->name('attendance.leave-requests.update');
     Route::delete('/attendance/leave-requests/{leaveRequest}', [LeaveRequestController::class, 'destroy'])->name('attendance.leave-requests.destroy');
 
     // Attendance overtime routes

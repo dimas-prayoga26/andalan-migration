@@ -12,6 +12,9 @@ class LeaveHistoryYearFilterTest extends TestCase
         $leaveRequestView = File::get(resource_path('views/attendance/leave-requests/index.blade.php'));
         $leaveHistoryListCardsPartial = File::get(resource_path('views/attendance/leave-requests/partials/history-list-cards.blade.php'));
         $leaveRequestController = File::get(app_path('Http/Controllers/LeaveRequestController.php'));
+        $leaveSubTypeModel = File::get(app_path('Models/LeaveSubType.php'));
+        $routes = File::get(base_path('routes/web.php'));
+        $leaveRequestUpdateMigration = File::get(database_path('migrations/2026_06_09_080747_add_handover_notes_to_leave_requests_table.php'));
 
         $this->assertFileDoesNotExist(resource_path('views/attendance/leave-requests/partials/history-cards.blade.php'));
         $this->assertFileDoesNotExist(resource_path('views/attendance/leave-requests/partials/request-cards.blade.php'));
@@ -49,7 +52,36 @@ class LeaveHistoryYearFilterTest extends TestCase
         $this->assertStringContainsString('row leave-balance-mobile-slider', $leaveHistoryListCardsPartial);
         $this->assertStringNotContainsString('id="leaveHistoryCardsSlider"', $leaveHistoryListCardsPartial);
         $this->assertStringContainsString('id="leaveHistoryCardsSlider"', $leaveRequestView);
-        $this->assertStringContainsString('class="card leave-history-detail-trigger" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#leaveHistoryDetailModal"', $leaveRequestView);
+        $this->assertStringContainsString('class="card leave-history-detail-trigger" role="button" tabindex="0"', $leaveRequestView);
+        $this->assertStringContainsString('class="clearfix ms-auto leave-history-card-actions"', $leaveRequestView);
+        $this->assertStringContainsString('class="dropdown-item leave-history-action-view">View</a>', $leaveRequestView);
+        $this->assertStringContainsString('class="dropdown-item leave-history-action-update">Update</a>', $leaveRequestView);
+        $this->assertStringContainsString('class="dropdown-item leave-history-action-delete">Delete</a>', $leaveRequestView);
+        $this->assertStringContainsString("if ($(event.target).closest('.leave-history-card-actions').length) {", $leaveRequestView);
+        $this->assertStringContainsString("$(document).on('click', '.leave-history-action-view', function (event) {", $leaveRequestView);
+        $this->assertStringContainsString("$(document).on('click', '.leave-history-action-update', function (event) {", $leaveRequestView);
+        $this->assertStringContainsString("$(document).on('click', '.leave-history-action-delete', function (event) {", $leaveRequestView);
+        $this->assertStringContainsString("showLeaveHistoryDetailModal($(this).closest('.leave-history-detail-trigger'));", $leaveRequestView);
+        $this->assertStringContainsString("showLeaveUpdateModal($(this).closest('.leave-history-detail-trigger'));", $leaveRequestView);
+        $this->assertStringContainsString("showLeaveDeleteModal($(this).closest('.leave-history-detail-trigger'));", $leaveRequestView);
+        $this->assertStringContainsString('function showLeaveHistoryDetailModal($card)', $leaveRequestView);
+        $this->assertStringContainsString('function showLeaveUpdateModal($card)', $leaveRequestView);
+        $this->assertStringContainsString('function showLeaveDeleteModal($card)', $leaveRequestView);
+        $this->assertStringContainsString('function fillLeaveDeleteModal($card)', $leaveRequestView);
+        $this->assertStringContainsString('function fillLeaveUpdateModal($card)', $leaveRequestView);
+        $this->assertStringContainsString('function toggleUpdateConditionalFields()', $leaveRequestView);
+        $this->assertStringContainsString('function initLeaveRequestUpdateSubmit()', $leaveRequestView);
+        $this->assertStringContainsString('function initLeaveRequestDeleteSubmit()', $leaveRequestView);
+        $this->assertStringContainsString('function showSwalAlert(iconType, titleText, messageText)', $leaveRequestView);
+        $this->assertStringNotContainsString('class="card leave-history-detail-trigger" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#leaveHistoryDetailModal"', $leaveRequestView);
+        $this->assertStringNotContainsString('class="dropdown-item" data-bs-toggle="modal" data-bs-target="#sick">View</a>', $leaveRequestView);
+        $this->assertStringContainsString("data-leave-request-id=\"{{ \$leaveHistoryCard['id'] ?? '' }}\"", $leaveRequestView);
+        $this->assertStringContainsString("@if (! empty(\$leaveHistoryCard['can_update']))", $leaveRequestView);
+        $this->assertStringContainsString("@if (! empty(\$leaveHistoryCard['can_delete']))", $leaveRequestView);
+        $this->assertStringContainsString("data-leave-type-id=\"{{ \$leaveHistoryCard['leave_type_id'] ?? '' }}\"", $leaveRequestView);
+        $this->assertStringContainsString("data-start-date=\"{{ \$leaveHistoryCard['start_date_value'] ?? '' }}\"", $leaveRequestView);
+        $this->assertStringContainsString("data-end-date=\"{{ \$leaveHistoryCard['end_date_value'] ?? '' }}\"", $leaveRequestView);
+        $this->assertStringContainsString("data-handover-notes=\"{{ \$leaveHistoryCard['handover_notes'] ?? '' }}\"", $leaveRequestView);
         $this->assertStringContainsString("data-detail-title=\"{{ \$leaveHistoryCard['title'] ?? 'Leave Request' }}\"", $leaveRequestView);
         $this->assertStringContainsString("data-detail-modal-title=\"{{ \$leaveHistoryCard['modal_title'] ?? (\$leaveHistoryCard['title'] ?? 'Leave Request') }}\"", $leaveRequestView);
         $this->assertStringContainsString("data-detail-leave-type=\"{{ \$leaveHistoryCard['detail_leave_type'] ?? (\$leaveHistoryCard['title'] ?? 'Leave Request') }}\"", $leaveRequestView);
@@ -58,18 +90,64 @@ class LeaveHistoryYearFilterTest extends TestCase
         $this->assertStringContainsString("data-detail-timeline='@json(\$leaveHistoryCard['timeline'] ?? [])'", $leaveRequestView);
         $this->assertStringContainsString("asset('assets/'.(\$leaveHistoryCard['icon_file'] ?? 'annual_leave.svg'))", $leaveRequestView);
         $this->assertStringContainsString('data-detail-title="\' + escapeHtml(title) + \'"', $leaveRequestView);
+        $this->assertStringContainsString('data-leave-request-id="\' + escapeHtml(leaveRequestId) + \'"', $leaveRequestView);
+        $this->assertStringContainsString('var canUpdate = card.can_update === true;', $leaveRequestView);
+        $this->assertStringContainsString('var canDelete = card.can_delete === true;', $leaveRequestView);
+        $this->assertStringContainsString("(canUpdate ? '<a href=\"#\" class=\"dropdown-item leave-history-action-update\">Update</a>' : '')", $leaveRequestView);
+        $this->assertStringContainsString("(canDelete ? '<a href=\"#\" class=\"dropdown-item leave-history-action-delete\">Delete</a>' : '')", $leaveRequestView);
         $this->assertStringContainsString('data-detail-modal-title="\' + escapeHtml(modalTitle) + \'"', $leaveRequestView);
         $this->assertStringContainsString('data-detail-is-sick="\' + isSickLeave + \'"', $leaveRequestView);
         $this->assertStringContainsString('data-detail-attachment-url="\' + escapeHtml(attachmentUrl) + \'"', $leaveRequestView);
         $this->assertStringContainsString('data-detail-timeline="\' + timelineAttribute + \'"', $leaveRequestView);
         $this->assertStringContainsString("var iconFile = card.icon_file || 'annual_leave.svg';", $leaveRequestView);
         $this->assertStringContainsString("var leaveTypeIconBaseUrl = @json(asset('assets'));", $leaveRequestView);
+        $this->assertStringContainsString("var leaveUpdateUrlTemplate = @json(route('attendance.leave-requests.update', ['leaveRequest' => '__LEAVE_REQUEST_ID__']));", $leaveRequestView);
+        $this->assertStringContainsString("var leaveDeleteUrlTemplate = @json(route('attendance.leave-requests.destroy', ['leaveRequest' => '__LEAVE_REQUEST_ID__']));", $leaveRequestView);
+        $this->assertStringContainsString('id="leaveRequestUpdateForm"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveRequestDeleteForm"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveDeleteRequestIdInput"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveDeleteAlert"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveDeleteSubmitButton"', $leaveRequestView);
+        $this->assertStringContainsString('<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>', $leaveRequestView);
+        $this->assertStringContainsString("showSwalAlert('success', 'Berhasil', successMessage);", $leaveRequestView);
+        $this->assertStringContainsString('id="leaveUpdateTypeSelect" name="permission_type_id"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveUpdateSpecialLeaveTypeWrapper"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveUpdateSpecialLeaveSubTypeSelect" name="special_leave_sub_type_id"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveUpdateDateRangeInput"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveUpdateReasonInput" name="reason"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveUpdateHandoverNotesInput" name="handover_notes"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveUpdateSickAttachmentWrapper"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveUpdateAttachmentFileInput" name="attachment_file"', $leaveRequestView);
+        $this->assertStringContainsString('id="leaveUpdateSubmitButton"', $leaveRequestView);
         $this->assertStringContainsString("var medicalNotesUnavailableUrl = @json(asset('assets/not_available_images.png'));", $leaveRequestView);
         $this->assertStringContainsString("asset('assets/not_available_images.png')", $leaveRequestView);
         $this->assertStringContainsString('attachmentUrl || medicalNotesUnavailableUrl', $leaveRequestView);
         $this->assertStringContainsString('target="_blank" rel="noopener" id="leaveHistoryDetailMedicalNotesLink"', $leaveRequestView);
         $this->assertStringContainsString("$('#leaveHistoryDetailMedicalNotesLink').attr('href', attachmentUrl || medicalNotesUnavailableUrl);", $leaveRequestView);
         $this->assertStringNotContainsString('assets/images/logo/figma.avif', $leaveRequestView);
+
+        $this->assertStringContainsString("Route::put('/attendance/leave-requests/{leaveRequest}', [LeaveRequestController::class, 'update'])->name('attendance.leave-requests.update');", $routes);
+        $this->assertStringContainsString("Route::delete('/attendance/leave-requests/{leaveRequest}', [LeaveRequestController::class, 'destroy'])->name('attendance.leave-requests.destroy');", $routes);
+        $this->assertStringContainsString('public function update(Request $request, LeaveRequest $leaveRequest): JsonResponse', $leaveRequestController);
+        $this->assertStringContainsString('public function destroy(LeaveRequest $leaveRequest): JsonResponse', $leaveRequestController);
+        $this->assertStringContainsString('private function canUpdatePermissionRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool', $leaveRequestController);
+        $this->assertStringContainsString('private function canDeletePermissionRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool', $leaveRequestController);
+        $this->assertStringContainsString('private function canStaffManageOwnLeaveRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool', $leaveRequestController);
+        $this->assertStringContainsString('if ($this->isAdminUser($authenticatedUser) || $this->isBoardOfDirectur($authenticatedUser)) {', $leaveRequestController);
+        $this->assertStringContainsString("'can_update' => \$this->canStaffManageOwnLeaveRequest(\$authenticatedUser, \$leaveRequest),", $leaveRequestController);
+        $this->assertStringContainsString("'can_delete' => \$this->canStaffManageOwnLeaveRequest(\$authenticatedUser, \$leaveRequest),", $leaveRequestController);
+        $this->assertStringContainsString("'employee_id',", $leaveRequestController);
+        $this->assertStringContainsString("'special_leave_sub_type_id' => ['nullable', 'exists:leave_sub_types,id']", $leaveRequestController);
+        $this->assertStringContainsString("'handover_notes' => ['nullable', 'string', 'max:5000']", $leaveRequestController);
+        $this->assertStringContainsString("'status' => 'pending',", $leaveRequestController);
+        $this->assertStringContainsString("eventType: 'updated',", $leaveRequestController);
+        $this->assertStringContainsString("'handover_notes',", $leaveRequestController);
+        $this->assertStringContainsString("'start_date_value' => \$startDate->toDateString(),", $leaveRequestController);
+        $this->assertStringContainsString("'handover_notes' => trim((string) (\$leaveRequest->handover_notes ?? '')),", $leaveRequestController);
+        $this->assertStringNotContainsString("foreignUuid('special_leave_sub_type_id')", $leaveRequestUpdateMigration);
+        $this->assertStringContainsString("\$table->text('handover_notes')->nullable()->after('reason');", $leaveRequestUpdateMigration);
+        $this->assertStringContainsString("protected \$table = 'leave_sub_types';", $leaveSubTypeModel);
+        $this->assertStringContainsString('public function leaveType(): BelongsTo', $leaveSubTypeModel);
     }
 
     public function test_leave_summary_is_split_into_eligibility_and_tracker_data(): void
@@ -119,9 +197,10 @@ class LeaveHistoryYearFilterTest extends TestCase
             'id="leaveHistoryDetailMedicalNotesLink"',
             'id="leaveHistoryDetailMedicalNotesImage"',
             'function fillLeaveHistoryDetailModal($card)',
+            'function showLeaveHistoryDetailModal($card)',
             'Out of Office mode: ON',
             'Your health comes first',
-            "$(document).on('click', '.leave-history-detail-trigger', function () {",
+            "$(document).on('click', '.leave-history-detail-trigger', function (event) {",
             '$leaveTracker[\'annual_leave_taken_breakdown\']',
             '$leaveTracker[\'annual_leave_taken_month_label\']',
             '$leaveTracker[\'annual_leave_taken_month_breakdown\']',
@@ -146,6 +225,8 @@ class LeaveHistoryYearFilterTest extends TestCase
             '\'label\' => $remainingDays.\' / \'.$totalDays.\' \'.Str::plural(\'Day\', $totalDays),',
             'private function buildLeaveTypeUsageSummary(',
             'private function countStaffLeaveRequestsByStatus(',
+            'private function formatLeaveHistoryPeriodLabel(Carbon $startDate, Carbon $endDate, int $totalDays): string',
+            "return \$startDate->format('d M').' - '.\$endDate->format('d M Y').' ('.\$dayLabel.')';",
             'status_date_label',
             'attachment_url',
             'icon_file',
@@ -184,8 +265,6 @@ class LeaveHistoryYearFilterTest extends TestCase
             'leave_taken_month_value_label',
             'joint_holiday_breakdown',
             'leave-summary-detail-trigger',
-            'data-bs-target="#annualLeave"',
-            'data-bs-target="#sick"',
             'Demam dan Flu',
             'Liburan keluarga dan istirahat sejenak',
             '18 May 2026 - 19 May 2026 (2 days)',

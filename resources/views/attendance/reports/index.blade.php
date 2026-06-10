@@ -115,6 +115,11 @@
             color: #475569;
         }
 
+        .attendance-attachment-link {
+            color: #2563eb;
+            font-weight: 600;
+        }
+
         #tableLogs.dataTable tbody td.dataTables_empty {
             text-align: center !important;
         }
@@ -140,7 +145,7 @@
         #tableLogs_wrapper .dt-scroll-body table,
         #tableLogs_wrapper .dataTables_scrollHead table,
         #tableLogs_wrapper .dataTables_scrollBody table {
-            min-width: 820px;
+            min-width: 900px;
         }
 
         #tableLogs_wrapper .dt-scroll-body,
@@ -290,7 +295,7 @@
 
                         <div class="clearfix">
                             <button type="button" id="attendanceExportButton" class="btn btn-sm btn-primary">
-                                Export report
+                                Export Excel
                             </button>
                         </div>
                     </div>
@@ -303,9 +308,9 @@
                                     <th class="mw-120">Date</th>
                                     <th class="mw-100">Clock In</th>
                                     <th class="mw-150">Clock Out</th>
-                                    <th class="mw-100">Variance</th>
+                                    <th class="mw-150">Note</th>
                                     <th class="mw-100">Work Hours</th>
-                                    <th class="mw-150">Notes</th>
+                                    <th class="mw-150">Attachment</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -380,9 +385,9 @@
                     { data: 'attendance_date', defaultContent: '-' },
                     { data: 'check_in', defaultContent: '' },
                     { data: 'check_out', defaultContent: '' },
-                    { data: 'variance', defaultContent: '-' },
+                    { data: 'note', defaultContent: '-' },
                     { data: 'work_hours', defaultContent: '-' },
-                    { data: 'notes', defaultContent: '-' }
+                    { data: 'attachment', defaultContent: '-' }
                 ];
 
                 var checkInColumnIndex = 1;
@@ -448,7 +453,11 @@
                     {
                         targets: 3,
                         render: function (data) {
-                            return data || '-';
+                            if (data && String(data).trim() !== '') {
+                                return escapeHtml(data);
+                            }
+
+                            return '<span class="attendance-tag attendance-tag--empty-note">No Notes</span>';
                         }
                     },
                     {
@@ -459,12 +468,16 @@
                     },
                     {
                         targets: 5,
+                        orderable: false,
+                        searchable: false,
                         render: function (data) {
                             if (data && String(data).trim() !== '') {
-                                return data;
+                                var attachmentUrl = escapeHtml(data);
+
+                                return '<a href="' + attachmentUrl + '" target="_blank" rel="noopener" class="attendance-attachment-link">View Attachment</a>';
                             }
 
-                            return '<span class="attendance-tag attendance-tag--empty-note">No Notes</span>';
+                            return '-';
                         }
                     }
                 ];
@@ -526,6 +539,15 @@
                 }
 
                 return (hourValue * 60) + minuteValue;
+            }
+
+            function escapeHtml(value) {
+                return String(value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
             }
 
             function renderAttendanceDateTime() {

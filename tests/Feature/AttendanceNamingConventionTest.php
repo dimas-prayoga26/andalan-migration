@@ -57,7 +57,6 @@ class AttendanceNamingConventionTest extends TestCase
             'attendance.attendance.index',
             'attendance.index',
             'attendance.reports.index',
-            'attendance.reports.pdf',
             'attendance.leave-requests.index',
             'attendance.leave-requests.partials.history-list-cards',
             'attendance.overtimes.index',
@@ -76,6 +75,8 @@ class AttendanceNamingConventionTest extends TestCase
         $legacyFlatViewNames = [
             'attendance.attendance',
             'attendance.reports',
+            'attendance.reports.excel',
+            'attendance.reports.pdf',
             'attendance.report-pdf',
             'attendance.leave-requests',
             'attendance.overtimes',

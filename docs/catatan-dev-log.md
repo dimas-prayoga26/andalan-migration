@@ -7,7 +7,15 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-06-10 (Rabu)
+- Menyesuaikan kolom `Note` Attendance Report agar attendance exception `late_arrival` dan `early_departure` tampil sebagai label izin dengan durasi.
+- Membersihkan sisa kode `variance`/`notes` legacy di `ReportController` setelah kolom report disederhanakan.
+- Menghapus kolom `Note` terpisah pada table Attendance Report dan mengganti label `Variance` menjadi `Note`.
+- Mengubah export Attendance Report menjadi `.xlsx` valid dan title dinamis `company - staff`.
+- Menghapus view PDF lama pada Attendance Report setelah export dipindahkan ke Excel.
+
 ### 2026-06-09 (Selasa)
+- Mengubah Attendance Report agar memiliki kolom `Note` dan `Attachment`, serta mengganti export PDF menjadi Excel.
 - Merapikan final Leave List: ikon sesuai tipe cuti, modal detail sick/non-sick, fallback Medical Notes, format periode singkat, dan dropdown `View` yang membuka modal detail tanpa memicu klik card.
 - Mengubah modal detail Leave List agar non-sick memakai format Out of Office dan Sick Leave memakai format Attendance Sick dengan preview Medical Notes.
 - Menghapus partial `history-cards` dan `request-cards`; filter AJAX Leave List sekarang mengirim data `cards` dan dirender langsung dari `index.blade.php`.
@@ -86,7 +94,15 @@ Aturan log:
 
 ## File Detail Entry
 
+### 2026-06-10
+- `2026-06-10-0853-report-note-attendance-exception-label.md`
+- `2026-06-10-0849-cleanup-report-controller-variance-notes.md`
+- `2026-06-10-0844-report-table-note-gantikan-variance.md`
+- `2026-06-10-1715-export-attendance-report-xlsx-title-dinamis.md`
+- `2026-06-10-1649-hapus-view-pdf-export-attendance-report.md`
+
 ### 2026-06-09
+- `2026-06-09-1647-report-attendance-note-attachment-export-excel.md`
 - `2026-06-09-1420-rangkuman-final-leave-history-card-modal-dropdown.md`
 - `2026-06-09-1055-modal-detail-leave-history-sick-non-sick.md`
 - `2026-06-09-1038-hapus-partial-leave-history-request-cards.md`

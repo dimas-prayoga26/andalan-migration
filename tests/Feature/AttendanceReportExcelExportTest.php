@@ -16,7 +16,8 @@ class AttendanceReportExcelExportTest extends TestCase
     {
         $reportView = File::get(resource_path('views/attendance/reports/index.blade.php'));
 
-        $this->assertStringContainsString('Export Excel', $reportView);
+        $this->assertStringContainsString('<i class="fa-solid fa-file-excel me-1"></i> Export Report', $reportView);
+        $this->assertStringNotContainsString('Export Excel', $reportView);
         $this->assertStringNotContainsString('<th class="mw-100">Variance</th>', $reportView);
         $this->assertStringContainsString('<th class="mw-150">Note</th>', $reportView);
         $this->assertStringContainsString('<th class="mw-150">Attachment</th>', $reportView);
@@ -46,7 +47,6 @@ class AttendanceReportExcelExportTest extends TestCase
         $this->assertStringContainsString('ZipArchive::OVERWRITE', $reportController);
         $this->assertStringContainsString('Attendance Report', $reportController);
         $this->assertStringContainsString('Working Hours', $reportController);
-        $this->assertStringContainsString('View Attachment', $reportController);
         $this->assertStringNotContainsString('SIAP - HRIS', $reportController);
     }
 
@@ -62,7 +62,7 @@ class AttendanceReportExcelExportTest extends TestCase
         $this->assertStringContainsString('$fileNameSlug = Str::slug($titleLabel);', $reportController);
     }
 
-    public function test_attendance_report_xlsx_contains_dynamic_title_and_attachment_hyperlink(): void
+    public function test_attendance_report_xlsx_contains_dynamic_title_without_attachment_column(): void
     {
         $controller = app(ReportController::class);
         $buildAttendanceReportXlsx = new ReflectionMethod(ReportController::class, 'buildAttendanceReportXlsx');
@@ -87,21 +87,27 @@ class AttendanceReportExcelExportTest extends TestCase
         $this->assertTrue($zipArchive->open($temporaryPath) === true);
         $this->assertNotFalse($zipArchive->locateName('[Content_Types].xml'));
         $this->assertNotFalse($zipArchive->locateName('xl/workbook.xml'));
+        $this->assertNotFalse($zipArchive->locateName('xl/styles.xml'));
         $this->assertNotFalse($zipArchive->locateName('xl/worksheets/sheet1.xml'));
-        $this->assertNotFalse($zipArchive->locateName('xl/worksheets/_rels/sheet1.xml.rels'));
+        $this->assertFalse($zipArchive->locateName('xl/worksheets/_rels/sheet1.xml.rels'));
 
+        $stylesXml = $zipArchive->getFromName('xl/styles.xml');
         $sheetXml = $zipArchive->getFromName('xl/worksheets/sheet1.xml');
-        $relationshipXml = $zipArchive->getFromName('xl/worksheets/_rels/sheet1.xml.rels');
         $zipArchive->close();
         @unlink($temporaryPath);
 
+        $this->assertIsString($stylesXml);
         $this->assertIsString($sheetXml);
-        $this->assertIsString($relationshipXml);
+        $this->assertStringContainsString('<fills count="2">', $stylesXml);
+        $this->assertStringNotContainsString('patternType="solid"', $stylesXml);
+        $this->assertStringNotContainsString('fgColor rgb="FF1F4E78"', $stylesXml);
+        $this->assertStringNotContainsString('fgColor rgb="FFDDEBF7"', $stylesXml);
         $this->assertStringContainsString('PT Andalan - Staff One', $sheetXml);
-        $this->assertStringContainsString('<mergeCell ref="A1:F1"/>', $sheetXml);
+        $this->assertStringContainsString('<mergeCell ref="A1:E1"/>', $sheetXml);
         $this->assertStringContainsString('Working Hours', $sheetXml);
-        $this->assertStringContainsString('View Attachment', $sheetXml);
-        $this->assertStringContainsString('http://localhost/storage/leave-request-attachments/file.pdf', $relationshipXml);
+        $this->assertStringNotContainsString('Attachment', $sheetXml);
+        $this->assertStringNotContainsString('View Attachment', $sheetXml);
+        $this->assertStringNotContainsString('http://localhost/storage/leave-request-attachments/file.pdf', $sheetXml);
     }
 
     public function test_attendance_report_controller_resolves_note_and_attachment_values(): void

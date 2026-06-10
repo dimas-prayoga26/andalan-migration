@@ -295,7 +295,7 @@
 
                         <div class="clearfix">
                             <button type="button" id="attendanceExportButton" class="btn btn-sm btn-primary">
-                                Export Excel
+                                <i class="fa-solid fa-file-excel me-1"></i> Export Report
                             </button>
                         </div>
                     </div>

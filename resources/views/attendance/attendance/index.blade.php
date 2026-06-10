@@ -149,8 +149,12 @@
         .app-fullcalendar .fc-event.fc-weekend-dayoff-card,
         .app-fullcalendar .fc-event.fc-national-holiday-card,
         .app-fullcalendar .fc-event.fc-joint-leave-card,
+        .app-fullcalendar .fc-event.fc-calendar-label-card,
         .app-fullcalendar .fc-event.fc-attendance-log-card {
-            display: block;
+            align-items: center;
+            box-sizing: border-box;
+            display: flex;
+            min-height: 30px;
             width: 100%;
             border-radius: 999px;
             font-size: 0.88rem;
@@ -159,6 +163,26 @@
             padding: 0.42rem 0.7rem;
             border: 0 !important;
             cursor: pointer;
+        }
+
+        .app-fullcalendar .fc-event.fc-weekend-dayoff-card .fc-event-main,
+        .app-fullcalendar .fc-event.fc-national-holiday-card .fc-event-main,
+        .app-fullcalendar .fc-event.fc-joint-leave-card .fc-event-main,
+        .app-fullcalendar .fc-event.fc-calendar-label-card .fc-event-main,
+        .app-fullcalendar .fc-event.fc-attendance-log-card .fc-event-main {
+            min-width: 0;
+            width: 100%;
+        }
+
+        .app-fullcalendar .fc-event.fc-weekend-dayoff-card .fc-event-title,
+        .app-fullcalendar .fc-event.fc-national-holiday-card .fc-event-title,
+        .app-fullcalendar .fc-event.fc-joint-leave-card .fc-event-title,
+        .app-fullcalendar .fc-event.fc-calendar-label-card .fc-event-title,
+        .app-fullcalendar .fc-event.fc-attendance-log-card .fc-event-title {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
     </style>
@@ -246,6 +270,509 @@
     </div>
 </div>
 
+<!-- Modal Box Start -->
+<div class="modal fade" id="onTime" tabindex="-1" aria-labelledby="onTimeLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="onTimeLabel">On-Time Clock In</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <h5 class="text-muted mb-0 fw-bold">Spot on! Kudos for the punctuality.</h5>
+                            <p class="form-label text-muted mb-3">
+                                The early bird gets the worm! Thanks for showing up on time. Grab your coffee, review your task list, and let’s crush those goals today!
+                            </p>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Attendance Status</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="onTimeStatusText" class="text-success fw-semibold">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Location</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="onTimeLocationNameText" class="text-gray fw-semibold">-</span> <br>
+                                    <span id="onTimeLocationAddressText" class="text-gray">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Clock In Time</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="onTimeClockInText" class="text-success fw-semibold">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Clock Out Time</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="onTimeClockOutText" class="text-gray fw-semibold">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal-Box-End -->
+
+<!-- Modal Box Start -->
+<div class="modal fade" id="late" tabindex="-1" aria-labelledby="lateLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="lateLabel">Late Arrival</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <h5 class="text-muted mb-0 fw-bold">Let's catch up on lost time!</h5>
+                            <p class="form-label text-muted mb-3">
+                                You're clocking in past your scheduled time today. Please try to stick to your shift schedule moving forward so you don't miss out on important morning updates. Take a deep breath, and let's dive into work!
+                            </p>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Attendance Status</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="lateStatusText" class="text-danger fw-semibold">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Location</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="lateLocationNameText" class="text-gray fw-semibold">-</span> <br>
+                                    <span id="lateLocationAddressText" class="text-gray">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Clock In Time</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="lateClockInText" class="text-danger fw-semibold">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Clock Out Time</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="lateClockOutText" class="text-gray fw-semibold">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal-Box-End -->
+
+<!-- Modal Box Start -->
+<div class="modal fade" id="deviation" tabindex="-1" aria-labelledby="deviationLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="deviationLabel">Attendance Exception</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <div class="mb-3">
+                                <h2 class="fs-6 fw-bold text-gray mb-1" id="deviationIntroTitleText">-</h2>
+                                <p class="form-label text-muted mb-3" id="deviationIntroPrimaryText">-</p>
+                                <p class="form-label text-muted mb-3" id="deviationIntroSecondaryText">-</p>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Request Type</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="deviationRequestTypeText" class="text-gray fw-semibold">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Reason</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="deviationReasonText" class="text-gray">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Time Variance</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="deviationTimeVarianceText" class="text-gray fw-semibold">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Status</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="deviationStatusText" class="text-success fw-semibold">-</span> <span id="deviationStatusDateText" class="text-gray"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal-Box-End -->
+
+<!-- Modal Box Start -->
+<div class="modal fade" id="annualLeave" tabindex="-1" aria-labelledby="annualLeaveLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="annualLeaveLabel">Annual Leave</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <h5 class="text-muted mb-0 fw-bold">Out of Office mode: ON</h5>
+                            <p class="form-label text-muted mb-3">
+                                Whether you’re traveling the globe or just relaxing on the couch, enjoy your well-deserved break. Disconnect, recharge, and have fun!
+                            </p>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Leave Type</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="annualLeaveTypeText" class="text-gray fw-semibold">Annual Leave</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Reason</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="annualLeaveReasonText" class="text-gray">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Leave Duration</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="annualLeaveDurationText" class="text-gray fw-semibold">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Status</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="annualLeaveStatusText" class="text-success fw-semibold">-</span> <span id="annualLeaveStatusDateText" class="text-gray"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal-Box-End -->
+
+<!-- Modal Box Start -->
+<div class="modal fade" id="specialLeave" tabindex="-1" aria-labelledby="specialLeaveLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="specialLeaveLabel">Special Leave</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <h5 class="text-muted mb-0 fw-bold">Take the time you need</h5>
+                            <p class="form-label text-muted mb-3">
+                                We understand that some personal matters require your full attention. Focus on what matters most right now, and we'll be right here when you return.
+                            </p>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Leave Type</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="specialLeaveTypeText" class="text-gray fw-semibold">Special Leave</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Reason</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="specialLeaveReasonText" class="text-gray">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Leave Duration</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="specialLeaveDurationText" class="text-gray fw-semibold">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Status</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="specialLeaveStatusText" class="text-success fw-semibold">-</span> <span id="specialLeaveStatusDateText" class="text-gray"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal-Box-End -->
+
+<!-- Modal Box Start -->
+<div class="modal fade" id="unpaidLeave" tabindex="-1" aria-labelledby="unpaidLeaveLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="unpaidLeaveLabel">Unpaid Leave</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <h5 class="text-muted mb-0 fw-bold">Time off logged</h5>
+                            <p class="form-label text-muted mb-3">
+                                Your extended leave has been successfully recorded. Take the space you need, and we look forward to having you back with the team when you’re ready.
+                            </p>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Leave Type</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="unpaidLeaveTypeText" class="text-gray fw-semibold">Unpaid Leave</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Reason</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="unpaidLeaveReasonText" class="text-gray">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Leave Duration</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="unpaidLeaveDurationText" class="text-gray fw-semibold">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Status</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="unpaidLeaveStatusText" class="text-success fw-semibold">-</span> <span id="unpaidLeaveStatusDateText" class="text-gray"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal-Box-End -->
+
+<!-- Modal Box Start -->
+<div class="modal fade" id="sick" tabindex="-1" aria-labelledby="sickLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="sickLabel">Attendance Sick</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <h5 class="text-muted mb-0 fw-bold">Your health comes first</h5>
+                            <p class="form-label text-muted mb-3">
+                                Take all the time you need to rest, hydrate, and recover. We’ve got the fort down here, so just focus on feeling better!
+                            </p>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Leave Type</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="sickTypeText" class="text-gray fw-semibold">Sick Leave</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Reason</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="sickReasonText" class="text-gray">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Leave Duration</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="sickDurationText" class="text-gray fw-semibold">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Status</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="sickStatusText" class="text-success fw-semibold">-</span> <span id="sickStatusDateText" class="text-gray"></span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Medical Notes</span>
+                                </div>
+                                <div class="col-8">
+                                    <a id="sickMedicalNotesImageLink" href="#" target="_blank" rel="noopener" class="d-none"><img id="sickMedicalNotesImage" src="" alt="Medical Notes" class="avatar avatar-lg rounded me-3" width="86"></a>
+                                    <a id="sickMedicalNotesFileLink" href="#" target="_blank" rel="noopener" class="text-primary d-none">View Medical Notes</a>
+                                    <span id="sickMedicalNotesFallback" class="text-gray">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal-Box-End -->
+
+<div class="modal fade" id="trip" tabindex="-1" aria-labelledby="tripLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="tripLabel">Business Trip</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <h5 class="text-muted mb-0 fw-bold">On the move!</h5>
+                            <p class="form-label text-muted mb-3">
+                                Safe travels! We wish you a smooth journey and highly successful meetings.
+                                Keep crushing it out there in the field, represent us well, and don't forget to save those receipts for your expense reports!
+                            </p>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Activity Type</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="tripActivityTypeText" class="text-gray fw-semibold">Business Trip</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Purpose</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="tripPurposeText" class="text-gray fw-semibold">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Destination</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="tripDestinationText" class="text-gray">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Trip Duration</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="tripDurationText" class="text-gray">-</span>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-4">
+                                    <span>Status</span>
+                                </div>
+                                <div class="col-8">
+                                    <span id="tripStatusText" class="text-success fw-semibold">-</span> <span id="tripStatusDateText" class="text-gray"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                <div class="d-flex justify-content-between mt-2">
+                    <a id="tripSubmitTaskButton" class="btn light btn-info mt-2 mb-2 btn-lg me-2 w-100 disabled" href="#" aria-disabled="true" tabindex="-1">Submit Task</a>
+                    <a id="tripReimbursementButton" class="btn light btn-success mt-2 mb-2 btn-lg w-100 disabled" href="#" aria-disabled="true" tabindex="-1">Reimbursement</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal-Box-End -->
+
+
 @endsection
 
 @section('script')
@@ -264,6 +791,8 @@
             function initializeAttendanceCalendar() {
                 var calendarEl = document.getElementById('calendar');
                 var dayOffModalElement = document.getElementById('dayOff');
+                var attendanceModalIds = ['onTime', 'late', 'deviation'];
+                var calendarLabelModalIds = ['annualLeave', 'specialLeave', 'unpaidLeave', 'sick', 'trip'];
                 var dayOffEventTypeTextElement = document.getElementById('dayOffEventTypeText');
                 var dayOffHolidayNameTextElement = document.getElementById('dayOffHolidayNameText');
                 var dayOffDateTextElement = document.getElementById('dayOffDateText');
@@ -285,6 +814,7 @@
 
                 var showWeekendOff = calendarEl.dataset.showWeekendOff === '1';
                 var holidayEvents = @json($holidayEvents ?? []);
+                var calendarLabelEvents = @json($calendarLabelEvents ?? []);
                 var attendanceHistoryEvents = @json($attendanceHistoryEvents ?? []);
 
                 function formatDateToIso(dateObject) {
@@ -331,6 +861,203 @@
                     }
 
                     bootstrap.Modal.getOrCreateInstance(dayOffModalElement).show();
+                }
+
+                function setAttendanceModalText(elementId, value, fallback) {
+                    var modalTextElement = document.getElementById(elementId);
+                    if (!modalTextElement) {
+                        return;
+                    }
+
+                    var textValue = typeof value === 'string' && value.trim() !== ''
+                        ? value
+                        : fallback;
+
+                    modalTextElement.textContent = textValue || '-';
+                }
+
+                function setAttendanceModalOptionalText(elementId, value) {
+                    var modalTextElement = document.getElementById(elementId);
+                    if (!modalTextElement) {
+                        return;
+                    }
+
+                    var textValue = typeof value === 'string' && value.trim() !== ''
+                        ? value
+                        : '';
+
+                    modalTextElement.textContent = textValue;
+                    modalTextElement.classList.toggle('d-none', textValue === '');
+                }
+
+                function setCalendarModalStatusText(elementId, value, statusClass) {
+                    var statusTextElement = document.getElementById(elementId);
+                    if (!statusTextElement) {
+                        return;
+                    }
+
+                    statusTextElement.classList.remove('text-success', 'text-warning', 'text-danger', 'text-gray');
+                    statusTextElement.classList.add(typeof statusClass === 'string' && statusClass.trim() !== '' ? statusClass : 'text-gray');
+                    setAttendanceModalText(elementId, value, '-');
+                }
+
+                function fillAttendanceModal(modalId, props) {
+                    if (modalId === 'onTime') {
+                        setAttendanceModalText('onTimeLabel', props.modalTitle, 'On Time');
+                        setAttendanceModalText('onTimeStatusText', props.attendanceStatusLabel, 'On-Time Arrival');
+                        setAttendanceModalText('onTimeLocationNameText', props.locationName, 'Location not available');
+                        setAttendanceModalText('onTimeLocationAddressText', props.locationAddress, '-');
+                        setAttendanceModalText('onTimeClockInText', props.clockInSchedule, props.clockIn || '-');
+                        setAttendanceModalText('onTimeClockOutText', props.clockOutSchedule, props.clockOut || '-');
+
+                        return;
+                    }
+
+                    if (modalId === 'late') {
+                        setAttendanceModalText('lateLabel', props.modalTitle, 'Late Arrival');
+                        setAttendanceModalText('lateStatusText', props.attendanceStatusLabel, 'Late Arrival');
+                        setAttendanceModalText('lateLocationNameText', props.locationName, 'Location not available');
+                        setAttendanceModalText('lateLocationAddressText', props.locationAddress, '-');
+                        setAttendanceModalText('lateClockInText', props.clockInSchedule, props.clockIn || '-');
+                        setAttendanceModalText('lateClockOutText', props.clockOutSchedule, props.clockOut || '-');
+
+                        return;
+                    }
+
+                    if (modalId === 'deviation') {
+                        setAttendanceModalText('deviationLabel', props.modalTitle, 'Attendance Exception');
+                        setAttendanceModalOptionalText('deviationIntroTitleText', props.deviationIntroTitle);
+                        setAttendanceModalOptionalText('deviationIntroPrimaryText', props.deviationIntroPrimary);
+                        setAttendanceModalOptionalText('deviationIntroSecondaryText', props.deviationIntroSecondary);
+                        setAttendanceModalText('deviationRequestTypeText', props.requestTypeLabel, 'Attendance Exception');
+                        setAttendanceModalText('deviationReasonText', props.reason, '-');
+                        setAttendanceModalText('deviationTimeVarianceText', props.timeVarianceLabel, '-');
+                        setAttendanceModalText('deviationStatusText', props.exceptionStatusLabel, '-');
+                        setAttendanceModalText(
+                            'deviationStatusDateText',
+                            props.exceptionStatusDateLabel && props.exceptionStatusDateLabel !== '-' ? 'on ' + props.exceptionStatusDateLabel : '',
+                            ''
+                        );
+                    }
+                }
+
+                function openAttendanceModal(modalId, props) {
+                    if (attendanceModalIds.indexOf(modalId) === -1 || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+                        return;
+                    }
+
+                    var attendanceModalElement = document.getElementById(modalId);
+                    if (!attendanceModalElement) {
+                        return;
+                    }
+
+                    fillAttendanceModal(modalId, props || {});
+                    bootstrap.Modal.getOrCreateInstance(attendanceModalElement).show();
+                }
+
+                function fillLeaveCalendarModal(modalId, props) {
+                    setAttendanceModalText(modalId + 'Label', props.calendarModalTitle, props.leaveTypeLabel || 'Leave');
+                    setAttendanceModalText(modalId + 'TypeText', props.leaveTypeLabel, 'Leave');
+                    setAttendanceModalText(modalId + 'ReasonText', props.leaveReason, '-');
+                    setAttendanceModalText(modalId + 'DurationText', props.leaveDurationLabel, '-');
+                    setCalendarModalStatusText(modalId + 'StatusText', props.leaveStatusLabel, props.leaveStatusTextClass);
+                    setAttendanceModalText(modalId + 'StatusDateText', props.leaveStatusDateLabel, '');
+                }
+
+                function fillSickMedicalNotes(props) {
+                    var imageLinkElement = document.getElementById('sickMedicalNotesImageLink');
+                    var imageElement = document.getElementById('sickMedicalNotesImage');
+                    var fileLinkElement = document.getElementById('sickMedicalNotesFileLink');
+                    var fallbackElement = document.getElementById('sickMedicalNotesFallback');
+                    var medicalNotesUrl = typeof props.medicalNotesUrl === 'string' ? props.medicalNotesUrl.trim() : '';
+                    var medicalNotesIsImage = props.medicalNotesIsImage === true;
+
+                    if (imageLinkElement) {
+                        imageLinkElement.classList.toggle('d-none', medicalNotesUrl === '' || !medicalNotesIsImage);
+                        imageLinkElement.href = medicalNotesUrl || '#';
+                    }
+
+                    if (imageElement) {
+                        imageElement.src = medicalNotesUrl !== '' && medicalNotesIsImage ? medicalNotesUrl : '';
+                    }
+
+                    if (fileLinkElement) {
+                        fileLinkElement.classList.toggle('d-none', medicalNotesUrl === '' || medicalNotesIsImage);
+                        fileLinkElement.href = medicalNotesUrl || '#';
+                    }
+
+                    if (fallbackElement) {
+                        fallbackElement.classList.toggle('d-none', medicalNotesUrl !== '');
+                    }
+                }
+
+                function setCalendarActionButton(elementId, url, isEnabled, disabledLabel) {
+                    var buttonElement = document.getElementById(elementId);
+                    if (!buttonElement) {
+                        return;
+                    }
+
+                    var safeUrl = typeof url === 'string' && url.trim() !== '' ? url.trim() : '#';
+                    buttonElement.href = isEnabled ? safeUrl : '#';
+                    buttonElement.classList.toggle('disabled', !isEnabled);
+                    buttonElement.setAttribute('aria-disabled', isEnabled ? 'false' : 'true');
+
+                    if (isEnabled) {
+                        buttonElement.removeAttribute('tabindex');
+                        buttonElement.removeAttribute('title');
+                        return;
+                    }
+
+                    buttonElement.setAttribute('tabindex', '-1');
+                    buttonElement.setAttribute('title', disabledLabel || 'Not available yet.');
+                }
+
+                function fillTripCalendarModal(props) {
+                    setAttendanceModalText('tripLabel', props.calendarModalTitle, 'Business Trip');
+                    setAttendanceModalText('tripActivityTypeText', props.activityTypeLabel, 'Business Trip');
+                    setAttendanceModalText('tripPurposeText', props.tripPurpose, '-');
+                    setAttendanceModalText('tripDestinationText', props.tripDestination, '-');
+                    setAttendanceModalText('tripDurationText', props.tripDurationLabel, '-');
+                    setCalendarModalStatusText('tripStatusText', props.tripStatusLabel, props.tripStatusTextClass);
+                    setAttendanceModalText('tripStatusDateText', props.tripStatusDateLabel, '');
+                    setCalendarActionButton(
+                        'tripSubmitTaskButton',
+                        props.tripSubmitTaskUrl,
+                        props.tripCanSubmitTask === true,
+                        props.tripSubmitTaskDisabledLabel
+                    );
+                    setCalendarActionButton(
+                        'tripReimbursementButton',
+                        props.tripReimbursementUrl,
+                        props.tripCanRequestReimbursement === true,
+                        props.tripReimbursementDisabledLabel
+                    );
+                }
+
+                function fillCalendarLabelModal(modalId, props) {
+                    if (modalId === 'trip') {
+                        fillTripCalendarModal(props);
+                        return;
+                    }
+
+                    fillLeaveCalendarModal(modalId, props);
+                    if (modalId === 'sick') {
+                        fillSickMedicalNotes(props);
+                    }
+                }
+
+                function openCalendarLabelModal(modalId, props) {
+                    if (calendarLabelModalIds.indexOf(modalId) === -1 || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+                        return;
+                    }
+
+                    var calendarLabelModalElement = document.getElementById(modalId);
+                    if (!calendarLabelModalElement) {
+                        return;
+                    }
+
+                    fillCalendarLabelModal(modalId, props || {});
+                    bootstrap.Modal.getOrCreateInstance(calendarLabelModalElement).show();
                 }
 
                 function buildWeekendEventsInRange(startDate, endDate) {
@@ -427,8 +1154,60 @@
                                 classNames: Array.isArray(eventItem.classNames) ? eventItem.classNames : ['fc-attendance-log-card'],
                                 backgroundColor: eventItem.backgroundColor || '#20c997',
                                 borderColor: eventItem.borderColor || '#1aa179',
-                                textColor: eventItem.textColor || '#ffffff'
+                                textColor: eventItem.textColor || '#ffffff',
+                                extendedProps: eventItem.extendedProps || {}
                             };
+                        });
+                }
+
+                function buildCalendarLabelEventsInRange(startDate, endDate) {
+                    if (!Array.isArray(calendarLabelEvents) || calendarLabelEvents.length === 0) {
+                        return [];
+                    }
+
+                    var normalizedStartDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+                    var normalizedEndDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+                    return calendarLabelEvents
+                        .filter(function (eventItem) {
+                            if (!eventItem || typeof eventItem.start !== 'string' || eventItem.start.trim() === '') {
+                                return false;
+                            }
+
+                            var eventStartDate = new Date(eventItem.start + 'T00:00:00');
+                            if (Number.isNaN(eventStartDate.getTime())) {
+                                return false;
+                            }
+
+                            var eventEndDate = eventStartDate;
+                            if (typeof eventItem.end === 'string' && eventItem.end.trim() !== '') {
+                                eventEndDate = new Date(eventItem.end + 'T00:00:00');
+                                if (Number.isNaN(eventEndDate.getTime())) {
+                                    eventEndDate = eventStartDate;
+                                }
+                            } else {
+                                eventEndDate = new Date(eventStartDate.getFullYear(), eventStartDate.getMonth(), eventStartDate.getDate() + 1);
+                            }
+
+                            return eventStartDate < normalizedEndDate && eventEndDate > normalizedStartDate;
+                        })
+                        .map(function (eventItem) {
+                            var calendarLabelEvent = {
+                                title: eventItem.title || '-',
+                                start: eventItem.start,
+                                allDay: eventItem.allDay !== false,
+                                classNames: Array.isArray(eventItem.classNames) ? eventItem.classNames : ['fc-calendar-label-card'],
+                                backgroundColor: eventItem.backgroundColor || '#198754',
+                                borderColor: eventItem.borderColor || '#146c43',
+                                textColor: eventItem.textColor || '#ffffff',
+                                extendedProps: eventItem.extendedProps || {}
+                            };
+
+                            if (typeof eventItem.end === 'string' && eventItem.end.trim() !== '') {
+                                calendarLabelEvent.end = eventItem.end;
+                            }
+
+                            return calendarLabelEvent;
                         });
                 }
 
@@ -467,28 +1246,39 @@
                     },
                     eventClick: function (info) {
                         var props = info.event.extendedProps || {};
-                        if (!props.dayOffDate) {
+                        info.jsEvent.preventDefault();
+
+                        if (props.dayOffDate) {
+                            openDayOffModal(
+                                props.dayOffEventType || 'Hari Libur',
+                                props.dayOffHolidayName || info.event.title || '-',
+                                props.dayOffDate
+                            );
+
                             return;
                         }
 
-                        info.jsEvent.preventDefault();
-                        openDayOffModal(
-                            props.dayOffEventType || 'Hari Libur',
-                            props.dayOffHolidayName || info.event.title || '-',
-                            props.dayOffDate
-                        );
+                        if (props.attendanceModalId) {
+                            openAttendanceModal(props.attendanceModalId, props);
+                            return;
+                        }
+
+                        if (props.calendarModalId) {
+                            openCalendarLabelModal(props.calendarModalId, props);
+                        }
                     },
                     events: function (fetchInfo, successCallback, failureCallback) {
                         try {
                             var holidayEventsInRange = buildHolidayEventsInRange(fetchInfo.start, fetchInfo.end);
+                            var calendarLabelEventsInRange = buildCalendarLabelEventsInRange(fetchInfo.start, fetchInfo.end);
                             var attendanceLogEvents = buildAttendanceHistoryEventsInRange(fetchInfo.start, fetchInfo.end);
                             if (!showWeekendOff) {
-                                successCallback(holidayEventsInRange.concat(attendanceLogEvents));
+                                successCallback(holidayEventsInRange.concat(calendarLabelEventsInRange, attendanceLogEvents));
                                 return;
                             }
 
                             var weekendEvents = buildWeekendEventsInRange(fetchInfo.start, fetchInfo.end);
-                            successCallback(holidayEventsInRange.concat(weekendEvents, attendanceLogEvents));
+                            successCallback(holidayEventsInRange.concat(weekendEvents, calendarLabelEventsInRange, attendanceLogEvents));
                         } catch (error) {
                             console.error(error);
                             failureCallback(error);

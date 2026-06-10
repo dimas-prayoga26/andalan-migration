@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\AttendanceHoliday;
 use App\Models\Company;
 use App\Models\LeaveRequest;
 use App\Models\LeaveRequestHistory;
@@ -27,6 +28,7 @@ class LeaveRequestHistorySeeder extends Seeder
                 || ! Schema::hasTable('leave_request_histories')
                 || ! Schema::hasTable('companies')
                 || ! Schema::hasTable('leave_types')
+                || ! Schema::hasTable('leave_sub_types')
             ) {
                 return;
             }
@@ -72,119 +74,50 @@ class LeaveRequestHistorySeeder extends Seeder
             $supervisorActorUserId = (string) $boardUsers->first()->id;
             $hrActorUserId = (string) ($boardUsers->skip(1)->first()->id ?? $supervisorActorUserId);
 
-            $sickLeaveTypeId = LeaveType::query()
-                ->whereRaw('LOWER(code) = ?', ['sick'])
-                ->value('id');
-            $annualLeaveTypeId = LeaveType::query()
-                ->whereRaw('LOWER(code) = ?', ['annual'])
-                ->value('id');
+            $leaveTypeIdsByCode = LeaveType::query()
+                ->whereIn(DB::raw('LOWER(code)'), ['annual', 'sick', 'special', 'unpaid'])
+                ->get(['id', 'code'])
+                ->mapWithKeys(static function (LeaveType $leaveType): array {
+                    return [strtolower(trim((string) $leaveType->code)) => trim((string) $leaveType->id)];
+                });
 
-            if (! is_string($sickLeaveTypeId) || trim($sickLeaveTypeId) === '') {
-                throw new RuntimeException('Leave type SICK tidak ditemukan.');
+            foreach (['annual', 'sick', 'special', 'unpaid'] as $requiredLeaveTypeCode) {
+                if (! is_string($leaveTypeIdsByCode->get($requiredLeaveTypeCode)) || trim((string) $leaveTypeIdsByCode->get($requiredLeaveTypeCode)) === '') {
+                    throw new RuntimeException('Leave type '.strtoupper($requiredLeaveTypeCode).' tidak ditemukan.');
+                }
             }
-            if (! is_string($annualLeaveTypeId) || trim($annualLeaveTypeId) === '') {
-                throw new RuntimeException('Leave type ANNUAL tidak ditemukan.');
+
+            $specialLeaveSubType = DB::table('leave_sub_types')
+                ->where('leave_type_id', $leaveTypeIdsByCode->get('special'))
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->first(['id', 'code', 'name']);
+
+            $specialLeaveSubTypeId = is_string($specialLeaveSubType?->id ?? null) ? trim((string) $specialLeaveSubType->id) : '';
+            $specialLeaveSubTypeName = is_string($specialLeaveSubType?->name ?? null) ? trim((string) $specialLeaveSubType->name) : '';
+            if ($specialLeaveSubTypeId === '' || $specialLeaveSubTypeName === '') {
+                throw new RuntimeException('Leave subtype aktif untuk SPECIAL tidak ditemukan.');
             }
 
             $baseDay = now('Asia/Jakarta')->startOfDay()->subDays(2);
+            $seedWorkingDates = $this->nextSeedWorkingDates($baseDay, 4, $this->seedBlockedDateValues());
+            [$specialLeaveDate, $annualLeaveDate, $sickLeaveDate, $unpaidLeaveDate] = $seedWorkingDates;
+
             $seedPlans = [
                 [
-                    'leave_type_id' => trim($sickLeaveTypeId),
-                    'start_date' => $baseDay->copy()->toDateString(),
-                    'end_date' => $baseDay->copy()->addDay()->toDateString(),
-                    'total_days' => 2,
-                    'reason' => '[Seeder] RNB dummy leave request approved',
-                    'status' => 'approved',
-                    'approved_by' => $hrActorUserId,
-                    'approved_at' => $baseDay->copy()->setTime(16, 30, 0),
-                    'histories' => [
-                        [
-                            'event_type' => 'submitted',
-                            'title' => 'Request Submitted',
-                            'from_status' => null,
-                            'to_status' => 'pending',
-                            'actor_user_id' => $staffActorUserId,
-                            'happened_at' => $baseDay->copy()->setTime(8, 10, 0),
-                        ],
-                        [
-                            'event_type' => 'supervisor_review',
-                            'title' => 'Supervisor Review',
-                            'from_status' => 'pending',
-                            'to_status' => 'pending',
-                            'actor_user_id' => $supervisorActorUserId,
-                            'happened_at' => $baseDay->copy()->setTime(9, 0, 0),
-                        ],
-                        [
-                            'event_type' => 'hr_verification',
-                            'title' => 'HR Verification (Pending)',
-                            'from_status' => 'pending',
-                            'to_status' => 'pending',
-                            'actor_user_id' => $hrActorUserId,
-                            'happened_at' => $baseDay->copy()->setTime(10, 30, 0),
-                        ],
-                        [
-                            'event_type' => 'status_updated',
-                            'title' => 'Approved',
-                            'from_status' => 'pending',
-                            'to_status' => 'approved',
-                            'actor_user_id' => $hrActorUserId,
-                            'happened_at' => $baseDay->copy()->setTime(16, 30, 0),
-                        ],
-                    ],
-                ],
-                [
-                    'leave_type_id' => trim($annualLeaveTypeId),
-                    'start_date' => $baseDay->copy()->addDays(2)->toDateString(),
-                    'end_date' => $baseDay->copy()->addDays(3)->toDateString(),
-                    'total_days' => 2,
-                    'reason' => '[Seeder] RNB dummy leave request rejected',
-                    'status' => 'rejected',
-                    'approved_by' => $hrActorUserId,
-                    'approved_at' => $baseDay->copy()->addDays(1)->setTime(15, 45, 0),
-                    'histories' => [
-                        [
-                            'event_type' => 'submitted',
-                            'title' => 'Request Submitted',
-                            'from_status' => null,
-                            'to_status' => 'pending',
-                            'actor_user_id' => $staffActorUserId,
-                            'happened_at' => $baseDay->copy()->addDay()->setTime(8, 20, 0),
-                        ],
-                        [
-                            'event_type' => 'supervisor_review',
-                            'title' => 'Supervisor Review',
-                            'from_status' => 'pending',
-                            'to_status' => 'pending',
-                            'actor_user_id' => $supervisorActorUserId,
-                            'happened_at' => $baseDay->copy()->addDay()->setTime(9, 30, 0),
-                        ],
-                        [
-                            'event_type' => 'hr_verification',
-                            'title' => 'HR Verification (Pending)',
-                            'from_status' => 'pending',
-                            'to_status' => 'pending',
-                            'actor_user_id' => $hrActorUserId,
-                            'happened_at' => $baseDay->copy()->addDay()->setTime(11, 0, 0),
-                        ],
-                        [
-                            'event_type' => 'status_updated',
-                            'title' => 'Rejected',
-                            'from_status' => 'pending',
-                            'to_status' => 'rejected',
-                            'actor_user_id' => $hrActorUserId,
-                            'happened_at' => $baseDay->copy()->addDay()->setTime(15, 45, 0),
-                        ],
-                    ],
-                ],
-                [
-                    'leave_type_id' => trim($annualLeaveTypeId),
-                    'start_date' => $baseDay->copy()->addDays(5)->toDateString(),
-                    'end_date' => $baseDay->copy()->addDays(5)->toDateString(),
+                    'leave_type_id' => $leaveTypeIdsByCode->get('special'),
+                    'start_date' => $specialLeaveDate->copy()->toDateString(),
+                    'end_date' => $specialLeaveDate->copy()->toDateString(),
                     'total_days' => 1,
-                    'reason' => '[Seeder] RNB dummy leave request supervisor review only',
+                    'reason' => '[Seeder] RNB special leave - '.$specialLeaveSubTypeName,
+                    'handover_notes' => 'Seed handover notes for special leave.',
                     'status' => 'pending',
                     'approved_by' => null,
                     'approved_at' => null,
+                    'metadata' => [
+                        'special_leave_sub_type_id' => $specialLeaveSubTypeId,
+                        'special_leave_sub_type_name' => $specialLeaveSubTypeName,
+                    ],
                     'histories' => [
                         [
                             'event_type' => 'submitted',
@@ -192,7 +125,7 @@ class LeaveRequestHistorySeeder extends Seeder
                             'from_status' => null,
                             'to_status' => 'pending',
                             'actor_user_id' => $staffActorUserId,
-                            'happened_at' => $baseDay->copy()->addDays(4)->setTime(8, 5, 0),
+                            'happened_at' => $specialLeaveDate->copy()->setTime(8, 10, 0),
                         ],
                         [
                             'event_type' => 'supervisor_review',
@@ -200,36 +133,181 @@ class LeaveRequestHistorySeeder extends Seeder
                             'from_status' => 'pending',
                             'to_status' => 'pending',
                             'actor_user_id' => $supervisorActorUserId,
-                            'happened_at' => $baseDay->copy()->addDays(4)->setTime(9, 10, 0),
+                            'happened_at' => $specialLeaveDate->copy()->setTime(9, 0, 0),
+                        ],
+                        [
+                            'event_type' => 'hr_verification',
+                            'title' => 'HR Verification (Pending)',
+                            'from_status' => 'pending',
+                            'to_status' => 'pending',
+                            'actor_user_id' => $hrActorUserId,
+                            'happened_at' => $specialLeaveDate->copy()->setTime(10, 30, 0),
+                        ],
+                    ],
+                ],
+                [
+                    'leave_type_id' => $leaveTypeIdsByCode->get('annual'),
+                    'start_date' => $annualLeaveDate->copy()->toDateString(),
+                    'end_date' => $annualLeaveDate->copy()->toDateString(),
+                    'total_days' => 1,
+                    'reason' => '[Seeder] RNB annual leave pending',
+                    'handover_notes' => 'Seed handover notes for annual leave.',
+                    'status' => 'pending',
+                    'approved_by' => null,
+                    'approved_at' => null,
+                    'metadata' => null,
+                    'histories' => [
+                        [
+                            'event_type' => 'submitted',
+                            'title' => 'Request Submitted',
+                            'from_status' => null,
+                            'to_status' => 'pending',
+                            'actor_user_id' => $staffActorUserId,
+                            'happened_at' => $annualLeaveDate->copy()->setTime(8, 20, 0),
+                        ],
+                        [
+                            'event_type' => 'supervisor_review',
+                            'title' => 'Supervisor Review',
+                            'from_status' => 'pending',
+                            'to_status' => 'pending',
+                            'actor_user_id' => $supervisorActorUserId,
+                            'happened_at' => $annualLeaveDate->copy()->setTime(9, 30, 0),
+                        ],
+                        [
+                            'event_type' => 'hr_verification',
+                            'title' => 'HR Verification (Pending)',
+                            'from_status' => 'pending',
+                            'to_status' => 'pending',
+                            'actor_user_id' => $hrActorUserId,
+                            'happened_at' => $annualLeaveDate->copy()->setTime(11, 0, 0),
+                        ],
+                    ],
+                ],
+                [
+                    'leave_type_id' => $leaveTypeIdsByCode->get('sick'),
+                    'start_date' => $sickLeaveDate->copy()->toDateString(),
+                    'end_date' => $sickLeaveDate->copy()->toDateString(),
+                    'total_days' => 1,
+                    'reason' => '[Seeder] RNB sick leave pending',
+                    'handover_notes' => 'Seed handover notes for sick leave.',
+                    'status' => 'pending',
+                    'approved_by' => null,
+                    'approved_at' => null,
+                    'metadata' => null,
+                    'histories' => [
+                        [
+                            'event_type' => 'submitted',
+                            'title' => 'Request Submitted',
+                            'from_status' => null,
+                            'to_status' => 'pending',
+                            'actor_user_id' => $staffActorUserId,
+                            'happened_at' => $sickLeaveDate->copy()->setTime(8, 5, 0),
+                        ],
+                        [
+                            'event_type' => 'supervisor_review',
+                            'title' => 'Supervisor Review',
+                            'from_status' => 'pending',
+                            'to_status' => 'pending',
+                            'actor_user_id' => $supervisorActorUserId,
+                            'happened_at' => $sickLeaveDate->copy()->setTime(9, 10, 0),
+                        ],
+                        [
+                            'event_type' => 'hr_verification',
+                            'title' => 'HR Verification (Pending)',
+                            'from_status' => 'pending',
+                            'to_status' => 'pending',
+                            'actor_user_id' => $hrActorUserId,
+                            'happened_at' => $sickLeaveDate->copy()->setTime(11, 10, 0),
+                        ],
+                    ],
+                ],
+                [
+                    'leave_type_id' => $leaveTypeIdsByCode->get('unpaid'),
+                    'start_date' => $unpaidLeaveDate->copy()->toDateString(),
+                    'end_date' => $unpaidLeaveDate->copy()->toDateString(),
+                    'total_days' => 1,
+                    'reason' => '[Seeder] RNB unpaid leave pending',
+                    'handover_notes' => 'Seed handover notes for unpaid leave.',
+                    'status' => 'pending',
+                    'approved_by' => null,
+                    'approved_at' => null,
+                    'metadata' => null,
+                    'histories' => [
+                        [
+                            'event_type' => 'submitted',
+                            'title' => 'Request Submitted',
+                            'from_status' => null,
+                            'to_status' => 'pending',
+                            'actor_user_id' => $staffActorUserId,
+                            'happened_at' => $unpaidLeaveDate->copy()->setTime(8, 15, 0),
+                        ],
+                        [
+                            'event_type' => 'supervisor_review',
+                            'title' => 'Supervisor Review',
+                            'from_status' => 'pending',
+                            'to_status' => 'pending',
+                            'actor_user_id' => $supervisorActorUserId,
+                            'happened_at' => $unpaidLeaveDate->copy()->setTime(9, 20, 0),
+                        ],
+                        [
+                            'event_type' => 'hr_verification',
+                            'title' => 'HR Verification (Pending)',
+                            'from_status' => 'pending',
+                            'to_status' => 'pending',
+                            'actor_user_id' => $hrActorUserId,
+                            'happened_at' => $unpaidLeaveDate->copy()->setTime(11, 30, 0),
                         ],
                     ],
                 ],
             ];
 
             DB::transaction(function () use ($seedPlans, $staffEmployeeId): void {
-                foreach ($seedPlans as $seedPlan) {
-                    $leaveRequest = LeaveRequest::query()->updateOrCreate(
-                        [
-                            'employee_id' => $staffEmployeeId,
-                            'start_date' => $seedPlan['start_date'],
-                            'end_date' => $seedPlan['end_date'],
-                            'reason' => $seedPlan['reason'],
-                        ],
-                        [
-                            'leave_type_id' => $seedPlan['leave_type_id'],
-                            'total_days' => $seedPlan['total_days'],
-                            'status' => $seedPlan['status'],
-                            'is_active' => true,
-                            'approved_by' => $seedPlan['approved_by'],
-                            'approved_at' => $seedPlan['approved_at'],
-                            'attachment_path' => null,
-                            'deleted_at' => null,
-                        ]
-                    );
+                $seedReasons = collect($seedPlans)
+                    ->pluck('reason')
+                    ->all();
+                $legacySeededLeaveRequestIds = LeaveRequest::query()
+                    ->where('employee_id', $staffEmployeeId)
+                    ->where(function ($query) use ($seedReasons): void {
+                        $query
+                            ->whereIn('reason', $seedReasons)
+                            ->orWhere('reason', 'like', '[Seeder] RNB dummy leave request%')
+                            ->orWhere('reason', 'like', '[Seeder] RNB special leave - %')
+                            ->orWhere('reason', 'like', '[Seeder] RNB % leave approved');
+                    })
+                    ->pluck('id')
+                    ->filter()
+                    ->all();
 
+                if ($legacySeededLeaveRequestIds !== []) {
                     LeaveRequestHistory::query()
-                        ->where('leave_request_id', $leaveRequest->id)
+                        ->whereIn('leave_request_id', $legacySeededLeaveRequestIds)
                         ->delete();
+                    LeaveRequest::query()
+                        ->whereIn('id', $legacySeededLeaveRequestIds)
+                        ->delete();
+                }
+
+                foreach ($seedPlans as $seedPlan) {
+                    $leaveRequestPayload = [
+                        'employee_id' => $staffEmployeeId,
+                        'leave_type_id' => $seedPlan['leave_type_id'],
+                        'start_date' => $seedPlan['start_date'],
+                        'end_date' => $seedPlan['end_date'],
+                        'total_days' => $seedPlan['total_days'],
+                        'reason' => $seedPlan['reason'],
+                        'status' => $seedPlan['status'],
+                        'is_active' => true,
+                        'approved_by' => $seedPlan['approved_by'],
+                        'approved_at' => $seedPlan['approved_at'],
+                        'attachment_path' => null,
+                        'deleted_at' => null,
+                    ];
+
+                    if (Schema::hasColumn('leave_requests', 'handover_notes')) {
+                        $leaveRequestPayload['handover_notes'] = $seedPlan['handover_notes'];
+                    }
+
+                    $leaveRequest = LeaveRequest::query()->create($leaveRequestPayload);
 
                     foreach ($seedPlan['histories'] as $historyPlan) {
                         LeaveRequestHistory::query()->create([
@@ -240,7 +318,7 @@ class LeaveRequestHistorySeeder extends Seeder
                             'from_status' => $historyPlan['from_status'],
                             'to_status' => $historyPlan['to_status'],
                             'notes' => null,
-                            'metadata' => null,
+                            'metadata' => $seedPlan['metadata'],
                             'happened_at' => $historyPlan['happened_at'] instanceof Carbon
                                 ? $historyPlan['happened_at']
                                 : Carbon::parse((string) $historyPlan['happened_at']),
@@ -251,5 +329,59 @@ class LeaveRequestHistorySeeder extends Seeder
         } catch (Throwable $throwable) {
             throw new RuntimeException('LeaveRequestHistorySeeder gagal dijalankan.', 0, $throwable);
         }
+    }
+
+    /**
+     * @param  list<string>  $blockedDateValues
+     * @return list<Carbon>
+     */
+    private function nextSeedWorkingDates(Carbon $startDate, int $requiredDates, array $blockedDateValues): array
+    {
+        $blockedDateSet = collect($blockedDateValues)
+            ->map(static function (string $blockedDateValue): string {
+                return Carbon::parse($blockedDateValue, 'Asia/Jakarta')->toDateString();
+            })
+            ->flip()
+            ->all();
+        $workingDates = [];
+        $cursorDate = $startDate->copy()->startOfDay();
+
+        while (count($workingDates) < $requiredDates) {
+            if (! $cursorDate->isWeekend() && ! array_key_exists($cursorDate->toDateString(), $blockedDateSet)) {
+                $workingDates[] = $cursorDate->copy();
+            }
+
+            $cursorDate->addDay();
+        }
+
+        return $workingDates;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function seedBlockedDateValues(): array
+    {
+        if (! Schema::hasTable('attendances_holidays')) {
+            return [];
+        }
+
+        return AttendanceHoliday::query()
+            ->pluck('date')
+            ->map(static function (mixed $dateValue): ?string {
+                if ($dateValue instanceof Carbon) {
+                    return $dateValue->toDateString();
+                }
+
+                $dateValue = trim((string) $dateValue);
+                if ($dateValue === '') {
+                    return null;
+                }
+
+                return Carbon::parse($dateValue, 'Asia/Jakarta')->toDateString();
+            })
+            ->filter(static fn (?string $dateValue): bool => $dateValue !== null)
+            ->values()
+            ->all();
     }
 }

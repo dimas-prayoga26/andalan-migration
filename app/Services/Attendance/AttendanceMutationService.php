@@ -609,9 +609,7 @@ class AttendanceMutationService
             'distance' => round($distance, 2),
             'ip_address' => $ipAddress ?? $request->ip(),
             'user_agent' => $request->userAgent(),
-            'location' => isset($locationMetadata['formatted_address']) && is_string($locationMetadata['formatted_address'])
-                ? $locationMetadata['formatted_address']
-                : null,
+            'location' => $this->formatAttendanceLogLocation($locationMetadata['plus_code_compound_code'] ?? null, $latitude, $longitude),
             'address_village' => $locationMetadata['address_village'] ?? null,
             'address_district' => $locationMetadata['address_district'] ?? null,
             'address_regency' => $locationMetadata['address_regency'] ?? null,
@@ -676,6 +674,7 @@ class AttendanceMutationService
     /**
      * @return array{
      *     formatted_address:string|null,
+     *     plus_code_compound_code:string|null,
      *     address_village:string|null,
      *     address_district:string|null,
      *     address_regency:string|null,
@@ -691,6 +690,7 @@ class AttendanceMutationService
         if (empty($googleMapsApiKey) || ! $this->isValidCoordinate($latitude, $longitude)) {
             return [
                 'formatted_address' => null,
+                'plus_code_compound_code' => null,
                 'address_village' => null,
                 'address_district' => null,
                 'address_regency' => null,
@@ -706,7 +706,7 @@ class AttendanceMutationService
                 ->acceptJson()
                 ->get('https://maps.googleapis.com/maps/api/geocode/json', [
                     'latlng' => $latitude.','.$longitude,
-                    'language' => 'id',
+                    'language' => 'en',
                     'key' => $googleMapsApiKey,
                 ]);
 
@@ -725,15 +725,25 @@ class AttendanceMutationService
             }
 
             $primaryResult = $results[0];
+            $plusCode = isset($payload['plus_code']) && is_array($payload['plus_code'])
+                ? $payload['plus_code']
+                : [];
+            $plusCodeCompoundCode = isset($plusCode['compound_code']) && is_string($plusCode['compound_code'])
+                ? $plusCode['compound_code']
+                : null;
             $components = isset($primaryResult['address_components']) && is_array($primaryResult['address_components'])
                 ? $primaryResult['address_components']
                 : [];
-            $addressComponents = $this->parseAddressComponents($components);
+            $addressComponents = $this->mergeAddressComponents(
+                $this->parseAddressComponents($components),
+                $this->parsePlusCodeCompoundCode($plusCodeCompoundCode)
+            );
 
             return [
                 'formatted_address' => isset($primaryResult['formatted_address']) && is_string($primaryResult['formatted_address'])
                     ? $primaryResult['formatted_address']
                     : null,
+                'plus_code_compound_code' => $plusCodeCompoundCode,
                 'address_village' => $addressComponents['address_village'],
                 'address_district' => $addressComponents['address_district'],
                 'address_regency' => $addressComponents['address_regency'],
@@ -818,6 +828,127 @@ class AttendanceMutationService
     }
 
     /**
+     * @param  array{
+     *     address_village:string|null,
+     *     address_district:string|null,
+     *     address_regency:string|null,
+     *     address_city:string|null,
+     *     address_province:string|null,
+     *     address_postal_code:string|null
+     * }  $addressComponents
+     * @param  array{
+     *     address_village:string|null,
+     *     address_district:string|null,
+     *     address_regency:string|null,
+     *     address_city:string|null,
+     *     address_province:string|null,
+     *     address_postal_code:string|null
+     * }  $plusCodeAddressComponents
+     * @return array{
+     *     address_village:string|null,
+     *     address_district:string|null,
+     *     address_regency:string|null,
+     *     address_city:string|null,
+     *     address_province:string|null,
+     *     address_postal_code:string|null
+     * }
+     */
+    private function mergeAddressComponents(array $addressComponents, array $plusCodeAddressComponents): array
+    {
+        foreach ($plusCodeAddressComponents as $componentKey => $componentValue) {
+            if (is_string($componentValue) && trim($componentValue) !== '') {
+                $addressComponents[$componentKey] = trim($componentValue);
+            }
+        }
+
+        return $addressComponents;
+    }
+
+    /**
+     * @return array{
+     *     address_village:string|null,
+     *     address_district:string|null,
+     *     address_regency:string|null,
+     *     address_city:string|null,
+     *     address_province:string|null,
+     *     address_postal_code:string|null
+     * }
+     */
+    private function parsePlusCodeCompoundCode(?string $compoundCode): array
+    {
+        $resolvedComponents = [
+            'address_village' => null,
+            'address_district' => null,
+            'address_regency' => null,
+            'address_city' => null,
+            'address_province' => null,
+            'address_postal_code' => null,
+        ];
+
+        if (! is_string($compoundCode) || trim($compoundCode) === '') {
+            return $resolvedComponents;
+        }
+
+        $locationLabel = preg_replace('/^[A-Z0-9]{4,}\+[A-Z0-9]{2,}\s*/i', '', trim($compoundCode)) ?? trim($compoundCode);
+        $locationParts = collect(explode(',', $locationLabel))
+            ->map(static fn (string $locationPart): string => trim($locationPart))
+            ->filter(static fn (string $locationPart): bool => $locationPart !== '')
+            ->values()
+            ->all();
+
+        foreach ($locationParts as $index => $locationPart) {
+            $postalCode = $this->extractPostalCode($locationPart);
+            if ($postalCode !== null) {
+                $resolvedComponents['address_postal_code'] ??= $postalCode;
+                $locationPart = trim((string) preg_replace('/\b\d{5}(?:-\d{4})?\b/', '', $locationPart));
+            }
+
+            if ($locationPart === '') {
+                continue;
+            }
+
+            $normalizedLocationPart = strtolower($locationPart);
+            if ($index === 0) {
+                $resolvedComponents['address_village'] ??= $locationPart;
+
+                continue;
+            }
+
+            if (str_contains($normalizedLocationPart, 'district') || str_starts_with($normalizedLocationPart, 'kec.')) {
+                $resolvedComponents['address_district'] ??= $locationPart;
+
+                continue;
+            }
+
+            if (str_contains($normalizedLocationPart, 'regency') || str_starts_with($normalizedLocationPart, 'kabupaten')) {
+                $resolvedComponents['address_regency'] ??= $locationPart;
+
+                continue;
+            }
+
+            if (str_contains($normalizedLocationPart, 'city') || str_starts_with($normalizedLocationPart, 'kota')) {
+                $resolvedComponents['address_city'] ??= $locationPart;
+
+                continue;
+            }
+
+            $resolvedComponents['address_province'] ??= $locationPart;
+        }
+
+        return $resolvedComponents;
+    }
+
+    private function extractPostalCode(string $locationPart): ?string
+    {
+        $matches = [];
+        if (preg_match('/\b\d{5}(?:-\d{4})?\b/', $locationPart, $matches) !== 1) {
+            return null;
+        }
+
+        return $matches[0];
+    }
+
+    /**
      * @param  array<string, mixed>|null  $officeContext
      */
     private function resolveAttendanceStatus(Carbon $attendanceTime, ?array $officeContext): string
@@ -875,6 +1006,26 @@ class AttendanceMutationService
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earthRadius * $c;
+    }
+
+    private function formatAttendanceLogLocation(mixed $plusCodeCompoundCode, float $latitude, float $longitude): ?string
+    {
+        if (is_string($plusCodeCompoundCode) && trim($plusCodeCompoundCode) !== '') {
+            return trim($plusCodeCompoundCode);
+        }
+
+        return $this->formatCoordinateMapUrl($latitude, $longitude);
+    }
+
+    private function formatCoordinateMapUrl(float $latitude, float $longitude): ?string
+    {
+        if (! $this->isValidCoordinate($latitude, $longitude)) {
+            return null;
+        }
+
+        $coordinateLabel = number_format($latitude, 7, '.', '').','.number_format($longitude, 7, '.', '');
+
+        return 'https://www.google.com/maps?q='.$coordinateLabel;
     }
 
     private function isValidCoordinate(float $latitude, float $longitude): bool

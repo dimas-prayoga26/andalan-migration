@@ -32,6 +32,7 @@ class AttendanceNamingConventionTest extends TestCase
             'attendance.leave-requests.destroy',
             'attendance.overtimes',
             'attendance.overtimes.datatable',
+            'attendance.overtimes.detail',
             'attendance.overtimes.store',
             'attendance.overtimes.show',
             'attendance.overtimes.update',
@@ -60,6 +61,7 @@ class AttendanceNamingConventionTest extends TestCase
             'attendance.leave-requests.index',
             'attendance.leave-requests.partials.history-list-cards',
             'attendance.overtimes.index',
+            'attendance.overtimes.detail',
             'attendance.business-trips.index',
             'attendance.components.attendance-cards',
             'attendance.components.card-analytics',
@@ -133,6 +135,11 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertStringContainsString('Lateness Rate', $attendanceCardAnalyticsView);
         $this->assertStringContainsString('Overtime Rate', $attendanceCardAnalyticsView);
         $this->assertSame(4, substr_count($attendanceCardAnalyticsView, 'col-md-3 col-sm-6 attendance-rate-mobile-slide'));
+
+        $overtimeIndexView = File::get(resource_path('views/attendance/overtimes/index.blade.php'));
+
+        $this->assertStringContainsString("route('attendance.overtimes.detail')", $overtimeIndexView);
+        $this->assertStringNotContainsString('attendance-overtime-details.html', $overtimeIndexView);
 
         $businessTripView = File::get(resource_path('views/attendance/business-trips/index.blade.php'));
 

@@ -110,15 +110,30 @@ class BusinessTripSeeder extends Seeder
             }
 
             DB::transaction(function () use ($endDate, $staffScenarios, $staffUsers, $startDate): void {
-                foreach ($staffScenarios as $username => $scenario) {
+                foreach ($staffScenarios as $username => $staffScenario) {
                     /** @var User $staffUser */
                     $staffUser = $staffUsers->get($username);
-                    $this->seedBusinessTrip($staffUser, $scenario, $startDate, $endDate);
+                    foreach ($this->staffScenarioItems($staffScenario) as $scenario) {
+                        $this->seedBusinessTrip($staffUser, $scenario, $startDate, $endDate);
+                    }
                 }
             });
         } catch (Throwable $throwable) {
             throw new RuntimeException('BusinessTripSeeder gagal dijalankan.', 0, $throwable);
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $staffScenario
+     * @return list<array<string, mixed>>
+     */
+    private function staffScenarioItems(array $staffScenario): array
+    {
+        if (array_key_exists('request_number', $staffScenario)) {
+            return [$staffScenario];
+        }
+
+        return array_values($staffScenario);
     }
 
     /**
@@ -378,20 +393,40 @@ class BusinessTripSeeder extends Seeder
     {
         return [
             'staff31' => [
-                'request_number' => 'TRP-RNB-STAFF31',
-                'purpose' => 'Survey lokasi project RNB tahap awal.',
-                'approval_status' => 'pending',
-                'submitted_at' => '2026-06-05 09:00:00',
-                'lifecycle' => [
-                    'submitted' => [
-                        'status' => 'complete',
-                        'actor' => 'staff',
-                        'happened_at' => '2026-06-05 09:00:00',
+                [
+                    'request_number' => 'TRP-RNB-STAFF31',
+                    'purpose' => 'Survey lokasi project RNB tahap awal.',
+                    'approval_status' => 'pending',
+                    'submitted_at' => '2026-06-05 09:00:00',
+                    'lifecycle' => [
+                        'submitted' => [
+                            'status' => 'complete',
+                            'actor' => 'staff',
+                            'happened_at' => '2026-06-05 09:00:00',
+                        ],
+                        'supervisor_review' => [
+                            'status' => 'pending',
+                            'actor' => null,
+                            'happened_at' => null,
+                        ],
                     ],
-                    'supervisor_review' => [
-                        'status' => 'pending',
-                        'actor' => null,
-                        'happened_at' => null,
+                ],
+                [
+                    'request_number' => 'TRP-RNB-STAFF31-APPROVED',
+                    'purpose' => 'Follow up meeting project RNB yang sudah disetujui supervisor.',
+                    'approval_status' => 'approved',
+                    'submitted_at' => '2026-06-05 09:05:00',
+                    'lifecycle' => [
+                        'submitted' => [
+                            'status' => 'complete',
+                            'actor' => 'staff',
+                            'happened_at' => '2026-06-05 09:05:00',
+                        ],
+                        'supervisor_review' => [
+                            'status' => 'complete',
+                            'actor' => 'supervisor',
+                            'happened_at' => '2026-06-05 10:05:00',
+                        ],
                     ],
                 ],
             ],

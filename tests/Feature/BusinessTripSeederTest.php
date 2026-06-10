@@ -42,7 +42,12 @@ class BusinessTripSeederTest extends TestCase
         }
 
         $this->assertStringContainsString("'request_number' => 'TRP-RNB-STAFF31'", $businessTripSeeder);
-        $this->assertStringContainsString("'supervisor_review' => [\n                        'status' => 'pending'", $businessTripSeeder);
+        $this->assertStringContainsString("'status' => 'pending',\n                            'actor' => null,\n                            'happened_at' => null,", $businessTripSeeder);
+        $this->assertStringContainsString('private function staffScenarioItems(array $staffScenario): array', $businessTripSeeder);
+        $this->assertStringContainsString("'request_number' => 'TRP-RNB-STAFF31-APPROVED'", $businessTripSeeder);
+        $this->assertStringContainsString("'purpose' => 'Follow up meeting project RNB yang sudah disetujui supervisor.'", $businessTripSeeder);
+        $this->assertStringContainsString("'approval_status' => 'approved'", $businessTripSeeder);
+        $this->assertStringContainsString("'happened_at' => '2026-06-05 10:05:00'", $businessTripSeeder);
         $this->assertStringContainsString("'request_number' => 'TRP-RNB-STAFF32'", $businessTripSeeder);
         $this->assertStringContainsString("'cash_advance_submitted' => [\n                        'status' => 'pending'", $businessTripSeeder);
     }

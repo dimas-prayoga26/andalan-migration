@@ -613,14 +613,10 @@ class ReportController extends Controller
             $this->xlsxInlineStringCell('C2', 'Clock Out', 2),
             $this->xlsxInlineStringCell('D2', 'Note', 2),
             $this->xlsxInlineStringCell('E2', 'Working Hours', 2),
-            $this->xlsxInlineStringCell('F2', 'Attachment', 2),
         ]);
 
         foreach ($reportRows->values() as $index => $row) {
             $rowNumber = $index + 3;
-            $attachmentUrl = $this->stringCellValue($row['attachment'] ?? null);
-            $attachmentCellValue = $attachmentUrl !== '' ? 'View Attachment' : '-';
-            $attachmentCellStyle = $attachmentUrl !== '' ? 3 : 0;
 
             $sheetRows[] = $this->xlsxRowXml($rowNumber, [
                 $this->xlsxInlineStringCell('A'.$rowNumber, $this->stringCellValue($row['attendance_date'] ?? null)),
@@ -628,17 +624,7 @@ class ReportController extends Controller
                 $this->xlsxInlineStringCell('C'.$rowNumber, $this->stringCellValue($row['check_out'] ?? null)),
                 $this->xlsxInlineStringCell('D'.$rowNumber, $this->stringCellValue($row['note'] ?? null)),
                 $this->xlsxInlineStringCell('E'.$rowNumber, $this->stringCellValue($row['work_hours'] ?? null)),
-                $this->xlsxInlineStringCell('F'.$rowNumber, $attachmentCellValue, $attachmentCellStyle),
             ]);
-
-            if ($attachmentUrl !== '') {
-                $relationshipId = 'rId'.(count($hyperlinkRelationships) + 1);
-                $hyperlinkRelationships[] = [
-                    'cell' => 'F'.$rowNumber,
-                    'id' => $relationshipId,
-                    'target' => $attachmentUrl,
-                ];
-            }
         }
 
         if ($reportRows->isEmpty()) {
@@ -652,9 +638,9 @@ class ReportController extends Controller
             ->implode('');
         $sheetXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             .'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
-            .'<cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="3" width="16" customWidth="1"/><col min="4" max="4" width="30" customWidth="1"/><col min="5" max="5" width="18" customWidth="1"/><col min="6" max="6" width="24" customWidth="1"/></cols>'
+            .'<cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="3" width="16" customWidth="1"/><col min="4" max="4" width="30" customWidth="1"/><col min="5" max="5" width="18" customWidth="1"/></cols>'
             .'<sheetData>'.implode('', $sheetRows).'</sheetData>'
-            .'<mergeCells count="1"><mergeCell ref="A1:F1"/></mergeCells>'
+            .'<mergeCells count="1"><mergeCell ref="A1:E1"/></mergeCells>'
             .($hyperlinksXml !== '' ? '<hyperlinks>'.$hyperlinksXml.'</hyperlinks>' : '')
             .'</worksheet>';
         $relationshipsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -740,11 +726,11 @@ class ReportController extends Controller
     {
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             .'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-            .'<fonts count="4"><font><sz val="11"/><name val="Calibri"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="14"/><name val="Calibri"/></font><font><b/><color rgb="FF1F2937"/><sz val="11"/><name val="Calibri"/></font><font><u/><color rgb="FF2563EB"/><sz val="11"/><name val="Calibri"/></font></fonts>'
-            .'<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F4E78"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/><bgColor indexed="64"/></patternFill></fill></fills>'
+            .'<fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><color rgb="FF000000"/><sz val="14"/><name val="Calibri"/></font><font><b/><color rgb="FF000000"/><sz val="11"/><name val="Calibri"/></font></fonts>'
+            .'<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
             .'<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
             .'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-            .'<cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>'
+            .'<cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>'
             .'</styleSheet>';
     }
 

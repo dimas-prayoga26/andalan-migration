@@ -8,6 +8,37 @@ Aturan log:
 ## Ringkasan Harian
 
 ### 2026-06-10 (Rabu)
+- Mengubah link card Overtime agar membuka view detail Blade melalui route `attendance.overtimes.detail`.
+- Membuat style export Excel Attendance Report menjadi polos tanpa background warna.
+- Menghapus kolom `Attachment` dari hasil export Excel Attendance Report.
+- Mengubah label tombol export Attendance Report menjadi `Export Report` dengan icon Excel.
+- Menambahkan pengkondisian tombol `Submit Task` dan `Reimbursement` pada modal Business Trip calendar berdasarkan lifecycle log.
+- Menambahkan skenario Business Trip approved kedua untuk `staff31` sampai lifecycle `supervisor_review` complete.
+- Mengubah seeder Leave Request agar tanggal demo jatuh pada hari kerja dan tidak bertumpuk dengan weekend/holiday.
+- Membuat modal label calendar Leave/Business Trip terbuka dan terisi dinamis dari event yang diklik.
+- Menyamakan ukuran visual label Leave/Business Trip calendar dengan label calendar lainnya.
+- Mengubah filter label calendar: Leave tampil untuk `pending`/`approved`, Business Trip hanya untuk `approved`.
+- Mengubah seed Leave Request RNB untuk empat tipe cuti menjadi status `pending`.
+- Mengubah seeder Leave Request agar membuat satu approved request untuk SPECIAL, ANNUAL, SICK, dan UNPAID.
+- Menambahkan label calendar untuk Leave Request dan Business Trip dengan warna sesuai tipe.
+- Mengubah label modal Attendance Exception agar memilih salah satu berdasarkan `attendance_exceptions.type`, bukan gabungan dua tipe.
+- Mengubah label Request Type modal Attendance Exception menjadi `Permitted Late Arrival | Early Departure`.
+- Mengubah title default modal Attendance Exception menjadi `Permitted Late Arrival / Early Departure`.
+- Mengembalikan header dan copy pembuka modal Attendance Exception secara dinamis dari event calendar.
+- Menghapus title statis lama dari modal Attendance Exception agar default-nya netral dan tetap diisi dinamis.
+- Menyederhanakan modal Attendance Exception agar hanya menampilkan Request Type, Reason, Time Variance, dan Status.
+- Menghapus copy statis pada modal Attendance Exception dan menambahkan detail date, location, clock in, serta clock out dinamis.
+- Mengubah fallback clock out event calendar Attendance menjadi `-`.
+- Mengembalikan label calendar Attendance ke format jam masuk-pulang dan menghapus link titik lokasi dari modal.
+- Menambahkan runbook Attendance Report, calendar modal, dan lokasi absensi setelah rangkaian perubahan.
+- Memecah plus code Attendance Log untuk mengisi kolom address component dengan fallback dari Google address components.
+- Mengubah `attendance_logs.location` agar menyimpan plus code dari Google Geocoding API dengan fallback URL maps lat/long.
+- Mengubah penyimpanan `attendance_logs.location` agar memakai URL Google Maps dari lat/long absensi.
+- Mengubah bukti lokasi modal calendar Attendance agar memakai link Google Maps dari lat/long absen.
+- Mengembalikan sumber lokasi modal calendar Attendance ke kolom `location` dengan sanitasi kode pos dan `Indonesia`.
+- Mengubah sumber lokasi modal calendar Attendance agar hanya memakai kolom address geocoding tanpa kolom `location`.
+- Membuat modal calendar Attendance `onTime`, `late`, dan `deviation` terisi dinamis dari event yang diklik.
+- Menyesuaikan calendar Attendance agar event on-time, late, dan attendance exception membuka modal `onTime`, `late`, dan `deviation`.
 - Menyesuaikan kolom `Note` Attendance Report agar attendance exception `late_arrival` dan `early_departure` tampil sebagai label izin dengan durasi.
 - Membersihkan sisa kode `variance`/`notes` legacy di `ReportController` setelah kolom report disederhanakan.
 - Menghapus kolom `Note` terpisah pada table Attendance Report dan mengganti label `Variance` menjadi `Note`.
@@ -95,6 +126,30 @@ Aturan log:
 ## File Detail Entry
 
 ### 2026-06-10
+- `2026-06-10-1514-dynamic-calendar-label-modals.md`
+- `2026-06-10-1449-uniform-calendar-label-size.md`
+- `2026-06-10-1435-calendar-label-status-filter.md`
+- `2026-06-10-1424-pending-leave-request-seeds.md`
+- `2026-06-10-1421-seed-four-leave-types.md`
+- `2026-06-10-1412-calendar-leave-business-trip-labels.md`
+- `2026-06-10-1347-type-specific-deviation-labels.md`
+- `2026-06-10-1158-deviation-request-type-label.md`
+- `2026-06-10-1152-deviation-modal-title.md`
+- `2026-06-10-1148-dynamic-deviation-modal-intro.md`
+- `2026-06-10-1140-remove-static-deviation-title.md`
+- `2026-06-10-1137-simplify-deviation-modal-fields.md`
+- `2026-06-10-1134-dynamic-deviation-modal-details.md`
+- `2026-06-10-1119-clock-out-fallback-strip.md`
+- `2026-06-10-1115-calendar-label-remove-location-link.md`
+- `2026-06-10-1111-docs-attendance-report-calendar-location.md`
+- `2026-06-10-1059-parse-plus-code-address-components.md`
+- `2026-06-10-1052-attendance-log-location-plus-code.md`
+- `2026-06-10-1045-attendance-log-location-coordinate-url.md`
+- `2026-06-10-1040-calendar-modal-location-by-latlong.md`
+- `2026-06-10-0952-calendar-modal-location-sanitized.md`
+- `2026-06-10-0948-calendar-modal-location-address-fields.md`
+- `2026-06-10-0939-dynamic-attendance-calendar-modals.md`
+- `2026-06-10-0929-calendar-attendance-modal-routing.md`
 - `2026-06-10-0853-report-note-attendance-exception-label.md`
 - `2026-06-10-0849-cleanup-report-controller-variance-notes.md`
 - `2026-06-10-0844-report-table-note-gantikan-variance.md`

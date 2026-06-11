@@ -11,6 +11,7 @@ use App\Models\BusinessTripLifecycleLog;
 use App\Models\BusinessTripReimbursement;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
@@ -70,7 +71,13 @@ class BusinessTripPageCleanupTest extends TestCase
         $this->assertStringContainsString('>+ Business Trip</a>', $businessTripView);
         $this->assertStringContainsString('businessTripSummary', $businessTripController);
         $this->assertStringContainsString('businessTripCards', $businessTripController);
-        $this->assertStringContainsString("'progress_percentage' => 0", $businessTripController);
+        $this->assertStringContainsString("'businessTripFilters' => \$businessTripFilters", $businessTripController);
+        $this->assertStringContainsString('private function businessTripIndexFilters(Request $request): array', $businessTripController);
+        $this->assertStringContainsString('private function applyBusinessTripIndexFilters(Builder $businessTripQuery, array $filters): Builder', $businessTripController);
+        $this->assertStringContainsString('private function businessTripDateRangeForFilter(string $timeframe): ?array', $businessTripController);
+        $this->assertStringContainsString("'progress_percentage' => \$this->calculateBusinessTripLifecycleProgressPercentage(\$businessTrip)", $businessTripController);
+        $this->assertStringContainsString('private function calculateBusinessTripLifecycleProgressPercentage(BusinessTrip $businessTrip): int', $businessTripController);
+        $this->assertStringContainsString("strtolower(trim((string) \$lifecycleLog->status)) === 'complete'", $businessTripController);
         $this->assertStringContainsString("'detail_url' => route('attendance.business-trips.show', \$businessTrip)", $businessTripController);
         $this->assertStringContainsString("return view('attendance.business-trips.detail', [", $businessTripController);
         $this->assertStringContainsString("'employee.profile'", $businessTripController);
@@ -156,6 +163,14 @@ class BusinessTripPageCleanupTest extends TestCase
         $this->assertStringContainsString("{{ \$businessTripSummary['total_trips'] ?? 0 }} Trips", $businessTripView);
         $this->assertStringContainsString("<span>{{ \$businessTripCard['progress_percentage'] ?? 0 }}%</span>", $businessTripView);
         $this->assertStringContainsString("style=\"width: {{ \$businessTripCard['progress_percentage'] ?? 0 }}%;\"", $businessTripView);
+        $this->assertStringContainsString('method="GET" action="{{ route(\'attendance.business-trips\') }}"', $businessTripView);
+        $this->assertStringContainsString('name="status"', $businessTripView);
+        $this->assertStringContainsString('value="approved" @selected(($businessTripFilters[\'status\'] ?? \'all\') === \'approved\')', $businessTripView);
+        $this->assertStringContainsString('name="type"', $businessTripView);
+        $this->assertStringContainsString('value="intercity" @selected(($businessTripFilters[\'type\'] ?? \'all\') === \'intercity\')', $businessTripView);
+        $this->assertStringContainsString('name="timeframe"', $businessTripView);
+        $this->assertStringContainsString('value="year_to_date" @selected(($businessTripFilters[\'timeframe\'] ?? \'year_to_date\') === \'year_to_date\')', $businessTripView);
+        $this->assertStringContainsString('<button type="submit" class="btn btn-primary">Save changes</button>', $businessTripView);
         $this->assertStringNotContainsString('#TRP-2026-054', $businessTripView);
         $this->assertStringNotContainsString('Surabaya, Jawa Timur', $businessTripView);
         $this->assertStringContainsString("request()->routeIs('attendance.business-trips*')", $profileNavbarView);
@@ -752,6 +767,112 @@ class BusinessTripPageCleanupTest extends TestCase
 
         $this->assertSame('-', $lifecycleValue['actor_label']);
         $this->assertSame('Pending', $lifecycleValue['datetime_label']);
+    }
+
+    public function test_business_trip_card_progress_counts_completed_lifecycle_steps_from_one_to_nine(): void
+    {
+        $businessTrip = new BusinessTrip;
+        $businessTrip->setRelation('lifecycleLogs', collect([
+            new BusinessTripLifecycleLog([
+                'step_order' => 1,
+                'status' => 'complete',
+            ]),
+            new BusinessTripLifecycleLog([
+                'step_order' => 2,
+                'status' => 'complete',
+            ]),
+            new BusinessTripLifecycleLog([
+                'step_order' => 3,
+                'status' => 'pending',
+            ]),
+            new BusinessTripLifecycleLog([
+                'step_order' => 4,
+                'status' => 'waiting',
+            ]),
+            new BusinessTripLifecycleLog([
+                'step_order' => 9,
+                'status' => 'complete',
+            ]),
+            new BusinessTripLifecycleLog([
+                'step_order' => 10,
+                'status' => 'complete',
+            ]),
+        ]));
+
+        $progressMethod = new ReflectionMethod(BusinessTripController::class, 'calculateBusinessTripLifecycleProgressPercentage');
+        $progress = $progressMethod->invoke(new BusinessTripController, $businessTrip);
+
+        $this->assertSame(33, $progress);
+    }
+
+    public function test_business_trip_index_filters_normalize_request_values(): void
+    {
+        $filterMethod = new ReflectionMethod(BusinessTripController::class, 'businessTripIndexFilters');
+
+        $validFilters = $filterMethod->invoke(new BusinessTripController, Request::create('/attendance/business-trips', 'GET', [
+            'status' => ' Approved ',
+            'type' => 'Intercity',
+            'timeframe' => 'this_month',
+        ]));
+
+        $this->assertSame([
+            'status' => 'approved',
+            'type' => 'intercity',
+            'timeframe' => 'this_month',
+        ], $validFilters);
+
+        $invalidFilters = $filterMethod->invoke(new BusinessTripController, Request::create('/attendance/business-trips', 'GET', [
+            'status' => 'completed',
+            'type' => 'remote',
+            'timeframe' => 'future',
+        ]));
+
+        $this->assertSame([
+            'status' => 'all',
+            'type' => 'all',
+            'timeframe' => 'year_to_date',
+        ], $invalidFilters);
+    }
+
+    public function test_business_trip_index_filters_apply_to_query_builder(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-11 10:00:00', 'Asia/Jakarta'));
+
+        try {
+            $filterMethod = new ReflectionMethod(BusinessTripController::class, 'applyBusinessTripIndexFilters');
+            $businessTripQuery = $filterMethod->invoke(new BusinessTripController, BusinessTrip::query(), [
+                'status' => 'approved',
+                'type' => 'intercity',
+                'timeframe' => 'this_month',
+            ]);
+
+            $this->assertStringContainsString('approval_status', $businessTripQuery->toSql());
+            $this->assertStringContainsString('trip_type', $businessTripQuery->toSql());
+            $this->assertStringContainsString('start_date', $businessTripQuery->toSql());
+            $this->assertStringContainsString('end_date', $businessTripQuery->toSql());
+            $this->assertContains('approved', $businessTripQuery->getBindings());
+            $this->assertContains('intercity', $businessTripQuery->getBindings());
+            $this->assertContains('2026-06-01', $businessTripQuery->getBindings());
+            $this->assertContains('2026-06-30', $businessTripQuery->getBindings());
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_business_trip_timeframe_filter_returns_expected_ranges(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-11 10:00:00', 'Asia/Jakarta'));
+
+        try {
+            $rangeMethod = new ReflectionMethod(BusinessTripController::class, 'businessTripDateRangeForFilter');
+
+            $this->assertSame(['2026-06-01', '2026-06-30'], $rangeMethod->invoke(new BusinessTripController, 'this_month'));
+            $this->assertSame(['2026-05-01', '2026-05-31'], $rangeMethod->invoke(new BusinessTripController, 'last_month'));
+            $this->assertSame(['2026-01-01', '2026-06-11'], $rangeMethod->invoke(new BusinessTripController, 'year_to_date'));
+            $this->assertNull($rangeMethod->invoke(new BusinessTripController, 'all'));
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     private function businessTripStaffActor(): User

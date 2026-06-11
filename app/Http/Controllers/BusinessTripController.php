@@ -120,14 +120,18 @@ class BusinessTripController extends Controller
         ],
     ];
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $authenticatedUser = Auth::user();
         if ($authenticatedUser instanceof User) {
             $authenticatedUser->loadMissing('employee.deployment');
         }
 
-        $businessTrips = $this->businessTripIndexQuery($authenticatedUser instanceof User ? $authenticatedUser : null)
+        $businessTripFilters = $this->businessTripIndexFilters($request);
+        $businessTrips = $this->applyBusinessTripIndexFilters(
+            $this->businessTripIndexQuery($authenticatedUser instanceof User ? $authenticatedUser : null),
+            $businessTripFilters
+        )
             ->with(['cashAdvances', 'reimbursements', 'lifecycleLogs'])
             ->latest('created_at')
             ->get();
@@ -135,6 +139,7 @@ class BusinessTripController extends Controller
         return view('attendance.business-trips.index', [
             'businessTripSummary' => $this->buildBusinessTripSummary($businessTrips),
             'businessTripCards' => $businessTrips->map(fn (BusinessTrip $businessTrip): array => $this->buildBusinessTripCard($businessTrip)),
+            'businessTripFilters' => $businessTripFilters,
         ]);
     }
 
@@ -203,6 +208,71 @@ class BusinessTripController extends Controller
         }
 
         return $businessTripQuery;
+    }
+
+    /**
+     * @return array{status:string,type:string,timeframe:string}
+     */
+    private function businessTripIndexFilters(Request $request): array
+    {
+        $status = strtolower(trim($request->string('status')->toString()));
+        $type = strtolower(trim($request->string('type')->toString()));
+        $timeframe = strtolower(trim($request->string('timeframe', 'year_to_date')->toString()));
+
+        return [
+            'status' => in_array($status, ['approved', 'pending', 'rejected'], true) ? $status : 'all',
+            'type' => in_array($type, ['local', 'intercity'], true) ? $type : 'all',
+            'timeframe' => in_array($timeframe, ['all', 'this_month', 'last_month', 'year_to_date'], true) ? $timeframe : 'year_to_date',
+        ];
+    }
+
+    /**
+     * @param  array{status:string,type:string,timeframe:string}  $filters
+     */
+    private function applyBusinessTripIndexFilters(Builder $businessTripQuery, array $filters): Builder
+    {
+        if ($filters['status'] !== 'all') {
+            $businessTripQuery->where('approval_status', $filters['status']);
+        }
+
+        if ($filters['type'] !== 'all') {
+            $businessTripQuery->where('trip_type', $filters['type']);
+        }
+
+        $dateRange = $this->businessTripDateRangeForFilter($filters['timeframe']);
+        if ($dateRange !== null) {
+            [$startDate, $endDate] = $dateRange;
+
+            $businessTripQuery
+                ->whereDate('start_date', '<=', $endDate)
+                ->whereDate('end_date', '>=', $startDate);
+        }
+
+        return $businessTripQuery;
+    }
+
+    /**
+     * @return array{0:string,1:string}|null
+     */
+    private function businessTripDateRangeForFilter(string $timeframe): ?array
+    {
+        $today = now('Asia/Jakarta');
+
+        return match ($timeframe) {
+            'this_month' => [
+                $today->copy()->startOfMonth()->toDateString(),
+                $today->copy()->endOfMonth()->toDateString(),
+            ],
+            'last_month' => [
+                $today->copy()->subMonthNoOverflow()->startOfMonth()->toDateString(),
+                $today->copy()->subMonthNoOverflow()->endOfMonth()->toDateString(),
+            ],
+            'year_to_date' => [
+                $today->copy()->startOfYear()->toDateString(),
+                $today->copy()->toDateString(),
+            ],
+            default => null,
+        };
     }
 
     private function canAccessBusinessTrip(?User $authenticatedUser, BusinessTrip $businessTrip): bool
@@ -434,10 +504,36 @@ class BusinessTripController extends Controller
                 ? $startDate->format('d M Y').' - '.$endDate->format('d M Y').' ('.(int) $businessTrip->total_days.' Days)'
                 : '-',
             'due_label' => $endDate?->format('d M Y') ?? '-',
-            'progress_percentage' => 0,
+            'progress_percentage' => $this->calculateBusinessTripLifecycleProgressPercentage($businessTrip),
             'status_label' => $this->businessTripStatusLabel($status),
             'status_badge_class' => $this->businessTripStatusBadgeClass($status),
         ];
+    }
+
+    private function calculateBusinessTripLifecycleProgressPercentage(BusinessTrip $businessTrip): int
+    {
+        $trackedStepOrders = collect(self::BUSINESS_TRIP_LIFECYCLE_STEPS)
+            ->pluck('step_order')
+            ->filter(fn (mixed $stepOrder): bool => is_numeric($stepOrder) && (int) $stepOrder >= 1 && (int) $stepOrder <= 9)
+            ->map(fn (mixed $stepOrder): int => (int) $stepOrder)
+            ->unique()
+            ->values();
+
+        $totalSteps = $trackedStepOrders->count();
+        if ($totalSteps === 0) {
+            return 0;
+        }
+
+        $completedSteps = $businessTrip->lifecycleLogs
+            ->filter(function (BusinessTripLifecycleLog $lifecycleLog) use ($trackedStepOrders): bool {
+                return $trackedStepOrders->contains((int) $lifecycleLog->step_order)
+                    && strtolower(trim((string) $lifecycleLog->status)) === 'complete';
+            })
+            ->pluck('step_order')
+            ->unique()
+            ->count();
+
+        return (int) round(($completedSteps / $totalSteps) * 100);
     }
 
     private function buildBusinessTripRequestDetails(BusinessTrip $businessTrip): array

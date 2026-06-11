@@ -159,7 +159,7 @@
                         </svg>
                     </span>
                     <div>
-                        <p class="fs-14 mb-2">Pending SPV Approval</p>
+                        <p class="fs-14 mb-2">Assigned Hours</p>
                         <span class="title text-black fs-28 fw-semibold">4 Hours</span>
                     </div>
                 </div>
@@ -191,7 +191,7 @@
                         </svg>
                     </span>
                     <div>
-                        <p class="fs-14 mb-2">Approved & Locked</p>
+                        <p class="fs-14 mb-2">Completed & Locked</p>
                         <span class="title text-black fs-28 fw-semibold">11 Hours</span>
                     </div>
                 </div>
@@ -307,7 +307,7 @@
                 </div>
                 <div class="card-footer d-flex justify-content-between flex-wrap">
                     <p class="mb-0 fw-medium">Due <span class="text-purple">: 10 May 2026, 12:00</span></p>
-                    <span class="badge badge-sm badge-primary light">Pending</span>
+                    <span class="badge badge-sm badge-primary light">Assigned</span>
                 </div>
             </div>
         </div>
@@ -331,10 +331,10 @@
                                 <label class="form-label">Filter by Status</label>
                                 <select class="form-control selectpicker">
                                     <option selected="">Select All</option>
-                                    <option>Approved</option>
-                                    <option>Pending Review</option>
-                                    <option>Rejected</option>
-                                    <option>Canceled</option>
+                                    <option>Assigned</option>
+                                    <option>In Progress</option>
+                                    <option>Completed</option>
+                                    <option>Cancelled</option>
                                 </select>
                             </div>
                             <div class="mb-3">

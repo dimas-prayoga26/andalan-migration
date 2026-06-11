@@ -22,7 +22,7 @@ return new class extends Migration
             $table->time('actual_start_time')->nullable();
             $table->time('actual_end_time')->nullable();
             $table->decimal('calculated_hours', 5, 2)->nullable();
-            $table->enum('status', ['pending', 'approved', 'rejected', 'completed'])->default('pending');
+            $table->enum('status', ['assigned', 'in_progress', 'completed', 'cancelled'])->default('assigned');
             $table->softDeletes();
             $table->timestamps();
         });

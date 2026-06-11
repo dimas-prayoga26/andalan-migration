@@ -7,6 +7,17 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-06-11 (Kamis)
+- Menambahkan fondasi project-task untuk overtime: tabel/model `projects`, `project_members`, `project_sections`, dan `project_tasks`.
+- Menambahkan relasi project ke company, member, section, task, employee, user/PIC, dan overtime.
+- Mengubah desain overtime agar 1 overtime dapat memiliki banyak task melalui `project_tasks.overtime_id` nullable.
+- Menambahkan `project_sections` agar task dalam 1 project dapat dikelompokkan per kategori/section.
+- Menghapus kolom `role` dari `project_members` karena membership cukup mencatat staff yang mengikuti project.
+- Mengubah lifecycle status overtime menjadi `assigned`, `in_progress`, `completed`, dan `cancelled`.
+- Merapikan migration agar perubahan status overtime dan relasi task-overtime berada langsung pada migration utama.
+- Menambahkan test relasi/migration `ProjectOvertimeRelationTest`.
+- Detail: `docs/dev-log/2026-06-11-1456-overtime-project-task-foundation.md`.
+
 ### 2026-06-10 (Rabu)
 - Mengubah link card Overtime agar membuka view detail Blade melalui route `attendance.overtimes.detail`.
 - Membuat style export Excel Attendance Report menjadi polos tanpa background warna.

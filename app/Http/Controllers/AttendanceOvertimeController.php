@@ -15,6 +15,14 @@ use Illuminate\Support\Facades\Auth;
 
 class AttendanceOvertimeController extends Controller
 {
+    private const OVERTIME_STATUS_ASSIGNED = 'assigned';
+
+    private const OVERTIME_STATUS_IN_PROGRESS = 'in_progress';
+
+    private const OVERTIME_STATUS_COMPLETED = 'completed';
+
+    private const OVERTIME_STATUS_CANCELLED = 'cancelled';
+
     public function index(): View
     {
         $authenticatedUser = Auth::user();
@@ -117,7 +125,7 @@ class AttendanceOvertimeController extends Controller
             }
             $overtimesQuery
                 ->where('employee_id', $authenticatedEmployeeId)
-                ->where('status', 'approved')
+                ->where('status', self::OVERTIME_STATUS_COMPLETED)
                 ->whereNotNull('actual_start_time')
                 ->whereNotNull('actual_end_time');
         }
@@ -148,7 +156,7 @@ class AttendanceOvertimeController extends Controller
                 'calculated_hours' => $calculatedHoursDisplay,
                 'calculated_hours_display' => $calculatedHoursDisplay,
                 'duration' => $this->calculateDurationLabel($overtime->actual_start_time, $overtime->actual_end_time),
-                'status' => (string) ($overtime->status ?? 'pending'),
+                'status' => (string) ($overtime->status ?? self::OVERTIME_STATUS_ASSIGNED),
                 'instruction' => $overtime->instruction ?: '-',
             ];
         })->values();
@@ -169,7 +177,7 @@ class AttendanceOvertimeController extends Controller
             'instruction' => ['required', 'string', 'max:5000'],
             'actual_start_time' => ['nullable'],
             'actual_end_time' => ['nullable'],
-            'status' => ['nullable', 'in:pending,approved'],
+            'status' => ['nullable', 'in:assigned,in_progress,completed,cancelled'],
         ]);
 
         $authenticatedUser = Auth::user();
@@ -254,9 +262,11 @@ class AttendanceOvertimeController extends Controller
             'actual_start_time' => $actualStartTime,
             'actual_end_time' => $actualEndTime,
             'calculated_hours' => $this->calculateDurationHours($actualStartTime, $actualEndTime),
-            'status' => $isStaffUser
-                ? 'pending'
-                : strtolower(trim((string) ($validated['status'] ?? 'pending'))),
+            'status' => $this->resolveOvertimeStatus(
+                $isStaffUser ? null : ($validated['status'] ?? null),
+                $actualStartTime,
+                $actualEndTime
+            ),
         ]);
 
         return response()->json([
@@ -299,7 +309,7 @@ class AttendanceOvertimeController extends Controller
                 'actual_start_time' => $this->normalizeStoreTimeValue($attendanceOvertime->actual_start_time),
                 'actual_end_time' => $this->normalizeStoreTimeValue($attendanceOvertime->actual_end_time),
                 'duration' => $this->calculateDurationLabel($attendanceOvertime->planned_start_time, $attendanceOvertime->planned_end_time),
-                'status' => (string) ($attendanceOvertime->status ?? 'pending'),
+                'status' => (string) ($attendanceOvertime->status ?? self::OVERTIME_STATUS_ASSIGNED),
                 'instruction' => $attendanceOvertime->instruction ?: '-',
             ],
         ]);
@@ -324,7 +334,7 @@ class AttendanceOvertimeController extends Controller
             'instruction' => ['required', 'string', 'max:5000'],
             'actual_start_time' => ['nullable'],
             'actual_end_time' => ['nullable'],
-            'status' => ['nullable', 'in:pending,approved'],
+            'status' => ['nullable', 'in:assigned,in_progress,completed,cancelled'],
         ]);
 
         $overtimeDate = Carbon::createFromFormat('d/m/Y', $validated['overtime_date'])->format('Y-m-d');
@@ -371,10 +381,11 @@ class AttendanceOvertimeController extends Controller
             ], 422);
         }
 
-        $status = strtolower(trim((string) ($validated['status'] ?? ($attendanceOvertime->status ?? 'pending'))));
-        if ($isStaffUser) {
-            $status = ($actualStartTime && $actualEndTime) ? 'approved' : 'pending';
-        }
+        $status = $this->resolveOvertimeStatus(
+            $isStaffUser ? null : ($validated['status'] ?? ($attendanceOvertime->status ?? self::OVERTIME_STATUS_ASSIGNED)),
+            $actualStartTime,
+            $actualEndTime
+        );
 
         $updatePayload = [
             'employee_id' => trim((string) $validated['employee_id']),
@@ -402,7 +413,7 @@ class AttendanceOvertimeController extends Controller
 
         $attendanceOvertime->update($updatePayload);
 
-        if ($isStaffUser && $status === 'approved' && $actualStartTime && $actualEndTime) {
+        if ($isStaffUser && $status === self::OVERTIME_STATUS_COMPLETED && $actualStartTime && $actualEndTime) {
             $this->syncAttendanceOvertimeLink(
                 (string) $attendanceOvertime->employee_id,
                 $attendanceOvertime->overtime_date instanceof Carbon
@@ -447,6 +458,31 @@ class AttendanceOvertimeController extends Controller
         } catch (\Throwable) {
             return substr($timeValue, 0, 5);
         }
+    }
+
+    private function resolveOvertimeStatus(mixed $requestedStatus, ?string $actualStartTime, ?string $actualEndTime): string
+    {
+        $normalizedStatus = is_string($requestedStatus)
+            ? strtolower(trim($requestedStatus))
+            : '';
+
+        if ($normalizedStatus === self::OVERTIME_STATUS_CANCELLED) {
+            return self::OVERTIME_STATUS_CANCELLED;
+        }
+
+        if ($actualStartTime && $actualEndTime) {
+            return self::OVERTIME_STATUS_COMPLETED;
+        }
+
+        if ($actualStartTime) {
+            return self::OVERTIME_STATUS_IN_PROGRESS;
+        }
+
+        if ($normalizedStatus === self::OVERTIME_STATUS_ASSIGNED) {
+            return self::OVERTIME_STATUS_ASSIGNED;
+        }
+
+        return self::OVERTIME_STATUS_ASSIGNED;
     }
 
     private function calculateDurationLabel(mixed $startTimeValue, mixed $endTimeValue): string
@@ -635,6 +671,10 @@ class AttendanceOvertimeController extends Controller
 
         return AttendanceOvertime::query()
             ->where('employee_id', trim($employeeId))
+            ->whereIn('status', [
+                self::OVERTIME_STATUS_ASSIGNED,
+                self::OVERTIME_STATUS_IN_PROGRESS,
+            ])
             ->exists();
     }
 
@@ -649,7 +689,10 @@ class AttendanceOvertimeController extends Controller
             ->where(function ($query): void {
                 $query->whereNull('actual_start_time')
                     ->orWhereNull('actual_end_time')
-                    ->orWhere('status', 'pending');
+                    ->orWhereIn('status', [
+                        self::OVERTIME_STATUS_ASSIGNED,
+                        self::OVERTIME_STATUS_IN_PROGRESS,
+                    ]);
             })
             ->orderByDesc('overtime_date')
             ->orderByDesc('id')

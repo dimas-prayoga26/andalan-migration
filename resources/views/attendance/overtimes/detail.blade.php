@@ -751,10 +751,10 @@
                                 <label class="form-label">Filter by Status</label>
                                 <select class="form-control selectpicker">
                                     <option selected="">Select All</option>
-                                    <option>Approved</option>
-                                    <option>Pending Review</option>
-                                    <option>Rejected</option>
-                                    <option>Canceled</option>
+                                    <option>Assigned</option>
+                                    <option>In Progress</option>
+                                    <option>Completed</option>
+                                    <option>Cancelled</option>
                                 </select>
                             </div>
                             <div class="mb-3">

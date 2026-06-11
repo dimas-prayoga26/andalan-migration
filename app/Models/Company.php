@@ -31,6 +31,11 @@ class Company extends Model
         return $this->hasMany(User::class);
     }
 
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'company_id', 'id');
+    }
+
     public function attendanceRules(): HasMany
     {
         return $this->hasMany(RulesOfAttendace::class, 'companies_id', 'id');

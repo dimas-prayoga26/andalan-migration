@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -57,6 +58,28 @@ class Employee extends Model
     public function businessTrips(): HasMany
     {
         return $this->hasMany(BusinessTrip::class, 'employee_id', 'id');
+    }
+
+    public function projectMemberships(): HasMany
+    {
+        return $this->hasMany(ProjectMember::class, 'employee_id', 'id');
+    }
+
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'project_members', 'employee_id', 'project_id')
+            ->withPivot(['id', 'joined_at', 'left_at', 'status'])
+            ->withTimestamps();
+    }
+
+    public function projectTasks(): HasMany
+    {
+        return $this->hasMany(ProjectTask::class, 'employee_id', 'id');
+    }
+
+    public function overtimes(): HasMany
+    {
+        return $this->hasMany(AttendanceOvertime::class, 'employee_id', 'id');
     }
 
     public function telegramUser(): HasOne

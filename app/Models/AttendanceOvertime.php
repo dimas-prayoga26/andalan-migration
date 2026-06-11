@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AttendanceOvertime extends Model
 {
@@ -30,6 +31,11 @@ class AttendanceOvertime extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'employee_id', 'id');
+    }
+
+    public function projectTasks(): HasMany
+    {
+        return $this->hasMany(ProjectTask::class, 'overtime_id', 'id');
     }
 
     public function assignedBy(): BelongsTo

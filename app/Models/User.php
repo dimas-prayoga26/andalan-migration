@@ -64,11 +64,6 @@ class User extends Authenticatable
         return $this->hasMany(Project::class, 'created_by', 'id');
     }
 
-    public function createdProjectTasks(): HasMany
-    {
-        return $this->hasMany(ProjectTask::class, 'created_by', 'id');
-    }
-
     public function approvedBusinessTrips(): HasMany
     {
         return $this->hasMany(BusinessTrip::class, 'approved_by', 'id');

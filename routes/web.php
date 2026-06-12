@@ -81,7 +81,7 @@ Route::middleware('auth')->group(function (): void {
     // Attendance overtime routes
     Route::get('/attendance/overtimes/datatable', [AttendanceOvertimeController::class, 'datatable'])->name('attendance.overtimes.datatable');
     Route::get('/attendance/overtimes', [AttendanceOvertimeController::class, 'index'])->name('attendance.overtimes');
-    Route::view('/attendance/overtimes/detail', 'attendance.overtimes.detail')->name('attendance.overtimes.detail');
+    Route::get('/attendance/overtimes/detail', [AttendanceOvertimeController::class, 'detail'])->name('attendance.overtimes.detail');
     Route::post('/attendance/overtimes', [AttendanceOvertimeController::class, 'store'])->name('attendance.overtimes.store');
     Route::get('/attendance/overtimes/{attendanceOvertime}', [AttendanceOvertimeController::class, 'show'])->name('attendance.overtimes.show');
     Route::put('/attendance/overtimes/{attendanceOvertime}', [AttendanceOvertimeController::class, 'update'])->name('attendance.overtimes.update');

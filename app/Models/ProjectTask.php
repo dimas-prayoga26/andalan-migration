@@ -40,19 +40,14 @@ class ProjectTask extends Model
         return $this->belongsTo(Project::class, 'project_id', 'id');
     }
 
-    public function section(): BelongsTo
+    public function department(): BelongsTo
     {
-        return $this->belongsTo(ProjectSection::class, 'project_section_id', 'id');
+        return $this->belongsTo(Department::class, 'department_id', 'id');
     }
 
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'employee_id', 'id');
-    }
-
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by', 'id');
     }
 
     public function overtime(): BelongsTo

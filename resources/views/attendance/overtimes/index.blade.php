@@ -21,15 +21,6 @@
 
 @include('attendance.layouts.profile-index')
 
-<div class="col-lg-12">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Overtime</h5>
-        <div class="d-flex align-items-center">
-            <a data-bs-toggle="modal" data-bs-target="#create" class="btn btn-success light btn-sm ms-2">+ Overtime</a>
-        </div>
-    </div>
-</div>
-
 <div class="row">
     <div class="col-md-3 col-sm-6">
         <div class="card overflow-hidden avtivity-card">

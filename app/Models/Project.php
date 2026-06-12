@@ -62,9 +62,4 @@ class Project extends Model
     {
         return $this->hasMany(ProjectTask::class, 'project_id', 'id');
     }
-
-    public function sections(): HasMany
-    {
-        return $this->hasMany(ProjectSection::class, 'project_id', 'id');
-    }
 }

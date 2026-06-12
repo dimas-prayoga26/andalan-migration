@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('project_tasks', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('project_id')->constrained('projects', 'id')->cascadeOnDelete();
-            $table->foreignUuid('project_section_id')->constrained('project_sections', 'id')->cascadeOnDelete();
+            $table->foreignUuid('department_id')->constrained('departments', 'id')->cascadeOnDelete();
             $table->foreignUuid('employee_id')->constrained('employees', 'id')->cascadeOnDelete();
             $table->foreignUuid('overtime_id')->nullable()->constrained('overtimes', 'id')->nullOnDelete();
             $table->string('title');
@@ -24,12 +24,11 @@ return new class extends Migration
             $table->date('start_date')->nullable();
             $table->date('due_date')->nullable();
             $table->timestamp('completed_at')->nullable();
-            $table->foreignUuid('created_by')->nullable()->constrained('users', 'id')->nullOnDelete();
             $table->softDeletes();
             $table->timestamps();
 
             $table->index(['project_id', 'status'], 'project_tasks_project_status_index');
-            $table->index(['project_section_id', 'status'], 'project_tasks_section_status_index');
+            $table->index(['department_id', 'status'], 'project_tasks_department_status_index');
             $table->index(['employee_id', 'status'], 'project_tasks_employee_status_index');
             $table->index(['overtime_id', 'status'], 'project_tasks_overtime_status_index');
         });

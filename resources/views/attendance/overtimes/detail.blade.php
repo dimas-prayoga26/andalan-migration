@@ -54,7 +54,7 @@
                                 <span>Record ID</span>
                             </div>
                             <div class="col-md-6 col-12">
-                                <span class="text-gray fw-semibold">#OVT-2605-0089</span>
+                                <span class="text-gray fw-semibold">{{ $overtimeReference ?? '#OVT' }}</span>
                             </div>
                         </div>
                         <div class="row py-2">
@@ -294,143 +294,40 @@
         <div class="col-xxl-6 col-xl-12 col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title mb-0">Activity #OVT-2605-0001</h4>
+                    <h4 class="card-title mb-0">Activity {{ $overtimeReference ?? '#OVT' }}</h4>
                 </div>
                 <div class="card-body dz-scroll height380">
                     <div class="widget-timeline1">
                         <ul class="timeline">
-                            <li>
-                                <span class="timeline-status">22 May</span>
-                                <div class="timeline-badge border-success"></div>
-                                <div class="timeline-panel">
-                                    <span>
-                                        <span class="text-black fs-14 fw-semibold">Phase 1: Assignment & Request</span> <br>
-                                    </span>
-                                </div>
-                            </li>
-                            <li>
-                                <span class="timeline-status">22 May</span>
-                                <div class="timeline-badge border-success"></div>
-                                <div class="timeline-panel">
-                                    <span>
-                                        1. Overtime Assignment Submitted <br>
-                                        Datetime : 22 May 2026, 17:00 <br>
-                                        Actor : Michael (Supervisor) <br>
-                                        Status : <span class="badge badge-xs badge-success light fw-semibold">Complete</span>
-                                    </span>
-                                </div>
-                            </li>
-                            <li>
-                                <span class="timeline-status">22 May</span>
-                                <div class="timeline-badge border-success"></div>
-                                <div class="timeline-panel">
-                                    <span>
-                                        <span class="text-black fs-14 fw-semibold">Phase 2: Execution (Time Tracking)</span> <br>
-                                    </span>
-                                </div>
-                            </li>
-                            <li>
-                                <span class="timeline-status">22 May</span>
-                                <div class="timeline-badge border-success"></div>
-                                <div class="timeline-panel">
-                                    <span>
-                                        2. Overtime Session Started <br>
-                                        Datetime : 22 May 2026, 17:00 <br>
-                                        Actor : System Tracker <br>
-                                        Status : <span class="badge badge-xs badge-success light fw-semibold">Clock In</span>
-                                    </span>
-                                </div>
-                            </li>
-                            <li>
-                                <span class="timeline-status">22 May</span>
-                                <div class="timeline-badge border-success"></div>
-                                <div class="timeline-panel">
-                                    <span>
-                                        3. Task & Deliverables Submitted <br>
-                                        Datetime : 22 May 2026, 20:00 <br>
-                                        Actor : Thomas (Employee) <br>
-                                        Status : <span class="badge badge-xs badge-success light fw-semibold">Completed</span>
-                                    </span>
-                                </div>
-                            </li>
-                            <li>
-                                <span class="timeline-status">22 May</span>
-                                <div class="timeline-badge border-success"></div>
-                                <div class="timeline-panel">
-                                    <span>
-                                        4. Overtime Session Ended <br>
-                                        Datetime : 22 May 2026, 20:00 <br>
-                                        Actor : System Tracker <br>
-                                        Status : <span class="badge badge-xs badge-success light fw-semibold">Clock Out</span>
-                                    </span>
-                                </div>
-                            </li>
-                            <li>
-                                <span class="timeline-status">22 May</span>
-                                <div class="timeline-badge border-success"></div>
-                                <div class="timeline-panel">
-                                    <span>
-                                        <span class="text-black fs-14 fw-semibold">Phase 3: Review & Approval</span> <br>
-                                    </span>
-                                </div>
-                            </li>
-                            <li>
-                                <span class="timeline-status">22 May</span>
-                                <div class="timeline-badge border-success"></div>
-                                <div class="timeline-panel">
-                                    <span>
-                                        5. Task & Hours Verification <br>
-                                        Datetime : 22 May 2026, 20:00 <br>
-                                        Actor : Michael (Supervisor) <br>
-                                        Status : <span class="badge badge-xs badge-success light fw-semibold">Verified</span>
-                                    </span>
-                                </div>
-                            </li>
-                            <li>
-                                <span class="timeline-status">22 May</span>
-                                <div class="timeline-badge border-success"></div>
-                                <div class="timeline-panel">
-                                    <span>
-                                        <span class="text-black fs-14 fw-semibold">Phase 4: Payroll & Payment</span> <br>
-                                    </span>
-                                </div>
-                            </li>
-                            <li>
-                                <span class="timeline-status">22 May</span>
-                                <div class="timeline-badge border-success"></div>
-                                <div class="timeline-panel">
-                                    <span>
-                                        6. HR / Payroll Processing <br>
-                                        Datetime : 22 May 2026, 20:00 <br>
-                                        Actor : Ana (Finance) <br>
-                                        Status : <span class="badge badge-xs badge-success light fw-semibold">Calculated & Locked</span>
-                                    </span>
-                                </div>
-                            </li>
-                            <li>
-                                <span class="timeline-status">22 May</span>
-                                <div class="timeline-badge border-success"></div>
-                                <div class="timeline-panel">
-                                    <span>
-                                        7. Director Approval <br>
-                                        Datetime : 22 May 2026, 20:00 <br>
-                                        Actor : Josh (Director) <br>
-                                        Status : <span class="badge badge-xs badge-success light fw-semibold">Approved</span>
-                                    </span>
-                                </div>
-                            </li>
-                            <li>
-                                <span class="timeline-status">22 May</span>
-                                <div class="timeline-badge border-dark"></div>
-                                <div class="timeline-panel">
-                                    <span>
-                                        8. Payment Disbursement <br>
-                                        Scheduled Date: 31 May 2026 <br>
-                                        Actor : Ana (Finance) <br>
-                                        Status : <span class="badge badge-xs badge-info light fw-semibold">Upcoming</span>
-                                    </span>
-                                </div>
-                            </li>
+                            @forelse (($overtimeLifecycleTracker ?? collect()) as $lifecyclePhase)
+                                <li>
+                                    <span class="timeline-status">{{ $lifecyclePhase['date_label'] ?? '-' }}</span>
+                                    <div class="timeline-badge {{ $lifecyclePhase['marker_class'] ?? 'border-secondary' }}"></div>
+                                    <div class="timeline-panel">
+                                        <span class="text-black fs-14 fw-semibold">{{ $lifecyclePhase['title'] ?? '-' }}</span> <br>
+                                    </div>
+                                </li>
+                                @foreach (($lifecyclePhase['items'] ?? collect()) as $lifecycleItem)
+                                    <li>
+                                        <span class="timeline-status">{{ $lifecycleItem['date_label'] ?? '-' }}</span>
+                                        <div class="timeline-badge {{ $lifecycleItem['marker_class'] ?? 'border-secondary' }}"></div>
+                                        <div class="timeline-panel">
+                                            <span>
+                                                {{ $lifecycleItem['step_order'] ?? '-' }}. {{ $lifecycleItem['title'] ?? '-' }} <br>
+                                                Datetime : {{ $lifecycleItem['datetime_label'] ?? '-' }} <br>
+                                                Actor : {{ $lifecycleItem['actor_label'] ?? '-' }} <br>
+                                                Status : <span class="badge badge-xs {{ $lifecycleItem['badge_class'] ?? 'badge-secondary light' }} fw-semibold">{{ $lifecycleItem['status_label'] ?? '-' }}</span>
+                                            </span>
+                                        </div>
+                                    </li>
+                                @endforeach
+                            @empty
+                                <li>
+                                    <span class="timeline-status">-</span>
+                                    <div class="timeline-badge border-secondary"></div>
+                                    <div class="timeline-panel"><span>No lifecycle logs recorded.</span></div>
+                                </li>
+                            @endforelse
                         </ul>
                     </div>
                 </div>

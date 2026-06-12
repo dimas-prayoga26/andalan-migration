@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\Attendance;
 use App\Models\AttendanceOvertime;
 use App\Models\Employee;
+use App\Models\OvertimeLifecycleLog;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class AttendanceOvertimeController extends Controller
 {
@@ -22,6 +25,84 @@ class AttendanceOvertimeController extends Controller
     private const OVERTIME_STATUS_COMPLETED = 'completed';
 
     private const OVERTIME_STATUS_CANCELLED = 'cancelled';
+
+    private const OVERTIME_LIFECYCLE_PHASES = [
+        'assignment_request' => [
+            'title' => 'Phase 1: Assignment & Request',
+            'sort_order' => 1,
+        ],
+        'execution_time_tracking' => [
+            'title' => 'Phase 2: Execution (Time Tracking)',
+            'sort_order' => 2,
+        ],
+        'review_approval' => [
+            'title' => 'Phase 3: Review & Approval',
+            'sort_order' => 3,
+        ],
+        'payroll_payment' => [
+            'title' => 'Phase 4: Payroll & Payment',
+            'sort_order' => 4,
+        ],
+    ];
+
+    private const OVERTIME_LIFECYCLE_STEPS = [
+        [
+            'phase' => 'assignment_request',
+            'event_key' => 'assignment_submitted',
+            'step_order' => 1,
+            'title' => 'Overtime Assignment Submitted',
+            'status' => 'complete',
+        ],
+        [
+            'phase' => 'execution_time_tracking',
+            'event_key' => 'session_started',
+            'step_order' => 2,
+            'title' => 'Overtime Session Started',
+            'status' => 'waiting',
+        ],
+        [
+            'phase' => 'execution_time_tracking',
+            'event_key' => 'task_deliverables_submitted',
+            'step_order' => 3,
+            'title' => 'Task & Deliverables Submitted',
+            'status' => 'waiting',
+        ],
+        [
+            'phase' => 'execution_time_tracking',
+            'event_key' => 'session_ended',
+            'step_order' => 4,
+            'title' => 'Overtime Session Ended',
+            'status' => 'waiting',
+        ],
+        [
+            'phase' => 'review_approval',
+            'event_key' => 'task_hours_verification',
+            'step_order' => 5,
+            'title' => 'Task & Hours Verification',
+            'status' => 'waiting',
+        ],
+        [
+            'phase' => 'payroll_payment',
+            'event_key' => 'payroll_processing',
+            'step_order' => 6,
+            'title' => 'HR / Payroll Processing',
+            'status' => 'waiting',
+        ],
+        [
+            'phase' => 'payroll_payment',
+            'event_key' => 'director_approval',
+            'step_order' => 7,
+            'title' => 'Director Approval',
+            'status' => 'waiting',
+        ],
+        [
+            'phase' => 'payroll_payment',
+            'event_key' => 'payment_disbursement',
+            'step_order' => 8,
+            'title' => 'Payment Disbursement',
+            'status' => 'waiting',
+        ],
+    ];
 
     public function index(): View
     {
@@ -80,6 +161,43 @@ class AttendanceOvertimeController extends Controller
         ]);
     }
 
+    public function detail(Request $request): View
+    {
+        $authenticatedUser = Auth::user();
+        if ($authenticatedUser instanceof User) {
+            $authenticatedUser->loadMissing('employee.deployment');
+        }
+
+        $requestedOvertimeId = is_string($request->query('id')) ? trim($request->query('id')) : '';
+        $overtimeQuery = AttendanceOvertime::query()
+            ->with([
+                'employee.user:id,username',
+                'employee.profile:id,employee_id,name',
+                'assignedBy:id,username',
+                'assignedBy.employee:id,user_id',
+                'assignedBy.employee.profile:id,employee_id,name',
+                'lifecycleLogs.actor',
+                'lifecycleLogs.actor.employee.profile',
+                'lifecycleLogs.actor.userProfile',
+            ]);
+
+        if ($requestedOvertimeId !== '') {
+            $overtime = $overtimeQuery->whereKey($requestedOvertimeId)->firstOrFail();
+            abort_unless($this->canAccessOvertime($authenticatedUser instanceof User ? $authenticatedUser : null, $overtime), 403);
+        } else {
+            $overtime = $this->applyOvertimeAccessFilter($overtimeQuery, $authenticatedUser instanceof User ? $authenticatedUser : null)
+                ->latest('overtime_date')
+                ->latest('created_at')
+                ->first();
+        }
+
+        return view('attendance.overtimes.detail', [
+            'overtime' => $overtime,
+            'overtimeReference' => $overtime instanceof AttendanceOvertime ? $this->formatOvertimeReference($overtime) : '#OVT',
+            'overtimeLifecycleTracker' => $overtime instanceof AttendanceOvertime ? $this->buildOvertimeLifecycleTracker($overtime) : collect(),
+        ]);
+    }
+
     public function datatable(): JsonResponse
     {
         $authenticatedUser = Auth::user();
@@ -103,6 +221,7 @@ class AttendanceOvertimeController extends Controller
             ->latest('id')
             ->select([
                 'id',
+                'record_number',
                 'employee_id',
                 'assigned_by',
                 'overtime_date',
@@ -145,6 +264,7 @@ class AttendanceOvertimeController extends Controller
 
             return [
                 'id' => $overtime->id,
+                'record_number' => (string) ($overtime->record_number ?? ''),
                 'overtime_date' => $date->format('d M Y'),
                 'staff_name' => $this->resolveEmployeeDisplayName($overtime->employee),
                 'pic_name' => $this->resolveUserDisplayName($overtime->assignedBy),
@@ -252,22 +372,28 @@ class AttendanceOvertimeController extends Controller
             ], 422);
         }
 
-        AttendanceOvertime::create([
-            'employee_id' => $employeeId,
-            'assigned_by' => $assignedByUserId,
-            'overtime_date' => $overtimeDate,
-            'planned_start_time' => $startTime,
-            'planned_end_time' => $endTime,
-            'instruction' => $validated['instruction'],
-            'actual_start_time' => $actualStartTime,
-            'actual_end_time' => $actualEndTime,
-            'calculated_hours' => $this->calculateDurationHours($actualStartTime, $actualEndTime),
-            'status' => $this->resolveOvertimeStatus(
-                $isStaffUser ? null : ($validated['status'] ?? null),
-                $actualStartTime,
-                $actualEndTime
-            ),
-        ]);
+        $assignmentActor = User::query()->find($assignedByUserId);
+        DB::transaction(function () use ($actualEndTime, $actualStartTime, $assignmentActor, $employeeId, $isStaffUser, $overtimeDate, $assignedByUserId, $startTime, $endTime, $validated): void {
+            $overtime = AttendanceOvertime::create([
+                'employee_id' => $employeeId,
+                'assigned_by' => $assignedByUserId,
+                'overtime_date' => $overtimeDate,
+                'planned_start_time' => $startTime,
+                'planned_end_time' => $endTime,
+                'instruction' => $validated['instruction'],
+                'actual_start_time' => $actualStartTime,
+                'actual_end_time' => $actualEndTime,
+                'calculated_hours' => $this->calculateDurationHours($actualStartTime, $actualEndTime),
+                'status' => $this->resolveOvertimeStatus(
+                    $isStaffUser ? null : ($validated['status'] ?? null),
+                    $actualStartTime,
+                    $actualEndTime
+                ),
+            ]);
+
+            $this->createInitialOvertimeLifecycleLogs($overtime, $assignmentActor, Carbon::now('Asia/Jakarta'));
+            $this->syncOvertimeLifecycleLogs($overtime, Auth::user() instanceof User ? Auth::user() : $assignmentActor);
+        });
 
         return response()->json([
             'success' => true,
@@ -298,6 +424,7 @@ class AttendanceOvertimeController extends Controller
             'success' => true,
             'data' => [
                 'id' => $attendanceOvertime->id,
+                'record_number' => (string) ($attendanceOvertime->record_number ?? ''),
                 'employee_id' => $attendanceOvertime->employee_id,
                 'pic_user_id' => $attendanceOvertime->assigned_by,
                 'staff_name' => $this->resolveEmployeeDisplayName($attendanceOvertime->employee),
@@ -411,7 +538,11 @@ class AttendanceOvertimeController extends Controller
             $updatePayload['instruction'] = (string) $attendanceOvertime->instruction;
         }
 
-        $attendanceOvertime->update($updatePayload);
+        DB::transaction(function () use ($attendanceOvertime, $authenticatedUser, $updatePayload): void {
+            $attendanceOvertime->update($updatePayload);
+            $attendanceOvertime->refresh();
+            $this->syncOvertimeLifecycleLogs($attendanceOvertime, $authenticatedUser instanceof User ? $authenticatedUser : null);
+        });
 
         if ($isStaffUser && $status === self::OVERTIME_STATUS_COMPLETED && $actualStartTime && $actualEndTime) {
             $this->syncAttendanceOvertimeLink(
@@ -735,6 +866,320 @@ class AttendanceOvertimeController extends Controller
                 'overtime_id' => $trimmedOvertimeId,
                 'is_overtime' => true,
             ]);
+    }
+
+    private function createInitialOvertimeLifecycleLogs(AttendanceOvertime $overtime, ?User $actor, Carbon $submittedAt): void
+    {
+        foreach (self::OVERTIME_LIFECYCLE_STEPS as $lifecycleStep) {
+            $isAssignmentStep = $lifecycleStep['event_key'] === 'assignment_submitted';
+
+            OvertimeLifecycleLog::query()->updateOrCreate(
+                [
+                    'overtime_id' => $overtime->id,
+                    'event_key' => $lifecycleStep['event_key'],
+                ],
+                [
+                    'phase' => $lifecycleStep['phase'],
+                    'step_order' => $lifecycleStep['step_order'],
+                    'title' => $lifecycleStep['title'],
+                    'status' => $isAssignmentStep ? 'complete' : $lifecycleStep['status'],
+                    'actor_id' => $isAssignmentStep ? $actor?->id : null,
+                    'happened_at' => $isAssignmentStep ? $submittedAt : null,
+                    'metadata' => [
+                        'overtime_status' => $overtime->status,
+                        'planned_start_time' => $this->normalizeTimeString($overtime->planned_start_time),
+                        'planned_end_time' => $this->normalizeTimeString($overtime->planned_end_time),
+                    ],
+                ]
+            );
+        }
+    }
+
+    private function syncOvertimeLifecycleLogs(AttendanceOvertime $overtime, ?User $actor): void
+    {
+        $overtime->loadMissing('employee.user', 'assignedBy');
+
+        if ((string) $overtime->status === self::OVERTIME_STATUS_CANCELLED) {
+            $this->updateOvertimeLifecycleLog(
+                $overtime,
+                'task_hours_verification',
+                'cancelled',
+                $actor,
+                Carbon::now('Asia/Jakarta')
+            );
+
+            return;
+        }
+
+        $actualStartTime = $this->normalizeStoreTimeValue($overtime->actual_start_time);
+        $actualEndTime = $this->normalizeStoreTimeValue($overtime->actual_end_time);
+
+        if ($actualStartTime !== null) {
+            $this->updateOvertimeLifecycleLog(
+                $overtime,
+                'session_started',
+                'clock_in',
+                $actor,
+                $this->overtimeDateTimeFromTime($overtime, $actualStartTime)
+            );
+        }
+
+        if ($actualEndTime === null) {
+            return;
+        }
+
+        $staffActor = $overtime->employee?->user instanceof User ? $overtime->employee->user : $actor;
+
+        $this->updateOvertimeLifecycleLog(
+            $overtime,
+            'task_deliverables_submitted',
+            'completed',
+            $staffActor,
+            $this->overtimeDateTimeFromTime($overtime, $actualEndTime)
+        );
+        $this->updateOvertimeLifecycleLog(
+            $overtime,
+            'session_ended',
+            'clock_out',
+            $actor,
+            $this->overtimeDateTimeFromTime($overtime, $actualEndTime)
+        );
+        $this->updateOvertimeLifecycleLog(
+            $overtime,
+            'task_hours_verification',
+            'verified',
+            $overtime->assignedBy instanceof User ? $overtime->assignedBy : $actor,
+            $this->overtimeDateTimeFromTime($overtime, $actualEndTime)
+        );
+    }
+
+    private function updateOvertimeLifecycleLog(AttendanceOvertime $overtime, string $eventKey, string $status, ?User $actor, ?Carbon $happenedAt): void
+    {
+        $lifecycleStep = $this->overtimeLifecycleStep($eventKey);
+        if ($lifecycleStep === null) {
+            return;
+        }
+
+        OvertimeLifecycleLog::query()->updateOrCreate(
+            [
+                'overtime_id' => $overtime->id,
+                'event_key' => $eventKey,
+            ],
+            [
+                'phase' => $lifecycleStep['phase'],
+                'step_order' => $lifecycleStep['step_order'],
+                'title' => $lifecycleStep['title'],
+                'status' => $status,
+                'actor_id' => $actor?->id,
+                'happened_at' => $happenedAt,
+                'metadata' => [
+                    'overtime_status' => $overtime->status,
+                    'actual_start_time' => $this->normalizeTimeString($overtime->actual_start_time),
+                    'actual_end_time' => $this->normalizeTimeString($overtime->actual_end_time),
+                ],
+            ]
+        );
+    }
+
+    /**
+     * @return array{phase:string,event_key:string,step_order:int,title:string,status:string}|null
+     */
+    private function overtimeLifecycleStep(string $eventKey): ?array
+    {
+        foreach (self::OVERTIME_LIFECYCLE_STEPS as $lifecycleStep) {
+            if ($lifecycleStep['event_key'] === $eventKey) {
+                return $lifecycleStep;
+            }
+        }
+
+        return null;
+    }
+
+    private function overtimeDateTimeFromTime(AttendanceOvertime $overtime, ?string $timeValue): ?Carbon
+    {
+        if (! is_string($timeValue) || trim($timeValue) === '') {
+            return null;
+        }
+
+        try {
+            $overtimeDate = $overtime->overtime_date instanceof Carbon
+                ? $overtime->overtime_date->format('Y-m-d')
+                : Carbon::parse($overtime->overtime_date)->format('Y-m-d');
+
+            return Carbon::createFromFormat('Y-m-d H:i:s', $overtimeDate.' '.$timeValue, 'Asia/Jakarta');
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function buildOvertimeLifecycleTracker(AttendanceOvertime $overtime): Collection
+    {
+        return $overtime->lifecycleLogs
+            ->sortBy('step_order')
+            ->groupBy('phase')
+            ->map(function (Collection $lifecycleLogs, string $phase): array {
+                $items = $lifecycleLogs
+                    ->map(fn (OvertimeLifecycleLog $lifecycleLog): array => $this->overtimeLifecycleValueFromLog($lifecycleLog))
+                    ->values();
+                $phaseValue = $this->overtimeLifecyclePhaseValue($items->all());
+                $phaseConfig = self::OVERTIME_LIFECYCLE_PHASES[$phase] ?? null;
+
+                return [
+                    'phase' => $phase,
+                    'title' => $phaseConfig['title'] ?? ucwords(str_replace('_', ' ', $phase)),
+                    'sort_order' => $phaseConfig['sort_order'] ?? 999,
+                    'date_label' => $phaseValue['date_label'],
+                    'marker_class' => $phaseValue['marker_class'],
+                    'items' => $items,
+                ];
+            })
+            ->sortBy('sort_order')
+            ->values();
+    }
+
+    private function overtimeLifecyclePhaseValue(array $items): array
+    {
+        $itemCollection = collect($items);
+        $state = $itemCollection->contains(fn (array $item): bool => $item['state'] === 'rejected')
+            ? 'rejected'
+            : ($itemCollection->contains(fn (array $item): bool => $item['state'] === 'pending')
+                ? 'pending'
+                : ($itemCollection->every(fn (array $item): bool => $item['state'] === 'completed') ? 'completed' : 'waiting'));
+        $latestDatedItem = $itemCollection
+            ->filter(fn (array $item): bool => in_array($item['state'], ['completed', 'pending', 'rejected'], true) && ! in_array($item['date_label'], ['-', 'Now', 'Next'], true))
+            ->last();
+
+        return [
+            'date_label' => $latestDatedItem['date_label'] ?? ($state === 'pending' ? 'Now' : 'Next'),
+            'marker_class' => $this->overtimeLifecycleMarkerClass($state),
+        ];
+    }
+
+    private function overtimeLifecycleValueFromLog(OvertimeLifecycleLog $lifecycleLog): array
+    {
+        $status = trim(strtolower((string) ($lifecycleLog->status ?? ''))) ?: 'waiting';
+        $state = $this->normalizeOvertimeLifecycleState($status);
+
+        return [
+            'event_key' => (string) $lifecycleLog->event_key,
+            'step_order' => (int) $lifecycleLog->step_order,
+            'title' => (string) $lifecycleLog->title,
+            'state' => $state,
+            'date_label' => $this->formatOvertimeLifecycleDateLabel($lifecycleLog->happened_at, $state),
+            'datetime_label' => $this->formatOvertimeLifecycleDateTimeLabel($lifecycleLog->happened_at, $state),
+            'actor_label' => $this->resolveUserDisplayName($lifecycleLog->actor),
+            'status_label' => $this->overtimeLifecycleStatusLabel($status),
+            'marker_class' => $this->overtimeLifecycleMarkerClass($state),
+            'badge_class' => $this->overtimeLifecycleBadgeClass($state),
+        ];
+    }
+
+    private function normalizeOvertimeLifecycleState(string $state): string
+    {
+        return match (strtolower(trim($state))) {
+            'approved', 'calculated_locked', 'clock_in', 'clock_out', 'complete', 'completed', 'done', 'success', 'verified' => 'completed',
+            'cancelled', 'canceled', 'failed', 'rejected' => 'rejected',
+            'in_progress', 'pending', 'progress', 'review', 'upcoming' => 'pending',
+            default => 'waiting',
+        };
+    }
+
+    private function formatOvertimeLifecycleDateLabel(mixed $date, string $state): string
+    {
+        if ($date === null) {
+            return $state === 'pending' ? 'Now' : 'Next';
+        }
+
+        return Carbon::parse($date)->timezone('Asia/Jakarta')->format('d M');
+    }
+
+    private function formatOvertimeLifecycleDateTimeLabel(mixed $date, string $state): string
+    {
+        if ($date === null) {
+            return $state === 'pending' ? 'Pending' : 'Waiting';
+        }
+
+        return Carbon::parse($date)->timezone('Asia/Jakarta')->format('d F Y, H:i');
+    }
+
+    private function overtimeLifecycleStatusLabel(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            'calculated_locked' => 'Calculated & Locked',
+            'clock_in' => 'Clock In',
+            'clock_out' => 'Clock Out',
+            'complete' => 'Complete',
+            'completed' => 'Completed',
+            'verified' => 'Verified',
+            'approved' => 'Approved',
+            'cancelled', 'canceled' => 'Cancelled',
+            'in_progress' => 'In Progress',
+            'upcoming' => 'Upcoming',
+            'pending' => 'Pending',
+            default => 'Waiting',
+        };
+    }
+
+    private function overtimeLifecycleMarkerClass(string $state): string
+    {
+        return match ($state) {
+            'completed' => 'border-success',
+            'pending' => 'border-warning',
+            'rejected' => 'border-danger',
+            default => 'border-secondary',
+        };
+    }
+
+    private function overtimeLifecycleBadgeClass(string $state): string
+    {
+        return match ($state) {
+            'completed' => 'badge-success light',
+            'pending' => 'badge-warning light',
+            'rejected' => 'badge-danger light',
+            default => 'badge-secondary light',
+        };
+    }
+
+    private function formatOvertimeReference(AttendanceOvertime $overtime): string
+    {
+        $recordNumber = trim((string) ($overtime->record_number ?? ''));
+        if ($recordNumber !== '') {
+            return '#'.$recordNumber;
+        }
+
+        $overtimeId = trim((string) $overtime->id);
+
+        return $overtimeId !== '' ? '#'.$overtimeId : '#OVT';
+    }
+
+    private function applyOvertimeAccessFilter(Builder $overtimeQuery, ?User $authenticatedUser): Builder
+    {
+        if (! $authenticatedUser instanceof User) {
+            return $overtimeQuery->whereRaw('1 = 0');
+        }
+
+        if ($this->isAdminUser($authenticatedUser)) {
+            return $overtimeQuery;
+        }
+
+        $authenticatedUser->loadMissing('employee.deployment');
+        $authenticatedEmployeeId = $authenticatedUser->employee?->id;
+        if ($this->isStaffUser($authenticatedUser) && is_string($authenticatedEmployeeId) && trim($authenticatedEmployeeId) !== '') {
+            return $overtimeQuery->where('employee_id', trim($authenticatedEmployeeId));
+        }
+
+        if (! $this->isBoardOfDirectur($authenticatedUser)) {
+            return $overtimeQuery->whereRaw('1 = 0');
+        }
+
+        $userCompanyId = $authenticatedUser->employee?->deployment?->current_company_id;
+        if (! is_string($userCompanyId) || trim($userCompanyId) === '') {
+            return $overtimeQuery->whereRaw('1 = 0');
+        }
+
+        return $overtimeQuery->whereHas('employee.deployment', function ($query) use ($userCompanyId): void {
+            $query->where('current_company_id', $userCompanyId);
+        });
     }
 
     /**

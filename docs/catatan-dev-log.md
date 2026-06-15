@@ -7,6 +7,14 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-06-15 (Senin)
+- Menyelesaikan flow detail overtime dan project task: create, update, delete task, daily task `project_id = null`, dan project task berdasarkan membership staff.
+- Menambahkan dukungan `blockers` dan `attachment_path` pada task, termasuk form create/update dan seeder.
+- Menyesuaikan kartu dan modal overtime agar memakai actual start/end, duration aktual, jam berjalan, serta sinkronisasi lifecycle log saat clock-in/clock-out.
+- Merapikan approval trail dengan badge `Pending` dan approver director dari role `board_of_rector`.
+- Mengganti error notification flow overtime/task menjadi SweetAlert2 dan memastikan menu Overtime aktif pada route detail.
+- Detail: `docs/dev-log/2026-06-15-0730-ringkasan-final-overtime-project-task.md`.
+
 ### 2026-06-12 (Jumat)
 - Menyambungkan overtime list/detail ke data database, lifecycle log, dan project task.
 - Mengubah route detail overtime dari query string `/attendance/overtimes/detail?id={id}` menjadi path `/attendance/overtimes/{id}`.

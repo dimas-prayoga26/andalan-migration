@@ -47,4 +47,24 @@ class LeaveRequest extends Model
     {
         return $this->hasMany(LeaveRequestHistory::class, 'leave_request_id', 'id');
     }
+
+    public function hasCompletedSupervisorReview(): bool
+    {
+        $isCompletedSupervisorReview = static function (LeaveRequestHistory $history): bool {
+            $normalizedEventType = is_string($history->event_type) ? strtolower(trim($history->event_type)) : '';
+            $normalizedStatus = is_string($history->to_status) ? strtolower(trim($history->to_status)) : '';
+
+            return $normalizedEventType === 'supervisor_review'
+                && $normalizedStatus === 'complete';
+        };
+
+        if ($this->relationLoaded('histories')) {
+            return $this->histories->contains($isCompletedSupervisorReview);
+        }
+
+        return $this->histories()
+            ->where('event_type', 'supervisor_review')
+            ->where('to_status', 'complete')
+            ->exists();
+    }
 }

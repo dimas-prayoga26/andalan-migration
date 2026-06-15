@@ -261,12 +261,19 @@ class LeaveRequestController extends Controller
 
     public function update(Request $request, LeaveRequest $leaveRequest): JsonResponse
     {
-        $authenticatedUser = Auth::user();
-        if (! $this->canUpdatePermissionRequest($authenticatedUser, $leaveRequest)) {
+        $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
+        if (! $this->canStaffManageOwnLeaveRequest($authenticatedUser, $leaveRequest)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk mengubah data izin ini.',
             ], 403);
+        }
+
+        if ($leaveRequest->hasCompletedSupervisorReview()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data izin tidak dapat diubah karena Supervisor Review sudah complete.',
+            ], 422);
         }
 
         $validated = $request->validate([
@@ -470,8 +477,8 @@ class LeaveRequestController extends Controller
 
     public function destroy(LeaveRequest $leaveRequest): JsonResponse
     {
-        $authenticatedUser = Auth::user();
-        if (! $this->canDeletePermissionRequest($authenticatedUser, $leaveRequest)) {
+        $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
+        if (! $this->canStaffManageOwnLeaveRequest($authenticatedUser, $leaveRequest)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk menghapus data izin ini.',
@@ -610,16 +617,13 @@ class LeaveRequestController extends Controller
 
     private function canDeletePermissionRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
     {
-        $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
-
         return $this->canStaffManageOwnLeaveRequest($authenticatedUser, $leaveRequest);
     }
 
     private function canUpdatePermissionRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
     {
-        $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
-
-        return $this->canStaffManageOwnLeaveRequest($authenticatedUser, $leaveRequest);
+        return $this->canStaffManageOwnLeaveRequest($authenticatedUser, $leaveRequest)
+            && ! $leaveRequest->hasCompletedSupervisorReview();
     }
 
     private function canStaffManageOwnLeaveRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
@@ -727,6 +731,7 @@ class LeaveRequestController extends Controller
      * @param  array{status:string, leave_type:string, timeframe:string}  $filters
      * @return Collection<int, array{
      *     id:string,
+     *     can_view:bool,
      *     can_update:bool,
      *     can_delete:bool,
      *     leave_type_id:string,
@@ -826,11 +831,13 @@ class LeaveRequestController extends Controller
             $detailLeaveType = $isSickLeave ? 'Sick Leave' : $leaveTypeName;
             $modalTitle = $isSickLeave ? 'Attendance Sick' : $leaveTypeName;
             $attachmentPath = is_string($leaveRequest->attachment_path) ? trim($leaveRequest->attachment_path) : '';
+            $hasCompletedSupervisorReview = $leaveRequest->hasCompletedSupervisorReview();
 
             return [
                 'id' => (string) $leaveRequest->id,
-                'can_update' => $this->canStaffManageOwnLeaveRequest($authenticatedUser, $leaveRequest),
-                'can_delete' => $this->canStaffManageOwnLeaveRequest($authenticatedUser, $leaveRequest),
+                'can_view' => ! $hasCompletedSupervisorReview,
+                'can_update' => $this->canUpdatePermissionRequest($authenticatedUser, $leaveRequest),
+                'can_delete' => $this->canDeletePermissionRequest($authenticatedUser, $leaveRequest),
                 'leave_type_id' => (string) $leaveRequest->leave_type_id,
                 'start_date_value' => $startDate->toDateString(),
                 'end_date_value' => $endDate->toDateString(),
@@ -997,69 +1004,99 @@ class LeaveRequestController extends Controller
      */
     private function buildFixedLeaveTimelineRows(LeaveRequest $leaveRequest, string $status, Carbon $fallbackDate): array
     {
-        $submittedAt = $this->resolveLeaveTimelineDate(
+        $submittedHistory = $this->resolveLeaveTimelineHistory(
             $leaveRequest->histories,
             ['submitted', 'created'],
             ['request submitted']
         );
+        $submittedAt = $this->formatLeaveTimelineDate($submittedHistory);
         if (! is_string($submittedAt) || $submittedAt === '') {
             $submittedAt = $fallbackDate->copy()->setTimezone('Asia/Jakarta')->format('d M');
         }
 
-        $supervisorReviewedAt = $this->resolveLeaveTimelineDate(
+        $supervisorReviewHistory = $this->resolveLeaveTimelineHistory(
             $leaveRequest->histories,
             ['supervisor_review', 'reviewed'],
             ['supervisor review']
         );
-        $hrVerificationAt = $this->resolveLeaveTimelineDate(
+        $supervisorReviewedAt = $this->formatLeaveTimelineDate($supervisorReviewHistory);
+        $hrVerificationHistory = $this->resolveLeaveTimelineHistory(
             $leaveRequest->histories,
             ['hr_verification', 'hr_review'],
             ['hr verification']
         );
+        $hrVerificationAt = $this->formatLeaveTimelineDate($hrVerificationHistory);
 
-        $finalDecisionAt = $this->resolveLeaveTimelineDate(
+        $finalDecisionHistory = $this->resolveLeaveTimelineHistory(
             $leaveRequest->histories,
             ['status_updated', 'approved', 'rejected', 'refused'],
             ['approved', 'rejected', 'final decision']
         );
+        $finalDecisionAt = $this->formatLeaveTimelineDate($finalDecisionHistory);
         if ($finalDecisionAt === '' && in_array($status, ['approved', 'rejected', 'refused'], true)) {
             $finalDecisionAt = $fallbackDate->copy()->setTimezone('Asia/Jakarta')->format('d M');
         }
 
-        $isSubmittedReached = $submittedAt !== '';
         $isSupervisorReached = $supervisorReviewedAt !== '';
         $isHrReached = $hrVerificationAt !== '';
         $isFinalReached = $finalDecisionAt !== '' && in_array($status, ['approved', 'rejected', 'refused'], true);
+        $supervisorReviewStatus = $this->leaveTimelineHistoryStatus($supervisorReviewHistory);
+        $hrVerificationStatus = $this->leaveTimelineHistoryStatus($hrVerificationHistory);
+        $currentPendingStep = match (true) {
+            in_array($status, ['approved', 'rejected', 'refused'], true) => null,
+            ! in_array($supervisorReviewStatus, ['complete', 'approved'], true) => 'supervisor_review',
+            ! in_array($hrVerificationStatus, ['complete', 'approved'], true) => 'hr_verification',
+            default => 'final_decision',
+        };
 
         return [
             [
                 'date_label' => $submittedAt,
                 'title' => 'Request Submitted',
-                'badge_class' => $isSubmittedReached ? 'border-success' : 'border-dark',
+                'badge_class' => 'border-success',
             ],
             [
                 'date_label' => $isSupervisorReached ? $supervisorReviewedAt : 'Waiting',
                 'title' => 'Supervisor Review',
-                'badge_class' => $isSupervisorReached ? 'border-success' : 'border-dark',
+                'badge_class' => $this->leaveTimelineBadgeClass(
+                    $supervisorReviewHistory,
+                    $currentPendingStep === 'supervisor_review'
+                ),
             ],
             [
                 'date_label' => $isHrReached ? $hrVerificationAt : 'Waiting',
                 'title' => 'HR Verification (Pending)',
-                'badge_class' => $isHrReached ? 'border-success' : 'border-dark',
+                'badge_class' => $this->leaveTimelineBadgeClass(
+                    $hrVerificationHistory,
+                    $currentPendingStep === 'hr_verification'
+                ),
             ],
             [
                 'date_label' => $isFinalReached ? $finalDecisionAt : 'Waiting',
                 'title' => 'Final Decision',
-                'badge_class' => $isFinalReached
-                    ? (in_array($status, ['rejected', 'refused'], true) ? 'border-danger' : 'border-success')
-                    : 'border-dark',
+                'badge_class' => $finalDecisionHistory instanceof LeaveRequestHistory
+                    ? $this->leaveTimelineBadgeClass($finalDecisionHistory)
+                    : ($currentPendingStep === 'final_decision'
+                        ? 'border-warning'
+                        : match ($status) {
+                            'approved' => 'border-success',
+                            'rejected', 'refused' => 'border-danger',
+                            default => 'border-dark',
+                        }),
             ],
         ];
     }
 
     private function resolveLeaveTimelineDate(Collection $histories, array $eventTypes, array $titleKeywords, string $format = 'd M'): string
     {
-        /** @var LeaveRequestHistory|null $matchedHistory */
+        return $this->formatLeaveTimelineDate(
+            $this->resolveLeaveTimelineHistory($histories, $eventTypes, $titleKeywords),
+            $format
+        );
+    }
+
+    private function resolveLeaveTimelineHistory(Collection $histories, array $eventTypes, array $titleKeywords): ?LeaveRequestHistory
+    {
         $matchedHistory = $histories->first(static function (LeaveRequestHistory $history) use ($eventTypes, $titleKeywords): bool {
             $normalizedEventType = is_string($history->event_type) ? strtolower(trim($history->event_type)) : '';
             $normalizedTitle = is_string($history->title) ? strtolower(trim($history->title)) : '';
@@ -1077,15 +1114,47 @@ class LeaveRequestController extends Controller
             return false;
         });
 
-        if (! $matchedHistory instanceof LeaveRequestHistory) {
+        return $matchedHistory instanceof LeaveRequestHistory ? $matchedHistory : null;
+    }
+
+    private function formatLeaveTimelineDate(?LeaveRequestHistory $history, string $format = 'd M'): string
+    {
+        if (! $history instanceof LeaveRequestHistory) {
             return '';
         }
 
-        $happenedAt = $matchedHistory->happened_at instanceof Carbon
-            ? $matchedHistory->happened_at
-            : ($matchedHistory->happened_at ? Carbon::parse((string) $matchedHistory->happened_at) : null);
+        $happenedAt = $history->happened_at instanceof Carbon
+            ? $history->happened_at
+            : ($history->happened_at ? Carbon::parse((string) $history->happened_at) : null);
 
         return $happenedAt?->copy()->setTimezone('Asia/Jakarta')->format($format) ?? '';
+    }
+
+    private function leaveTimelineBadgeClass(?LeaveRequestHistory $history, bool $isCurrentPendingStep = false): string
+    {
+        if ($isCurrentPendingStep) {
+            return 'border-warning';
+        }
+
+        if (! $history instanceof LeaveRequestHistory) {
+            return 'border-dark';
+        }
+
+        return match ($this->leaveTimelineHistoryStatus($history)) {
+            'complete', 'approved' => 'border-success',
+            'pending' => 'border-warning',
+            'rejected', 'refused' => 'border-danger',
+            default => 'border-dark',
+        };
+    }
+
+    private function leaveTimelineHistoryStatus(?LeaveRequestHistory $history): string
+    {
+        if (! $history instanceof LeaveRequestHistory) {
+            return '';
+        }
+
+        return is_string($history->to_status) ? strtolower(trim($history->to_status)) : '';
     }
 
     private function resolveLeaveStatusDateLabel(LeaveRequest $leaveRequest, string $status, Carbon $fallbackDate): string
@@ -1526,7 +1595,7 @@ class LeaveRequestController extends Controller
         $normalizedFromStatus = is_string($fromStatus) && in_array($fromStatus, ['pending', 'approved', 'refused', 'rejected'], true)
             ? $fromStatus
             : null;
-        $normalizedToStatus = is_string($toStatus) && in_array($toStatus, ['pending', 'approved', 'refused', 'rejected'], true)
+        $normalizedToStatus = is_string($toStatus) && in_array($toStatus, ['pending', 'approved', 'refused', 'rejected', 'complete'], true)
             ? $toStatus
             : null;
 

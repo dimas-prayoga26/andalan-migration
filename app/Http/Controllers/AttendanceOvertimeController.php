@@ -29,6 +29,8 @@ class AttendanceOvertimeController extends Controller
 
     private const OVERTIME_STATUS_CANCELLED = 'cancelled';
 
+    private const OVERTIME_CLOCK_IN_GRACE_MINUTES = 60;
+
     private const OVERTIME_LIFECYCLE_PHASES = [
         'assignment_request' => [
             'title' => 'Phase 1: Assignment & Request',
@@ -542,6 +544,10 @@ class AttendanceOvertimeController extends Controller
      *     overtime_card_start:string,
      *     overtime_card_ended:string,
      *     overtime_card_current_time:string,
+     *     clock_in_allowed:bool,
+     *     clock_in_unavailable_message:string,
+     *     clock_in_window_start_label:string,
+     *     clock_in_window_end_label:string,
      *     modal_date_label:string,
      *     scheduled_start_label:string,
      *     scheduled_end_label:string,
@@ -593,6 +599,8 @@ class AttendanceOvertimeController extends Controller
         $directorApprover = $directorApprovalLog?->actor instanceof User
             ? $directorApprovalLog->actor
             : $this->resolveOvertimeDirectorApprover($overtime);
+        $clockInWindow = $this->resolveOvertimeClockInWindow($overtime);
+        $hasActualStartTime = $actualStartTime !== '-';
 
         return [
             'staff_name' => $this->resolveEmployeeDisplayName($overtime->employee),
@@ -612,6 +620,10 @@ class AttendanceOvertimeController extends Controller
             'overtime_card_start' => $actualStartTime !== '-' ? $actualStartTime : '--:--',
             'overtime_card_ended' => $actualEndTime !== '-' ? $actualEndTime : '--:--',
             'overtime_card_current_time' => Carbon::now('Asia/Jakarta')->format('H:i:s'),
+            'clock_in_allowed' => ! $hasActualStartTime && $clockInWindow['is_allowed'],
+            'clock_in_unavailable_message' => $hasActualStartTime ? '' : $clockInWindow['message'],
+            'clock_in_window_start_label' => $clockInWindow['start_label'],
+            'clock_in_window_end_label' => $clockInWindow['end_label'],
             'modal_date_label' => $overtimeDate->format('D, d M Y'),
             'scheduled_start_label' => $this->formatOvertimeModalDateTimeLabel($overtime, $overtime->planned_start_time),
             'scheduled_end_label' => $this->formatOvertimeModalDateTimeLabel($overtime, $overtime->planned_end_time),
@@ -650,6 +662,57 @@ class AttendanceOvertimeController extends Controller
         return Carbon::parse($overtime->overtime_date)
             ->timezone('Asia/Jakarta')
             ->format('D, d M Y').' - '.$normalizedTime;
+    }
+
+    /**
+     * @return array{is_allowed:bool,message:string,start_label:string,end_label:string}
+     */
+    private function resolveOvertimeClockInWindow(AttendanceOvertime $overtime, ?Carbon $now = null): array
+    {
+        $scheduledStartTime = $this->normalizeStoreTimeValue($overtime->planned_start_time);
+        $scheduledStartAt = $this->overtimeDateTimeFromTime($overtime, $scheduledStartTime);
+        if (! $scheduledStartAt instanceof Carbon) {
+            return [
+                'is_allowed' => false,
+                'message' => 'Jadwal mulai lembur belum valid. Silakan hubungi PIC untuk mengubah jadwal lemburnya.',
+                'start_label' => '-',
+                'end_label' => '-',
+            ];
+        }
+
+        $windowStartAt = $scheduledStartAt->copy()->subMinutes(self::OVERTIME_CLOCK_IN_GRACE_MINUTES);
+        $windowEndAt = $scheduledStartAt->copy()->addMinutes(self::OVERTIME_CLOCK_IN_GRACE_MINUTES);
+        $currentTime = ($now instanceof Carbon ? $now : Carbon::now('Asia/Jakarta'))->copy()->timezone('Asia/Jakarta');
+
+        if ($currentTime->lt($windowStartAt)) {
+            return [
+                'is_allowed' => false,
+                'message' => 'Clock in lembur tersedia mulai '.$this->formatOvertimeClockInWindowLabel($windowStartAt).'.',
+                'start_label' => $this->formatOvertimeClockInWindowLabel($windowStartAt),
+                'end_label' => $this->formatOvertimeClockInWindowLabel($windowEndAt),
+            ];
+        }
+
+        if ($currentTime->gt($windowEndAt)) {
+            return [
+                'is_allowed' => false,
+                'message' => 'Batas clock in lembur sudah lewat. Silakan hubungi PIC untuk mengubah jadwal lemburnya.',
+                'start_label' => $this->formatOvertimeClockInWindowLabel($windowStartAt),
+                'end_label' => $this->formatOvertimeClockInWindowLabel($windowEndAt),
+            ];
+        }
+
+        return [
+            'is_allowed' => true,
+            'message' => '',
+            'start_label' => $this->formatOvertimeClockInWindowLabel($windowStartAt),
+            'end_label' => $this->formatOvertimeClockInWindowLabel($windowEndAt),
+        ];
+    }
+
+    private function formatOvertimeClockInWindowLabel(Carbon $dateTime): string
+    {
+        return $dateTime->copy()->timezone('Asia/Jakarta')->format('D, d M Y H:i');
     }
 
     private function formatDurationSummaryLabel(mixed $startTimeValue, mixed $endTimeValue): string
@@ -960,6 +1023,16 @@ class AttendanceOvertimeController extends Controller
                 'success' => false,
                 'message' => 'Anda harus absen masuk hari ini sebelum mengisi jam aktual lembur.',
             ], 422);
+        }
+
+        if ($isStaffUser && $hasActualStartTimeInput && $currentActualStartTime === null && $actualStartTime !== null) {
+            $clockInWindow = $this->resolveOvertimeClockInWindow($attendanceOvertime);
+            if (! $clockInWindow['is_allowed']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $clockInWindow['message'],
+                ], 422);
+            }
         }
 
         $status = $this->resolveOvertimeStatus(

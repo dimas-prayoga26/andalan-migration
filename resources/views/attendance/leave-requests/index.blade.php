@@ -485,7 +485,9 @@
                                             <i class="bi bi-grid"></i>
                                         </a>
                                         <div class="dropdown-menu dropdown-menu-end">
-                                            <a href="#" class="dropdown-item leave-history-action-view">View</a>
+                                            @if (! empty($leaveHistoryCard['can_view']))
+                                                <a href="#" class="dropdown-item leave-history-action-view">View</a>
+                                            @endif
                                             @if (! empty($leaveHistoryCard['can_update']))
                                                 <a href="#" class="dropdown-item leave-history-action-update">Update</a>
                                             @endif
@@ -883,6 +885,7 @@
                 var startDateValue = card.start_date_value || '';
                 var endDateValue = card.end_date_value || '';
                 var handoverNotes = card.handover_notes || '';
+                var canView = card.can_view === true;
                 var canUpdate = card.can_update === true;
                 var canDelete = card.can_delete === true;
                 var modalTitle = card.modal_title || title;
@@ -935,7 +938,7 @@
                     + '<i class="bi bi-grid"></i>'
                     + '</a>'
                     + '<div class="dropdown-menu dropdown-menu-end">'
-                    + '<a href="#" class="dropdown-item leave-history-action-view">View</a>'
+                    + (canView ? '<a href="#" class="dropdown-item leave-history-action-view">View</a>' : '')
                     + (canUpdate ? '<a href="#" class="dropdown-item leave-history-action-update">Update</a>' : '')
                     + (canDelete ? '<a href="#" class="dropdown-item leave-history-action-delete">Delete</a>' : '')
                     + '</div>'

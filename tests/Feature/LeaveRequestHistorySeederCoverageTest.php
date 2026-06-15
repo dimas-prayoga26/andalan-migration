@@ -39,6 +39,9 @@ class LeaveRequestHistorySeederCoverageTest extends TestCase
         $this->assertStringNotContainsString("'status' => 'rejected',", $seeder);
         $this->assertStringNotContainsString("'title' => 'Approved',", $seeder);
         $this->assertStringNotContainsString("'to_status' => 'approved',", $seeder);
+        $this->assertSame(3, substr_count($seeder, "'event_type' => 'supervisor_review',"));
+        $this->assertSame(2, substr_count($seeder, "'to_status' => 'complete',"));
+        $this->assertSame(1, substr_count($seeder, "'event_type' => 'hr_verification',"));
         $this->assertStringNotContainsString('[Seeder] RNB dummy leave request rejected', $seeder);
         $this->assertStringNotContainsString('[Seeder] RNB dummy leave request supervisor review only', $seeder);
         $this->assertStringNotContainsString('$baseDay->copy()->addDays(6)->toDateString()', $seeder);

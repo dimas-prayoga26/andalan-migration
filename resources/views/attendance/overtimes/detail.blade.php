@@ -58,6 +58,19 @@
             flex-wrap: wrap;
             gap: 0.35rem;
         }
+
+        .overtime-clock-in-warning {
+            width: 2.875rem;
+            height: 2.875rem;
+            min-width: 2.875rem;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            line-height: 1;
+        }
     </style>
 @endsection
 
@@ -264,6 +277,10 @@
         <div class="row sticky-top z-0">
 
             <div class="col-md-6">
+                @php
+                    $canClockInOvertime = (bool) ($overtimeDetail['clock_in_allowed'] ?? false);
+                    $clockInUnavailableMessage = trim((string) ($overtimeDetail['clock_in_unavailable_message'] ?? ''));
+                @endphp
                 <div class="card">
                     <div class="card-header border-0 pb-3">
                         <div>
@@ -307,7 +324,14 @@
                             </div>
                         </div>
                     </div>
-                    <a class="btn light btn-info m-3 mb-2 btn-lg {{ ($overtimeDetail['actual_start_time_value'] ?? null) ? 'disabled' : '' }}" data-bs-toggle="modal" data-bs-target="#clockIn" @if (($overtimeDetail['actual_start_time_value'] ?? null)) aria-disabled="true" tabindex="-1" @endif>Overtime Clock In</a>
+                    <div class="d-flex align-items-center gap-2 m-3 mb-2">
+                        <a class="btn light btn-info btn-lg flex-fill {{ $canClockInOvertime ? '' : 'disabled' }}" @if ($canClockInOvertime) data-bs-toggle="modal" data-bs-target="#clockIn" @else aria-disabled="true" tabindex="-1" @endif>Overtime Clock In</a>
+                        @if ($clockInUnavailableMessage !== '')
+                            <button type="button" class="btn btn-warning light overtime-clock-in-warning" data-overtime-clock-in-warning title="{{ $clockInUnavailableMessage }}" aria-label="Clock in notice">
+                                !
+                            </button>
+                        @endif
+                    </div>
                     <div class="mb-3"></div>
                 </div>
             </div>
@@ -1087,6 +1111,11 @@
                             <p class="form-label text-muted mb-3">
                                 Grab your coffee and let's get things done. Start your session when you're ready to crush this extra hustle!
                             </p>
+                            @if ($clockInUnavailableMessage !== '')
+                                <button type="button" class="btn btn-warning light overtime-clock-in-warning mb-3" data-overtime-clock-in-warning title="{{ $clockInUnavailableMessage }}" aria-label="Clock in notice">
+                                    !
+                                </button>
+                            @endif
                             <div class="row">
                                 <div class="col-6">
                                     <div class="mb-3">
@@ -1112,7 +1141,7 @@
                         </div>
                     </div>
                 </form>
-                <button type="button" class="btn light btn-info mb-2 btn-lg w-100" id="overtimeClockInSubmit" @if (($overtimeDetail['actual_start_time_value'] ?? null)) disabled @endif>Overtime Clock In</button>
+                <button type="button" class="btn light btn-info mb-2 btn-lg w-100" id="overtimeClockInSubmit" @if (! $canClockInOvertime) disabled @endif>Overtime Clock In</button>
             </div>
         </div>
     </div>
@@ -1209,6 +1238,8 @@
                 'planned_end_time' => $overtimeDetail['planned_end_time_value'] ?? null,
                 'actual_start_time' => $overtimeDetail['actual_start_time_value'] ?? null,
                 'actual_end_time' => $overtimeDetail['actual_end_time_value'] ?? null,
+                'clock_in_allowed' => (bool) ($overtimeDetail['clock_in_allowed'] ?? false),
+                'clock_in_unavailable_message' => $overtimeDetail['clock_in_unavailable_message'] ?? null,
                 'instruction' => $overtimeDetail['instruction'] ?? null,
             ];
             $taskItemPayload = collect($overtimeTaskItems['pending'] ?? collect())
@@ -1233,6 +1264,13 @@
             });
             $('#overtimeClockOutSubmit').on('click', function () {
                 submitOvertimeSession('clock_out', $(this));
+            });
+            $('[data-overtime-clock-in-warning]').on('click', function () {
+                showSwalAlert(
+                    'warning',
+                    'Clock In Belum Tersedia',
+                    $(this).attr('title') || 'Clock in lembur hanya tersedia sesuai jadwal yang ditentukan.'
+                );
             });
             $('#createTaskForm input[name="task_category"]').on('change', updateCreateTaskProjectState);
             $('#createTaskForm').on('submit', submitCreateTaskForm);
@@ -1536,6 +1574,15 @@
                 var csrfToken = $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}';
 
                 if (!overtimePayload.update_url || button.prop('disabled')) {
+                    return;
+                }
+
+                if (action === 'clock_in' && !overtimePayload.clock_in_allowed) {
+                    showSwalAlert(
+                        'warning',
+                        'Clock In Belum Tersedia',
+                        overtimePayload.clock_in_unavailable_message || 'Clock in lembur hanya tersedia sesuai jadwal yang ditentukan.'
+                    );
                     return;
                 }
 

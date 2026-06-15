@@ -19,17 +19,16 @@ class ProjectTaskSeederTest extends TestCase
         $this->assertStringContainsString("'created_by' => \$supervisorUserId", $projectTaskSeeder);
         $this->assertStringNotContainsString("'created_by' => \$staffUser->id", $projectTaskSeeder);
         $this->assertStringNotContainsString('seedProjectTasks($project, $departments, $staffUsers, $supervisorUserId)', $projectTaskSeeder);
+        $this->assertStringNotContainsString('private const PROJECT_DEPARTMENTS = [', $projectTaskSeeder);
+        $this->assertStringNotContainsString('private const STAFF_DEPARTMENTS = [', $projectTaskSeeder);
+        $this->assertStringNotContainsString("\$departmentKey = self::STAFF_DEPARTMENTS[\$taskData['username']] ?? \$taskData['department'];", $projectTaskSeeder);
 
         foreach (['staff31', 'staff32', 'staff33', 'staff34'] as $username) {
             $this->assertStringContainsString("'{$username}'", $projectTaskSeeder);
             $this->assertSame(5, substr_count($projectTaskSeeder, "'username' => '{$username}'"));
         }
 
-        $this->assertSame(20, substr_count($projectTaskSeeder, "'department' =>"));
-
-        foreach (['Administration, Finance and Legal', 'Marketing and Promotion', 'Project Planning and Development', 'Operations', 'Information and Communications Technology'] as $departmentName) {
-            $this->assertStringContainsString("'{$departmentName}'", $projectTaskSeeder);
-        }
+        $this->assertSame(0, substr_count($projectTaskSeeder, "'department' =>"));
 
         foreach ([
             'Prepare project administration checklist',
@@ -43,8 +42,15 @@ class ProjectTaskSeederTest extends TestCase
         }
 
         $this->assertStringContainsString('ProjectMember::query()->create', $projectTaskSeeder);
-        $this->assertStringContainsString('private function resolveDepartments(): Collection', $projectTaskSeeder);
-        $this->assertStringContainsString("'department_id' => trim(\$departmentId)", $projectTaskSeeder);
+        $this->assertStringNotContainsString('private function resolveDepartments(): Collection', $projectTaskSeeder);
+        $this->assertStringNotContainsString("'department_id' =>", $projectTaskSeeder);
         $this->assertStringContainsString('ProjectTask::query()->create', $projectTaskSeeder);
+        $this->assertStringContainsString("'project_id' => (\$taskData['is_daily'] ?? false) === true ? null : \$project->id", $projectTaskSeeder);
+        $this->assertStringContainsString("'blockers' => \$taskData['blockers'] ?? null", $projectTaskSeeder);
+        $this->assertStringContainsString("'attachment_path' => \$taskData['attachment_path'] ?? null", $projectTaskSeeder);
+        $this->assertStringContainsString("'blockers' => 'Waiting for updated manpower confirmation from supervisor.'", $projectTaskSeeder);
+        $this->assertStringContainsString("'blockers' => 'Waiting for venue access confirmation.'", $projectTaskSeeder);
+        $this->assertStringContainsString('private function dailyTaskTitles(): array', $projectTaskSeeder);
+        $this->assertStringContainsString("->whereNull('project_id')", $projectTaskSeeder);
     }
 }

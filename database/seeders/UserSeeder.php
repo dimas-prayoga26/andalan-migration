@@ -17,6 +17,25 @@ use Throwable;
 
 class UserSeeder extends Seeder
 {
+    private const RNB_STAFF_ASSIGNMENTS = [
+        1 => [
+            'department' => 'Administration, Finance and Legal',
+            'position' => 'Finance and Administration Coordinator',
+        ],
+        2 => [
+            'department' => 'Marketing and Promotion',
+            'position' => 'Graphic Design',
+        ],
+        3 => [
+            'department' => 'Project Planning and Development',
+            'position' => 'Architecture Design',
+        ],
+        4 => [
+            'department' => 'Operations',
+            'position' => 'Documentation Event and Editor Video',
+        ],
+    ];
+
     /**
      * Run the database seeds.
      */
@@ -165,11 +184,18 @@ class UserSeeder extends Seeder
                         ],
                     );
                     $staff->syncRoles(['Staff']);
+                    $staffAssignment = $this->resolveStaffAssignment(
+                        companyName: (string) $company->name,
+                        staffIndex: $staffIndex,
+                        fallbackDivisionId: $staffDivisionId,
+                        fallbackPositionId: $staffPositionId,
+                    );
+
                     $this->seedUserRelations(
                         $staff,
                         companyId: $company->id,
-                        divisionId: $staffDivisionId,
-                        positionId: $staffPositionId,
+                        divisionId: $staffAssignment['divisionId'],
+                        positionId: $staffAssignment['positionId'],
                         domicileId: $domicileId,
                         genderId: $genderId,
                         maritalStatusId: $maritalStatusId,
@@ -369,5 +395,36 @@ class UserSeeder extends Seeder
         }
 
         return $this->resolveRandomJoinDateFromYearStart($employeeId, $now);
+    }
+
+    /**
+     * @return array{divisionId: ?string, positionId: ?string}
+     */
+    private function resolveStaffAssignment(string $companyName, int $staffIndex, ?string $fallbackDivisionId, ?string $fallbackPositionId): array
+    {
+        $assignment = (string) $companyName === 'RNB'
+            ? (self::RNB_STAFF_ASSIGNMENTS[$staffIndex] ?? null)
+            : null;
+
+        if (! is_array($assignment)) {
+            return [
+                'divisionId' => $fallbackDivisionId,
+                'positionId' => $fallbackPositionId,
+            ];
+        }
+
+        return [
+            'divisionId' => $this->resolveTableIdByName('departments', $assignment['department']) ?? $fallbackDivisionId,
+            'positionId' => $this->resolveTableIdByName('positions', $assignment['position']) ?? $fallbackPositionId,
+        ];
+    }
+
+    private function resolveTableIdByName(string $table, string $name): ?string
+    {
+        $id = DB::table($table)
+            ->where('name', $name)
+            ->value('id');
+
+        return $this->toNullableString($id);
     }
 }

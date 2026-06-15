@@ -25,18 +25,12 @@ class OvertimeDeadlineTaskSeeder extends Seeder
         'staff34',
     ];
 
-    private const TASK_DEPARTMENTS = [
-        'staff31' => 'Administration, Finance and Legal',
-        'staff32' => 'Marketing and Promotion',
-        'staff33' => 'Project Planning and Development',
-        'staff34' => 'Operations',
-    ];
+    private const TASK_TITLE = 'Overtime deadline follow-up';
 
-    private const TASK_TITLES = [
-        'staff31' => 'Overtime deadline follow-up - Administration',
-        'staff32' => 'Overtime deadline follow-up - Graphic Design',
-        'staff33' => 'Overtime deadline follow-up - 3D Event Design',
-        'staff34' => 'Overtime deadline follow-up - Documentation',
+    private const COMPLETED_TASK_TITLES = [
+        'Finalize overtime preparation notes',
+        'Submit overtime deliverable evidence',
+        'Complete overtime handoff checklist',
     ];
 
     private const LIFECYCLE_STEPS = [
@@ -127,11 +121,10 @@ class OvertimeDeadlineTaskSeeder extends Seeder
                 throw new RuntimeException('Akun staff31 sampai staff34 pada company RNB belum lengkap: '.$missingUsernames->implode(', ').'. Jalankan UserSeeder terlebih dahulu.');
             }
 
-            $departmentIds = $this->resolveDepartmentIds();
             $today = Carbon::now('Asia/Jakarta')->startOfDay();
             $deadline = $today->copy()->addDay();
 
-            DB::transaction(function () use ($project, $staffUsers, $departmentIds, $today, $deadline): void {
+            DB::transaction(function () use ($project, $staffUsers, $today, $deadline): void {
                 $this->resetSeededOvertimeTasks();
 
                 foreach (self::STAFF_USERNAMES as $index => $username) {
@@ -160,19 +153,7 @@ class OvertimeDeadlineTaskSeeder extends Seeder
                         'status' => 'assigned',
                     ]);
 
-                    ProjectTask::query()->create([
-                        'project_id' => $project->id,
-                        'department_id' => $departmentIds->get($username),
-                        'employee_id' => $employeeId,
-                        'overtime_id' => $overtime->id,
-                        'title' => self::TASK_TITLES[$username],
-                        'description' => 'Seed task untuk overtime dengan deadline 1 hari lagi.',
-                        'status' => 'pending',
-                        'priority' => $index === 0 ? 'high' : 'medium',
-                        'start_date' => $today->toDateString(),
-                        'due_date' => $deadline->toDateString(),
-                        'completed_at' => null,
-                    ]);
+                    $this->seedProjectTasks($project, $username, $employeeId, $overtime, $today, $deadline, $index);
 
                     $this->seedLifecycleLogs($overtime, $staffUser, $supervisorUserId, $today);
                 }
@@ -221,38 +202,14 @@ class OvertimeDeadlineTaskSeeder extends Seeder
             : null;
     }
 
-    /**
-     * @return Collection<string, string>
-     */
-    private function resolveDepartmentIds(): Collection
-    {
-        return collect(self::TASK_DEPARTMENTS)
-            ->mapWithKeys(function (string $departmentName, string $username): array {
-                $departmentId = DB::table('departments')
-                    ->where('name', $departmentName)
-                    ->value('id');
-
-                if (! is_string($departmentId) || trim($departmentId) === '') {
-                    throw new RuntimeException("Department {$departmentName} tidak ditemukan.");
-                }
-
-                return [$username => trim($departmentId)];
-            });
-    }
-
     private function resetSeededOvertimeTasks(): void
     {
-        $seededTaskTitles = array_values(self::TASK_TITLES);
+        $seededTaskTitles = $this->seededTaskTitles();
         $overtimeIds = ProjectTask::withTrashed()
             ->whereIn('title', $seededTaskTitles)
             ->pluck('overtime_id')
             ->filter(static fn (mixed $overtimeId): bool => is_string($overtimeId) && trim($overtimeId) !== '')
             ->values();
-
-        ProjectTask::withTrashed()
-            ->whereIn('title', $seededTaskTitles)
-            ->get()
-            ->each(fn (ProjectTask $projectTask): bool => (bool) $projectTask->forceDelete());
 
         $instructionOvertimeIds = AttendanceOvertime::query()
             ->where('instruction', 'like', 'Seed overtime deadline task for staff%')
@@ -269,6 +226,15 @@ class OvertimeDeadlineTaskSeeder extends Seeder
             return;
         }
 
+        ProjectTask::withTrashed()
+            ->where(function ($query) use ($overtimeIds, $seededTaskTitles): void {
+                $query
+                    ->whereIn('title', $seededTaskTitles)
+                    ->orWhereIn('overtime_id', $overtimeIds);
+            })
+            ->get()
+            ->each(fn (ProjectTask $projectTask): bool => (bool) $projectTask->forceDelete());
+
         OvertimeLifecycleLog::query()
             ->whereIn('overtime_id', $overtimeIds)
             ->delete();
@@ -276,6 +242,52 @@ class OvertimeDeadlineTaskSeeder extends Seeder
         AttendanceOvertime::query()
             ->whereIn('id', $overtimeIds)
             ->delete();
+    }
+
+    private function seedProjectTasks(Project $project, string $username, string $employeeId, AttendanceOvertime $overtime, Carbon $today, Carbon $deadline, int $staffIndex): void
+    {
+        ProjectTask::query()->create([
+            'project_id' => $project->id,
+            'employee_id' => $employeeId,
+            'overtime_id' => $overtime->id,
+            'title' => self::TASK_TITLE,
+            'description' => 'Seed task untuk overtime dengan deadline 1 hari lagi.',
+            'blockers' => 'Waiting for final overtime deliverable update.',
+            'attachment_path' => null,
+            'status' => 'pending',
+            'priority' => $staffIndex === 0 ? 'high' : 'medium',
+            'start_date' => $today->toDateString(),
+            'due_date' => $deadline->toDateString(),
+            'completed_at' => null,
+        ]);
+
+        foreach (self::COMPLETED_TASK_TITLES as $taskIndex => $taskTitle) {
+            ProjectTask::query()->create([
+                'project_id' => $project->id,
+                'employee_id' => $employeeId,
+                'overtime_id' => $overtime->id,
+                'title' => $taskTitle,
+                'description' => 'Seed completed task untuk histori overtime.',
+                'blockers' => null,
+                'attachment_path' => null,
+                'status' => 'completed',
+                'priority' => 'medium',
+                'start_date' => $today->copy()->subDays($taskIndex + 1)->toDateString(),
+                'due_date' => $today->toDateString(),
+                'completed_at' => $today->copy()->setTime(16, 0)->addMinutes($taskIndex)->toDateTimeString(),
+            ]);
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function seededTaskTitles(): array
+    {
+        return [
+            self::TASK_TITLE,
+            ...self::COMPLETED_TASK_TITLES,
+        ];
     }
 
     private function seedLifecycleLogs(AttendanceOvertime $overtime, User $staffUser, string $supervisorUserId, Carbon $submittedAt): void

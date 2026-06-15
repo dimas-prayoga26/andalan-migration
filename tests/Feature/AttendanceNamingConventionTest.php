@@ -35,6 +35,9 @@ class AttendanceNamingConventionTest extends TestCase
             'attendance.overtimes.detail',
             'attendance.overtimes.store',
             'attendance.overtimes.show',
+            'attendance.overtimes.tasks.store',
+            'attendance.overtimes.tasks.update',
+            'attendance.overtimes.tasks.destroy',
             'attendance.overtimes.update',
             'attendance.overtimes.destroy',
             'attendance.business-trips',
@@ -46,6 +49,11 @@ class AttendanceNamingConventionTest extends TestCase
 
         $this->assertSame('attendance', Route::getRoutes()->getByName('attendance')?->uri());
         $this->assertSame('attendance/today', Route::getRoutes()->getByName('attendance.today')?->uri());
+        $this->assertSame('attendance/overtimes/{attendanceOvertime}', Route::getRoutes()->getByName('attendance.overtimes.detail')?->uri());
+        $this->assertSame('attendance/overtimes/{attendanceOvertime}/data', Route::getRoutes()->getByName('attendance.overtimes.show')?->uri());
+        $this->assertSame('attendance/overtimes/{attendanceOvertime}/tasks', Route::getRoutes()->getByName('attendance.overtimes.tasks.store')?->uri());
+        $this->assertSame('attendance/overtimes/{attendanceOvertime}/tasks/{projectTask}', Route::getRoutes()->getByName('attendance.overtimes.tasks.update')?->uri());
+        $this->assertSame('attendance/overtimes/{attendanceOvertime}/tasks/{projectTask}', Route::getRoutes()->getByName('attendance.overtimes.tasks.destroy')?->uri());
 
         $this->assertNull(Route::getRoutes()->getByName('absensi'));
         $this->assertNull(Route::getRoutes()->getByName('absensi.izin'));
@@ -138,7 +146,7 @@ class AttendanceNamingConventionTest extends TestCase
 
         $overtimeIndexView = File::get(resource_path('views/attendance/overtimes/index.blade.php'));
 
-        $this->assertStringContainsString("route('attendance.overtimes.detail')", $overtimeIndexView);
+        $this->assertStringContainsString("\$overtimeItem['detail_url']", $overtimeIndexView);
         $this->assertStringNotContainsString('attendance-overtime-details.html', $overtimeIndexView);
 
         $businessTripView = File::get(resource_path('views/attendance/business-trips/index.blade.php'));

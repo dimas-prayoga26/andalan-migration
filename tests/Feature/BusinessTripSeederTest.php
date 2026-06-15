@@ -24,6 +24,16 @@ class BusinessTripSeederTest extends TestCase
         $this->assertStringContainsString("where('current_company_id', \$rnbCompanyId)", $businessTripSeeder);
         $this->assertStringContainsString("'RNB' => 3", $userSeeder);
         $this->assertStringContainsString('resolveCompanySeedNumber($company, $index + 1)', $userSeeder);
+        $this->assertStringContainsString('private const RNB_STAFF_ASSIGNMENTS = [', $userSeeder);
+        $this->assertStringContainsString('private function resolveStaffAssignment', $userSeeder);
+        $this->assertStringContainsString("'department' => 'Administration, Finance and Legal'", $userSeeder);
+        $this->assertStringContainsString("'position' => 'Finance and Administration Coordinator'", $userSeeder);
+        $this->assertStringContainsString("'department' => 'Marketing and Promotion'", $userSeeder);
+        $this->assertStringContainsString("'position' => 'Graphic Design'", $userSeeder);
+        $this->assertStringContainsString("'department' => 'Project Planning and Development'", $userSeeder);
+        $this->assertStringContainsString("'position' => 'Architecture Design'", $userSeeder);
+        $this->assertStringContainsString("'department' => 'Operations'", $userSeeder);
+        $this->assertStringContainsString("'position' => 'Documentation Event and Editor Video'", $userSeeder);
 
         foreach ([
             'submitted',

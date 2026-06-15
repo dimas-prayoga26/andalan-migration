@@ -24,33 +24,25 @@ class ProjectTaskSeeder extends Seeder
         'staff34',
     ];
 
-    private const PROJECT_DEPARTMENTS = [
-        'administration' => 'Administration, Finance and Legal',
-        'graphic_design' => 'Marketing and Promotion',
-        'event_3d_design' => 'Project Planning and Development',
-        'documentation' => 'Operations',
-        'publication_technology' => 'Information and Communications Technology',
-    ];
-
     private const PROJECT_TASKS = [
         [
-            'department' => 'administration',
             'username' => 'staff31',
             'title' => 'Prepare project administration checklist',
             'description' => 'Compile project scope, manpower list, and overtime coordination notes.',
+            'blockers' => 'Waiting for updated manpower confirmation from supervisor.',
             'priority' => 'high',
             'status' => 'in_progress',
         ],
         [
-            'department' => 'graphic_design',
             'username' => 'staff31',
             'title' => 'Collect visual asset inventory',
             'description' => 'List all graphic assets required for event production and publication.',
+            'blockers' => 'Waiting for latest asset folder link from creative team.',
             'priority' => 'medium',
             'status' => 'pending',
+            'is_daily' => true,
         ],
         [
-            'department' => 'event_3d_design',
             'username' => 'staff31',
             'title' => 'Document 3D layout requirements',
             'description' => 'Prepare requirement notes for booth dimension, flow, and installation constraints.',
@@ -58,7 +50,6 @@ class ProjectTaskSeeder extends Seeder
             'status' => 'pending',
         ],
         [
-            'department' => 'documentation',
             'username' => 'staff31',
             'title' => 'Prepare project document archive',
             'description' => 'Create archive structure for project briefs, approvals, and field references.',
@@ -66,7 +57,6 @@ class ProjectTaskSeeder extends Seeder
             'status' => 'pending',
         ],
         [
-            'department' => 'publication_technology',
             'username' => 'staff31',
             'title' => 'Publish technical coordination brief',
             'description' => 'Coordinate publication schedule and technology support requirements.',
@@ -74,15 +64,15 @@ class ProjectTaskSeeder extends Seeder
             'status' => 'pending',
         ],
         [
-            'department' => 'administration',
             'username' => 'staff32',
             'title' => 'Prepare procurement request draft',
             'description' => 'Draft procurement request items for event production support.',
+            'blockers' => 'Waiting for approved vendor item list.',
             'priority' => 'medium',
             'status' => 'pending',
+            'is_daily' => true,
         ],
         [
-            'department' => 'graphic_design',
             'username' => 'staff32',
             'title' => 'Create event key visual adaptation',
             'description' => 'Prepare visual assets for venue branding and social media publication.',
@@ -90,7 +80,6 @@ class ProjectTaskSeeder extends Seeder
             'status' => 'pending',
         ],
         [
-            'department' => 'event_3d_design',
             'username' => 'staff32',
             'title' => 'Review 3D color and material reference',
             'description' => 'Validate material references against graphic identity and event theme.',
@@ -98,7 +87,6 @@ class ProjectTaskSeeder extends Seeder
             'status' => 'pending',
         ],
         [
-            'department' => 'documentation',
             'username' => 'staff32',
             'title' => 'Prepare design review documentation',
             'description' => 'Document design review notes, revisions, and approval references.',
@@ -106,7 +94,6 @@ class ProjectTaskSeeder extends Seeder
             'status' => 'pending',
         ],
         [
-            'department' => 'publication_technology',
             'username' => 'staff32',
             'title' => 'Prepare social media asset handoff',
             'description' => 'Package approved social media assets and publish-ready files.',
@@ -114,15 +101,14 @@ class ProjectTaskSeeder extends Seeder
             'status' => 'pending',
         ],
         [
-            'department' => 'administration',
             'username' => 'staff33',
             'title' => 'Update production timeline tracker',
             'description' => 'Maintain timeline tracker for production milestones and supervisor checkpoints.',
             'priority' => 'medium',
             'status' => 'pending',
+            'is_daily' => true,
         ],
         [
-            'department' => 'graphic_design',
             'username' => 'staff33',
             'title' => 'Validate graphic placement on booth layout',
             'description' => 'Check graphic placement compatibility with the 3D booth construction plan.',
@@ -130,7 +116,6 @@ class ProjectTaskSeeder extends Seeder
             'status' => 'pending',
         ],
         [
-            'department' => 'event_3d_design',
             'username' => 'staff33',
             'title' => 'Draft 3D event booth layout',
             'description' => 'Build initial booth layout and spatial reference for supervisor review.',
@@ -138,7 +123,6 @@ class ProjectTaskSeeder extends Seeder
             'status' => 'pending',
         ],
         [
-            'department' => 'documentation',
             'username' => 'staff33',
             'title' => 'Export 3D preview documentation',
             'description' => 'Export rendered previews and annotate design assumptions for review.',
@@ -146,7 +130,6 @@ class ProjectTaskSeeder extends Seeder
             'status' => 'pending',
         ],
         [
-            'department' => 'publication_technology',
             'username' => 'staff33',
             'title' => 'Coordinate technical display specification',
             'description' => 'Confirm screen, lighting, and technical display requirements for the booth.',
@@ -154,15 +137,15 @@ class ProjectTaskSeeder extends Seeder
             'status' => 'pending',
         ],
         [
-            'department' => 'administration',
             'username' => 'staff34',
             'title' => 'Compile field execution checklist',
             'description' => 'Prepare operational checklist for setup, execution, and teardown needs.',
+            'blockers' => 'Waiting for venue access confirmation.',
             'priority' => 'medium',
             'status' => 'pending',
+            'is_daily' => true,
         ],
         [
-            'department' => 'graphic_design',
             'username' => 'staff34',
             'title' => 'Capture graphic installation references',
             'description' => 'Prepare reference notes for documenting graphic installation progress.',
@@ -170,7 +153,6 @@ class ProjectTaskSeeder extends Seeder
             'status' => 'pending',
         ],
         [
-            'department' => 'event_3d_design',
             'username' => 'staff34',
             'title' => 'Document booth setup progress',
             'description' => 'Record booth setup status and highlight production risks for supervisor review.',
@@ -178,7 +160,6 @@ class ProjectTaskSeeder extends Seeder
             'status' => 'pending',
         ],
         [
-            'department' => 'documentation',
             'username' => 'staff34',
             'title' => 'Prepare documentation shot list',
             'description' => 'Define photo and video coverage plan for event preparation and execution.',
@@ -186,7 +167,6 @@ class ProjectTaskSeeder extends Seeder
             'status' => 'pending',
         ],
         [
-            'department' => 'publication_technology',
             'username' => 'staff34',
             'title' => 'Prepare publication archive delivery',
             'description' => 'Organize final publication files, field documentation, and delivery notes.',
@@ -222,10 +202,9 @@ class ProjectTaskSeeder extends Seeder
 
             DB::transaction(function () use ($rnbCompanyId, $staffUsers, $supervisorUserId): void {
                 $project = $this->seedProject($rnbCompanyId, $supervisorUserId);
-                $this->resetProjectDetails($project);
+                $this->resetProjectDetails($project, $staffUsers);
                 $this->seedProjectMembers($project, $staffUsers);
-                $departments = $this->resolveDepartments();
-                $this->seedProjectTasks($project, $departments, $staffUsers);
+                $this->seedProjectTasks($project, $staffUsers);
             });
         } catch (Throwable $throwable) {
             throw new RuntimeException('ProjectTaskSeeder gagal dijalankan.', 0, $throwable);
@@ -311,10 +290,25 @@ class ProjectTaskSeeder extends Seeder
         return $project;
     }
 
-    private function resetProjectDetails(Project $project): void
+    /**
+     * @param  Collection<string, User>  $staffUsers
+     */
+    private function resetProjectDetails(Project $project, Collection $staffUsers): void
     {
         ProjectTask::withTrashed()
             ->where('project_id', $project->id)
+            ->get()
+            ->each(fn (ProjectTask $projectTask): bool => (bool) $projectTask->forceDelete());
+
+        $employeeIds = $staffUsers
+            ->map(fn (User $staffUser): string => trim((string) ($staffUser->employee?->id ?? '')))
+            ->filter(static fn (string $employeeId): bool => $employeeId !== '')
+            ->values();
+
+        ProjectTask::withTrashed()
+            ->whereNull('project_id')
+            ->whereIn('employee_id', $employeeIds)
+            ->whereIn('title', $this->dailyTaskTitles())
             ->get()
             ->each(fn (ProjectTask $projectTask): bool => (bool) $projectTask->forceDelete());
 
@@ -347,38 +341,11 @@ class ProjectTaskSeeder extends Seeder
     }
 
     /**
-     * @return Collection<string, string>
-     */
-    private function resolveDepartments(): Collection
-    {
-        $departments = collect(self::PROJECT_DEPARTMENTS)
-            ->mapWithKeys(function (string $departmentName, string $departmentKey): array {
-                $departmentId = DB::table('departments')
-                    ->where('name', $departmentName)
-                    ->value('id');
-
-                if (! is_string($departmentId) || trim($departmentId) === '') {
-                    throw new RuntimeException("Department {$departmentName} tidak ditemukan. Jalankan migration departments terlebih dahulu.");
-                }
-
-                return [$departmentKey => trim($departmentId)];
-            });
-
-        return $departments;
-    }
-
-    /**
-     * @param  Collection<string, string>  $departments
      * @param  Collection<string, User>  $staffUsers
      */
-    private function seedProjectTasks(Project $project, Collection $departments, Collection $staffUsers): void
+    private function seedProjectTasks(Project $project, Collection $staffUsers): void
     {
         foreach (self::PROJECT_TASKS as $index => $taskData) {
-            $departmentId = $departments->get($taskData['department']);
-            if (! is_string($departmentId) || trim($departmentId) === '') {
-                throw new RuntimeException("Department untuk task {$taskData['title']} tidak ditemukan.");
-            }
-
             /** @var User $staffUser */
             $staffUser = $staffUsers->get($taskData['username']);
             $employeeId = trim((string) ($staffUser->employee?->id ?? ''));
@@ -387,12 +354,13 @@ class ProjectTaskSeeder extends Seeder
             }
 
             ProjectTask::query()->create([
-                'project_id' => $project->id,
-                'department_id' => trim($departmentId),
+                'project_id' => ($taskData['is_daily'] ?? false) === true ? null : $project->id,
                 'employee_id' => $employeeId,
                 'overtime_id' => null,
                 'title' => $taskData['title'],
                 'description' => $taskData['description'],
+                'blockers' => $taskData['blockers'] ?? null,
+                'attachment_path' => $taskData['attachment_path'] ?? null,
                 'status' => $taskData['status'],
                 'priority' => $taskData['priority'],
                 'start_date' => Carbon::create(2026, 6, 12, 0, 0, 0, 'Asia/Jakarta')->addDays($index)->toDateString(),
@@ -400,5 +368,16 @@ class ProjectTaskSeeder extends Seeder
                 'completed_at' => null,
             ]);
         }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function dailyTaskTitles(): array
+    {
+        return collect(self::PROJECT_TASKS)
+            ->filter(static fn (array $taskData): bool => ($taskData['is_daily'] ?? false) === true)
+            ->pluck('title')
+            ->all();
     }
 }

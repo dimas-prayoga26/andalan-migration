@@ -272,36 +272,53 @@
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <div class="card">
-                <div class="card-body">
-                    <div class="clearfix d-flex">
-                        <div class="avatar avatar-sm rounded me-3 p-2">
-                            <img src="assets/images/logo/figma.avif" alt="">
+    <div class="row g-3" id="overtime-list">
+        @forelse (($overtimeList ?? collect()) as $overtimeItem)
+            <div class="col-xxl-3 col-xl-4 col-sm-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="clearfix d-flex">
+                            <div class="avatar avatar-sm rounded me-3 p-2 bg-primary text-white flex-shrink-0">
+                                <span class="fw-semibold">O</span>
+                            </div>
+                            <div class="clearfix min-w-0">
+                                <h6 class="mb-0 fw-semibold text-truncate">
+                                    <a href="{{ $overtimeItem['detail_url'] ?? route('attendance.overtimes') }}" class="stretched-link">
+                                        {{ $overtimeItem['reference'] ?? '#OVT' }}
+                                    </a>
+                                </h6>
+                                <span class="small d-block text-muted">{{ $overtimeItem['overtime_date'] ?? '-' }}, {{ $overtimeItem['time_range'] ?? '-' }} ({{ $overtimeItem['duration'] ?? '-' }})</span>
+                            </div>
                         </div>
-                        <div class="clearfix">
-                            <h6 class="mb-0 fw-semibold"><a href="{{ route('attendance.overtimes.detail') }}" class="stretched-link">#OVT-2605-0101</a></h6>
-                            <span class="small">10 May 2026, 10:00 - 12:00 (2 hours)</span>
+                        <div class="my-3">
+                            <p class="mb-0 text-muted fs-13">{{ $overtimeItem['instruction'] ?? '-' }}</p>
+                        </div>
+                        <div class="mt-3">
+                            <div class="d-flex justify-content-between">
+                                <span>{{ $overtimeItem['progress_label'] ?? 'Complete' }}</span>
+                                <span>{{ $overtimeItem['progress_percent'] ?? 0 }}%</span>
+                            </div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-purple" style="width:{{ $overtimeItem['progress_percent'] ?? 0 }}%;" role="progressbar" aria-valuenow="{{ $overtimeItem['progress_percent'] ?? 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
                         </div>
                     </div>
-                    <p class="my-3">Kerjakan renovasi fasad dan desain interior rumah bintaro.</p>
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Complete</span>
-                            <span>60%</span>
-                        </div>
-                        <div class="progress mt-2">
-                            <div class="progress-bar bg-purple" style="width:60%;" role="progressbar"></div>
-                        </div>
+                    <div class="card-footer d-flex justify-content-between flex-wrap gap-2">
+                        <p class="mb-0 fw-medium">Due <span class="text-purple">: {{ $overtimeItem['due_label'] ?? '-' }}</span></p>
+                        <span class="badge badge-sm {{ $overtimeItem['footer_status_badge_class'] ?? 'badge-warning light' }}">{{ $overtimeItem['footer_status_label'] ?? 'Pending' }}</span>
                     </div>
-                </div>
-                <div class="card-footer d-flex justify-content-between flex-wrap">
-                    <p class="mb-0 fw-medium">Due <span class="text-purple">: 10 May 2026, 12:00</span></p>
-                    <span class="badge badge-sm badge-primary light">Assigned</span>
                 </div>
             </div>
-        </div>
+        @empty
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <h6 class="mb-1">No overtime records found</h6>
+                        <p class="mb-0 text-muted">Data overtime belum tersedia untuk filter saat ini.</p>
+                    </div>
+                </div>
+            </div>
+        @endforelse
     </div>
 
 </div>
@@ -314,47 +331,37 @@
                 <h1 class="modal-title fs-5" id="exampleModalLabel">Filter Details</h1>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <form method="GET" action="{{ route('attendance.overtimes') }}">
             <div class="modal-body">
-                <form>
                     <div class="row">
                         <div class="col-xl-12">
                             <div class="mb-3">
                                 <label class="form-label">Filter by Status</label>
-                                <select class="form-control selectpicker">
-                                    <option selected="">Select All</option>
-                                    <option>Assigned</option>
-                                    <option>In Progress</option>
-                                    <option>Completed</option>
-                                    <option>Cancelled</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Filter by Leave Type</label>
-                                <select class="form-control selectpicker">
-                                    <option selected="">Select All</option>
-                                    <option>Annual Leave</option>
-                                    <option>Sick Leave</option>
-                                    <option>Special Leave</option>
-                                    <option>Unpaid Leave</option>
+                                <select class="form-control selectpicker" name="status">
+                                    <option value="">Select All</option>
+                                    <option value="assigned" @selected(($overtimeStatusFilter ?? null) === 'assigned')>Assigned</option>
+                                    <option value="in_progress" @selected(($overtimeStatusFilter ?? null) === 'in_progress')>In Progress</option>
+                                    <option value="completed" @selected(($overtimeStatusFilter ?? null) === 'completed')>Completed</option>
+                                    <option value="cancelled" @selected(($overtimeStatusFilter ?? null) === 'cancelled')>Cancelled</option>
                                 </select>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Filter by Timeframe</label>
-                                <select class="form-control selectpicker">
-                                    <option>Select All</option>
-                                    <option>This Month</option>
-                                    <option>Last Month</option>
-                                    <option selected="">Year-to-Date</option>
+                                <select class="form-control selectpicker" name="timeframe">
+                                    <option value="all" @selected(($overtimeTimeframeFilter ?? 'year_to_date') === 'all')>Select All</option>
+                                    <option value="this_month" @selected(($overtimeTimeframeFilter ?? 'year_to_date') === 'this_month')>This Month</option>
+                                    <option value="last_month" @selected(($overtimeTimeframeFilter ?? 'year_to_date') === 'last_month')>Last Month</option>
+                                    <option value="year_to_date" @selected(($overtimeTimeframeFilter ?? 'year_to_date') === 'year_to_date')>Year-to-Date</option>
                                 </select>
                             </div>
                         </div>
                     </div>
-                </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary">Save changes</button>
+                <a href="{{ route('attendance.overtimes') }}" class="btn btn-danger light">Reset</a>
+                <button type="submit" class="btn btn-primary">Apply Filter</button>
             </div>
+            </form>
         </div>
     </div>
 </div>

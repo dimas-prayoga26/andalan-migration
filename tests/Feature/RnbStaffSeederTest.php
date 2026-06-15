@@ -72,5 +72,41 @@ class RnbStaffSeederTest extends TestCase
 
         $this->assertNotNull($staff31JoinDate);
         $this->assertTrue(Carbon::parse((string) $staff31JoinDate)->lessThan(now()->subYear()));
+
+        $staffAssignments = DB::table('users')
+            ->join('employees', 'employees.user_id', '=', 'users.id')
+            ->join('employee_deployments', 'employee_deployments.employee_id', '=', 'employees.id')
+            ->join('departments', 'departments.id', '=', 'employee_deployments.current_department_id')
+            ->join('positions', 'positions.id', '=', 'employee_deployments.current_position_id')
+            ->where('employee_deployments.current_company_id', $rnbCompanyId)
+            ->whereIn('users.username', ['staff31', 'staff32', 'staff33', 'staff34'])
+            ->orderBy('users.username')
+            ->get(['users.username', 'departments.name as department_name', 'positions.name as position_name'])
+            ->mapWithKeys(fn (object $staffAssignment): array => [
+                (string) $staffAssignment->username => [
+                    'department' => (string) $staffAssignment->department_name,
+                    'position' => (string) $staffAssignment->position_name,
+                ],
+            ])
+            ->all();
+
+        $this->assertSame([
+            'staff31' => [
+                'department' => 'Administration, Finance and Legal',
+                'position' => 'Finance and Administration Coordinator',
+            ],
+            'staff32' => [
+                'department' => 'Marketing and Promotion',
+                'position' => 'Graphic Design',
+            ],
+            'staff33' => [
+                'department' => 'Project Planning and Development',
+                'position' => 'Architecture Design',
+            ],
+            'staff34' => [
+                'department' => 'Operations',
+                'position' => 'Documentation Event and Editor Video',
+            ],
+        ], $staffAssignments);
     }
 }

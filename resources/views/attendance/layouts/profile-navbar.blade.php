@@ -17,7 +17,7 @@
             <button type="button" data-href="{{ route('attendance.business-trips') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.business-trips*') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.business-trips*') ? 'true' : 'false' }}">Business Trip</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button type="button" data-href="{{ route('attendance.overtimes') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.overtimes') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.overtimes') ? 'true' : 'false' }}">Overtime</button>
+            <button type="button" data-href="{{ route('attendance.overtimes') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.overtimes*') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.overtimes*') ? 'true' : 'false' }}">Overtime</button>
         </li>
     </ul>
 </div>

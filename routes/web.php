@@ -81,11 +81,15 @@ Route::middleware('auth')->group(function (): void {
     // Attendance overtime routes
     Route::get('/attendance/overtimes/datatable', [AttendanceOvertimeController::class, 'datatable'])->name('attendance.overtimes.datatable');
     Route::get('/attendance/overtimes', [AttendanceOvertimeController::class, 'index'])->name('attendance.overtimes');
-    Route::get('/attendance/overtimes/detail', [AttendanceOvertimeController::class, 'detail'])->name('attendance.overtimes.detail');
     Route::post('/attendance/overtimes', [AttendanceOvertimeController::class, 'store'])->name('attendance.overtimes.store');
-    Route::get('/attendance/overtimes/{attendanceOvertime}', [AttendanceOvertimeController::class, 'show'])->name('attendance.overtimes.show');
+    Route::get('/attendance/overtimes/{attendanceOvertime}/data', [AttendanceOvertimeController::class, 'show'])->name('attendance.overtimes.show');
+    Route::post('/attendance/overtimes/{attendanceOvertime}/tasks', [AttendanceOvertimeController::class, 'storeTask'])->name('attendance.overtimes.tasks.store');
+    Route::put('/attendance/overtimes/{attendanceOvertime}/tasks/{projectTask}', [AttendanceOvertimeController::class, 'updateTask'])->name('attendance.overtimes.tasks.update');
+    Route::delete('/attendance/overtimes/{attendanceOvertime}/tasks/{projectTask}', [AttendanceOvertimeController::class, 'destroyTask'])->name('attendance.overtimes.tasks.destroy');
+    Route::get('/attendance/overtimes/{attendanceOvertime}', [AttendanceOvertimeController::class, 'detail'])->name('attendance.overtimes.detail');
     Route::put('/attendance/overtimes/{attendanceOvertime}', [AttendanceOvertimeController::class, 'update'])->name('attendance.overtimes.update');
     Route::delete('/attendance/overtimes/{attendanceOvertime}', [AttendanceOvertimeController::class, 'destroy'])->name('attendance.overtimes.destroy');
+
     // Attendance business trip routes
     Route::get('/attendance/business-trips/provinces', [BusinessTripController::class, 'provinces'])->name('attendance.business-trips.provinces');
     Route::get('/attendance/business-trips/regencies/{provinceCode}', [BusinessTripController::class, 'regencies'])->name('attendance.business-trips.regencies');

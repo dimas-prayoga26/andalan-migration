@@ -46,4 +46,9 @@ class EmployeeDeployment extends Model
     {
         return $this->belongsTo(Position::class, 'current_position_id', 'id');
     }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'current_department_id', 'id');
+    }
 }

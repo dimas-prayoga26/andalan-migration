@@ -13,12 +13,13 @@ return new class extends Migration
     {
         Schema::create('project_tasks', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('project_id')->constrained('projects', 'id')->cascadeOnDelete();
-            $table->foreignUuid('department_id')->constrained('departments', 'id')->cascadeOnDelete();
+            $table->foreignUuid('project_id')->nullable()->constrained('projects', 'id')->nullOnDelete();
             $table->foreignUuid('employee_id')->constrained('employees', 'id')->cascadeOnDelete();
             $table->foreignUuid('overtime_id')->nullable()->constrained('overtimes', 'id')->nullOnDelete();
             $table->string('title');
             $table->text('description')->nullable();
+            $table->text('blockers')->nullable();
+            $table->string('attachment_path')->nullable();
             $table->string('status')->default('pending');
             $table->string('priority')->default('medium');
             $table->date('start_date')->nullable();
@@ -28,7 +29,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['project_id', 'status'], 'project_tasks_project_status_index');
-            $table->index(['department_id', 'status'], 'project_tasks_department_status_index');
             $table->index(['employee_id', 'status'], 'project_tasks_employee_status_index');
             $table->index(['overtime_id', 'status'], 'project_tasks_overtime_status_index');
         });

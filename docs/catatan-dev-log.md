@@ -7,6 +7,18 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-06-12 (Jumat)
+- Menyambungkan overtime list/detail ke data database, lifecycle log, dan project task.
+- Mengubah route detail overtime dari query string `/attendance/overtimes/detail?id={id}` menjadi path `/attendance/overtimes/{id}`.
+- Membuat card Overtime List menampilkan `instruction`, progress `Complete`, persentase dari lifecycle log, dan footer status `Pending`.
+- Menyesuaikan panel `My Task Items` di detail overtime: pending dan finished task berasal dari `project_tasks`, tombol edit/delete tetap fixed, keterangan staff dan badge completed dihapus.
+- Menambahkan seeder project RNB untuk `staff31` sampai `staff34`, masing-masing 5 project task.
+- Menambahkan seeder overtime deadline: masing-masing staff punya 1 task pending deadline H+1 dan 3 completed task untuk histori.
+- Menghapus `created_by` dan `department_id` dari `project_tasks`; department task sekarang dibaca dari `employee_deployments.current_department_id`.
+- Menambahkan mapping deployment department/position RNB untuk `staff31` sampai `staff34` di `UserSeeder`.
+- Menambahkan dan menyesuaikan test relasi, route, seeder, dan tampilan overtime.
+- Detail: `docs/dev-log/2026-06-12-1558-ringkasan-perubahan-overtime-project-task.md`.
+
 ### 2026-06-11 (Kamis)
 - Menambahkan fondasi project-task untuk overtime: tabel/model `projects`, `project_members`, `project_sections`, dan `project_tasks`.
 - Menambahkan relasi project ke company, member, section, task, employee, user/PIC, dan overtime.

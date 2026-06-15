@@ -3,7 +3,6 @@
 namespace App\Services\Attendance;
 
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
 class AttendanceContextService
@@ -99,13 +98,12 @@ class AttendanceContextService
         ];
     }
 
-    public function resolveClientIpAddress(Request $request, mixed $preferredIpAddress = null): ?string
+    public function resolveClientIpAddress(mixed $preferredIpAddress = null, mixed $requestIpAddress = null): ?string
     {
         if (is_string($preferredIpAddress) && filter_var($preferredIpAddress, FILTER_VALIDATE_IP)) {
             return $preferredIpAddress;
         }
 
-        $requestIpAddress = $request->ip();
         if (is_string($requestIpAddress) && filter_var($requestIpAddress, FILTER_VALIDATE_IP)) {
             return $requestIpAddress;
         }

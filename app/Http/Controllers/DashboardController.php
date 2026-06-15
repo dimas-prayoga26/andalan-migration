@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Attendance\AttendanceIndexRequest;
+use App\Http\Requests\Attendance\StoreAttendanceRequest;
+use App\Http\Requests\Attendance\UpdateAttendanceRequest;
 use App\Models\Attendance;
 use App\Models\User;
 use App\Services\Attendance\AttendanceCardsViewDataService;
 use App\Services\Attendance\AttendanceMutationService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -18,23 +20,26 @@ class DashboardController extends Controller
         private AttendanceMutationService $attendanceMutationService
     ) {}
 
-    public function index(Request $request): View
+    public function index(AttendanceIndexRequest $request): View
     {
         $authenticatedUser = Auth::user();
         $attendanceCardsData = $this->attendanceCardsViewDataService->build(
             $authenticatedUser instanceof User ? $authenticatedUser : null,
             Auth::id(),
-            $request
+            $request->validated('client_ip'),
+            $request->ip()
         );
 
         return view('dashboard', $attendanceCardsData);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreAttendanceRequest $request): JsonResponse
     {
         try {
             $storeResult = $this->attendanceMutationService->store(
-                $request,
+                $request->validated(),
+                $request->ip(),
+                $request->userAgent(),
                 Auth::user(),
                 Auth::id(),
             );
@@ -50,11 +55,13 @@ class DashboardController extends Controller
         }
     }
 
-    public function update(Request $request, Attendance $attendance): JsonResponse
+    public function update(UpdateAttendanceRequest $request, Attendance $attendance): JsonResponse
     {
         try {
             $updateResult = $this->attendanceMutationService->update(
-                $request,
+                $request->validated(),
+                $request->ip(),
+                $request->userAgent(),
                 $attendance,
                 Auth::user(),
                 Auth::id(),

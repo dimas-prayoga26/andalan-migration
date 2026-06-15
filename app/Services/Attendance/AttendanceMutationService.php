@@ -10,7 +10,6 @@ use App\Models\TelegramUser;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -22,8 +21,13 @@ class AttendanceMutationService
     /**
      * @return array{status:int,payload:array<string,mixed>}
      */
-    public function store(Request $request, ?User $authenticatedUser, int|string|null $authenticatedUserId): array
-    {
+    public function store(
+        array $trackingInput,
+        ?string $requestIpAddress,
+        ?string $userAgent,
+        ?User $authenticatedUser,
+        int|string|null $authenticatedUserId
+    ): array {
         if ($authenticatedUser instanceof User) {
             $authenticatedUser->loadMissing('employee.profile', 'employee.telegramUser');
         }
@@ -45,7 +49,7 @@ class AttendanceMutationService
         $officeContext = $this->resolveOfficeContext($authenticatedUserId);
         $attendanceStatus = $this->resolveAttendanceStatus($nowJakarta, $officeContext);
         $lateMinutes = $this->calculateLateMinutes($nowJakarta, $officeContext);
-        $trackingContext = $this->buildTrackingContext($request, $officeContext);
+        $trackingContext = $this->buildTrackingContext($trackingInput, $requestIpAddress, $userAgent, $officeContext);
 
         try {
             $attendance = DB::transaction(function () use ($employeeId, $todayDate, $currentTime, $lateMinutes, $attendanceStatus, $trackingContext): Attendance {
@@ -119,8 +123,14 @@ class AttendanceMutationService
     /**
      * @return array{status:int,payload:array<string,mixed>}
      */
-    public function update(Request $request, Attendance $attendance, ?User $authenticatedUser, int|string|null $authenticatedUserId): array
-    {
+    public function update(
+        array $trackingInput,
+        ?string $requestIpAddress,
+        ?string $userAgent,
+        Attendance $attendance,
+        ?User $authenticatedUser,
+        int|string|null $authenticatedUserId
+    ): array {
         $attendance->loadMissing('employee');
         if ($attendance->employee?->user_id !== $authenticatedUserId) {
             return [
@@ -177,7 +187,7 @@ class AttendanceMutationService
         }
         $workHours = $this->calculateWorkHours($clockInTime, $clockOutTime);
         $officeContext = $this->resolveOfficeContext($authenticatedUserId);
-        $trackingContext = $this->buildTrackingContext($request, $officeContext);
+        $trackingContext = $this->buildTrackingContext($trackingInput, $requestIpAddress, $userAgent, $officeContext);
 
         try {
             $updatedAttendance = DB::transaction(function () use ($attendance, $todayDate, $clockOutTimeString, $workHours, $trackingContext): Attendance {
@@ -467,13 +477,12 @@ class AttendanceMutationService
         ];
     }
 
-    public function resolveClientIpAddress(Request $request, mixed $preferredIpAddress = null): ?string
+    public function resolveClientIpAddress(mixed $preferredIpAddress = null, mixed $requestIpAddress = null): ?string
     {
         if (is_string($preferredIpAddress) && filter_var($preferredIpAddress, FILTER_VALIDATE_IP)) {
             return $preferredIpAddress;
         }
 
-        $requestIpAddress = $request->ip();
         if (is_string($requestIpAddress) && filter_var($requestIpAddress, FILTER_VALIDATE_IP)) {
             return $requestIpAddress;
         }
@@ -567,12 +576,16 @@ class AttendanceMutationService
      *     geocoded_at:?Carbon
      * }
      */
-    private function buildTrackingContext(Request $request, ?array $officeContext): array
-    {
-        $clientIpAddress = $this->resolveClientIpAddress($request, $request->input('client_ip'));
+    private function buildTrackingContext(
+        array $trackingInput,
+        ?string $requestIpAddress,
+        ?string $userAgent,
+        ?array $officeContext
+    ): array {
+        $clientIpAddress = $this->resolveClientIpAddress($trackingInput['client_ip'] ?? null, $requestIpAddress);
         $ipdataData = $this->fetchIpdata($clientIpAddress);
-        $requestLatitude = $request->input('latitude');
-        $requestLongitude = $request->input('longitude');
+        $requestLatitude = $trackingInput['latitude'] ?? null;
+        $requestLongitude = $trackingInput['longitude'] ?? null;
         $hasRequestCoordinates = is_numeric($requestLatitude)
             && is_numeric($requestLongitude)
             && $this->isValidCoordinate((float) $requestLatitude, (float) $requestLongitude);
@@ -607,8 +620,8 @@ class AttendanceMutationService
             'longitude' => $longitude,
             'radius_result' => $radiusResult,
             'distance' => round($distance, 2),
-            'ip_address' => $ipAddress ?? $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'ip_address' => $ipAddress ?? $requestIpAddress,
+            'user_agent' => $userAgent,
             'location' => $this->formatAttendanceLogLocation($locationMetadata['plus_code_compound_code'] ?? null, $latitude, $longitude),
             'address_village' => $locationMetadata['address_village'] ?? null,
             'address_district' => $locationMetadata['address_district'] ?? null,

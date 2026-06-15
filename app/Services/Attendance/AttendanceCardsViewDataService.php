@@ -4,7 +4,6 @@ namespace App\Services\Attendance;
 
 use App\Models\AttendanceException;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class AttendanceCardsViewDataService
@@ -34,8 +33,12 @@ class AttendanceCardsViewDataService
      *   isIpPrefixMatch:bool
      * }
      */
-    public function build(?User $authenticatedUser, int|string|null $authenticatedUserId, Request $request): array
-    {
+    public function build(
+        ?User $authenticatedUser,
+        int|string|null $authenticatedUserId,
+        mixed $preferredIpAddress = null,
+        mixed $requestIpAddress = null
+    ): array {
         if ($authenticatedUser instanceof User) {
             $authenticatedUser->loadMissing('employee.deployment');
         }
@@ -98,7 +101,7 @@ class AttendanceCardsViewDataService
 
         $officeLocation = $this->attendanceContextService->resolveOfficeContext($authenticatedUserId);
         $publicIp = '-';
-        $clientIpAddress = $this->attendanceContextService->resolveClientIpAddress($request);
+        $clientIpAddress = $this->attendanceContextService->resolveClientIpAddress($preferredIpAddress, $requestIpAddress);
         $ipdataData = $this->attendanceContextService->fetchIpdata($clientIpAddress);
         if (! empty($ipdataData['ip'])) {
             $publicIp = (string) $ipdataData['ip'];

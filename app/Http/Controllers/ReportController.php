@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Attendance\AttendanceIndexRequest;
+use App\Http\Requests\Attendance\StoreAttendanceRequest;
+use App\Http\Requests\Attendance\UpdateAttendanceRequest;
 use App\Models\Attendance;
 use App\Models\AttendanceException;
 use App\Models\AttendanceHoliday;
@@ -31,7 +34,7 @@ class ReportController extends Controller
         private AttendanceMutationService $attendanceMutationService
     ) {}
 
-    public function index(Request $request): View
+    public function index(AttendanceIndexRequest $request): View
     {
         $authenticatedUser = Auth::user();
         if ($authenticatedUser instanceof User) {
@@ -40,7 +43,8 @@ class ReportController extends Controller
         $attendanceCardsData = $this->attendanceCardsViewDataService->build(
             $authenticatedUser instanceof User ? $authenticatedUser : null,
             Auth::id(),
-            $request
+            $request->validated('client_ip'),
+            $request->ip()
         );
         $employeeId = $attendanceCardsData['employeeId'];
         $isSuperUser = $this->isSuperUser($authenticatedUser);
@@ -109,11 +113,13 @@ class ReportController extends Controller
         ));
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreAttendanceRequest $request): JsonResponse
     {
         try {
             $storeResult = $this->attendanceMutationService->store(
-                $request,
+                $request->validated(),
+                $request->ip(),
+                $request->userAgent(),
                 Auth::user(),
                 Auth::id(),
             );
@@ -129,11 +135,13 @@ class ReportController extends Controller
         }
     }
 
-    public function update(Request $request, Attendance $attendance): JsonResponse
+    public function update(UpdateAttendanceRequest $request, Attendance $attendance): JsonResponse
     {
         try {
             $updateResult = $this->attendanceMutationService->update(
-                $request,
+                $request->validated(),
+                $request->ip(),
+                $request->userAgent(),
                 $attendance,
                 Auth::user(),
                 Auth::id(),

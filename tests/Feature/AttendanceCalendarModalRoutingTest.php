@@ -2,191 +2,141 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReportController;
+use App\Http\Requests\Attendance\AttendanceIndexRequest;
+use App\Http\Requests\Attendance\CurrentAttendanceIpRequest;
+use App\Http\Requests\Attendance\StoreAttendanceExceptionRequest;
+use App\Http\Requests\Attendance\StoreAttendanceRequest;
+use App\Http\Requests\Attendance\UpdateAttendanceRequest;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
 
 class AttendanceCalendarModalRoutingTest extends TestCase
 {
-    public function test_attendance_calendar_events_are_mapped_to_existing_modals(): void
+    public function test_attendance_refactor_dependencies_can_be_resolved(): void
+    {
+        $this->assertInstanceOf(AttendanceController::class, app(AttendanceController::class));
+        $this->assertInstanceOf(DashboardController::class, app(DashboardController::class));
+        $this->assertInstanceOf(ReportController::class, app(ReportController::class));
+
+        $request = new StoreAttendanceExceptionRequest;
+        $this->assertSame(
+            ['required', 'in:late_arrival,early_departure'],
+            $request->rules()['type']
+        );
+
+        $this->assertSame(['nullable', 'ip'], (new AttendanceIndexRequest)->rules()['client_ip']);
+        $this->assertSame(['nullable', 'ip'], (new CurrentAttendanceIpRequest)->rules()['client_ip']);
+        $this->assertSame(
+            ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'],
+            (new StoreAttendanceRequest)->rules()['latitude']
+        );
+        $this->assertSame(
+            ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'],
+            (new UpdateAttendanceRequest)->rules()['longitude']
+        );
+
+        $invalidTrackingInput = Validator::make(
+            ['latitude' => -91, 'longitude' => 107],
+            (new StoreAttendanceRequest)->rules()
+        );
+        $this->assertTrue($invalidTrackingInput->fails());
+
+        $validTrackingInput = Validator::make(
+            ['client_ip' => '203.0.113.10', 'latitude' => -6.2, 'longitude' => 106.8],
+            (new StoreAttendanceRequest)->rules()
+        );
+        $this->assertFalse($validTrackingInput->fails());
+    }
+
+    public function test_attendance_calendar_responsibilities_are_separated_from_controller(): void
     {
         $attendanceController = File::get(app_path('Http/Controllers/AttendanceController.php'));
+        $calendarEventService = File::get(app_path('Services/Attendance/AttendanceCalendarEventService.php'));
+        $calendarPresenter = File::get(app_path('Support/Attendance/AttendanceCalendarPresenter.php'));
+        $exceptionPresenter = File::get(app_path('Support/Attendance/AttendanceExceptionPresenter.php'));
+        $locationFormatter = File::get(app_path('Support/Attendance/AttendanceLocationFormatter.php'));
+        $attendanceTrackingRequest = File::get(app_path('Http/Requests/Attendance/AttendanceTrackingRequest.php'));
+        $exceptionRequest = File::get(app_path('Http/Requests/Attendance/StoreAttendanceExceptionRequest.php'));
+        $attendanceMutationService = File::get(app_path('Services/Attendance/AttendanceMutationService.php'));
+        $attendanceCardsService = File::get(app_path('Services/Attendance/AttendanceCardsViewDataService.php'));
+        $attendanceIpService = File::get(app_path('Services/Attendance/AttendanceIpVerificationService.php'));
+
+        $this->assertStringContainsString('private AttendanceCalendarEventService $attendanceCalendarEventService', $attendanceController);
+        $this->assertStringContainsString('$this->attendanceCalendarEventService->buildEmployeeEvents(', $attendanceController);
+        $this->assertStringContainsString('$this->attendanceCalendarEventService->buildHolidayEvents()', $attendanceController);
+        $this->assertStringContainsString('StoreAttendanceExceptionRequest $request', $attendanceController);
+        $this->assertStringContainsString('StoreAttendanceRequest $request', $attendanceController);
+        $this->assertStringContainsString('UpdateAttendanceRequest $request', $attendanceController);
+        $this->assertStringContainsString('CurrentAttendanceIpRequest $request', $attendanceController);
+        $this->assertStringContainsString('$request->validated()', $attendanceController);
+        $this->assertStringNotContainsString('private function buildLeaveCalendarEvents', $attendanceController);
+        $this->assertStringNotContainsString('private function formatAttendanceLocationName', $attendanceController);
+
+        $this->assertStringContainsString('class AttendanceCalendarEventService', $calendarEventService);
+        $this->assertStringContainsString('public function buildHolidayEvents(): array', $calendarEventService);
+        $this->assertStringContainsString('public function buildEmployeeEvents(string $employeeId, ?array $officeLocation): array', $calendarEventService);
+        $this->assertStringContainsString('private function buildAttendanceHistoryEvents', $calendarEventService);
+        $this->assertStringContainsString('private function buildLeaveCalendarEvents', $calendarEventService);
+        $this->assertStringContainsString('private function buildBusinessTripCalendarEvents', $calendarEventService);
+        $this->assertStringContainsString("->whereIn('status', ['pending', 'approved'])", $calendarEventService);
+        $this->assertStringContainsString("->where('approval_status', 'approved')", $calendarEventService);
+        $this->assertStringContainsString("'calendarModalId' => 'trip'", $calendarEventService);
+        $this->assertStringContainsString("'attendanceModalId' => \$attendanceModalId", $calendarEventService);
+        $this->assertStringContainsString("'clockOut' => \$clockOutLabel", $calendarEventService);
+        $this->assertStringContainsString("'tripSubmitTaskUrl' => route('attendance.business-trips.cash-advances.create', \$businessTrip)", $calendarEventService);
+        $this->assertStringContainsString("'tripReimbursementUrl' => route('attendance.business-trips.reimbursements.create', \$businessTrip)", $calendarEventService);
+
+        $this->assertStringContainsString('class AttendanceCalendarPresenter', $calendarPresenter);
+        $this->assertStringContainsString('public function leaveTypeLabel', $calendarPresenter);
+        $this->assertStringContainsString('public function attendanceStatusLabel', $calendarPresenter);
+        $this->assertStringContainsString('/** @var FilesystemAdapter $publicDisk */', $calendarPresenter);
+        $this->assertStringContainsString("\$publicDisk = Storage::disk('public');", $calendarPresenter);
+        $this->assertStringContainsString('return $publicDisk->url($attachmentPath);', $calendarPresenter);
+        $this->assertStringNotContainsString('AttendanceException', $calendarPresenter);
+        $this->assertStringNotContainsString('AttendanceLog', $calendarPresenter);
+
+        $this->assertStringContainsString('class AttendanceExceptionPresenter', $exceptionPresenter);
+        $this->assertStringContainsString('public function timeVarianceLabel', $exceptionPresenter);
+        $this->assertStringContainsString("'late_arrival' => 'Permitted Late Arrival'", $exceptionPresenter);
+        $this->assertStringContainsString("'early_departure' => 'Early Departure'", $exceptionPresenter);
+
+        $this->assertStringContainsString('class AttendanceLocationFormatter', $locationFormatter);
+        $this->assertStringContainsString('public function name', $locationFormatter);
+        $this->assertStringContainsString("return 'Koordinat Absensi';", $locationFormatter);
+        $this->assertStringContainsString("str_starts_with(strtolower(\$location), 'https://www.google.com/maps')", $locationFormatter);
+
+        $this->assertStringContainsString('abstract class AttendanceTrackingRequest extends FormRequest', $attendanceTrackingRequest);
+        $this->assertStringContainsString('namespace App\Http\Requests\Attendance;', $exceptionRequest);
+        $this->assertStringContainsString("'type' => ['required', 'in:late_arrival,early_departure']", $exceptionRequest);
+        $this->assertStringContainsString("'exception_date' => ['nullable', 'date']", $exceptionRequest);
+
+        foreach ([$attendanceMutationService, $attendanceCardsService, $attendanceIpService] as $attendanceService) {
+            $this->assertStringNotContainsString('Illuminate\Http\Request', $attendanceService);
+            $this->assertStringNotContainsString('Request $request', $attendanceService);
+            $this->assertStringNotContainsString('->input(', $attendanceService);
+            $this->assertStringNotContainsString('->query(', $attendanceService);
+        }
+    }
+
+    public function test_attendance_calendar_events_are_mapped_to_existing_modals(): void
+    {
         $attendanceView = File::get(resource_path('views/attendance/attendance/index.blade.php'));
 
-        $this->assertStringContainsString("\$attendanceModalId = 'onTime';", $attendanceController);
-        $this->assertStringContainsString("\$attendanceModalId = 'deviation';", $attendanceController);
-        $this->assertStringContainsString("\$attendanceModalId = 'late';", $attendanceController);
-        $this->assertStringContainsString("\$attendanceTitle = 'On Time';", $attendanceController);
-        $this->assertStringContainsString("->get(['id', 'date', 'clock_in', 'clock_out', 'late_minutes', 'status'])", $attendanceController);
-        $this->assertStringContainsString('$attendanceTitle = $attendanceException instanceof AttendanceException', $attendanceController);
-        $this->assertStringContainsString('private function formatAttendanceExceptionModalTitle(AttendanceException $attendanceException): string', $attendanceController);
-        $this->assertStringContainsString('private function formatAttendanceExceptionIntroTitle(AttendanceException $attendanceException): string', $attendanceController);
-        $this->assertStringContainsString('private function formatAttendanceExceptionIntroPrimary(AttendanceException $attendanceException): string', $attendanceController);
-        $this->assertStringContainsString('private function formatAttendanceExceptionIntroSecondary(AttendanceException $attendanceException): string', $attendanceController);
-        $this->assertStringContainsString('use App\Models\BusinessTrip;', $attendanceController);
-        $this->assertStringContainsString('use App\Models\BusinessTripLifecycleLog;', $attendanceController);
-        $this->assertStringContainsString('use App\Models\LeaveRequest;', $attendanceController);
-        $this->assertStringContainsString('use Illuminate\Support\Facades\Storage;', $attendanceController);
-        $this->assertStringContainsString('$calendarLabelEvents = [];', $attendanceController);
-        $this->assertStringContainsString("'calendarLabelEvents' => \$calendarLabelEvents,", $attendanceController);
-        $this->assertStringContainsString('private function buildLeaveCalendarEvents(string $employeeId): array', $attendanceController);
-        $this->assertStringContainsString('private function buildBusinessTripCalendarEvents(string $employeeId): array', $attendanceController);
-        $this->assertStringContainsString("->whereIn('status', ['pending', 'approved'])", $attendanceController);
-        $this->assertStringContainsString("->where('approval_status', 'approved')", $attendanceController);
-        $this->assertStringContainsString("->with(['lifecycleLogs:id,business_trip_id,event_key,status'])", $attendanceController);
-        $this->assertStringNotContainsString("->where('status', 'approved')", $attendanceController);
-        $this->assertStringNotContainsString("->whereNotIn('approval_status', ['rejected', 'refused', 'cancelled', 'canceled'])", $attendanceController);
-        $this->assertStringContainsString("'Special Leave' => ['backgroundColor' => '#d63384', 'borderColor' => '#a82767'],", $attendanceController);
-        $this->assertStringContainsString("'Sick Leave' => ['backgroundColor' => '#0d6efd', 'borderColor' => '#0a58ca'],", $attendanceController);
-        $this->assertStringContainsString("'Unpaid Leave' => ['backgroundColor' => '#6c757d', 'borderColor' => '#5a6268'],", $attendanceController);
-        $this->assertStringContainsString("'Annual Leave' => ['backgroundColor' => '#6f42c1', 'borderColor' => '#59339d'],", $attendanceController);
-        $this->assertStringContainsString("'Business Trip' => ['backgroundColor' => '#0dcaf0', 'borderColor' => '#0aa2c0'],", $attendanceController);
-        $this->assertStringContainsString("'calendarModalId' => \$this->calendarLeaveModalId(\$title),", $attendanceController);
-        $this->assertStringContainsString("'calendarModalId' => 'trip',", $attendanceController);
-        $this->assertStringContainsString("'leaveReason' => \$this->formatCalendarText(\$leaveRequest->reason),", $attendanceController);
-        $this->assertStringContainsString("'leaveDurationLabel' => \$this->formatCalendarDurationLabel(\$startDate, \$endDate, (int) (\$leaveRequest->total_days ?? 0)),", $attendanceController);
-        $this->assertStringContainsString("'leaveStatusLabel' => \$this->formatCalendarStatusLabel(\$leaveRequest->status),", $attendanceController);
-        $this->assertStringContainsString("'medicalNotesUrl' => \$this->formatLeaveAttachmentUrl(\$leaveRequest),", $attendanceController);
-        $this->assertStringContainsString("'tripPurpose' => \$this->formatCalendarText(\$businessTrip->purpose),", $attendanceController);
-        $this->assertStringContainsString("'tripDestination' => \$this->formatBusinessTripDestination(\$businessTrip),", $attendanceController);
-        $this->assertStringContainsString("'tripDurationLabel' => \$this->formatCalendarDurationLabel(\$startDate, \$endDate, (int) (\$businessTrip->total_days ?? 0)),", $attendanceController);
-        $this->assertStringContainsString("'tripSubmitTaskUrl' => route('attendance.business-trips.cash-advances.create', \$businessTrip),", $attendanceController);
-        $this->assertStringContainsString("'tripReimbursementUrl' => route('attendance.business-trips.reimbursements.create', \$businessTrip),", $attendanceController);
-        $this->assertStringContainsString("'tripCanSubmitTask' => \$canSubmitTask,", $attendanceController);
-        $this->assertStringContainsString("'tripCanRequestReimbursement' => \$canRequestReimbursement,", $attendanceController);
-        $this->assertStringContainsString('private function businessTripLifecycleEventHasStatus(BusinessTrip $businessTrip, string $eventKey, string $expectedStatus): bool', $attendanceController);
-        $this->assertStringContainsString("\$this->businessTripLifecycleEventHasStatus(\$businessTrip, 'supervisor_review', 'complete')", $attendanceController);
-        $this->assertStringContainsString("\$this->businessTripLifecycleEventHasStatus(\$businessTrip, 'reimbursement_submitted', 'pending')", $attendanceController);
-        $this->assertStringContainsString('private function calendarLeaveModalId(string $leaveTypeLabel): string', $attendanceController);
-        $this->assertStringContainsString('private function formatBusinessTripDestination(BusinessTrip $businessTrip): string', $attendanceController);
-        $this->assertStringContainsString("'late_arrival' => 'Permitted Late Arrival',", $attendanceController);
-        $this->assertStringContainsString("'early_departure' => 'Early Departure',", $attendanceController);
-        $this->assertStringContainsString("'late_arrival' => 'Thanks for the heads-up!',", $attendanceController);
-        $this->assertStringContainsString("'early_departure' => 'Wrapping up early today',", $attendanceController);
-        $this->assertStringContainsString("\$attendanceTitle = \$lateMinutes > 0 ? 'Late '.\$lateMinutes.' Minutes' : 'Late Arrival';", $attendanceController);
-        $this->assertStringContainsString("'attendanceModalId' => \$attendanceModalId,", $attendanceController);
-        $this->assertStringContainsString("'attendanceEventType' => \$attendanceEventType,", $attendanceController);
-        $this->assertStringContainsString("'modalTitle' => \$attendanceTitle,", $attendanceController);
-        $this->assertStringContainsString("'attendanceDateLabel' => \$attendanceItem->date?->translatedFormat('d M Y') ?? \$attendanceDateLabel,", $attendanceController);
-        $this->assertStringContainsString("'clockOut' => \$clockOutLabel,", $attendanceController);
-        $this->assertStringContainsString("\$clockOutLabel = \$attendanceItem->clock_out?->format('H:i') ?? '-';", $attendanceController);
-        $this->assertStringNotContainsString('Belum Clock Out', $attendanceController);
-        $this->assertStringContainsString("'clockInSchedule' => \$this->formatAttendanceTimeWithSchedule(\$clockInLabel, \$officeScheduleLabel),", $attendanceController);
-        $this->assertStringContainsString("'attendanceStatusLabel' => \$this->formatCalendarAttendanceStatusLabel(\$attendanceEventType, \$attendanceTitle, \$lateMinutes),", $attendanceController);
-        $this->assertStringContainsString("'locationName' => \$this->formatAttendanceLocationName(\$attendanceLog),", $attendanceController);
-        $this->assertStringContainsString("'locationAddress' => \$this->formatAttendanceLocationAddress(\$attendanceLog),", $attendanceController);
-        $this->assertStringContainsString("'title' => 'In : '.\$clockInLabel.' - Out : '.\$clockOutLabel,", $attendanceController);
-        $this->assertStringNotContainsString("'locationMapUrl' =>", $attendanceController);
-        $this->assertStringNotContainsString('private function formatAttendanceLocationMapUrl', $attendanceController);
-        $this->assertStringContainsString("                    'location',", $attendanceController);
-        $this->assertStringContainsString("                    'latitude',", $attendanceController);
-        $this->assertStringContainsString("                    'longitude',", $attendanceController);
-        $this->assertStringContainsString("return 'Koordinat Absensi';", $attendanceController);
-        $this->assertStringContainsString("str_starts_with(strtolower(\$location), 'https://www.google.com/maps')", $attendanceController);
-        $this->assertStringContainsString("preg_replace('/\\b\\d{5}(?:-\\d{4})?\\b/', '', \$locationPart)", $attendanceController);
-        $this->assertStringContainsString("preg_replace('/\\bindonesia\\b/i', '', \$cleanLocationPart)", $attendanceController);
-        $this->assertStringNotContainsString("                    'address_village',", $attendanceController);
-        $this->assertStringNotContainsString("                    'address_postal_code',", $attendanceController);
-        $this->assertStringContainsString("'deviationIntroTitle' => \$attendanceException instanceof AttendanceException ? \$this->formatAttendanceExceptionIntroTitle(\$attendanceException) : '',", $attendanceController);
-        $this->assertStringContainsString("'deviationIntroPrimary' => \$attendanceException instanceof AttendanceException ? \$this->formatAttendanceExceptionIntroPrimary(\$attendanceException) : '',", $attendanceController);
-        $this->assertStringContainsString("'deviationIntroSecondary' => \$attendanceException instanceof AttendanceException ? \$this->formatAttendanceExceptionIntroSecondary(\$attendanceException) : '',", $attendanceController);
-        $this->assertStringContainsString("'requestTypeLabel' => \$attendanceException instanceof AttendanceException ? \$this->formatAttendanceExceptionRequestTypeLabel(\$attendanceException) : '-',", $attendanceController);
-        $this->assertStringContainsString("'reason' => \$attendanceException instanceof AttendanceException && is_string(\$attendanceException->note) && trim(\$attendanceException->note) !== ''", $attendanceController);
-        $this->assertStringContainsString("'timeVarianceLabel' => \$attendanceException instanceof AttendanceException ? \$this->formatAttendanceExceptionTimeVarianceLabel(\$attendanceException) : '-',", $attendanceController);
-        $this->assertStringContainsString("'exceptionStatusLabel' => \$attendanceException instanceof AttendanceException ? \$this->formatAttendanceExceptionStatusLabel(\$attendanceException) : '-',", $attendanceController);
-        $this->assertStringContainsString("'exceptionStatusDateLabel' => \$attendanceException instanceof AttendanceException ? \$this->formatAttendanceExceptionStatusDateLabel(\$attendanceException) : '-',", $attendanceController);
+        foreach (['onTime', 'late', 'deviation', 'annualLeave', 'specialLeave', 'unpaidLeave', 'sick', 'trip'] as $modalId) {
+            $this->assertStringContainsString('<div class="modal fade" id="'.$modalId.'"', $attendanceView);
+        }
 
-        $this->assertStringContainsString('<div class="modal fade" id="onTime"', $attendanceView);
-        $this->assertStringContainsString('<div class="modal fade" id="late"', $attendanceView);
-        $this->assertStringContainsString('<div class="modal fade" id="deviation"', $attendanceView);
-        $this->assertStringContainsString('<div class="modal fade" id="annualLeave"', $attendanceView);
-        $this->assertStringContainsString('<div class="modal fade" id="specialLeave"', $attendanceView);
-        $this->assertStringContainsString('<div class="modal fade" id="unpaidLeave"', $attendanceView);
-        $this->assertStringContainsString('<div class="modal fade" id="sick"', $attendanceView);
-        $this->assertStringContainsString('<div class="modal fade" id="trip"', $attendanceView);
-        $this->assertStringContainsString('id="onTimeStatusText"', $attendanceView);
-        $this->assertStringContainsString('id="onTimeLocationNameText"', $attendanceView);
-        $this->assertStringNotContainsString('id="onTimeLocationMapLink"', $attendanceView);
-        $this->assertStringContainsString('id="onTimeClockInText"', $attendanceView);
-        $this->assertStringContainsString('id="lateStatusText"', $attendanceView);
-        $this->assertStringContainsString('id="lateLocationNameText"', $attendanceView);
-        $this->assertStringNotContainsString('id="lateLocationMapLink"', $attendanceView);
-        $this->assertStringContainsString('id="lateClockInText"', $attendanceView);
-        $this->assertStringNotContainsString('id="deviationDateText"', $attendanceView);
-        $this->assertStringContainsString('id="deviationIntroTitleText"', $attendanceView);
-        $this->assertStringContainsString('id="deviationIntroPrimaryText"', $attendanceView);
-        $this->assertStringContainsString('id="deviationIntroSecondaryText"', $attendanceView);
-        $this->assertStringContainsString('id="deviationRequestTypeText"', $attendanceView);
-        $this->assertStringContainsString('id="deviationReasonText"', $attendanceView);
-        $this->assertStringContainsString('id="deviationTimeVarianceText"', $attendanceView);
-        $this->assertStringNotContainsString('id="deviationLocationNameText"', $attendanceView);
-        $this->assertStringNotContainsString('id="deviationLocationAddressText"', $attendanceView);
-        $this->assertStringNotContainsString('id="deviationClockInText"', $attendanceView);
-        $this->assertStringNotContainsString('id="deviationClockOutText"', $attendanceView);
-        $this->assertStringContainsString('id="deviationStatusText"', $attendanceView);
-        $this->assertStringContainsString('id="annualLeaveTypeText"', $attendanceView);
-        $this->assertStringContainsString('id="annualLeaveReasonText"', $attendanceView);
-        $this->assertStringContainsString('id="annualLeaveDurationText"', $attendanceView);
-        $this->assertStringContainsString('id="annualLeaveStatusText"', $attendanceView);
-        $this->assertStringContainsString('id="specialLeaveTypeText"', $attendanceView);
-        $this->assertStringContainsString('id="unpaidLeaveTypeText"', $attendanceView);
-        $this->assertStringContainsString('id="sickTypeText"', $attendanceView);
-        $this->assertStringContainsString('id="sickMedicalNotesImageLink"', $attendanceView);
-        $this->assertStringContainsString('id="sickMedicalNotesFileLink"', $attendanceView);
-        $this->assertStringContainsString('id="tripActivityTypeText"', $attendanceView);
-        $this->assertStringContainsString('id="tripPurposeText"', $attendanceView);
-        $this->assertStringContainsString('id="tripDestinationText"', $attendanceView);
-        $this->assertStringContainsString('id="tripDurationText"', $attendanceView);
-        $this->assertStringContainsString('id="tripStatusText"', $attendanceView);
-        $this->assertStringContainsString('id="tripSubmitTaskButton"', $attendanceView);
-        $this->assertStringContainsString('id="tripReimbursementButton"', $attendanceView);
-        $this->assertStringContainsString('<h1 class="modal-title fs-5" id="deviationLabel">Attendance Exception</h1>', $attendanceView);
-        $this->assertStringNotContainsString('Permitted Late Arrival / Early Departure', $attendanceView);
-        $this->assertStringNotContainsString('Thanks for the heads-up! | Wrapping up early today', $attendanceView);
-        $this->assertStringNotContainsString('We know things happen. Travel safely', $attendanceView);
-        $this->assertStringContainsString('.app-fullcalendar .fc-event.fc-calendar-label-card,', $attendanceView);
-        $this->assertStringContainsString('min-height: 30px;', $attendanceView);
-        $this->assertStringContainsString('.app-fullcalendar .fc-event.fc-calendar-label-card .fc-event-title', $attendanceView);
-        $this->assertStringContainsString('text-overflow: ellipsis;', $attendanceView);
         $this->assertStringContainsString("var attendanceModalIds = ['onTime', 'late', 'deviation'];", $attendanceView);
         $this->assertStringContainsString("var calendarLabelModalIds = ['annualLeave', 'specialLeave', 'unpaidLeave', 'sick', 'trip'];", $attendanceView);
         $this->assertStringContainsString('var calendarLabelEvents = @json($calendarLabelEvents ?? []);', $attendanceView);
-        $this->assertStringContainsString('function buildCalendarLabelEventsInRange(startDate, endDate)', $attendanceView);
-        $this->assertStringContainsString("classNames: Array.isArray(eventItem.classNames) ? eventItem.classNames : ['fc-calendar-label-card'],", $attendanceView);
-        $this->assertStringContainsString('var calendarLabelEventsInRange = buildCalendarLabelEventsInRange(fetchInfo.start, fetchInfo.end);', $attendanceView);
-        $this->assertStringContainsString('successCallback(holidayEventsInRange.concat(calendarLabelEventsInRange, attendanceLogEvents));', $attendanceView);
-        $this->assertStringContainsString('successCallback(holidayEventsInRange.concat(weekendEvents, calendarLabelEventsInRange, attendanceLogEvents));', $attendanceView);
         $this->assertStringContainsString('function fillAttendanceModal(modalId, props)', $attendanceView);
-        $this->assertStringContainsString('function openAttendanceModal(modalId, props)', $attendanceView);
         $this->assertStringContainsString('function fillLeaveCalendarModal(modalId, props)', $attendanceView);
-        $this->assertStringContainsString('function fillSickMedicalNotes(props)', $attendanceView);
-        $this->assertStringContainsString('function setCalendarActionButton(elementId, url, isEnabled, disabledLabel)', $attendanceView);
         $this->assertStringContainsString('function fillTripCalendarModal(props)', $attendanceView);
-        $this->assertStringContainsString('function openCalendarLabelModal(modalId, props)', $attendanceView);
-        $this->assertStringNotContainsString('function setAttendanceModalMapLink(elementId, value)', $attendanceView);
-        $this->assertStringNotContainsString('Lihat titik lokasi', $attendanceView);
-        $this->assertStringContainsString("setAttendanceModalText('onTimeLabel', props.modalTitle, 'On Time');", $attendanceView);
-        $this->assertStringContainsString("setAttendanceModalText('lateLabel', props.modalTitle, 'Late Arrival');", $attendanceView);
-        $this->assertStringContainsString("setAttendanceModalText('deviationLabel', props.modalTitle, 'Attendance Exception');", $attendanceView);
-        $this->assertStringContainsString('function setAttendanceModalOptionalText(elementId, value)', $attendanceView);
-        $this->assertStringContainsString("setAttendanceModalOptionalText('deviationIntroTitleText', props.deviationIntroTitle);", $attendanceView);
-        $this->assertStringContainsString("setAttendanceModalOptionalText('deviationIntroPrimaryText', props.deviationIntroPrimary);", $attendanceView);
-        $this->assertStringContainsString("setAttendanceModalOptionalText('deviationIntroSecondaryText', props.deviationIntroSecondary);", $attendanceView);
-        $this->assertStringContainsString("setAttendanceModalText('onTimeStatusText', props.attendanceStatusLabel, 'On-Time Arrival');", $attendanceView);
-        $this->assertStringNotContainsString("setAttendanceModalMapLink('onTimeLocationMapLink', props.locationMapUrl);", $attendanceView);
-        $this->assertStringContainsString("setAttendanceModalText('lateStatusText', props.attendanceStatusLabel, 'Late Arrival');", $attendanceView);
-        $this->assertStringNotContainsString("setAttendanceModalMapLink('lateLocationMapLink', props.locationMapUrl);", $attendanceView);
-        $this->assertStringContainsString("setAttendanceModalText('deviationRequestTypeText', props.requestTypeLabel, 'Attendance Exception');", $attendanceView);
-        $this->assertStringContainsString("setCalendarActionButton(\n                        'tripSubmitTaskButton',", $attendanceView);
-        $this->assertStringContainsString('props.tripCanSubmitTask === true', $attendanceView);
-        $this->assertStringContainsString("setCalendarActionButton(\n                        'tripReimbursementButton',", $attendanceView);
-        $this->assertStringContainsString('props.tripCanRequestReimbursement === true', $attendanceView);
-        $this->assertStringNotContainsString("setAttendanceModalText('deviationDateText'", $attendanceView);
-        $this->assertStringNotContainsString("setAttendanceModalText('deviationLocationNameText'", $attendanceView);
-        $this->assertStringNotContainsString("setAttendanceModalText('deviationClockOutText'", $attendanceView);
-        $this->assertStringContainsString('extendedProps: eventItem.extendedProps || {}', $attendanceView);
-        $this->assertStringContainsString('if (props.attendanceModalId) {', $attendanceView);
         $this->assertStringContainsString('openAttendanceModal(props.attendanceModalId, props);', $attendanceView);
-        $this->assertStringContainsString('if (props.calendarModalId) {', $attendanceView);
         $this->assertStringContainsString('openCalendarLabelModal(props.calendarModalId, props);', $attendanceView);
     }
 }

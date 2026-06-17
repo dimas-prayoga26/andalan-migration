@@ -46,6 +46,7 @@ class ProjectTaskSeederTest extends TestCase
         $this->assertStringNotContainsString("'department_id' =>", $projectTaskSeeder);
         $this->assertStringContainsString('ProjectTask::query()->create', $projectTaskSeeder);
         $this->assertStringContainsString("'project_id' => (\$taskData['is_daily'] ?? false) === true ? null : \$project->id", $projectTaskSeeder);
+        $this->assertStringNotContainsString("'overtime_id' =>", $projectTaskSeeder);
         $this->assertStringContainsString("'blockers' => \$taskData['blockers'] ?? null", $projectTaskSeeder);
         $this->assertStringContainsString("'attachment_path' => \$taskData['attachment_path'] ?? null", $projectTaskSeeder);
         $this->assertStringContainsString("'blockers' => 'Waiting for updated manpower confirmation from supervisor.'", $projectTaskSeeder);

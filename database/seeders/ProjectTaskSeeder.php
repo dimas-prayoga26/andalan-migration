@@ -356,7 +356,6 @@ class ProjectTaskSeeder extends Seeder
             ProjectTask::query()->create([
                 'project_id' => ($taskData['is_daily'] ?? false) === true ? null : $project->id,
                 'employee_id' => $employeeId,
-                'overtime_id' => null,
                 'title' => $taskData['title'],
                 'description' => $taskData['description'],
                 'blockers' => $taskData['blockers'] ?? null,

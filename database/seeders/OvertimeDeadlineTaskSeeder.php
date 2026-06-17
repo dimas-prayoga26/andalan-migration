@@ -121,10 +121,15 @@ class OvertimeDeadlineTaskSeeder extends Seeder
                 throw new RuntimeException('Akun staff31 sampai staff34 pada company RNB belum lengkap: '.$missingUsernames->implode(', ').'. Jalankan UserSeeder terlebih dahulu.');
             }
 
-            $today = Carbon::now('Asia/Jakarta')->startOfDay();
-            $deadline = $today->copy()->addDay();
+            $now = Carbon::now('Asia/Jakarta');
+            $today = $now->copy()->startOfDay();
+            $deadline = $today->copy();
+            $plannedStartAt = $now->copy()->addMinutes(30);
+            $plannedEndAt = $plannedStartAt->copy()->addHours(3);
+            $plannedStartTime = $plannedStartAt->format('H:i:s');
+            $plannedEndTime = $plannedEndAt->format('H:i:s');
 
-            DB::transaction(function () use ($project, $staffUsers, $today, $deadline): void {
+            DB::transaction(function () use ($project, $staffUsers, $today, $deadline, $plannedStartTime, $plannedEndTime): void {
                 $this->resetSeededOvertimeTasks();
 
                 foreach (self::STAFF_USERNAMES as $index => $username) {
@@ -144,8 +149,8 @@ class OvertimeDeadlineTaskSeeder extends Seeder
                         'employee_id' => $employeeId,
                         'assigned_by' => $supervisorUserId,
                         'overtime_date' => $deadline->toDateString(),
-                        'planned_start_time' => '17:00:00',
-                        'planned_end_time' => '20:00:00',
+                        'planned_start_time' => $plannedStartTime,
+                        'planned_end_time' => $plannedEndTime,
                         'instruction' => "Seed overtime deadline task for {$username}.",
                         'actual_start_time' => null,
                         'actual_end_time' => null,
@@ -155,7 +160,7 @@ class OvertimeDeadlineTaskSeeder extends Seeder
 
                     $this->seedProjectTasks($project, $username, $employeeId, $overtime, $today, $deadline, $index);
 
-                    $this->seedLifecycleLogs($overtime, $staffUser, $supervisorUserId, $today);
+                    $this->seedLifecycleLogs($overtime, $staffUser, $supervisorUserId, $today, $plannedStartTime, $plannedEndTime);
                 }
             });
         } catch (Throwable $throwable) {
@@ -249,9 +254,8 @@ class OvertimeDeadlineTaskSeeder extends Seeder
         ProjectTask::query()->create([
             'project_id' => $project->id,
             'employee_id' => $employeeId,
-            'overtime_id' => $overtime->id,
             'title' => self::TASK_TITLE,
-            'description' => 'Seed task untuk overtime dengan deadline 1 hari lagi.',
+            'description' => 'Seed task untuk overtime dengan deadline hari ini.',
             'blockers' => 'Waiting for final overtime deliverable update.',
             'attachment_path' => null,
             'status' => 'pending',
@@ -265,7 +269,6 @@ class OvertimeDeadlineTaskSeeder extends Seeder
             ProjectTask::query()->create([
                 'project_id' => $project->id,
                 'employee_id' => $employeeId,
-                'overtime_id' => $overtime->id,
                 'title' => $taskTitle,
                 'description' => 'Seed completed task untuk histori overtime.',
                 'blockers' => null,
@@ -290,7 +293,7 @@ class OvertimeDeadlineTaskSeeder extends Seeder
         ];
     }
 
-    private function seedLifecycleLogs(AttendanceOvertime $overtime, User $staffUser, string $supervisorUserId, Carbon $submittedAt): void
+    private function seedLifecycleLogs(AttendanceOvertime $overtime, User $staffUser, string $supervisorUserId, Carbon $submittedAt, string $plannedStartTime, string $plannedEndTime): void
     {
         foreach (self::LIFECYCLE_STEPS as $lifecycleStep) {
             $isAssignmentStep = $lifecycleStep['event_key'] === 'assignment_submitted';
@@ -306,8 +309,8 @@ class OvertimeDeadlineTaskSeeder extends Seeder
                 'happened_at' => $isAssignmentStep ? $submittedAt->copy()->setTime(9, 0) : null,
                 'metadata' => [
                     'overtime_status' => $overtime->status,
-                    'planned_start_time' => '17:00:00',
-                    'planned_end_time' => '20:00:00',
+                    'planned_start_time' => $plannedStartTime,
+                    'planned_end_time' => $plannedEndTime,
                     'seeded_for' => $staffUser->username,
                 ],
             ]);

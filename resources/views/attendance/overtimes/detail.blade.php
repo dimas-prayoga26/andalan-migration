@@ -59,17 +59,24 @@
             gap: 0.35rem;
         }
 
-        .overtime-clock-in-warning {
-            width: 2.875rem;
-            height: 2.875rem;
-            min-width: 2.875rem;
-            padding: 0;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-            font-weight: 700;
-            line-height: 1;
+        .overtime-task-toggle,
+        .overtime-task-checkbox-label {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .overtime-task-checkbox {
+            pointer-events: none;
+        }
+
+        .overtime-clock-in-blocked {
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+
+        .overtime-clock-out-blocked {
+            cursor: not-allowed;
+            opacity: 0.65;
         }
     </style>
 @endsection
@@ -279,7 +286,11 @@
             <div class="col-md-6">
                 @php
                     $canClockInOvertime = (bool) ($overtimeDetail['clock_in_allowed'] ?? false);
+                    $clockInUnavailableTitle = trim((string) ($overtimeDetail['clock_in_unavailable_title'] ?? ''));
                     $clockInUnavailableMessage = trim((string) ($overtimeDetail['clock_in_unavailable_message'] ?? ''));
+                    $canClockOutOvertime = (bool) ($overtimeDetail['clock_out_allowed'] ?? false);
+                    $clockOutUnavailableTitle = trim((string) ($overtimeDetail['clock_out_unavailable_title'] ?? ''));
+                    $clockOutUnavailableMessage = trim((string) ($overtimeDetail['clock_out_unavailable_message'] ?? ''));
                 @endphp
                 <div class="card">
                     <div class="card-header border-0 pb-3">
@@ -325,12 +336,16 @@
                         </div>
                     </div>
                     <div class="d-flex align-items-center gap-2 m-3 mb-2">
-                        <a class="btn light btn-info btn-lg flex-fill {{ $canClockInOvertime ? '' : 'disabled' }}" @if ($canClockInOvertime) data-bs-toggle="modal" data-bs-target="#clockIn" @else aria-disabled="true" tabindex="-1" @endif>Overtime Clock In</a>
-                        @if ($clockInUnavailableMessage !== '')
-                            <button type="button" class="btn btn-warning light overtime-clock-in-warning" data-overtime-clock-in-warning title="{{ $clockInUnavailableMessage }}" aria-label="Clock in notice">
-                                !
-                            </button>
-                        @endif
+                        <a class="btn light btn-info btn-lg flex-fill {{ $canClockInOvertime ? '' : 'overtime-clock-in-blocked' }}"
+                            @if ($canClockInOvertime)
+                                data-bs-toggle="modal" data-bs-target="#clockIn"
+                            @else
+                                role="button"
+                                aria-disabled="true"
+                                data-overtime-clock-in-blocked
+                                data-overtime-clock-in-blocked-title="{{ $clockInUnavailableTitle }}"
+                                data-overtime-clock-in-blocked-message="{{ $clockInUnavailableMessage }}"
+                            @endif>Overtime Clock In</a>
                     </div>
                     <div class="mb-3"></div>
                 </div>
@@ -380,7 +395,16 @@
                             </div>
                         </div>
                     </div>
-                    <a class="btn light btn-warning m-3 mb-2 btn-lg {{ !($overtimeDetail['actual_start_time_value'] ?? null) || ($overtimeDetail['actual_end_time_value'] ?? null) ? 'disabled' : '' }}" data-bs-toggle="modal" data-bs-target="#clockOut" @if (!($overtimeDetail['actual_start_time_value'] ?? null) || ($overtimeDetail['actual_end_time_value'] ?? null)) aria-disabled="true" tabindex="-1" @endif>Overtime Clock Out</a>
+                    <a class="btn light btn-warning m-3 mb-2 btn-lg {{ $canClockOutOvertime ? '' : 'overtime-clock-out-blocked' }}"
+                        @if ($canClockOutOvertime)
+                            data-bs-toggle="modal" data-bs-target="#clockOut"
+                        @else
+                            role="button"
+                            aria-disabled="true"
+                            data-overtime-clock-out-blocked
+                            data-overtime-clock-out-blocked-title="{{ $clockOutUnavailableTitle }}"
+                            data-overtime-clock-out-blocked-message="{{ $clockOutUnavailableMessage }}"
+                        @endif>Overtime Clock Out</a>
                     <div class="mb-3"></div>
                 </div>
             </div>
@@ -476,13 +500,12 @@
                                                 </svg>
                                             </div>
                                             <div class="clearfix min-w-0">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="projectTask{{ $taskItem['id'] ?? '' }}" disabled>
-                                                    <label class="form-check-label text-black d-block text-truncate" for="projectTask{{ $taskItem['id'] ?? '' }}">{{ $taskItem['title'] ?? '-' }}</label>
+                                                <div class="form-check overtime-task-toggle" role="checkbox" aria-checked="false" tabindex="0" data-task-toggle-url="{{ $taskItem['update_url'] ?? '#' }}" data-task-id="{{ $taskItem['id'] ?? '' }}" data-task-title="{{ $taskItem['title'] ?? '-' }}" data-task-status="{{ $taskItem['status_value'] ?? 'pending' }}">
+                                                    <input class="form-check-input overtime-task-checkbox" type="checkbox" id="projectTask{{ $taskItem['id'] ?? '' }}">
+                                                    <label class="form-check-label overtime-task-checkbox-label text-black d-block text-truncate" for="projectTask{{ $taskItem['id'] ?? '' }}">{{ $taskItem['title'] ?? '-' }}</label>
                                                 </div>
                                                 <span class="overtime-task-meta">
                                                     <span>{{ $taskItem['date_label'] ?? '-' }}</span>
-                                                    <span class="badge badge-sm badge-warning light">{{ $taskItem['status'] ?? 'Pending' }}</span>
                                                 </span>
                                             </div>
                                         </div>
@@ -532,9 +555,9 @@
                                                 </svg>
                                             </div>
                                             <div class="clearfix min-w-0">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="projectTask{{ $taskItem['id'] ?? '' }}" checked disabled>
-                                                    <label class="form-check-label text-black d-block text-truncate" for="projectTask{{ $taskItem['id'] ?? '' }}">{{ $taskItem['title'] ?? '-' }}</label>
+                                                <div class="form-check overtime-task-toggle" role="checkbox" aria-checked="true" tabindex="0" data-task-toggle-url="{{ $taskItem['update_url'] ?? '#' }}" data-task-id="{{ $taskItem['id'] ?? '' }}" data-task-title="{{ $taskItem['title'] ?? '-' }}" data-task-status="{{ $taskItem['status_value'] ?? 'completed' }}">
+                                                    <input class="form-check-input overtime-task-checkbox" type="checkbox" id="projectTask{{ $taskItem['id'] ?? '' }}" checked>
+                                                    <label class="form-check-label overtime-task-checkbox-label text-black d-block text-truncate" for="projectTask{{ $taskItem['id'] ?? '' }}">{{ $taskItem['title'] ?? '-' }}</label>
                                                 </div>
                                                 <span class="overtime-task-meta">{{ $taskItem['date_label'] ?? '-' }}</span>
                                             </div>
@@ -1111,11 +1134,6 @@
                             <p class="form-label text-muted mb-3">
                                 Grab your coffee and let's get things done. Start your session when you're ready to crush this extra hustle!
                             </p>
-                            @if ($clockInUnavailableMessage !== '')
-                                <button type="button" class="btn btn-warning light overtime-clock-in-warning mb-3" data-overtime-clock-in-warning title="{{ $clockInUnavailableMessage }}" aria-label="Clock in notice">
-                                    !
-                                </button>
-                            @endif
                             <div class="row">
                                 <div class="col-6">
                                     <div class="mb-3">
@@ -1211,7 +1229,7 @@
                         </div>
                     </div>
                 </form>
-                <button type="button" class="btn light btn-warning mb-2 btn-lg w-100" id="overtimeClockOutSubmit" @if (!($overtimeDetail['actual_start_time_value'] ?? null) || ($overtimeDetail['actual_end_time_value'] ?? null)) disabled @endif>End Overtime Session</button>
+                <button type="button" class="btn light btn-warning mb-2 btn-lg w-100" id="overtimeClockOutSubmit" @if (! $canClockOutOvertime) disabled @endif>End Overtime Session</button>
             </div>
         </div>
     </div>
@@ -1239,7 +1257,11 @@
                 'actual_start_time' => $overtimeDetail['actual_start_time_value'] ?? null,
                 'actual_end_time' => $overtimeDetail['actual_end_time_value'] ?? null,
                 'clock_in_allowed' => (bool) ($overtimeDetail['clock_in_allowed'] ?? false),
+                'clock_in_unavailable_title' => $overtimeDetail['clock_in_unavailable_title'] ?? null,
                 'clock_in_unavailable_message' => $overtimeDetail['clock_in_unavailable_message'] ?? null,
+                'clock_out_allowed' => (bool) ($overtimeDetail['clock_out_allowed'] ?? false),
+                'clock_out_unavailable_title' => $overtimeDetail['clock_out_unavailable_title'] ?? null,
+                'clock_out_unavailable_message' => $overtimeDetail['clock_out_unavailable_message'] ?? null,
                 'instruction' => $overtimeDetail['instruction'] ?? null,
             ];
             $taskItemPayload = collect($overtimeTaskItems['pending'] ?? collect())
@@ -1265,11 +1287,24 @@
             $('#overtimeClockOutSubmit').on('click', function () {
                 submitOvertimeSession('clock_out', $(this));
             });
-            $('[data-overtime-clock-in-warning]').on('click', function () {
+            $('[data-overtime-clock-in-blocked]').on('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
                 showSwalAlert(
                     'warning',
-                    'Clock In Belum Tersedia',
-                    $(this).attr('title') || 'Clock in lembur hanya tersedia sesuai jadwal yang ditentukan.'
+                    $(this).data('overtime-clock-in-blocked-title') || 'Absen Lembur Belum Tersedia',
+                    $(this).data('overtime-clock-in-blocked-message') || 'Clock in lembur hanya tersedia sesuai jadwal yang ditentukan.'
+                );
+            });
+            $('[data-overtime-clock-out-blocked]').on('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                showSwalAlert(
+                    'warning',
+                    $(this).data('overtime-clock-out-blocked-title') || 'Clock Out Belum Tersedia',
+                    $(this).data('overtime-clock-out-blocked-message') || 'Silakan lengkapi task lembur sebelum mengakhiri sesi.'
                 );
             });
             $('#createTaskForm input[name="task_category"]').on('change', updateCreateTaskProjectState);
@@ -1278,6 +1313,13 @@
             $('#updateTaskForm').on('submit', submitUpdateTaskForm);
             $('[data-task-update-url]').on('click', openUpdateTaskModal);
             $('[data-task-delete-url]').on('click', openDeleteTaskModal);
+            $('.overtime-task-list').on('click', '[data-task-toggle-url]', toggleTaskStatusFromCheckbox);
+            $('.overtime-task-list').on('keydown', '[data-task-toggle-url]', function (event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    $(this).trigger('click');
+                }
+            });
             $('#deleteTaskForm').on('submit', submitDeleteTaskForm);
             $('#createTaskForm input[name="start_date"]').on('change', function () {
                 var startDate = $(this).val();
@@ -1520,6 +1562,101 @@
                 });
             }
 
+            function toggleTaskStatusFromCheckbox(event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                var toggleControl = $(event.currentTarget);
+                var checkbox = toggleControl.find('.overtime-task-checkbox').first();
+                var actionUrl = toggleControl.data('task-toggle-url');
+                var taskTitle = toggleControl.data('task-title') || 'task ini';
+                var willComplete = !checkbox.prop('checked');
+                var nextStatus = willComplete ? 'completed' : 'pending';
+                var nextCheckedState = willComplete;
+                var previousCheckedState = checkbox.prop('checked');
+                var csrfToken = $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}';
+
+                if (checkbox.prop('disabled') || toggleControl.attr('aria-disabled') === 'true') {
+                    return;
+                }
+
+                if (!actionUrl || actionUrl === '#') {
+                    checkbox.prop('checked', previousCheckedState);
+                    showSwalAlert('error', 'Gagal', 'URL update task tidak tersedia.');
+                    return;
+                }
+
+                var updateTaskStatus = function () {
+                    checkbox.prop('disabled', true);
+                    toggleControl.attr('aria-disabled', 'true');
+                    checkbox.prop('checked', nextCheckedState);
+                    toggleControl.attr('aria-checked', nextCheckedState ? 'true' : 'false');
+
+                    $.ajax({
+                        url: actionUrl,
+                        method: 'PUT',
+                        data: {
+                            _token: csrfToken,
+                            status: nextStatus
+                        },
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        success: function () {
+                            if (typeof Swal !== 'undefined' && Swal && typeof Swal.fire === 'function') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: willComplete ? 'Task Completed' : 'Task Dibuka Kembali',
+                                    text: willComplete ? 'Task lembur berhasil ditandai completed.' : 'Status task berhasil dikembalikan menjadi pending.',
+                                    confirmButtonText: 'OK'
+                                }).then(function () {
+                                    window.location.reload();
+                                });
+                                return;
+                            }
+
+                            window.location.reload();
+                        },
+                        error: function (xhr) {
+                            var responseMessage = resolveAjaxErrorMessage(xhr, 'Task gagal diperbarui.');
+
+                            checkbox.prop('checked', previousCheckedState);
+                            checkbox.prop('disabled', false);
+                            toggleControl.attr('aria-disabled', 'false');
+                            toggleControl.attr('aria-checked', previousCheckedState ? 'true' : 'false');
+                            showSwalAlert('error', 'Gagal', responseMessage);
+                        }
+                    });
+                };
+
+                if (typeof Swal !== 'undefined' && Swal && typeof Swal.fire === 'function') {
+                    Swal.fire({
+                        icon: 'question',
+                        title: willComplete ? 'Tandai Task Completed?' : 'Buka Kembali Task?',
+                        text: willComplete
+                            ? 'Untuk task "' + taskTitle + '" akan ditandai completed.'
+                            : 'Untuk task "' + taskTitle + '" akan dikembalikan ke status pending.',
+                        showCancelButton: true,
+                        confirmButtonText: willComplete ? 'Ya, Completed' : 'Ya, Pending',
+                        cancelButtonText: 'Batal'
+                    }).then(function (result) {
+                        if (result.isConfirmed) {
+                            updateTaskStatus();
+                            return;
+                        }
+
+                        checkbox.prop('checked', previousCheckedState);
+                        checkbox.prop('disabled', false);
+                        toggleControl.attr('aria-disabled', 'false');
+                        toggleControl.attr('aria-checked', previousCheckedState ? 'true' : 'false');
+                    });
+                    return;
+                }
+
+                updateTaskStatus();
+            }
+
             function submitDeleteTaskForm(event) {
                 event.preventDefault();
 
@@ -1580,8 +1717,17 @@
                 if (action === 'clock_in' && !overtimePayload.clock_in_allowed) {
                     showSwalAlert(
                         'warning',
-                        'Clock In Belum Tersedia',
+                        overtimePayload.clock_in_unavailable_title || 'Absen Lembur Belum Tersedia',
                         overtimePayload.clock_in_unavailable_message || 'Clock in lembur hanya tersedia sesuai jadwal yang ditentukan.'
+                    );
+                    return;
+                }
+
+                if (action === 'clock_out' && !overtimePayload.clock_out_allowed) {
+                    showSwalAlert(
+                        'warning',
+                        overtimePayload.clock_out_unavailable_title || 'Clock Out Belum Tersedia',
+                        overtimePayload.clock_out_unavailable_message || 'Silakan lengkapi task lembur sebelum mengakhiri sesi.'
                     );
                     return;
                 }

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Attendance;
 use App\Models\AttendanceHoliday;
+use App\Models\AttendanceOvertime;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\Role;
@@ -75,6 +76,23 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
                 'status' => 'Masuk',
             ]);
 
+            foreach ([
+                ['18:00:00', '06:00:00'],
+                ['18:00:00', '06:00:00'],
+                ['18:00:00', '06:00:00'],
+            ] as [$actualStartTime, $actualEndTime]) {
+                AttendanceOvertime::query()->create([
+                    'employee_id' => $employee->id,
+                    'overtime_date' => '2026-05-29',
+                    'planned_start_time' => '18:00:00',
+                    'planned_end_time' => '06:00:00',
+                    'actual_start_time' => $actualStartTime,
+                    'actual_end_time' => $actualEndTime,
+                    'instruction' => 'Monthly overtime rate test',
+                    'status' => 'completed',
+                ]);
+            }
+
             LeaveRequest::query()->create([
                 'employee_id' => $employee->id,
                 'leave_type_id' => null,
@@ -105,6 +123,10 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
             $this->assertSame('staff', $data['profileStatsMode']);
             $this->assertSame(1, $data['profileLateInCount']);
             $this->assertSame(1, $data['profileLeavesAndSickCount']);
+            $this->assertSame(15, $data['profileAttendanceRatePercent']);
+            $this->assertSame(10, $data['profileOnTimeRatePercent']);
+            $this->assertSame(5, $data['profileLatenessRatePercent']);
+            $this->assertSame(50, $data['profileOvertimeRatePercent']);
             $this->assertSame(75, $data['profileWeeklyAttendancePercent']);
             $this->assertSame(67, $data['profileWeeklyOnTimePercent']);
             $this->assertIsArray($data['profileMonthlyAttendanceLabels']);

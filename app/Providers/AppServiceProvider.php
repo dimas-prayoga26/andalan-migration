@@ -21,6 +21,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        View::composer('attendance.layouts.profile-header', AttendanceProfileComposer::class);
+        View::composer([
+            'attendance.layouts.profile-header',
+            'attendance.components.card-analytics',
+        ], AttendanceProfileComposer::class);
     }
 }

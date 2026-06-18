@@ -8,10 +8,10 @@
             <button type="button" data-href="{{ route('attendance.today') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.today') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.today') ? 'true' : 'false' }}">Attendance</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button type="button" data-href="{{ route('attendance.reports') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.reports') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.reports') ? 'true' : 'false' }}">Report</button>
+            <button type="button" data-href="{{ route('attendance.reports') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.reports') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.reports') ? 'true' : 'false' }}">Recap</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button type="button" data-href="{{ route('attendance.leave-requests') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.leave-requests*') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.leave-requests*') ? 'true' : 'false' }}">Leaves & Sick</button>
+            <button type="button" data-href="{{ route('attendance.leave-requests') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.leave-requests*') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.leave-requests*') ? 'true' : 'false' }}">Leave</button>
         </li>
         <li class="nav-item" role="presentation">
             <button type="button" data-href="{{ route('attendance.business-trips') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.business-trips*') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.business-trips*') ? 'true' : 'false' }}">Business Trip</button>

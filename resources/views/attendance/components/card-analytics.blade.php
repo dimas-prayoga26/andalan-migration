@@ -1,3 +1,10 @@
+@php
+    $attendanceRatePercent = (int) ($profileAttendanceRatePercent ?? 0);
+    $onTimeRatePercent = (int) ($profileOnTimeRatePercent ?? 0);
+    $latenessRatePercent = (int) ($profileLatenessRatePercent ?? 0);
+    $overtimeRatePercent = (int) ($profileOvertimeRatePercent ?? 0);
+@endphp
+
 <div class="row attendance-rate-mobile-slider">
     <div class="col-md-3 col-sm-6 attendance-rate-mobile-slide">
         <div class="card overflow-hidden avtivity-card">
@@ -8,13 +15,13 @@
                     </span>
                     <div>
                         <p class="fs-14 mb-2">Attendance Rate</p>
-                        <span class="title text-black fs-28 fw-semibold">100%</span>
+                        <span class="title text-black fs-28 fw-semibold">{{ $attendanceRatePercent }}%</span>
                     </div>
                 </div>
                 <div>
                     <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                        <div class="progress-bar rounded bg-secondary" style="width: 100%; height:5px;" aria-label="Progress attendance rate" role="progressbar">
-                            <span class="sr-only">100% Complete</span>
+                        <div class="progress-bar rounded bg-secondary" style="width: {{ $attendanceRatePercent }}%; height:5px;" aria-label="Progress attendance rate" role="progressbar">
+                            <span class="sr-only">{{ $attendanceRatePercent }}% Complete</span>
                         </div>
                     </div>
                 </div>
@@ -31,13 +38,13 @@
                     </span>
                     <div>
                         <p class="fs-14 mb-2">On Time Rate</p>
-                        <span class="title text-black fs-28 fw-semibold">95%</span>
+                        <span class="title text-black fs-28 fw-semibold">{{ $onTimeRatePercent }}%</span>
                     </div>
                 </div>
                 <div>
                     <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                        <div class="progress-bar bg-success position-absolute rounded bottom-0" style="width: 95%; height:5px;" aria-label="Progress on time rate" role="progressbar">
-                            <span class="sr-only">95% Complete</span>
+                        <div class="progress-bar bg-success position-absolute rounded bottom-0" style="width: {{ $onTimeRatePercent }}%; height:5px;" aria-label="Progress on time rate" role="progressbar">
+                            <span class="sr-only">{{ $onTimeRatePercent }}% Complete</span>
                         </div>
                     </div>
                 </div>
@@ -54,13 +61,13 @@
                     </span>
                     <div>
                         <p class="fs-14 mb-2">Lateness Rate</p>
-                        <span class="title text-black fs-28 fw-semibold">10%</span>
+                        <span class="title text-black fs-28 fw-semibold">{{ $latenessRatePercent }}%</span>
                     </div>
                 </div>
                 <div>
                     <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                        <div class="progress-bar rounded bg-danger" style="width: 10%; height:5px;" aria-label="Progress lateness rate" role="progressbar">
-                            <span class="sr-only">10% Complete</span>
+                        <div class="progress-bar rounded bg-danger" style="width: {{ $latenessRatePercent }}%; height:5px;" aria-label="Progress lateness rate" role="progressbar">
+                            <span class="sr-only">{{ $latenessRatePercent }}% Complete</span>
                         </div>
                     </div>
                 </div>
@@ -77,13 +84,13 @@
                     </span>
                     <div>
                         <p class="fs-14 mb-2">Overtime Rate</p>
-                        <span class="title text-black fs-28 fw-semibold">60%</span>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeRatePercent }}%</span>
                     </div>
                 </div>
                 <div>
                     <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                        <div class="progress-bar rounded bg-info" style="width: 82%; height:5px;" aria-label="Progress overtime rate" role="progressbar">
-                            <span class="sr-only">42% Complete</span>
+                        <div class="progress-bar rounded bg-info" style="width: {{ $overtimeRatePercent }}%; height:5px;" aria-label="Progress overtime rate" role="progressbar">
+                            <span class="sr-only">{{ $overtimeRatePercent }}% Complete</span>
                         </div>
                     </div>
                 </div>

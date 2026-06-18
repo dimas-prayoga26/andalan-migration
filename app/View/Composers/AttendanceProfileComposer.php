@@ -4,6 +4,7 @@ namespace App\View\Composers;
 
 use App\Models\Attendance;
 use App\Models\AttendanceHoliday;
+use App\Models\AttendanceOvertime;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\User;
@@ -29,6 +30,10 @@ class AttendanceProfileComposer
             'profileLeavesAndSickCount' => 0,
             'profileWeeklyAttendancePercent' => 0,
             'profileWeeklyOnTimePercent' => 0,
+            'profileAttendanceRatePercent' => 0,
+            'profileOnTimeRatePercent' => 0,
+            'profileLatenessRatePercent' => 0,
+            'profileOvertimeRatePercent' => 0,
             'profileMonthlyAttendanceLabels' => [],
             'profileMonthlyAttendanceSeries' => [],
             'profileMonthlyAttendanceDelta' => 0.0,
@@ -116,6 +121,19 @@ class AttendanceProfileComposer
                 ->whereNotNull('clock_in')
                 ->count();
 
+            $monthlyAttendanceQuery = Attendance::query()
+                ->where('employee_id', $employeeId)
+                ->whereYear('date', (int) $nowJakarta->year)
+                ->whereMonth('date', (int) $nowJakarta->month);
+            $monthlyOnTimeCount = (clone $monthlyAttendanceQuery)
+                ->whereNotNull('clock_in')
+                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['masuk'])
+                ->count();
+            $monthlyLateCount = (clone $monthlyAttendanceQuery)
+                ->whereNotNull('clock_in')
+                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['terlambat'])
+                ->count();
+
             $profileData['profileLateInCount'] = Attendance::query()
                 ->where('employee_id', $employeeId)
                 ->whereYear('date', (int) $nowJakarta->year)
@@ -131,6 +149,27 @@ class AttendanceProfileComposer
                 ->where('is_active', true)
                 ->whereNull('deleted_at')
                 ->count();
+
+            $workingDaysInCurrentMonth = $this->calculateWorkingDaysInMonth($nowJakarta);
+            $monthlyOvertimeMinutes = AttendanceOvertime::query()
+                ->where('employee_id', $employeeId)
+                ->whereYear('overtime_date', (int) $nowJakarta->year)
+                ->whereMonth('overtime_date', (int) $nowJakarta->month)
+                ->whereNotNull('actual_start_time')
+                ->whereNotNull('actual_end_time')
+                ->get(['actual_start_time', 'actual_end_time'])
+                ->sum(fn (AttendanceOvertime $overtime): int => $this->calculateOvertimeMinutes($overtime->actual_start_time, $overtime->actual_end_time));
+
+            $profileData['profileAttendanceRatePercent'] = $workingDaysInCurrentMonth > 0
+                ? max(0, min((int) round(($profileData['profileAttendanceDaysCount'] / $workingDaysInCurrentMonth) * 100), 100))
+                : 0;
+            $profileData['profileOnTimeRatePercent'] = $workingDaysInCurrentMonth > 0
+                ? max(0, min((int) round(($monthlyOnTimeCount / $workingDaysInCurrentMonth) * 100), 100))
+                : 0;
+            $profileData['profileLatenessRatePercent'] = $workingDaysInCurrentMonth > 0
+                ? max(0, min((int) round(($monthlyLateCount / $workingDaysInCurrentMonth) * 100), 100))
+                : 0;
+            $profileData['profileOvertimeRatePercent'] = max(0, min((int) round((($monthlyOvertimeMinutes / 60) / 72) * 100), 100));
 
             $weekStart = $nowJakarta->copy()->startOfWeek(Carbon::MONDAY);
             $weekEnd = $nowJakarta->copy()->endOfWeek(Carbon::SUNDAY);
@@ -290,6 +329,26 @@ class AttendanceProfileComposer
         }
 
         return $workingDays;
+    }
+
+    private function calculateOvertimeMinutes(mixed $startTimeValue, mixed $endTimeValue): int
+    {
+        if (! is_string($startTimeValue) || ! is_string($endTimeValue)) {
+            return 0;
+        }
+
+        try {
+            $startTime = Carbon::createFromFormat('H:i:s', $startTimeValue);
+            $endTime = Carbon::createFromFormat('H:i:s', $endTimeValue);
+
+            if ($endTime->lessThan($startTime)) {
+                $endTime->addDay();
+            }
+
+            return $startTime->diffInMinutes($endTime);
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 
     private function isBoardOfDirectur(?User $user): bool

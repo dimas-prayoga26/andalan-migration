@@ -245,11 +245,11 @@
 
 <div class="col-lg-12">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Report</h5>
+        <h5 class="mb-0">Attendance Recap</h5>
     </div>
 </div>
 
-@include('attendance.components.attendance-cards')
+{{-- @include('attendance.components.attendance-cards') --}}
 
 
 <div class="tab-content" id="tabContentMyProfileBottom">
@@ -259,7 +259,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header border-0 align-items-center logs-card-header">
-                    <h4 class="card-title">Attandance Report</h4>
+                    <h4 class="card-title">Attendance Recap</h4>
                     <div class="d-flex align-items-center gap-2 logs-toolbar">
                         @if ($showCompanyFilter ?? false)
                             <div class="clearfix">

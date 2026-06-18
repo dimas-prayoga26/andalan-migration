@@ -103,6 +103,12 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertFileDoesNotExist(public_path('assets/css/absensi.css'));
         $this->assertTrue(class_exists(AttendanceProfileComposer::class));
 
+        $appServiceProvider = File::get(app_path('Providers/AppServiceProvider.php'));
+
+        $this->assertStringContainsString("'attendance.layouts.profile-header'", $appServiceProvider);
+        $this->assertStringContainsString("'attendance.components.card-analytics'", $appServiceProvider);
+        $this->assertStringContainsString('AttendanceProfileComposer::class', $appServiceProvider);
+
         $attendanceOverviewView = File::get(resource_path('views/attendance/index.blade.php'));
 
         foreach ([
@@ -142,6 +148,13 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertStringContainsString('On Time Rate', $attendanceCardAnalyticsView);
         $this->assertStringContainsString('Lateness Rate', $attendanceCardAnalyticsView);
         $this->assertStringContainsString('Overtime Rate', $attendanceCardAnalyticsView);
+        $this->assertStringContainsString('$attendanceRatePercent = (int) ($profileAttendanceRatePercent ?? 0);', $attendanceCardAnalyticsView);
+        $this->assertStringContainsString('$onTimeRatePercent = (int) ($profileOnTimeRatePercent ?? 0);', $attendanceCardAnalyticsView);
+        $this->assertStringContainsString('$latenessRatePercent = (int) ($profileLatenessRatePercent ?? 0);', $attendanceCardAnalyticsView);
+        $this->assertStringContainsString('$overtimeRatePercent = (int) ($profileOvertimeRatePercent ?? 0);', $attendanceCardAnalyticsView);
+        $this->assertStringNotContainsString('>100%</span>', $attendanceCardAnalyticsView);
+        $this->assertStringNotContainsString('>95%</span>', $attendanceCardAnalyticsView);
+        $this->assertStringNotContainsString('>60%</span>', $attendanceCardAnalyticsView);
         $this->assertSame(4, substr_count($attendanceCardAnalyticsView, 'col-md-3 col-sm-6 attendance-rate-mobile-slide'));
 
         $overtimeIndexView = File::get(resource_path('views/attendance/overtimes/index.blade.php'));

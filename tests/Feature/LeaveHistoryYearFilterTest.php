@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\AttendanceLeaveRequestController;
 use App\Models\LeaveRequest;
 use App\Models\LeaveRequestHistory;
 use Illuminate\Support\Carbon;
@@ -14,9 +14,9 @@ class LeaveHistoryYearFilterTest extends TestCase
 {
     public function test_leave_timeline_marker_color_marks_passed_and_current_steps(): void
     {
-        $method = new ReflectionMethod(LeaveRequestController::class, 'buildFixedLeaveTimelineRows');
+        $method = new ReflectionMethod(AttendanceLeaveRequestController::class, 'buildFixedLeaveTimelineRows');
         $method->setAccessible(true);
-        $controller = app(LeaveRequestController::class);
+        $controller = app(AttendanceLeaveRequestController::class);
         $fallbackDate = Carbon::parse('2026-06-15', 'Asia/Jakarta');
 
         $submittedOnlyRows = $method->invoke(
@@ -153,7 +153,7 @@ class LeaveHistoryYearFilterTest extends TestCase
     {
         $leaveRequestView = File::get(resource_path('views/attendance/leave-requests/index.blade.php'));
         $leaveHistoryListCardsPartial = File::get(resource_path('views/attendance/leave-requests/partials/history-list-cards.blade.php'));
-        $leaveRequestController = File::get(app_path('Http/Controllers/LeaveRequestController.php'));
+        $leaveRequestController = File::get(app_path('Http/Controllers/AttendanceLeaveRequestController.php'));
         $leaveRequestModel = File::get(app_path('Models/LeaveRequest.php'));
         $leaveSubTypeModel = File::get(app_path('Models/LeaveSubType.php'));
         $routes = File::get(base_path('routes/web.php'));
@@ -273,8 +273,8 @@ class LeaveHistoryYearFilterTest extends TestCase
         $this->assertStringContainsString("$('#leaveHistoryDetailMedicalNotesLink').attr('href', attachmentUrl || medicalNotesUnavailableUrl);", $leaveRequestView);
         $this->assertStringNotContainsString('assets/images/logo/figma.avif', $leaveRequestView);
 
-        $this->assertStringContainsString("Route::put('/attendance/leave-requests/{leaveRequest}', [LeaveRequestController::class, 'update'])->name('attendance.leave-requests.update');", $routes);
-        $this->assertStringContainsString("Route::delete('/attendance/leave-requests/{leaveRequest}', [LeaveRequestController::class, 'destroy'])->name('attendance.leave-requests.destroy');", $routes);
+        $this->assertStringContainsString("Route::put('/attendance/leave-requests/{leaveRequest}', [AttendanceLeaveRequestController::class, 'update'])->name('attendance.leave-requests.update');", $routes);
+        $this->assertStringContainsString("Route::delete('/attendance/leave-requests/{leaveRequest}', [AttendanceLeaveRequestController::class, 'destroy'])->name('attendance.leave-requests.destroy');", $routes);
         $this->assertStringContainsString('public function update(Request $request, LeaveRequest $leaveRequest): JsonResponse', $leaveRequestController);
         $this->assertStringContainsString('public function destroy(LeaveRequest $leaveRequest): JsonResponse', $leaveRequestController);
         $this->assertStringContainsString('private function canUpdatePermissionRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool', $leaveRequestController);
@@ -310,7 +310,7 @@ class LeaveHistoryYearFilterTest extends TestCase
     {
         $leaveRequestView = File::get(resource_path('views/attendance/leave-requests/index.blade.php'));
         $leaveHistoryListCardsPartial = File::get(resource_path('views/attendance/leave-requests/partials/history-list-cards.blade.php'));
-        $leaveRequestController = File::get(app_path('Http/Controllers/LeaveRequestController.php'));
+        $leaveRequestController = File::get(app_path('Http/Controllers/AttendanceLeaveRequestController.php'));
         $leaveTypeSeeder = File::get(database_path('seeders/LeaveTypeSeeder.php'));
 
         foreach ([

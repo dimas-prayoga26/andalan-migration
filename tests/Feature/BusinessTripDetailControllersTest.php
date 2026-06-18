@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\BusinessTripCashAdvanceController;
-use App\Http\Controllers\BusinessTripLifecycleLogController;
-use App\Http\Controllers\BusinessTripReimbursementController;
+use App\Http\Controllers\AttendanceBusinessTripCashAdvanceController;
+use App\Http\Controllers\AttendanceBusinessTripLifecycleLogController;
+use App\Http\Controllers\AttendanceBusinessTripReimbursementController;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
@@ -15,9 +15,9 @@ class BusinessTripDetailControllersTest extends TestCase
         $this->assertFileDoesNotExist(app_path('Http/Controllers/BusinessTripExpenseItemController.php'));
 
         foreach ([
-            BusinessTripCashAdvanceController::class => 'BusinessTripCashAdvanceController.php',
-            BusinessTripReimbursementController::class => 'BusinessTripReimbursementController.php',
-            BusinessTripLifecycleLogController::class => 'BusinessTripLifecycleLogController.php',
+            AttendanceBusinessTripCashAdvanceController::class => 'AttendanceBusinessTripCashAdvanceController.php',
+            AttendanceBusinessTripReimbursementController::class => 'AttendanceBusinessTripReimbursementController.php',
+            AttendanceBusinessTripLifecycleLogController::class => 'AttendanceBusinessTripLifecycleLogController.php',
         ] as $controllerClass => $fileName) {
             $controllerSource = File::get(app_path('Http/Controllers/'.$fileName));
 

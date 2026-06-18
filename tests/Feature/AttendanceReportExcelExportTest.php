@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\ReportController;
+use App\Http\Controllers\AttendanceReportController;
 use App\Models\Attendance;
 use App\Models\AttendanceException;
 use Illuminate\Support\Facades\File;
@@ -31,7 +31,7 @@ class AttendanceReportExcelExportTest extends TestCase
 
     public function test_attendance_report_export_uses_xlsx_instead_of_pdf_or_html_xls(): void
     {
-        $reportController = File::get(app_path('Http/Controllers/ReportController.php'));
+        $reportController = File::get(app_path('Http/Controllers/AttendanceReportController.php'));
 
         $this->assertStringNotContainsString('Spatie\\LaravelPdf', $reportController);
         $this->assertStringNotContainsString("Pdf::view('attendance.reports.pdf'", $reportController);
@@ -52,7 +52,7 @@ class AttendanceReportExcelExportTest extends TestCase
 
     public function test_attendance_report_export_title_uses_company_and_staff_names(): void
     {
-        $reportController = File::get(app_path('Http/Controllers/ReportController.php'));
+        $reportController = File::get(app_path('Http/Controllers/AttendanceReportController.php'));
 
         $this->assertStringContainsString('private function resolveReportTitleLabel(Collection $reportRows): string', $reportController);
         $this->assertStringContainsString("->pluck('company_name')", $reportController);
@@ -64,8 +64,8 @@ class AttendanceReportExcelExportTest extends TestCase
 
     public function test_attendance_report_xlsx_contains_dynamic_title_without_attachment_column(): void
     {
-        $controller = app(ReportController::class);
-        $buildAttendanceReportXlsx = new ReflectionMethod(ReportController::class, 'buildAttendanceReportXlsx');
+        $controller = app(AttendanceReportController::class);
+        $buildAttendanceReportXlsx = new ReflectionMethod(AttendanceReportController::class, 'buildAttendanceReportXlsx');
         $buildAttendanceReportXlsx->setAccessible(true);
 
         $xlsxContent = $buildAttendanceReportXlsx->invoke($controller, collect([
@@ -112,7 +112,7 @@ class AttendanceReportExcelExportTest extends TestCase
 
     public function test_attendance_report_controller_resolves_note_and_attachment_values(): void
     {
-        $reportController = File::get(app_path('Http/Controllers/ReportController.php'));
+        $reportController = File::get(app_path('Http/Controllers/AttendanceReportController.php'));
 
         $this->assertStringContainsString("'note' => \$noteLabel,", $reportController);
         $this->assertStringContainsString("'attachment' => \$attachmentUrl,", $reportController);
@@ -127,13 +127,13 @@ class AttendanceReportExcelExportTest extends TestCase
         $this->assertStringContainsString("return 'Late '.\$lateMinutes.' Minutes';", $reportController);
         $this->assertStringContainsString("return 'On Time';", $reportController);
         $this->assertStringContainsString("return 'Cuti Tahunan';", $reportController);
-        $this->assertStringContainsString("return Storage::disk('public')->url(\$attachmentPath);", $reportController);
+        $this->assertStringContainsString("return asset('storage/'.ltrim(\$attachmentPath, '/'));", $reportController);
     }
 
     public function test_attendance_report_note_labels_cover_late_on_time_and_exceptions(): void
     {
-        $controller = app(ReportController::class);
-        $resolveAttendanceNoteLabel = new ReflectionMethod(ReportController::class, 'resolveAttendanceNoteLabel');
+        $controller = app(AttendanceReportController::class);
+        $resolveAttendanceNoteLabel = new ReflectionMethod(AttendanceReportController::class, 'resolveAttendanceNoteLabel');
         $resolveAttendanceNoteLabel->setAccessible(true);
 
         $this->assertSame(

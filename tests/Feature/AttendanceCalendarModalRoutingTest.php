@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AttendanceReportController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ReportController;
 use App\Http\Requests\Attendance\AttendanceIndexRequest;
 use App\Http\Requests\Attendance\CurrentAttendanceIpRequest;
 use App\Http\Requests\Attendance\StoreAttendanceExceptionRequest;
@@ -20,7 +20,7 @@ class AttendanceCalendarModalRoutingTest extends TestCase
     {
         $this->assertInstanceOf(AttendanceController::class, app(AttendanceController::class));
         $this->assertInstanceOf(DashboardController::class, app(DashboardController::class));
-        $this->assertInstanceOf(ReportController::class, app(ReportController::class));
+        $this->assertInstanceOf(AttendanceReportController::class, app(AttendanceReportController::class));
 
         $request = new StoreAttendanceExceptionRequest;
         $this->assertSame(
@@ -93,9 +93,7 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString('class AttendanceCalendarPresenter', $calendarPresenter);
         $this->assertStringContainsString('public function leaveTypeLabel', $calendarPresenter);
         $this->assertStringContainsString('public function attendanceStatusLabel', $calendarPresenter);
-        $this->assertStringContainsString('/** @var FilesystemAdapter $publicDisk */', $calendarPresenter);
-        $this->assertStringContainsString("\$publicDisk = Storage::disk('public');", $calendarPresenter);
-        $this->assertStringContainsString('return $publicDisk->url($attachmentPath);', $calendarPresenter);
+        $this->assertStringContainsString("return asset('storage/'.ltrim(\$attachmentPath, '/'));", $calendarPresenter);
         $this->assertStringNotContainsString('AttendanceException', $calendarPresenter);
         $this->assertStringNotContainsString('AttendanceLog', $calendarPresenter);
 

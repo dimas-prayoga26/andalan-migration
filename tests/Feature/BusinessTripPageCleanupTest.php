@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\BusinessTripCashAdvanceController;
-use App\Http\Controllers\BusinessTripController;
-use App\Http\Controllers\BusinessTripReimbursementController;
+use App\Http\Controllers\AttendanceBusinessTripCashAdvanceController;
+use App\Http\Controllers\AttendanceBusinessTripController;
+use App\Http\Controllers\AttendanceBusinessTripReimbursementController;
 use App\Models\BusinessTrip;
 use App\Models\BusinessTripCashAdvance;
 use App\Models\BusinessTripLifecycleLog;
@@ -38,8 +38,8 @@ class BusinessTripPageCleanupTest extends TestCase
         $businessTripCashAdvanceCreateView = File::get(resource_path('views/attendance/business-trips/create-cash-advance.blade.php'));
         $businessTripReimbursementCreateView = File::get(resource_path('views/attendance/business-trips/create-reimbursement.blade.php'));
         $profileNavbarView = File::get(resource_path('views/attendance/layouts/profile-navbar.blade.php'));
-        $businessTripController = File::get(app_path('Http/Controllers/BusinessTripController.php'));
-        $businessTripCashAdvanceController = File::get(app_path('Http/Controllers/BusinessTripCashAdvanceController.php'));
+        $businessTripController = File::get(app_path('Http/Controllers/AttendanceBusinessTripController.php'));
+        $businessTripCashAdvanceController = File::get(app_path('Http/Controllers/AttendanceBusinessTripCashAdvanceController.php'));
 
         $this->assertNotNull($businessTripIndexRoute);
         $this->assertNotNull($businessTripCreateRoute);
@@ -51,21 +51,21 @@ class BusinessTripPageCleanupTest extends TestCase
         $this->assertNotNull($businessTripReimbursementStoreRoute);
         $this->assertNotNull($businessTripProvincesRoute);
         $this->assertNotNull($businessTripRegenciesRoute);
-        $this->assertSame(BusinessTripController::class.'@index', $businessTripIndexRoute->getActionName());
-        $this->assertSame(BusinessTripController::class.'@create', $businessTripCreateRoute->getActionName());
-        $this->assertSame(BusinessTripController::class.'@store', $businessTripStoreRoute->getActionName());
-        $this->assertSame(BusinessTripController::class.'@show', $businessTripShowRoute->getActionName());
-        $this->assertSame(BusinessTripCashAdvanceController::class.'@create', $businessTripCashAdvanceCreateRoute->getActionName());
-        $this->assertSame(BusinessTripCashAdvanceController::class.'@store', $businessTripCashAdvanceStoreRoute->getActionName());
-        $this->assertSame(BusinessTripReimbursementController::class.'@create', $businessTripReimbursementCreateRoute->getActionName());
-        $this->assertSame(BusinessTripReimbursementController::class.'@store', $businessTripReimbursementStoreRoute->getActionName());
-        $this->assertSame(BusinessTripController::class.'@provinces', $businessTripProvincesRoute->getActionName());
-        $this->assertSame(BusinessTripController::class.'@regencies', $businessTripRegenciesRoute->getActionName());
+        $this->assertSame(AttendanceBusinessTripController::class.'@index', $businessTripIndexRoute->getActionName());
+        $this->assertSame(AttendanceBusinessTripController::class.'@create', $businessTripCreateRoute->getActionName());
+        $this->assertSame(AttendanceBusinessTripController::class.'@store', $businessTripStoreRoute->getActionName());
+        $this->assertSame(AttendanceBusinessTripController::class.'@show', $businessTripShowRoute->getActionName());
+        $this->assertSame(AttendanceBusinessTripCashAdvanceController::class.'@create', $businessTripCashAdvanceCreateRoute->getActionName());
+        $this->assertSame(AttendanceBusinessTripCashAdvanceController::class.'@store', $businessTripCashAdvanceStoreRoute->getActionName());
+        $this->assertSame(AttendanceBusinessTripReimbursementController::class.'@create', $businessTripReimbursementCreateRoute->getActionName());
+        $this->assertSame(AttendanceBusinessTripReimbursementController::class.'@store', $businessTripReimbursementStoreRoute->getActionName());
+        $this->assertSame(AttendanceBusinessTripController::class.'@provinces', $businessTripProvincesRoute->getActionName());
+        $this->assertSame(AttendanceBusinessTripController::class.'@regencies', $businessTripRegenciesRoute->getActionName());
         $this->assertNull(Route::getRoutes()->getByName('attendance.business-trips.datatable'));
-        $this->assertFalse(method_exists(BusinessTripController::class, 'datatable'));
-        $this->assertTrue(method_exists(BusinessTripController::class, 'store'));
-        $this->assertTrue(method_exists(BusinessTripController::class, 'create'));
-        $this->assertTrue(method_exists(BusinessTripController::class, 'show'));
+        $this->assertFalse(method_exists(AttendanceBusinessTripController::class, 'datatable'));
+        $this->assertTrue(method_exists(AttendanceBusinessTripController::class, 'store'));
+        $this->assertTrue(method_exists(AttendanceBusinessTripController::class, 'create'));
+        $this->assertTrue(method_exists(AttendanceBusinessTripController::class, 'show'));
         $this->assertStringContainsString('<h5 class="mb-0">Business Trip</h5>', $businessTripView);
         $this->assertStringContainsString('href="{{ route(\'attendance.business-trips.create\') }}"', $businessTripView);
         $this->assertStringContainsString('>+ Business Trip</a>', $businessTripView);
@@ -115,7 +115,7 @@ class BusinessTripPageCleanupTest extends TestCase
         $this->assertStringContainsString("->filter(fn (array \$cashAdvanceRow): bool => (bool) (\$cashAdvanceRow['is_approved'] ?? false))", $businessTripController);
         $this->assertStringContainsString("'approved_date_label' => \$cashAdvance->approved_at?->timezone('Asia/Jakarta')->format('d M Y') ?? '-'", $businessTripController);
         $this->assertStringContainsString("'date_label' => \$cashAdvanceRow['approved_date_label'] ?? '-'", $businessTripController);
-        $this->assertStringContainsString("'attachment_url' => \$attachmentPath !== '' ? Storage::url(\$attachmentPath) : null", $businessTripController);
+        $this->assertStringContainsString("'attachment_url' => \$attachmentPath !== '' ? asset('storage/'.ltrim(\$attachmentPath, '/')) : null", $businessTripController);
         $this->assertStringContainsString("'attachment_modal_id' => 'businessTripExpenseAttachmentModal'", $businessTripController);
         $this->assertStringContainsString('private const BUSINESS_TRIP_INCENTIVE_DAILY_RATE = 100000;', $businessTripController);
         $this->assertStringContainsString('$totalExpenses = $cashAdvanceTotal + $reimbursementTotal;', $businessTripController);
@@ -393,11 +393,11 @@ class BusinessTripPageCleanupTest extends TestCase
 
         $this->assertSame(
             [['code' => '31', 'name' => 'DKI Jakarta']],
-            app(BusinessTripController::class)->provinces()->getData(true)['data']
+            app(AttendanceBusinessTripController::class)->provinces()->getData(true)['data']
         );
         $this->assertSame(
             [['code' => '31.71', 'name' => 'Kota Administrasi Jakarta Pusat']],
-            app(BusinessTripController::class)->regencies('31')->getData(true)['data']
+            app(AttendanceBusinessTripController::class)->regencies('31')->getData(true)['data']
         );
 
         Http::assertSentCount(2);
@@ -494,8 +494,8 @@ class BusinessTripPageCleanupTest extends TestCase
                 ]),
             ]));
 
-            $summaryMethod = new ReflectionMethod(BusinessTripController::class, 'buildBusinessTripSummary');
-            $summary = $summaryMethod->invoke(new BusinessTripController, collect([
+            $summaryMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'buildBusinessTripSummary');
+            $summary = $summaryMethod->invoke(new AttendanceBusinessTripController, collect([
                 $pendingTrip,
                 $overdueTrip,
                 $settledTrip,
@@ -541,8 +541,8 @@ class BusinessTripPageCleanupTest extends TestCase
                 'amount_approved' => 1000000,
             ],
         ]);
-        $summaryMethod = new ReflectionMethod(BusinessTripController::class, 'buildBusinessTripExpenseSummaryRows');
-        $summaryRows = $summaryMethod->invoke(new BusinessTripController, $businessTrip, $cashAdvanceRows);
+        $summaryMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'buildBusinessTripExpenseSummaryRows');
+        $summaryRows = $summaryMethod->invoke(new AttendanceBusinessTripController, $businessTrip, $cashAdvanceRows);
 
         $this->assertSame([
             'Total Expenses' => 'Rp 5.000.000',
@@ -576,8 +576,8 @@ class BusinessTripPageCleanupTest extends TestCase
                 'notes' => 'Pending hotel',
             ],
         ]);
-        $breakdownMethod = new ReflectionMethod(BusinessTripController::class, 'buildBusinessTripApprovedExpenseBreakdownRows');
-        $breakdownRows = $breakdownMethod->invoke(new BusinessTripController, $cashAdvanceRows)->keyBy('label');
+        $breakdownMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'buildBusinessTripApprovedExpenseBreakdownRows');
+        $breakdownRows = $breakdownMethod->invoke(new AttendanceBusinessTripController, $cashAdvanceRows)->keyBy('label');
 
         $this->assertSame('Rp 1.000.000', $breakdownRows->get('Transportation')['amount_label']);
         $this->assertSame(['Flight ticket'], $breakdownRows->get('Transportation')['description_lines']);
@@ -609,10 +609,10 @@ class BusinessTripPageCleanupTest extends TestCase
                 'notes' => 'Airport taxi',
             ],
         ]);
-        $financialMethod = new ReflectionMethod(BusinessTripController::class, 'buildBusinessTripRequestFinancialRows');
-        $statusMethod = new ReflectionMethod(BusinessTripController::class, 'buildBusinessTripRequestStatusRows');
-        $financialRows = $financialMethod->invoke(new BusinessTripController, $businessTrip, $cashAdvanceRows)->keyBy('label');
-        $statusRows = $statusMethod->invoke(new BusinessTripController, $businessTrip, $cashAdvanceRows)->keyBy('label');
+        $financialMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'buildBusinessTripRequestFinancialRows');
+        $statusMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'buildBusinessTripRequestStatusRows');
+        $financialRows = $financialMethod->invoke(new AttendanceBusinessTripController, $businessTrip, $cashAdvanceRows)->keyBy('label');
+        $statusRows = $statusMethod->invoke(new AttendanceBusinessTripController, $businessTrip, $cashAdvanceRows)->keyBy('label');
 
         $this->assertSame('Rp 2.000.000', $financialRows->get('Requested Cash Advance')['amount_label']);
         $this->assertSame(['Flight ticket', 'Airport taxi'], $financialRows->get('Requested Cash Advance')['description_lines']);
@@ -636,8 +636,8 @@ class BusinessTripPageCleanupTest extends TestCase
                 'amount_approved' => 2500000,
             ],
         ]);
-        $summaryMethod = new ReflectionMethod(BusinessTripController::class, 'buildBusinessTripExpenseSummaryRows');
-        $summaryRows = $summaryMethod->invoke(new BusinessTripController, $businessTrip, $cashAdvanceRows);
+        $summaryMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'buildBusinessTripExpenseSummaryRows');
+        $summaryRows = $summaryMethod->invoke(new AttendanceBusinessTripController, $businessTrip, $cashAdvanceRows);
 
         $this->assertSame('text-success', $summaryRows->firstWhere('label', 'Cash Advance')['amount_class']);
     }
@@ -656,8 +656,8 @@ class BusinessTripPageCleanupTest extends TestCase
             ]),
         ]));
 
-        $permissionsMethod = new ReflectionMethod(BusinessTripController::class, 'buildBusinessTripDetailPermissions');
-        $permissions = $permissionsMethod->invoke(new BusinessTripController, $businessTrip);
+        $permissionsMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'buildBusinessTripDetailPermissions');
+        $permissions = $permissionsMethod->invoke(new AttendanceBusinessTripController, $businessTrip);
 
         $this->assertFalse($permissions['can_use_reimbursement_button']);
 
@@ -667,7 +667,7 @@ class BusinessTripPageCleanupTest extends TestCase
                 'status' => 'pending',
             ]),
         ]));
-        $permissions = $permissionsMethod->invoke(new BusinessTripController, $businessTrip);
+        $permissions = $permissionsMethod->invoke(new AttendanceBusinessTripController, $businessTrip);
 
         $this->assertTrue($permissions['can_use_reimbursement_button']);
     }
@@ -690,8 +690,8 @@ class BusinessTripPageCleanupTest extends TestCase
         ]);
         $lifecycleLog->setRelation('actor', $this->businessTripStaffActor());
 
-        $lifecycleMethod = new ReflectionMethod(BusinessTripController::class, 'lifecycleValueFromLog');
-        $lifecycleValue = $lifecycleMethod->invoke(new BusinessTripController, $lifecycleLog, $businessTrip);
+        $lifecycleMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'lifecycleValueFromLog');
+        $lifecycleValue = $lifecycleMethod->invoke(new AttendanceBusinessTripController, $lifecycleLog, $businessTrip);
 
         $this->assertSame('Now', $lifecycleValue['date_label']);
         $this->assertSame('10 June 2026 - 12 June 2026', $lifecycleValue['datetime_label']);
@@ -717,8 +717,8 @@ class BusinessTripPageCleanupTest extends TestCase
         ]);
         $lifecycleLog->setRelation('actor', $this->businessTripStaffActor());
 
-        $lifecycleMethod = new ReflectionMethod(BusinessTripController::class, 'lifecycleValueFromLog');
-        $lifecycleValue = $lifecycleMethod->invoke(new BusinessTripController, $lifecycleLog, $businessTrip);
+        $lifecycleMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'lifecycleValueFromLog');
+        $lifecycleValue = $lifecycleMethod->invoke(new AttendanceBusinessTripController, $lifecycleLog, $businessTrip);
 
         $this->assertSame('15 Jun', $lifecycleValue['date_label']);
         $this->assertSame('10 June 2026 - 15 June 2026', $lifecycleValue['datetime_label']);
@@ -741,8 +741,8 @@ class BusinessTripPageCleanupTest extends TestCase
         ]);
         $lifecycleLog->setRelation('actor', null);
 
-        $lifecycleMethod = new ReflectionMethod(BusinessTripController::class, 'lifecycleValueFromLog');
-        $lifecycleValue = $lifecycleMethod->invoke(new BusinessTripController, $lifecycleLog, $businessTrip);
+        $lifecycleMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'lifecycleValueFromLog');
+        $lifecycleValue = $lifecycleMethod->invoke(new AttendanceBusinessTripController, $lifecycleLog, $businessTrip);
 
         $this->assertSame('-', $lifecycleValue['actor_label']);
     }
@@ -762,8 +762,8 @@ class BusinessTripPageCleanupTest extends TestCase
         ]);
         $lifecycleLog->setRelation('actor', null);
 
-        $lifecycleMethod = new ReflectionMethod(BusinessTripController::class, 'lifecycleValueFromLog');
-        $lifecycleValue = $lifecycleMethod->invoke(new BusinessTripController, $lifecycleLog, $businessTrip);
+        $lifecycleMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'lifecycleValueFromLog');
+        $lifecycleValue = $lifecycleMethod->invoke(new AttendanceBusinessTripController, $lifecycleLog, $businessTrip);
 
         $this->assertSame('-', $lifecycleValue['actor_label']);
         $this->assertSame('Pending', $lifecycleValue['datetime_label']);
@@ -799,17 +799,17 @@ class BusinessTripPageCleanupTest extends TestCase
             ]),
         ]));
 
-        $progressMethod = new ReflectionMethod(BusinessTripController::class, 'calculateBusinessTripLifecycleProgressPercentage');
-        $progress = $progressMethod->invoke(new BusinessTripController, $businessTrip);
+        $progressMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'calculateBusinessTripLifecycleProgressPercentage');
+        $progress = $progressMethod->invoke(new AttendanceBusinessTripController, $businessTrip);
 
         $this->assertSame(33, $progress);
     }
 
     public function test_business_trip_index_filters_normalize_request_values(): void
     {
-        $filterMethod = new ReflectionMethod(BusinessTripController::class, 'businessTripIndexFilters');
+        $filterMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'businessTripIndexFilters');
 
-        $validFilters = $filterMethod->invoke(new BusinessTripController, Request::create('/attendance/business-trips', 'GET', [
+        $validFilters = $filterMethod->invoke(new AttendanceBusinessTripController, Request::create('/attendance/business-trips', 'GET', [
             'status' => ' Approved ',
             'type' => 'Intercity',
             'timeframe' => 'this_month',
@@ -821,7 +821,7 @@ class BusinessTripPageCleanupTest extends TestCase
             'timeframe' => 'this_month',
         ], $validFilters);
 
-        $invalidFilters = $filterMethod->invoke(new BusinessTripController, Request::create('/attendance/business-trips', 'GET', [
+        $invalidFilters = $filterMethod->invoke(new AttendanceBusinessTripController, Request::create('/attendance/business-trips', 'GET', [
             'status' => 'completed',
             'type' => 'remote',
             'timeframe' => 'future',
@@ -839,8 +839,8 @@ class BusinessTripPageCleanupTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2026-06-11 10:00:00', 'Asia/Jakarta'));
 
         try {
-            $filterMethod = new ReflectionMethod(BusinessTripController::class, 'applyBusinessTripIndexFilters');
-            $businessTripQuery = $filterMethod->invoke(new BusinessTripController, BusinessTrip::query(), [
+            $filterMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'applyBusinessTripIndexFilters');
+            $businessTripQuery = $filterMethod->invoke(new AttendanceBusinessTripController, BusinessTrip::query(), [
                 'status' => 'approved',
                 'type' => 'intercity',
                 'timeframe' => 'this_month',
@@ -864,12 +864,12 @@ class BusinessTripPageCleanupTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2026-06-11 10:00:00', 'Asia/Jakarta'));
 
         try {
-            $rangeMethod = new ReflectionMethod(BusinessTripController::class, 'businessTripDateRangeForFilter');
+            $rangeMethod = new ReflectionMethod(AttendanceBusinessTripController::class, 'businessTripDateRangeForFilter');
 
-            $this->assertSame(['2026-06-01', '2026-06-30'], $rangeMethod->invoke(new BusinessTripController, 'this_month'));
-            $this->assertSame(['2026-05-01', '2026-05-31'], $rangeMethod->invoke(new BusinessTripController, 'last_month'));
-            $this->assertSame(['2026-01-01', '2026-06-11'], $rangeMethod->invoke(new BusinessTripController, 'year_to_date'));
-            $this->assertNull($rangeMethod->invoke(new BusinessTripController, 'all'));
+            $this->assertSame(['2026-06-01', '2026-06-30'], $rangeMethod->invoke(new AttendanceBusinessTripController, 'this_month'));
+            $this->assertSame(['2026-05-01', '2026-05-31'], $rangeMethod->invoke(new AttendanceBusinessTripController, 'last_month'));
+            $this->assertSame(['2026-01-01', '2026-06-11'], $rangeMethod->invoke(new AttendanceBusinessTripController, 'year_to_date'));
+            $this->assertNull($rangeMethod->invoke(new AttendanceBusinessTripController, 'all'));
         } finally {
             Carbon::setTestNow();
         }

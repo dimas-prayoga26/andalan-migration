@@ -17,11 +17,10 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Throwable;
 
-class BusinessTripController extends Controller
+class AttendanceBusinessTripController extends Controller
 {
     private const WILAYAH_API_BASE_URL = 'https://wilayah.id/api';
 
@@ -581,7 +580,7 @@ class BusinessTripController extends Controller
                     'payment_amount_label' => $this->formatRupiah($finalAmount),
                     'is_approved' => $isApproved,
                     'has_approved_amount' => $approvedAmount !== null,
-                    'attachment_url' => $attachmentPath !== '' ? Storage::url($attachmentPath) : null,
+                    'attachment_url' => $attachmentPath !== '' ? asset('storage/'.ltrim($attachmentPath, '/')) : null,
                     'status_label' => $this->businessTripStatusLabel($status),
                     'status_badge_class' => $this->businessTripStatusBadgeClass($status),
                 ];
@@ -795,7 +794,7 @@ class BusinessTripController extends Controller
                     'category_label' => $this->businessTripExpenseBreakdownCategoryLabel($this->normalizeBusinessTripExpenseCategory((string) $reimbursement->category)),
                     'notes' => trim((string) $reimbursement->notes) !== '' ? trim((string) $reimbursement->notes) : '-',
                     'amount_label' => $this->formatRupiah($amount),
-                    'receipt_url' => $receiptPath !== '' ? Storage::disk('public')->url($receiptPath) : null,
+                    'receipt_url' => $receiptPath !== '' ? asset('storage/'.ltrim($receiptPath, '/')) : null,
                     'status_label' => $this->businessTripStatusLabel($status),
                     'status_badge_class' => $this->businessTripStatusBadgeClass($status),
                 ];

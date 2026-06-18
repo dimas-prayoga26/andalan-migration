@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\BusinessTripController;
+use App\Http\Controllers\AttendanceBusinessTripController;
 use App\Models\BusinessTrip;
 use App\Models\Employee;
 use App\Models\User;
@@ -20,11 +20,11 @@ class BusinessTripStoreTest extends TestCase
     {
         $storeRoute = Route::getRoutes()->getByName('attendance.business-trips.store');
         $createView = File::get(resource_path('views/attendance/business-trips/create.blade.php'));
-        $controller = File::get(app_path('Http/Controllers/BusinessTripController.php'));
+        $controller = File::get(app_path('Http/Controllers/AttendanceBusinessTripController.php'));
 
         $this->assertNotNull($storeRoute);
         $this->assertSame('POST', implode('|', $storeRoute->methods()));
-        $this->assertSame(BusinessTripController::class.'@store', $storeRoute->getActionName());
+        $this->assertSame(AttendanceBusinessTripController::class.'@store', $storeRoute->getActionName());
         $this->assertStringContainsString('method="POST" action="{{ route(\'attendance.business-trips.store\') }}"', $createView);
         $this->assertStringContainsString('@csrf', $createView);
         $this->assertStringContainsString('name="purpose"', $createView);

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\ReportController;
+use App\Http\Controllers\AttendanceReportController;
 use App\Models\AttendanceHoliday;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Http;
@@ -43,8 +43,8 @@ class ReportHolidayDatabaseTest extends TestCase
                 'type' => 1,
             ]);
 
-            $buildHolidayMapByMonth = new ReflectionMethod(ReportController::class, 'buildHolidayMapByMonth');
-            $holidayMap = $buildHolidayMapByMonth->invoke(app(ReportController::class), 2026, 5);
+            $buildHolidayMapByMonth = new ReflectionMethod(AttendanceReportController::class, 'buildHolidayMapByMonth');
+            $holidayMap = $buildHolidayMapByMonth->invoke(app(AttendanceReportController::class), 2026, 5);
 
             $this->assertSame([
                 '2026-05-27' => [

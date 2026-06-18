@@ -1,15 +1,15 @@
 <?php
 
 use App\Http\Controllers\ActivityScheduleController;
+use App\Http\Controllers\AttendanceBusinessTripCashAdvanceController;
+use App\Http\Controllers\AttendanceBusinessTripController;
+use App\Http\Controllers\AttendanceBusinessTripReimbursementController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AttendanceLeaveRequestController;
 use App\Http\Controllers\AttendanceOvertimeController;
+use App\Http\Controllers\AttendanceReportController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\BusinessTripCashAdvanceController;
-use App\Http\Controllers\BusinessTripController;
-use App\Http\Controllers\BusinessTripReimbursementController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\LeaveRequestController;
-use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -65,18 +65,18 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/attendance/current-ip', [AttendanceController::class, 'currentIp'])->name('attendance.current-ip');
     Route::post('/attendance/verify-telegram-username', [AttendanceController::class, 'verifyTelegramUsername'])->name('attendance.verify-telegram-username');
     Route::post('/attendance/exceptions', [AttendanceController::class, 'storeException'])->name('attendance.exceptions.store');
-    Route::get('/attendance/reports', [ReportController::class, 'index'])->name('attendance.reports');
-    Route::get('/attendance/reports/datatable', [ReportController::class, 'datatable'])->name('attendance.reports.datatable');
-    Route::get('/attendance/reports/export', [ReportController::class, 'exportReport'])->name('attendance.reports.export');
+    Route::get('/attendance/reports', [AttendanceReportController::class, 'index'])->name('attendance.reports');
+    Route::get('/attendance/reports/datatable', [AttendanceReportController::class, 'datatable'])->name('attendance.reports.datatable');
+    Route::get('/attendance/reports/export', [AttendanceReportController::class, 'exportReport'])->name('attendance.reports.export');
 
     // Attendance leave request routes
-    Route::get('/attendance/leave-requests', [LeaveRequestController::class, 'index'])->name('attendance.leave-requests');
-    Route::get('/attendance/leave-requests/cards', [LeaveRequestController::class, 'cards'])->name('attendance.leave-requests.cards');
-    Route::post('/attendance/leave-requests/upload-image', [LeaveRequestController::class, 'uploadImage'])->name('attendance.leave-requests.upload-image');
-    Route::post('/attendance/leave-requests/delete-uploaded-image', [LeaveRequestController::class, 'deleteUploadedImage'])->name('attendance.leave-requests.delete-uploaded-image');
-    Route::post('/attendance/leave-requests', [LeaveRequestController::class, 'store'])->name('attendance.leave-requests.store');
-    Route::put('/attendance/leave-requests/{leaveRequest}', [LeaveRequestController::class, 'update'])->name('attendance.leave-requests.update');
-    Route::delete('/attendance/leave-requests/{leaveRequest}', [LeaveRequestController::class, 'destroy'])->name('attendance.leave-requests.destroy');
+    Route::get('/attendance/leave-requests', [AttendanceLeaveRequestController::class, 'index'])->name('attendance.leave-requests');
+    Route::get('/attendance/leave-requests/cards', [AttendanceLeaveRequestController::class, 'cards'])->name('attendance.leave-requests.cards');
+    Route::post('/attendance/leave-requests/upload-image', [AttendanceLeaveRequestController::class, 'uploadImage'])->name('attendance.leave-requests.upload-image');
+    Route::post('/attendance/leave-requests/delete-uploaded-image', [AttendanceLeaveRequestController::class, 'deleteUploadedImage'])->name('attendance.leave-requests.delete-uploaded-image');
+    Route::post('/attendance/leave-requests', [AttendanceLeaveRequestController::class, 'store'])->name('attendance.leave-requests.store');
+    Route::put('/attendance/leave-requests/{leaveRequest}', [AttendanceLeaveRequestController::class, 'update'])->name('attendance.leave-requests.update');
+    Route::delete('/attendance/leave-requests/{leaveRequest}', [AttendanceLeaveRequestController::class, 'destroy'])->name('attendance.leave-requests.destroy');
 
     // Attendance overtime routes
     Route::get('/attendance/overtimes/datatable', [AttendanceOvertimeController::class, 'datatable'])->name('attendance.overtimes.datatable');
@@ -91,13 +91,13 @@ Route::middleware('auth')->group(function (): void {
     Route::delete('/attendance/overtimes/{attendanceOvertime}', [AttendanceOvertimeController::class, 'destroy'])->name('attendance.overtimes.destroy');
 
     // Attendance business trip routes
-    Route::get('/attendance/business-trips/provinces', [BusinessTripController::class, 'provinces'])->name('attendance.business-trips.provinces');
-    Route::get('/attendance/business-trips/regencies/{provinceCode}', [BusinessTripController::class, 'regencies'])->name('attendance.business-trips.regencies');
-    Route::get('/attendance/business-trips/{businessTrip}/cash-advances/create', [BusinessTripCashAdvanceController::class, 'create'])->name('attendance.business-trips.cash-advances.create');
-    Route::post('/attendance/business-trips/{businessTrip}/cash-advances', [BusinessTripCashAdvanceController::class, 'store'])->name('attendance.business-trips.cash-advances.store');
-    Route::get('/attendance/business-trips/{businessTrip}/reimbursements/create', [BusinessTripReimbursementController::class, 'create'])->name('attendance.business-trips.reimbursements.create');
-    Route::post('/attendance/business-trips/{businessTrip}/reimbursements', [BusinessTripReimbursementController::class, 'store'])->name('attendance.business-trips.reimbursements.store');
-    Route::resource('attendance/business-trips', BusinessTripController::class)
+    Route::get('/attendance/business-trips/provinces', [AttendanceBusinessTripController::class, 'provinces'])->name('attendance.business-trips.provinces');
+    Route::get('/attendance/business-trips/regencies/{provinceCode}', [AttendanceBusinessTripController::class, 'regencies'])->name('attendance.business-trips.regencies');
+    Route::get('/attendance/business-trips/{businessTrip}/cash-advances/create', [AttendanceBusinessTripCashAdvanceController::class, 'create'])->name('attendance.business-trips.cash-advances.create');
+    Route::post('/attendance/business-trips/{businessTrip}/cash-advances', [AttendanceBusinessTripCashAdvanceController::class, 'store'])->name('attendance.business-trips.cash-advances.store');
+    Route::get('/attendance/business-trips/{businessTrip}/reimbursements/create', [AttendanceBusinessTripReimbursementController::class, 'create'])->name('attendance.business-trips.reimbursements.create');
+    Route::post('/attendance/business-trips/{businessTrip}/reimbursements', [AttendanceBusinessTripReimbursementController::class, 'store'])->name('attendance.business-trips.reimbursements.store');
+    Route::resource('attendance/business-trips', AttendanceBusinessTripController::class)
         ->only(['index', 'create', 'store', 'show'])
         ->names([
             'index' => 'attendance.business-trips',

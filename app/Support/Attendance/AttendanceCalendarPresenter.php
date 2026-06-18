@@ -5,9 +5,7 @@ namespace App\Support\Attendance;
 use App\Models\BusinessTrip;
 use App\Models\BusinessTripLifecycleLog;
 use App\Models\LeaveRequest;
-use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Storage;
 
 class AttendanceCalendarPresenter
 {
@@ -117,10 +115,7 @@ class AttendanceCalendarPresenter
             return '';
         }
 
-        /** @var FilesystemAdapter $publicDisk */
-        $publicDisk = Storage::disk('public');
-
-        return $publicDisk->url($attachmentPath);
+        return asset('storage/'.ltrim($attachmentPath, '/'));
     }
 
     public function leaveAttachmentIsImage(LeaveRequest $leaveRequest): bool

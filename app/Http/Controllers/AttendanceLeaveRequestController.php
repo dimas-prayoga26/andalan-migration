@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class LeaveRequestController extends Controller
+class AttendanceLeaveRequestController extends Controller
 {
     public function index(): View
     {
@@ -447,7 +447,7 @@ class LeaveRequestController extends Controller
             'success' => true,
             'message' => 'Lampiran berhasil diupload.',
             'attachment_path' => $storedPath,
-            'attachment_url' => $this->publicDisk()->url($storedPath),
+            'attachment_url' => $this->publicStorageUrl($storedPath),
         ]);
     }
 
@@ -867,7 +867,7 @@ class LeaveRequestController extends Controller
                     default => 'text-primary',
                 },
                 'status_date_label' => $this->resolveLeaveStatusDateLabel($leaveRequest, $status, $startDate),
-                'attachment_url' => $attachmentPath !== '' ? $this->publicDisk()->url($attachmentPath) : null,
+                'attachment_url' => $attachmentPath !== '' ? $this->publicStorageUrl($attachmentPath) : null,
             ];
         });
     }
@@ -1618,6 +1618,11 @@ class LeaveRequestController extends Controller
         $disk = Storage::disk('public');
 
         return $disk;
+    }
+
+    private function publicStorageUrl(string $path): string
+    {
+        return asset('storage/'.ltrim($path, '/'));
     }
 
     private function syncAnnualLeaveBalance(string $employeeId, int $year, ?int $month = null): void

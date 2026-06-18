@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
-class BusinessTripReimbursementController extends Controller
+class AttendanceBusinessTripReimbursementController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -166,7 +166,7 @@ class BusinessTripReimbursementController extends Controller
                 'notes' => (string) $reimbursement->notes,
                 'receipt_path' => (string) $reimbursement->receipt_path,
                 'receipt_url' => is_string($reimbursement->receipt_path) && trim($reimbursement->receipt_path) !== ''
-                    ? Storage::disk('public')->url(trim($reimbursement->receipt_path))
+                    ? asset('storage/'.ltrim(trim($reimbursement->receipt_path), '/'))
                     : null,
             ])
             ->values();

@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
-class BusinessTripCashAdvanceController extends Controller
+class AttendanceBusinessTripCashAdvanceController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -176,7 +176,7 @@ class BusinessTripCashAdvanceController extends Controller
                     'amount_realized' => $cashAdvance->amount_realized !== null ? $this->formatRupiah((float) $cashAdvance->amount_realized) : '',
                     'attachment_path' => (string) $cashAdvance->attachment_path,
                     'attachment_url' => is_string($cashAdvance->attachment_path) && trim($cashAdvance->attachment_path) !== ''
-                        ? Storage::disk('public')->url(trim($cashAdvance->attachment_path))
+                        ? asset('storage/'.ltrim(trim($cashAdvance->attachment_path), '/'))
                         : null,
                     'amount_approved' => $cashAdvance->amount_approved !== null ? $this->formatRupiah((float) $cashAdvance->amount_approved) : '',
                     'finance_notes' => (string) $cashAdvance->finance_notes,

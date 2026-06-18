@@ -22,12 +22,11 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
 use ZipArchive;
 
-class ReportController extends Controller
+class AttendanceReportController extends Controller
 {
     public function __construct(
         private AttendanceCardsViewDataService $attendanceCardsViewDataService,
@@ -936,7 +935,7 @@ class ReportController extends Controller
             return null;
         }
 
-        return Storage::disk('public')->url($attachmentPath);
+        return asset('storage/'.ltrim($attachmentPath, '/'));
     }
 
     /**

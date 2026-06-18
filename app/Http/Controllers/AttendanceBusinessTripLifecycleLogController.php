@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BusinessTripLifecycleLog;
 use Illuminate\Http\Request;
 
-class BusinessTripLifecycleLogController extends Controller
+class AttendanceBusinessTripLifecycleLogController extends Controller
 {
     /**
      * Display a listing of the resource.

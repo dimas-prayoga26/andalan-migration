@@ -3,8 +3,10 @@
 namespace App\View\Composers;
 
 use App\Models\Attendance;
+use App\Models\AttendanceException;
 use App\Models\AttendanceHoliday;
 use App\Models\AttendanceOvertime;
+use App\Models\BusinessTrip;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\User;
@@ -34,6 +36,34 @@ class AttendanceProfileComposer
             'profileOnTimeRatePercent' => 0,
             'profileLatenessRatePercent' => 0,
             'profileOvertimeRatePercent' => 0,
+            'profileAttendanceOverviewMonthLabel' => $nowJakarta->format('F'),
+            'profileAttendanceOverviewSeries' => [0, 0, 0, 0],
+            'profileAttendanceOverviewOnTimeCount' => 0,
+            'profileAttendanceOverviewLateCount' => 0,
+            'profileAttendanceOverviewLeaveCount' => 0,
+            'profileAttendanceOverviewDeviationCount' => 0,
+            'profileAttendanceProgressPercent' => 0,
+            'profileProgressOnTimePercent' => 0,
+            'profileProgressOnTimeCount' => 0,
+            'profileProgressOnTimeTotal' => 0,
+            'profileProgressLatePercent' => 0,
+            'profileProgressLateCount' => 0,
+            'profileProgressLateTotal' => 0,
+            'profileWeeklyRequiredHours' => 0.0,
+            'profileWeeklyRequiredHoursTarget' => 40,
+            'profileWeeklyRequiredHoursPercent' => 0,
+            'profileWeeklyOvertimeHours' => 0.0,
+            'profileWeeklyOvertimeHoursTarget' => 18,
+            'profileWeeklyOvertimeHoursPercent' => 0,
+            'profileYearChartYear' => (int) $nowJakarta->year,
+            'profileYearMonthLabels' => [],
+            'profileYearAttendanceOnTimeSeries' => [],
+            'profileYearAttendanceLateSeries' => [],
+            'profileYearAttendanceLeaveSeries' => [],
+            'profileYearLeaveSeries' => [],
+            'profileYearSickSeries' => [],
+            'profileYearBusinessTripSeries' => [],
+            'profileYearOvertimeHoursSeries' => [],
             'profileMonthlyAttendanceLabels' => [],
             'profileMonthlyAttendanceSeries' => [],
             'profileMonthlyAttendanceDelta' => 0.0,
@@ -150,7 +180,16 @@ class AttendanceProfileComposer
                 ->whereNull('deleted_at')
                 ->count();
 
+            $monthStart = $nowJakarta->copy()->startOfMonth();
+            $monthEnd = $nowJakarta->copy()->endOfMonth();
             $workingDaysInCurrentMonth = $this->calculateWorkingDaysInMonth($nowJakarta);
+            $monthlyLeaveDaysCount = $this->countApprovedLeaveDaysForPeriod($employeeId, $monthStart, $monthEnd);
+            $monthlyDeviationCount = AttendanceException::query()
+                ->where('employee_id', $employeeId)
+                ->whereBetween('exception_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+                ->whereIn('type', ['late_arrival', 'early_departure'])
+                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['approved'])
+                ->count();
             $monthlyOvertimeMinutes = AttendanceOvertime::query()
                 ->where('employee_id', $employeeId)
                 ->whereYear('overtime_date', (int) $nowJakarta->year)
@@ -160,6 +199,16 @@ class AttendanceProfileComposer
                 ->get(['actual_start_time', 'actual_end_time'])
                 ->sum(fn (AttendanceOvertime $overtime): int => $this->calculateOvertimeMinutes($overtime->actual_start_time, $overtime->actual_end_time));
 
+            $profileData['profileAttendanceOverviewSeries'] = [
+                (int) $monthlyOnTimeCount,
+                (int) $monthlyLateCount,
+                (int) $monthlyLeaveDaysCount,
+                (int) $monthlyDeviationCount,
+            ];
+            $profileData['profileAttendanceOverviewOnTimeCount'] = (int) $monthlyOnTimeCount;
+            $profileData['profileAttendanceOverviewLateCount'] = (int) $monthlyLateCount;
+            $profileData['profileAttendanceOverviewLeaveCount'] = (int) $monthlyLeaveDaysCount;
+            $profileData['profileAttendanceOverviewDeviationCount'] = (int) $monthlyDeviationCount;
             $profileData['profileAttendanceRatePercent'] = $workingDaysInCurrentMonth > 0
                 ? max(0, min((int) round(($profileData['profileAttendanceDaysCount'] / $workingDaysInCurrentMonth) * 100), 100))
                 : 0;
@@ -170,6 +219,17 @@ class AttendanceProfileComposer
                 ? max(0, min((int) round(($monthlyLateCount / $workingDaysInCurrentMonth) * 100), 100))
                 : 0;
             $profileData['profileOvertimeRatePercent'] = max(0, min((int) round((($monthlyOvertimeMinutes / 60) / 72) * 100), 100));
+            $profileData['profileAttendanceProgressPercent'] = $profileData['profileAttendanceRatePercent'];
+            $profileData['profileProgressOnTimeCount'] = (int) $monthlyOnTimeCount;
+            $profileData['profileProgressOnTimeTotal'] = (int) $profileData['profileAttendanceDaysCount'];
+            $profileData['profileProgressOnTimePercent'] = $profileData['profileAttendanceDaysCount'] > 0
+                ? max(0, min((int) round(($monthlyOnTimeCount / $profileData['profileAttendanceDaysCount']) * 100), 100))
+                : 0;
+            $profileData['profileProgressLateCount'] = (int) $monthlyLateCount;
+            $profileData['profileProgressLateTotal'] = (int) $profileData['profileAttendanceDaysCount'];
+            $profileData['profileProgressLatePercent'] = $profileData['profileAttendanceDaysCount'] > 0
+                ? max(0, min((int) round(($monthlyLateCount / $profileData['profileAttendanceDaysCount']) * 100), 100))
+                : 0;
 
             $weekStart = $nowJakarta->copy()->startOfWeek(Carbon::MONDAY);
             $weekEnd = $nowJakarta->copy()->endOfWeek(Carbon::SUNDAY);
@@ -186,6 +246,17 @@ class AttendanceProfileComposer
                 ->whereNotNull('clock_in')
                 ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['masuk'])
                 ->count();
+            $weeklyWorkedMinutes = (clone $weeklyAttendanceQuery)
+                ->whereNotNull('clock_in')
+                ->get(['clock_in', 'clock_out', 'work_hours'])
+                ->sum(fn (Attendance $attendance): int => $this->calculateAttendanceWorkMinutes($attendance));
+            $weeklyOvertimeMinutes = AttendanceOvertime::query()
+                ->where('employee_id', $employeeId)
+                ->whereBetween('overtime_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+                ->whereNotNull('actual_start_time')
+                ->whereNotNull('actual_end_time')
+                ->get(['actual_start_time', 'actual_end_time'])
+                ->sum(fn (AttendanceOvertime $overtime): int => $this->calculateOvertimeMinutes($overtime->actual_start_time, $overtime->actual_end_time));
 
             $profileData['profileWeeklyAttendancePercent'] = $weeklyWorkingDaysCount > 0
                 ? max(0, min((int) round(($weeklyCheckedInCount / $weeklyWorkingDaysCount) * 100), 100))
@@ -193,6 +264,10 @@ class AttendanceProfileComposer
             $profileData['profileWeeklyOnTimePercent'] = $weeklyCheckedInCount > 0
                 ? max(0, min((int) round(($weeklyOnTimeCount / $weeklyCheckedInCount) * 100), 100))
                 : 0;
+            $profileData['profileWeeklyRequiredHours'] = round($weeklyWorkedMinutes / 60, 2);
+            $profileData['profileWeeklyRequiredHoursPercent'] = max(0, min((int) round(($profileData['profileWeeklyRequiredHours'] / $profileData['profileWeeklyRequiredHoursTarget']) * 100), 100));
+            $profileData['profileWeeklyOvertimeHours'] = round($weeklyOvertimeMinutes / 60, 2);
+            $profileData['profileWeeklyOvertimeHoursPercent'] = max(0, min((int) round(($profileData['profileWeeklyOvertimeHours'] / $profileData['profileWeeklyOvertimeHoursTarget']) * 100), 100));
 
             $monthlyCheckedInCountsByMonth = Attendance::query()
                 ->where('employee_id', $employeeId)
@@ -201,21 +276,68 @@ class AttendanceProfileComposer
                 ->selectRaw('MONTH(date) as month_number, COUNT(*) as total_count')
                 ->groupBy('month_number')
                 ->pluck('total_count', 'month_number');
+            $yearOnTimeCountsByMonth = Attendance::query()
+                ->where('employee_id', $employeeId)
+                ->whereYear('date', (int) $nowJakarta->year)
+                ->whereNotNull('clock_in')
+                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['masuk'])
+                ->selectRaw('MONTH(date) as month_number, COUNT(*) as total_count')
+                ->groupBy('month_number')
+                ->pluck('total_count', 'month_number');
+            $yearLateCountsByMonth = Attendance::query()
+                ->where('employee_id', $employeeId)
+                ->whereYear('date', (int) $nowJakarta->year)
+                ->whereNotNull('clock_in')
+                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['terlambat'])
+                ->selectRaw('MONTH(date) as month_number, COUNT(*) as total_count')
+                ->groupBy('month_number')
+                ->pluck('total_count', 'month_number');
+            $yearBusinessTripCountsByMonth = BusinessTrip::query()
+                ->where('employee_id', $employeeId)
+                ->whereYear('start_date', (int) $nowJakarta->year)
+                ->where('approval_status', 'approved')
+                ->selectRaw('MONTH(start_date) as month_number, COUNT(*) as total_count')
+                ->groupBy('month_number')
+                ->pluck('total_count', 'month_number');
+            $yearOvertimeHoursByMonth = AttendanceOvertime::query()
+                ->where('employee_id', $employeeId)
+                ->whereYear('overtime_date', (int) $nowJakarta->year)
+                ->whereNotNull('actual_start_time')
+                ->whereNotNull('actual_end_time')
+                ->get(['overtime_date', 'actual_start_time', 'actual_end_time'])
+                ->groupBy(static fn (AttendanceOvertime $overtime): int => (int) Carbon::parse($overtime->overtime_date)->month)
+                ->map(fn ($monthOvertimes): float => round($monthOvertimes->sum(fn (AttendanceOvertime $overtime): int => $this->calculateOvertimeMinutes($overtime->actual_start_time, $overtime->actual_end_time)) / 60, 2));
 
             $monthlyAttendanceLabels = [];
             $monthlyAttendanceSeries = [];
+            $yearAttendanceOnTimeSeries = [];
+            $yearAttendanceLateSeries = [];
+            $yearAttendanceLeaveSeries = [];
+            $yearLeaveSeries = [];
+            $yearSickSeries = [];
+            $yearBusinessTripSeries = [];
+            $yearOvertimeHoursSeries = [];
 
             for ($month = 1; $month <= 12; $month++) {
                 $monthStart = Carbon::create((int) $nowJakarta->year, $month, 1, 0, 0, 0, 'Asia/Jakarta')->startOfMonth();
                 $monthEnd = $monthStart->copy()->endOfMonth();
                 $workingDaysInMonth = $this->calculateWorkingDaysInPeriod($monthStart, $monthEnd);
                 $checkedInCount = (int) ($monthlyCheckedInCountsByMonth[$month] ?? 0);
+                $leaveDaysInMonth = $this->countApprovedLeaveDaysForPeriod($employeeId, $monthStart, $monthEnd);
+                $sickDaysInMonth = $this->countApprovedLeaveDaysForPeriod($employeeId, $monthStart, $monthEnd, true);
                 $attendancePercent = $workingDaysInMonth > 0
                     ? max(0, min((int) round(($checkedInCount / $workingDaysInMonth) * 100), 100))
                     : 0;
 
                 $monthlyAttendanceLabels[] = $monthStart->format('M');
                 $monthlyAttendanceSeries[] = $attendancePercent;
+                $yearAttendanceOnTimeSeries[] = (int) ($yearOnTimeCountsByMonth[$month] ?? 0);
+                $yearAttendanceLateSeries[] = (int) ($yearLateCountsByMonth[$month] ?? 0);
+                $yearAttendanceLeaveSeries[] = (int) $leaveDaysInMonth;
+                $yearLeaveSeries[] = max(0, (int) $leaveDaysInMonth - (int) $sickDaysInMonth);
+                $yearSickSeries[] = (int) $sickDaysInMonth;
+                $yearBusinessTripSeries[] = (int) ($yearBusinessTripCountsByMonth[$month] ?? 0);
+                $yearOvertimeHoursSeries[] = (float) ($yearOvertimeHoursByMonth[$month] ?? 0.0);
             }
 
             $currentMonthIndex = max((int) $nowJakarta->month - 1, 0);
@@ -227,6 +349,14 @@ class AttendanceProfileComposer
             $profileData['profileMonthlyAttendanceLabels'] = $monthlyAttendanceLabels;
             $profileData['profileMonthlyAttendanceSeries'] = $monthlyAttendanceSeries;
             $profileData['profileMonthlyAttendanceDelta'] = round($currentMonthPercent - $previousMonthPercent, 2);
+            $profileData['profileYearMonthLabels'] = $monthlyAttendanceLabels;
+            $profileData['profileYearAttendanceOnTimeSeries'] = $yearAttendanceOnTimeSeries;
+            $profileData['profileYearAttendanceLateSeries'] = $yearAttendanceLateSeries;
+            $profileData['profileYearAttendanceLeaveSeries'] = $yearAttendanceLeaveSeries;
+            $profileData['profileYearLeaveSeries'] = $yearLeaveSeries;
+            $profileData['profileYearSickSeries'] = $yearSickSeries;
+            $profileData['profileYearBusinessTripSeries'] = $yearBusinessTripSeries;
+            $profileData['profileYearOvertimeHoursSeries'] = $yearOvertimeHoursSeries;
         }
 
         $profileData['profileWorkingDaysCount'] = $this->calculateWorkingDaysInMonth($nowJakarta);
@@ -331,6 +461,23 @@ class AttendanceProfileComposer
         return $workingDays;
     }
 
+    private function calculateAttendanceWorkMinutes(Attendance $attendance): int
+    {
+        $workHours = $attendance->work_hours;
+        if (is_numeric($workHours)) {
+            return max(0, (int) round(((float) $workHours) * 60));
+        }
+
+        if (! $attendance->clock_in instanceof \DateTimeInterface || ! $attendance->clock_out instanceof \DateTimeInterface) {
+            return 0;
+        }
+
+        return $this->calculateOvertimeMinutes(
+            $attendance->clock_in->format('H:i:s'),
+            $attendance->clock_out->format('H:i:s')
+        );
+    }
+
     private function calculateOvertimeMinutes(mixed $startTimeValue, mixed $endTimeValue): int
     {
         if (! is_string($startTimeValue) || ! is_string($endTimeValue)) {
@@ -349,6 +496,41 @@ class AttendanceProfileComposer
         } catch (\Throwable) {
             return 0;
         }
+    }
+
+    private function countApprovedLeaveDaysForPeriod(string $employeeId, Carbon $periodStart, Carbon $periodEnd, ?bool $sickOnly = null): int
+    {
+        $leaveQuery = LeaveRequest::query()
+            ->where('employee_id', $employeeId)
+            ->whereDate('start_date', '<=', $periodEnd->toDateString())
+            ->whereDate('end_date', '>=', $periodStart->toDateString())
+            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['approved'])
+            ->where('is_active', true)
+            ->whereNull('deleted_at');
+
+        if ($sickOnly === true) {
+            $leaveQuery->whereHas('leaveType', function ($query): void {
+                $query
+                    ->whereRaw('LOWER(COALESCE(code, "")) in (?, ?)', ['sick', 'sick_leave'])
+                    ->orWhereRaw('LOWER(COALESCE(name, "")) in (?, ?)', ['sakit', 'sick leave']);
+            });
+        }
+
+        return $leaveQuery
+            ->get(['start_date', 'end_date'])
+            ->sum(function (LeaveRequest $leaveRequest) use ($periodStart, $periodEnd): int {
+                try {
+                    $leaveStart = Carbon::parse($leaveRequest->start_date, 'Asia/Jakarta')->startOfDay();
+                    $leaveEnd = Carbon::parse($leaveRequest->end_date, 'Asia/Jakarta')->startOfDay();
+                } catch (\Throwable) {
+                    return 0;
+                }
+
+                $effectiveStart = $leaveStart->greaterThan($periodStart) ? $leaveStart : $periodStart->copy();
+                $effectiveEnd = $leaveEnd->lessThan($periodEnd) ? $leaveEnd : $periodEnd->copy();
+
+                return $this->calculateWorkingDaysInPeriod($effectiveStart, $effectiveEnd);
+            });
     }
 
     private function isBoardOfDirectur(?User $user): bool

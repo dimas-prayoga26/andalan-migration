@@ -17,6 +17,7 @@ class AttendanceTodayStateService
      *   todayAttendanceId:?string,
      *   todayAttendanceDistanceKm:?float,
      *   todayAttendanceDistanceOutKm:?float,
+     *   hasAttendanceExceptionToday:bool,
      *   hasEarlyDepartureExceptionToday:bool,
      *   hasCheckedInToday:bool,
      *   hasCheckedOutToday:bool
@@ -35,6 +36,7 @@ class AttendanceTodayStateService
         $todayAttendance = null;
         $todayAttendanceDistanceKm = null;
         $todayAttendanceDistanceOutKm = null;
+        $hasAttendanceExceptionToday = false;
         $hasEarlyDepartureExceptionToday = false;
 
         if ($employeeId !== '') {
@@ -76,6 +78,7 @@ class AttendanceTodayStateService
                 ->first(['type']);
 
             if ($todayAttendanceException instanceof AttendanceException) {
+                $hasAttendanceExceptionToday = true;
                 $hasEarlyDepartureExceptionToday = $todayAttendanceException->type === 'early_departure';
             }
         }
@@ -91,6 +94,7 @@ class AttendanceTodayStateService
             'todayAttendanceId' => $todayAttendanceId,
             'todayAttendanceDistanceKm' => $todayAttendanceDistanceKm,
             'todayAttendanceDistanceOutKm' => $todayAttendanceDistanceOutKm,
+            'hasAttendanceExceptionToday' => $hasAttendanceExceptionToday,
             'hasEarlyDepartureExceptionToday' => $hasEarlyDepartureExceptionToday,
             'hasCheckedInToday' => $hasCheckedInToday,
             'hasCheckedOutToday' => $hasCheckedOutToday,

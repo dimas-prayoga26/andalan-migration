@@ -816,6 +816,7 @@
                 var holidayEvents = @json($holidayEvents ?? []);
                 var calendarLabelEvents = @json($calendarLabelEvents ?? []);
                 var attendanceHistoryEvents = @json($attendanceHistoryEvents ?? []);
+                window.attendanceHistoryEvents = attendanceHistoryEvents;
 
                 function formatDateToIso(dateObject) {
                     var year = dateObject.getFullYear();
@@ -1287,6 +1288,24 @@
                 });
 
                 calendar.render();
+                window.attendanceCalendar = calendar;
+                window.upsertAttendanceHistoryEvent = function (eventItem) {
+                    if (!eventItem || typeof eventItem.start !== 'string' || eventItem.start.trim() === '') {
+                        return;
+                    }
+
+                    attendanceHistoryEvents = attendanceHistoryEvents
+                        .filter(function (existingEventItem) {
+                            if (!existingEventItem || typeof existingEventItem.start !== 'string') {
+                                return true;
+                            }
+
+                            return existingEventItem.start !== eventItem.start;
+                        });
+                    attendanceHistoryEvents.push(eventItem);
+                    window.attendanceHistoryEvents = attendanceHistoryEvents;
+                    calendar.refetchEvents();
+                };
                 calendarEl.dataset.fcInitialized = '1';
             }
 

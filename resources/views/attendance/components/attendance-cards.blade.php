@@ -35,7 +35,7 @@
                     </div>
                     <div class="text-center">
                         <p class="fs-14 mb-2">Clock In</p>
-                        <span class="fs-20 text-black">{{ $todayAttendance?->clock_in?->format('H:i') ?? '--:--' }}</span>
+                        <span class="fs-20 text-black" id="attendanceClockInValue">{{ $todayAttendance?->clock_in?->format('H:i') ?? '--:--' }}</span>
                     </div>
                 </div>
             </div>
@@ -85,7 +85,7 @@
                     </div>
                     <div class="text-center">
                         <p class="fs-14 mb-2">Clock Out</p>
-                        <span class="fs-20 text-black">{{ $todayAttendance?->clock_out?->format('H:i') ?? '--:--' }}</span>
+                        <span class="fs-20 text-black" id="attendanceClockOutValue">{{ $todayAttendance?->clock_out?->format('H:i') ?? '--:--' }}</span>
                     </div>
                 </div>
             </div>
@@ -141,7 +141,18 @@
                     </div>
                 </div>
             </div>
-            <a class="btn light btn-secondary m-3 mb-2 btn-lg" data-bs-toggle="modal" data-bs-target="#exception">Exception</a>
+            <a
+                id="attendanceExceptionCardButton"
+                class="btn light btn-secondary m-3 mb-2 btn-lg {{ ($hasAttendanceExceptionToday ?? false) ? 'disabled' : '' }}"
+                @if (!($hasAttendanceExceptionToday ?? false))
+                    data-bs-toggle="modal"
+                    data-bs-target="#exception"
+                @endif
+                @if (($hasAttendanceExceptionToday ?? false))
+                    aria-disabled="true"
+                    tabindex="-1"
+                @endif
+            >Exception</a>
             <div class="mb-3"></div>
         </div>
     </div>
@@ -313,10 +324,13 @@
             var attendanceDateElement = document.getElementById('attendanceDateTime');
             var attendanceSummaryTimeElement = document.getElementById('attendanceSummaryTimeValue');
             var attendanceClockOutSummaryTimeElement = document.getElementById('attendanceClockOutSummaryTimeValue');
+            var attendanceClockInValueElement = document.getElementById('attendanceClockInValue');
+            var attendanceClockOutValueElement = document.getElementById('attendanceClockOutValue');
             var attendanceExceptionSummaryTimeElement = document.getElementById('attendanceExceptionSummaryTimeValue');
             var attendanceExceptionSummaryVarianceElement = document.getElementById('attendanceExceptionSummaryVarianceValue');
             var clockInCardButtonElement = document.getElementById('clockInCardButton');
             var clockOutCardButtonElement = document.getElementById('clockOutCardButton');
+            var attendanceExceptionCardButtonElement = document.getElementById('attendanceExceptionCardButton');
             var attendanceConfirmationCardSlideElement = document.getElementById('attendanceConfirmationCardSlide');
             var endOfShiftCardSlideElement = document.getElementById('endOfShiftCardSlide');
             var googleMapsApiKey = @json(config('services.google_maps.api_key'));
@@ -362,6 +376,7 @@
                 todayAttendanceId: @json($todayAttendanceId ?? null),
                 hasCheckedInToday: @json($hasCheckedInToday ?? false),
                 hasCheckedOutToday: @json($hasCheckedOutToday ?? false),
+                hasAttendanceExceptionToday: @json($hasAttendanceExceptionToday ?? false),
                 hasEarlyDepartureExceptionToday: @json($hasEarlyDepartureExceptionToday ?? false)
             };
             var modalContext = {
@@ -646,6 +661,21 @@
                         clockOutCardButtonElement.setAttribute('data-bs-target', '#clockOut');
                         clockOutCardButtonElement.removeAttribute('aria-disabled');
                         clockOutCardButtonElement.removeAttribute('tabindex');
+                    }
+                }
+
+                if (attendanceExceptionCardButtonElement) {
+                    attendanceExceptionCardButtonElement.classList.toggle('disabled', attendanceState.hasAttendanceExceptionToday);
+                    if (attendanceState.hasAttendanceExceptionToday) {
+                        attendanceExceptionCardButtonElement.removeAttribute('data-bs-toggle');
+                        attendanceExceptionCardButtonElement.removeAttribute('data-bs-target');
+                        attendanceExceptionCardButtonElement.setAttribute('aria-disabled', 'true');
+                        attendanceExceptionCardButtonElement.setAttribute('tabindex', '-1');
+                    } else {
+                        attendanceExceptionCardButtonElement.setAttribute('data-bs-toggle', 'modal');
+                        attendanceExceptionCardButtonElement.setAttribute('data-bs-target', '#exception');
+                        attendanceExceptionCardButtonElement.removeAttribute('aria-disabled');
+                        attendanceExceptionCardButtonElement.removeAttribute('tabindex');
                     }
                 }
 
@@ -1309,6 +1339,13 @@
                         return;
                     }
 
+                    if (attendanceState.hasAttendanceExceptionToday) {
+                        setAttendanceExceptionFeedback('Attendance exception untuk tanggal ini sudah pernah diajukan.', 'error');
+                        showSwalAlert('warning', 'Perhatian', 'Attendance exception untuk tanggal ini sudah pernah diajukan.');
+                        renderSubmitButtons();
+                        return;
+                    }
+
                     var selectedTypeElement = attendanceExceptionFormElement.querySelector('input[name="type"]:checked');
                     var payload = {
                         type: selectedTypeElement ? selectedTypeElement.value : '',
@@ -1345,6 +1382,14 @@
                             attendanceExceptionSummaryVarianceElement.textContent = response.summary_variance;
                         }
 
+                        if (attendanceClockInValueElement && response && response.clock_in_label) {
+                            attendanceClockInValueElement.textContent = response.clock_in_label;
+                        }
+
+                        if (attendanceClockOutValueElement && response && response.clock_out_label) {
+                            attendanceClockOutValueElement.textContent = response.clock_out_label;
+                        }
+
                         if (response && response.attendance_id) {
                             attendanceState.todayAttendanceId = response.attendance_id;
                         }
@@ -1354,10 +1399,19 @@
                         if (response && typeof response.has_checked_out_today !== 'undefined') {
                             attendanceState.hasCheckedOutToday = !!response.has_checked_out_today;
                         }
+                        if (response && typeof response.has_attendance_exception_today !== 'undefined') {
+                            attendanceState.hasAttendanceExceptionToday = !!response.has_attendance_exception_today;
+                        } else {
+                            attendanceState.hasAttendanceExceptionToday = true;
+                        }
                         if (response && typeof response.has_early_departure_exception !== 'undefined') {
                             attendanceState.hasEarlyDepartureExceptionToday = !!response.has_early_departure_exception;
                         }
                         renderSubmitButtons();
+
+                        if (response && response.calendar_event && typeof window.upsertAttendanceHistoryEvent === 'function') {
+                            window.upsertAttendanceHistoryEvent(response.calendar_event);
+                        }
 
                         showSwalAlert('success', 'Berhasil', successMessage);
 
@@ -1372,7 +1426,7 @@
                         setAttendanceExceptionFeedback(errorMessage, 'error');
                         showSwalAlert('error', 'Gagal', errorMessage);
                     }).always(function () {
-                        attendanceExceptionSubmitButtonElement.disabled = false;
+                        attendanceExceptionSubmitButtonElement.disabled = attendanceState.hasAttendanceExceptionToday;
                     });
                 });
             }

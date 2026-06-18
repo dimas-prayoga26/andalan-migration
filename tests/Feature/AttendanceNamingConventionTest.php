@@ -105,6 +105,7 @@ class AttendanceNamingConventionTest extends TestCase
 
         $appServiceProvider = File::get(app_path('Providers/AppServiceProvider.php'));
 
+        $this->assertStringContainsString("'attendance.index'", $appServiceProvider);
         $this->assertStringContainsString("'attendance.layouts.profile-header'", $appServiceProvider);
         $this->assertStringContainsString("'attendance.components.card-analytics'", $appServiceProvider);
         $this->assertStringContainsString('AttendanceProfileComposer::class', $appServiceProvider);
@@ -133,6 +134,39 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertStringContainsString('<div class="row align-items-stretch">', $attendanceOverviewView);
         $this->assertSame(2, substr_count($attendanceOverviewView, '<div class="card flex-fill">'));
         $this->assertStringContainsString('row row-cols-2 g-2 list-unstyled mb-0 mx-auto w-100', $attendanceOverviewView);
+        $this->assertStringContainsString('$attendanceOverviewSeries = array_values($profileAttendanceOverviewSeries ?? [0, 0, 0, 0]);', $attendanceOverviewView);
+        $this->assertStringContainsString('Attendance Overview ({{ $attendanceOverviewMonthLabel }})', $attendanceOverviewView);
+        $this->assertStringContainsString('Progress ({{ $attendanceOverviewMonthLabel }})', $attendanceOverviewView);
+        $this->assertStringContainsString('Days Worked ({{ $attendanceDaysCount }}/{{ $workingDaysCount }} Days)', $attendanceOverviewView);
+        $this->assertStringContainsString('series: @json($attendanceOverviewSeries)', $attendanceOverviewView);
+        $this->assertStringContainsString('series: [{{ $attendanceProgressPercent }}]', $attendanceOverviewView);
+        $this->assertStringContainsString('On Time ({{ $progressOnTimePercent }}%)', $attendanceOverviewView);
+        $this->assertStringContainsString('Late ({{ $progressLatePercent }}%)', $attendanceOverviewView);
+        $this->assertStringContainsString('Weekly Required Hours ({{ $weeklyRequiredHoursPercent }}%)', $attendanceOverviewView);
+        $this->assertStringContainsString('Overtime Logged ({{ $weeklyOvertimeHoursPercent }}%)', $attendanceOverviewView);
+        $this->assertStringContainsString('$defaultYearMonthLabels = [', $attendanceOverviewView);
+        $this->assertStringContainsString('$yearMonthLabels = count($yearMonthLabels) === 12 ? $yearMonthLabels : $defaultYearMonthLabels;', $attendanceOverviewView);
+        $this->assertStringContainsString('Attendance Overview ({{ $yearChartYear }})', $attendanceOverviewView);
+        $this->assertStringContainsString('Leave Overview ({{ $yearChartYear }})', $attendanceOverviewView);
+        $this->assertStringContainsString('Business Trip Overview ({{ $yearChartYear }})', $attendanceOverviewView);
+        $this->assertStringContainsString('Overtime Overview ({{ $yearChartYear }})', $attendanceOverviewView);
+        $this->assertStringContainsString('labels: @json($yearMonthLabels)', $attendanceOverviewView);
+        $this->assertStringContainsString('data: @json($yearAttendanceOnTimeSeries)', $attendanceOverviewView);
+        $this->assertStringContainsString('data: @json($yearAttendanceLateSeries)', $attendanceOverviewView);
+        $this->assertStringContainsString('data: @json($yearAttendanceLeaveSeries)', $attendanceOverviewView);
+        $this->assertStringContainsString('data: @json($yearLeaveSeries)', $attendanceOverviewView);
+        $this->assertStringContainsString('data: @json($yearSickSeries)', $attendanceOverviewView);
+        $this->assertStringContainsString('data: @json($yearBusinessTripSeries)', $attendanceOverviewView);
+        $this->assertStringContainsString('data: @json($yearOvertimeHoursSeries)', $attendanceOverviewView);
+        $this->assertStringNotContainsString('series: [16, 1, 1, 2]', $attendanceOverviewView);
+        $this->assertStringNotContainsString('series: [77]', $attendanceOverviewView);
+        $this->assertStringNotContainsString('Days Worked (17/22 Days)', $attendanceOverviewView);
+        $this->assertStringNotContainsString('On Time (45%)', $attendanceOverviewView);
+        $this->assertStringNotContainsString('Late (78%)', $attendanceOverviewView);
+        $this->assertStringNotContainsString('32 Hrs / 40 Hrs Per Week', $attendanceOverviewView);
+        $this->assertStringNotContainsString('data: [18, 17, 20, 19, 16, 0, 0, 0, 0, 0, 0, 0]', $attendanceOverviewView);
+        $this->assertStringNotContainsString('data: [1, 2, 1, 3, 2, 0, 0, 0, 0, 0, 0, 0]', $attendanceOverviewView);
+        $this->assertStringNotContainsString('data: [4, 8, 6, 10, 18, 0, 0, 0, 0, 0, 0, 0]', $attendanceOverviewView);
         $this->assertStringContainsString("@include('attendance.components.card-analytics')", $attendanceOverviewView);
         $this->assertStringContainsString('.attendance-rate-mobile-slider {', $attendanceOverviewView);
         $this->assertStringContainsString('.attendance-rate-mobile-slide {', $attendanceOverviewView);

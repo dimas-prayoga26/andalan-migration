@@ -55,13 +55,47 @@
 
 @include('attendance.components.card-analytics')
 
+@php
+    $attendanceOverviewMonthLabel = (string) ($profileAttendanceOverviewMonthLabel ?? now('Asia/Jakarta')->format('F'));
+    $attendanceOverviewSeries = array_values($profileAttendanceOverviewSeries ?? [0, 0, 0, 0]);
+    $attendanceProgressPercent = (int) ($profileAttendanceProgressPercent ?? 0);
+    $attendanceDaysCount = (int) ($profileAttendanceDaysCount ?? 0);
+    $workingDaysCount = (int) ($profileWorkingDaysCount ?? 0);
+    $progressOnTimePercent = (int) ($profileProgressOnTimePercent ?? 0);
+    $progressOnTimeCount = (int) ($profileProgressOnTimeCount ?? 0);
+    $progressOnTimeTotal = (int) ($profileProgressOnTimeTotal ?? $attendanceDaysCount);
+    $progressLatePercent = (int) ($profileProgressLatePercent ?? 0);
+    $progressLateCount = (int) ($profileProgressLateCount ?? 0);
+    $progressLateTotal = (int) ($profileProgressLateTotal ?? $attendanceDaysCount);
+    $weeklyRequiredHours = (float) ($profileWeeklyRequiredHours ?? 0);
+    $weeklyRequiredHoursTarget = (int) ($profileWeeklyRequiredHoursTarget ?? 40);
+    $weeklyRequiredHoursPercent = (int) ($profileWeeklyRequiredHoursPercent ?? 0);
+    $weeklyOvertimeHours = (float) ($profileWeeklyOvertimeHours ?? 0);
+    $weeklyOvertimeHoursTarget = (int) ($profileWeeklyOvertimeHoursTarget ?? 18);
+    $weeklyOvertimeHoursPercent = (int) ($profileWeeklyOvertimeHoursPercent ?? 0);
+    $weeklyRequiredHoursLabel = rtrim(rtrim(number_format($weeklyRequiredHours, 2, '.', ''), '0'), '.');
+    $weeklyOvertimeHoursLabel = rtrim(rtrim(number_format($weeklyOvertimeHours, 2, '.', ''), '0'), '.');
+    $defaultYearMonthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    $emptyYearSeries = array_fill(0, 12, 0);
+    $yearChartYear = (int) ($profileYearChartYear ?? now('Asia/Jakarta')->year);
+    $yearMonthLabels = array_values($profileYearMonthLabels ?? []);
+    $yearMonthLabels = count($yearMonthLabels) === 12 ? $yearMonthLabels : $defaultYearMonthLabels;
+    $yearAttendanceOnTimeSeries = array_values($profileYearAttendanceOnTimeSeries ?? $emptyYearSeries);
+    $yearAttendanceLateSeries = array_values($profileYearAttendanceLateSeries ?? $emptyYearSeries);
+    $yearAttendanceLeaveSeries = array_values($profileYearAttendanceLeaveSeries ?? $emptyYearSeries);
+    $yearLeaveSeries = array_values($profileYearLeaveSeries ?? $emptyYearSeries);
+    $yearSickSeries = array_values($profileYearSickSeries ?? $emptyYearSeries);
+    $yearBusinessTripSeries = array_values($profileYearBusinessTripSeries ?? $emptyYearSeries);
+    $yearOvertimeHoursSeries = array_values($profileYearOvertimeHoursSeries ?? $emptyYearSeries);
+@endphp
+
 <div class="row align-items-stretch">
     <div class="col-md-3 col-12 d-flex">
         <div class="row flex-fill">
             <div class="col-md-12 d-flex">
                 <div class="card flex-fill">
                     <div class="card-header border-0 pb-0">
-                        <h4 class="card-title">Attendance Overview (May)</h4>
+                        <h4 class="card-title">Attendance Overview ({{ $attendanceOverviewMonthLabel }})</h4>
                     </div>
                     <div class="card-body d-flex flex-column justify-content-center">
                         <div class="position-relative mb-4 text-center">
@@ -106,13 +140,13 @@
     <div class="col-md-9 col-12 d-flex">
         <div class="card flex-fill">
             <div class="card-header flex-wrap border-0 pb-0">
-                <h4 class="card-title">Progress (May)</h4>
+                <h4 class="card-title">Progress ({{ $attendanceOverviewMonthLabel }})</h4>
             </div>
             <div class="card-body pt-0 pb-3">
                 <div class="row align-items-center">
                     <div class="col-lg-4 mb-lg-0 mb-4 text-center radialBar">
                         <div id="radialBar"></div>
-                        <h4 class="fs-18 text-black">Days Worked (17/22 Days)</h4>
+                        <h4 class="fs-18 text-black">Days Worked ({{ $attendanceDaysCount }}/{{ $workingDaysCount }} Days)</h4>
                         <p class="fs-14">Tracking your scheduled attendance and active working days for the current month.</p>
                     </div>
                     <div class="col-lg-8">
@@ -120,7 +154,7 @@
                             <div class="col-sm-6">
                                 <div class="d-flex align-items-center mb-sm-5 mb-3">
                                     <div class="position-relative me-3">
-                                        <span class="donut" data-peity='{ "fill": ["var(--bs-success)", "var(--bs-light)"],   "innerRadius": 34, "radius": 10}'>2/8</span>
+                                        <span class="donut" data-peity='{ "fill": ["var(--bs-success)", "var(--bs-light)"],   "innerRadius": 34, "radius": 10}'>{{ $progressOnTimeCount }}/{{ max($progressOnTimeTotal, 1) }}</span>
 
                                         <small class="position-absolute top-50 start-50 translate-middle">
                                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -138,15 +172,15 @@
                                         </small>
                                     </div>
                                     <div>
-                                        <h4 class="fs-18 text-black">On Time (45%)</h4>
-                                        <span>16 Days / 17 Days</span>
+                                        <h4 class="fs-18 text-black">On Time ({{ $progressOnTimePercent }}%)</h4>
+                                        <span>{{ $progressOnTimeCount }} {{ Str::plural('Day', $progressOnTimeCount) }} / {{ $progressOnTimeTotal }} {{ Str::plural('Day', $progressOnTimeTotal) }}</span>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-sm-6">
                                 <div class="d-flex align-items-center mb-sm-5 mb-3">
                                     <div class="position-relative me-3">
-                                        <span class="donut" data-peity='{ "fill": ["var(--bs-danger)", "var(--bs-light)"],   "innerRadius": 34, "radius": 10}'>8/10</span>
+                                        <span class="donut" data-peity='{ "fill": ["var(--bs-danger)", "var(--bs-light)"],   "innerRadius": 34, "radius": 10}'>{{ $progressLateCount }}/{{ max($progressLateTotal, 1) }}</span>
                                         <small class="position-absolute top-50 start-50 translate-middle">
                                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <g clip-path="url(#clip4)">
@@ -165,15 +199,15 @@
                                         </small>
                                     </div>
                                     <div>
-                                        <h4 class="fs-18 text-black">Late (78%)</h4>
-                                        <span>1 Day / 17 Days</span>
+                                        <h4 class="fs-18 text-black">Late ({{ $progressLatePercent }}%)</h4>
+                                        <span>{{ $progressLateCount }} {{ Str::plural('Day', $progressLateCount) }} / {{ $progressLateTotal }} {{ Str::plural('Day', $progressLateTotal) }}</span>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-sm-6">
                                 <div class="d-flex align-items-center mb-sm-5 mb-3">
                                     <div class="position-relative me-3">
-                                        <span class="donut" data-peity='{ "fill": ["var(--bs-secondary)", "var(--bs-light)"],   "innerRadius": 34, "radius": 10}'>5/8</span>
+                                        <span class="donut" data-peity='{ "fill": ["var(--bs-secondary)", "var(--bs-light)"],   "innerRadius": 34, "radius": 10}'>{{ $weeklyRequiredHours }}/{{ max($weeklyRequiredHoursTarget, 1) }}</span>
                                         <small class="position-absolute top-50 start-50 translate-middle">
                                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <g clip-path="url(#clip5)">
@@ -191,15 +225,15 @@
                                         </small>
                                     </div>
                                     <div>
-                                        <h4 class="fs-18 text-black">Weekly Required Hours (80%)</h4>
-                                        <span>32 Hrs / 40 Hrs Per Week</span>
+                                        <h4 class="fs-18 text-black">Weekly Required Hours ({{ $weeklyRequiredHoursPercent }}%)</h4>
+                                        <span>{{ $weeklyRequiredHoursLabel }} Hrs / {{ $weeklyRequiredHoursTarget }} Hrs Per Week</span>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-sm-6">
                                 <div class="d-flex align-items-center mb-sm-5 mb-3">
                                     <div class="position-relative me-3">
-                                        <span class="donut" data-peity='{ "fill": ["var(--bs-info)", "var(--bs-light)"],   "innerRadius": 34, "radius": 10}'>7/8</span>
+                                        <span class="donut" data-peity='{ "fill": ["var(--bs-info)", "var(--bs-light)"],   "innerRadius": 34, "radius": 10}'>{{ $weeklyOvertimeHours }}/{{ max($weeklyOvertimeHoursTarget, 1) }}</span>
                                         <small class="position-absolute top-50 start-50 translate-middle">
                                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <g clip-path="url(#clip8)">
@@ -214,8 +248,8 @@
                                         </small>
                                     </div>
                                     <div>
-                                        <h4 class="fs-18 text-black">Overtime Logged (80%)</h4>
-                                        <span>18 Hrs / 18 Hrs Per Week</span>
+                                        <h4 class="fs-18 text-black">Overtime Logged ({{ $weeklyOvertimeHoursPercent }}%)</h4>
+                                        <span>{{ $weeklyOvertimeHoursLabel }} Hrs / {{ $weeklyOvertimeHoursTarget }} Hrs Per Week</span>
                                     </div>
                                 </div>
                             </div>
@@ -230,7 +264,7 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header border-0 pb-0">
-                        <h4 class="card-title">Attendance Overview (2026)</h4>
+                        <h4 class="card-title">Attendance Overview ({{ $yearChartYear }})</h4>
                     </div>
                     <div class="card-body">
                         <canvas id="barChart_3"></canvas>
@@ -244,7 +278,7 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header border-0 pb-0">
-                        <h4 class="card-title">Leave Overview (2026)</h4>
+                        <h4 class="card-title">Leave Overview ({{ $yearChartYear }})</h4>
                     </div>
                     <div class="card-body">
                         <canvas id="lineChart_3"></canvas>
@@ -258,7 +292,7 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header border-0 pb-0">
-                        <h4 class="card-title">Business Trip Overview (2026)</h4>
+                        <h4 class="card-title">Business Trip Overview ({{ $yearChartYear }})</h4>
                     </div>
                     <div class="card-body">
                         <canvas id="barChart_1"></canvas>
@@ -272,7 +306,7 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header border-0 pb-0">
-                        <h4 class="card-title">Overtime Overview (2026)</h4>
+                        <h4 class="card-title">Overtime Overview ({{ $yearChartYear }})</h4>
                     </div>
                     <div class="card-body">
                         <canvas id="lineChart_2"></canvas>
@@ -298,7 +332,7 @@
             }
 
             new ApexCharts(chartElement, {
-                series: [16, 1, 1, 2],
+                series: @json($attendanceOverviewSeries),
                 chart: {
                     type: 'donut',
                     height: 200
@@ -324,7 +358,7 @@
             }
 
             new ApexCharts(chartElement, {
-                series: [77],
+                series: [{{ $attendanceProgressPercent }}],
                 chart: {
                     height: 280,
                     type: 'radialBar',
@@ -394,21 +428,21 @@
             createCanvasChart('barChart_3', {
                 type: 'bar',
                 data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    labels: @json($yearMonthLabels),
                     datasets: [
                         {
                             label: 'On Time',
-                            data: [18, 17, 20, 19, 16, 0, 0, 0, 0, 0, 0, 0],
+                            data: @json($yearAttendanceOnTimeSeries),
                             backgroundColor: '#27BC48'
                         },
                         {
                             label: 'Late',
-                            data: [2, 3, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0],
+                            data: @json($yearAttendanceLateSeries),
                             backgroundColor: '#FF3282'
                         },
                         {
                             label: 'Leave',
-                            data: [1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                            data: @json($yearAttendanceLeaveSeries),
                             backgroundColor: '#1EA7C5'
                         }
                     ]
@@ -437,18 +471,18 @@
             createCanvasChart('lineChart_3', {
                 type: 'line',
                 data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    labels: @json($yearMonthLabels),
                     datasets: [
                         {
                             label: 'Leave',
-                            data: [1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                            data: @json($yearLeaveSeries),
                             borderColor: '#A02CFA',
                             backgroundColor: 'transparent',
                             tension: 0.4
                         },
                         {
                             label: 'Sick',
-                            data: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            data: @json($yearSickSeries),
                             borderColor: '#FFBC11',
                             backgroundColor: 'transparent',
                             tension: 0.4
@@ -470,11 +504,11 @@
             createCanvasChart('barChart_1', {
                 type: 'bar',
                 data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    labels: @json($yearMonthLabels),
                     datasets: [
                         {
                             label: 'Business Trips',
-                            data: [1, 2, 1, 3, 2, 0, 0, 0, 0, 0, 0, 0],
+                            data: @json($yearBusinessTripSeries),
                             backgroundColor: '#0B2A97'
                         }
                     ]
@@ -497,11 +531,11 @@
             createCanvasChart('lineChart_2', {
                 type: 'line',
                 data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    labels: @json($yearMonthLabels),
                     datasets: [
                         {
                             label: 'Overtime Hours',
-                            data: [4, 8, 6, 10, 18, 0, 0, 0, 0, 0, 0, 0],
+                            data: @json($yearOvertimeHoursSeries),
                             borderColor: '#1EA7C5',
                             backgroundColor: 'rgba(30, 167, 197, 0.15)',
                             fill: true,

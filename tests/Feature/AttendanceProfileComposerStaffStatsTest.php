@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Attendance;
+use App\Models\AttendanceException;
 use App\Models\AttendanceHoliday;
 use App\Models\AttendanceOvertime;
 use App\Models\Employee;
@@ -57,7 +58,7 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
                 'work_hours' => 9,
                 'status' => 'Masuk',
             ]);
-            Attendance::query()->create([
+            $lateAttendance = Attendance::query()->create([
                 'employee_id' => $employee->id,
                 'date' => '2026-05-27',
                 'clock_in' => '08:10:00',
@@ -74,6 +75,17 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
                 'late_minutes' => 0,
                 'work_hours' => null,
                 'status' => 'Masuk',
+            ]);
+
+            AttendanceException::query()->create([
+                'attendance_id' => $lateAttendance->id,
+                'employee_id' => $employee->id,
+                'exception_date' => '2026-05-27',
+                'type' => 'late_arrival',
+                'note' => 'Izin datang terlambat',
+                'from_time' => '08:00:00',
+                'to_time' => '08:10:00',
+                'status' => 'approved',
             ]);
 
             foreach ([
@@ -129,11 +141,35 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
             $this->assertSame(50, $data['profileOvertimeRatePercent']);
             $this->assertSame(75, $data['profileWeeklyAttendancePercent']);
             $this->assertSame(67, $data['profileWeeklyOnTimePercent']);
+            $this->assertSame([2, 1, 1, 1], $data['profileAttendanceOverviewSeries']);
+            $this->assertSame(15, $data['profileAttendanceProgressPercent']);
+            $this->assertSame(67, $data['profileProgressOnTimePercent']);
+            $this->assertSame(33, $data['profileProgressLatePercent']);
+            $this->assertSame(9.0, (float) $data['profileWeeklyRequiredHours']);
+            $this->assertSame(23, $data['profileWeeklyRequiredHoursPercent']);
+            $this->assertSame(36.0, (float) $data['profileWeeklyOvertimeHours']);
+            $this->assertSame(100, $data['profileWeeklyOvertimeHoursPercent']);
             $this->assertIsArray($data['profileMonthlyAttendanceLabels']);
             $this->assertIsArray($data['profileMonthlyAttendanceSeries']);
             $this->assertCount(12, $data['profileMonthlyAttendanceLabels']);
             $this->assertCount(12, $data['profileMonthlyAttendanceSeries']);
             $this->assertSame(15.0, (float) $data['profileMonthlyAttendanceDelta']);
+            $this->assertSame(2026, $data['profileYearChartYear']);
+            $this->assertSame(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], $data['profileYearMonthLabels']);
+            $this->assertCount(12, $data['profileYearAttendanceOnTimeSeries']);
+            $this->assertCount(12, $data['profileYearAttendanceLateSeries']);
+            $this->assertCount(12, $data['profileYearAttendanceLeaveSeries']);
+            $this->assertCount(12, $data['profileYearLeaveSeries']);
+            $this->assertCount(12, $data['profileYearSickSeries']);
+            $this->assertCount(12, $data['profileYearBusinessTripSeries']);
+            $this->assertCount(12, $data['profileYearOvertimeHoursSeries']);
+            $this->assertSame(2, $data['profileYearAttendanceOnTimeSeries'][4]);
+            $this->assertSame(1, $data['profileYearAttendanceLateSeries'][4]);
+            $this->assertSame(1, $data['profileYearAttendanceLeaveSeries'][4]);
+            $this->assertSame(1, $data['profileYearLeaveSeries'][4]);
+            $this->assertSame(0, $data['profileYearSickSeries'][4]);
+            $this->assertSame(0, $data['profileYearBusinessTripSeries'][4]);
+            $this->assertSame(36.0, (float) $data['profileYearOvertimeHoursSeries'][4]);
         } finally {
             Carbon::setTestNow();
         }

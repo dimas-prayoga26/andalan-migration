@@ -8,6 +8,7 @@ use App\Models\AttendanceException;
 use App\Models\AttendanceLog;
 use App\Models\TelegramUser;
 use App\Models\User;
+use App\Support\Attendance\AttendanceExceptionPresenter;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
@@ -16,7 +17,10 @@ use Illuminate\Support\Facades\Http;
 
 class AttendanceMutationService
 {
-    public function __construct(private TelegramAttendanceNotifier $telegramAttendanceNotifier) {}
+    public function __construct(
+        private TelegramAttendanceNotifier $telegramAttendanceNotifier,
+        private AttendanceExceptionPresenter $attendanceExceptionPresenter
+    ) {}
 
     /**
      * @return array{status:int,payload:array<string,mixed>}
@@ -349,10 +353,14 @@ class AttendanceMutationService
                     $todayAttendance->clock_in = $officeStartTime;
                 }
                 $todayAttendance->clock_out = $fromTime;
-                $lateMinutes = $this->calculateMinutesBetweenTimes($exceptionDate, $officeStartTime, $toTime);
-                $workedMinutes = $this->calculateMinutesBetweenTimes($exceptionDate, $officeStartTime, $fromTime);
+                $clockInTimeRaw = $todayAttendance->getRawOriginal('clock_in');
+                $clockInTime = is_string($clockInTimeRaw) && trim($clockInTimeRaw) !== ''
+                    ? $this->normalizeTimeToSeconds($clockInTimeRaw)
+                    : $officeStartTime;
+                $lateMinutes = $this->calculateMinutesBetweenTimes($exceptionDate, $officeStartTime, $clockInTime);
+                $workedMinutes = $this->calculateMinutesBetweenTimes($exceptionDate, $clockInTime, $fromTime);
                 $workHours = round($workedMinutes / 60, 2);
-                $attendanceStatus = 'Masuk';
+                $attendanceStatus = $lateMinutes > 0 ? 'Terlambat' : 'Masuk';
             }
 
             $todayAttendance->late_minutes = $lateMinutes;
@@ -377,9 +385,22 @@ class AttendanceMutationService
                 'data' => $attendanceException,
                 'attendance_id' => $todayAttendance->id,
                 'exception_type' => $validatedData['type'],
+                'has_attendance_exception_today' => true,
                 'has_early_departure_exception' => $validatedData['type'] === 'early_departure',
                 'has_checked_in_today' => ! empty($todayAttendance->clock_in),
                 'has_checked_out_today' => ! empty($todayAttendance->clock_out),
+                'clock_in_label' => $this->formatAttendanceTimeLabel($todayAttendance->getRawOriginal('clock_in')),
+                'clock_out_label' => $this->formatAttendanceTimeLabel($todayAttendance->getRawOriginal('clock_out')),
+                'attendance_status' => $todayAttendance->status,
+                'late_minutes' => (int) $todayAttendance->late_minutes,
+                'calendar_event' => $this->buildAttendanceExceptionCalendarEvent(
+                    $todayAttendance,
+                    $attendanceException,
+                    $officeStartTime,
+                    is_array($officeContext) && isset($officeContext['office_end_time']) && is_string($officeContext['office_end_time'])
+                        ? $officeContext['office_end_time']
+                        : '17:00:00'
+                ),
                 'summary_time_range' => substr($fromTime, 0, 5).' - '.substr($toTime, 0, 5),
                 'summary_variance' => number_format(abs($this->calculateMinutesBetweenTimes($exceptionDate, $fromTime, $toTime)) / 60, 2, '.', ''),
             ]);
@@ -682,6 +703,68 @@ class AttendanceMutationService
         }
 
         return str_contains(strtolower($queryException->getMessage()), 'duplicate');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildAttendanceExceptionCalendarEvent(
+        Attendance $attendance,
+        AttendanceException $attendanceException,
+        string $officeStartTime,
+        string $officeEndTime
+    ): array {
+        $attendanceDate = $attendance->date?->format('Y-m-d') ?? now('Asia/Jakarta')->toDateString();
+        $clockInLabel = $this->formatAttendanceTimeLabel($attendance->getRawOriginal('clock_in'));
+        $clockOutLabel = $this->formatAttendanceTimeLabel($attendance->getRawOriginal('clock_out'));
+        $officeScheduleLabel = substr($officeStartTime, 0, 5).' - '.substr($officeEndTime, 0, 5);
+
+        return [
+            'title' => 'In : '.$clockInLabel.' - Out : '.$clockOutLabel,
+            'start' => $attendanceDate,
+            'allDay' => true,
+            'classNames' => ['fc-attendance-log-card'],
+            'backgroundColor' => '#17a2b8',
+            'borderColor' => '#117a8b',
+            'textColor' => '#ffffff',
+            'extendedProps' => [
+                'attendanceModalId' => 'deviation',
+                'attendanceEventType' => $attendanceException->type,
+                'modalTitle' => $this->attendanceExceptionPresenter->modalTitle($attendanceException),
+                'attendanceDate' => $attendanceDate,
+                'attendanceDateLabel' => $attendance->date?->translatedFormat('d M Y') ?? $attendanceDate,
+                'clockIn' => $clockInLabel,
+                'clockOut' => $clockOutLabel,
+                'clockInSchedule' => $clockInLabel.' (Schedule: '.$officeScheduleLabel.')',
+                'clockOutSchedule' => $clockOutLabel.' (Schedule: '.$officeScheduleLabel.')',
+                'attendanceStatusLabel' => $this->attendanceExceptionPresenter->modalTitle($attendanceException),
+                'locationName' => 'Location not available',
+                'locationAddress' => '-',
+                'deviationIntroTitle' => $this->attendanceExceptionPresenter->introTitle($attendanceException),
+                'deviationIntroPrimary' => $this->attendanceExceptionPresenter->introPrimary($attendanceException),
+                'deviationIntroSecondary' => $this->attendanceExceptionPresenter->introSecondary($attendanceException),
+                'requestTypeLabel' => $this->attendanceExceptionPresenter->requestTypeLabel($attendanceException),
+                'reason' => is_string($attendanceException->note) && trim($attendanceException->note) !== ''
+                    ? trim($attendanceException->note)
+                    : '-',
+                'timeVarianceLabel' => $this->attendanceExceptionPresenter->timeVarianceLabel($attendanceException),
+                'exceptionStatusLabel' => $this->attendanceExceptionPresenter->statusLabel($attendanceException),
+                'exceptionStatusDateLabel' => $this->attendanceExceptionPresenter->statusDateLabel($attendanceException),
+            ],
+        ];
+    }
+
+    private function formatAttendanceTimeLabel(mixed $timeValue): string
+    {
+        if ($timeValue instanceof \DateTimeInterface) {
+            return $timeValue->format('H:i');
+        }
+
+        if (! is_string($timeValue) || trim($timeValue) === '') {
+            return '--:--';
+        }
+
+        return substr($this->normalizeTimeToSeconds($timeValue), 0, 5);
     }
 
     /**

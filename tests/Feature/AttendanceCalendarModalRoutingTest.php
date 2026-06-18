@@ -113,6 +113,18 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString('namespace App\Http\Requests\Attendance;', $exceptionRequest);
         $this->assertStringContainsString("'type' => ['required', 'in:late_arrival,early_departure']", $exceptionRequest);
         $this->assertStringContainsString("'exception_date' => ['nullable', 'date']", $exceptionRequest);
+        $this->assertStringContainsString('has_attendance_exception_today', $attendanceMutationService);
+        $this->assertStringContainsString('clock_in_label', $attendanceMutationService);
+        $this->assertStringContainsString('clock_out_label', $attendanceMutationService);
+        $this->assertStringContainsString('calendar_event', $attendanceMutationService);
+        $this->assertStringContainsString('private function buildAttendanceExceptionCalendarEvent(', $attendanceMutationService);
+        $this->assertStringContainsString('$attendanceStatus = $lateMinutes > 0 ? \'Terlambat\' : \'Masuk\';', $attendanceMutationService);
+        $this->assertStringContainsString('hasAttendanceExceptionToday', $attendanceCardsService);
+        $attendanceCardsView = File::get(resource_path('views/attendance/components/attendance-cards.blade.php'));
+        $this->assertStringContainsString('id="attendanceExceptionCardButton"', $attendanceCardsView);
+        $this->assertStringContainsString('id="attendanceClockInValue"', $attendanceCardsView);
+        $this->assertStringContainsString('id="attendanceClockOutValue"', $attendanceCardsView);
+        $this->assertStringContainsString('window.upsertAttendanceHistoryEvent(response.calendar_event);', $attendanceCardsView);
 
         foreach ([$attendanceMutationService, $attendanceCardsService, $attendanceIpService] as $attendanceService) {
             $this->assertStringNotContainsString('Illuminate\Http\Request', $attendanceService);
@@ -136,6 +148,9 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString('function fillAttendanceModal(modalId, props)', $attendanceView);
         $this->assertStringContainsString('function fillLeaveCalendarModal(modalId, props)', $attendanceView);
         $this->assertStringContainsString('function fillTripCalendarModal(props)', $attendanceView);
+        $this->assertStringContainsString('window.attendanceCalendar = calendar;', $attendanceView);
+        $this->assertStringContainsString('window.upsertAttendanceHistoryEvent = function (eventItem)', $attendanceView);
+        $this->assertStringContainsString('calendar.refetchEvents();', $attendanceView);
         $this->assertStringContainsString('openAttendanceModal(props.attendanceModalId, props);', $attendanceView);
         $this->assertStringContainsString('openCalendarLabelModal(props.calendarModalId, props);', $attendanceView);
     }

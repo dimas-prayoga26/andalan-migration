@@ -22,9 +22,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         View::composer([
-            'attendance.index',
-            'attendance.layouts.profile-header',
-            'attendance.components.card-analytics',
+            'staff_attendance.overview.index',
+            'staff_attendance.layouts.profile-header',
+            'staff_attendance.components.card-analytics',
         ], AttendanceProfileComposer::class);
     }
 }

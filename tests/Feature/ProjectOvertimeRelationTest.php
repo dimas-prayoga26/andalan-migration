@@ -189,9 +189,9 @@ class ProjectOvertimeRelationTest extends TestCase
     {
         $overtimeController = File::get(app_path('Http/Controllers/AttendanceOvertimeController.php'));
         $overtimeModel = File::get(app_path('Models/AttendanceOvertime.php'));
-        $overtimeIndexView = File::get(resource_path('views/attendance/overtimes/index.blade.php'));
-        $overtimeDetailView = File::get(resource_path('views/attendance/overtimes/detail.blade.php'));
-        $profileNavbarView = File::get(resource_path('views/attendance/layouts/profile-navbar.blade.php'));
+        $overtimeIndexView = File::get(resource_path('views/staff_attendance/overtimes/index.blade.php'));
+        $overtimeDetailView = File::get(resource_path('views/staff_attendance/overtimes/detail.blade.php'));
+        $profileNavbarView = File::get(resource_path('views/staff_attendance/layouts/profile-navbar.blade.php'));
 
         foreach ([
             "private const OVERTIME_STATUS_ASSIGNED = 'assigned';",

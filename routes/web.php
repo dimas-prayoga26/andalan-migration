@@ -54,7 +54,7 @@ Route::middleware('auth')->group(function (): void {
     })->name('agenda');
 
     // Attendance overview and daily attendance
-    Route::view('/attendance', 'attendance.index')->name('attendance');
+    Route::view('/attendance/overview', 'staff_attendance.overview.index')->name('attendance');
     Route::get('/attendance/today', [AttendanceController::class, 'index'])->name('attendance.today');
 
     // Attendance check-in and check-out

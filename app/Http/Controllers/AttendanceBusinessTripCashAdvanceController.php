@@ -34,7 +34,7 @@ class AttendanceBusinessTripCashAdvanceController extends Controller
     {
         $businessTrip->loadMissing('cashAdvances');
 
-        return view('attendance.business-trips.create-cash-advance', [
+        return view('staff_attendance.business-trips.create-cash-advance', [
             'businessTrip' => $businessTrip,
             'businessTripCashAdvanceRows' => $this->buildCashAdvanceFormRows($businessTrip),
         ]);

@@ -19,7 +19,7 @@
     'homeRoute' => 'dashboard',
 ])
 
-@include('attendance.layouts.profile-index')
+@include('staff_attendance.layouts.profile-index')
 
 @php
     $canViewBusinessTripExpenseValues = (bool) ($businessTripDetailPermissions['can_view_trip_expense_values'] ?? false);

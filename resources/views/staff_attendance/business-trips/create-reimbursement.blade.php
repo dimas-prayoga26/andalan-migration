@@ -19,7 +19,7 @@
     'homeRoute' => 'dashboard',
 ])
 
-@include('attendance.layouts.profile-index')
+@include('staff_attendance.layouts.profile-index')
 
 <div class="col-lg-12">
     <div class="d-flex justify-content-between align-items-center mb-3">

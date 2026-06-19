@@ -8,64 +8,29 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
-    <style>
-        @media (max-width: 767.98px) {
-            .business-trip-summary-mobile-slider {
-                display: flex;
-                flex-wrap: nowrap;
-                gap: 12px;
-                overflow-x: auto;
-                scroll-snap-type: x mandatory;
-                -ms-overflow-style: none;
-                scrollbar-width: none;
-            }
-
-            .business-trip-summary-mobile-slider::-webkit-scrollbar {
-                display: none;
-                width: 0;
-                height: 0;
-            }
-
-            .business-trip-summary-mobile-slide {
-                flex: 0 0 100%;
-                width: 100%;
-                max-width: 100%;
-                scroll-snap-align: start;
-            }
-        }
-    </style>
 @endsection
 
 @section('navbarTitle', 'Attendances')
 
 @section('content')
+@php
+    $overtimeSummary = $overtimeSummary ?? [];
+    $overtimeStatusFilterValue = $overtimeStatusFilter ?? 'all';
+    $overtimeTimeframeFilterValue = $overtimeTimeframeFilter ?? 'year_to_date';
+    $activeOvertimeFilterCount = (int) ($overtimeStatusFilterValue !== 'all')
+        + (int) ($overtimeTimeframeFilterValue !== 'year_to_date');
+@endphp
+
 @include('layouts.breadcrumb', [
     'title' => 'Attendances',
-    'current' => 'Business Trip',
+    'current' => 'Overtime',
     'homeRoute' => 'dashboard',
 ])
 
-@include('attendance.layouts.profile-index')
+@include('staff_attendance.layouts.profile-index')
 
-<div class="col-lg-12">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Business Trip</h5>
-        <div class="d-flex align-items-center">
-            <a href="{{ route('attendance.business-trips.create') }}" class="btn btn-success light btn-sm ms-2">+ Business Trip</a>
-        </div>
-    </div>
-</div>
-
-@if (session('success'))
-    <div class="col-12">
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    </div>
-@endif
-
-<div class="row business-trip-summary-mobile-slider">
-    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
+<div class="row">
+    <div class="col-md-3 col-sm-6">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -77,14 +42,14 @@
                         </svg>
                     </span>
                     <div>
-                        <p class="fs-14 mb-2">Total Trips</p>
-                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['total_trips'] ?? 0 }} Trips</span>
+                        <p class="fs-14 mb-2">Total Logged Hours ({{ $overtimeSummary['current_month_label'] ?? now('Asia/Jakarta')->format('M') }})</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['total_logged_hours_label'] ?? '0 Hours' }}</span>
                     </div>
                 </div>
                 <div>
                     <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                        <div class="progress-bar rounded bg-info" style="width: 100%; height:5px;" aria-label="Progess-info" role="progressbar">
-                            <span class="sr-only">100% Complete</span>
+                        <div class="progress-bar rounded bg-info" style="width: {{ $overtimeSummary['overtime_cap_progress'] ?? 0 }}%; height:5px;" aria-label="Progess-info" role="progressbar">
+                            <span class="sr-only">{{ $overtimeSummary['overtime_cap_progress'] ?? 0 }}% Complete</span>
                         </div>
                     </div>
                 </div>
@@ -92,7 +57,7 @@
             <div class="effect bg-secondary"></div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
+    <div class="col-md-3 col-sm-6">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -109,14 +74,14 @@
                         </svg>
                     </span>
                     <div>
-                        <p class="fs-14 mb-2">Total Days Away</p>
-                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['total_days_away'] ?? 0 }} Days</span>
+                        <p class="fs-14 mb-2">Overtime Cap (40 Hours)</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['overtime_cap_label'] ?? '0 H (0%)' }}</span>
                     </div>
                 </div>
                 <div>
                     <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                        <div class="progress-bar bg-success position-absolute rounded bootom-0" style="width: 95%; height:5px;" aria-label="Progess-success" role="progressbar">
-                            <span class="sr-only">95% Complete</span>
+                        <div class="progress-bar bg-success position-absolute rounded bootom-0" style="width: {{ $overtimeSummary['overtime_cap_progress'] ?? 0 }}%; height:5px;" aria-label="Progess-success" role="progressbar">
+                            <span class="sr-only">{{ $overtimeSummary['overtime_cap_progress'] ?? 0 }}% Complete</span>
                         </div>
                     </div>
                 </div>
@@ -125,7 +90,7 @@
         </div>
     </div>
     <!-- Start - Daily Cycling -->
-    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
+    <div class="col-md-3 col-sm-6">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -138,8 +103,8 @@
                         </svg>
                     </span>
                     <div>
-                        <p class="fs-14 mb-2">Pending Approvals</p>
-                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['pending_approvals'] ?? 0 }} Request</span>
+                        <p class="fs-14 mb-2">Average Extra Hours</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['average_extra_hours_label'] ?? '0 H / Week' }}</span>
                     </div>
                 </div>
                 <div>
@@ -154,7 +119,7 @@
         </div>
     </div>
     <!-- End - Daily Cycling -->
-    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
+    <div class="col-md-3 col-sm-6">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -166,8 +131,8 @@
                         </svg>
                     </span>
                     <div>
-                        <p class="fs-14 mb-2">Upcoming Scheduled</p>
-                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['upcoming_scheduled'] ?? 0 }} Trip</span>
+                        <p class="fs-14 mb-2">Tasks Finalized</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['tasks_finalized_label'] ?? '0 Tasks' }}</span>
                     </div>
                 </div>
                 <div>
@@ -181,7 +146,7 @@
             <div class="effect bg-secondary"></div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
+    <div class="col-md-3 col-sm-6">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -193,14 +158,14 @@
                         </svg>
                     </span>
                     <div>
-                        <p class="fs-14 mb-2">Active Cash Advance</p>
-                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['active_cash_advance'] ?? 'Rp 0' }}</span>
+                        <p class="fs-14 mb-2">Pending SPV Approval</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['pending_spv_approval_hours_label'] ?? '0 Hours' }}</span>
                     </div>
                 </div>
                 <div>
                     <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                        <div class="progress-bar rounded bg-info" style="width: 100%; height:5px;" aria-label="Progess-info" role="progressbar">
-                            <span class="sr-only">100% Complete</span>
+                        <div class="progress-bar rounded bg-info" style="width: {{ $overtimeSummary['pending_spv_approval_hours_progress'] ?? 0 }}%; height:5px;" aria-label="Progess-info" role="progressbar">
+                            <span class="sr-only">{{ $overtimeSummary['pending_spv_approval_hours_progress'] ?? 0 }}% Pending SPV Approval</span>
                         </div>
                     </div>
                 </div>
@@ -208,7 +173,7 @@
             <div class="effect bg-secondary"></div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
+    <div class="col-md-3 col-sm-6">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -225,14 +190,14 @@
                         </svg>
                     </span>
                     <div>
-                        <p class="fs-14 mb-2">Pending Reimbursement</p>
-                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['pending_reimbursement'] ?? 'Rp 0' }}</span>
+                        <p class="fs-14 mb-2">Completed & Locked</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['completed_locked_hours_label'] ?? '0 Hours' }}</span>
                     </div>
                 </div>
                 <div>
                     <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                        <div class="progress-bar bg-success position-absolute rounded bootom-0" style="width: 95%; height:5px;" aria-label="Progess-success" role="progressbar">
-                            <span class="sr-only">95% Complete</span>
+                        <div class="progress-bar bg-success position-absolute rounded bootom-0" style="width: {{ $overtimeSummary['completed_locked_progress'] ?? 0 }}%; height:5px;" aria-label="Progess-success" role="progressbar">
+                            <span class="sr-only">{{ $overtimeSummary['completed_locked_progress'] ?? 0 }}% Complete</span>
                         </div>
                     </div>
                 </div>
@@ -241,7 +206,7 @@
         </div>
     </div>
     <!-- Start - Daily Cycling -->
-    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
+    <div class="col-md-3 col-sm-6">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -254,8 +219,8 @@
                         </svg>
                     </span>
                     <div>
-                        <p class="fs-14 mb-2">Overdue Reports</p>
-                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['overdue_reports'] ?? 0 }} Task</span>
+                        <p class="fs-14 mb-2">Estimated Extra Earnings</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['estimated_extra_earnings_label'] ?? 'Rp 225.000' }}</span>
                     </div>
                 </div>
                 <div>
@@ -270,7 +235,7 @@
         </div>
     </div>
     <!-- End - Daily Cycling -->
-    <div class="col-md-3 col-sm-6 business-trip-summary-mobile-slide">
+    <div class="col-md-3 col-sm-6">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -282,8 +247,8 @@
                         </svg>
                     </span>
                     <div>
-                        <p class="fs-14 mb-2">Successfully Settled</p>
-                        <span class="title text-black fs-28 fw-semibold">{{ $businessTripSummary['successfully_settled'] ?? 0 }} Trips</span>
+                        <p class="fs-14 mb-2">Disputed Hours</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['disputed_hours_label'] ?? '0 Hours' }}</span>
                     </div>
                 </div>
                 <div>
@@ -303,126 +268,116 @@
 
     <div class="col-lg-12">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">Business Trip List</h5>
+            <h5 class="mb-0">Overtime List</h5>
             <div class="d-flex align-items-center">
-                <a class="btn rounded btn-primary mt-xxl-0 mt-xl-3 mt-lg-0 mt-3" data-bs-toggle="modal" data-bs-target="#filterBt">
+                <button type="button" class="btn rounded btn-primary mt-xxl-0 mt-xl-3 mt-lg-0 mt-3 position-relative" data-bs-toggle="modal" data-bs-target="#filter">
                     <svg class="me-2" width="25" height="24" viewBox="0 0 25 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M3.31615 6H14.4744C14.4744 6.53043 14.6882 7.03914 15.0686 7.41421C15.4491 7.78929 15.9651 8 16.5032 8H18.532C19.07 8 19.5861 7.78929 19.9665 7.41421C20.347 7.03914 20.5607 6.53043 20.5607 6H21.5751C21.8442 6 22.1022 5.89464 22.2924 5.70711C22.4827 5.51957 22.5895 5.26522 22.5895 5C22.5895 4.73478 22.4827 4.48043 22.2924 4.29289C22.1022 4.10536 21.8442 4 21.5751 4H20.5607C20.5607 3.46957 20.347 2.96086 19.9665 2.58579C19.5861 2.21071 19.07 2 18.532 2H16.5032C15.9651 2 15.4491 2.21071 15.0686 2.58579C14.6882 2.96086 14.4744 3.46957 14.4744 4H3.31615C3.04711 4 2.7891 4.10536 2.59887 4.29289C2.40863 4.48043 2.30176 4.73478 2.30176 5C2.30176 5.26522 2.40863 5.51957 2.59887 5.70711C2.7891 5.89464 3.04711 6 3.31615 6ZM16.5032 4H18.532V5V6H16.5032V4ZM21.5751 11H12.4456C12.4456 10.4696 12.2319 9.96086 11.8514 9.58579C11.471 9.21071 10.9549 9 10.4169 9H8.38809C7.85002 9 7.334 9.21071 6.95353 9.58579C6.57306 9.96086 6.35931 10.4696 6.35931 11H3.31615C3.04711 11 2.7891 11.1054 2.59887 11.2929C2.40863 11.4804 2.30176 11.7348 2.30176 12C2.30176 12.2652 2.40863 12.5196 2.59887 12.7071C2.7891 12.8946 3.04711 13 3.31615 13H6.35931C6.35931 13.5304 6.57306 14.0391 6.95353 14.4142C7.334 14.7893 7.85002 15 8.38809 15H10.4169C10.9549 15 11.471 14.7893 11.8514 14.4142C12.2319 14.0391 12.4456 13.5304 12.4456 13H21.5751C21.8442 13 22.1022 12.8946 22.2924 12.7071C22.4827 12.5196 22.5895 12.2652 22.5895 12C22.5895 11.7348 22.4827 11.4804 22.2924 11.2929C22.1022 11.1054 21.8442 11 21.5751 11ZM8.38809 13V11H10.4169V12V13H8.38809ZM21.5751 18H18.532C18.532 17.4696 18.3182 16.9609 17.9378 16.5858C17.5573 16.2107 17.0413 16 16.5032 16H14.4744C13.9364 16 13.4203 16.2107 13.0399 16.5858C12.6594 16.9609 12.4456 17.4696 12.4456 18H3.31615C3.04711 18 2.7891 18.1054 2.59887 18.2929C2.40863 18.4804 2.30176 18.7348 2.30176 19C2.30176 19.2652 2.40863 19.5196 2.59887 19.7071C2.7891 19.8946 3.04711 20 3.31615 20H12.4456C12.4456 20.5304 12.6594 21.0391 13.0399 21.4142C13.4203 21.7893 13.9364 22 14.4744 22H16.5032C17.0413 22 17.5573 21.7893 17.9378 21.4142C18.3182 21.0391 18.532 20.5304 18.532 20H21.5751C21.8442 20 22.1022 19.8946 22.2924 19.7071C22.4827 19.5196 22.5895 19.2652 22.5895 19C22.5895 18.7348 22.4827 18.4804 22.2924 18.2929C22.1022 18.1054 21.8442 18 21.5751 18ZM14.4744 20V18H16.5032V19V20H14.4744Z" fill="#fff"></path>
                     </svg>
                     Filter
-                </a>
+                    @if ($activeOvertimeFilterCount > 0)
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ $activeOvertimeFilterCount }}</span>
+                    @endif
+                </button>
             </div>
         </div>
     </div>
 
-    @forelse (($businessTripCards ?? collect()) as $businessTripCard)
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a href="{{ $businessTripCard['detail_url'] ?? '#' }}" class="text-decoration-none text-reset d-block">
-                <div class="card">
+    <div class="row g-3" id="overtime-list">
+        @forelse (($overtimeList ?? collect()) as $overtimeItem)
+            <div class="col-xxl-3 col-xl-4 col-sm-6">
+                <div class="card h-100">
                     <div class="card-body">
                         <div class="clearfix d-flex">
-                            <div class="avatar avatar-sm rounded me-3 p-2">
-                                <img src="{{ asset('assets/images/logo/figma.avif') }}" alt="Business Trip">
+                            <div class="avatar avatar-sm rounded me-3 p-2 bg-primary text-white flex-shrink-0">
+                                <span class="fw-semibold">O</span>
                             </div>
-                            <div class="clearfix">
-                                <h6 class="mb-0 fw-semibold">{{ $businessTripCard['request_number'] ?? '-' }}</h6>
-                                <span class="small">{{ $businessTripCard['location'] ?? '-' }}</span>
-                            </div>
-                        </div>
-                        <p class="my-3">{{ $businessTripCard['purpose'] ?? '-' }}</p>
-                        <div class="row py-1">
-                            <div class="col-12">
-                                <span>Date :</span>
-                            </div>
-                            <div class="col-12">
-                                <span>{{ $businessTripCard['date_label'] ?? '-' }}</span> <br>
+                            <div class="clearfix min-w-0">
+                                <h6 class="mb-0 fw-semibold text-truncate">
+                                    <a href="{{ $overtimeItem['detail_url'] ?? route('attendance.overtimes') }}" class="stretched-link">
+                                        {{ $overtimeItem['reference'] ?? '#OVT' }}
+                                    </a>
+                                </h6>
+                                <span class="small d-block text-muted">{{ $overtimeItem['overtime_date'] ?? '-' }}, {{ $overtimeItem['time_range'] ?? '-' }} ({{ $overtimeItem['duration'] ?? '-' }})</span>
                             </div>
                         </div>
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <span>Complete</span>
-                            <span>{{ $businessTripCard['progress_percentage'] ?? 0 }}%</span>
+                        <div class="my-3">
+                            <p class="mb-0 text-muted fs-13">{{ $overtimeItem['instruction'] ?? '-' }}</p>
                         </div>
-                        <div class="progress mt-2" style="height: 4px;">
-                            <div
-                                class="progress-bar bg-primary"
-                                style="width: {{ $businessTripCard['progress_percentage'] ?? 0 }}%;"
-                                aria-label="Business trip progress"
-                                role="progressbar"
-                                aria-valuenow="{{ $businessTripCard['progress_percentage'] ?? 0 }}"
-                                aria-valuemin="0"
-                                aria-valuemax="100"
-                            ></div>
+                        <div class="mt-3">
+                            <div class="d-flex justify-content-between">
+                                <span>{{ $overtimeItem['progress_label'] ?? 'Complete' }}</span>
+                                <span>{{ $overtimeItem['progress_percent'] ?? 0 }}%</span>
+                            </div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-purple" style="width:{{ $overtimeItem['progress_percent'] ?? 0 }}%;" role="progressbar" aria-valuenow="{{ $overtimeItem['progress_percent'] ?? 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-footer d-flex justify-content-between flex-wrap">
-                        <p class="mb-0 fw-medium">Due <span class="text-purple">: {{ $businessTripCard['due_label'] ?? '-' }}</span></p>
-                        <span class="badge badge-sm {{ $businessTripCard['status_badge_class'] ?? 'badge-primary light' }}">{{ $businessTripCard['status_label'] ?? 'Pending' }}</span>
+                    <div class="card-footer d-flex justify-content-between flex-wrap gap-2">
+                        <p class="mb-0 fw-medium">Due <span class="text-purple">: {{ $overtimeItem['due_label'] ?? '-' }}</span></p>
+                        <span class="badge badge-sm {{ $overtimeItem['footer_status_badge_class'] ?? 'badge-warning light' }}">{{ $overtimeItem['footer_status_label'] ?? 'Pending' }}</span>
                     </div>
-                </div>
-            </a>
-        </div>
-    @empty
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body text-center py-5">
-                    <span class="text-gray">Belum ada business trip request.</span>
                 </div>
             </div>
-        </div>
-    @endforelse
+        @empty
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <h6 class="mb-1">No overtime records found</h6>
+                        <p class="mb-0 text-muted">Data overtime belum tersedia untuk filter saat ini.</p>
+                    </div>
+                </div>
+            </div>
+        @endforelse
+    </div>
 
 </div>
 
 <!-- Modal Box Start -->
-<div class="modal fade" id="filterBt" tabindex="-1" aria-labelledby="filterLabel" aria-hidden="true">
+<div class="modal fade" id="filter" tabindex="-1" aria-labelledby="filterLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Filter Details</h1>
+                <h1 class="modal-title fs-5" id="filterLabel">Filter Details</h1>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="GET" action="{{ route('attendance.business-trips') }}">
+            <form method="GET" action="{{ route('attendance.overtimes') }}" id="overtimeFilterForm">
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-xl-12">
                             <div class="mb-3">
-                                <label class="form-label">Filter by Status</label>
-                                <select class="form-control selectpicker" name="status">
-                                    <option value="all" @selected(($businessTripFilters['status'] ?? 'all') === 'all')>Select All</option>
-                                    <option value="approved" @selected(($businessTripFilters['status'] ?? 'all') === 'approved')>Approved</option>
-                                    <option value="pending" @selected(($businessTripFilters['status'] ?? 'all') === 'pending')>Pending Review</option>
-                                    <option value="rejected" @selected(($businessTripFilters['status'] ?? 'all') === 'rejected')>Rejected</option>
+                                <label class="form-label" for="overtimeStatusFilter">Filter by Status</label>
+                                <select class="form-control selectpicker" id="overtimeStatusFilter" name="status">
+                                    <option value="all" @selected($overtimeStatusFilterValue === 'all')>Select All</option>
+                                    <option value="assigned" @selected($overtimeStatusFilterValue === 'assigned')>Assigned</option>
+                                    <option value="in_progress" @selected($overtimeStatusFilterValue === 'in_progress')>In Progress</option>
+                                    <option value="completed" @selected($overtimeStatusFilterValue === 'completed')>Completed</option>
+                                    <option value="cancelled" @selected($overtimeStatusFilterValue === 'cancelled')>Cancelled</option>
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Filter by Business Trip Type</label>
-                                <select class="form-control selectpicker" name="type">
-                                    <option value="all" @selected(($businessTripFilters['type'] ?? 'all') === 'all')>Select All</option>
-                                    <option value="local" @selected(($businessTripFilters['type'] ?? 'all') === 'local')>Local (Dalam Kota)</option>
-                                    <option value="intercity" @selected(($businessTripFilters['type'] ?? 'all') === 'intercity')>Intercity (Luar Kota)</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Filter by Timeframe</label>
-                                <select class="form-control selectpicker" name="timeframe">
-                                    <option value="all" @selected(($businessTripFilters['timeframe'] ?? 'year_to_date') === 'all')>Select All</option>
-                                    <option value="this_month" @selected(($businessTripFilters['timeframe'] ?? 'year_to_date') === 'this_month')>This Month</option>
-                                    <option value="last_month" @selected(($businessTripFilters['timeframe'] ?? 'year_to_date') === 'last_month')>Last Month</option>
-                                    <option value="year_to_date" @selected(($businessTripFilters['timeframe'] ?? 'year_to_date') === 'year_to_date')>Year-to-Date</option>
+                                <label class="form-label" for="overtimeTimeframeFilter">Filter by Timeframe</label>
+                                <select class="form-control selectpicker" id="overtimeTimeframeFilter" name="timeframe">
+                                    <option value="all" @selected($overtimeTimeframeFilterValue === 'all')>Select All</option>
+                                    <option value="this_month" @selected($overtimeTimeframeFilterValue === 'this_month')>This Month</option>
+                                    <option value="last_month" @selected($overtimeTimeframeFilterValue === 'last_month')>Last Month</option>
+                                    <option value="year_to_date" @selected($overtimeTimeframeFilterValue === 'year_to_date')>Year-to-Date</option>
                                 </select>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <a href="{{ route('attendance.business-trips') }}" class="btn btn-danger light">Reset</a>
-                    <button type="submit" class="btn btn-primary">Save changes</button>
+                    <a href="{{ route('attendance.overtimes') }}" class="btn btn-danger light">Reset</a>
+                    <button type="submit" class="btn btn-primary">Apply Filter</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 <!-- Modal-Box-End -->
+
 @endsection
 
 @section('script')
@@ -439,6 +394,12 @@
                 var targetUrl = $(this).data('href');
                 if (targetUrl) {
                     window.location.href = targetUrl;
+                }
+            });
+
+            $('#filter').on('shown.bs.modal', function () {
+                if ($.fn.selectpicker) {
+                    $(this).find('.selectpicker').selectpicker('refresh');
                 }
             });
         });

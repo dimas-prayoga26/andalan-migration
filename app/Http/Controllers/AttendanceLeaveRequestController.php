@@ -58,7 +58,7 @@ class AttendanceLeaveRequestController extends Controller
                 ->get();
         }
 
-        return view('attendance.leave-requests.index', [
+        return view('staff_attendance.leave-requests.index', [
             'leaveEligibility' => $this->buildLeaveEligibilityData($authenticatedUser),
             'leaveTracker' => $this->buildLeaveTrackerData($authenticatedUser),
             'leaveTypes' => $leaveTypes,

@@ -34,7 +34,7 @@ class AttendanceBusinessTripReimbursementController extends Controller
     {
         $businessTrip->loadMissing('reimbursements');
 
-        return view('attendance.business-trips.create-reimbursement', [
+        return view('staff_attendance.business-trips.create-reimbursement', [
             'businessTrip' => $businessTrip,
             'businessTripReimbursementRows' => $this->buildReimbursementFormRows($businessTrip),
         ]);

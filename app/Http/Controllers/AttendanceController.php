@@ -55,7 +55,7 @@ class AttendanceController extends Controller
             );
         }
 
-        return view('attendance.attendance.index', array_merge(
+        return view('staff_attendance.attendance.index', array_merge(
             $attendanceCardsData,
             $employeeEvents,
             [

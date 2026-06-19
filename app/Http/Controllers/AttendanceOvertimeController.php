@@ -155,7 +155,7 @@ class AttendanceOvertimeController extends Controller
         $overtimeStatusFilter = $this->normalizeOvertimeIndexStatusFilter($request->query('status'));
         $overtimeTimeframeFilter = $this->normalizeOvertimeIndexTimeframeFilter($request->query('timeframe'));
 
-        return view('attendance.overtimes.index', [
+        return view('staff_attendance.overtimes.index', [
             'canSubmitOvertime' => $isStaffUser || $canManageOvertimeActions,
             'isStaffOvertimeUser' => $isStaffUser,
             'hasStaffOvertimeAssignment' => $hasStaffOvertimeAssignment,
@@ -211,7 +211,7 @@ class AttendanceOvertimeController extends Controller
                 ->first();
         }
 
-        return view('attendance.overtimes.detail', [
+        return view('staff_attendance.overtimes.detail', [
             'overtime' => $overtime,
             'overtimeReference' => $overtime instanceof AttendanceOvertime ? $this->formatOvertimeReference($overtime) : '#OVT',
             'overtimeDetail' => $overtime instanceof AttendanceOvertime ? $this->buildOvertimeDetailSummary($overtime) : [],
@@ -483,8 +483,19 @@ class AttendanceOvertimeController extends Controller
             ->reject(fn (AttendanceOvertime $overtime): bool => strtolower(trim((string) $overtime->status)) === self::OVERTIME_STATUS_CANCELLED);
         $loggedMinutes = $activeOvertimes
             ->sum(fn (AttendanceOvertime $overtime): int => $this->durationMinutesFromTimeValues($overtime->actual_start_time, $overtime->actual_end_time));
+        $isPendingSupervisorOvertimeApproval = function (AttendanceOvertime $overtime): bool {
+            if ($this->durationMinutesFromTimeValues($overtime->actual_start_time, $overtime->actual_end_time) === 0) {
+                return false;
+            }
+
+            $verificationLog = $overtime->lifecycleLogs
+                ->first(fn (OvertimeLifecycleLog $lifecycleLog): bool => (string) $lifecycleLog->event_key === 'task_hours_verification');
+
+            return ! $verificationLog instanceof OvertimeLifecycleLog
+                || $this->normalizeOvertimeLifecycleState((string) $verificationLog->status) !== 'completed';
+        };
         $pendingSupervisorApprovalMinutes = $activeOvertimes
-            ->filter(fn (AttendanceOvertime $overtime): bool => $this->isPendingSupervisorOvertimeApproval($overtime))
+            ->filter($isPendingSupervisorOvertimeApproval)
             ->sum(fn (AttendanceOvertime $overtime): int => $this->durationMinutesFromTimeValues($overtime->actual_start_time, $overtime->actual_end_time));
         $completedMinutes = $activeOvertimes
             ->where('status', self::OVERTIME_STATUS_COMPLETED)
@@ -514,19 +525,6 @@ class AttendanceOvertimeController extends Controller
             'estimated_extra_earnings_label' => 'Rp 225.000',
             'disputed_hours_label' => '0 Hours',
         ];
-    }
-
-    private function isPendingSupervisorOvertimeApproval(AttendanceOvertime $overtime): bool
-    {
-        if ($this->durationMinutesFromTimeValues($overtime->actual_start_time, $overtime->actual_end_time) === 0) {
-            return false;
-        }
-
-        $verificationLog = $overtime->lifecycleLogs
-            ->first(fn (OvertimeLifecycleLog $lifecycleLog): bool => (string) $lifecycleLog->event_key === 'task_hours_verification');
-
-        return ! $verificationLog instanceof OvertimeLifecycleLog
-            || $this->normalizeOvertimeLifecycleState((string) $verificationLog->status) !== 'completed';
     }
 
     private function normalizeOvertimeIndexStatusFilter(mixed $status): ?string

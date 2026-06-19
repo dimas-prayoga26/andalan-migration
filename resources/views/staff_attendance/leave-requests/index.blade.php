@@ -120,7 +120,7 @@
     'homeRoute' => 'dashboard',
 ])
 
-@include('attendance.layouts.profile-index')
+@include('staff_attendance.layouts.profile-index')
 
 <div class="col-lg-12">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -132,7 +132,7 @@
     $leaveSummaryYear = (int) ($leaveTracker['year'] ?? now('Asia/Jakarta')->year);
 @endphp
 
-@include('attendance.leave-requests.partials.history-list-cards', [
+@include('staff_attendance.leave-requests.partials.history-list-cards', [
     'leaveSummaryYear' => $leaveSummaryYear,
     'leaveEligibility' => $leaveEligibility ?? [],
     'leaveTracker' => $leaveTracker ?? [],

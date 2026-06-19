@@ -128,7 +128,7 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
 
             $this->actingAs($user);
 
-            $view = view('attendance.layouts.profile-header');
+            $view = view('staff_attendance.layouts.profile-header');
             app(AttendanceProfileComposer::class)->compose($view);
             $data = $view->getData();
 

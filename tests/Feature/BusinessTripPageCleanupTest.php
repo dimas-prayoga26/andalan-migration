@@ -32,12 +32,12 @@ class BusinessTripPageCleanupTest extends TestCase
         $businessTripReimbursementStoreRoute = Route::getRoutes()->getByName('attendance.business-trips.reimbursements.store');
         $businessTripProvincesRoute = Route::getRoutes()->getByName('attendance.business-trips.provinces');
         $businessTripRegenciesRoute = Route::getRoutes()->getByName('attendance.business-trips.regencies');
-        $businessTripView = File::get(resource_path('views/attendance/business-trips/index.blade.php'));
-        $businessTripCreateView = File::get(resource_path('views/attendance/business-trips/create.blade.php'));
-        $businessTripDetailView = File::get(resource_path('views/attendance/business-trips/detail.blade.php'));
-        $businessTripCashAdvanceCreateView = File::get(resource_path('views/attendance/business-trips/create-cash-advance.blade.php'));
-        $businessTripReimbursementCreateView = File::get(resource_path('views/attendance/business-trips/create-reimbursement.blade.php'));
-        $profileNavbarView = File::get(resource_path('views/attendance/layouts/profile-navbar.blade.php'));
+        $businessTripView = File::get(resource_path('views/staff_attendance/business-trips/index.blade.php'));
+        $businessTripCreateView = File::get(resource_path('views/staff_attendance/business-trips/create.blade.php'));
+        $businessTripDetailView = File::get(resource_path('views/staff_attendance/business-trips/detail.blade.php'));
+        $businessTripCashAdvanceCreateView = File::get(resource_path('views/staff_attendance/business-trips/create-cash-advance.blade.php'));
+        $businessTripReimbursementCreateView = File::get(resource_path('views/staff_attendance/business-trips/create-reimbursement.blade.php'));
+        $profileNavbarView = File::get(resource_path('views/staff_attendance/layouts/profile-navbar.blade.php'));
         $businessTripController = File::get(app_path('Http/Controllers/AttendanceBusinessTripController.php'));
         $businessTripCashAdvanceController = File::get(app_path('Http/Controllers/AttendanceBusinessTripCashAdvanceController.php'));
 
@@ -79,7 +79,7 @@ class BusinessTripPageCleanupTest extends TestCase
         $this->assertStringContainsString('private function calculateBusinessTripLifecycleProgressPercentage(BusinessTrip $businessTrip): int', $businessTripController);
         $this->assertStringContainsString("strtolower(trim((string) \$lifecycleLog->status)) === 'complete'", $businessTripController);
         $this->assertStringContainsString("'detail_url' => route('attendance.business-trips.show', \$businessTrip)", $businessTripController);
-        $this->assertStringContainsString("return view('attendance.business-trips.detail', [", $businessTripController);
+        $this->assertStringContainsString("return view('staff_attendance.business-trips.detail', [", $businessTripController);
         $this->assertStringContainsString("'employee.profile'", $businessTripController);
         $this->assertStringContainsString("'supervisor.profile'", $businessTripController);
         $this->assertStringContainsString("'cashAdvances'", $businessTripController);

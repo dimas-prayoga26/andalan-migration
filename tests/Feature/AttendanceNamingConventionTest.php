@@ -47,7 +47,7 @@ class AttendanceNamingConventionTest extends TestCase
             $this->assertNotNull(Route::getRoutes()->getByName($expectedRouteName), $expectedRouteName);
         }
 
-        $this->assertSame('attendance', Route::getRoutes()->getByName('attendance')?->uri());
+        $this->assertSame('attendance/overview', Route::getRoutes()->getByName('attendance')?->uri());
         $this->assertSame('attendance/today', Route::getRoutes()->getByName('attendance.today')?->uri());
         $this->assertSame('attendance/overtimes/{attendanceOvertime}', Route::getRoutes()->getByName('attendance.overtimes.detail')?->uri());
         $this->assertSame('attendance/overtimes/{attendanceOvertime}/data', Route::getRoutes()->getByName('attendance.overtimes.show')?->uri());
@@ -63,19 +63,19 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertNull(Route::getRoutes()->getByName('attendance.holidays'));
 
         $expectedViewNames = [
-            'attendance.attendance.index',
-            'attendance.index',
-            'attendance.reports.index',
-            'attendance.leave-requests.index',
-            'attendance.leave-requests.partials.history-list-cards',
-            'attendance.overtimes.index',
-            'attendance.overtimes.detail',
-            'attendance.business-trips.index',
-            'attendance.components.attendance-cards',
-            'attendance.components.card-analytics',
-            'attendance.layouts.profile-header',
-            'attendance.layouts.profile-index',
-            'attendance.layouts.profile-navbar',
+            'staff_attendance.overview.index',
+            'staff_attendance.attendance.index',
+            'staff_attendance.reports.index',
+            'staff_attendance.leave-requests.index',
+            'staff_attendance.leave-requests.partials.history-list-cards',
+            'staff_attendance.overtimes.index',
+            'staff_attendance.overtimes.detail',
+            'staff_attendance.business-trips.index',
+            'staff_attendance.components.attendance-cards',
+            'staff_attendance.components.card-analytics',
+            'staff_attendance.layouts.profile-header',
+            'staff_attendance.layouts.profile-index',
+            'staff_attendance.layouts.profile-navbar',
         ];
 
         foreach ($expectedViewNames as $expectedViewName) {
@@ -98,19 +98,22 @@ class AttendanceNamingConventionTest extends TestCase
         }
 
         $this->assertDirectoryDoesNotExist(resource_path('views/absensi'));
-        $this->assertFalse(View::exists('attendance.holidays'));
+        $this->assertDirectoryDoesNotExist(resource_path('views/attendance'));
+        $this->assertDirectoryExists(resource_path('views/staff_attendance'));
+        $this->assertDirectoryExists(resource_path('views/admin_attendance'));
+        $this->assertFalse(View::exists('staff_attendance.holidays'));
         $this->assertFileExists(public_path('assets/css/attendance.css'));
         $this->assertFileDoesNotExist(public_path('assets/css/absensi.css'));
         $this->assertTrue(class_exists(AttendanceProfileComposer::class));
 
         $appServiceProvider = File::get(app_path('Providers/AppServiceProvider.php'));
 
-        $this->assertStringContainsString("'attendance.index'", $appServiceProvider);
-        $this->assertStringContainsString("'attendance.layouts.profile-header'", $appServiceProvider);
-        $this->assertStringContainsString("'attendance.components.card-analytics'", $appServiceProvider);
+        $this->assertStringContainsString("'staff_attendance.overview.index'", $appServiceProvider);
+        $this->assertStringContainsString("'staff_attendance.layouts.profile-header'", $appServiceProvider);
+        $this->assertStringContainsString("'staff_attendance.components.card-analytics'", $appServiceProvider);
         $this->assertStringContainsString('AttendanceProfileComposer::class', $appServiceProvider);
 
-        $attendanceOverviewView = File::get(resource_path('views/attendance/index.blade.php'));
+        $attendanceOverviewView = File::get(resource_path('views/staff_attendance/overview/index.blade.php'));
 
         foreach ([
             'function pieChart()',
@@ -167,14 +170,14 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertStringNotContainsString('data: [18, 17, 20, 19, 16, 0, 0, 0, 0, 0, 0, 0]', $attendanceOverviewView);
         $this->assertStringNotContainsString('data: [1, 2, 1, 3, 2, 0, 0, 0, 0, 0, 0, 0]', $attendanceOverviewView);
         $this->assertStringNotContainsString('data: [4, 8, 6, 10, 18, 0, 0, 0, 0, 0, 0, 0]', $attendanceOverviewView);
-        $this->assertStringContainsString("@include('attendance.components.card-analytics')", $attendanceOverviewView);
+        $this->assertStringContainsString("@include('staff_attendance.components.card-analytics')", $attendanceOverviewView);
         $this->assertStringContainsString('.attendance-rate-mobile-slider {', $attendanceOverviewView);
         $this->assertStringContainsString('.attendance-rate-mobile-slide {', $attendanceOverviewView);
 
-        $attendanceTodayView = File::get(resource_path('views/attendance/attendance/index.blade.php'));
-        $attendanceCardAnalyticsView = File::get(resource_path('views/attendance/components/card-analytics.blade.php'));
+        $attendanceTodayView = File::get(resource_path('views/staff_attendance/attendance/index.blade.php'));
+        $attendanceCardAnalyticsView = File::get(resource_path('views/staff_attendance/components/card-analytics.blade.php'));
 
-        $this->assertStringContainsString("@include('attendance.components.card-analytics')", $attendanceTodayView);
+        $this->assertStringContainsString("@include('staff_attendance.components.card-analytics')", $attendanceTodayView);
         $this->assertStringContainsString('.attendance-rate-mobile-slider {', $attendanceTodayView);
         $this->assertStringContainsString('.attendance-rate-mobile-slide {', $attendanceTodayView);
         $this->assertStringContainsString('row attendance-rate-mobile-slider', $attendanceCardAnalyticsView);
@@ -191,19 +194,19 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertStringNotContainsString('>60%</span>', $attendanceCardAnalyticsView);
         $this->assertSame(4, substr_count($attendanceCardAnalyticsView, 'col-md-3 col-sm-6 attendance-rate-mobile-slide'));
 
-        $overtimeIndexView = File::get(resource_path('views/attendance/overtimes/index.blade.php'));
+        $overtimeIndexView = File::get(resource_path('views/staff_attendance/overtimes/index.blade.php'));
 
         $this->assertStringContainsString("\$overtimeItem['detail_url']", $overtimeIndexView);
         $this->assertStringNotContainsString('attendance-overtime-details.html', $overtimeIndexView);
 
-        $businessTripView = File::get(resource_path('views/attendance/business-trips/index.blade.php'));
+        $businessTripView = File::get(resource_path('views/staff_attendance/business-trips/index.blade.php'));
 
         $this->assertStringContainsString('row business-trip-summary-mobile-slider', $businessTripView);
         $this->assertStringContainsString('.business-trip-summary-mobile-slider {', $businessTripView);
         $this->assertStringContainsString('.business-trip-summary-mobile-slide {', $businessTripView);
         $this->assertSame(8, substr_count($businessTripView, 'col-md-3 col-sm-6 business-trip-summary-mobile-slide'));
 
-        $profileHeaderView = File::get(resource_path('views/attendance/layouts/profile-header.blade.php'));
+        $profileHeaderView = File::get(resource_path('views/staff_attendance/layouts/profile-header.blade.php'));
 
         $this->assertStringContainsString('.mobile-stats-slider {', $profileHeaderView);
         $this->assertStringContainsString('margin-top: 1rem;', $profileHeaderView);

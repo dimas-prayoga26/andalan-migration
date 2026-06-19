@@ -14,7 +14,7 @@ class AttendanceReportExcelExportTest extends TestCase
 {
     public function test_attendance_report_table_uses_note_and_attachment_columns(): void
     {
-        $reportView = File::get(resource_path('views/attendance/reports/index.blade.php'));
+        $reportView = File::get(resource_path('views/staff_attendance/reports/index.blade.php'));
 
         $this->assertStringContainsString('<i class="fa-solid fa-file-excel me-1"></i> Export Report', $reportView);
         $this->assertStringNotContainsString('Export Excel', $reportView);
@@ -34,12 +34,12 @@ class AttendanceReportExcelExportTest extends TestCase
         $reportController = File::get(app_path('Http/Controllers/AttendanceReportController.php'));
 
         $this->assertStringNotContainsString('Spatie\\LaravelPdf', $reportController);
-        $this->assertStringNotContainsString("Pdf::view('attendance.reports.pdf'", $reportController);
-        $this->assertStringNotContainsString("response()->view('attendance.reports.excel'", $reportController);
+        $this->assertStringNotContainsString("Pdf::view('staff_attendance.reports.pdf'", $reportController);
+        $this->assertStringNotContainsString("response()->view('staff_attendance.reports.excel'", $reportController);
         $this->assertStringNotContainsString('application/vnd.ms-excel; charset=UTF-8', $reportController);
         $this->assertStringNotContainsString(".'.xls';", $reportController);
-        $this->assertFileDoesNotExist(resource_path('views/attendance/reports/pdf.blade.php'));
-        $this->assertFileDoesNotExist(resource_path('views/attendance/reports/excel.blade.php'));
+        $this->assertFileDoesNotExist(resource_path('views/staff_attendance/reports/pdf.blade.php'));
+        $this->assertFileDoesNotExist(resource_path('views/staff_attendance/reports/excel.blade.php'));
         $this->assertStringContainsString('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $reportController);
         $this->assertStringContainsString(".'.xlsx';", $reportController);
         $this->assertStringContainsString('buildAttendanceReportXlsx($reportRows, $titleLabel)', $reportController);

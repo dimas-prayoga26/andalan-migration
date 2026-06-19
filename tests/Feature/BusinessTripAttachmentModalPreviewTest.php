@@ -9,7 +9,7 @@ class BusinessTripAttachmentModalPreviewTest extends TestCase
 {
     public function test_business_trip_attachments_are_previewed_inside_modal(): void
     {
-        $detailView = File::get(resource_path('views/attendance/business-trips/detail.blade.php'));
+        $detailView = File::get(resource_path('views/staff_attendance/business-trips/detail.blade.php'));
 
         $this->assertStringContainsString('id="businessTripAttachmentPreviewModal"', $detailView);
         $this->assertStringContainsString('id="businessTripAttachmentPreviewFrame"', $detailView);

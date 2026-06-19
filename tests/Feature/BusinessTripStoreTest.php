@@ -19,7 +19,7 @@ class BusinessTripStoreTest extends TestCase
     public function test_business_trip_store_route_and_create_form_are_wired(): void
     {
         $storeRoute = Route::getRoutes()->getByName('attendance.business-trips.store');
-        $createView = File::get(resource_path('views/attendance/business-trips/create.blade.php'));
+        $createView = File::get(resource_path('views/staff_attendance/business-trips/create.blade.php'));
         $controller = File::get(app_path('Http/Controllers/AttendanceBusinessTripController.php'));
 
         $this->assertNotNull($storeRoute);

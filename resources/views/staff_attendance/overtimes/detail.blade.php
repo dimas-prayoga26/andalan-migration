@@ -90,7 +90,7 @@
     'homeRoute' => 'dashboard',
 ])
 
-@include('attendance.layouts.profile-index')
+@include('staff_attendance.layouts.profile-index')
 
 <!-- Start - My Projects -->
 <div class="col-lg-12">

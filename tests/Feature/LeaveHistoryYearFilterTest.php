@@ -151,8 +151,8 @@ class LeaveHistoryYearFilterTest extends TestCase
 
     public function test_leave_history_year_filter_is_removed_from_view_and_controller(): void
     {
-        $leaveRequestView = File::get(resource_path('views/attendance/leave-requests/index.blade.php'));
-        $leaveHistoryListCardsPartial = File::get(resource_path('views/attendance/leave-requests/partials/history-list-cards.blade.php'));
+        $leaveRequestView = File::get(resource_path('views/staff_attendance/leave-requests/index.blade.php'));
+        $leaveHistoryListCardsPartial = File::get(resource_path('views/staff_attendance/leave-requests/partials/history-list-cards.blade.php'));
         $leaveRequestController = File::get(app_path('Http/Controllers/AttendanceLeaveRequestController.php'));
         $leaveRequestModel = File::get(app_path('Models/LeaveRequest.php'));
         $leaveSubTypeModel = File::get(app_path('Models/LeaveSubType.php'));
@@ -160,8 +160,8 @@ class LeaveHistoryYearFilterTest extends TestCase
         $leaveRequestUpdateMigration = File::get(database_path('migrations/2026_06_09_080747_add_handover_notes_to_leave_requests_table.php'));
         $leaveRequestHistoryCompleteMigration = File::get(database_path('migrations/2026_06_15_081539_add_complete_status_to_leave_request_histories_table.php'));
 
-        $this->assertFileDoesNotExist(resource_path('views/attendance/leave-requests/partials/history-cards.blade.php'));
-        $this->assertFileDoesNotExist(resource_path('views/attendance/leave-requests/partials/request-cards.blade.php'));
+        $this->assertFileDoesNotExist(resource_path('views/staff_attendance/leave-requests/partials/history-cards.blade.php'));
+        $this->assertFileDoesNotExist(resource_path('views/staff_attendance/leave-requests/partials/request-cards.blade.php'));
         $this->assertStringNotContainsString('action="{{ route(\'attendance.leave-requests\') }}"', $leaveRequestView);
         $this->assertStringNotContainsString('name="history_year"', $leaveRequestView);
         $this->assertStringNotContainsString('leaveHistoryYearFilter', $leaveRequestView);
@@ -189,10 +189,10 @@ class LeaveHistoryYearFilterTest extends TestCase
         $this->assertStringContainsString('function leaveHistoryCardHtml(card)', $leaveRequestView);
         $this->assertStringContainsString('Array.isArray(response.cards)', $leaveRequestView);
         $this->assertStringNotContainsString('attendance.leave-requests.partials.request-cards', $leaveRequestController);
-        $this->assertStringContainsString("@include('attendance.leave-requests.partials.history-list-cards'", $leaveRequestView);
-        $this->assertStringNotContainsString("@include('attendance.leave-requests.partials.history-cards'", $leaveRequestView);
-        $this->assertStringNotContainsString("@include('attendance.leave-requests.partials.request-cards'", $leaveRequestView);
-        $this->assertStringNotContainsString("@include('attendance.leave-requests.partials.balance-cards'", $leaveRequestView);
+        $this->assertStringContainsString("@include('staff_attendance.leave-requests.partials.history-list-cards'", $leaveRequestView);
+        $this->assertStringNotContainsString("@include('staff_attendance.leave-requests.partials.history-cards'", $leaveRequestView);
+        $this->assertStringNotContainsString("@include('staff_attendance.leave-requests.partials.request-cards'", $leaveRequestView);
+        $this->assertStringNotContainsString("@include('staff_attendance.leave-requests.partials.balance-cards'", $leaveRequestView);
         $this->assertStringContainsString('row leave-balance-mobile-slider', $leaveHistoryListCardsPartial);
         $this->assertStringNotContainsString('id="leaveHistoryCardsSlider"', $leaveHistoryListCardsPartial);
         $this->assertStringContainsString('id="leaveHistoryCardsSlider"', $leaveRequestView);
@@ -308,8 +308,8 @@ class LeaveHistoryYearFilterTest extends TestCase
 
     public function test_leave_summary_is_split_into_eligibility_and_tracker_data(): void
     {
-        $leaveRequestView = File::get(resource_path('views/attendance/leave-requests/index.blade.php'));
-        $leaveHistoryListCardsPartial = File::get(resource_path('views/attendance/leave-requests/partials/history-list-cards.blade.php'));
+        $leaveRequestView = File::get(resource_path('views/staff_attendance/leave-requests/index.blade.php'));
+        $leaveHistoryListCardsPartial = File::get(resource_path('views/staff_attendance/leave-requests/partials/history-list-cards.blade.php'));
         $leaveRequestController = File::get(app_path('Http/Controllers/AttendanceLeaveRequestController.php'));
         $leaveTypeSeeder = File::get(database_path('seeders/LeaveTypeSeeder.php'));
 

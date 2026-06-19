@@ -118,7 +118,7 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString('private function buildAttendanceExceptionCalendarEvent(', $attendanceMutationService);
         $this->assertStringContainsString('$attendanceStatus = $lateMinutes > 0 ? \'Terlambat\' : \'Masuk\';', $attendanceMutationService);
         $this->assertStringContainsString('hasAttendanceExceptionToday', $attendanceCardsService);
-        $attendanceCardsView = File::get(resource_path('views/attendance/components/attendance-cards.blade.php'));
+        $attendanceCardsView = File::get(resource_path('views/staff_attendance/components/attendance-cards.blade.php'));
         $this->assertStringContainsString('id="attendanceExceptionCardButton"', $attendanceCardsView);
         $this->assertStringContainsString('id="attendanceClockInValue"', $attendanceCardsView);
         $this->assertStringContainsString('id="attendanceClockOutValue"', $attendanceCardsView);
@@ -134,7 +134,7 @@ class AttendanceCalendarModalRoutingTest extends TestCase
 
     public function test_attendance_calendar_events_are_mapped_to_existing_modals(): void
     {
-        $attendanceView = File::get(resource_path('views/attendance/attendance/index.blade.php'));
+        $attendanceView = File::get(resource_path('views/staff_attendance/attendance/index.blade.php'));
 
         foreach (['onTime', 'late', 'deviation', 'annualLeave', 'specialLeave', 'unpaidLeave', 'sick', 'trip'] as $modalId) {
             $this->assertStringContainsString('<div class="modal fade" id="'.$modalId.'"', $attendanceView);

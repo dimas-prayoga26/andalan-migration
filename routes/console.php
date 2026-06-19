@@ -18,3 +18,8 @@ Schedule::command('business-trips:lifecycle:sync')
     ->dailyAt('00:05')
     ->timezone('Asia/Jakarta')
     ->withoutOverlapping();
+
+Schedule::command('overtimes:auto-clock-in')
+    ->everyMinute()
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping();

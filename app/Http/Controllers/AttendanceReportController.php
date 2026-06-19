@@ -98,7 +98,7 @@ class AttendanceReportController extends Controller
                 ->values();
         }
 
-        return view('attendance.reports.index', array_merge(
+        return view('staff_attendance.reports.index', array_merge(
             $attendanceCardsData,
             compact(
                 'companies',

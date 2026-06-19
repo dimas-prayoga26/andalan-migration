@@ -135,7 +135,7 @@ class AttendanceBusinessTripController extends Controller
             ->latest('created_at')
             ->get();
 
-        return view('attendance.business-trips.index', [
+        return view('staff_attendance.business-trips.index', [
             'businessTripSummary' => $this->buildBusinessTripSummary($businessTrips),
             'businessTripCards' => $businessTrips->map(fn (BusinessTrip $businessTrip): array => $this->buildBusinessTripCard($businessTrip)),
             'businessTripFilters' => $businessTripFilters,
@@ -144,7 +144,7 @@ class AttendanceBusinessTripController extends Controller
 
     public function create(): View
     {
-        return view('attendance.business-trips.create');
+        return view('staff_attendance.business-trips.create');
     }
 
     public function show(BusinessTrip $businessTrip): View
@@ -171,7 +171,7 @@ class AttendanceBusinessTripController extends Controller
         $businessTripRequestDetails = $this->buildBusinessTripRequestDetails($businessTrip);
         $businessTripCashAdvanceRows = $this->buildBusinessTripCashAdvanceRows($businessTrip);
 
-        return view('attendance.business-trips.detail', [
+        return view('staff_attendance.business-trips.detail', [
             'businessTrip' => $businessTrip,
             'businessTripRequestDetails' => $businessTripRequestDetails,
             'businessTripApprovedExpenseBreakdownRows' => $this->buildBusinessTripApprovedExpenseBreakdownRows($businessTripCashAdvanceRows),

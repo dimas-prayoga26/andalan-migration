@@ -241,7 +241,7 @@
     'homeRoute' => 'dashboard',
 ])
 
-@include('attendance.layouts.profile-index')
+@include('staff_attendance.layouts.profile-index')
 
 <div class="col-lg-12">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -249,7 +249,7 @@
     </div>
 </div>
 
-{{-- @include('attendance.components.attendance-cards') --}}
+{{-- @include('staff_attendance.components.attendance-cards') --}}
 
 
 <div class="tab-content" id="tabContentMyProfileBottom">

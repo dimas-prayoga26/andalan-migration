@@ -13,20 +13,29 @@ class LeaveRequestDestroyAuthorizationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_delete_leave_request(): void
+    protected function setUp(): void
     {
-        $adminUser = $this->createUserWithRole('admin');
+        if (! extension_loaded('pdo_sqlite')) {
+            $this->markTestSkipped('pdo_sqlite extension is not available.');
+        }
+
+        parent::setUp();
+    }
+
+    public function test_superuser_can_delete_leave_request(): void
+    {
+        $superuser = $this->createUserWithRole('superuser');
         $leaveRequest = LeaveRequest::query()->create([
             'employee_id' => null,
             'leave_type_id' => null,
             'start_date' => now('Asia/Jakarta')->toDateString(),
             'end_date' => now('Asia/Jakarta')->toDateString(),
             'total_days' => 1,
-            'reason' => 'Delete request as admin',
+            'reason' => 'Delete request as superuser',
             'status' => 'pending',
         ]);
 
-        $response = $this->actingAs($adminUser)->deleteJson(route('attendance.leave-requests.destroy', $leaveRequest));
+        $response = $this->actingAs($superuser)->deleteJson(route('attendance.leave-requests.destroy', $leaveRequest));
 
         $response->assertOk()
             ->assertJson([
@@ -39,7 +48,7 @@ class LeaveRequestDestroyAuthorizationTest extends TestCase
         ]);
     }
 
-    public function test_non_admin_role_cannot_delete_leave_request(): void
+    public function test_non_superuser_role_cannot_delete_leave_request(): void
     {
         $staffUser = $this->createUserWithRole('staff');
         $leaveRequest = LeaveRequest::query()->create([

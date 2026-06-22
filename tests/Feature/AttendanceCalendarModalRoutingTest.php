@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\AttendanceController;
-use App\Http\Controllers\AttendanceReportController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\StaffAttendance\AttendanceController;
+use App\Http\Controllers\StaffAttendance\AttendanceReportController;
 use App\Http\Requests\Attendance\AttendanceIndexRequest;
 use App\Http\Requests\Attendance\CurrentAttendanceIpRequest;
 use App\Http\Requests\Attendance\StoreAttendanceExceptionRequest;
@@ -54,7 +54,7 @@ class AttendanceCalendarModalRoutingTest extends TestCase
 
     public function test_attendance_calendar_responsibilities_are_separated_from_controller(): void
     {
-        $attendanceController = File::get(app_path('Http/Controllers/AttendanceController.php'));
+        $attendanceController = File::get(app_path('Http/Controllers/StaffAttendance/AttendanceController.php'));
         $calendarEventService = File::get(app_path('Services/Attendance/AttendanceCalendarEventService.php'));
         $calendarPresenter = File::get(app_path('Support/Attendance/AttendanceCalendarPresenter.php'));
         $exceptionPresenter = File::get(app_path('Support/Attendance/AttendanceExceptionPresenter.php'));

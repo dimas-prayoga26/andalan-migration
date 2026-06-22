@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\AttendanceReportController;
+use App\Http\Controllers\StaffAttendance\AttendanceReportController;
 use App\Models\AttendanceHoliday;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Http;

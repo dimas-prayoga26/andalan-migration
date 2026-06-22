@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\AttendanceOvertimeController;
+use App\Http\Controllers\StaffAttendance\AttendanceOvertimeController;
 use App\Models\AttendanceOvertime;
 use App\Models\Department;
 use App\Models\Employee;
@@ -187,7 +187,7 @@ class ProjectOvertimeRelationTest extends TestCase
 
     public function test_overtime_status_flow_uses_assignment_lifecycle_values(): void
     {
-        $overtimeController = File::get(app_path('Http/Controllers/AttendanceOvertimeController.php'));
+        $overtimeController = File::get(app_path('Http/Controllers/StaffAttendance/AttendanceOvertimeController.php'));
         $overtimeModel = File::get(app_path('Models/AttendanceOvertime.php'));
         $overtimeIndexView = File::get(resource_path('views/staff_attendance/overtimes/index.blade.php'));
         $overtimeDetailView = File::get(resource_path('views/staff_attendance/overtimes/detail.blade.php'));

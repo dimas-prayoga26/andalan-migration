@@ -9,7 +9,7 @@ class BusinessTripStaffScopeTest extends TestCase
 {
     public function test_business_trip_index_and_detail_are_scoped_for_staff_users(): void
     {
-        $controller = File::get(app_path('Http/Controllers/AttendanceBusinessTripController.php'));
+        $controller = File::get(app_path('Http/Controllers/StaffAttendance/AttendanceBusinessTripController.php'));
 
         $this->assertStringContainsString('private function businessTripIndexQuery(?User $authenticatedUser): Builder', $controller);
         $this->assertStringContainsString('$this->businessTripIndexQuery($authenticatedUser instanceof User ? $authenticatedUser : null)', $controller);

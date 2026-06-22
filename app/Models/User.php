@@ -68,4 +68,21 @@ class User extends Authenticatable
     {
         return $this->hasMany(BusinessTrip::class, 'approved_by', 'id');
     }
+
+    /**
+     * @param  array<int, string>  $permissionNames
+     */
+    public function hasAnyPositionPermission(array $permissionNames): bool
+    {
+        if ($this->hasRole('superuser')) {
+            return true;
+        }
+
+        $this->loadMissing('employee.deployment.position.permissions:uuid,name');
+
+        return $this->employee?->deployment?->position?->permissions
+            ?->pluck('name')
+            ->intersect($permissionNames)
+            ->isNotEmpty() ?? false;
+    }
 }

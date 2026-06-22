@@ -44,7 +44,11 @@ class UserSeeder extends Seeder
         try {
             app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-            $roles = ['superuser', 'admin', 'Board of Directors', 'Supervisor', 'Staff'];
+            $roles = ['superuser', 'Board of Directors', 'Staff'];
+
+            Role::query()
+                ->whereNotIn('name', $roles)
+                ->delete();
 
             foreach ($roles as $roleName) {
                 Role::query()->firstOrCreate([
@@ -158,12 +162,32 @@ class UserSeeder extends Seeder
                         'password' => Hash::make('password'),
                     ],
                 );
-                $supervisor->syncRoles(['Supervisor']);
+                $supervisor->syncRoles(['Staff']);
                 $this->seedUserRelations(
                     $supervisor,
                     companyId: $company->id,
                     divisionId: $supervisorDivisionId,
                     positionId: $supervisorPositionId,
+                    domicileId: $domicileId,
+                    genderId: $genderId,
+                    maritalStatusId: $maritalStatusId,
+                );
+
+                $administrator = User::query()->updateOrCreate(
+                    ['email' => "admin{$directorNumber}@gmail.com"],
+                    [
+                        'username' => "admin{$directorNumber}",
+                        'business_email' => "admin{$directorNumber}@{$this->resolveCompanyEmailDomain((string) $company->name)}",
+                        'is_active' => true,
+                        'password' => Hash::make('password'),
+                    ],
+                );
+                $administrator->syncRoles(['Staff']);
+                $this->seedUserRelations(
+                    $administrator,
+                    companyId: $company->id,
+                    divisionId: $adminDivisionId,
+                    positionId: $adminPositionId,
                     domicileId: $domicileId,
                     genderId: $genderId,
                     maritalStatusId: $maritalStatusId,

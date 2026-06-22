@@ -22,6 +22,7 @@ class MetaDataPositionSeeder extends Seeder
                 'Commissioner',
                 'Chief Operating Officer',
                 'Director',
+                'Supervisor',
                 'Legal Officer & Partnership',
                 'Finance and Administration Coordinator',
                 'Accounting and Taxation',

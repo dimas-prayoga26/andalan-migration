@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\AttendanceBusinessTripCashAdvanceController;
-use App\Http\Controllers\AttendanceBusinessTripController;
-use App\Http\Controllers\AttendanceBusinessTripReimbursementController;
+use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripCashAdvanceController;
+use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripController;
+use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripReimbursementController;
 use App\Models\BusinessTrip;
 use App\Models\BusinessTripCashAdvance;
 use App\Models\BusinessTripLifecycleLog;
@@ -38,8 +38,8 @@ class BusinessTripPageCleanupTest extends TestCase
         $businessTripCashAdvanceCreateView = File::get(resource_path('views/staff_attendance/business-trips/create-cash-advance.blade.php'));
         $businessTripReimbursementCreateView = File::get(resource_path('views/staff_attendance/business-trips/create-reimbursement.blade.php'));
         $profileNavbarView = File::get(resource_path('views/staff_attendance/layouts/profile-navbar.blade.php'));
-        $businessTripController = File::get(app_path('Http/Controllers/AttendanceBusinessTripController.php'));
-        $businessTripCashAdvanceController = File::get(app_path('Http/Controllers/AttendanceBusinessTripCashAdvanceController.php'));
+        $businessTripController = File::get(app_path('Http/Controllers/StaffAttendance/AttendanceBusinessTripController.php'));
+        $businessTripCashAdvanceController = File::get(app_path('Http/Controllers/StaffAttendance/AttendanceBusinessTripCashAdvanceController.php'));
 
         $this->assertNotNull($businessTripIndexRoute);
         $this->assertNotNull($businessTripCreateRoute);

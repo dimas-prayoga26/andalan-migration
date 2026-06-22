@@ -47,6 +47,7 @@ class RnbStaffSeederTest extends TestCase
             ->where('roles.name', 'Staff')
             ->where('users.is_active', true)
             ->where('employee_deployments.current_company_id', $rnbCompanyId)
+            ->whereIn('users.username', ['staff31', 'staff32', 'staff33', 'staff34'])
             ->distinct()
             ->count('users.id');
 
@@ -108,5 +109,75 @@ class RnbStaffSeederTest extends TestCase
                 'position' => 'Documentation Event and Editor Video',
             ],
         ], $staffAssignments);
+    }
+
+    public function test_user_seeder_creates_one_administrator_employee_for_each_company(): void
+    {
+        $this->seed([
+            CompanySeeder::class,
+            MetaDataDomiciliSeeder::class,
+            MetaDataGenderSeeder::class,
+            MetaDataMaritalStatusSeeder::class,
+            PositionSeeder::class,
+            UserSeeder::class,
+        ]);
+
+        $administratorRows = DB::table('companies')
+            ->join('employee_deployments', 'employee_deployments.current_company_id', '=', 'companies.id')
+            ->join('employees', 'employees.id', '=', 'employee_deployments.employee_id')
+            ->join('users', 'users.id', '=', 'employees.user_id')
+            ->join('departments', 'departments.id', '=', 'employee_deployments.current_department_id')
+            ->join('positions', 'positions.id', '=', 'employee_deployments.current_position_id')
+            ->where('departments.name', 'Administrator')
+            ->where('positions.name', 'System Administrator')
+            ->where('users.username', 'like', 'admin%')
+            ->orderBy('companies.name')
+            ->get([
+                'companies.name as company_name',
+                'users.username',
+                'users.business_email',
+            ]);
+
+        $this->assertCount(7, $administratorRows);
+
+        $administratorAssignments = $administratorRows
+            ->mapWithKeys(fn (object $assignment): array => [
+                (string) $assignment->company_name => [
+                    'username' => (string) $assignment->username,
+                    'business_email' => (string) $assignment->business_email,
+                ],
+            ])
+            ->all();
+
+        $this->assertSame([
+            'AndalanKu' => [
+                'username' => 'admin1',
+                'business_email' => 'admin1@andalanku.local',
+            ],
+            'KMA' => [
+                'username' => 'admin2',
+                'business_email' => 'admin2@kma.local',
+            ],
+            'Niskala' => [
+                'username' => 'admin4',
+                'business_email' => 'admin4@niskala.local',
+            ],
+            'RNB' => [
+                'username' => 'admin3',
+                'business_email' => 'admin3@rnb.local',
+            ],
+            'RNE' => [
+                'username' => 'admin5',
+                'business_email' => 'admin5@rne.local',
+            ],
+            'TMS' => [
+                'username' => 'admin6',
+                'business_email' => 'admin6@tms.local',
+            ],
+            'Trah' => [
+                'username' => 'admin7',
+                'business_email' => 'admin7@trah.local',
+            ],
+        ], $administratorAssignments);
     }
 }

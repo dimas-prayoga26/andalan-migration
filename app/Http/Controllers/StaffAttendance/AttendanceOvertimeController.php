@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\StaffAttendance;
 
+use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\AttendanceOvertime;
 use App\Models\Employee;
@@ -1639,8 +1640,7 @@ class AttendanceOvertimeController extends Controller
             ->map(static fn (string $roleName): string => strtolower(trim($roleName)));
 
         return $normalizedRoleNames->contains('board of directur')
-            || $normalizedRoleNames->contains('board of directors')
-            || $normalizedRoleNames->contains('supervisor');
+            || $normalizedRoleNames->contains('board of directors');
     }
 
     private function isAdminUser(?User $user): bool
@@ -1652,8 +1652,7 @@ class AttendanceOvertimeController extends Controller
         $normalizedRoleNames = $user->getRoleNames()
             ->map(static fn (string $roleName): string => strtolower(trim($roleName)));
 
-        return $normalizedRoleNames->contains('admin')
-            || $normalizedRoleNames->contains('superuser');
+        return $normalizedRoleNames->contains('superuser');
     }
 
     private function isStaffUser(?User $user): bool

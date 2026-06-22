@@ -22,10 +22,8 @@ class EmployeePicAssignmentSeeder extends Seeder
                 return;
             }
 
-            $supervisors = User::query()
-                ->whereHas('roles', function ($query): void {
-                    $query->whereRaw('LOWER(name) = ?', ['supervisor']);
-                })
+            $picUsers = User::query()
+                ->where('username', 'like', 'supervisor%')
                 ->whereHas('employee.deployment')
                 ->with(['employee.deployment'])
                 ->get();
@@ -38,12 +36,12 @@ class EmployeePicAssignmentSeeder extends Seeder
                 ->with(['employee.deployment'])
                 ->get();
 
-            if ($supervisors->isEmpty() || $staffUsers->isEmpty()) {
+            if ($picUsers->isEmpty() || $staffUsers->isEmpty()) {
                 return;
             }
 
             $supervisorMapByCompany = [];
-            foreach ($supervisors as $supervisorUser) {
+            foreach ($picUsers as $supervisorUser) {
                 $supervisorEmployeeId = $supervisorUser->employee?->id;
                 $companyId = $supervisorUser->employee?->deployment?->current_company_id;
                 if (! is_string($supervisorEmployeeId) || trim($supervisorEmployeeId) === '') {

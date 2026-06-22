@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\AttendanceReportController;
+use App\Http\Controllers\StaffAttendance\AttendanceReportController;
 use App\Models\Attendance;
 use App\Models\AttendanceException;
 use Illuminate\Support\Facades\File;
@@ -31,7 +31,7 @@ class AttendanceReportExcelExportTest extends TestCase
 
     public function test_attendance_report_export_uses_xlsx_instead_of_pdf_or_html_xls(): void
     {
-        $reportController = File::get(app_path('Http/Controllers/AttendanceReportController.php'));
+        $reportController = File::get(app_path('Http/Controllers/StaffAttendance/AttendanceReportController.php'));
 
         $this->assertStringNotContainsString('Spatie\\LaravelPdf', $reportController);
         $this->assertStringNotContainsString("Pdf::view('staff_attendance.reports.pdf'", $reportController);
@@ -52,7 +52,7 @@ class AttendanceReportExcelExportTest extends TestCase
 
     public function test_attendance_report_export_title_uses_company_and_staff_names(): void
     {
-        $reportController = File::get(app_path('Http/Controllers/AttendanceReportController.php'));
+        $reportController = File::get(app_path('Http/Controllers/StaffAttendance/AttendanceReportController.php'));
 
         $this->assertStringContainsString('private function resolveReportTitleLabel(Collection $reportRows): string', $reportController);
         $this->assertStringContainsString("->pluck('company_name')", $reportController);
@@ -112,7 +112,7 @@ class AttendanceReportExcelExportTest extends TestCase
 
     public function test_attendance_report_controller_resolves_note_and_attachment_values(): void
     {
-        $reportController = File::get(app_path('Http/Controllers/AttendanceReportController.php'));
+        $reportController = File::get(app_path('Http/Controllers/StaffAttendance/AttendanceReportController.php'));
 
         $this->assertStringContainsString("'note' => \$noteLabel,", $reportController);
         $this->assertStringContainsString("'attachment' => \$attachmentUrl,", $reportController);

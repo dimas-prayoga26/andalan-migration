@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\View\Composers\AttendanceProfileComposer;
+use App\View\Composers\SidebarPermissionComposer;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -26,5 +27,7 @@ class AppServiceProvider extends ServiceProvider
             'staff_attendance.layouts.profile-header',
             'staff_attendance.components.card-analytics',
         ], AttendanceProfileComposer::class);
+
+        View::composer('layouts.sidebar', SidebarPermissionComposer::class);
     }
 }

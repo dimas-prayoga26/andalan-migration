@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\StaffAttendance;
 
+use App\Http\Controllers\Controller;
 use App\Models\BusinessTripLifecycleLog;
 use Illuminate\Http\Request;
 

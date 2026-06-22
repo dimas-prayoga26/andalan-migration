@@ -740,7 +740,7 @@ var Gymove = function(){
 	
 	var handelBootstrapSelect = function(){
 		/* Bootstrap Select box function by  = bootstrap-select.min.js */ 
-		jQuery('select').selectpicker();
+		jQuery('select').not('.js-skip-selectpicker').selectpicker();
 		/* Bootstrap Select box function by  = bootstrap-select.min.js end*/
 	}	
 

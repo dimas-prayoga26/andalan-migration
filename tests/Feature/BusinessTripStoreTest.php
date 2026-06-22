@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\AttendanceBusinessTripController;
+use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripController;
 use App\Models\BusinessTrip;
 use App\Models\Employee;
 use App\Models\User;
@@ -20,7 +20,7 @@ class BusinessTripStoreTest extends TestCase
     {
         $storeRoute = Route::getRoutes()->getByName('attendance.business-trips.store');
         $createView = File::get(resource_path('views/staff_attendance/business-trips/create.blade.php'));
-        $controller = File::get(app_path('Http/Controllers/AttendanceBusinessTripController.php'));
+        $controller = File::get(app_path('Http/Controllers/StaffAttendance/AttendanceBusinessTripController.php'));
 
         $this->assertNotNull($storeRoute);
         $this->assertSame('POST', implode('|', $storeRoute->methods()));

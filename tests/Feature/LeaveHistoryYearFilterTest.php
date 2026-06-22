@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\AttendanceLeaveRequestController;
+use App\Http\Controllers\StaffAttendance\AttendanceLeaveRequestController;
 use App\Models\LeaveRequest;
 use App\Models\LeaveRequestHistory;
 use Illuminate\Support\Carbon;
@@ -153,7 +153,7 @@ class LeaveHistoryYearFilterTest extends TestCase
     {
         $leaveRequestView = File::get(resource_path('views/staff_attendance/leave-requests/index.blade.php'));
         $leaveHistoryListCardsPartial = File::get(resource_path('views/staff_attendance/leave-requests/partials/history-list-cards.blade.php'));
-        $leaveRequestController = File::get(app_path('Http/Controllers/AttendanceLeaveRequestController.php'));
+        $leaveRequestController = File::get(app_path('Http/Controllers/StaffAttendance/AttendanceLeaveRequestController.php'));
         $leaveRequestModel = File::get(app_path('Models/LeaveRequest.php'));
         $leaveSubTypeModel = File::get(app_path('Models/LeaveSubType.php'));
         $routes = File::get(base_path('routes/web.php'));
@@ -310,7 +310,7 @@ class LeaveHistoryYearFilterTest extends TestCase
     {
         $leaveRequestView = File::get(resource_path('views/staff_attendance/leave-requests/index.blade.php'));
         $leaveHistoryListCardsPartial = File::get(resource_path('views/staff_attendance/leave-requests/partials/history-list-cards.blade.php'));
-        $leaveRequestController = File::get(app_path('Http/Controllers/AttendanceLeaveRequestController.php'));
+        $leaveRequestController = File::get(app_path('Http/Controllers/StaffAttendance/AttendanceLeaveRequestController.php'));
         $leaveTypeSeeder = File::get(database_path('seeders/LeaveTypeSeeder.php'));
 
         foreach ([

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\StaffAttendance;
 
+use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\AttendanceHoliday;
 use App\Models\EmployeeDeployment;
@@ -537,8 +538,7 @@ class AttendanceLeaveRequestController extends Controller
             ->map(static fn (string $roleName): string => strtolower(trim($roleName)));
 
         return $normalizedRoleNames->contains('board of directur')
-            || $normalizedRoleNames->contains('board of directors')
-            || $normalizedRoleNames->contains('supervisor');
+            || $normalizedRoleNames->contains('board of directors');
     }
 
     private function isAdminUser(?User $user): bool
@@ -550,8 +550,7 @@ class AttendanceLeaveRequestController extends Controller
         $normalizedRoleNames = $user->getRoleNames()
             ->map(static fn (string $roleName): string => strtolower(trim($roleName)));
 
-        return $normalizedRoleNames->contains('admin')
-            || $normalizedRoleNames->contains('superuser');
+        return $normalizedRoleNames->contains('superuser');
     }
 
     private function isSuperuser(?User $user): bool

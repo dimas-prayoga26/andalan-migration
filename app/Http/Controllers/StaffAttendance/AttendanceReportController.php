@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\StaffAttendance;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Attendance\AttendanceIndexRequest;
 use App\Http\Requests\Attendance\StoreAttendanceRequest;
 use App\Http\Requests\Attendance\UpdateAttendanceRequest;
@@ -772,8 +773,7 @@ class AttendanceReportController extends Controller
             ->map(fn (string $roleName): string => strtolower(trim($roleName)));
 
         return $normalizedRoleNames->contains('board of directur')
-            || $normalizedRoleNames->contains('board of directors')
-            || $normalizedRoleNames->contains('supervisor');
+            || $normalizedRoleNames->contains('board of directors');
     }
 
     private function isStaffUser(?User $user): bool

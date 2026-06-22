@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePositionPermission;
 use App\Http\Middleware\HandleControllerExceptions;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -15,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
         $middleware->web(append: [
             HandleControllerExceptions::class,
+        ]);
+        $middleware->alias([
+            'position.permission' => EnsurePositionPermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

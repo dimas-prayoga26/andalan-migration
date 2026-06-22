@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             AttendanceHolidaySeeder::class,
             LeaveSubTypeSeeder::class,
             UserSeeder::class,
+            PositionPermissionSeeder::class,
             EmployeePicAssignmentSeeder::class,
             ProjectTaskSeeder::class,
             OvertimeDeadlineTaskSeeder::class,

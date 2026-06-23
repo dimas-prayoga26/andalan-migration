@@ -153,19 +153,14 @@
     ]);
     $yearToDateOvertimeHoursSeries = array_values($yearToDateOvertimeHoursSeries ?? array_fill(0, 12, 0));
 @endphp
-@include('layouts.breadcrumb', [
-    'title' => 'Overview',
-    'current' => 'Overview',
-    'homeRoute' => 'dashboard',
-])
+
+@include('admin_attendance.layout.navbar')
 
 <div class="col-lg-12">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0">Overview</h5>
     </div>
 </div>
-
-@include('admin_attendance.layout.navbar')
 
 <div class="mb-4">
     <ul class="nav nav-pills menu-pill nav-pills-all gap-2" id="justify-tab" role="tablist">
@@ -460,6 +455,25 @@
                                 <div class="pe-3 me-auto">
                                     <h6 class="fs-16 mb-0 text-black">{{ $staff['name'] }}</h6>
                                     <span class="fs-12">{{ $staff['leave_type'] }}</span>
+                                    <div>
+                                        <button
+                                            type="button"
+                                            class="btn btn-primary light btn-xs mt-2"
+                                            data-admin-attendance-leave-details
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#{{ $staff['modal_id'] }}"
+                                            data-leave-modal-title="{{ $staff['modal_title'] }}"
+                                            data-leave-type="{{ $staff['leave_type'] }}"
+                                            data-leave-reason="{{ $staff['reason'] }}"
+                                            data-leave-duration="{{ $staff['duration'] }}"
+                                            data-leave-status="{{ $staff['status'] }}"
+                                            data-leave-status-date="{{ $staff['status_date'] }}"
+                                            data-leave-attachment-url="{{ $staff['attachment_url'] }}"
+                                            data-leave-attachment-is-image="{{ $staff['attachment_is_image'] ? '1' : '0' }}"
+                                        >
+                                            Details
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         @empty
@@ -582,7 +596,103 @@
             <!-- End - Stats -->
 
 </div>				
-                    
+
+<div class="modal fade" id="annualLeave" tabindex="-1" aria-labelledby="annualLeaveLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="annualLeaveLabel">Leave Details</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-xl-12">
+                        <h5 class="text-muted mb-0 fw-bold">Out of Office mode: ON</h5>
+                        <p class="form-label text-muted mb-3">
+                            Your leave request is approved and currently active.
+                        </p>
+                        <div class="row py-2">
+                            <div class="col-4"><span>Leave Type</span></div>
+                            <div class="col-8"><span id="annualLeaveTypeText" class="text-gray fw-semibold">-</span></div>
+                        </div>
+                        <div class="row py-2">
+                            <div class="col-4"><span>Reason</span></div>
+                            <div class="col-8"><span id="annualLeaveReasonText" class="text-gray">-</span></div>
+                        </div>
+                        <div class="row py-2">
+                            <div class="col-4"><span>Leave Duration</span></div>
+                            <div class="col-8"><span id="annualLeaveDurationText" class="text-gray fw-semibold">-</span></div>
+                        </div>
+                        <div class="row py-2">
+                            <div class="col-4"><span>Status</span></div>
+                            <div class="col-8">
+                                <span id="annualLeaveStatusText" class="text-success fw-semibold">-</span>
+                                <span id="annualLeaveStatusDateText" class="text-gray"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="sick" tabindex="-1" aria-labelledby="sickLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="sickLabel">Attendance Sick</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-xl-12">
+                        <h5 class="text-muted mb-0 fw-bold">Your health comes first</h5>
+                        <p class="form-label text-muted mb-3">
+                            Take the time needed to rest and recover.
+                        </p>
+                        <div class="row py-2">
+                            <div class="col-4"><span>Leave Type</span></div>
+                            <div class="col-8"><span id="sickTypeText" class="text-gray fw-semibold">-</span></div>
+                        </div>
+                        <div class="row py-2">
+                            <div class="col-4"><span>Reason</span></div>
+                            <div class="col-8"><span id="sickReasonText" class="text-gray">-</span></div>
+                        </div>
+                        <div class="row py-2">
+                            <div class="col-4"><span>Leave Duration</span></div>
+                            <div class="col-8"><span id="sickDurationText" class="text-gray fw-semibold">-</span></div>
+                        </div>
+                        <div class="row py-2">
+                            <div class="col-4"><span>Status</span></div>
+                            <div class="col-8">
+                                <span id="sickStatusText" class="text-success fw-semibold">-</span>
+                                <span id="sickStatusDateText" class="text-gray"></span>
+                            </div>
+                        </div>
+                        <div class="row py-2">
+                            <div class="col-4"><span>Medical Notes</span></div>
+                            <div class="col-8">
+                                <a id="sickMedicalNotesImageLink" href="#" target="_blank" rel="noopener" class="d-none">
+                                    <img id="sickMedicalNotesImage" src="" alt="Medical Notes" class="mt-2 w-100 rounded">
+                                </a>
+                                <a id="sickMedicalNotesFileLink" href="#" target="_blank" rel="noopener" class="text-primary d-none">View Medical Notes</a>
+                                <span id="sickMedicalNotesFallback" class="text-gray">No medical note attachment.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('script')
@@ -2217,4 +2327,76 @@
 
 		})(jQuery);
 	</script>
+
+    <script>
+        (function () {
+            function setLeaveModalText(elementId, value) {
+                var element = document.getElementById(elementId);
+
+                if (element) {
+                    element.textContent = value && value.trim() !== '' ? value : '-';
+                }
+            }
+
+            function setSickMedicalNotes(button) {
+                var imageLink = document.getElementById('sickMedicalNotesImageLink');
+                var image = document.getElementById('sickMedicalNotesImage');
+                var fileLink = document.getElementById('sickMedicalNotesFileLink');
+                var fallback = document.getElementById('sickMedicalNotesFallback');
+                var attachmentUrl = button.dataset.leaveAttachmentUrl || '';
+                var attachmentIsImage = button.dataset.leaveAttachmentIsImage === '1';
+
+                if (!imageLink || !image || !fileLink || !fallback) {
+                    return;
+                }
+
+                imageLink.classList.add('d-none');
+                fileLink.classList.add('d-none');
+                fallback.classList.remove('d-none');
+                fallback.textContent = 'No medical note attachment.';
+                imageLink.href = '#';
+                fileLink.href = '#';
+                image.src = '';
+
+                if (attachmentUrl === '') {
+                    return;
+                }
+
+                if (attachmentIsImage) {
+                    imageLink.href = attachmentUrl;
+                    image.src = attachmentUrl;
+                    imageLink.classList.remove('d-none');
+                } else {
+                    fileLink.href = attachmentUrl;
+                    fileLink.classList.remove('d-none');
+                }
+
+                fallback.classList.add('d-none');
+            }
+
+            document.querySelectorAll('[data-admin-attendance-leave-details]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var modalId = (button.dataset.bsTarget || '').replace('#', '');
+                    var isSickLeave = modalId === 'sick';
+                    var prefix = isSickLeave ? 'sick' : 'annualLeave';
+
+                    setLeaveModalText(prefix + 'Label', button.dataset.leaveModalTitle);
+                    setLeaveModalText(prefix + 'TypeText', button.dataset.leaveType);
+                    setLeaveModalText(prefix + 'ReasonText', button.dataset.leaveReason);
+                    setLeaveModalText(prefix + 'DurationText', button.dataset.leaveDuration);
+                    setLeaveModalText(prefix + 'StatusText', button.dataset.leaveStatus);
+
+                    var statusDateElement = document.getElementById(prefix + 'StatusDateText');
+                    if (statusDateElement) {
+                        var statusDate = button.dataset.leaveStatusDate || '';
+                        statusDateElement.textContent = statusDate !== '' ? 'on ' + statusDate : '';
+                    }
+
+                    if (isSickLeave) {
+                        setSickMedicalNotes(button);
+                    }
+                });
+            });
+        })();
+    </script>
 @endsection

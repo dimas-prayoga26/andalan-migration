@@ -8,6 +8,9 @@ Tanggal: 2026-06-22 WIB
 - Menyesuaikan halaman Authorization agar list employee dan assign permission menjadi halaman/tab terpisah secara file, bukan sub-menu sidebar.
 - Mengubah Admin Attendance Overview agar data daily, weekly, monthly, dan year-to-date berasal dari database secara dinamis.
 - Merapikan tampilan chart dan kartu overview agar konsisten, tidak memakai data dummy, dan tidak menampilkan axis decimal.
+- Menambahkan route recap attendance dan menghubungkan tab Attendance pada navbar Admin Attendance ke halaman recap.
+- Menambahkan route detail employee recap dan menghubungkan tombol View More pada recap attendance ke halaman tersebut.
+- Membersihkan asset, variabel, dan script chart Overview yang tidak dipakai dari halaman recap attendance.
 
 ## Authorization
 
@@ -48,6 +51,8 @@ Tanggal: 2026-06-22 WIB
 - Card `Today's Running Late` mengambil data attendance terlambat dari database.
 - Card `On Business Trip` mengambil business trip approved yang aktif pada tanggal tersebut.
 - Card `Days on Leave (Time Off)` mengambil leave request approved yang aktif pada tanggal tersebut.
+- Tombol Details pada card Days on Leave membuka modal `sick` untuk Sick Leave dan modal `annualLeave` untuk semua leave type lainnya.
+- Modal Details menampilkan type, reason, duration, status, approval date, dan medical note untuk Sick Leave bila attachment tersedia.
 - Dummy staff seperti `John Doe`, image broken, dan tombol `View more` dihapus dari kartu daily.
 - Empty state ditambahkan untuk setiap kartu ketika tidak ada data.
 - Avatar inisial pada kartu daily dibuat lingkaran penuh 48x48px dengan border tipis.
@@ -99,6 +104,27 @@ Tanggal: 2026-06-22 WIB
 - Label `0` pada Y-axis disembunyikan untuk tampilan yang lebih bersih.
 - Helper JavaScript ditambahkan untuk format axis integer pada ApexCharts dan Chart.js.
 - Chart tetap memakai data asli; perubahan hanya pada format tampilan axis.
+
+## Admin Attendance Recap - Attendance Logs
+
+- Attendance Logs harian pada menu Attendance sekarang mengambil data aktual berdasarkan tanggal hari ini dan company akun yang sedang login.
+- Baris attendance menampilkan clock in, clock out, note, dan working hours dari tabel `attendances`.
+- Lokasi clock in diambil dari `attendance_logs` dengan `type = 1` dan ditampilkan pada modal detail beserta peta bila koordinat tersedia.
+- Attendance exception berstatus approved memakai modal `attendanceDeviationModal` dan menampilkan type, reason, time variance, serta status dari tabel `attendance_exceptions`.
+- Leave request approved yang aktif pada tanggal tersebut memakai `attendanceLeaveDetailModal`; Sick Leave memakai `attendanceSickLeaveDetailModal`.
+- Modal leave menampilkan type, reason, duration, status, approval date, dan attachment bila tersedia.
+- ID modal lama `clockInAdmin`, `deviation`, dan `annualLeave` pada halaman recap diganti dengan ID yang menjelaskan fungsinya.
+
+## Admin Attendance Recap - Monthly
+
+- Attendance Logs Monthly sekarang menampilkan rekap database per employee pada company akun yang login.
+- Filter bulan dan tahun memakai query string pada halaman recap.
+- Rekap mencakup working days, working hours, on time, late, leave, deviation, alpha, business trip, overtime, dan leave pada tahun terpilih.
+- Hari kerja hanya Senin-Jumat serta mengecualikan holiday pada tabel `attendances_holidays`.
+- Untuk bulan berjalan, rekap berhenti pada tanggal hari ini agar hari mendatang tidak dihitung sebagai Alpha.
+- Tombol View More meneruskan employee, bulan, dan tahun ke detail attendance employee.
+- Detail employee hanya dapat dibuka untuk employee pada company akun yang login.
+- Profil, metric cards, chart Days Worked, On Time, Late, Monthly Hours, Overtime, dan tabel attendance detail mengambil data dari database untuk periode yang sama.
 
 ## File Perubahan Utama
 

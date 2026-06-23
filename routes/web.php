@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ActivityScheduleController;
 use App\Http\Controllers\AdminAttendance\AttendanceOverviewController as AdminAttendanceOverviewController;
+use App\Http\Controllers\AdminAttendance\AttendanceRecapController as AdminAttendanceRecapController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuthorizationController;
 use App\Http\Controllers\DashboardController;
@@ -84,6 +85,18 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/admin-attendance/overview', [AdminAttendanceOverviewController::class, 'index'])
         ->middleware('position.permission:view-admin-attendance')
         ->name('admin-attendance.overview');
+    Route::get('/admin-attendance/recap-attendance/datatable', [AdminAttendanceRecapController::class, 'monthlyDatatable'])
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.recap.monthly-datatable');
+    Route::get('/admin-attendance/recap-attendance', [AdminAttendanceRecapController::class, 'index'])
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.recap');
+    Route::get('/admin-attendance/recap-attendance/{employee}/datatable', [AdminAttendanceRecapController::class, 'employeeDetailsDatatable'])
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.recap.detail-employees.datatable');
+    Route::get('/admin-attendance/recap-attendance/{employee}', [AdminAttendanceRecapController::class, 'employeeDetails'])
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.recap.detail-employees');
 
     // Attendance check-in and check-out
     Route::resource('attendance', AttendanceController::class)

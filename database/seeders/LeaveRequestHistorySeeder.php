@@ -41,6 +41,7 @@ class LeaveRequestHistorySeeder extends Seeder
             }
 
             $staffUser = User::query()
+                ->where('username', 'staff31')
                 ->whereHas('roles', function ($query): void {
                     $query->whereRaw('LOWER(name) = ?', ['staff']);
                 })
@@ -72,7 +73,6 @@ class LeaveRequestHistorySeeder extends Seeder
             }
 
             $supervisorActorUserId = (string) $boardUsers->first()->id;
-            $hrActorUserId = (string) ($boardUsers->skip(1)->first()->id ?? $supervisorActorUserId);
 
             $leaveTypeIdsByCode = LeaveType::query()
                 ->whereIn(DB::raw('LOWER(code)'), ['annual', 'sick', 'special', 'unpaid'])
@@ -183,7 +183,7 @@ class LeaveRequestHistorySeeder extends Seeder
                             'event_type' => 'supervisor_review',
                             'title' => 'Supervisor Review',
                             'from_status' => 'pending',
-                            'to_status' => 'complete',
+                            'to_status' => 'approved',
                             'actor_user_id' => $supervisorActorUserId,
                             'happened_at' => $sickLeaveDate->copy()->setTime(9, 10, 0),
                         ],
@@ -213,17 +213,9 @@ class LeaveRequestHistorySeeder extends Seeder
                             'event_type' => 'supervisor_review',
                             'title' => 'Supervisor Review',
                             'from_status' => 'pending',
-                            'to_status' => 'complete',
+                            'to_status' => 'approved',
                             'actor_user_id' => $supervisorActorUserId,
                             'happened_at' => $unpaidLeaveDate->copy()->setTime(9, 20, 0),
-                        ],
-                        [
-                            'event_type' => 'hr_verification',
-                            'title' => 'HR Verification (Pending)',
-                            'from_status' => 'pending',
-                            'to_status' => 'pending',
-                            'actor_user_id' => $hrActorUserId,
-                            'happened_at' => $unpaidLeaveDate->copy()->setTime(11, 30, 0),
                         ],
                     ],
                 ],
@@ -234,7 +226,6 @@ class LeaveRequestHistorySeeder extends Seeder
                     ->pluck('reason')
                     ->all();
                 $legacySeededLeaveRequestIds = LeaveRequest::query()
-                    ->where('employee_id', $staffEmployeeId)
                     ->where(function ($query) use ($seedReasons): void {
                         $query
                             ->whereIn('reason', $seedReasons)

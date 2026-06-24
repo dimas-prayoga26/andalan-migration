@@ -71,7 +71,7 @@ class LeaveHistoryYearFilterTest extends TestCase
                 new LeaveRequestHistory([
                     'event_type' => 'supervisor_review',
                     'title' => 'Supervisor Review',
-                    'to_status' => 'complete',
+                    'to_status' => 'approved',
                     'happened_at' => Carbon::parse('2026-06-15 09:00:00', 'Asia/Jakarta'),
                 ]),
             ]),
@@ -94,7 +94,7 @@ class LeaveHistoryYearFilterTest extends TestCase
                 new LeaveRequestHistory([
                     'event_type' => 'supervisor_review',
                     'title' => 'Supervisor Review',
-                    'to_status' => 'complete',
+                    'to_status' => 'approved',
                     'happened_at' => Carbon::parse('2026-06-15 09:00:00', 'Asia/Jakarta'),
                 ]),
                 new LeaveRequestHistory([
@@ -125,14 +125,14 @@ class LeaveHistoryYearFilterTest extends TestCase
         return $leaveRequest;
     }
 
-    public function test_leave_request_is_locked_after_supervisor_review_is_complete(): void
+    public function test_leave_request_is_locked_after_supervisor_review_is_approved(): void
     {
-        $completedLeaveRequest = new LeaveRequest;
-        $completedLeaveRequest->setRelation('histories', collect([
+        $approvedLeaveRequest = new LeaveRequest;
+        $approvedLeaveRequest->setRelation('histories', collect([
             new LeaveRequestHistory([
                 'event_type' => 'supervisor_review',
                 'title' => 'Supervisor Review',
-                'to_status' => 'complete',
+                'to_status' => 'approved',
             ]),
         ]));
 
@@ -145,8 +145,8 @@ class LeaveHistoryYearFilterTest extends TestCase
             ]),
         ]));
 
-        $this->assertTrue($completedLeaveRequest->hasCompletedSupervisorReview());
-        $this->assertFalse($pendingLeaveRequest->hasCompletedSupervisorReview());
+        $this->assertTrue($approvedLeaveRequest->hasApprovedSupervisorReview());
+        $this->assertFalse($pendingLeaveRequest->hasApprovedSupervisorReview());
     }
 
     public function test_leave_history_year_filter_is_removed_from_view_and_controller(): void
@@ -158,7 +158,7 @@ class LeaveHistoryYearFilterTest extends TestCase
         $leaveSubTypeModel = File::get(app_path('Models/LeaveSubType.php'));
         $routes = File::get(base_path('routes/web.php'));
         $leaveRequestUpdateMigration = File::get(database_path('migrations/2026_06_09_080747_add_handover_notes_to_leave_requests_table.php'));
-        $leaveRequestHistoryCompleteMigration = File::get(database_path('migrations/2026_06_15_081539_add_complete_status_to_leave_request_histories_table.php'));
+        $leaveRequestHistoryRemoveCompleteMigration = File::get(collect(File::glob(database_path('migrations/*_remove_complete_status_from_leave_request_histories_table.php')))->first());
 
         $this->assertFileDoesNotExist(resource_path('views/staff_attendance/leave-requests/partials/history-cards.blade.php'));
         $this->assertFileDoesNotExist(resource_path('views/staff_attendance/leave-requests/partials/request-cards.blade.php'));
@@ -281,17 +281,24 @@ class LeaveHistoryYearFilterTest extends TestCase
         $this->assertStringContainsString('private function canDeletePermissionRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool', $leaveRequestController);
         $this->assertStringContainsString('private function canStaffManageOwnLeaveRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool', $leaveRequestController);
         $this->assertStringContainsString('if ($this->isAdminUser($authenticatedUser) || $this->isBoardOfDirectur($authenticatedUser)) {', $leaveRequestController);
-        $this->assertStringContainsString("'can_view' => ! \$hasCompletedSupervisorReview,", $leaveRequestController);
+        $this->assertStringContainsString("'can_view' => ! \$hasApprovedSupervisorReview,", $leaveRequestController);
         $this->assertStringContainsString("'can_update' => \$this->canUpdatePermissionRequest(\$authenticatedUser, \$leaveRequest),", $leaveRequestController);
         $this->assertStringContainsString("'can_delete' => \$this->canDeletePermissionRequest(\$authenticatedUser, \$leaveRequest),", $leaveRequestController);
-        $this->assertStringContainsString('if ($leaveRequest->hasCompletedSupervisorReview()) {', $leaveRequestController);
-        $this->assertStringContainsString('Supervisor Review sudah complete.', $leaveRequestController);
-        $this->assertStringContainsString('public function hasCompletedSupervisorReview(): bool', $leaveRequestModel);
+        $this->assertStringContainsString('if ($leaveRequest->hasApprovedSupervisorReview()) {', $leaveRequestController);
+        $this->assertStringContainsString('Supervisor Review sudah approved.', $leaveRequestController);
+        $this->assertStringContainsString('public function hasApprovedSupervisorReview(): bool', $leaveRequestModel);
         $this->assertStringContainsString("\$normalizedEventType === 'supervisor_review'", $leaveRequestModel);
-        $this->assertStringContainsString("\$normalizedStatus === 'complete'", $leaveRequestModel);
+        $this->assertStringContainsString("\$normalizedStatus === 'approved'", $leaveRequestModel);
         $this->assertStringContainsString("->where('event_type', 'supervisor_review')", $leaveRequestModel);
-        $this->assertStringContainsString("->where('to_status', 'complete')", $leaveRequestModel);
-        $this->assertStringContainsString("'complete']", $leaveRequestHistoryCompleteMigration);
+        $this->assertStringContainsString("->where('to_status', 'approved')", $leaveRequestModel);
+        $this->assertStringContainsString("->where('to_status', 'complete')", $leaveRequestHistoryRemoveCompleteMigration);
+        $this->assertStringContainsString("->update(['to_status' => 'approved'])", $leaveRequestHistoryRemoveCompleteMigration);
+        $this->assertStringContainsString("->where('from_status', 'refused')", $leaveRequestHistoryRemoveCompleteMigration);
+        $this->assertStringContainsString("->update(['from_status' => 'rejected'])", $leaveRequestHistoryRemoveCompleteMigration);
+        $this->assertStringContainsString("->where('to_status', 'refused')", $leaveRequestHistoryRemoveCompleteMigration);
+        $this->assertStringContainsString("->update(['to_status' => 'rejected'])", $leaveRequestHistoryRemoveCompleteMigration);
+        $this->assertStringContainsString("['pending', 'approved', 'rejected']", $leaveRequestHistoryRemoveCompleteMigration);
+        $this->assertStringContainsString('private function normalizeLeaveRequestHistoryStatus(?string $status): ?string', $leaveRequestController);
         $this->assertStringContainsString("'employee_id',", $leaveRequestController);
         $this->assertStringContainsString("'special_leave_sub_type_id' => ['nullable', 'exists:leave_sub_types,id']", $leaveRequestController);
         $this->assertStringContainsString("'handover_notes' => ['nullable', 'string', 'max:5000']", $leaveRequestController);

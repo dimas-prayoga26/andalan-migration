@@ -48,23 +48,23 @@ class LeaveRequest extends Model
         return $this->hasMany(LeaveRequestHistory::class, 'leave_request_id', 'id');
     }
 
-    public function hasCompletedSupervisorReview(): bool
+    public function hasApprovedSupervisorReview(): bool
     {
-        $isCompletedSupervisorReview = static function (LeaveRequestHistory $history): bool {
+        $isApprovedSupervisorReview = static function (LeaveRequestHistory $history): bool {
             $normalizedEventType = is_string($history->event_type) ? strtolower(trim($history->event_type)) : '';
             $normalizedStatus = is_string($history->to_status) ? strtolower(trim($history->to_status)) : '';
 
             return $normalizedEventType === 'supervisor_review'
-                && $normalizedStatus === 'complete';
+                && $normalizedStatus === 'approved';
         };
 
         if ($this->relationLoaded('histories')) {
-            return $this->histories->contains($isCompletedSupervisorReview);
+            return $this->histories->contains($isApprovedSupervisorReview);
         }
 
         return $this->histories()
             ->where('event_type', 'supervisor_review')
-            ->where('to_status', 'complete')
+            ->where('to_status', 'approved')
             ->exists();
     }
 }

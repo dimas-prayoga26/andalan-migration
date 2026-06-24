@@ -9,62 +9,6 @@
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
     <style>
-        @media (max-width: 767.98px) {
-            .attendance-rate-mobile-slider {
-                display: flex;
-                flex-wrap: nowrap;
-                gap: 12px;
-                overflow-x: auto;
-                scroll-snap-type: x mandatory;
-                -ms-overflow-style: none;
-                scrollbar-width: none;
-            }
-
-            .attendance-rate-mobile-slider::-webkit-scrollbar {
-                display: none;
-                width: 0;
-                height: 0;
-            }
-
-            .attendance-rate-mobile-slide {
-                flex: 0 0 100%;
-                width: 100%;
-                max-width: 100%;
-                scroll-snap-align: start;
-            }
-        }
-
-        .admin-attendance-person-avatar {
-            align-items: center;
-            aspect-ratio: 1 / 1;
-            background: #eef3ff;
-            border: 1px solid #d8e0ef;
-            border-radius: 50% !important;
-            box-sizing: border-box;
-            color: #0b2a97;
-            display: inline-flex !important;
-            flex: 0 0 48px !important;
-            font-size: 14px;
-            font-weight: 700;
-            height: 48px !important;
-            justify-content: center;
-            max-height: 48px;
-            max-width: 48px;
-            min-height: 48px;
-            min-width: 48px !important;
-            width: 48px !important;
-        }
-
-        .admin-attendance-empty {
-            align-items: center;
-            color: #8b8b9a;
-            display: flex;
-            font-size: 13px;
-            min-height: 160px;
-            justify-content: center;
-            text-align: center;
-        }
-
         .admin-attendance-detail-avatar {
             align-items: center;
             aspect-ratio: 1 / 1;
@@ -84,37 +28,6 @@
             height: 100%;
             object-fit: cover;
             width: 100%;
-        }
-
-        @media (min-width: 768px) {
-            .admin-attendance-overview-column {
-                display: flex;
-            }
-
-            .admin-attendance-overview-column > .row {
-                flex: 1;
-            }
-
-            .admin-attendance-overview-column > .row > [class*="col-"] {
-                display: flex;
-            }
-
-            .admin-attendance-overview-card {
-                display: flex;
-                flex-direction: column;
-                min-height: 430px;
-                width: 100%;
-            }
-
-            .admin-attendance-overview-card > .card-body {
-                flex: 1;
-            }
-
-            .admin-attendance-summary-card > .card-body {
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-            }
         }
     </style>
 @endsection

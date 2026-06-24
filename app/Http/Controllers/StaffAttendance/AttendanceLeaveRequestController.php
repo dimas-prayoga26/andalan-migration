@@ -270,10 +270,10 @@ class AttendanceLeaveRequestController extends Controller
             ], 403);
         }
 
-        if ($leaveRequest->hasCompletedSupervisorReview()) {
+        if ($leaveRequest->hasApprovedSupervisorReview()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Data izin tidak dapat diubah karena Supervisor Review sudah complete.',
+                'message' => 'Data izin tidak dapat diubah karena Supervisor Review sudah approved.',
             ], 422);
         }
 
@@ -622,7 +622,7 @@ class AttendanceLeaveRequestController extends Controller
     private function canUpdatePermissionRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
     {
         return $this->canStaffManageOwnLeaveRequest($authenticatedUser, $leaveRequest)
-            && ! $leaveRequest->hasCompletedSupervisorReview();
+            && ! $leaveRequest->hasApprovedSupervisorReview();
     }
 
     private function canStaffManageOwnLeaveRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
@@ -830,11 +830,11 @@ class AttendanceLeaveRequestController extends Controller
             $detailLeaveType = $isSickLeave ? 'Sick Leave' : $leaveTypeName;
             $modalTitle = $isSickLeave ? 'Attendance Sick' : $leaveTypeName;
             $attachmentPath = is_string($leaveRequest->attachment_path) ? trim($leaveRequest->attachment_path) : '';
-            $hasCompletedSupervisorReview = $leaveRequest->hasCompletedSupervisorReview();
+            $hasApprovedSupervisorReview = $leaveRequest->hasApprovedSupervisorReview();
 
             return [
                 'id' => (string) $leaveRequest->id,
-                'can_view' => ! $hasCompletedSupervisorReview,
+                'can_view' => ! $hasApprovedSupervisorReview,
                 'can_update' => $this->canUpdatePermissionRequest($authenticatedUser, $leaveRequest),
                 'can_delete' => $this->canDeletePermissionRequest($authenticatedUser, $leaveRequest),
                 'leave_type_id' => (string) $leaveRequest->leave_type_id,
@@ -1043,8 +1043,8 @@ class AttendanceLeaveRequestController extends Controller
         $hrVerificationStatus = $this->leaveTimelineHistoryStatus($hrVerificationHistory);
         $currentPendingStep = match (true) {
             in_array($status, ['approved', 'rejected', 'refused'], true) => null,
-            ! in_array($supervisorReviewStatus, ['complete', 'approved'], true) => 'supervisor_review',
-            ! in_array($hrVerificationStatus, ['complete', 'approved'], true) => 'hr_verification',
+            $supervisorReviewStatus !== 'approved' => 'supervisor_review',
+            $hrVerificationStatus !== 'approved' => 'hr_verification',
             default => 'final_decision',
         };
 
@@ -1140,7 +1140,7 @@ class AttendanceLeaveRequestController extends Controller
         }
 
         return match ($this->leaveTimelineHistoryStatus($history)) {
-            'complete', 'approved' => 'border-success',
+            'approved' => 'border-success',
             'pending' => 'border-warning',
             'rejected', 'refused' => 'border-danger',
             default => 'border-dark',
@@ -1591,12 +1591,8 @@ class AttendanceLeaveRequestController extends Controller
         ?string $actorUserId = null,
         ?array $metadata = null
     ): void {
-        $normalizedFromStatus = is_string($fromStatus) && in_array($fromStatus, ['pending', 'approved', 'refused', 'rejected'], true)
-            ? $fromStatus
-            : null;
-        $normalizedToStatus = is_string($toStatus) && in_array($toStatus, ['pending', 'approved', 'refused', 'rejected', 'complete'], true)
-            ? $toStatus
-            : null;
+        $normalizedFromStatus = $this->normalizeLeaveRequestHistoryStatus($fromStatus);
+        $normalizedToStatus = $this->normalizeLeaveRequestHistoryStatus($toStatus);
 
         LeaveRequestHistory::query()->create([
             'leave_request_id' => $leaveRequest->id,
@@ -1609,6 +1605,17 @@ class AttendanceLeaveRequestController extends Controller
             'metadata' => $metadata,
             'happened_at' => now('Asia/Jakarta'),
         ]);
+    }
+
+    private function normalizeLeaveRequestHistoryStatus(?string $status): ?string
+    {
+        $normalizedStatus = is_string($status) ? strtolower(trim($status)) : '';
+
+        return match ($normalizedStatus) {
+            'pending', 'approved', 'rejected' => $normalizedStatus,
+            'refused' => 'rejected',
+            default => null,
+        };
     }
 
     private function publicDisk(): FilesystemAdapter

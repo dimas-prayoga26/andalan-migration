@@ -9,13 +9,13 @@
                 <a href="{{ route('admin-attendance.recap') }}" class="nav-link py-3 px-1 border-3 {{ request()->routeIs('admin-attendance.recap*') ? 'active' : '' }}">Attendance</a>
             </li>
             <li class="nav-item" role="presentation">
-                <a href="hr-attendance-leave.html" class="nav-link py-3 px-1 border-3">Leave</a>
+                <a href="{{ route('admin-attendance.leave') }}" class="nav-link py-3 px-1 border-3 {{ request()->routeIs('admin-attendance.leave*') ? 'active' : '' }}">Leave</a>
             </li>
             <li class="nav-item" role="presentation">
-                <a href="hr-attendance-business-trip.html" class="nav-link py-3 px-1 border-3">Business Trip</a>
+                <a href="{{ route('admin-attendance.business-trip') }}" class="nav-link py-3 px-1 border-3 {{ request()->routeIs('admin-attendance.business-trip*') ? 'active' : '' }}">Business Trip</a>
             </li>
             <li class="nav-item" role="presentation">
-                <a href="hr-attendance-overtime.html" class="nav-link py-3 px-1 border-3">Overtime</a>
+                <a href="{{ route('admin-attendance.overtime') }}" class="nav-link py-3 px-1 border-3 {{ request()->routeIs('admin-attendance.overtime*') ? 'active' : '' }}">Overtime</a>
             </li>
         </ul>
     </div>

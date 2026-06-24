@@ -33,4 +33,9 @@ class LeaveType extends Model
     {
         return $this->hasMany(LeaveRequest::class, 'leave_type_id', 'id');
     }
+
+    public function subTypes(): HasMany
+    {
+        return $this->hasMany(LeaveSubType::class, 'leave_type_id', 'id');
+    }
 }

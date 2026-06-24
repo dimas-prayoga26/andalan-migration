@@ -35,8 +35,9 @@ class DatabaseSeeder extends Seeder
             EmployeeOrganizationSeeder::class,
             EmployeeBankAccountSeeder::class,
             EmployeeAddressSeeder::class,
-            LeaveBalanceSeeder::class,
             LeaveRequestHistorySeeder::class,
+            LeaveRequestFinalApprovedSeeder::class,
+            LeaveBalanceSeeder::class,
         ];
 
         foreach ($seeders as $seederClass) {

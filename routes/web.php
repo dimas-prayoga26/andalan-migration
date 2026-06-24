@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityScheduleController;
+use App\Http\Controllers\AdminAttendance\AttendanceLeaveController as AdminAttendanceLeaveController;
 use App\Http\Controllers\AdminAttendance\AttendanceOverviewController as AdminAttendanceOverviewController;
 use App\Http\Controllers\AdminAttendance\AttendanceRecapController as AdminAttendanceRecapController;
 use App\Http\Controllers\AuthController;
@@ -85,6 +86,33 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/admin-attendance/overview', [AdminAttendanceOverviewController::class, 'index'])
         ->middleware('position.permission:view-admin-attendance')
         ->name('admin-attendance.overview');
+    Route::get('/admin-attendance/leave', [AdminAttendanceLeaveController::class, 'index'])
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.leave');
+    Route::get('/admin-attendance/leave/pending-datatable', [AdminAttendanceLeaveController::class, 'pendingDatatable'])
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.leave.pending-datatable');
+    Route::get('/admin-attendance/leave/approved-datatable', [AdminAttendanceLeaveController::class, 'approvedDatatable'])
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.leave.approved-datatable');
+    Route::get('/admin-attendance/leave/detail/{uid}', [AdminAttendanceLeaveController::class, 'detail'])
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.leave.detail');
+    Route::put('/admin-attendance/leave/detail/{uid}/approval', [AdminAttendanceLeaveController::class, 'updateApproval'])
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.leave.approval.update');
+    Route::view('/admin-attendance/business-trip', 'admin_attendance.business_trip.index')
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.business-trip');
+    Route::view('/admin-attendance/business-trip/detail', 'admin_attendance.business_trip.detail')
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.business-trip.detail');
+    Route::view('/admin-attendance/overtime', 'admin_attendance.overtime.index')
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.overtime');
+    Route::view('/admin-attendance/overtime/detail', 'admin_attendance.overtime.detail')
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.overtime.detail');
     Route::get('/admin-attendance/recap-attendance/datatable', [AdminAttendanceRecapController::class, 'monthlyDatatable'])
         ->middleware('position.permission:view-admin-attendance')
         ->name('admin-attendance.recap.monthly-datatable');

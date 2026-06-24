@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\AdminAttendance\AttendanceLeaveController;
 use App\Http\Controllers\AdminAttendance\AttendanceOverviewController;
 use App\Http\Controllers\AdminAttendance\AttendanceRecapController;
 use Illuminate\Support\Facades\File;
@@ -18,13 +19,34 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $monthlyDatatableRoute = Route::getRoutes()->getByName('admin-attendance.recap.monthly-datatable');
         $detailRoute = Route::getRoutes()->getByName('admin-attendance.recap.detail-employees');
         $detailDatatableRoute = Route::getRoutes()->getByName('admin-attendance.recap.detail-employees.datatable');
+        $leaveRoute = Route::getRoutes()->getByName('admin-attendance.leave');
+        $leavePendingDatatableRoute = Route::getRoutes()->getByName('admin-attendance.leave.pending-datatable');
+        $leaveApprovedDatatableRoute = Route::getRoutes()->getByName('admin-attendance.leave.approved-datatable');
+        $leaveDetailRoute = Route::getRoutes()->getByName('admin-attendance.leave.detail');
+        $businessTripRoute = Route::getRoutes()->getByName('admin-attendance.business-trip');
+        $businessTripDetailRoute = Route::getRoutes()->getByName('admin-attendance.business-trip.detail');
+        $overtimeRoute = Route::getRoutes()->getByName('admin-attendance.overtime');
+        $overtimeDetailRoute = Route::getRoutes()->getByName('admin-attendance.overtime.detail');
         $overviewController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceOverviewController.php'));
         $recapController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceRecapController.php'));
+        $leaveController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceLeaveController.php'));
 
         $this->assertSame(AttendanceOverviewController::class.'@index', $overviewRoute?->getActionName());
         $this->assertSame(AttendanceRecapController::class.'@index', $recapRoute?->getActionName());
         $this->assertSame(AttendanceRecapController::class.'@monthlyDatatable', $monthlyDatatableRoute?->getActionName());
         $this->assertSame(AttendanceRecapController::class.'@employeeDetails', $detailRoute?->getActionName());
+        $this->assertSame(AttendanceLeaveController::class.'@index', $leaveRoute?->getActionName());
+        $this->assertSame(AttendanceLeaveController::class.'@pendingDatatable', $leavePendingDatatableRoute?->getActionName());
+        $this->assertSame(AttendanceLeaveController::class.'@approvedDatatable', $leaveApprovedDatatableRoute?->getActionName());
+        $this->assertSame(AttendanceLeaveController::class.'@detail', $leaveDetailRoute?->getActionName());
+        $this->assertSame('admin-attendance/leave', $leaveRoute?->uri());
+        $this->assertSame('admin-attendance/leave/pending-datatable', $leavePendingDatatableRoute?->uri());
+        $this->assertSame('admin-attendance/leave/approved-datatable', $leaveApprovedDatatableRoute?->uri());
+        $this->assertSame('admin-attendance/leave/detail/{uid}', $leaveDetailRoute?->uri());
+        $this->assertSame('admin-attendance/business-trip', $businessTripRoute?->uri());
+        $this->assertSame('admin-attendance/business-trip/detail', $businessTripDetailRoute?->uri());
+        $this->assertSame('admin-attendance/overtime', $overtimeRoute?->uri());
+        $this->assertSame('admin-attendance/overtime/detail', $overtimeDetailRoute?->uri());
         $this->assertSame('admin-attendance/recap-attendance/datatable', $monthlyDatatableRoute?->uri());
         $this->assertSame(AttendanceRecapController::class.'@employeeDetailsDatatable', $detailDatatableRoute?->getActionName());
         $this->assertSame('admin-attendance/recap-attendance/{employee}', $detailRoute?->uri());
@@ -43,9 +65,40 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString("'recapDetailMonth' => \$detailContext['month']", $recapController);
         $this->assertStringContainsString('recapAttendanceLogRows', $recapController);
         $this->assertStringContainsString('recapMonthlyRows', $recapController);
+        $this->assertStringContainsString("'leaveOverviewStats' => \$this->leaveOverviewStatsFor(\$request)", $leaveController);
+        $this->assertStringContainsString("'leavePendingCards' => \$this->pendingLeaveCardsFor(\$request, \$selectedPeriod)", $leaveController);
+        $this->assertStringContainsString("'leaveGridPositionGroups' => \$this->leaveGridPositionGroupsFor(\$request, \$selectedPeriod)", $leaveController);
+        $this->assertStringContainsString('private function pendingLeaveCardsFor(Request $request, array $selectedPeriod): Collection', $leaveController);
+        $this->assertStringContainsString('private function leaveGridPositionGroupsFor(Request $request, array $selectedPeriod): Collection', $leaveController);
+        $this->assertStringContainsString('current_position_id', $leaveController);
+        $this->assertStringContainsString('pendingDatatable', $leaveController);
+        $this->assertStringContainsString('approvedDatatable', $leaveController);
+        $this->assertStringContainsString('leaveRequestsDatatable', $leaveController);
+        $this->assertStringContainsString('countSupervisorApprovedPendingLeaveRequests', $leaveController);
+        $this->assertStringContainsString('applySupervisorApprovedReviewFilter', $leaveController);
+        $this->assertStringContainsString("->whereHas('histories'", $leaveController);
+        $this->assertStringContainsString("->where('event_type', 'supervisor_review')", $leaveController);
+        $this->assertStringContainsString("->where('to_status', 'approved')", $leaveController);
+        $this->assertStringContainsString("DB::table('employee_pic_assignments')", $leaveController);
+        $this->assertStringContainsString("->where('staff_employee_id', \$staffEmployeeId)", $leaveController);
+        $this->assertStringContainsString("->value('supervisor_employee_id')", $leaveController);
+        $this->assertStringContainsString('leaveBalanceCardsFor', $leaveController);
+        $this->assertStringContainsString('leaveTrackerFor', $leaveController);
+        $this->assertStringContainsString('AttendanceHoliday::query()', $leaveController);
+        $this->assertStringContainsString('countLeaveRequestsBetween', $leaveController);
+        $this->assertStringContainsString('countLeaveRequestsByType', $leaveController);
+        $this->assertStringContainsString('supervisorApprovedLeaveRequestQuery', $leaveController);
+        $this->assertStringContainsString('return (int) $this->supervisorApprovedLeaveRequestQuery($activeEmployeeIds)', $leaveController);
+        $this->assertStringContainsString('current_company_id', $leaveController);
         $this->assertTrue(View::exists('admin_attendance.overview.index'));
         $this->assertTrue(View::exists('admin_attendance.recap_attendance.index'));
         $this->assertTrue(View::exists('admin_attendance.recap_attendance.detail-employees'));
+        $this->assertTrue(View::exists('admin_attendance.leave.index'));
+        $this->assertTrue(View::exists('admin_attendance.leave.detail'));
+        $this->assertTrue(View::exists('admin_attendance.business_trip.index'));
+        $this->assertTrue(View::exists('admin_attendance.business_trip.detail'));
+        $this->assertTrue(View::exists('admin_attendance.overtime.index'));
+        $this->assertTrue(View::exists('admin_attendance.overtime.detail'));
     }
 
     public function test_admin_attendance_navigation_links_to_overview_and_recap(): void
@@ -56,6 +109,12 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString("route('admin-attendance.overview')", $navbar);
         $this->assertStringContainsString("route('admin-attendance.recap')", $navbar);
         $this->assertStringContainsString("request()->routeIs('admin-attendance.recap*')", $navbar);
+        $this->assertStringContainsString("route('admin-attendance.leave')", $navbar);
+        $this->assertStringContainsString("request()->routeIs('admin-attendance.leave*')", $navbar);
+        $this->assertStringContainsString("route('admin-attendance.business-trip')", $navbar);
+        $this->assertStringContainsString("request()->routeIs('admin-attendance.business-trip*')", $navbar);
+        $this->assertStringContainsString("route('admin-attendance.overtime')", $navbar);
+        $this->assertStringContainsString("request()->routeIs('admin-attendance.overtime*')", $navbar);
         $this->assertStringContainsString("route('admin-attendance.overview')", $sidebar);
     }
 
@@ -63,6 +122,8 @@ class AdminAttendanceOverviewStructureTest extends TestCase
     {
         $recapView = File::get(resource_path('views/admin_attendance/recap_attendance/index.blade.php'));
         $detailView = File::get(resource_path('views/admin_attendance/recap_attendance/detail-employees.blade.php'));
+        $leaveIndexView = File::get(resource_path('views/admin_attendance/leave/index.blade.php'));
+        $leaveController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceLeaveController.php'));
 
         $this->assertStringContainsString('@forelse ($recapAttendanceLogRows as $row)', $recapView);
         $this->assertStringContainsString('id="recapMonthlyTable"', $recapView);
@@ -82,5 +143,43 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('id="recapDetailAttendanceTable"', $detailView);
         $this->assertStringNotContainsString("$('#tableLicenseUsage').DataTable", $detailView);
         $this->assertStringNotContainsString('scrollX: true', $detailView);
+        $this->assertStringContainsString('admin-attendance-detail-avatar', $detailView);
+        $this->assertStringNotContainsString('admin-attendance-person-avatar', $detailView);
+        $this->assertStringNotContainsString('admin-attendance-empty', $detailView);
+        $this->assertStringNotContainsString('attendance-rate-mobile-slider', $detailView);
+        $this->assertStringNotContainsString('admin-attendance-overview-card', $detailView);
+        $this->assertStringContainsString("\$leaveOverviewStats['pending']", $leaveIndexView);
+        $this->assertStringContainsString('@forelse ($leavePendingCards as $leavePendingCard)', $leaveIndexView);
+        $this->assertStringContainsString('id="adminLeavePendingTable"', $leaveIndexView);
+        $this->assertStringContainsString('id="adminLeaveApprovedTable"', $leaveIndexView);
+        $this->assertStringContainsString('admin-attendance.leave.pending-datatable', $leaveIndexView);
+        $this->assertStringContainsString('admin-attendance.leave.approved-datatable', $leaveIndexView);
+        $this->assertStringContainsString('table.ajax.reload()', $leaveIndexView);
+        $leaveDetailView = File::get(resource_path('views/admin_attendance/leave/detail.blade.php'));
+        $this->assertStringContainsString("\$leaveEligibility['available_balance_label']", $leaveDetailView);
+        $this->assertStringContainsString("\$leaveEligibility['joint_holiday_label']", $leaveDetailView);
+        $this->assertStringContainsString("\$leaveEligibility['supervisor_name']", $leaveDetailView);
+        $this->assertStringContainsString("\$leaveEligibility['next_accrual_label']", $leaveDetailView);
+        $this->assertStringContainsString("\$leaveTracker['annual_leave_taken_label']", $leaveDetailView);
+        $this->assertStringContainsString("\$leaveTracker['annual_leave_taken_month_label']", $leaveDetailView);
+        $this->assertStringContainsString("\$leaveTracker['pending_requests_label']", $leaveDetailView);
+        $this->assertStringContainsString("\$leaveTracker['unpaid_leave_taken_label']", $leaveDetailView);
+        $this->assertStringContainsString("\$leaveApproval['special_leave_type_label']", $leaveDetailView);
+        $this->assertStringContainsString("\$leaveApproval['attachment_url']", $leaveDetailView);
+        $this->assertStringContainsString('admin-attendance.leave.approval.update', $leaveDetailView);
+        $this->assertStringContainsString('leaveApprovalFor', $leaveController);
+        $this->assertStringContainsString("->where('event_type', 'hr_verification')", $leaveController);
+        $this->assertStringContainsString("->where('to_status', 'pending')", $leaveController);
+        $this->assertStringContainsString("'event_type' => 'status_updated'", $leaveController);
+        $this->assertStringContainsString("default => 'text-warning',", $leaveController);
+        $leaveRequestHistoryModel = File::get(app_path('Models/LeaveRequestHistory.php'));
+        $this->assertStringContainsString("'title' => 'HR Verification (Pending)'", $leaveRequestHistoryModel);
+        $this->assertStringContainsString('isApprovedSupervisorReview', $leaveRequestHistoryModel);
+        $this->assertStringContainsString('id="project-grid-tab"', $leaveIndexView);
+        $this->assertStringContainsString('id="project-grid-pane"', $leaveIndexView);
+        $this->assertStringContainsString("setLeaveView('grid')", $leaveIndexView);
+        $this->assertStringContainsString('@forelse ($leaveGridPositionGroups as $positionIndex => $positionGroup)', $leaveIndexView);
+        $this->assertStringContainsString("{{ \$positionGroup['position_name'] }}", $leaveIndexView);
+        $this->assertStringContainsString("@foreach (\$positionGroup['employees'] as \$gridEmployee)", $leaveIndexView);
     }
 }

@@ -30,6 +30,34 @@ class LeaveRequestHistory extends Model
                 $history->id = static::generateCustomSequenceUuid('id');
             }
         });
+
+        static::saved(function (self $history): void {
+            if (! $history->isApprovedSupervisorReview()) {
+                return;
+            }
+
+            static::query()->firstOrCreate(
+                [
+                    'leave_request_id' => $history->leave_request_id,
+                    'event_type' => 'hr_verification',
+                ],
+                [
+                    'actor_user_id' => null,
+                    'title' => 'HR Verification (Pending)',
+                    'from_status' => 'pending',
+                    'to_status' => 'pending',
+                    'notes' => null,
+                    'metadata' => null,
+                    'happened_at' => now('Asia/Jakarta'),
+                ]
+            );
+        });
+    }
+
+    private function isApprovedSupervisorReview(): bool
+    {
+        return strtolower(trim((string) $this->event_type)) === 'supervisor_review'
+            && strtolower(trim((string) $this->to_status)) === 'approved';
     }
 
     public function leaveRequest(): BelongsTo

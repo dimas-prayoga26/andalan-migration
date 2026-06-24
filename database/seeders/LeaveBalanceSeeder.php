@@ -48,12 +48,12 @@ class LeaveBalanceSeeder extends Seeder
                 $employmentStartDateRaw = $employment?->join_date?->toDateString();
                 $annualQuota = max($defaultAnnualQuota, 0);
                 $annualBalance = $this->resolveAnnualBalance(
-                    $employeeId,
                     $employmentStartDateRaw,
                     $currentYear,
                     $annualQuota,
                     $now
                 );
+                $usedQuota = $this->approvedAnnualLeaveUsage($employeeId, $annualLeaveTypeId, $currentYear);
 
                 $timestamp = $now->copy();
                 if (is_string($employmentStartDateRaw) && trim($employmentStartDateRaw) !== '') {
@@ -68,8 +68,8 @@ class LeaveBalanceSeeder extends Seeder
                     ],
                     [
                         'earned_quota' => $annualBalance,
-                        'used_quota' => 0,
-                        'remaining_quota' => $annualBalance,
+                        'used_quota' => $usedQuota,
+                        'remaining_quota' => max($annualBalance - $usedQuota, 0),
                         'deleted_at' => null,
                         'updated_at' => $now,
                         'created_at' => $timestamp,
@@ -82,7 +82,6 @@ class LeaveBalanceSeeder extends Seeder
     }
 
     private function resolveAnnualBalance(
-        string $employeeId,
         mixed $employmentStartDateRaw,
         int $currentYear,
         int $annualQuota,
@@ -111,61 +110,18 @@ class LeaveBalanceSeeder extends Seeder
             return 0;
         }
 
-        $usedLeaveMonths = $this->resolveUsedLeaveMonths(
-            $employeeId,
-            $currentYear,
-            $accrualPeriodStart,
-            $lastCompletedMonthStart
-        );
-
-        $accruedBalance = 0;
-        $cursor = $accrualPeriodStart->copy();
-
-        while ($cursor->lessThanOrEqualTo($lastCompletedMonthStart)) {
-            $monthNumber = (int) $cursor->month;
-            if (! isset($usedLeaveMonths[$monthNumber])) {
-                $accruedBalance++;
-            }
-
-            $cursor->addMonth();
-        }
+        $accruedBalance = $accrualPeriodStart->diffInMonths($lastCompletedMonthStart) + 1;
 
         return min($accruedBalance, $annualQuota);
     }
 
-    /**
-     * @return array<int, true>
-     */
-    private function resolveUsedLeaveMonths(
-        string $employeeId,
-        int $currentYear,
-        Carbon $accrualPeriodStart,
-        Carbon $lastCompletedMonthStart
-    ): array {
-        /** @var array<int, int|string> $months */
-        $months = LeaveRequest::query()
+    private function approvedAnnualLeaveUsage(string $employeeId, string $annualLeaveTypeId, int $currentYear): float
+    {
+        return (float) LeaveRequest::query()
             ->where('employee_id', $employeeId)
+            ->where('leave_type_id', $annualLeaveTypeId)
             ->whereYear('start_date', $currentYear)
-            ->whereBetween('start_date', [
-                $accrualPeriodStart->toDateString(),
-                $lastCompletedMonthStart->copy()->endOfMonth()->toDateString(),
-            ])
-            ->whereHas('leaveType', function ($query): void {
-                $query->whereRaw('LOWER(name) = ?', ['cuti tahunan']);
-            })
             ->whereRaw('LOWER(status) = ?', ['approved'])
-            ->selectRaw('DISTINCT MONTH(start_date) as month_number')
-            ->pluck('month_number')
-            ->all();
-
-        $usedLeaveMonths = [];
-        foreach ($months as $month) {
-            $monthNumber = (int) $month;
-            if ($monthNumber > 0) {
-                $usedLeaveMonths[$monthNumber] = true;
-            }
-        }
-
-        return $usedLeaveMonths;
+            ->sum('total_days');
     }
 }

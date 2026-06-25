@@ -52,6 +52,8 @@ class PositionPermissionSeeder extends Seeder
             ['section' => 'Siap', 'label' => 'Timesheet & Reporting', 'permission' => 'view-timesheet-reporting'],
             ['section' => 'Siap', 'label' => 'Zoom Meeting', 'permission' => 'view-meeting'],
             ['section' => 'HR Management', 'label' => 'Admin Attendance', 'permission' => 'view-admin-attendance'],
+            ['section' => 'HR Management', 'label' => 'PIC', 'permission' => 'view-pic-attendance'],
+            ['section' => 'HR Management', 'label' => 'Director', 'permission' => 'view-director-attendance'],
             ['section' => 'HR Management', 'label' => 'Organization', 'permission' => 'view-organization'],
             ['section' => 'HR Management', 'label' => 'Authorization', 'permission' => 'view-authorization'],
             ['section' => 'HR Management', 'label' => 'Employee Database', 'permission' => 'view-employee-database'],
@@ -66,10 +68,15 @@ class PositionPermissionSeeder extends Seeder
      */
     private function syncRolePermissions(array $permissionNames): void
     {
+        $permissionNamesWithoutPic = array_values(array_filter(
+            $permissionNames,
+            static fn (string $permissionName): bool => ! in_array($permissionName, ['view-pic-attendance', 'view-director-attendance'], true),
+        ));
+
         Role::query()
             ->where('name', 'superuser')
             ->first()
-            ?->syncPermissions($permissionNames);
+            ?->syncPermissions($permissionNamesWithoutPic);
 
         Role::query()
             ->where('name', 'Board of Directors')
@@ -112,8 +119,14 @@ class PositionPermissionSeeder extends Seeder
             'view-meeting',
         ];
 
+        $allPermissionsWithoutPic = $permissions
+            ->keys()
+            ->reject(static fn (string $permissionName): bool => in_array($permissionName, ['view-pic-attendance', 'view-director-attendance'], true))
+            ->values()
+            ->all();
+
         $positionPermissions = [
-            'System Administrator' => $permissions->keys()->all(),
+            'System Administrator' => $allPermissionsWithoutPic,
             'Director' => [
                 'view-dashboard',
                 'view-calendar',
@@ -125,6 +138,7 @@ class PositionPermissionSeeder extends Seeder
                 'view-authorization',
                 'view-employee-database',
                 'view-talent-acquisition',
+                'view-director-attendance',
             ],
             'Finance and Administration Coordinator' => [
                 'view-dashboard',
@@ -143,6 +157,7 @@ class PositionPermissionSeeder extends Seeder
                 'view-employee-services',
             ],
             'Operations Coordinator' => $baseStaffPermissions,
+            'Supervisor' => array_merge($baseStaffPermissions, ['view-pic-attendance']),
             'Interior Design' => $baseStaffPermissions,
             'Architecture Design' => $baseStaffPermissions,
             'Web Developer' => array_merge($baseStaffPermissions, ['view-authorization']),

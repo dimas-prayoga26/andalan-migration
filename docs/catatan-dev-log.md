@@ -7,6 +7,17 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-06-25 (Kamis)
+- Menambahkan modul PIC Attendance dengan menu Attendance, Leave, dan Overtime untuk supervisor/PIC.
+- Menambahkan modul Director Attendance dengan menu Attendance dan Overtime.
+- Menambahkan permission `view-pic-attendance` dan `view-director-attendance` agar menu sidebar mengikuti position.
+- Menyesuaikan summary Overtime agar pending, SPV ACC, Director ACC, total hours, median, average, top overtime, dan weekend/weekday hours berbasis data database.
+- Menyesuaikan tabel Pending dan Approved Overtime untuk Admin, PIC, dan Director dengan rules lifecycle yang berbeda per role.
+- Menambahkan filter bulan dan tahun pada halaman Overtime Admin, PIC, dan Director.
+- Menyesuaikan seeder Overtime dan `overtime_lifecycle_logs` agar memiliki variasi status sampai Payment Distribution.
+- Detail: `docs/dev-log/2026-06-25-0427-pic-attendance-supervisor-approval-module.md`.
+- Detail: `docs/dev-log/2026-06-25-1252-ringkasan-admin-pic-director-attendance-overtime.md`.
+
 ### 2026-06-15 (Senin)
 - Menyelesaikan flow detail overtime dan project task: create, update, delete task, daily task `project_id = null`, dan project task berdasarkan membership staff.
 - Menambahkan dukungan `blockers` dan `attachment_path` pada task, termasuk form create/update dan seeder.

@@ -127,6 +127,8 @@ class AuthorizationController extends Controller
             'view-timesheet-reporting' => ['section' => 'Siap', 'label' => 'Timesheet & Reporting'],
             'view-meeting' => ['section' => 'Siap', 'label' => 'Zoom Meeting'],
             'view-admin-attendance' => ['section' => 'HR Management', 'label' => 'Admin Attendance'],
+            'view-pic-attendance' => ['section' => 'HR Management', 'label' => 'PIC'],
+            'view-director-attendance' => ['section' => 'HR Management', 'label' => 'Director'],
             'view-organization' => ['section' => 'HR Management', 'label' => 'Organization'],
             'view-authorization' => ['section' => 'HR Management', 'label' => 'Authorization'],
             'view-employee-database' => ['section' => 'HR Management', 'label' => 'Employee Database'],

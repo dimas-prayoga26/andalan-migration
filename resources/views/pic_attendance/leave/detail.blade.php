@@ -15,7 +15,7 @@
 
 @section('content')
 
-@include('admin_attendance.layout.navbar')
+@include('pic_attendance.layout.navbar')
 
 <div class="col-lg-12">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -393,11 +393,11 @@
         <div class="card">
             <div class="card-header border-0 pb-0">
                 <div>
-                    <h4 class="card-title">Confirm Leave Approval</h4>
-                    <p class="fs-13 mb-0">Ensure leave dates are accurate and required attachments are uploaded.</p>
+                    <h4 class="card-title">Supervisor Leave Review</h4>
+                    <p class="fs-13 mb-0">Review the leave request before it proceeds to HR Verification.</p>
                 </div>
             </div>
-            <form method="POST" action="{{ route('admin-attendance.leave.approval.update', ['uid' => request()->route('uid')]) }}">
+            <form method="POST" action="{{ route('pic-attendance.leave.supervisor-review.update', ['uid' => request()->route('uid')]) }}">
                 @csrf
                 @method('PUT')
                 <div class="card-body">
@@ -488,7 +488,7 @@
                 </div>
                 @if ($leaveApproval['can_finalize'])
                     <div class="px-3 pb-3">
-                        <button type="submit" class="btn light btn-success w-100 btn-lg">Update Leave Request</button>
+                        <button type="submit" class="btn light btn-success w-100 btn-lg">Update Supervisor Review</button>
                     </div>
                 @endif
             </form>
@@ -507,3 +507,4 @@
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 @endsection
+

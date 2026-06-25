@@ -87,8 +87,95 @@ class OvertimeDeadlineTaskSeeder extends Seeder
             'phase' => 'payroll_payment',
             'event_key' => 'payment_disbursement',
             'step_order' => 8,
-            'title' => 'Payment Disbursement',
+            'title' => 'Payment Distribution',
             'status' => 'waiting',
+        ],
+    ];
+
+    private const OVERTIME_SCENARIOS = [
+        [
+            'key' => 'payment_distribution_complete',
+            'date_offset_days' => -3,
+            'planned_start_time' => '18:00:00',
+            'planned_end_time' => '21:00:00',
+            'actual_start_time' => '18:00:00',
+            'actual_end_time' => '21:30:00',
+            'calculated_hours' => 3.5,
+            'status' => 'completed',
+            'task_verification_pending' => false,
+            'lifecycle_statuses' => [
+                'assignment_submitted' => 'complete',
+                'session_started' => 'clock_in',
+                'task_deliverables_submitted' => 'complete',
+                'session_ended' => 'clock_out',
+                'task_hours_verification' => 'verified',
+                'payroll_processing' => 'calculated_locked',
+                'director_approval' => 'approved',
+                'payment_disbursement' => 'complete',
+            ],
+        ],
+        [
+            'key' => 'task_hours_verification_pending',
+            'date_offset_days' => -2,
+            'planned_start_time' => '18:30:00',
+            'planned_end_time' => '21:30:00',
+            'actual_start_time' => '18:35:00',
+            'actual_end_time' => '21:05:00',
+            'calculated_hours' => 2.5,
+            'status' => 'completed',
+            'task_verification_pending' => true,
+            'lifecycle_statuses' => [
+                'assignment_submitted' => 'complete',
+                'session_started' => 'clock_in',
+                'task_deliverables_submitted' => 'complete',
+                'session_ended' => 'clock_out',
+                'task_hours_verification' => 'pending',
+                'payroll_processing' => 'waiting',
+                'director_approval' => 'waiting',
+                'payment_disbursement' => 'waiting',
+            ],
+        ],
+        [
+            'key' => 'clock_in_in_progress',
+            'date_offset_days' => -1,
+            'planned_start_time' => '19:00:00',
+            'planned_end_time' => '22:00:00',
+            'actual_start_time' => '19:03:00',
+            'actual_end_time' => null,
+            'calculated_hours' => null,
+            'status' => 'in_progress',
+            'task_verification_pending' => true,
+            'lifecycle_statuses' => [
+                'assignment_submitted' => 'complete',
+                'session_started' => 'clock_in',
+                'task_deliverables_submitted' => 'pending',
+                'session_ended' => 'pending',
+                'task_hours_verification' => 'waiting',
+                'payroll_processing' => 'waiting',
+                'director_approval' => 'waiting',
+                'payment_disbursement' => 'waiting',
+            ],
+        ],
+        [
+            'key' => 'payment_distribution_upcoming',
+            'date_offset_days' => -4,
+            'planned_start_time' => '18:00:00',
+            'planned_end_time' => '20:00:00',
+            'actual_start_time' => '18:05:00',
+            'actual_end_time' => '20:10:00',
+            'calculated_hours' => 2.08,
+            'status' => 'completed',
+            'task_verification_pending' => false,
+            'lifecycle_statuses' => [
+                'assignment_submitted' => 'complete',
+                'session_started' => 'clock_in',
+                'task_deliverables_submitted' => 'complete',
+                'session_ended' => 'clock_out',
+                'task_hours_verification' => 'verified',
+                'payroll_processing' => 'calculated_locked',
+                'director_approval' => 'approved',
+                'payment_disbursement' => 'upcoming',
+            ],
         ],
     ];
 
@@ -123,13 +210,8 @@ class OvertimeDeadlineTaskSeeder extends Seeder
 
             $now = Carbon::now('Asia/Jakarta');
             $today = $now->copy()->startOfDay();
-            $deadline = $today->copy();
-            $plannedStartAt = $now->copy()->addMinutes(30);
-            $plannedEndAt = $plannedStartAt->copy()->addHours(3);
-            $plannedStartTime = $plannedStartAt->format('H:i:s');
-            $plannedEndTime = $plannedEndAt->format('H:i:s');
 
-            DB::transaction(function () use ($project, $staffUsers, $today, $deadline, $plannedStartTime, $plannedEndTime): void {
+            DB::transaction(function () use ($project, $staffUsers, $today): void {
                 $this->resetSeededOvertimeTasks();
 
                 foreach (self::STAFF_USERNAMES as $index => $username) {
@@ -145,22 +227,25 @@ class OvertimeDeadlineTaskSeeder extends Seeder
                         throw new RuntimeException("Supervisor aktif untuk {$username} tidak ditemukan. Jalankan EmployeePicAssignmentSeeder terlebih dahulu.");
                     }
 
+                    $scenario = self::OVERTIME_SCENARIOS[$index] ?? self::OVERTIME_SCENARIOS[0];
+                    $overtimeDate = $today->copy()->addDays((int) $scenario['date_offset_days']);
+
                     $overtime = AttendanceOvertime::query()->create([
                         'employee_id' => $employeeId,
                         'assigned_by' => $supervisorUserId,
-                        'overtime_date' => $deadline->toDateString(),
-                        'planned_start_time' => $plannedStartTime,
-                        'planned_end_time' => $plannedEndTime,
-                        'instruction' => "Seed overtime deadline task for {$username}.",
-                        'actual_start_time' => null,
-                        'actual_end_time' => null,
-                        'calculated_hours' => null,
-                        'status' => 'assigned',
+                        'overtime_date' => $overtimeDate->toDateString(),
+                        'planned_start_time' => $scenario['planned_start_time'],
+                        'planned_end_time' => $scenario['planned_end_time'],
+                        'instruction' => "Seed overtime deadline task for {$username} ({$scenario['key']}).",
+                        'actual_start_time' => $scenario['actual_start_time'],
+                        'actual_end_time' => $scenario['actual_end_time'],
+                        'calculated_hours' => $scenario['calculated_hours'],
+                        'status' => $scenario['status'],
                     ]);
 
-                    $this->seedProjectTasks($project, $username, $employeeId, $overtime, $today, $deadline, $index);
+                    $this->seedProjectTasks($project, $employeeId, $overtime, $today, $overtimeDate, $index, $scenario);
 
-                    $this->seedLifecycleLogs($overtime, $staffUser, $supervisorUserId, $today, $plannedStartTime, $plannedEndTime);
+                    $this->seedLifecycleLogs($overtime, $staffUser, $supervisorUserId, $overtimeDate, $scenario);
                 }
             });
         } catch (Throwable $throwable) {
@@ -249,35 +334,42 @@ class OvertimeDeadlineTaskSeeder extends Seeder
             ->delete();
     }
 
-    private function seedProjectTasks(Project $project, string $username, string $employeeId, AttendanceOvertime $overtime, Carbon $today, Carbon $deadline, int $staffIndex): void
+    /**
+     * @param  array<string, mixed>  $scenario
+     */
+    private function seedProjectTasks(Project $project, string $employeeId, AttendanceOvertime $overtime, Carbon $today, Carbon $deadline, int $staffIndex, array $scenario): void
     {
         ProjectTask::query()->create([
             'project_id' => $project->id,
             'employee_id' => $employeeId,
+            'overtime_id' => $overtime->id,
             'title' => self::TASK_TITLE,
             'description' => 'Seed task untuk overtime dengan deadline hari ini.',
             'blockers' => 'Waiting for final overtime deliverable update.',
             'attachment_path' => null,
-            'status' => 'pending',
+            'status' => (bool) ($scenario['task_verification_pending'] ?? true) ? 'pending' : 'completed',
             'priority' => $staffIndex === 0 ? 'high' : 'medium',
             'start_date' => $today->toDateString(),
             'due_date' => $deadline->toDateString(),
-            'completed_at' => null,
+            'completed_at' => (bool) ($scenario['task_verification_pending'] ?? true)
+                ? null
+                : $deadline->copy()->setTime(20, 15)->toDateTimeString(),
         ]);
 
         foreach (self::COMPLETED_TASK_TITLES as $taskIndex => $taskTitle) {
             ProjectTask::query()->create([
                 'project_id' => $project->id,
                 'employee_id' => $employeeId,
+                'overtime_id' => $overtime->id,
                 'title' => $taskTitle,
                 'description' => 'Seed completed task untuk histori overtime.',
                 'blockers' => null,
                 'attachment_path' => null,
                 'status' => 'completed',
                 'priority' => 'medium',
-                'start_date' => $today->copy()->subDays($taskIndex + 1)->toDateString(),
-                'due_date' => $today->toDateString(),
-                'completed_at' => $today->copy()->setTime(16, 0)->addMinutes($taskIndex)->toDateTimeString(),
+                'start_date' => $deadline->copy()->subDays($taskIndex + 1)->toDateString(),
+                'due_date' => $deadline->toDateString(),
+                'completed_at' => $deadline->copy()->setTime(16, 0)->addMinutes($taskIndex)->toDateTimeString(),
             ]);
         }
     }
@@ -293,27 +385,80 @@ class OvertimeDeadlineTaskSeeder extends Seeder
         ];
     }
 
-    private function seedLifecycleLogs(AttendanceOvertime $overtime, User $staffUser, string $supervisorUserId, Carbon $submittedAt, string $plannedStartTime, string $plannedEndTime): void
+    /**
+     * @param  array<string, mixed>  $scenario
+     */
+    private function seedLifecycleLogs(AttendanceOvertime $overtime, User $staffUser, string $supervisorUserId, Carbon $overtimeDate, array $scenario): void
     {
         foreach (self::LIFECYCLE_STEPS as $lifecycleStep) {
-            $isAssignmentStep = $lifecycleStep['event_key'] === 'assignment_submitted';
+            $eventKey = (string) $lifecycleStep['event_key'];
+            $status = (string) (($scenario['lifecycle_statuses'][$eventKey] ?? null) ?: $lifecycleStep['status']);
 
             OvertimeLifecycleLog::query()->create([
                 'overtime_id' => $overtime->id,
                 'phase' => $lifecycleStep['phase'],
-                'event_key' => $lifecycleStep['event_key'],
+                'event_key' => $eventKey,
                 'step_order' => $lifecycleStep['step_order'],
                 'title' => $lifecycleStep['title'],
-                'status' => $isAssignmentStep ? 'complete' : $lifecycleStep['status'],
-                'actor_id' => $isAssignmentStep ? $supervisorUserId : null,
-                'happened_at' => $isAssignmentStep ? $submittedAt->copy()->setTime(9, 0) : null,
+                'status' => $status,
+                'actor_id' => $this->resolveLifecycleActorId($eventKey, $status, $staffUser, $supervisorUserId),
+                'happened_at' => $this->resolveLifecycleHappenedAt($eventKey, $status, $overtimeDate, $scenario),
                 'metadata' => [
                     'overtime_status' => $overtime->status,
-                    'planned_start_time' => $plannedStartTime,
-                    'planned_end_time' => $plannedEndTime,
+                    'planned_start_time' => $scenario['planned_start_time'],
+                    'planned_end_time' => $scenario['planned_end_time'],
+                    'actual_start_time' => $scenario['actual_start_time'],
+                    'actual_end_time' => $scenario['actual_end_time'],
+                    'calculated_hours' => $scenario['calculated_hours'],
+                    'scenario' => $scenario['key'],
                     'seeded_for' => $staffUser->username,
                 ],
             ]);
         }
+    }
+
+    private function resolveLifecycleActorId(string $eventKey, string $status, User $staffUser, string $supervisorUserId): ?string
+    {
+        if (in_array($status, ['waiting', 'pending', 'upcoming'], true)) {
+            return null;
+        }
+
+        return match ($eventKey) {
+            'session_started', 'task_deliverables_submitted', 'session_ended' => (string) $staffUser->id,
+            default => $supervisorUserId,
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $scenario
+     */
+    private function resolveLifecycleHappenedAt(string $eventKey, string $status, Carbon $overtimeDate, array $scenario): ?Carbon
+    {
+        if (in_array($status, ['waiting', 'pending', 'upcoming'], true)) {
+            return null;
+        }
+
+        return match ($eventKey) {
+            'assignment_submitted' => $overtimeDate->copy()->subDay()->setTime(9, 0),
+            'session_started' => $this->timeOnDate($overtimeDate, $scenario['actual_start_time'] ?: $scenario['planned_start_time']),
+            'task_deliverables_submitted' => $this->timeOnDate($overtimeDate, $scenario['actual_start_time'] ?: $scenario['planned_start_time'])->addMinutes(45),
+            'session_ended' => $this->timeOnDate($overtimeDate, $scenario['actual_end_time'] ?: $scenario['planned_end_time']),
+            'task_hours_verification' => $this->timeOnDate($overtimeDate, $scenario['actual_end_time'] ?: $scenario['planned_end_time'])->addMinutes(30),
+            'payroll_processing' => $overtimeDate->copy()->addDay()->setTime(10, 0),
+            'director_approval' => $overtimeDate->copy()->addDay()->setTime(14, 0),
+            'payment_disbursement' => $overtimeDate->copy()->addDays(2)->setTime(10, 0),
+            default => null,
+        };
+    }
+
+    private function timeOnDate(Carbon $date, mixed $time): Carbon
+    {
+        $timeParts = explode(':', (string) $time);
+
+        return $date->copy()->setTime(
+            (int) ($timeParts[0] ?? 0),
+            (int) ($timeParts[1] ?? 0),
+            (int) ($timeParts[2] ?? 0)
+        );
     }
 }

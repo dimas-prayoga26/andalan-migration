@@ -74,7 +74,7 @@ class User extends Authenticatable
      */
     public function hasAnyPositionPermission(array $permissionNames): bool
     {
-        if ($this->hasRole('superuser')) {
+        if ($this->hasRole('superuser') && empty(array_intersect(['view-pic-attendance', 'view-director-attendance'], $permissionNames))) {
             return true;
         }
 

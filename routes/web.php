@@ -2,11 +2,17 @@
 
 use App\Http\Controllers\ActivityScheduleController;
 use App\Http\Controllers\AdminAttendance\AttendanceLeaveController as AdminAttendanceLeaveController;
+use App\Http\Controllers\AdminAttendance\AttendanceOvertimeController as AdminAttendanceOvertimeController;
 use App\Http\Controllers\AdminAttendance\AttendanceOverviewController as AdminAttendanceOverviewController;
 use App\Http\Controllers\AdminAttendance\AttendanceRecapController as AdminAttendanceRecapController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuthorizationController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DirectorAttendance\DirectorAttendanceController;
+use App\Http\Controllers\DirectorAttendance\DirectorAttendanceOvertimeController;
+use App\Http\Controllers\PicAttendance\PicAttendanceController;
+use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
+use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
 use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripCashAdvanceController;
 use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripController;
 use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripReimbursementController;
@@ -107,10 +113,10 @@ Route::middleware('auth')->group(function (): void {
     Route::view('/admin-attendance/business-trip/detail', 'admin_attendance.business_trip.detail')
         ->middleware('position.permission:view-admin-attendance')
         ->name('admin-attendance.business-trip.detail');
-    Route::view('/admin-attendance/overtime', 'admin_attendance.overtime.index')
+    Route::get('/admin-attendance/overtime', [AdminAttendanceOvertimeController::class, 'index'])
         ->middleware('position.permission:view-admin-attendance')
         ->name('admin-attendance.overtime');
-    Route::view('/admin-attendance/overtime/detail', 'admin_attendance.overtime.detail')
+    Route::get('/admin-attendance/overtime/detail', [AdminAttendanceOvertimeController::class, 'detail'])
         ->middleware('position.permission:view-admin-attendance')
         ->name('admin-attendance.overtime.detail');
     Route::get('/admin-attendance/recap-attendance/datatable', [AdminAttendanceRecapController::class, 'monthlyDatatable'])
@@ -125,6 +131,48 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/admin-attendance/recap-attendance/{employee}', [AdminAttendanceRecapController::class, 'employeeDetails'])
         ->middleware('position.permission:view-admin-attendance')
         ->name('admin-attendance.recap.detail-employees');
+
+    // PIC attendance routes
+    Route::middleware('position.permission:view-pic-attendance')->group(function (): void {
+        Route::get('/pic-attendance', [PicAttendanceController::class, 'index'])
+            ->name('pic-attendance.attendance');
+        Route::get('/pic-attendance/monthly-datatable', [PicAttendanceController::class, 'monthlyDatatable'])
+            ->name('pic-attendance.attendance.monthly-datatable');
+        Route::get('/pic-attendance/attendance/{employee}/datatable', [PicAttendanceController::class, 'employeeDetailsDatatable'])
+            ->name('pic-attendance.attendance.detail-employees.datatable');
+        Route::get('/pic-attendance/attendance/{employee}', [PicAttendanceController::class, 'employeeDetails'])
+            ->name('pic-attendance.attendance.detail-employees');
+        Route::get('/pic-attendance/leave', [PicAttendanceLeaveController::class, 'index'])
+            ->name('pic-attendance.leave');
+        Route::get('/pic-attendance/leave/pending-datatable', [PicAttendanceLeaveController::class, 'pendingDatatable'])
+            ->name('pic-attendance.leave.pending-datatable');
+        Route::get('/pic-attendance/leave/approved-datatable', [PicAttendanceLeaveController::class, 'approvedDatatable'])
+            ->name('pic-attendance.leave.approved-datatable');
+        Route::get('/pic-attendance/leave/detail/{uid}', [PicAttendanceLeaveController::class, 'detail'])
+            ->name('pic-attendance.leave.detail');
+        Route::put('/pic-attendance/leave/detail/{uid}/supervisor-review', [PicAttendanceLeaveController::class, 'updateSupervisorReview'])
+            ->name('pic-attendance.leave.supervisor-review.update');
+        Route::get('/pic-attendance/overtime', [PicAttendanceOvertimeController::class, 'index'])
+            ->name('pic-attendance.overtime');
+        Route::post('/pic-attendance/overtime', [PicAttendanceOvertimeController::class, 'store'])
+            ->name('pic-attendance.overtime.store');
+        Route::get('/pic-attendance/overtime/detail/{uid}', [PicAttendanceOvertimeController::class, 'detail'])
+            ->name('pic-attendance.overtime.detail');
+        Route::post('/pic-attendance/overtime/detail/{uid}/verify-session', [PicAttendanceOvertimeController::class, 'verifySession'])
+            ->name('pic-attendance.overtime.verify-session');
+        Route::put('/pic-attendance/overtime/detail/{attendanceOvertime}/tasks/{projectTask}', [PicAttendanceOvertimeController::class, 'updateTask'])
+            ->name('pic-attendance.overtime.tasks.update');
+    });
+
+    // Director attendance routes
+    Route::middleware('position.permission:view-director-attendance')->group(function (): void {
+        Route::get('/director-attendance', [DirectorAttendanceController::class, 'index'])
+            ->name('director-attendance.attendance');
+        Route::get('/director-attendance/overtime', [DirectorAttendanceOvertimeController::class, 'index'])
+            ->name('director-attendance.overtime');
+        Route::get('/director-attendance/overtime/detail', [DirectorAttendanceOvertimeController::class, 'detail'])
+            ->name('director-attendance.overtime.detail');
+    });
 
     // Attendance check-in and check-out
     Route::resource('attendance', AttendanceController::class)

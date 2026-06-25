@@ -15,7 +15,7 @@
 
 @section('content')
 
-@include('admin_attendance.layout.navbar')
+@include('director_attendance.layout.navbar')
 
 <!-- Start - Attendance -->
 <div class="col-lg-12">
@@ -250,7 +250,7 @@
                             </div>
                             <div class="clearfix">
                                 <h6 class="mb-0 fw-semibold">
-                                    <a href="{{ route('admin-attendance.overtime.detail') }}" class="stretched-link">#OVT-2605-0101</a>
+                                    <a href="{{ route('director-attendance.overtime.detail') }}" class="stretched-link">#OVT-2605-0101</a>
                                 </h6>
                                 <span class="small">Muhammad Syafiq</span>	
                             </div>	

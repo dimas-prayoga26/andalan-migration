@@ -167,6 +167,7 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString("\$leaveApproval['special_leave_type_label']", $leaveDetailView);
         $this->assertStringContainsString("\$leaveApproval['attachment_url']", $leaveDetailView);
         $this->assertStringContainsString('admin-attendance.leave.approval.update', $leaveDetailView);
+        $this->assertStringContainsString('w-100 btn-lg', $leaveDetailView);
         $this->assertStringContainsString('leaveApprovalFor', $leaveController);
         $this->assertStringContainsString("->where('event_type', 'hr_verification')", $leaveController);
         $this->assertStringContainsString("->where('to_status', 'pending')", $leaveController);

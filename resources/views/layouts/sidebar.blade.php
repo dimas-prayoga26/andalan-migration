@@ -7,6 +7,8 @@
 						$isCalendarMenu = request()->routeIs('activity-schadule*');
 						$isAttendanceMenu = request()->routeIs('attendance*') || request()->is('attendance*');
 						$isAdminAttendanceMenu = request()->routeIs('admin-attendance*') || request()->is('admin-attendance*');
+						$isPicAttendanceMenu = request()->routeIs('pic-attendance*') || request()->is('pic-attendance*');
+						$isDirectorAttendanceMenu = request()->routeIs('director-attendance*') || request()->is('director-attendance*');
 						$isReportingMenu = request()->routeIs('project_management', 'project_management.detail') || request()->is('project-management*');
 						$isMeetingMenu = request()->routeIs('agenda');
 						$isOrganizationMenu = request()->routeIs('employee_data*') || request()->is('employee-data*');
@@ -20,6 +22,8 @@
 						$canViewTimesheetReportingMenu = $canViewSidebarMenu('view-timesheet-reporting');
 						$canViewMeetingMenu = $canViewSidebarMenu('view-meeting');
 						$canViewAdminAttendanceMenu = $canViewSidebarMenu('view-admin-attendance');
+						$canViewPicAttendanceMenu = $canViewSidebarMenu('view-pic-attendance');
+						$canViewDirectorAttendanceMenu = $canViewSidebarMenu('view-director-attendance');
 						$canViewOrganizationMenu = $canViewSidebarMenu('view-organization');
 						$canViewAuthorizationMenu = $canViewSidebarMenu('view-authorization');
 						$canViewEmployeeDatabaseMenu = $canViewSidebarMenu('view-employee-database');
@@ -125,7 +129,7 @@
 							<span class="nav-text" data-i18n="Others">Others </span>
 						</a>
 					</li>
-					@if ($canViewAttendanceMenu || $canViewAdminAttendanceMenu || $canViewTimesheetReportingMenu || $canViewMeetingMenu || $canViewOrganizationMenu || $canViewAuthorizationMenu || $canViewEmployeeDatabaseMenu || $canViewTalentAcquisitionMenu)
+					@if ($canViewAttendanceMenu || $canViewAdminAttendanceMenu || $canViewPicAttendanceMenu || $canViewDirectorAttendanceMenu || $canViewTimesheetReportingMenu || $canViewMeetingMenu || $canViewOrganizationMenu || $canViewAuthorizationMenu || $canViewEmployeeDatabaseMenu || $canViewTalentAcquisitionMenu)
 					<div class="copyright mt-1">
 						<p class="mb-1"><strong>HR Management</strong> </p>
 					</div>
@@ -143,6 +147,22 @@
 						<a class="{{ $isAdminAttendanceMenu ? 'active' : '' }}" href="{{ route('admin-attendance.overview') }}" aria-expanded="{{ $isAdminAttendanceMenu ? 'true' : 'false' }}">
 							<i class="fa-solid fa-user-clock"></i>
 							<span class="nav-text" data-i18n="Admin Attendance">Admin Attendance </span>
+						</a>
+					</li>
+					@endif
+					@if ($canViewPicAttendanceMenu)
+					<li class="{{ $isPicAttendanceMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isPicAttendanceMenu ? 'active' : '' }}" href="{{ route('pic-attendance.attendance') }}" aria-expanded="{{ $isPicAttendanceMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-clipboard-check"></i>
+							<span class="nav-text" data-i18n="PIC">PIC</span>
+						</a>
+					</li>
+					@endif
+					@if ($canViewDirectorAttendanceMenu)
+					<li class="{{ $isDirectorAttendanceMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isDirectorAttendanceMenu ? 'active' : '' }}" href="{{ route('director-attendance.attendance') }}" aria-expanded="{{ $isDirectorAttendanceMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-user-tie"></i>
+							<span class="nav-text" data-i18n="Director">Director</span>
 						</a>
 					</li>
 					@endif

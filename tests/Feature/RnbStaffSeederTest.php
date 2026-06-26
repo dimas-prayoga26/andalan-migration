@@ -26,7 +26,7 @@ class RnbStaffSeederTest extends TestCase
         parent::setUp();
     }
 
-    public function test_user_seeder_creates_four_active_rnb_staff_accounts(): void
+    public function test_user_seeder_creates_expected_active_users_for_each_company(): void
     {
         $this->seed([
             CompanySeeder::class,
@@ -39,7 +39,65 @@ class RnbStaffSeederTest extends TestCase
 
         $rnbCompanyId = DB::table('companies')->where('name', 'RNB')->value('id');
 
-        $staffCount = DB::table('users')
+        $companyStaffCounts = DB::table('companies')
+            ->join('employee_deployments', 'employee_deployments.current_company_id', '=', 'companies.id')
+            ->join('employees', 'employees.id', '=', 'employee_deployments.employee_id')
+            ->join('users', 'users.id', '=', 'employees.user_id')
+            ->join('positions', 'positions.id', '=', 'employee_deployments.current_position_id')
+            ->where('users.is_active', true)
+            ->where('positions.name', '!=', 'System Administrator')
+            ->where('positions.name', '!=', 'Director')
+            ->where('positions.name', '!=', 'Supervisor')
+            ->where('users.username', 'like', 'staff%')
+            ->groupBy('companies.name')
+            ->orderBy('companies.name')
+            ->get([
+                'companies.name as company_name',
+                DB::raw('COUNT(DISTINCT users.id) as user_count'),
+            ])
+            ->mapWithKeys(static fn (object $row): array => [
+                (string) $row->company_name => (int) $row->user_count,
+            ])
+            ->all();
+
+        $this->assertSame([
+            'AndalanKu' => 5,
+            'KMA' => 5,
+            'Niskala' => 5,
+            'RNB' => 5,
+            'RNE' => 5,
+            'TMS' => 5,
+            'Trah' => 5,
+        ], $companyStaffCounts);
+
+        $positionCountsByCompany = DB::table('companies')
+            ->join('employee_deployments', 'employee_deployments.current_company_id', '=', 'companies.id')
+            ->join('employees', 'employees.id', '=', 'employee_deployments.employee_id')
+            ->join('users', 'users.id', '=', 'employees.user_id')
+            ->join('positions', 'positions.id', '=', 'employee_deployments.current_position_id')
+            ->where('users.is_active', true)
+            ->whereIn('positions.name', ['System Administrator', 'Director', 'Supervisor'])
+            ->groupBy('companies.name', 'positions.name')
+            ->orderBy('companies.name')
+            ->get([
+                'companies.name as company_name',
+                'positions.name as position_name',
+                DB::raw('COUNT(DISTINCT users.id) as user_count'),
+            ]);
+
+        foreach (['AndalanKu', 'KMA', 'Niskala', 'RNB', 'RNE', 'TMS', 'Trah'] as $companyName) {
+            foreach (['System Administrator', 'Director', 'Supervisor'] as $positionName) {
+                $positionCount = $positionCountsByCompany
+                    ->first(
+                        static fn (object $row): bool => (string) $row->company_name === $companyName
+                            && (string) $row->position_name === $positionName,
+                    )?->user_count;
+
+                $this->assertSame(1, (int) $positionCount, "{$companyName} harus punya 1 {$positionName}.");
+            }
+        }
+
+        $rnbStaffCount = DB::table('users')
             ->join('model_has_roles', 'model_has_roles.model_uuid', '=', 'users.id')
             ->join('roles', 'roles.uuid', '=', 'model_has_roles.role_id')
             ->join('employees', 'employees.user_id', '=', 'users.id')
@@ -47,22 +105,22 @@ class RnbStaffSeederTest extends TestCase
             ->where('roles.name', 'Staff')
             ->where('users.is_active', true)
             ->where('employee_deployments.current_company_id', $rnbCompanyId)
-            ->whereIn('users.username', ['staff31', 'staff32', 'staff33', 'staff34'])
+            ->whereIn('users.username', ['staff31', 'staff32', 'staff33', 'staff34', 'staff35'])
             ->distinct()
             ->count('users.id');
 
-        $this->assertSame(4, $staffCount);
+        $this->assertSame(5, $rnbStaffCount);
 
         $staffUsernames = DB::table('users')
             ->join('employees', 'employees.user_id', '=', 'users.id')
             ->join('employee_deployments', 'employee_deployments.employee_id', '=', 'employees.id')
             ->where('employee_deployments.current_company_id', $rnbCompanyId)
-            ->whereIn('users.username', ['staff31', 'staff32', 'staff33', 'staff34'])
+            ->whereIn('users.username', ['staff31', 'staff32', 'staff33', 'staff34', 'staff35'])
             ->orderBy('users.username')
             ->pluck('users.username')
             ->all();
 
-        $this->assertSame(['staff31', 'staff32', 'staff33', 'staff34'], $staffUsernames);
+        $this->assertSame(['staff31', 'staff32', 'staff33', 'staff34', 'staff35'], $staffUsernames);
 
         $staff31JoinDate = DB::table('users')
             ->join('employees', 'employees.user_id', '=', 'users.id')
@@ -80,7 +138,7 @@ class RnbStaffSeederTest extends TestCase
             ->join('departments', 'departments.id', '=', 'employee_deployments.current_department_id')
             ->join('positions', 'positions.id', '=', 'employee_deployments.current_position_id')
             ->where('employee_deployments.current_company_id', $rnbCompanyId)
-            ->whereIn('users.username', ['staff31', 'staff32', 'staff33', 'staff34'])
+            ->whereIn('users.username', ['staff31', 'staff32', 'staff33', 'staff34', 'staff35'])
             ->orderBy('users.username')
             ->get(['users.username', 'departments.name as department_name', 'positions.name as position_name'])
             ->mapWithKeys(fn (object $staffAssignment): array => [
@@ -107,6 +165,10 @@ class RnbStaffSeederTest extends TestCase
             'staff34' => [
                 'department' => 'Operations',
                 'position' => 'Documentation Event and Editor Video',
+            ],
+            'staff35' => [
+                'department' => 'Information and Communications Technology',
+                'position' => 'Web Developer',
             ],
         ], $staffAssignments);
     }

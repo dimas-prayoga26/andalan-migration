@@ -17,6 +17,8 @@ use Throwable;
 
 class UserSeeder extends Seeder
 {
+    private const STAFF_PER_COMPANY = 5;
+
     private const RNB_STAFF_ASSIGNMENTS = [
         1 => [
             'department' => 'Administration, Finance and Legal',
@@ -33,6 +35,10 @@ class UserSeeder extends Seeder
         4 => [
             'department' => 'Operations',
             'position' => 'Documentation Event and Editor Video',
+        ],
+        5 => [
+            'department' => 'Information and Communications Technology',
+            'position' => 'Web Developer',
         ],
     ];
 
@@ -193,9 +199,9 @@ class UserSeeder extends Seeder
                     maritalStatusId: $maritalStatusId,
                 );
 
-                $staffIndexes = (string) $company->name === 'RNB'
-                    ? [1, 2, 3, 4]
-                    : [1, 2];
+                $this->deleteExtraSeededStaffAccounts($directorNumber);
+
+                $staffIndexes = range(1, self::STAFF_PER_COMPANY);
 
                 foreach ($staffIndexes as $staffIndex) {
                     $staff = User::query()->updateOrCreate(
@@ -229,6 +235,19 @@ class UserSeeder extends Seeder
         } catch (Throwable $throwable) {
             throw new RuntimeException('UserSeeder gagal dijalankan.', 0, $throwable);
         }
+    }
+
+    private function deleteExtraSeededStaffAccounts(int $companySeedNumber): void
+    {
+        User::query()
+            ->where('username', 'like', 'staff'.$companySeedNumber.'%')
+            ->whereNotIn(
+                'username',
+                collect(range(1, self::STAFF_PER_COMPANY))
+                    ->map(static fn (int $staffIndex): string => 'staff'.$companySeedNumber.$staffIndex)
+                    ->all(),
+            )
+            ->delete();
     }
 
     private function seedUserRelations(

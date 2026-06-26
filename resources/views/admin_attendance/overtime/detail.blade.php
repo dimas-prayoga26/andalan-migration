@@ -275,7 +275,7 @@
                         </div>
                     </div>
                 </div>
-                <a class="btn light btn-success m-3 mb-2 btn-lg" data-bs-toggle="modal" data-bs-target="#approveOvertime">Approve Overtime Session</a>
+                <button type="button" class="btn light btn-success m-3 mb-2 btn-lg" disabled>Approve Overtime Session</button>
                 <div class="mb-3"></div>
             </div>
         </div>
@@ -315,12 +315,12 @@
                                         </svg>
                                     </div>
                                     <div class="clearfix">
-                                        <a data-bs-toggle="modal" data-bs-target="#details">
+                                        <div>
                                             <div class="form-check custom-checkbox checkbox-success">
-                                                <input class="form-check-input" type="checkbox" id="customCheckBox1" checked>
+                                                <input class="form-check-input" type="checkbox" id="customCheckBox1" checked disabled>
                                                 <label class="form-check-label text-black" for="customCheckBox1">Desain Interior Ruang Tamu</label>
                                             </div>
-                                        </a>
+                                        </div>
                                         <span>20 May 2026, 20:00 WIB</span>
                                     </div>
                                 </div>
@@ -360,19 +360,19 @@
                                     </div>
                                     <div class="clearfix">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="customCheckBox2">
+                                            <input class="form-check-input" type="checkbox" id="customCheckBox2" disabled>
                                             <label class="form-check-label text-black" for="customCheckBox2">Compete this projects Monday</label>
                                         </div>
                                         <span>2023-12-26 07:15:00</span>
                                     </div>
                                 </div>
                                 <div class="clearfix">
-                                    <div class="btn btn-square btn-danger light btn-sm">
+                                    <button type="button" class="btn btn-square btn-danger light btn-sm" disabled>
                                         <i class="fa-regular fa-trash-can "></i>
-                                    </div>
-                                    <div class="btn btn-square btn-primary light btn-sm ms-1">
+                                    </button>
+                                    <button type="button" class="btn btn-square btn-primary light btn-sm ms-1" disabled>
                                         <i class="fa fa-pen "></i>
-                                    </div>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -403,19 +403,19 @@
                                     </div>
                                     <div class="clearfix">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="customCheckBox3">
+                                            <input class="form-check-input" type="checkbox" id="customCheckBox3" disabled>
                                             <label class="form-check-label text-black" for="customCheckBox3">Compete this projects Monday</label>
                                         </div>
                                         <span>2023-12-26 07:15:00</span>
                                     </div>
                                 </div>
                                 <div class="clearfix">
-                                    <div class="btn btn-square btn-danger light btn-sm">
+                                    <button type="button" class="btn btn-square btn-danger light btn-sm" disabled>
                                         <i class="fa-regular fa-trash-can "></i>
-                                    </div>
-                                    <div class="btn btn-square btn-primary light btn-sm ms-1">
+                                    </button>
+                                    <button type="button" class="btn btn-square btn-primary light btn-sm ms-1" disabled>
                                         <i class="fa fa-pen "></i>
-                                    </div>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -446,119 +446,117 @@
                                     </div>
                                     <div class="clearfix">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="customCheckBox4">
+                                            <input class="form-check-input" type="checkbox" id="customCheckBox4" disabled>
                                             <label class="form-check-label text-black" for="customCheckBox4">Compete this projects Monday</label>
                                         </div>
                                         <span>2023-12-26 07:15:00</span>
                                     </div>
                                 </div>
                                 <div class="clearfix">
-                                    <div class="btn btn-square btn-danger light btn-sm">
+                                    <button type="button" class="btn btn-square btn-danger light btn-sm" disabled>
                                         <i class="fa-regular fa-trash-can "></i>
-                                    </div>
-                                    <div class="btn btn-square btn-primary light btn-sm ms-1">
+                                    </button>
+                                    <button type="button" class="btn btn-square btn-primary light btn-sm ms-1" disabled>
                                         <i class="fa fa-pen "></i>
-                                    </div>
+                                    </button>
                                 </div>
                             </div>
                         </div>
                         <div class="list-group-item draggable p-3">
                             <div class="d-flex justify-content-between flex-wrap">
                                 <div class="d-flex gap-3">
-                                                    <div class="draggable-handle">
-                                                        <svg width="9" height="16" viewBox="0 0 9 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <rect width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="3" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="6" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="9" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="12" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="15" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="clearfix">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" id="customCheckBox5">
-                                                            <label class="form-check-label text-black" for="customCheckBox5">Compete this projects Monday</label>
-                                                        </div>
-                                                        <span>2023-12-26 07:15:00</span>
-                                                    </div>
-                                                </div>
-                                                <div class="clearfix">
-                                                    <div class="btn btn-square btn-danger light btn-sm">
-                                                        <i class="fa-regular fa-trash-can "></i>
-                                                    </div>
-                                                    <div class="btn btn-square btn-primary light btn-sm ms-1">
-                                                        <i class="fa fa-pen "></i>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="list-group-item draggable p-3">
-                                            <div class="d-flex justify-content-between flex-wrap">
-                                                <div class="d-flex gap-3">
-                                                    <div class="draggable-handle">
-                                                        <svg width="9" height="16" viewBox="0 0 9 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <rect width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="3" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="6" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="9" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="12" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="15" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="clearfix">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" id="customCheckBox6">
-                                                            <label class="form-check-label text-black" for="customCheckBox6">Compete this projects Monday</label>
-                                                        </div>
-                                                        <span>2023-12-26 07:15:00</span>
-                                                    </div>
-                                                </div>
-                                                <div class="clearfix">
-                                                    <div class="btn btn-square btn-danger light btn-sm">
-                                                        <i class="fa-regular fa-trash-can "></i>
-                                                    </div>
-                                                    <div class="btn btn-square btn-primary light btn-sm ms-1">
-                                                        <i class="fa fa-pen "></i>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <div class="draggable-handle">
+                                        <svg width="9" height="16" viewBox="0 0 9 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <rect width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="3" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="6" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="9" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="12" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="15" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
+                                        </svg>
                                     </div>
+                                    <div class="clearfix">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="customCheckBox5" disabled>
+                                            <label class="form-check-label text-black" for="customCheckBox5">Compete this projects Monday</label>
+                                        </div>
+                                        <span>2023-12-26 07:15:00</span>
+                                    </div>
+                                </div>
+                                <div class="clearfix">
+                                    <button type="button" class="btn btn-square btn-danger light btn-sm" disabled>
+                                        <i class="fa-regular fa-trash-can "></i>
+                                    </button>
+                                    <button type="button" class="btn btn-square btn-primary light btn-sm ms-1" disabled>
+                                        <i class="fa fa-pen "></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        <!-- End - To Do -->
-                            
+                        <div class="list-group-item draggable p-3">
+                            <div class="d-flex justify-content-between flex-wrap">
+                                <div class="d-flex gap-3">
+                                    <div class="draggable-handle">
+                                        <svg width="9" height="16" viewBox="0 0 9 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <rect width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="3" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="6" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="9" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="12" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="15" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
+                                        </svg>
+                                    </div>
+                                    <div class="clearfix">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="customCheckBox6" disabled>
+                                            <label class="form-check-label text-black" for="customCheckBox6">Compete this projects Monday</label>
+                                        </div>
+                                        <span>2023-12-26 07:15:00</span>
+                                    </div>
+                                </div>
+                                <div class="clearfix">
+                                    <button type="button" class="btn btn-square btn-danger light btn-sm" disabled>
+                                        <i class="fa-regular fa-trash-can "></i>
+                                    </button>
+                                    <button type="button" class="btn btn-square btn-primary light btn-sm ms-1" disabled>
+                                        <i class="fa fa-pen "></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </div>              
+        </div>
+    </div>
+</div>
 
-@endsection
+
+                @endsection
 
 @section('script')
     @php

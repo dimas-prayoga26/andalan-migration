@@ -29,164 +29,161 @@
 <!-- End - My Projects -->
 
 <div class="row">
-    <div class="col-md-5">
-        <div class="row">
-            <div class="col-xxl-12 col-xl-12 col-md-12">
-                <div class="card">
-                    <div class="card-header border-0 pb-0">
-                        <div>
-                            <h4 class="card-title">[Name] Extra Mile</h4>
-                            <p class="fs-13 mb-0">Here is a breakdown overtime shift, the tasks, and reward details.</p>
-                        </div>
+    <div class="col-xxl-6 col-xl-6 col-md-6">
+        <div class="card">
+            <div class="card-header border-0 pb-0">
+                <div>
+                    <h4 class="card-title">[Name] Extra Mile</h4>
+                    <p class="fs-13 mb-0">Here is a breakdown overtime shift, the tasks, and reward details.</p>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span class="fw-semibold">Employee Profile</span>
                     </div>
-                    <div class="card-body">
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span class="fw-semibold">Employee Profile</span>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span>Record ID</span>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <span class="text-gray fw-semibold">#OVT-2605-0089</span>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span>Full Name</span>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <span class="text-gray fw-semibold">Thomas Jefferson</span>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span>Supervisor</span>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <span class="text-gray fw-semibold">Michael Scott</span>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span class="fw-semibold">Overtime Log (Approved)</span>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span>Date</span>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <span class="text-gray">22 May 2026</span>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span>Time</span>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <span class="text-gray text-decoration-line-through">17:00 - 21:00</span>
-                                <span class="text-gray">, 17:00 - 20:30</span>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span>Total Duration</span>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <span class="text-gray text-decoration-line-through">4 Hours</span>
-                                <span class="text-gray">, 3 Hours, 30 Minutes</span>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span>Brief and Instructions</span>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <span class="text-gray">Renovasi fasad dan desain interior rumah bintaro.</span>
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span class="fw-semibold">Compensation & Payroll Details</span>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span>Compensation Type</span>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <span class="text-gray fw-semibold">Overtime Pay</span> <br>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span>Rate Multiplier</span>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <span class="text-gray fw-semibold">1.5x</span> <br>
-                                <span class="text-gray">Standard Weekday Overtime</span>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span>Estimated Calculated Earnings</span>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <span class="text-gray fw-semibold">Rp. 100.000</span>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span>Payout Period</span>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <span class="text-gray fw-semibold">Included in May 2026 Payroll</span>
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span class="fw-semibold">Approval Trail</span>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span>Verified by System</span>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <span class="text-gray">Clock-out matched requested time</span> <br>
-                                <span class="text-gray">23 May 2026, 09:00</span>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span>Approved by Supervisor</span>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <span class="text-gray">Michael Scott</span> <br>
-                                <span class="text-gray">23 May 2026, 09:00</span>
-                            </div>
-                        </div>
-                        <div class="row py-2">
-                            <div class="col-md-6 col-12">
-                                <span>Approved by Director</span>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <span class="text-gray">Steven Johansson</span> <br>
-                                <span class="text-gray">23 May 2026, 12:00</span>
-                            </div>
-                        </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Record ID</span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray fw-semibold">#OVT-2605-0089</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Full Name</span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray fw-semibold">Thomas Jefferson</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Supervisor</span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray fw-semibold">Michael Scott</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span class="fw-semibold">Overtime Log (Approved)</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Date</span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray">22 May 2026</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Time</span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray text-decoration-line-through">17:00 - 21:00</span>
+                        <span class="text-gray">, 17:00 - 20:30</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Total Duration</span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray text-decoration-line-through">4 Hours</span>
+                        <span class="text-gray">, 3 Hours, 30 Minutes</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Brief and Instructions</span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray">Renovasi fasad dan desain interior rumah bintaro.</span>
+                    </div>
+                </div>
+                <hr>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span class="fw-semibold">Compensation & Payroll Details</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Compensation Type</span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray fw-semibold">Overtime Pay</span> <br>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Rate Multiplier</span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray fw-semibold">1.5x</span> <br>
+                        <span class="text-gray">Standard Weekday Overtime</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Estimated Calculated Earnings</span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray fw-semibold">Rp. 100.000</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Payout Period</span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray fw-semibold">Included in May 2026 Payroll</span>
+                    </div>
+                </div>
+                <hr>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span class="fw-semibold">Approval Trail</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Verified by System</span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray">Clock-out matched requested time</span> <br>
+                        <span class="text-gray">23 May 2026, 09:00</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Approved by Supervisor</span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray">Michael Scott</span> <br>
+                        <span class="text-gray">23 May 2026, 09:00</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Approved by Director</span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray">Steven Johans   son</span> <br>
+                        <span class="text-gray">23 May 2026, 12:00</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-xl-7">
-        <div class="row sticky-top z-0">
+
+    <div class="col-xxl-6 col-xl-6 col-md-6">
+        <div class="row g-4">
 
             <div class="col-md-6">
                 <div class="card">
@@ -239,56 +236,57 @@
             </div>
 
             <div class="col-md-6">
-            <div class="card">
-                <div class="card-header border-0 pb-3">
-                    <div>
-                        <h4 class="card-title">Review Overtime Session</h4>
+                <div class="card">
+                    <div class="card-header border-0 pb-3">
+                        <div>
+                            <h4 class="card-title">Review Overtime Session</h4>
+                        </div>
                     </div>
+                    <div class="card-body p-0">
+                        <div class="row ps-4 pe-4">
+                            <div class="col-md-6">
+                                <div class="">
+                                    <label class="form-label">Scheduled Start</label>
+                                    <p class="fs-14 mb-0">18:00</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="">
+                                    <label class="form-label">Scheduled End</label>
+                                    <p class="fs-14 mb-0">20:00</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row p-4 pb-2">
+                            <div class="col-md-6">
+                                <div class=" mb-3">
+                                    <label class="form-label">Approved Start <span class="text-danger">*</span></label>
+                                    <input type="time" class="form-control" value="18:00">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class=" mb-3">
+                                    <label class="form-label">Approved End <span class="text-danger">*</span></label>
+                                    <input type="time" class="form-control" value="20:00">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn light btn-success m-3 mb-2 btn-lg" disabled>Approve Overtime Session</button>
+                    <div class="mb-3"></div>
                 </div>
-                <div class="card-body p-0">
-                    <div class="row ps-4 pe-4">
-                        <div class="col-md-6">
-                            <div class="">
-                                <label class="form-label">Scheduled Start</label>
-                                <p class="fs-14 mb-0">18:00</p>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="">
-                                <label class="form-label">Scheduled End</label>
-                                <p class="fs-14 mb-0">20:00</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row p-4 pb-2">
-                        <div class="col-md-6">
-                            <div class=" mb-3">
-                                <label class="form-label">Approved Start <span class="text-danger">*</span></label>
-                                <input type="time" class="form-control" value="18:00">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class=" mb-3">
-                                <label class="form-label">Approved End <span class="text-danger">*</span></label>
-                                <input type="time" class="form-control" value="20:00">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <a class="btn light btn-success m-3 mb-2 btn-lg" data-bs-toggle="modal" data-bs-target="#approveOvertime">Approve Overtime Session</a>
-                <div class="mb-3"></div>
             </div>
         </div>
-            
-        
-        <!-- Start - To Do -->
-        <div class="col-xxl-12 col-xl-12 col-md-12">
-            <div class="card overflow-hidden">
-                <div class="card-header">
-                    <h4 class="card-title">[Name] Task Items</h4>
-                </div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush dz-draggable dropzoneContainer dz-scroll height400">
+
+        <div class="row g-4">
+            <!-- Start - To Do -->
+            <div class="col-md-6">
+                <div class="card overflow-hidden">
+                    <div class="card-header">
+                        <h4 class="card-title">[Name] Task Items</h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush dz-draggable dropzoneContainer dz-scroll height400">
                         <div class="list-group-item draggable p-3">
                             <div class="d-flex justify-content-between flex-wrap">
                                 <div class="d-flex gap-3">
@@ -324,13 +322,6 @@
                                         <span>20 May 2026, 20:00 WIB</span>
                                     </div>
                                 </div>
-                                <!-- <div class="clearfix">
-                                    <a href="#" data-bs-toggle="modal" data-bs-target="#approval">
-                                        <div class="btn btn-square btn-success light btn-sm ms-1">
-                                            <i class="fa fa-pen "></i>
-                                        </div>
-                                    </a>
-                                </div> -->
                             </div>
                         </div>
                         <div class="list-group-item draggable p-3">
@@ -364,14 +355,6 @@
                                             <label class="form-check-label text-black" for="customCheckBox2">Compete this projects Monday</label>
                                         </div>
                                         <span>2023-12-26 07:15:00</span>
-                                    </div>
-                                </div>
-                                <div class="clearfix">
-                                    <div class="btn btn-square btn-danger light btn-sm">
-                                        <i class="fa-regular fa-trash-can "></i>
-                                    </div>
-                                    <div class="btn btn-square btn-primary light btn-sm ms-1">
-                                        <i class="fa fa-pen "></i>
                                     </div>
                                 </div>
                             </div>
@@ -409,14 +392,6 @@
                                         <span>2023-12-26 07:15:00</span>
                                     </div>
                                 </div>
-                                <div class="clearfix">
-                                    <div class="btn btn-square btn-danger light btn-sm">
-                                        <i class="fa-regular fa-trash-can "></i>
-                                    </div>
-                                    <div class="btn btn-square btn-primary light btn-sm ms-1">
-                                        <i class="fa fa-pen "></i>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                         <div class="list-group-item draggable p-3">
@@ -452,12 +427,39 @@
                                         <span>2023-12-26 07:15:00</span>
                                     </div>
                                 </div>
-                                <div class="clearfix">
-                                    <div class="btn btn-square btn-danger light btn-sm">
-                                        <i class="fa-regular fa-trash-can "></i>
+                            </div>
+                        </div>
+                        <div class="list-group-item draggable p-3">
+                            <div class="d-flex justify-content-between flex-wrap">
+                                <div class="d-flex gap-3">
+                                    <div class="draggable-handle">
+                                        <svg width="9" height="16" viewBox="0 0 9 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <rect width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="3" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="6" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="9" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="12" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="15" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
+                                        </svg>
                                     </div>
-                                    <div class="btn btn-square btn-primary light btn-sm ms-1">
-                                        <i class="fa fa-pen "></i>
+                                    <div class="clearfix">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="customCheckBox5">
+                                            <label class="form-check-label text-black" for="customCheckBox5">Compete this projects Monday</label>
+                                        </div>
+                                        <span>2023-12-26 07:15:00</span>
                                     </div>
                                 </div>
                             </div>
@@ -465,98 +467,137 @@
                         <div class="list-group-item draggable p-3">
                             <div class="d-flex justify-content-between flex-wrap">
                                 <div class="d-flex gap-3">
-                                                    <div class="draggable-handle">
-                                                        <svg width="9" height="16" viewBox="0 0 9 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <rect width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="3" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="6" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="9" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="12" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="15" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="clearfix">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" id="customCheckBox5">
-                                                            <label class="form-check-label text-black" for="customCheckBox5">Compete this projects Monday</label>
-                                                        </div>
-                                                        <span>2023-12-26 07:15:00</span>
-                                                    </div>
-                                                </div>
-                                                <div class="clearfix">
-                                                    <div class="btn btn-square btn-danger light btn-sm">
-                                                        <i class="fa-regular fa-trash-can "></i>
-                                                    </div>
-                                                    <div class="btn btn-square btn-primary light btn-sm ms-1">
-                                                        <i class="fa fa-pen "></i>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                    <div class="draggable-handle">
+                                        <svg width="9" height="16" viewBox="0 0 9 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <rect width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="3" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="6" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="9" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="12" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect y="15" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="4" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
+                                            <rect x="8" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
+                                        </svg>
+                                    </div>
+                                    <div class="clearfix">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="customCheckBox6">
+                                            <label class="form-check-label text-black" for="customCheckBox6">Compete this projects Monday</label>
                                         </div>
-                                        <div class="list-group-item draggable p-3">
-                                            <div class="d-flex justify-content-between flex-wrap">
-                                                <div class="d-flex gap-3">
-                                                    <div class="draggable-handle">
-                                                        <svg width="9" height="16" viewBox="0 0 9 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <rect width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="3" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="6" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="9" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="12" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect y="15" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="4" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="3" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="6" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="9" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="12" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                            <rect x="8" y="15" width="1" height="1" fill="var(--bs-body-color)"/>
-                                                        </svg>
-                                                    </div>
-                                                    <div class="clearfix">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" id="customCheckBox6">
-                                                            <label class="form-check-label text-black" for="customCheckBox6">Compete this projects Monday</label>
-                                                        </div>
-                                                        <span>2023-12-26 07:15:00</span>
-                                                    </div>
-                                                </div>
-                                                <div class="clearfix">
-                                                    <div class="btn btn-square btn-danger light btn-sm">
-                                                        <i class="fa-regular fa-trash-can "></i>
-                                                    </div>
-                                                    <div class="btn btn-square btn-primary light btn-sm ms-1">
-                                                        <i class="fa fa-pen "></i>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <span>2023-12-26 07:15:00</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <!-- End - To Do -->
-                            
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header border-0 pb-0">
+                        <div>
+                            <h4 class="card-title">Confirm Overtime</h4>
+                            <p class="fs-13 mb-0">Ensure overtime schedule, task details, and attachments are accurate.</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <label class="form-label">Approval Status <span class="text-danger">*</span></label>
+                                <div class="form-group mb-0">
+                                    <div class="form-check d-inline-block me-3">
+                                        <input class="form-check-input" type="radio" name="directorApprovalStatus" id="directorApprovalPending" checked>
+                                        <label class="form-check-label fw-semibold text-warning" for="directorApprovalPending">
+                                            Pending
+                                        </label>
+                                    </div>
+                                    <div class="form-check d-inline-block mx-2 me-3">
+                                        <input class="form-check-input" type="radio" name="directorApprovalStatus" id="directorApprovalApproved">
+                                        <label class="form-check-label fw-semibold text-success" for="directorApprovalApproved">
+                                            Approve
+                                        </label>
+                                    </div>
+                                    <div class="form-check d-inline-block">
+                                        <input class="form-check-input" type="radio" name="directorApprovalStatus" id="directorApprovalRejected">
+                                        <label class="form-check-label fw-semibold text-danger" for="directorApprovalRejected">
+                                            Reject
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row py-2">
+                            <div class="col-md-6 col-12">
+                                <span>Overtime Type</span>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <span class="text-gray">Standard Weekday Overtime</span>
+                            </div>
+                        </div>
+                        <div class="row py-2">
+                            <div class="col-md-6 col-12">
+                                <span>Date</span>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <span class="text-gray">22 May 2026</span>
+                            </div>
+                        </div>
+                        <div class="row py-2">
+                            <div class="col-md-6 col-12">
+                                <span>Scheduled Time</span>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <span class="text-gray">18:00 - 20:00</span>
+                            </div>
+                        </div>
+                        <div class="row py-2">
+                            <div class="col-md-6 col-12">
+                                <span>Approved Time</span>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <span class="text-gray">18:00 - 20:00</span>
+                            </div>
+                        </div>
+                        <div class="row py-2">
+                            <div class="col-md-6 col-12">
+                                <span>Instruction</span>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <span class="text-gray">Renovasi fasad dan desain interior rumah bintaro.</span>
+                            </div>
+                        </div>
+                        <div class="row py-2">
+                            <div class="col-md-6 col-12">
+                                <span>Attachment</span>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <span class="text-gray">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-3 pb-3">
+                        <button type="button" class="btn light btn-success w-100 btn-lg">Update Overtime Request</button>
+                    </div>
+                    <div class="mb-3"></div>
+                </div>
+            </div>
+        </div>
+        <!-- End - To Do -->
+    </div>
+</div>
 
 @endsection
 

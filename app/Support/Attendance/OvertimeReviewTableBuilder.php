@@ -15,6 +15,20 @@ class OvertimeReviewTableBuilder
 
     private const DIRECTOR_APPROVAL = 'director_approval';
 
+    private const PAYMENT_DISTRIBUTION = 'payment_disbursement';
+
+    private const COMPLETE = 'complete';
+
+    /**
+     * @var array<int, string>
+     */
+    private const ADMIN_LIFECYCLE_RANGE = [
+        self::TASK_HOURS_VERIFICATION,
+        'payroll_processing',
+        self::DIRECTOR_APPROVAL,
+        self::PAYMENT_DISTRIBUTION,
+    ];
+
     /**
      * @return array{
      *     selectedMonth:int,
@@ -45,6 +59,17 @@ class OvertimeReviewTableBuilder
 
         if ($context === 'pic' && is_string($assignedByUserId) && trim($assignedByUserId) !== '') {
             $baseQuery->where('assigned_by', trim($assignedByUserId));
+        }
+
+        if ($context === 'admin') {
+            return [
+                'selectedMonth' => $selectedMonth,
+                'selectedYear' => $selectedYear,
+                'monthOptions' => $this->monthOptions(),
+                'yearOptions' => $this->yearOptions($selectedYear),
+                'pendingRows' => $this->rowsForAdminPendingLifecycleRange(clone $baseQuery, $context),
+                'approvedRows' => $this->rowsForLifecycleStatus(clone $baseQuery, self::PAYMENT_DISTRIBUTION, self::COMPLETE, $context),
+            ];
         }
 
         [$pendingEventKey, $pendingStatus, $approvedEventKey, $approvedStatus] = $this->statusRuleFor($context);
@@ -140,7 +165,7 @@ class OvertimeReviewTableBuilder
         return match ($context) {
             'pic' => [self::TASK_HOURS_VERIFICATION, 'pending', self::TASK_HOURS_VERIFICATION, 'verified'],
             'director' => [self::DIRECTOR_APPROVAL, 'pending', self::DIRECTOR_APPROVAL, 'approved'],
-            default => [self::TASK_HOURS_VERIFICATION, 'pending', self::DIRECTOR_APPROVAL, 'approved'],
+            default => [self::TASK_HOURS_VERIFICATION, 'in_progress', self::PAYMENT_DISTRIBUTION, self::COMPLETE],
         };
     }
 
@@ -167,6 +192,50 @@ class OvertimeReviewTableBuilder
             ->filter(fn (AttendanceOvertime $overtime): bool => $this->lifecycleStatus($overtime, $eventKey) === $status)
             ->values()
             ->map(fn (AttendanceOvertime $overtime): array => $this->rowFor($overtime, $context));
+    }
+
+    /**
+     * @return Collection<int, array<string, string>>
+     */
+    private function rowsForAdminPendingLifecycleRange(Builder $query, string $context): Collection
+    {
+        /** @var Collection<int, AttendanceOvertime> $overtimes */
+        $overtimes = $query->get([
+            'id',
+            'employee_id',
+            'assigned_by',
+            'record_number',
+            'overtime_date',
+            'planned_start_time',
+            'planned_end_time',
+            'actual_start_time',
+            'actual_end_time',
+            'status',
+        ]);
+
+        return $overtimes
+            ->filter(fn (AttendanceOvertime $overtime): bool => $this->isAdminPendingLifecycleRange($overtime))
+            ->values()
+            ->map(fn (AttendanceOvertime $overtime): array => $this->rowFor($overtime, $context));
+    }
+
+    private function isAdminPendingLifecycleRange(AttendanceOvertime $overtime): bool
+    {
+        return $this->hasStartedAdminLifecycleRange($overtime)
+            && $this->lifecycleStatus($overtime, self::PAYMENT_DISTRIBUTION) !== self::COMPLETE;
+    }
+
+    private function hasStartedAdminLifecycleRange(AttendanceOvertime $overtime): bool
+    {
+        foreach (self::ADMIN_LIFECYCLE_RANGE as $eventKey) {
+            $status = $this->lifecycleStatus($overtime, $eventKey);
+
+            if ($status !== '' && $status !== 'waiting') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function lifecycleStatus(AttendanceOvertime $overtime, string $eventKey): string

@@ -188,7 +188,7 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header border-0 align-items-center">
-                        <h4 class="card-title">Status : <span class="text-success">Approved</span> </h4>
+                        <h4 class="card-title">Status : <span class="text-success">Complete</span> </h4>
                         <form class="clearfix d-flex align-items-center" method="GET" action="{{ url()->current() }}">
                             <div class="clearfix me-1">
                                 <select name="month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
@@ -232,7 +232,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted">No approved overtime data available for this period.</td>
+                                            <td colspan="5" class="text-center text-muted">No complete overtime data available for this period.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
@@ -241,53 +241,62 @@
                     </div>
                 </div>
             </div>
-            <div class="col-xxl-3 col-xl-4 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="clearfix d-flex">
-                            <div class="avatar avatar-sm rounded me-3">
-                                <img src="files/employees/bussiness-man.png" alt="">
+            @forelse (($overtimeCards ?? collect()) as $overtimeCard)
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="clearfix d-flex">
+                                <div class="avatar avatar-sm rounded me-3 d-flex align-items-center justify-content-center bg-primary-subtle text-primary fw-semibold">
+                                    {{ strtoupper(substr($overtimeCard['employee_name'], 0, 1)) }}
+                                </div>
+                                <div class="clearfix">
+                                    <h6 class="mb-0 fw-semibold">
+                                        <a href="{{ $overtimeCard['detail_url'] }}" class="stretched-link">{{ $overtimeCard['record_number'] }}</a>
+                                    </h6>
+                                    <span class="small">{{ $overtimeCard['employee_name'] }}</span>
+                                </div>
                             </div>
-                            <div class="clearfix">
-                                <h6 class="mb-0 fw-semibold">
-                                    <a href="{{ route('admin-attendance.overtime.detail') }}" class="stretched-link">#OVT-2605-0101</a>
-                                </h6>
-                                <span class="small">Muhammad Syafiq</span>	
-                            </div>	
+                            <p class="my-3">{{ $overtimeCard['instruction'] }}</p>
+                            <div class="row py-1">
+                                <div class="col-12">
+                                    <span>Date :</span>
+                                </div>
+                                <div class="col-12">
+                                    <span>{{ $overtimeCard['date_label'] }}</span> <br>
+                                </div>
+                            </div>
+                            <div class="row py-1">
+                                <div class="col-12">
+                                    <span>Time :</span>
+                                </div>
+                                <div class="col-12">
+                                    @foreach ($overtimeCard['time_lines'] as $timeLine)
+                                        <span @class(['text-decoration-line-through' => $timeLine['strike']])>{{ $timeLine['label'] }}</span> <br>
+                                    @endforeach
+                                </div>
+                            </div>
+                            <div class="row py-1">
+                                <div class="col-12">
+                                    <span>PIC / Supervisor :</span>
+                                </div>
+                                <div class="col-12">
+                                    <span>{{ $overtimeCard['supervisor_name'] }}</span> <br>
+                                </div>
+                            </div>
                         </div>
-                        <p class="my-3">Halaman backend overtime dan backend business trip.</p>
-                        <div class="row py-1">
-                            <div class="col-12">
-                                <span>Date :</span>
-                            </div>
-                            <div class="col-12">
-                                <span>10 Jun 2026</span> <br>
+                        <div class="card-footer">
+                            <div class="d-flex justify-content-between align-items-center gap-2 py-1">
+                                <span class="small fw-semibold">{{ $overtimeCard['current_log']['title'] }}</span>
+                                <span class="badge badge-sm {{ $overtimeCard['current_log']['badge_class'] }} light fw-semibold">{{ $overtimeCard['current_log']['status'] }}</span>
                             </div>
                         </div>
-                        <div class="row py-1">
-                            <div class="col-12">
-                                <span>Time :</span>
-                            </div>
-                            <div class="col-12">
-                                <span class="text-decoration-line-through">18:00 - 20:30 (2,5 hours)</span> <br>
-                                <span>18:00 - 20:00 (2 hours)</span>
-                            </div>
-                        </div>
-                        <div class="row py-1">
-                            <div class="col-12">
-                                <span>PIC / Supervisor :</span>
-                            </div>
-                            <div class="col-12">
-                                <span>Muhammad Syafiq</span> <br>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-footer d-flex justify-content-between flex-wrap">
-                        <p class="mb-0 fw-semibold"><span class="text-success">SPV : Approved</span></p>
-                        <span class="badge badge-sm badge-success light fw-semibold">Approved</span>
                     </div>
                 </div>
-            </div>
+            @empty
+                <div class="col-12">
+                    <p class="text-muted mb-0">No overtime card data available for this period.</p>
+                </div>
+            @endforelse
         </div>
     </div>
     

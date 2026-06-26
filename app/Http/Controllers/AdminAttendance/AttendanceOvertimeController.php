@@ -5,6 +5,7 @@ namespace App\Http\Controllers\AdminAttendance;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceOvertime;
 use App\Models\OvertimeLifecycleLog;
+use App\Models\ProjectTask;
 use App\Models\User;
 use App\Support\Attendance\OvertimeReviewTableBuilder;
 use App\Support\Attendance\OvertimeSummaryMetricBuilder;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class AttendanceOvertimeController extends Controller
 {
@@ -55,9 +57,55 @@ class AttendanceOvertimeController extends Controller
         ]);
     }
 
-    public function detail(): View
+    public function detail(Request $request, string $uid): View
     {
-        return view('admin_attendance.overtime.detail');
+        $authenticatedUser = $request->user();
+        abort_unless($authenticatedUser instanceof User, 403);
+
+        $companyId = $this->currentCompanyIdFor($authenticatedUser);
+        abort_unless(is_string($companyId) && trim($companyId) !== '', 404);
+
+        $overtime = AttendanceOvertime::query()
+            ->select([
+                'id',
+                'employee_id',
+                'assigned_by',
+                'record_number',
+                'overtime_date',
+                'planned_start_time',
+                'planned_end_time',
+                'actual_start_time',
+                'actual_end_time',
+                'instruction',
+                'status',
+            ])
+            ->with([
+                'employee:id,user_id',
+                'employee.profile:id,employee_id,name',
+                'employee.user:id,username,email',
+                'employee.deployment:id,employee_id,current_company_id',
+                'assignedBy:id,username,email',
+                'assignedBy.employee:id,user_id',
+                'assignedBy.employee.profile:id,employee_id,name',
+                'lifecycleLogs:id,overtime_id,event_key,title,status,actor_id,happened_at',
+                'lifecycleLogs.actor:id,username,email',
+                'lifecycleLogs.actor.employee:id,user_id',
+                'lifecycleLogs.actor.employee.profile:id,employee_id,name',
+                'projectTasks:id,overtime_id,employee_id,project_id,title,description,status,priority,start_date,due_date,blockers,attachment_path,completed_at,created_at',
+            ])
+            ->whereKey($uid)
+            ->whereHas('employee', function (Builder $query) use ($companyId): void {
+                $query->whereHas('deployment', function (Builder $query) use ($companyId): void {
+                    $query->where('current_company_id', trim($companyId));
+                });
+            })
+            ->firstOrFail();
+
+        return view('admin_attendance.overtime.detail', [
+            'overtime' => $overtime,
+            'overtimeDetail' => $this->adminOvertimeDetailSummary($overtime),
+            'overtimeTaskItems' => $this->buildOvertimeTaskItems($overtime),
+        ]);
     }
 
     private function currentCompanyIdFor(User $user): ?string
@@ -139,9 +187,190 @@ class AttendanceOvertimeController extends Controller
             'date_label' => $this->dateRangeLabel($task?->start_date ?: $overtime->overtime_date, $task?->due_date ?: $overtime->overtime_date),
             'time_lines' => $this->timeLinesFor($overtime, $isPaymentComplete),
             'supervisor_name' => $this->supervisorDisplayName($overtime),
-            'detail_url' => route('admin-attendance.overtime.detail'),
+            'detail_url' => route('admin-attendance.overtime.detail', ['uid' => $overtime->id]),
             'current_log' => $this->currentAdminLifecycleLog($lifecycleLogsByEvent),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function adminOvertimeDetailSummary(AttendanceOvertime $overtime): array
+    {
+        $plannedStartTime = $this->formatTime($overtime->planned_start_time);
+        $plannedEndTime = $this->formatTime($overtime->planned_end_time);
+        $actualStartTime = $this->formatTime($overtime->actual_start_time);
+        $actualEndTime = $this->formatTime($overtime->actual_end_time);
+        $hasActualTime = $this->hasActualOvertimeTimes($overtime);
+        $plannedTimeRange = $plannedStartTime.' - '.$plannedEndTime;
+        $actualTimeRange = $hasActualTime ? $actualStartTime.' - '.$actualEndTime : '-';
+        $plannedDuration = $this->durationLabel($overtime->planned_start_time, $overtime->planned_end_time);
+        $actualDuration = $hasActualTime ? $this->durationLabel($overtime->actual_start_time, $overtime->actual_end_time) : '-';
+        $taskDeliverablesSubmitted = $this->isTaskDeliverablesSubmitted($overtime);
+        $taskHoursVerified = $this->isTaskHoursVerified($overtime);
+        $verificationLog = $this->overtimeLifecycleLog($overtime, 'task_hours_verification');
+        $directorApprovalLog = $this->overtimeLifecycleLog($overtime, 'director_approval');
+        $directorApprover = $directorApprovalLog?->actor instanceof User
+            ? $directorApprovalLog->actor
+            : $this->resolveOvertimeDirectorApprover($overtime);
+
+        return [
+            'staff_name' => $this->employeeDisplayName($overtime),
+            'supervisor_name' => $this->supervisorDisplayName($overtime),
+            'log_status' => $this->overtimeStatusLabel((string) ($overtime->status ?? 'assigned')),
+            'record_number' => '#'.(is_string($overtime->record_number) && trim($overtime->record_number) !== '' ? trim($overtime->record_number) : '-'),
+            'overtime_date' => Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->format('d M Y'),
+            'planned_start_time' => $plannedStartTime,
+            'planned_end_time' => $plannedEndTime,
+            'actual_start_time' => $actualStartTime,
+            'actual_end_time' => $actualEndTime,
+            'planned_time_range' => $plannedTimeRange,
+            'actual_time_range' => $actualTimeRange,
+            'time_changed' => $hasActualTime && $actualTimeRange !== $plannedTimeRange,
+            'planned_duration' => $plannedDuration,
+            'actual_duration' => $actualDuration,
+            'duration_changed' => $hasActualTime && $actualDuration !== $plannedDuration,
+            'verification_ready' => $taskDeliverablesSubmitted,
+            'verification_start_time' => $taskDeliverablesSubmitted ? ($actualStartTime !== '-' ? $actualStartTime : $plannedStartTime) : '-',
+            'verification_end_time' => $taskDeliverablesSubmitted ? ($actualEndTime !== '-' ? $actualEndTime : $plannedEndTime) : '-',
+            'verification_duration' => $taskDeliverablesSubmitted ? ($actualDuration !== '-' ? $actualDuration : $plannedDuration) : '-',
+            'is_task_hours_verified' => $taskHoursVerified,
+            'instruction' => is_string($overtime->instruction) && trim($overtime->instruction) !== '' ? trim($overtime->instruction) : '-',
+            'payout_period' => 'Included in '.Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->format('F Y').' Payroll',
+            'verified_note' => $hasActualTime ? 'Actual overtime hours recorded' : 'Waiting for clock-out',
+            'verified_datetime' => $this->formatLifecycleDateTime($verificationLog),
+            'supervisor_approver' => $this->supervisorDisplayName($overtime),
+            'supervisor_datetime' => $this->formatLifecycleDateTime($verificationLog),
+            'director_approver' => $directorApprover instanceof User ? $this->userDisplayName($directorApprover) : '-',
+            'director_datetime' => $this->formatLifecycleDateTime($directorApprovalLog),
+        ];
+    }
+
+    /**
+     * @return array{pending: Collection<int, array<string, mixed>>, finished: Collection<int, array<string, mixed>>}
+     */
+    private function buildOvertimeTaskItems(AttendanceOvertime $overtime): array
+    {
+        $taskItems = $overtime->projectTasks
+            ->sortBy([
+                ['due_date', 'asc'],
+                ['created_at', 'asc'],
+            ])
+            ->map(fn (ProjectTask $projectTask): array => $this->overtimeTaskItemValue($projectTask))
+            ->values();
+
+        return [
+            'pending' => $taskItems
+                ->reject(fn (array $taskItem): bool => $taskItem['checked'] === true)
+                ->values(),
+            'finished' => $taskItems
+                ->filter(fn (array $taskItem): bool => $taskItem['checked'] === true)
+                ->values(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function overtimeTaskItemValue(ProjectTask $projectTask): array
+    {
+        $status = strtolower(trim((string) ($projectTask->status ?? 'pending')));
+        $isFinished = $status === 'completed' || $projectTask->completed_at !== null;
+        $dateValue = $isFinished ? $projectTask->completed_at : $projectTask->due_date;
+
+        return [
+            'id' => (string) $projectTask->id,
+            'title' => trim((string) ($projectTask->title ?? '')) !== '' ? (string) $projectTask->title : 'Untitled Task',
+            'date_label' => $dateValue !== null ? Carbon::parse($dateValue)->timezone('Asia/Jakarta')->format('d M Y, H:i').' WIB' : '-',
+            'checked' => $isFinished,
+        ];
+    }
+
+    private function resolveOvertimeDirectorApprover(AttendanceOvertime $overtime): ?User
+    {
+        $overtime->loadMissing('employee.deployment');
+        $companyId = $overtime->employee?->deployment?->current_company_id;
+
+        $directorQuery = User::query()
+            ->select(['id', 'username', 'email'])
+            ->with('employee.profile')
+            ->whereHas('roles', function (Builder $query): void {
+                $query->whereIn('name', [
+                    'Board of Directors',
+                    'board of directors',
+                    'board_of_directors',
+                    'board_of_director',
+                    'board_of_rector',
+                    'board of directur',
+                    'board_of_directur',
+                    'Director',
+                    'director',
+                ]);
+            });
+
+        if (is_string($companyId) && trim($companyId) !== '') {
+            $directorQuery->whereHas('employee.deployment', function (Builder $query) use ($companyId): void {
+                $query->where('current_company_id', trim($companyId));
+            });
+        }
+
+        return $directorQuery
+            ->orderBy('username')
+            ->first();
+    }
+
+    private function overtimeLifecycleLog(AttendanceOvertime $overtime, string $eventKey): ?OvertimeLifecycleLog
+    {
+        return $overtime->lifecycleLogs
+            ->first(fn (OvertimeLifecycleLog $lifecycleLog): bool => (string) $lifecycleLog->event_key === $eventKey);
+    }
+
+    private function isTaskDeliverablesSubmitted(AttendanceOvertime $overtime): bool
+    {
+        $status = strtolower(trim((string) ($this->overtimeLifecycleLog($overtime, 'task_deliverables_submitted')?->status ?? '')));
+
+        return in_array($status, ['complete', 'completed'], true);
+    }
+
+    private function isTaskHoursVerified(AttendanceOvertime $overtime): bool
+    {
+        $status = strtolower(trim((string) ($this->overtimeLifecycleLog($overtime, 'task_hours_verification')?->status ?? '')));
+
+        return $status === 'verified';
+    }
+
+    private function formatLifecycleDateTime(?OvertimeLifecycleLog $lifecycleLog): string
+    {
+        if (! $lifecycleLog instanceof OvertimeLifecycleLog || $lifecycleLog->happened_at === null) {
+            return '-';
+        }
+
+        return Carbon::parse($lifecycleLog->happened_at, 'Asia/Jakarta')->format('d M Y, H:i');
+    }
+
+    private function userDisplayName(User $user): string
+    {
+        $profileName = is_string($user->employee?->profile?->name) ? trim($user->employee->profile->name) : '';
+        if ($profileName !== '') {
+            return $profileName;
+        }
+
+        $username = is_string($user->username) ? trim($user->username) : '';
+        if ($username !== '') {
+            return $username;
+        }
+
+        $email = is_string($user->email) ? trim($user->email) : '';
+
+        return $email !== '' ? $email : '-';
+    }
+
+    private function overtimeStatusLabel(string $status): string
+    {
+        return Str::of($status)
+            ->replace(['_', '-'], ' ')
+            ->title()
+            ->toString();
     }
 
     /**

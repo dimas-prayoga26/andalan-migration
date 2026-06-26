@@ -46,7 +46,7 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertSame('admin-attendance/business-trip', $businessTripRoute?->uri());
         $this->assertSame('admin-attendance/business-trip/detail', $businessTripDetailRoute?->uri());
         $this->assertSame('admin-attendance/overtime', $overtimeRoute?->uri());
-        $this->assertSame('admin-attendance/overtime/detail', $overtimeDetailRoute?->uri());
+        $this->assertSame('admin-attendance/overtime/detail/{uid}', $overtimeDetailRoute?->uri());
         $this->assertSame('admin-attendance/recap-attendance/datatable', $monthlyDatatableRoute?->uri());
         $this->assertSame(AttendanceRecapController::class.'@employeeDetailsDatatable', $detailDatatableRoute?->getActionName());
         $this->assertSame('admin-attendance/recap-attendance/{employee}', $detailRoute?->uri());

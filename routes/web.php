@@ -116,7 +116,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/admin-attendance/overtime', [AdminAttendanceOvertimeController::class, 'index'])
         ->middleware('position.permission:view-admin-attendance')
         ->name('admin-attendance.overtime');
-    Route::get('/admin-attendance/overtime/detail', [AdminAttendanceOvertimeController::class, 'detail'])
+    Route::get('/admin-attendance/overtime/detail/{uid}', [AdminAttendanceOvertimeController::class, 'detail'])
         ->middleware('position.permission:view-admin-attendance')
         ->name('admin-attendance.overtime.detail');
     Route::get('/admin-attendance/recap-attendance/datatable', [AdminAttendanceRecapController::class, 'monthlyDatatable'])

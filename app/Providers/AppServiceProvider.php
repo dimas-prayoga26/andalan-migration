@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\View\Composers\AttendanceProfileComposer;
+use App\View\Composers\ProjectManagementProfileComposer;
 use App\View\Composers\SidebarPermissionComposer;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -29,5 +30,6 @@ class AppServiceProvider extends ServiceProvider
         ], AttendanceProfileComposer::class);
 
         View::composer('layouts.sidebar', SidebarPermissionComposer::class);
+        View::composer('project_management.layouts.profile-header', ProjectManagementProfileComposer::class);
     }
 }

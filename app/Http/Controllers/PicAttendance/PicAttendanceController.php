@@ -32,7 +32,7 @@ class PicAttendanceController extends Controller
 
     public function index(Request $request): View
     {
-        return view('pic_attendance.attendance.index', $this->recapViewData($request));
+        return view($this->attendanceIndexView(), $this->recapViewData($request));
     }
 
     public function monthlyDatatable(Request $request): JsonResponse
@@ -53,7 +53,7 @@ class PicAttendanceController extends Controller
     {
         $detailContext = $this->recapEmployeeDetailContext($request, $employee);
 
-        return view('pic_attendance.attendance.detail-employees', [
+        return view($this->attendanceDetailView(), [
             'recapDetailMonth' => $detailContext['month'],
             'recapDetailYear' => $detailContext['year'],
         ] + $this->recapEmployeeDetailData(
@@ -61,6 +61,16 @@ class PicAttendanceController extends Controller
             $detailContext['period_start'],
             $detailContext['period_end'],
         ));
+    }
+
+    protected function attendanceIndexView(): string
+    {
+        return 'pic_attendance.attendance.index';
+    }
+
+    protected function attendanceDetailView(): string
+    {
+        return 'pic_attendance.attendance.detail-employees';
     }
 
     public function employeeDetailsDatatable(Request $request, string $employee): JsonResponse
@@ -849,7 +859,7 @@ class PicAttendanceController extends Controller
         return is_string($companyId) && trim($companyId) !== '' ? trim($companyId) : null;
     }
 
-    private function activeEmployeeIdsFor(Carbon $date, ?string $companyId): Collection
+    protected function activeEmployeeIdsFor(Carbon $date, ?string $companyId): Collection
     {
         if (! is_string($companyId) || trim($companyId) === '' || $this->supervisorEmployeeId === null) {
             return collect();

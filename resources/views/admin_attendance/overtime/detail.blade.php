@@ -207,7 +207,7 @@
                     </div>
                     <div class="card-body p-0">
                         <div class="d-flex gap-3 align-items-center avatar-info p-4">
-                            <div class="btn btn-info rounded-circle text-white">
+                            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-info text-white flex-shrink-0" style="width: 51px; height: 51px;">
                                 <i class="fa-solid fa-person-biking"></i>
                             </div>
                             <div>

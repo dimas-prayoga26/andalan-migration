@@ -86,7 +86,7 @@ class OvertimeReviewTableBuilderTest extends TestCase
         ])));
     }
 
-    public function test_admin_and_pic_detail_urls_include_overtime_uid(): void
+    public function test_admin_pic_and_director_detail_urls_include_overtime_uid(): void
     {
         $reflection = new ReflectionClass(OvertimeReviewTableBuilder::class);
         $method = $reflection->getMethod('detailUrlFor');
@@ -102,6 +102,10 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringEndsWith(
             '/pic-attendance/overtime/detail/OVT-DETAIL-UID',
             $method->invoke($builder, 'pic', $overtime)
+        );
+        $this->assertStringEndsWith(
+            '/director-attendance/overtime/detail/OVT-DETAIL-UID',
+            $method->invoke($builder, 'director', $overtime)
         );
     }
 

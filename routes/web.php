@@ -13,6 +13,7 @@ use App\Http\Controllers\DirectorAttendance\DirectorAttendanceOvertimeController
 use App\Http\Controllers\PicAttendance\PicAttendanceController;
 use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
+use App\Http\Controllers\ProjectManagement\OverviewController as ProjectManagementOverviewController;
 use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripCashAdvanceController;
 use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripController;
 use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripReimbursementController;
@@ -40,9 +41,7 @@ Route::middleware('auth')->group(function (): void {
 
     // Project Management
     Route::middleware('position.permission:view-timesheet-reporting')->group(function (): void {
-        Route::get('/project-management', function () {
-            return view('project_management.index');
-        })->name('project_management');
+        Route::get('/project-management', ProjectManagementOverviewController::class)->name('project_management');
         Route::get('/project-management/detail', function () {
             return view('project_management.detail');
         })->name('project_management.detail');
@@ -168,10 +167,18 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware('position.permission:view-director-attendance')->group(function (): void {
         Route::get('/director-attendance', [DirectorAttendanceController::class, 'index'])
             ->name('director-attendance.attendance');
+        Route::get('/director-attendance/monthly-datatable', [DirectorAttendanceController::class, 'monthlyDatatable'])
+            ->name('director-attendance.attendance.monthly-datatable');
+        Route::get('/director-attendance/attendance/{employee}/datatable', [DirectorAttendanceController::class, 'employeeDetailsDatatable'])
+            ->name('director-attendance.attendance.detail-employees.datatable');
+        Route::get('/director-attendance/attendance/{employee}', [DirectorAttendanceController::class, 'employeeDetails'])
+            ->name('director-attendance.attendance.detail-employees');
         Route::get('/director-attendance/overtime', [DirectorAttendanceOvertimeController::class, 'index'])
             ->name('director-attendance.overtime');
-        Route::get('/director-attendance/overtime/detail', [DirectorAttendanceOvertimeController::class, 'detail'])
+        Route::get('/director-attendance/overtime/detail/{uid}', [DirectorAttendanceOvertimeController::class, 'detail'])
             ->name('director-attendance.overtime.detail');
+        Route::patch('/director-attendance/overtime/detail/{uid}/approval', [DirectorAttendanceOvertimeController::class, 'updateApproval'])
+            ->name('director-attendance.overtime.approval');
     });
 
     // Attendance check-in and check-out

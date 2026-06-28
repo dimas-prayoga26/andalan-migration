@@ -335,7 +335,7 @@ class OvertimeReviewTableBuilder
             return '#';
         }
 
-        return in_array($context, ['admin', 'pic'], true)
+        return in_array($context, ['admin', 'pic', 'director'], true)
             ? route($routeName, ['uid' => $overtime->id])
             : route($routeName);
     }

@@ -1,0 +1,123 @@
+<?php
+
+namespace Tests\Feature;
+
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\View;
+use Tests\TestCase;
+
+class ProjectManagementOverviewLayoutTest extends TestCase
+{
+    public function test_monthly_overview_cards_use_equal_height_layout(): void
+    {
+        $overview = File::get(resource_path('views/project_management/overview/index.blade.php'));
+        $profileHeader = File::get(resource_path('views/project_management/layouts/profile-header.blade.php'));
+        $summaryCards = File::get(resource_path('views/project_management/overview/partials/summary-cards.blade.php'));
+        $profileComposer = File::get(app_path('View/Composers/ProjectManagementProfileComposer.php'));
+        $overviewController = File::get(app_path('Http/Controllers/ProjectManagement/OverviewController.php'));
+        $appServiceProvider = File::get(app_path('Providers/AppServiceProvider.php'));
+        $routes = File::get(base_path('routes/web.php'));
+
+        $this->assertTrue(View::exists('project_management.overview.index'));
+        $this->assertTrue(View::exists('project_management.overview.partials.summary-cards'));
+        $this->assertIsString(view('project_management.overview.index')->render());
+        $this->assertStringContainsString('ProjectManagementOverviewController::class', $routes);
+        $this->assertStringContainsString("@include('project_management.overview.partials.summary-cards')", $overview);
+        $this->assertStringContainsString("View::composer('project_management.layouts.profile-header'", $appServiceProvider);
+        $this->assertStringNotContainsString("'project_management.overview.index'", $appServiceProvider);
+        $this->assertStringContainsString('Task Completion Rate', $summaryCards);
+        $this->assertStringContainsString('Task In Progress', $summaryCards);
+        $this->assertStringContainsString('{{ $projectTaskCompletionRate }}%', $summaryCards);
+        $this->assertStringContainsString('{{ $projectTotalTasksCount }} Task', $summaryCards);
+        $this->assertStringContainsString('{{ $projectTasksCompletedCount }} Task', $summaryCards);
+        $this->assertStringContainsString('{{ $projectTasksInProgressCount }} Task', $summaryCards);
+        $this->assertStringNotContainsString('>100%</span>', $summaryCards);
+        $this->assertStringNotContainsString('>40 Task</span>', $summaryCards);
+        $this->assertStringNotContainsString('>30 Task</span>', $summaryCards);
+        $this->assertStringNotContainsString('>10 Task</span>', $summaryCards);
+        $this->assertStringContainsString('project-monthly-overview-row', $overview);
+        $this->assertStringContainsString('row align-items-stretch project-monthly-overview-row mb-4', $overview);
+        $this->assertStringContainsString('project-monthly-overview-row > .project-monthly-overview-column', $overview);
+        $this->assertStringContainsString('col-md-3 col-12 project-monthly-overview-column', $overview);
+        $this->assertStringContainsString('col-md-9 col-12 project-monthly-overview-column', $overview);
+        $this->assertStringContainsString('card project-task-overview-card h-100', $overview);
+        $this->assertStringContainsString('margin-top: .75rem;', $overview);
+        $this->assertStringContainsString('card project-progress-card h-100', $overview);
+        $this->assertStringContainsString('.project-progress-card .card-body > .row', $overview);
+        $this->assertStringContainsString("'projectCurrentMonthLabel' => \$currentDate->format('F')", $overviewController);
+        $this->assertStringContainsString('Task Overview ({{ $projectCurrentMonthLabel }})', $overview);
+        $this->assertStringContainsString('Progress ({{ $projectCurrentMonthLabel }})', $overview);
+        $this->assertStringContainsString('Task Overview ({{ $projectCurrentMonthYearLabel }})', $overview);
+        $this->assertStringContainsString('Task Overview ({{ $projectCurrentYearLabel }})', $overview);
+        $this->assertStringContainsString('id="projectMonthlyOverviewMonthFilter"', $overview);
+        $this->assertStringContainsString('$projectMonthlyOverviewFilterOptions as $projectMonthlyOverviewFilterOption', $overview);
+        $this->assertStringContainsString('data-monthly-charts=\'@json($projectMonthlyOverviewChartsByMonth)\'', $overview);
+        $this->assertStringContainsString('monthlyOverviewChartsByMonth', $overviewController);
+        $this->assertStringContainsString('monthlyOverviewFilterOptions', $overviewController);
+        $this->assertStringContainsString("'value' => \$monthDate->format('Y-m')", $overviewController);
+        $this->assertStringContainsString("'label' => \$monthDate->format('F Y')", $overviewController);
+        $this->assertStringContainsString('data-completed-series=\'@json($projectMonthlyOverviewCompletedSeries)\'', $overview);
+        $this->assertStringContainsString('data-incomplete-series=\'@json($projectMonthlyOverviewIncompleteSeries)\'', $overview);
+        $this->assertStringContainsString('data-daily-series=\'@json($projectYearlyOverviewDailySeries)\'', $overview);
+        $this->assertStringContainsString('data-project-series=\'@json($projectYearlyOverviewProjectSeries)\'', $overview);
+        $this->assertStringContainsString('monthlyOverviewChartData', $overviewController);
+        $this->assertStringContainsString('yearlyOverviewChartData', $overviewController);
+        $this->assertStringContainsString('$this->tasksForYear($taskQuery, $year)', $overviewController);
+        $this->assertStringContainsString('use App\Models\AttendanceHoliday;', $overviewController);
+        $this->assertStringContainsString('$holidayDateMap = $this->holidayDateMap($date, $endDate);', $overviewController);
+        $this->assertStringContainsString('! isset($holidayDateMap[$date->toDateString()])', $overviewController);
+        $this->assertStringContainsString('AttendanceHoliday::query()', $overviewController);
+        $this->assertStringContainsString('style="--project-task-completed-rate: {{ $projectTaskCompletionRate }}%;"', $overview);
+        $this->assertStringContainsString('data-progress-rate="{{ $projectTaskCompletionRate }}"', $overview);
+        $this->assertStringContainsString('Tasks Completed ({{ $projectTasksCompletedCount }}/{{ $projectTotalTasksCount }} Completed)', $overview);
+        $this->assertStringContainsString('Daily Tasks ({{ $projectDailyTasksRate }}%)', $overview);
+        $this->assertStringContainsString('{{ $projectDailyTasksCompletedCount }} Task / {{ $projectDailyTasksCount }} Daily Tasks', $overview);
+        $this->assertStringContainsString("'projectDailyTasksRate' => \$this->percentage(\$dailyTasksCompletedCount, \$dailyTasksCount)", $overviewController);
+        $this->assertStringContainsString('Project Tasks ({{ $projectProjectTasksRate }}%)', $overview);
+        $this->assertStringContainsString('{{ $projectProjectTasksCompletedCount }} Task / {{ $projectProjectTasksCount }} Project Tasks', $overview);
+        $this->assertStringContainsString("'projectProjectTasksRate' => \$this->percentage(\$projectTasksCompletedCount, \$projectTasksCount)", $overviewController);
+        $this->assertStringContainsString('Completed Tasks This Week ({{ $projectWeeklyTasksCompletedRate }}%)', $overview);
+        $this->assertStringContainsString('Incomplete Tasks This Week ({{ $projectWeeklyTasksIncompleteRate }}%)', $overview);
+        $this->assertStringContainsString('projectTaskQueryForDateRange', $overviewController);
+        $this->assertStringContainsString("'projectWeeklyTasksCompletedRate' => 0", $overviewController);
+        $this->assertStringContainsString('projectTaskQueryForMonth', $overviewController);
+        $this->assertStringContainsString('YEAR(COALESCE(due_date, start_date, created_at))', $overviewController);
+        $this->assertStringContainsString('$totalTasksCount = (clone $monthlyTaskQuery)->count();', $overviewController);
+        $this->assertStringContainsString('monthlyCompletedTaskSeries', $overviewController);
+        $this->assertStringContainsString('CarbonImmutable::create($year, $month, 1', $overviewController);
+        $this->assertStringContainsString('range(1, 12)', $overviewController);
+        $this->assertStringContainsString("'profileMonthlyAttendanceDelta' => \$taskCompletionRate", $overviewController);
+        $this->assertStringContainsString('$monthlyAttendanceDeltaLabel = number_format($monthlyAttendanceDelta).\'%\';', $profileHeader);
+        $this->assertStringContainsString('id="chartProfileProgressDesktop"', $profileHeader);
+        $this->assertStringContainsString('id="chartProfileProgress"', $profileHeader);
+        $this->assertStringContainsString("data-progress-series='@json(\$monthlyAttendanceSeries)'", $profileHeader);
+        $this->assertStringContainsString('data: progressSeries', $overview);
+        $this->assertStringContainsString('categories: progressLabels', $overview);
+        $this->assertStringContainsString('Array.from({ length: 12 }', $overview);
+        $this->assertStringContainsString("toLocaleString('en-US', { month: 'long' })", $overview);
+        $this->assertStringContainsString('parseChartObject', $overview);
+        $this->assertStringContainsString("$('#projectMonthlyOverviewMonthFilter').on('change'", $overview);
+        $this->assertStringContainsString('monthlyOverviewChart.update();', $overview);
+        $this->assertStringContainsString('stepSize: 1', $overview);
+        $this->assertStringContainsString('precision: 0', $overview);
+        $this->assertStringContainsString("return Number.isInteger(value) ? value : '';", $overview);
+        $this->assertStringContainsString('visibleChartTarget', $overview);
+        $this->assertStringContainsString("dataset.profileProgressRendered = 'true'", $overview);
+        $this->assertStringNotContainsString('data: [18, 18, 18, 20, 20, 22, 13, 15, 16, 17, 18, 12]', $overview);
+        $this->assertStringNotContainsString("'01-Monday', '02-Tuesday', '03-Wednesday', '04-Thursday', '05-Friday'", $overview);
+        $this->assertStringNotContainsString("data: ['18', '17', '15', '18', '16']", $overview);
+        $this->assertStringNotContainsString('data: [15, 12, 18, 20, 25, 45, 55, 50, 20, 15, 22, 60]', $overview);
+        $this->assertStringNotContainsString('Week 23 (01-07 June 2026)', $overview);
+        $this->assertStringNotContainsString('Tasks Completed (30/10 Completed)', $overview);
+        $this->assertStringNotContainsString('Daily Tasks (45%)', $overview);
+        $this->assertStringNotContainsString('Project Tasks (78%)', $overview);
+        $this->assertStringNotContainsString('32 Hrs / 40 Hrs Per Week', $overview);
+        $this->assertStringNotContainsString('18 Hrs / 18 Hrs Per Week', $overview);
+        $this->assertStringNotContainsString('lineChartSecuritySummary', $overview);
+        $this->assertStringNotContainsString('$monthlyAttendanceDelta >= 0 ? \'+\' : \'\'', $profileHeader);
+        $this->assertStringNotContainsString('monthlyProgressDelta', $profileComposer);
+        $this->assertStringNotContainsString('ProjectTask', $profileComposer);
+        $this->assertStringNotContainsString('monthlyOverviewChartData', $profileComposer);
+        $this->assertStringNotContainsString('projectTaskQueryForMonth', $profileComposer);
+    }
+}

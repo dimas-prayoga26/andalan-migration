@@ -19,6 +19,7 @@ class ProjectTaskSeederTest extends TestCase
         $this->assertStringContainsString("'created_by' => \$supervisorUserId", $projectTaskSeeder);
         $this->assertStringNotContainsString("'created_by' => \$staffUser->id", $projectTaskSeeder);
         $this->assertStringNotContainsString('seedProjectTasks($project, $departments, $staffUsers, $supervisorUserId)', $projectTaskSeeder);
+        $this->assertStringContainsString('seedProjectTasks($project, $staffUsers, $supervisorUserId)', $projectTaskSeeder);
         $this->assertStringNotContainsString('private const PROJECT_DEPARTMENTS = [', $projectTaskSeeder);
         $this->assertStringNotContainsString('private const STAFF_DEPARTMENTS = [', $projectTaskSeeder);
         $this->assertStringNotContainsString("\$departmentKey = self::STAFF_DEPARTMENTS[\$taskData['username']] ?? \$taskData['department'];", $projectTaskSeeder);
@@ -46,6 +47,7 @@ class ProjectTaskSeederTest extends TestCase
         $this->assertStringNotContainsString("'department_id' =>", $projectTaskSeeder);
         $this->assertStringContainsString('ProjectTask::query()->create', $projectTaskSeeder);
         $this->assertStringContainsString("'project_id' => (\$taskData['is_daily'] ?? false) === true ? null : \$project->id", $projectTaskSeeder);
+        $this->assertStringContainsString("'assigned_by' => \$supervisorUserId", $projectTaskSeeder);
         $this->assertStringNotContainsString("'overtime_id' =>", $projectTaskSeeder);
         $this->assertStringContainsString("'blockers' => \$taskData['blockers'] ?? null", $projectTaskSeeder);
         $this->assertStringContainsString("'attachment_path' => \$taskData['attachment_path'] ?? null", $projectTaskSeeder);

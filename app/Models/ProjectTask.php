@@ -45,6 +45,11 @@ class ProjectTask extends Model
         return $this->belongsTo(Employee::class, 'employee_id', 'id');
     }
 
+    public function assignedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_by', 'id');
+    }
+
     public function overtime(): BelongsTo
     {
         return $this->belongsTo(AttendanceOvertime::class, 'overtime_id', 'id');

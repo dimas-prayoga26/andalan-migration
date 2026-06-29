@@ -22,6 +22,8 @@ class Project extends Model
     protected function casts(): array
     {
         return [
+            'live_event_start_date' => 'date',
+            'live_event_end_date' => 'date',
             'start_date' => 'date',
             'end_date' => 'date',
         ];

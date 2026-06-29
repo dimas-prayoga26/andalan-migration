@@ -7,6 +7,33 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-06-29 (Senin)
+- Mengaktifkan menu Project Management Task List berbasis data `project_tasks`, menggantikan konten dummy template.
+- Memisahkan controller Task List ke `ProjectManagement\TaskListController`, sehingga tidak lagi menumpuk di controller Overview.
+- Menambahkan endpoint AJAX filter Task List agar perubahan periode, create/update, mark done, dan delete dapat memperbarui list tanpa reload penuh.
+- Memisahkan render Task List menjadi partial untuk list task, week plan, dan project grid.
+- Memisahkan filter Task menjadi Month dan Year, serta menambahkan sinkronisasi dengan kalender kanan.
+- Mengaktifkan kalender kanan sebagai filter bulan/tahun dan memperbaiki highlight agar hanya satu tanggal aktif, dengan default tanggal hari ini saat reload.
+- Mengganti date picker modal Task List ke `bootstrap-datetimepicker` agar bisa ditutup saat klik field lain tanpa wajib memilih tanggal.
+- Mengatur date picker modal Task List agar muncul ke arah atas dekat field Date/Due Date.
+- Mengembalikan dropdown titik tiga memakai SVG inline agar tetap tampil walau icon font gagal render.
+- Mempertahankan alert `Pending Tasks Reminder!` dan `Ready for a Great Day?` sebagai reminder backlog dan CTA tambah task.
+- Membuat menu Project menampilkan card project dinamis dari project yang diikuti staff login.
+- Membuat detail project dinamis by project id, termasuk summary, department card dari `employee_deployments.current_department_id`, dan task yang hanya berasal dari project tersebut.
+- Menambahkan `Live Event Dates` terpisah dari `Project Lifecycle` pada detail project melalui kolom `live_event_start_date` dan `live_event_end_date`.
+- Mengubah tampilan Team pada detail project menjadi avatar bertumpuk dengan fallback angka dari nama/username staff.
+- Membatasi checkbox/action task detail project hanya untuk department staff login, sementara department lain tetap view-only.
+- Merapikan style detail project: jarak antar card, ring summary, department scope, dan alignment row task department.
+- Mengganti card `Department Scope` menjadi `Tasks Over Time` dan membuat `Tasks Summary` memakai donut + legend department.
+- Menambahkan seeder project lintas company `GROUP-COLLAB-2026` yang melibatkan 4 company (AndalanKu, KMA, RNB, Niskala) dan 5 department category; Marketing and Promotion, Information and Communications Technology, dan Project Planning and Development masing-masing memiliki 3 staff member.
+- Menyesuaikan seeder project lintas company menjadi `Muktamar ke VI PKB 2024` dengan lokasi `Bali Nusa Dua Convention Center, Badung, Bali`, serta menambahkan action `+ Add Task`, update, dan delete task pada detail project untuk department staff login.
+- Mengganti badge `Your Department` pada card department detail project menjadi tombol `Drive`.
+- Menyamakan modal `+ Add Task` pada detail project dengan modal `Create New Task` di Task List, serta menghapus field Assignee karena task otomatis assigned ke staff login.
+- Mengganti date picker modal detail project ke `bootstrap-datetimepicker` ter-scope agar klik field lain tidak memunculkan kalender.
+- Menambahkan/memperbarui test struktur Task List, route, controller, partial, AJAX, dan calendar behavior.
+- Detail: `docs/dev-log/2026-06-29-0142-project-management-task-list-ajax-filter-calendar.md`.
+- Detail: `docs/dev-log/2026-06-29-0347-project-management-project-card-detail-dinamis.md`.
+
 ### 2026-06-25 (Kamis)
 - Menambahkan modul PIC Attendance dengan menu Attendance, Leave, dan Overtime untuk supervisor/PIC.
 - Menambahkan modul Director Attendance dengan menu Attendance dan Overtime.
@@ -166,6 +193,10 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-06-29
+- `2026-06-29-0142-project-management-task-list-ajax-filter-calendar.md`
+- `2026-06-29-0347-project-management-project-card-detail-dinamis.md`
 
 ### 2026-06-10
 - `2026-06-10-1514-dynamic-calendar-label-modals.md`

@@ -1417,6 +1417,7 @@ class AttendanceOvertimeController extends Controller
             ProjectTask::query()->create([
                 'project_id' => $projectId,
                 'employee_id' => (string) $attendanceOvertime->employee_id,
+                'assigned_by' => $attendanceOvertime->assigned_by,
                 'overtime_id' => (string) $attendanceOvertime->id,
                 'title' => trim((string) $validated['title']),
                 'description' => trim((string) $validated['description']),

@@ -14,6 +14,8 @@ use App\Http\Controllers\PicAttendance\PicAttendanceController;
 use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
 use App\Http\Controllers\ProjectManagement\OverviewController as ProjectManagementOverviewController;
+use App\Http\Controllers\ProjectManagement\ProjectController as ProjectManagementProjectController;
+use App\Http\Controllers\ProjectManagement\TaskListController as ProjectManagementTaskListController;
 use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripCashAdvanceController;
 use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripController;
 use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripReimbursementController;
@@ -41,10 +43,21 @@ Route::middleware('auth')->group(function (): void {
 
     // Project Management
     Route::middleware('position.permission:view-timesheet-reporting')->group(function (): void {
-        Route::get('/project-management', ProjectManagementOverviewController::class)->name('project_management');
-        Route::get('/project-management/detail', function () {
-            return view('project_management.detail');
-        })->name('project_management.detail');
+        Route::get('/project-management/overview', ProjectManagementOverviewController::class)->name('project_management');
+        Route::get('/project-management/task-list', [ProjectManagementTaskListController::class, 'index'])->name('project_management.task_list');
+        Route::get('/project-management/task-list/filter', [ProjectManagementTaskListController::class, 'filter'])->name('project_management.task_list.filter');
+        Route::post('/project-management/task-list/tasks', [ProjectManagementTaskListController::class, 'storeTask'])->name('project_management.task_list.tasks.store');
+        Route::put('/project-management/task-list/tasks/{projectTask}', [ProjectManagementTaskListController::class, 'updateTask'])->name('project_management.task_list.tasks.update');
+        Route::patch('/project-management/task-list/tasks/{projectTask}/complete', [ProjectManagementTaskListController::class, 'completeTask'])->name('project_management.task_list.tasks.complete');
+        Route::delete('/project-management/task-list/tasks/{projectTask}', [ProjectManagementTaskListController::class, 'destroyTask'])->name('project_management.task_list.tasks.destroy');
+        Route::get('/project-management/projects', [ProjectManagementProjectController::class, 'index'])->name('project_management.projects');
+        Route::get('/project-management/projects/detail', [ProjectManagementProjectController::class, 'detailFallback'])->name('project_management.projects.detail.fallback');
+        Route::get('/project-management/projects/{project}', [ProjectManagementProjectController::class, 'detail'])->name('project_management.projects.detail');
+        Route::post('/project-management/projects/{project}/tasks', [ProjectManagementProjectController::class, 'storeTask'])->name('project_management.projects.tasks.store');
+        Route::put('/project-management/projects/{project}/tasks/{projectTask}', [ProjectManagementProjectController::class, 'updateTask'])->name('project_management.projects.tasks.update');
+        Route::patch('/project-management/projects/{project}/tasks/{projectTask}/toggle', [ProjectManagementProjectController::class, 'toggleTask'])->name('project_management.projects.tasks.toggle');
+        Route::delete('/project-management/projects/{project}/tasks/{projectTask}', [ProjectManagementProjectController::class, 'destroyTask'])->name('project_management.projects.tasks.destroy');
+        Route::get('/project-management/detail', [ProjectManagementProjectController::class, 'detailFallback'])->name('project_management.detail');
     });
 
     // Applicant

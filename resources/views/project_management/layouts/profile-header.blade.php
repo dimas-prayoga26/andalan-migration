@@ -56,26 +56,12 @@
                     </li>
                 </ul>
                 @php
-                    $attendanceDaysCount = (int) ($profileAttendanceDaysCount ?? 0);
-                    $workingDaysCount = (int) ($profileWorkingDaysCount ?? 0);
-                    $workingMonthLabel = is_string($profileWorkingMonthLabel ?? null) && trim($profileWorkingMonthLabel) !== ''
-                        ? trim($profileWorkingMonthLabel)
-                        : now('Asia/Jakarta')->format('F');
-                    $lateInCount = (int) ($profileLateInCount ?? 0);
-                    $leavesAndSickCount = (int) ($profileLeavesAndSickCount ?? 0);
-                    $weeklyAttendancePercent = (int) ($profileWeeklyAttendancePercent ?? 0);
-                    $weeklyOnTimePercent = (int) ($profileWeeklyOnTimePercent ?? 0);
                     $monthlyAttendanceLabels = is_array($profileMonthlyAttendanceLabels ?? null) ? $profileMonthlyAttendanceLabels : [];
                     $monthlyAttendanceSeries = is_array($profileMonthlyAttendanceSeries ?? null) ? $profileMonthlyAttendanceSeries : [];
                     $monthlyAttendanceDelta = (float) ($profileMonthlyAttendanceDelta ?? 0);
                     $monthlyAttendanceDeltaLabel = number_format($monthlyAttendanceDelta).'%';
                     $monthlyAttendanceDeltaClass = $monthlyAttendanceDelta >= 0 ? 'text-success' : 'text-danger';
                     $monthlyAttendanceDeltaStrokeColor = $monthlyAttendanceDelta >= 0 ? 'var(--bs-success)' : 'var(--bs-danger)';
-                    $profileStatsModeValue = is_string($profileStatsMode ?? null) ? $profileStatsMode : 'staff';
-                    $managementTotalEmployees = (int) ($managementTotalEmployeesCount ?? 0);
-                    $managementPresentToday = (int) ($managementPresentTodayCount ?? 0);
-                    $managementLateToday = (int) ($managementLateTodayCount ?? 0);
-                    $managementLeaveToday = (int) ($managementLeaveTodayCount ?? 0);
                     $projectTasksCompletedCount = (int) ($projectTasksCompletedCount ?? 0);
                     $projectTasksInProgressCount = (int) ($projectTasksInProgressCount ?? 0);
                     $projectTotalTasksCount = (int) ($projectTotalTasksCount ?? 0);
@@ -84,99 +70,53 @@
                     $projectWorkloadPercent = (int) ($projectWorkloadPercent ?? 0);
                 @endphp
 
-                @if ($profileStatsModeValue === 'staff')
-                    <div class="d-md-flex d-none flex-wrap">
-                        <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
-                            <div class="avatar avatar-sm avatar-primary">
-                                <i class="las la-clipboard-check fs-4 text-primary"></i>
-                            </div>
-                            <div class="clearfix ms-2">
-                                <h3 class="mb-0 fw-semibold lh-1">{{ $projectTasksCompletedCount }}</h3>
-                                <span class="small">Tasks Completed</span>
-                            </div>
+                <div class="d-md-flex d-none flex-wrap">
+                    <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
+                        <div class="avatar avatar-sm avatar-primary">
+                            <i class="las la-clipboard-check fs-4 text-primary"></i>
                         </div>
-                        <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
-                            <div class="avatar avatar-sm avatar-primary">
-                                <i class="las la-spinner fs-4 text-primary"></i>
-                            </div>
-                            <div class="clearfix ms-2">
-                                <h3 class="mb-0 fw-semibold lh-1">{{ $projectTasksInProgressCount }}</h3>
-                                <span class="small">In Progress</span>
-                            </div>
-                        </div>
-                        <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
-                            <div class="avatar avatar-sm avatar-primary">
-                                <i class="las la-tasks fs-4 text-primary"></i>
-                            </div>
-                            <div class="clearfix ms-2">
-                                <h3 class="mb-0 fw-semibold lh-1">{{ $projectTotalTasksCount }}</h3>
-                                <span class="small">Total Tasks</span>
-                            </div>
-                        </div>
-                        <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
-                            <div class="avatar avatar-sm avatar-primary">
-                                <i class="las la-columns fs-4 text-primary"></i>
-                            </div>
-                            <div class="clearfix ms-2">
-                                <h3 class="mb-0 fw-semibold lh-1">{{ $projectDailyTasksCount }} | {{ $projectProjectTasksCount }}</h3>
-                                <span class="small">Daily | Project</span>
-                            </div>
-                        </div>
-                        <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
-                            <div class="avatar avatar-sm avatar-primary">
-                                <i class="las la-chart-pie fs-4 text-primary"></i>
-                            </div>
-                            <div class="clearfix ms-2">
-                                <h3 class="mb-0 fw-semibold lh-1">{{ $projectWorkloadPercent }}%</h3>
-                                <span class="small">Workload</span>
-                            </div>
+                        <div class="clearfix ms-2">
+                            <h3 class="mb-0 fw-semibold lh-1">{{ $projectTasksCompletedCount }}</h3>
+                            <span class="small">Tasks Completed</span>
                         </div>
                     </div>
-                @else
-                    <div class="d-md-flex d-none flex-wrap">
-                        <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
-                            <div class="avatar avatar-sm avatar-primary">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="8" cy="8" r="3" stroke="var(--bs-primary)" stroke-width="2" />
-                                    <circle cx="16" cy="8" r="3" stroke="var(--bs-primary)" stroke-width="2" />
-                                    <path d="M2.5 18C2.5 15.7909 4.29086 14 6.5 14H9.5C11.7091 14 13.5 15.7909 13.5 18" stroke="var(--bs-primary)" stroke-width="2" stroke-linecap="round" />
-                                    <path d="M10.5 18C10.5 15.7909 12.2909 14 14.5 14H17.5C19.7091 14 21.5 15.7909 21.5 18" stroke="var(--bs-primary)" stroke-width="2" stroke-linecap="round" />
-                                </svg>
-                            </div>
-                            <div class="clearfix ms-2">
-                                <h3 class="mb-0 fw-semibold lh-1">{{ $managementPresentToday }} / {{ $managementTotalEmployees }}</h3>
-                                <span class="small">Staff Presence (Today)</span>
-                            </div>
+                    <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
+                        <div class="avatar avatar-sm avatar-primary">
+                            <i class="las la-spinner fs-4 text-primary"></i>
                         </div>
-                        <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
-                            <div class="avatar avatar-sm avatar-primary">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="12" cy="12" r="8" stroke="var(--bs-primary)" stroke-width="2" />
-                                    <path d="M12 8V12" stroke="var(--bs-primary)" stroke-width="2" stroke-linecap="round" />
-                                    <circle cx="12" cy="16" r="1" fill="var(--bs-primary)" />
-                                </svg>
-                            </div>
-                            <div class="clearfix ms-2">
-                                <h3 class="mb-0 fw-semibold lh-1">{{ $managementLateToday }}</h3>
-                                <span class="small">Staff Late (Today)</span>
-                            </div>
-                        </div>
-                        <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
-                            <div class="avatar avatar-sm avatar-primary">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="5" y="3" width="14" height="18" rx="2" stroke="var(--bs-primary)" stroke-width="2" />
-                                    <path d="M8 8H16" stroke="var(--bs-primary)" stroke-width="2" stroke-linecap="round" />
-                                    <path d="M8 12H16" stroke="var(--bs-primary)" stroke-width="2" stroke-linecap="round" />
-                                    <path d="M8 16H13" stroke="var(--bs-primary)" stroke-width="2" stroke-linecap="round" />
-                                </svg>
-                            </div>
-                            <div class="clearfix ms-2">
-                                <h3 class="mb-0 fw-semibold lh-1">{{ $managementLeaveToday }}</h3>
-                                <span class="small">Staff Leave (Today)</span>
-                            </div>
+                        <div class="clearfix ms-2">
+                            <h3 class="mb-0 fw-semibold lh-1">{{ $projectTasksInProgressCount }}</h3>
+                            <span class="small">In Progress</span>
                         </div>
                     </div>
-                @endif
+                    <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
+                        <div class="avatar avatar-sm avatar-primary">
+                            <i class="las la-tasks fs-4 text-primary"></i>
+                        </div>
+                        <div class="clearfix ms-2">
+                            <h3 class="mb-0 fw-semibold lh-1">{{ $projectTotalTasksCount }}</h3>
+                            <span class="small">Total Tasks</span>
+                        </div>
+                    </div>
+                    <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
+                        <div class="avatar avatar-sm avatar-primary">
+                            <i class="las la-columns fs-4 text-primary"></i>
+                        </div>
+                        <div class="clearfix ms-2">
+                            <h3 class="mb-0 fw-semibold lh-1">{{ $projectDailyTasksCount }} | {{ $projectProjectTasksCount }}</h3>
+                            <span class="small">Daily | Project</span>
+                        </div>
+                    </div>
+                    <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
+                        <div class="avatar avatar-sm avatar-primary">
+                            <i class="las la-chart-pie fs-4 text-primary"></i>
+                        </div>
+                        <div class="clearfix ms-2">
+                            <h3 class="mb-0 fw-semibold lh-1">{{ $projectWorkloadPercent }}%</h3>
+                            <span class="small">Workload</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="clearfix mt-3 mt-xl-0 ms-auto d-none d-md-flex flex-column col-xl-3">
                 <div class="clearfix mb-3 text-xl-end">
@@ -223,98 +163,52 @@
                     data-progress-labels='@json($monthlyAttendanceLabels)'></div>
             </div>
         </div>
-        @if ($profileStatsModeValue === 'staff')
-            <div class="d-flex flex-nowrap overflow-auto pb-1 mobile-stats-slider">
-                <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
-                    <div class="avatar avatar-sm avatar-primary">
-                        <i class="las la-clipboard-check fs-4 text-primary"></i>
-                    </div>
-                    <div class="clearfix ms-2">
-                        <h3 class="mb-0 fw-semibold lh-1">{{ $projectTasksCompletedCount }}</h3>
-                        <span class="small">Tasks Completed</span>
-                    </div>
+        <div class="d-flex flex-nowrap overflow-auto pb-1 mobile-stats-slider">
+            <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
+                <div class="avatar avatar-sm avatar-primary">
+                    <i class="las la-clipboard-check fs-4 text-primary"></i>
                 </div>
-                <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
-                    <div class="avatar avatar-sm avatar-primary">
-                        <i class="las la-spinner fs-4 text-primary"></i>
-                    </div>
-                    <div class="clearfix ms-2">
-                        <h3 class="mb-0 fw-semibold lh-1">{{ $projectTasksInProgressCount }}</h3>
-                        <span class="small">In Progress</span>
-                    </div>
-                </div>
-                <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
-                    <div class="avatar avatar-sm avatar-primary">
-                        <i class="las la-tasks fs-4 text-primary"></i>
-                    </div>
-                    <div class="clearfix ms-2">
-                        <h3 class="mb-0 fw-semibold lh-1">{{ $projectTotalTasksCount }}</h3>
-                        <span class="small">Total Tasks</span>
-                    </div>
-                </div>
-                <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
-                    <div class="avatar avatar-sm avatar-primary">
-                        <i class="las la-columns fs-4 text-primary"></i>
-                    </div>
-                    <div class="clearfix ms-2">
-                        <h3 class="mb-0 fw-semibold lh-1">{{ $projectDailyTasksCount }} | {{ $projectProjectTasksCount }}</h3>
-                        <span class="small">Daily | Project</span>
-                    </div>
-                </div>
-                <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
-                    <div class="avatar avatar-sm avatar-primary">
-                        <i class="las la-chart-pie fs-4 text-primary"></i>
-                    </div>
-                    <div class="clearfix ms-2">
-                        <h3 class="mb-0 fw-semibold lh-1">{{ $projectWorkloadPercent }}%</h3>
-                        <span class="small">Workload</span>
-                    </div>
+                <div class="clearfix ms-2">
+                    <h3 class="mb-0 fw-semibold lh-1">{{ $projectTasksCompletedCount }}</h3>
+                    <span class="small">Tasks Completed</span>
                 </div>
             </div>
-        @else
-            <div class="d-flex flex-nowrap overflow-auto pb-1 mobile-stats-slider">
-                <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
-                    <div class="avatar avatar-sm avatar-primary">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="8" cy="8" r="3" stroke="var(--bs-primary)" stroke-width="2" />
-                            <circle cx="16" cy="8" r="3" stroke="var(--bs-primary)" stroke-width="2" />
-                            <path d="M2.5 18C2.5 15.7909 4.29086 14 6.5 14H9.5C11.7091 14 13.5 15.7909 13.5 18" stroke="var(--bs-primary)" stroke-width="2" stroke-linecap="round" />
-                            <path d="M10.5 18C10.5 15.7909 12.2909 14 14.5 14H17.5C19.7091 14 21.5 15.7909 21.5 18" stroke="var(--bs-primary)" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                    <div class="clearfix ms-2">
-                        <h3 class="mb-0 fw-semibold lh-1">{{ $managementPresentToday }} / {{ $managementTotalEmployees }}</h3>
-                        <span class="small">Staff Presence (Today)</span>
-                    </div>
+            <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
+                <div class="avatar avatar-sm avatar-primary">
+                    <i class="las la-spinner fs-4 text-primary"></i>
                 </div>
-                <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
-                    <div class="avatar avatar-sm avatar-primary">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="12" cy="12" r="8" stroke="var(--bs-primary)" stroke-width="2" />
-                            <path d="M12 8V12" stroke="var(--bs-primary)" stroke-width="2" stroke-linecap="round" />
-                            <circle cx="12" cy="16" r="1" fill="var(--bs-primary)" />
-                        </svg>
-                    </div>
-                    <div class="clearfix ms-2">
-                        <h3 class="mb-0 fw-semibold lh-1">{{ $managementLateToday }}</h3>
-                        <span class="small">Staff Late (Today)</span>
-                    </div>
-                </div>
-                <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
-                    <div class="avatar avatar-sm avatar-primary">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="5" y="3" width="14" height="18" rx="2" stroke="var(--bs-primary)" stroke-width="2" />
-                            <path d="M8 8H16" stroke="var(--bs-primary)" stroke-width="2" stroke-linecap="round" />
-                            <path d="M8 12H16" stroke="var(--bs-primary)" stroke-width="2" stroke-linecap="round" />
-                            <path d="M8 16H13" stroke="var(--bs-primary)" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                    <div class="clearfix ms-2">
-                        <h3 class="mb-0 fw-semibold lh-1">{{ $managementLeaveToday }}</h3>
-                        <span class="small">Staff Leave (Today)</span>
-                    </div>
+                <div class="clearfix ms-2">
+                    <h3 class="mb-0 fw-semibold lh-1">{{ $projectTasksInProgressCount }}</h3>
+                    <span class="small">In Progress</span>
                 </div>
             </div>
-        @endif
+            <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
+                <div class="avatar avatar-sm avatar-primary">
+                    <i class="las la-tasks fs-4 text-primary"></i>
+                </div>
+                <div class="clearfix ms-2">
+                    <h3 class="mb-0 fw-semibold lh-1">{{ $projectTotalTasksCount }}</h3>
+                    <span class="small">Total Tasks</span>
+                </div>
+            </div>
+            <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
+                <div class="avatar avatar-sm avatar-primary">
+                    <i class="las la-columns fs-4 text-primary"></i>
+                </div>
+                <div class="clearfix ms-2">
+                    <h3 class="mb-0 fw-semibold lh-1">{{ $projectDailyTasksCount }} | {{ $projectProjectTasksCount }}</h3>
+                    <span class="small">Daily | Project</span>
+                </div>
+            </div>
+            <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
+                <div class="avatar avatar-sm avatar-primary">
+                    <i class="las la-chart-pie fs-4 text-primary"></i>
+                </div>
+                <div class="clearfix ms-2">
+                    <h3 class="mb-0 fw-semibold lh-1">{{ $projectWorkloadPercent }}%</h3>
+                    <span class="small">Workload</span>
+                </div>
+            </div>
+        </div>
     </div>
     <!-- End - Profile Header -->

@@ -5,10 +5,10 @@
             <a href="{{ route('project_management') }}" class="nav-link py-3 px-1 border-3 {{ request()->routeIs('project_management') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('project_management') ? 'true' : 'false' }}">Overview</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a href="#task-list" class="nav-link py-3 px-1 border-3" aria-selected="false">Task List</a>
+            <a href="{{ route('project_management.task_list') }}" class="nav-link py-3 px-1 border-3 {{ request()->routeIs('project_management.task_list') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('project_management.task_list') ? 'true' : 'false' }}">Task List</a>
         </li>
         <li class="nav-item" role="presentation">
-            <a href="#project" class="nav-link py-3 px-1 border-3" aria-selected="false">Project</a>
+            <a href="{{ route('project_management.projects') }}" class="nav-link py-3 px-1 border-3 {{ request()->routeIs('project_management.projects', 'project_management.projects.detail', 'project_management.detail') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('project_management.projects', 'project_management.projects.detail', 'project_management.detail') ? 'true' : 'false' }}">Project</a>
         </li>
     </ul>
 </div>

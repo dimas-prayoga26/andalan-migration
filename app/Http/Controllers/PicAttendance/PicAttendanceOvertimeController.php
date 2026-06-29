@@ -171,6 +171,7 @@ class PicAttendanceOvertimeController extends Controller
                 ProjectTask::query()->create([
                     'project_id' => null,
                     'employee_id' => $selectedEmployeeId,
+                    'assigned_by' => $authenticatedUser->id,
                     'overtime_id' => $overtime->id,
                     'title' => $projectTaskTitle,
                     'description' => $validated['instruction'],

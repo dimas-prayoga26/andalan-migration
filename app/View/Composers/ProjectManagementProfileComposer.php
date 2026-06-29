@@ -19,7 +19,6 @@ class ProjectManagementProfileComposer
             'profileAddressSummary' => '-',
             'profileBusinessEmail' => '-',
             'profileDisplayName' => '-',
-            'profileStatsMode' => 'staff',
         ];
     }
 

@@ -342,6 +342,7 @@ class OvertimeDeadlineTaskSeeder extends Seeder
         ProjectTask::query()->create([
             'project_id' => $project->id,
             'employee_id' => $employeeId,
+            'assigned_by' => $overtime->assigned_by,
             'overtime_id' => $overtime->id,
             'title' => self::TASK_TITLE,
             'description' => 'Seed task untuk overtime dengan deadline hari ini.',
@@ -360,6 +361,7 @@ class OvertimeDeadlineTaskSeeder extends Seeder
             ProjectTask::query()->create([
                 'project_id' => $project->id,
                 'employee_id' => $employeeId,
+                'assigned_by' => $overtime->assigned_by,
                 'overtime_id' => $overtime->id,
                 'title' => $taskTitle,
                 'description' => 'Seed completed task untuk histori overtime.',

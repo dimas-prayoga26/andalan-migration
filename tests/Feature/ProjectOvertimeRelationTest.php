@@ -81,6 +81,7 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertInstanceOf(BelongsTo::class, $projectMember->employee());
         $this->assertInstanceOf(BelongsTo::class, $projectTask->project());
         $this->assertInstanceOf(BelongsTo::class, $projectTask->employee());
+        $this->assertInstanceOf(BelongsTo::class, $projectTask->assignedBy());
         $this->assertInstanceOf(BelongsTo::class, $projectTask->overtime());
         $this->assertInstanceOf(BelongsTo::class, $employeeDeployment->department());
         $this->assertInstanceOf(BelongsToMany::class, $employee->projects());
@@ -99,6 +100,7 @@ class ProjectOvertimeRelationTest extends TestCase
         $projectMigration = File::get(database_path('migrations/2026_06_11_042441_create_projects_table.php'));
         $projectMemberMigration = File::get(database_path('migrations/2026_06_11_042442_create_project_members_table.php'));
         $projectTaskMigration = File::get(database_path('migrations/2026_06_11_042442_create_project_tasks_table.php'));
+        $projectTaskAssignedByMigration = File::get(database_path('migrations/2026_06_28_131803_add_assigned_by_to_project_tasks_table.php'));
         $overtimeMigration = File::get(database_path('migrations/2026_05_05_014427_create_overtimes_table.php'));
         $overtimeLifecycleLogMigration = File::get(database_path('migrations/2026_06_12_015139_create_overtime_lifecycle_logs_table.php'));
         $overtimeRecordNumberMigration = File::get(database_path('migrations/2026_06_12_022759_add_record_number_to_overtimes_table.php'));
@@ -143,6 +145,10 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertStringNotContainsString("\$table->foreignUuid('department_id')", $projectTaskMigration);
         $this->assertStringNotContainsString('project_tasks_department_status_index', $projectTaskMigration);
         $this->assertStringNotContainsString("\$table->foreignUuid('created_by')", $projectTaskMigration);
+        $this->assertStringContainsString("\$table->foreignUuid('assigned_by')->nullable()->after('employee_id')->constrained('users', 'id')->nullOnDelete();", $projectTaskAssignedByMigration);
+        $this->assertStringContainsString("\$table->index(['assigned_by', 'status'], 'project_tasks_assigned_by_status_index');", $projectTaskAssignedByMigration);
+        $this->assertStringContainsString("\$table->dropForeign(['assigned_by']);", $projectTaskAssignedByMigration);
+        $this->assertStringContainsString("\$table->dropColumn('assigned_by');", $projectTaskAssignedByMigration);
 
         $this->assertFileDoesNotExist(database_path('migrations/2026_06_11_042442_create_project_sections_table.php'));
         $this->assertFileDoesNotExist(database_path('migrations/2026_06_12_063842_replace_project_task_sections_with_departments.php'));
@@ -242,7 +248,7 @@ class ProjectOvertimeRelationTest extends TestCase
             'private function buildOvertimeIndexList',
             'private function buildOvertimeIndexCard',
             'private function buildOvertimeIndexSummary',
-            'private function isPendingSupervisorOvertimeApproval',
+            '$isPendingSupervisorOvertimeApproval = function (AttendanceOvertime $overtime): bool',
             'private function durationMinutesFromTimeValues',
             'private function formatOvertimeSummaryHours',
             'private function normalizeOvertimeIndexStatusFilter',

@@ -47,6 +47,7 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('AttendanceOvertime::query()->create', $controller);
         $this->assertStringContainsString("'assigned_by' => \$authenticatedUser->id", $controller);
         $this->assertStringContainsString('ProjectTask::query()->create', $controller);
+        $this->assertStringContainsString("'assigned_by' => \$authenticatedUser->id,\n                    'overtime_id' => \$overtime->id", $controller);
         $this->assertStringContainsString('createInitialOvertimeLifecycleLogs', $controller);
         $this->assertStringContainsString("'event_key' => 'task_hours_verification'", $controller);
         $this->assertStringContainsString('picOvertimeCardsFor', $controller);

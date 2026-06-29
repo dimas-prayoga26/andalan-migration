@@ -16,6 +16,7 @@
 <script src="vendor/daterangepicker/moment.min.js"></script>
 <script src="vendor/daterangepicker/daterangepicker.js"></script>
 <script src="js/plugins-init/daterangepicker-init.js"></script>
+<script src="vendor/bootstrap-datetimepicker/js/bootstrap-datetimepicker.min.js"></script>
 
 <!-- Script for Chart piety -->
 <script src="vendor/peity/jquery.peity.min.js"></script>

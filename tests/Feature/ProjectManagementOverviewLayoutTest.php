@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Employee;
+use App\Models\EmployeePicAssignment;
 use App\Models\Project;
 use App\Models\ProjectMember;
 use App\Models\ProjectTask;
@@ -103,6 +104,14 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringNotContainsString('<i class="fa fa-list"></i>', $taskList);
         $this->assertStringNotContainsString('<i class="fa fa-th-large"></i>', $taskList);
         $this->assertStringContainsString('$taskListItems = collect($taskListItems ?? []);', $taskList);
+        $this->assertStringContainsString('$taskListAssignableStaffOptions = collect($taskListAssignableStaffOptions ?? []);', $taskList);
+        $this->assertStringContainsString('name="assigned_employee_id"', $taskList);
+        $this->assertStringContainsString('taskProjectOptionsByEmployee', $taskList);
+        $this->assertStringContainsString('private function validatedTaskEmployeeId(string $employeeId, array $validated): string|false', $taskListController);
+        $this->assertStringContainsString('EmployeePicAssignment::query()', $taskListController);
+        $this->assertStringContainsString("'is_assigned_by_other_user' =>", $taskListController);
+        $this->assertStringContainsString('Assign by : <span class="fw-semibold">{{ $task[\'assigned_by_label\'] }}</span>', $taskListItemsPartial);
+        $this->assertStringContainsString('Assign by : <span class="fw-semibold">{{ $task[\'assigned_by_label\'] }}</span>', $taskListWeekPlanPartial);
         $this->assertStringContainsString('data-task-form-mode="create"', $taskListSurface);
         $this->assertStringContainsString('id="taskFilterForm"', $taskList);
         $this->assertStringContainsString('id="taskFilterMonth"', $taskList);
@@ -511,12 +520,98 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         ]);
     }
 
+    public function test_pic_can_assign_task_list_task_to_active_staff_only(): void
+    {
+        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
+            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
+        }
+
+        $this->createProjectTaskListTestSchema();
+
+        [$picUser, $picEmployee] = $this->createProjectTaskListUser('pic_task_list');
+        [, $staffEmployee] = $this->createProjectTaskListUser('assigned_staff_task_list');
+        [, $outsideEmployee] = $this->createProjectTaskListUser('outside_staff_task_list');
+
+        EmployeePicAssignment::query()->create([
+            'id' => (string) Str::uuid(),
+            'supervisor_employee_id' => $picEmployee->id,
+            'staff_employee_id' => $staffEmployee->id,
+            'is_active' => true,
+        ]);
+
+        $project = Project::query()->create([
+            'id' => (string) Str::uuid(),
+            'name' => 'Assigned Staff Project',
+            'code' => 'ASSIGNED-STAFF',
+            'status' => 'active',
+            'created_by' => $picUser->id,
+        ]);
+
+        ProjectMember::query()->create([
+            'id' => (string) Str::uuid(),
+            'project_id' => $project->id,
+            'employee_id' => $staffEmployee->id,
+            'joined_at' => '2026-07-01',
+            'status' => 'active',
+        ]);
+
+        $this->withoutMiddleware();
+
+        $assignResponse = $this
+            ->actingAs($picUser)
+            ->postJson(route('project_management.task_list.tasks.store'), [
+                'title' => 'Assigned task from PIC',
+                'description' => 'Task assigned to subordinate staff.',
+                'start_date' => '2026-07-01',
+                'due_date' => '2026-07-02',
+                'priority' => 'medium',
+                'task_category' => 'project',
+                'project_id' => $project->id,
+                'assigned_employee_id' => $staffEmployee->id,
+                'status' => 'pending',
+            ]);
+
+        $assignResponse->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Task berhasil ditambahkan.',
+            ]);
+
+        $assignedTask = ProjectTask::query()
+            ->where('title', 'Assigned task from PIC')
+            ->firstOrFail();
+
+        $this->assertSame((string) $staffEmployee->id, (string) $assignedTask->employee_id);
+        $this->assertSame((string) $picUser->id, (string) $assignedTask->assigned_by);
+        $this->assertSame((string) $project->id, (string) $assignedTask->project_id);
+
+        $outsideResponse = $this
+            ->actingAs($picUser)
+            ->postJson(route('project_management.task_list.tasks.store'), [
+                'title' => 'Invalid outside assignment',
+                'start_date' => '2026-07-01',
+                'due_date' => '2026-07-02',
+                'priority' => 'medium',
+                'task_category' => 'daily',
+                'assigned_employee_id' => $outsideEmployee->id,
+                'status' => 'pending',
+            ]);
+
+        $outsideResponse->assertUnprocessable()
+            ->assertJson([
+                'success' => false,
+                'message' => 'Staff yang dipilih tidak berada di bawah PIC login.',
+            ]);
+    }
+
     private function createProjectTaskListTestSchema(): void
     {
         foreach ([
             'project_tasks',
             'project_members',
             'projects',
+            'employee_pic_assignments',
+            'employee_profiles',
             'employees',
             'users',
         ] as $table) {
@@ -537,6 +632,22 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->unique()->constrained('users', 'id')->cascadeOnDelete();
             $table->string('status')->default('Active');
+            $table->timestamps();
+        });
+
+        Schema::create('employee_profiles', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('employee_id')->constrained('employees', 'id')->cascadeOnDelete();
+            $table->string('name')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('employee_pic_assignments', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('supervisor_employee_id')->constrained('employees', 'id')->cascadeOnDelete();
+            $table->foreignUuid('staff_employee_id')->constrained('employees', 'id')->cascadeOnDelete();
+            $table->boolean('is_active')->default(true);
+            $table->softDeletes();
             $table->timestamps();
         });
 

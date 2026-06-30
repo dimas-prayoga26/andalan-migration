@@ -145,11 +145,12 @@ class PicAttendanceOvertimeController extends Controller
             $this->throwPicOvertimeValidationException('employee_id', 'Staff yang dipilih bukan bawahan supervisor ini.');
         }
 
-        DB::transaction(function () use ($authenticatedUser, $validated, $selectedEmployeeId, $startDate, $endDate, $startTime, $endTime): void {
-            $overtimeDate = $startDate->copy();
+        $overtimeDates = $this->overtimeAssignmentDates($startDate, $endDate, $startTime, $endTime);
+
+        DB::transaction(function () use ($authenticatedUser, $validated, $selectedEmployeeId, $overtimeDates, $startTime, $endTime): void {
             $createdAt = Carbon::now('Asia/Jakarta');
 
-            while ($overtimeDate->lte($endDate)) {
+            foreach ($overtimeDates as $overtimeDate) {
                 $overtime = AttendanceOvertime::query()->create([
                     'employee_id' => $selectedEmployeeId,
                     'assigned_by' => $authenticatedUser->id,
@@ -164,8 +165,6 @@ class PicAttendanceOvertimeController extends Controller
                 ]);
 
                 $this->createInitialOvertimeLifecycleLogs($overtime, $authenticatedUser, $createdAt);
-
-                $overtimeDate->addDay();
             }
         });
 
@@ -424,6 +423,32 @@ class PicAttendanceOvertimeController extends Controller
         return (string) $attendanceOvertime->assigned_by === (string) $authenticatedUser->id
             && (string) $projectTask->overtime_id === (string) $attendanceOvertime->id
             && (string) $projectTask->employee_id === (string) $attendanceOvertime->employee_id;
+    }
+
+    /**
+     * @return Collection<int, Carbon>
+     */
+    private function overtimeAssignmentDates(Carbon $startDate, Carbon $endDate, string $startTime, string $endTime): Collection
+    {
+        if ($this->isSingleOvernightDateRange($startDate, $endDate, $startTime, $endTime)) {
+            return collect([$startDate->copy()]);
+        }
+
+        $dates = collect();
+        $overtimeDate = $startDate->copy();
+
+        while ($overtimeDate->lte($endDate)) {
+            $dates->push($overtimeDate->copy());
+            $overtimeDate->addDay();
+        }
+
+        return $dates;
+    }
+
+    private function isSingleOvernightDateRange(Carbon $startDate, Carbon $endDate, string $startTime, string $endTime): bool
+    {
+        return $endTime <= $startTime
+            && $startDate->copy()->addDay()->isSameDay($endDate);
     }
 
     /**

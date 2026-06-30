@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\ProjectManagement;
 
 use App\Http\Controllers\Controller;
+use App\Models\Employee;
+use App\Models\EmployeePicAssignment;
 use App\Models\Project;
 use App\Models\ProjectMember;
 use App\Models\ProjectTask;
@@ -54,7 +56,15 @@ class TaskListController extends Controller
         }
 
         $validated = $this->validateTaskPayload($request);
-        $projectId = $this->validatedProjectId($employeeId, $validated);
+        $taskEmployeeId = $this->validatedTaskEmployeeId($employeeId, $validated);
+        if ($taskEmployeeId === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Staff yang dipilih tidak berada di bawah PIC login.',
+            ], 422);
+        }
+
+        $projectId = $this->validatedProjectId($taskEmployeeId, $validated);
         if ($projectId === false) {
             return response()->json([
                 'success' => false,
@@ -64,10 +74,10 @@ class TaskListController extends Controller
 
         $status = strtolower(trim((string) ($validated['status'] ?? 'pending')));
 
-        DB::transaction(function () use ($authenticatedUser, $employeeId, $projectId, $status, $validated): void {
+        DB::transaction(function () use ($authenticatedUser, $taskEmployeeId, $projectId, $status, $validated): void {
             ProjectTask::query()->create([
                 'project_id' => $projectId,
-                'employee_id' => $employeeId,
+                'employee_id' => $taskEmployeeId,
                 'assigned_by' => $authenticatedUser?->id,
                 'title' => trim((string) $validated['title']),
                 'description' => $this->nullableStringValue($validated['description'] ?? null),
@@ -283,6 +293,12 @@ class TaskListController extends Controller
             })
             ->count();
 
+        $assignableStaffOptions = $this->taskListAssignableStaffOptions($employeeId);
+        $assignableEmployeeIds = $assignableStaffOptions
+            ->pluck('id')
+            ->filter(fn (mixed $assignableEmployeeId): bool => is_string($assignableEmployeeId) && trim($assignableEmployeeId) !== '')
+            ->values();
+
         return array_merge($defaultTaskListData, [
             'taskListItems' => $tasks,
             'taskListOngoingItems' => $ongoingTasks,
@@ -290,6 +306,8 @@ class TaskListController extends Controller
             'taskListWeekPlanItems' => $weekPlanTasks,
             'taskListPastIncompleteCount' => $pastIncompleteCount,
             'taskListProjectOptions' => $this->taskListProjectOptions($employeeId),
+            'taskListAssignableStaffOptions' => $assignableStaffOptions,
+            'taskListProjectOptionsByEmployee' => $this->taskListProjectOptionsByEmployee($assignableEmployeeIds),
         ]);
     }
 
@@ -310,6 +328,8 @@ class TaskListController extends Controller
             'taskListDoneItems' => collect(),
             'taskListWeekPlanItems' => collect(),
             'taskListProjectOptions' => collect(),
+            'taskListAssignableStaffOptions' => collect(),
+            'taskListProjectOptionsByEmployee' => [],
             'taskListPastIncompleteCount' => 0,
             'taskListStoreUrl' => route('project_management.task_list.tasks.store'),
         ];
@@ -413,6 +433,69 @@ class TaskListController extends Controller
     }
 
     /**
+     * @param  Collection<int, string>  $employeeIds
+     * @return array<string, array<int, array{id:string,name:string}>>
+     */
+    private function taskListProjectOptionsByEmployee(Collection $employeeIds): array
+    {
+        return $employeeIds
+            ->mapWithKeys(fn (string $employeeId): array => [
+                $employeeId => $this->taskListProjectOptions($employeeId)->all(),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return Collection<int, array{id:string,name:string}>
+     */
+    private function taskListAssignableStaffOptions(string $employeeId): Collection
+    {
+        $staffEmployeeIds = EmployeePicAssignment::query()
+            ->where('supervisor_employee_id', $employeeId)
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->pluck('staff_employee_id')
+            ->filter(fn (mixed $staffEmployeeId): bool => is_string($staffEmployeeId) && trim($staffEmployeeId) !== '')
+            ->map(fn (string $staffEmployeeId): string => trim($staffEmployeeId));
+
+        $assignableEmployeeIds = collect([$employeeId])
+            ->merge($staffEmployeeIds)
+            ->unique()
+            ->values();
+
+        return Employee::query()
+            ->with(['profile:id,employee_id,name', 'user:id,username,email'])
+            ->whereIn('id', $assignableEmployeeIds->all())
+            ->get()
+            ->sortBy(fn (Employee $employee): int|false => $assignableEmployeeIds->search((string) $employee->id))
+            ->map(fn (Employee $employee): array => [
+                'id' => (string) $employee->id,
+                'name' => $this->employeeOptionName($employee),
+            ])
+            ->values();
+    }
+
+    private function employeeOptionName(Employee $employee): string
+    {
+        $profileName = trim((string) ($employee->profile?->name ?? ''));
+        if ($profileName !== '') {
+            return $profileName;
+        }
+
+        $username = trim((string) ($employee->user?->username ?? ''));
+        if ($username !== '') {
+            return $username;
+        }
+
+        $email = trim((string) ($employee->user?->email ?? ''));
+        if ($email !== '') {
+            return str($email)->before('@')->toString();
+        }
+
+        return (string) $employee->id;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function taskListItemValue(ProjectTask $projectTask): array
@@ -421,9 +504,13 @@ class TaskListController extends Controller
         $startDate = $projectTask->start_date;
         $dueDate = $projectTask->due_date;
         $isCompleted = $this->isCompletedTask($projectTask);
+        $assignedByUserId = trim((string) ($projectTask->assigned_by ?? ''));
+        $authenticatedUserId = trim((string) (Auth::id() ?? ''));
+        $assignedByUsername = trim((string) ($projectTask->assignedBy?->username ?? 'self'));
 
         return [
             'id' => (string) $projectTask->id,
+            'employee_id' => (string) $projectTask->employee_id,
             'title' => trim((string) $projectTask->title),
             'description' => trim((string) ($projectTask->description ?? '')),
             'blockers' => trim((string) ($projectTask->blockers ?? '')),
@@ -439,7 +526,9 @@ class TaskListController extends Controller
             'project_name' => trim((string) ($projectTask->project?->name ?? 'Daily Task')),
             'task_category' => $projectTask->project_id === null ? 'daily' : 'project',
             'task_category_label' => $projectTask->project_id === null ? 'Daily Task' : 'Project Task',
-            'assigned_by' => trim((string) ($projectTask->assignedBy?->username ?? 'self')),
+            'assigned_by' => $assignedByUsername,
+            'assigned_by_label' => $assignedByUsername,
+            'is_assigned_by_other_user' => $assignedByUserId !== '' && $authenticatedUserId !== '' && $assignedByUserId !== $authenticatedUserId,
             'start_date' => $startDate?->toDateString() ?? '',
             'due_date' => $dueDate?->toDateString() ?? '',
             'date_day' => $taskDate?->format('d') ?? '-',
@@ -544,8 +633,29 @@ class TaskListController extends Controller
             'blockers' => ['nullable', 'string', 'max:5000'],
             'task_category' => ['required', 'in:daily,project'],
             'project_id' => ['nullable', 'uuid'],
+            'assigned_employee_id' => ['nullable', 'uuid'],
             'status' => ['required', 'in:pending,in_progress,completed,cancelled'],
         ]);
+    }
+
+    private function validatedTaskEmployeeId(string $employeeId, array $validated): string|false
+    {
+        $requestedEmployeeId = is_string($validated['assigned_employee_id'] ?? null)
+            ? trim($validated['assigned_employee_id'])
+            : '';
+
+        if ($requestedEmployeeId === '' || $requestedEmployeeId === $employeeId) {
+            return $employeeId;
+        }
+
+        $isAssignedStaff = EmployeePicAssignment::query()
+            ->where('supervisor_employee_id', $employeeId)
+            ->where('staff_employee_id', $requestedEmployeeId)
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->exists();
+
+        return $isAssignedStaff ? $requestedEmployeeId : false;
     }
 
     private function validatedProjectId(string $employeeId, array $validated): string|false|null

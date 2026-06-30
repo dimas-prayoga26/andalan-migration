@@ -76,6 +76,9 @@
     $taskListDoneItems = collect($taskListDoneItems ?? []);
     $taskListWeekPlanItems = collect($taskListWeekPlanItems ?? []);
     $taskListProjectOptions = collect($taskListProjectOptions ?? []);
+    $taskListAssignableStaffOptions = collect($taskListAssignableStaffOptions ?? []);
+    $taskListProjectOptionsByEmployee = is_array($taskListProjectOptionsByEmployee ?? null) ? $taskListProjectOptionsByEmployee : [];
+    $taskListDefaultAssigneeEmployeeId = (string) ($taskListAssignableStaffOptions->first()['id'] ?? '');
     $taskListMonthOptions = is_array($taskListMonthOptions ?? null) ? $taskListMonthOptions : [];
     $taskListYearOptions = is_array($taskListYearOptions ?? null) ? $taskListYearOptions : [];
     $taskListSelectedMonth = is_string($taskListSelectedMonth ?? null) ? $taskListSelectedMonth : now('Asia/Jakarta')->format('Y-m');
@@ -296,6 +299,18 @@
                                 <input type="text" class="form-control" name="blockers" id="taskBlockers" placeholder="Contoh: Menunggu approval dokumen">
                             </div>
                         </div>
+                        @if ($taskListAssignableStaffOptions->count() > 1)
+                            <div class="col-12 col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Assign Staff <span class="required text-danger">*</span></label>
+                                    <select class="form-control default-select" name="assigned_employee_id" id="taskAssigneeEmployeeId" required>
+                                        @foreach ($taskListAssignableStaffOptions as $staffOption)
+                                            <option value="{{ $staffOption['id'] }}">{{ $staffOption['name'] }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        @endif
                         <div class="col-6 col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Task Category <span class="required text-danger">*</span></label>
@@ -430,6 +445,8 @@
     $(function () {
         var taskStoreUrl = @json($taskListStoreUrl);
         var taskFilterUrl = @json(route('project_management.task_list.filter'));
+        var taskProjectOptionsByEmployee = @json($taskListProjectOptionsByEmployee);
+        var taskDefaultAssigneeEmployeeId = @json($taskListDefaultAssigneeEmployeeId);
         var selectedMonth = @json($taskListSelectedMonth);
         var defaultCalendarDate = @json(now('Asia/Jakarta')->format('Y-m-d'));
         var currentTaskFilters = {
@@ -453,8 +470,31 @@
             return value || '';
         }
 
+        function selectedTaskAssigneeEmployeeId() {
+            return $('#taskAssigneeEmployeeId').val() || taskDefaultAssigneeEmployeeId;
+        }
+
+        function renderTaskProjectOptions(selectedProjectId) {
+            var employeeId = selectedTaskAssigneeEmployeeId();
+            var projectOptions = taskProjectOptionsByEmployee[employeeId] || [];
+            var projectSelect = $('#taskProject');
+
+            projectSelect.empty().append(new Option('Pilih Nama Project', ''));
+
+            projectOptions.forEach(function (projectOption) {
+                projectSelect.append(new Option(projectOption.name, projectOption.id));
+            });
+
+            if (selectedProjectId) {
+                projectSelect.val(selectedProjectId);
+            }
+        }
+
         function setProjectFieldState() {
             var isProjectTask = $('#taskCategory').val() === 'project';
+            var selectedProjectId = $('#taskProject').val();
+
+            renderTaskProjectOptions(selectedProjectId);
             $('#taskProject').prop('disabled', ! isProjectTask);
 
             if (! isProjectTask) {
@@ -471,6 +511,8 @@
             $('#taskStatus').val('pending');
             $('#taskPriority').val('medium');
             $('#taskCategory').val('daily');
+            $('#taskAssigneeEmployeeId').val(taskDefaultAssigneeEmployeeId);
+            $('#taskAssigneeEmployeeId').prop('disabled', false);
             setProjectFieldState();
         }
 
@@ -488,6 +530,8 @@
             $('#taskAttachment').val(nullableValue(task.attachment_path));
             $('#taskBlockers').val(nullableValue(task.blockers));
             $('#taskCategory').val(nullableValue(task.task_category) || 'daily');
+            $('#taskAssigneeEmployeeId').val(nullableValue(task.employee_id) || taskDefaultAssigneeEmployeeId);
+            $('#taskAssigneeEmployeeId').prop('disabled', true);
             setProjectFieldState();
             $('#taskProject').val(nullableValue(task.project_id));
         }
@@ -706,6 +750,7 @@
 
         $(document).on('click', '[data-task-form-mode="create"]', resetTaskForm);
         $('#taskCategory').on('change', setProjectFieldState);
+        $('#taskAssigneeEmployeeId').on('change', setProjectFieldState);
 
         $('#taskFormModal').on('shown.bs.modal', initializeTaskDatePickers);
 

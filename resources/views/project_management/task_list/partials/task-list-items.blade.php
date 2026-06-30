@@ -74,6 +74,9 @@
                             <span class="ps-3 pe-3 fs-14">{{ $task['project_name'] }}</span>
                             <span class="{{ $task['priority_class'] }} fw-semibold">Priority: {{ $task['priority_label'] }}</span>
                         </span>
+                        @if ($task['is_assigned_by_other_user'] ?? false)
+                            <p class="fs-13 text-muted mb-0 mt-1">Assign by : <span class="fw-semibold">{{ $task['assigned_by_label'] }}</span></p>
+                        @endif
                     </div>
                 </div>
                 <div class="col-xl-12 col-xxl-4 col-lg-4 col-12 d-flex gap-3 align-items-center justify-content-xxl-end justify-content-xl-between justify-content-lg-end justify-content-between mt-xxl-0 mt-xl-3 mt-lg-0 mt-3">

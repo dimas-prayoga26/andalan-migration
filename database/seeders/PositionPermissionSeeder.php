@@ -158,7 +158,7 @@ class PositionPermissionSeeder extends Seeder
             'Supervisor' => array_merge($baseStaffPermissions, ['view-pic-attendance']),
             'Interior Design' => $baseStaffPermissions,
             'Architecture Design' => $baseStaffPermissions,
-            'Web Developer' => array_merge($baseStaffPermissions, ['view-authorization']),
+            'Web Developer' => $baseStaffPermissions,
             'Documentation Event and Editor Video' => $baseStaffPermissions,
             'Graphic Design' => array_merge($baseStaffPermissions, ['view-talent-acquisition']),
             'Branding Designer' => array_merge($baseStaffPermissions, ['view-talent-acquisition']),

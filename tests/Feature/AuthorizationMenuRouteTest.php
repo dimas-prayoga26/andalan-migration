@@ -164,6 +164,18 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringNotContainsString('Admin Attendance </span>', $sidebar);
     }
 
+    public function test_sidebar_javascript_keeps_parent_menu_active_on_module_sub_routes(): void
+    {
+        $customJs = File::get(public_path('assets/js/custom.js'));
+
+        $this->assertStringContainsString('var currentSidebarPath = currentPath;', $customJs);
+        $this->assertStringContainsString("currentSidebarPath = '/attendance/overview';", $customJs);
+        $this->assertStringContainsString("currentSidebarPath = '/admin-attendance/overview';", $customJs);
+        $this->assertStringContainsString("currentSidebarPath = '/project-management/overview';", $customJs);
+        $this->assertStringContainsString('var isExactMatch = currentSidebarPath === linkPath;', $customJs);
+        $this->assertStringContainsString("currentSidebarPath.startsWith(linkPath + '/')", $customJs);
+    }
+
     public function test_position_based_sidebar_permission_structure_is_registered(): void
     {
         $positionPermissionMigration = File::get(database_path('migrations/2026_06_21_163635_create_position_has_permissions_table.php'));
@@ -180,6 +192,8 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('syncPositionPermissions', $positionPermissionSeeder);
         $this->assertStringContainsString('menuPermissionData', $positionPermissionSeeder);
         $this->assertStringContainsString("'Administrator' => \$allPermissionsWithoutPic", $positionPermissionSeeder);
+        $this->assertStringContainsString("'Web Developer' => \$baseStaffPermissions", $positionPermissionSeeder);
+        $this->assertStringNotContainsString("'Web Developer' => array_merge(\$baseStaffPermissions, ['view-authorization'])", $positionPermissionSeeder);
         $this->assertStringContainsString("->where('name', 'Super Administrator')", $positionPermissionSeeder);
         $this->assertStringContainsString('->permissions()->detach()', $positionPermissionSeeder);
         $this->assertStringNotContainsString("'System Administrator' =>", $positionPermissionSeeder);

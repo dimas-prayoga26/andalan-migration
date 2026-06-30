@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class PicAttendanceOvertimeStoreTest extends TestCase
@@ -71,6 +74,31 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('activeSupervisedEmployeeIdsFor($user, $companyId', $controller);
         $this->assertStringContainsString('staffGridGroupLabel', $controller);
         $this->assertStringContainsString('paidOutOvertimeMinutes', $controller);
+    }
+
+    public function test_pic_overtime_store_treats_next_day_overnight_as_single_assignment_date(): void
+    {
+        $method = new ReflectionMethod(PicAttendanceOvertimeController::class, 'overtimeAssignmentDates');
+        $method->setAccessible(true);
+        $controller = app(PicAttendanceOvertimeController::class);
+
+        $overnightDates = $method->invoke(
+            $controller,
+            Carbon::parse('2026-06-30', 'Asia/Jakarta')->startOfDay(),
+            Carbon::parse('2026-07-01', 'Asia/Jakarta')->startOfDay(),
+            '23:00:00',
+            '01:00:00'
+        );
+        $multiDateRange = $method->invoke(
+            $controller,
+            Carbon::parse('2026-06-30', 'Asia/Jakarta')->startOfDay(),
+            Carbon::parse('2026-07-02', 'Asia/Jakarta')->startOfDay(),
+            '09:00:00',
+            '10:00:00'
+        );
+
+        $this->assertSame(['2026-06-30'], $overnightDates->map->toDateString()->all());
+        $this->assertSame(['2026-06-30', '2026-07-01', '2026-07-02'], $multiDateRange->map->toDateString()->all());
     }
 
     public function test_pic_overtime_detail_can_submit_session_verification(): void

@@ -130,8 +130,17 @@ var Gymove = function(){
 	var handleCurrentActive = function() {
 		var currentUrl = new URL(window.location.href);
 		var currentPath = currentUrl.pathname.replace(/\/+$/, '') || '/';
+		var currentSidebarPath = currentPath;
 		var matchedLink = null;
 		var longestMatchedPathLength = -1;
+
+		if (currentPath === '/attendance' || currentPath.startsWith('/attendance/')) {
+			currentSidebarPath = '/attendance/overview';
+		} else if (currentPath === '/admin-attendance' || currentPath.startsWith('/admin-attendance/')) {
+			currentSidebarPath = '/admin-attendance/overview';
+		} else if (currentPath === '/project-management' || currentPath.startsWith('/project-management/')) {
+			currentSidebarPath = '/project-management/overview';
+		}
 
 		$("ul#menu a").each(function() {
 			var href = $(this).attr("href");
@@ -147,9 +156,9 @@ var Gymove = function(){
 			}
 
 			var linkPath = linkUrl.pathname.replace(/\/+$/, '') || '/';
-			var isExactMatch = currentPath === linkPath;
-			var isChildPathMatch = linkPath !== '/' && currentPath.startsWith(linkPath + '/');
-			var isRootMatch = linkPath === '/' && currentPath === '/';
+			var isExactMatch = currentSidebarPath === linkPath;
+			var isChildPathMatch = linkPath !== '/' && currentSidebarPath.startsWith(linkPath + '/');
+			var isRootMatch = linkPath === '/' && currentSidebarPath === '/';
 
 			if ((isExactMatch || isChildPathMatch || isRootMatch) && linkPath.length > longestMatchedPathLength) {
 				matchedLink = this;

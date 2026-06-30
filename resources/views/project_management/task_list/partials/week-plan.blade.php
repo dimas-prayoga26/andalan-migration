@@ -11,6 +11,9 @@
                 <a type="button" data-bs-toggle="modal" data-bs-target="#taskDetailsModal" data-task='@json($task)' class="text-black js-task-details">{{ $task['title'] }}</a>
             </h6>
             <span class="fs-14">{{ $task['date_range_label'] }} ({{ $task['due_label'] }})</span>
+            @if ($task['is_assigned_by_other_user'] ?? false)
+                <p class="fs-13 text-muted mb-0">Assign by : <span class="fw-semibold">{{ $task['assigned_by_label'] }}</span></p>
+            @endif
         </div>
     </div>
 @empty

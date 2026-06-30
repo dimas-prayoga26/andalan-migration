@@ -78,6 +78,8 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('syncDataEmployeeRelations', $controller);
         $this->assertStringContainsString('List Employee', $authorizationView);
         $this->assertStringContainsString("route('authorization.create')", $authorizationView);
+        $this->assertStringContainsString('Create User', $authorizationView);
+        $this->assertStringNotContainsString('Create Users', $authorizationView);
         $this->assertStringContainsString('@forelse ($users as $user)', $authorizationView);
         $this->assertStringContainsString('<th>Name</th>', $authorizationView);
         $this->assertStringContainsString('<th>NIK</th>', $authorizationView);
@@ -177,6 +179,9 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('view-authorization', $positionPermissionSeeder);
         $this->assertStringContainsString('syncPositionPermissions', $positionPermissionSeeder);
         $this->assertStringContainsString('menuPermissionData', $positionPermissionSeeder);
-        $this->assertStringContainsString("'System Administrator' => \$allPermissionsWithoutPic", $positionPermissionSeeder);
+        $this->assertStringContainsString("'Administrator' => \$allPermissionsWithoutPic", $positionPermissionSeeder);
+        $this->assertStringContainsString("->where('name', 'Super Administrator')", $positionPermissionSeeder);
+        $this->assertStringContainsString('->permissions()->detach()', $positionPermissionSeeder);
+        $this->assertStringNotContainsString("'System Administrator' =>", $positionPermissionSeeder);
     }
 }

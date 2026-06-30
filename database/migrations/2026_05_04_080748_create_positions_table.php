@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('positions', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('name');
+            $table->string('name', 191)->unique('positions_name_unique');
             $table->string('status')->default('active');
             $table->timestamps();
         });

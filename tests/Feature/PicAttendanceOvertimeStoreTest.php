@@ -46,16 +46,22 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString("->where('is_active', true)", $controller);
         $this->assertStringContainsString('AttendanceOvertime::query()->create', $controller);
         $this->assertStringContainsString("'assigned_by' => \$authenticatedUser->id", $controller);
-        $this->assertStringContainsString('ProjectTask::query()->create', $controller);
-        $this->assertStringContainsString("'assigned_by' => \$authenticatedUser->id,\n                    'overtime_id' => \$overtime->id", $controller);
+        $this->assertStringNotContainsString('$startTime >= $endTime', $controller);
+        $this->assertStringNotContainsString('End time harus lebih besar dari start time.', $controller);
+        $this->assertStringNotContainsString('ProjectTask::query()->create', $controller);
+        $this->assertStringNotContainsString('$projectTaskTitle', $controller);
         $this->assertStringContainsString('createInitialOvertimeLifecycleLogs', $controller);
         $this->assertStringContainsString("'event_key' => 'task_hours_verification'", $controller);
+        $this->assertMatchesRegularExpression(
+            "/'event_key' => 'task_hours_verification'.*?'status' => 'waiting'/s",
+            $controller
+        );
         $this->assertStringContainsString('picOvertimeCardsFor', $controller);
         $this->assertStringContainsString("'status' => 'complete'", $controller);
         $this->assertStringContainsString("'status' => 'pending'", $controller);
         $this->assertGreaterThan(
-            strpos($controller, "'event_key' => 'session_ended'"),
-            strpos($controller, "'event_key' => 'task_deliverables_submitted'")
+            strpos($controller, "'event_key' => 'task_deliverables_submitted'"),
+            strpos($controller, "'event_key' => 'session_ended'")
         );
         $this->assertStringContainsString('currentPicLifecycleLog', $controller);
         $this->assertStringContainsString('isCompletedPicLifecycleStatus', $controller);
@@ -83,6 +89,8 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('isTaskDeliverablesSubmitted', $controller);
         $this->assertStringContainsString("'task_hours_verification',", $controller);
         $this->assertStringContainsString("'verified',", $controller);
+        $this->assertStringNotContainsString('$approvedStartTime >= $approvedEndTime', $controller);
+        $this->assertStringNotContainsString('Approved end harus lebih besar dari approved start.', $controller);
         $this->assertStringContainsString("'payroll_processing',", $controller);
         $this->assertStringContainsString("'pending',", $controller);
         $this->assertStringContainsString("Route::post('/pic-attendance/overtime/detail/{uid}/verify-session'", $routes);

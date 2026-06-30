@@ -83,6 +83,48 @@ class AdminAttendanceLeaveBalanceSyncTest extends TestCase
         $this->assertSame('4.00', $leaveBalance->remaining_quota);
     }
 
+    public function test_administrator_can_finalize_their_own_leave_request_after_supervisor_approval(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-24 09:00:00', 'Asia/Jakarta'));
+
+        [$adminUser, , $adminEmployee] = $this->createCompanyEmployees();
+        $annualLeave = $this->createAnnualLeaveType();
+        $leaveRequest = LeaveRequest::query()->create([
+            'employee_id' => $adminEmployee->id,
+            'leave_type_id' => $annualLeave->id,
+            'start_date' => '2026-06-26',
+            'end_date' => '2026-06-26',
+            'total_days' => 1,
+            'reason' => 'Administrator self approval test.',
+            'status' => 'pending',
+            'is_active' => true,
+        ]);
+        LeaveRequestHistory::query()->create([
+            'leave_request_id' => $leaveRequest->id,
+            'actor_user_id' => $adminUser->id,
+            'event_type' => 'supervisor_review',
+            'title' => 'Supervisor Review',
+            'from_status' => 'pending',
+            'to_status' => 'approved',
+            'happened_at' => now('Asia/Jakarta'),
+        ]);
+
+        $request = Request::create('/admin-attendance/leave/detail/'.$leaveRequest->id.'/approval', 'PUT', [
+            'status' => 'approved',
+        ]);
+        $request->setUserResolver(static fn (): User => $adminUser);
+
+        app(AttendanceLeaveController::class)->updateApproval($request, $leaveRequest->id);
+
+        $this->assertSame('approved', $leaveRequest->refresh()->status);
+        $this->assertDatabaseHas('leave_request_histories', [
+            'leave_request_id' => $leaveRequest->id,
+            'actor_user_id' => $adminUser->id,
+            'event_type' => 'hr_verification',
+            'to_status' => 'approved',
+        ]);
+    }
+
     public function test_leave_balance_seeder_syncs_approved_annual_leave_usage(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-06-24 09:00:00', 'Asia/Jakarta'));
@@ -114,7 +156,7 @@ class AdminAttendanceLeaveBalanceSyncTest extends TestCase
     }
 
     /**
-     * @return array{0: User, 1: Employee}
+     * @return array{0: User, 1: Employee, 2: Employee}
      */
     private function createCompanyEmployees(): array
     {
@@ -152,7 +194,7 @@ class AdminAttendanceLeaveBalanceSyncTest extends TestCase
             'status' => 'Active',
         ]);
 
-        return [$adminUser, $employee];
+        return [$adminUser, $employee, $adminEmployee];
     }
 
     private function createAnnualLeaveType(): LeaveType

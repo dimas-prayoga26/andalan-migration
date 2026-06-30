@@ -68,15 +68,10 @@ class PositionPermissionSeeder extends Seeder
      */
     private function syncRolePermissions(array $permissionNames): void
     {
-        $permissionNamesWithoutPic = array_values(array_filter(
-            $permissionNames,
-            static fn (string $permissionName): bool => ! in_array($permissionName, ['view-pic-attendance', 'view-director-attendance'], true),
-        ));
-
         Role::query()
             ->where('name', 'superuser')
             ->first()
-            ?->syncPermissions($permissionNamesWithoutPic);
+            ?->syncPermissions($permissionNames);
 
         Role::query()
             ->where('name', 'Board of Directors')
@@ -125,21 +120,24 @@ class PositionPermissionSeeder extends Seeder
             ->values()
             ->all();
 
+        $directorPermissions = [
+            'view-dashboard',
+            'view-calendar',
+            'view-attendance',
+            'view-timesheet-reporting',
+            'view-meeting',
+            'view-admin-attendance',
+            'view-organization',
+            'view-authorization',
+            'view-employee-database',
+            'view-talent-acquisition',
+            'view-director-attendance',
+        ];
+
         $positionPermissions = [
-            'System Administrator' => $allPermissionsWithoutPic,
-            'Director' => [
-                'view-dashboard',
-                'view-calendar',
-                'view-attendance',
-                'view-timesheet-reporting',
-                'view-meeting',
-                'view-admin-attendance',
-                'view-organization',
-                'view-authorization',
-                'view-employee-database',
-                'view-talent-acquisition',
-                'view-director-attendance',
-            ],
+            'Administrator' => $allPermissionsWithoutPic,
+            'Chief Operating Officer' => $directorPermissions,
+            'Director' => $directorPermissions,
             'Finance and Administration Coordinator' => [
                 'view-dashboard',
                 'view-calendar',
@@ -165,6 +163,11 @@ class PositionPermissionSeeder extends Seeder
             'Graphic Design' => array_merge($baseStaffPermissions, ['view-talent-acquisition']),
             'Branding Designer' => array_merge($baseStaffPermissions, ['view-talent-acquisition']),
         ];
+
+        Position::query()
+            ->where('name', 'Super Administrator')
+            ->get()
+            ->each(static fn (Position $position): mixed => $position->permissions()->detach());
 
         Position::query()
             ->whereIn('name', array_keys($positionPermissions))

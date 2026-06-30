@@ -12,13 +12,15 @@ class UserSeederAdministratorTest extends TestCase
         $userSeeder = File::get(database_path('seeders/UserSeeder.php'));
 
         $this->assertStringContainsString("DB::table('departments')->where('name', 'Administrator')->value('id')", $userSeeder);
-        $this->assertStringContainsString("DB::table('positions')->where('name', 'System Administrator')->value('id')", $userSeeder);
+        $this->assertStringContainsString("DB::table('positions')->where('name', 'Administrator')->value('id')", $userSeeder);
+        $this->assertStringContainsString("DB::table('positions')->where('name', 'Super Administrator')->value('id')", $userSeeder);
         $this->assertStringContainsString("['email' => \"admin{\$directorNumber}@gmail.com\"]", $userSeeder);
         $this->assertStringContainsString("'username' => \"admin{\$directorNumber}\"", $userSeeder);
         $this->assertStringContainsString("'business_email' => \"admin{\$directorNumber}@{\$this->resolveCompanyEmailDomain((string) \$company->name)}\"", $userSeeder);
         $this->assertStringContainsString('$administrator->syncRoles([\'Staff\']);', $userSeeder);
         $this->assertStringContainsString('divisionId: $adminDivisionId', $userSeeder);
-        $this->assertStringContainsString('positionId: $adminPositionId', $userSeeder);
+        $this->assertStringContainsString('positionId: $administratorPositionId', $userSeeder);
+        $this->assertStringContainsString('positionId: $superAdministratorPositionId', $userSeeder);
     }
 
     public function test_user_seeder_limits_staff_accounts_to_five_per_company(): void

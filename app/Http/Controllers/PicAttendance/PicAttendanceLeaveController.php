@@ -31,7 +31,7 @@ class PicAttendanceLeaveController extends Controller
 
         return view('pic_attendance.leave.index', [
             'leaveOverviewStats' => $this->leaveOverviewStatsFor($request),
-            'leavePendingCards' => $this->pendingLeaveCardsFor($request, $selectedPeriod),
+            'leavePendingCards' => $this->pendingLeaveCardsFor($request),
             'leaveGridPositionGroups' => $this->leaveGridPositionGroupsFor($request, $selectedPeriod),
             'leaveSelectedMonth' => $selectedPeriod['month'],
             'leaveSelectedYear' => $selectedPeriod['year'],
@@ -138,6 +138,27 @@ class PicAttendanceLeaveController extends Controller
                     'metadata' => null,
                     'happened_at' => $now,
                 ]);
+            }
+
+            if ($targetStatus === 'approved') {
+                $hasHrVerification = LeaveRequestHistory::query()
+                    ->where('leave_request_id', $leaveRequest->id)
+                    ->where('event_type', 'hr_verification')
+                    ->exists();
+
+                if (! $hasHrVerification) {
+                    LeaveRequestHistory::query()->create([
+                        'leave_request_id' => $leaveRequest->id,
+                        'actor_user_id' => null,
+                        'event_type' => 'hr_verification',
+                        'title' => 'HR Verification',
+                        'from_status' => 'pending',
+                        'to_status' => 'pending',
+                        'notes' => null,
+                        'metadata' => null,
+                        'happened_at' => $now,
+                    ]);
+                }
             }
 
             if ($targetStatus === 'rejected') {
@@ -274,6 +295,8 @@ class PicAttendanceLeaveController extends Controller
             ->whereNull('deleted_at')
             ->pluck('staff_employee_id')
             ->filter(static fn (mixed $employeeId): bool => is_string($employeeId) && trim($employeeId) !== '')
+            ->push($this->supervisorEmployeeId)
+            ->unique()
             ->values();
 
         if ($supervisedEmployeeIds->isEmpty()) {
@@ -339,7 +362,6 @@ class PicAttendanceLeaveController extends Controller
     }
 
     /**
-     * @param  array{month: int, year: int}  $selectedPeriod
      * @return Collection<int, array{
      *     name:string,
      *     initial:string,
@@ -350,7 +372,7 @@ class PicAttendanceLeaveController extends Controller
      *     detail_url:string
      * }>
      */
-    private function pendingLeaveCardsFor(Request $request, array $selectedPeriod): Collection
+    private function pendingLeaveCardsFor(Request $request): Collection
     {
         $now = now('Asia/Jakarta')->startOfDay();
         $authenticatedUser = $request->user();
@@ -358,9 +380,6 @@ class PicAttendanceLeaveController extends Controller
             ? $this->currentCompanyIdFor($authenticatedUser)
             : null;
         $activeEmployeeIds = $this->activeEmployeeIdsFor($now, $companyId);
-        $periodStart = Carbon::create($selectedPeriod['year'], $selectedPeriod['month'], 1, 0, 0, 0, 'Asia/Jakarta')->startOfDay();
-        $periodEnd = $periodStart->copy()->endOfMonth()->startOfDay();
-
         if ($activeEmployeeIds->isEmpty()) {
             return collect();
         }
@@ -381,8 +400,6 @@ class PicAttendanceLeaveController extends Controller
                     },
                 ])
                 ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['pending'])
-                ->whereDate('start_date', '<=', $periodEnd->toDateString())
-                ->whereDate('end_date', '>=', $periodStart->toDateString())
         )
             ->orderBy('start_date')
             ->orderBy('created_at')
@@ -438,13 +455,27 @@ class PicAttendanceLeaveController extends Controller
                 'user:id,username,email',
                 'deployment:id,employee_id,current_position_id,current_company_id,current_department_id',
                 'deployment.position:id,name',
+                'deployment.positions:id,name',
                 'deployment.department:id,name',
             ])
             ->get(['id', 'user_id'])
-            ->filter(static fn (Employee $employee): bool => $employee->deployment?->position !== null)
-            ->groupBy(fn (Employee $employee): string => (string) $employee->deployment?->current_position_id)
-            ->map(function (Collection $employees) use ($leaveRequestsByEmployee): array {
-                $positionName = $employees->first()?->deployment?->position?->name;
+            ->flatMap(function (Employee $employee): Collection {
+                $positions = collect([$employee->deployment?->position])
+                    ->merge($employee->deployment?->positions ?? [])
+                    ->filter()
+                    ->unique('id')
+                    ->values();
+
+                return $positions->map(fn ($position): array => [
+                    'position_id' => (string) $position->id,
+                    'position_name' => (string) $position->name,
+                    'employee' => $employee,
+                ]);
+            })
+            ->groupBy('position_id')
+            ->map(function (Collection $positionRows) use ($leaveRequestsByEmployee): array {
+                $positionName = $positionRows->first()['position_name'] ?? null;
+                $employees = $positionRows->pluck('employee');
 
                 return [
                     'position_name' => is_string($positionName) && trim($positionName) !== '' ? trim($positionName) : '-',

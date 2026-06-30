@@ -10,11 +10,21 @@
     'homeRoute' => 'dashboard',
 ])
 
+@php
+    $positionNames = collect([$employee->deployment?->position?->name])
+        ->merge($employee->deployment?->positions?->pluck('name') ?? [])
+        ->map(fn ($positionName) => trim((string) $positionName))
+        ->filter()
+        ->unique()
+        ->values();
+    $positionLabel = $positionNames->implode(', ') ?: '-';
+@endphp
+
 <div class="card">
     <div class="card-header border-0 flex-wrap gap-2">
         <div>
             <h4 class="card-title mb-1">{{ $employee->profile?->name ?? $employee->user?->username ?? 'Employee' }}</h4>
-            <p class="mb-0 text-muted fs-13">{{ $employee->deployment?->position?->name ?? '-' }} · {{ $employee->deployment?->company?->name ?? '-' }}</p>
+            <p class="mb-0 text-muted fs-13">{{ $positionLabel }} - {{ $employee->deployment?->company?->name ?? '-' }}</p>
         </div>
         <div class="d-flex gap-2">
             <a href="{{ route('authorization') }}" class="btn btn-light btn-sm">Back</a>
@@ -43,7 +53,7 @@
                 <h5 class="mb-3">Deployment</h5>
                 <p class="mb-1"><span class="text-muted">Company:</span> {{ $employee->deployment?->company?->name ?? '-' }}</p>
                 <p class="mb-1"><span class="text-muted">Division:</span> {{ $employee->deployment?->department?->name ?? '-' }}</p>
-                <p class="mb-1"><span class="text-muted">Position:</span> {{ $employee->deployment?->position?->name ?? '-' }}</p>
+                <p class="mb-1"><span class="text-muted">Position:</span> {{ $positionLabel }}</p>
                 <p class="mb-1"><span class="text-muted">PIC:</span> {{ $employee->picAssignment?->supervisor?->profile?->name ?? '-' }}</p>
             </div>
         </div>

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class EmployeeDeployment extends Model
 {
@@ -50,6 +51,14 @@ class EmployeeDeployment extends Model
     public function position(): BelongsTo
     {
         return $this->belongsTo(Position::class, 'current_position_id', 'id');
+    }
+
+    public function positions(): BelongsToMany
+    {
+        return $this->belongsToMany(Position::class, 'employee_deployment_positions', 'employee_deployment_id', 'position_id', 'id', 'id')
+            ->withPivot(['is_primary', 'status', 'started_at', 'ended_at'])
+            ->withTimestamps()
+            ->wherePivot('status', 'active');
     }
 
     public function department(): BelongsTo

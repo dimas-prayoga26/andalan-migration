@@ -339,7 +339,7 @@
                         <div class="applicant-header-bar">
                             <div class="applicant-table-title">Data Karyawan</div>
                             <div class="employee-header-actions">
-                                <button type="button" class="btn btn-primary btn-sm">Create Users</button>
+                                <button type="button" class="btn btn-primary btn-sm">Create User</button>
                                 <button type="button" class="btn btn-outline-secondary btn-sm">Search</button>
                             </div>
                         </div>
@@ -362,7 +362,7 @@
                                     <td><span class="employee-photo"><i class="bi bi-person-fill"></i></span></td>
                                     <td>000000</td>
                                     <td>Admin Andalan</td>
-                                    <td>System Administrator</td>
+                                    <td>Super Administrator</td>
                                     <td>Rumahgue.id</td>
                                     <td>
                                         <div class="applicant-action-group">

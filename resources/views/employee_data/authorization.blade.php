@@ -372,7 +372,7 @@
                                     <td>
                                         <div class="permission-wrap">
                                             <span class="permission-chip">Board of Directors</span>
-                                            <span class="permission-chip">System Administrator</span>
+                                            <span class="permission-chip">Administrator</span>
                                             <span class="permission-chip">Finance and Administration Coordinator</span>
                                             <span class="permission-chip">Accounting and Taxation</span>
                                         </div>
@@ -390,7 +390,7 @@
                                     <td>
                                         <div class="permission-wrap">
                                             <span class="permission-chip">Board of Directors</span>
-                                            <span class="permission-chip">System Administrator</span>
+                                            <span class="permission-chip">Administrator</span>
                                             <span class="permission-chip">Finance and Administration Coordinator</span>
                                         </div>
                                     </td>
@@ -430,7 +430,7 @@
                                     <td>
                                         <div class="permission-wrap">
                                             <span class="permission-chip">Board of Directors</span>
-                                            <span class="permission-chip">System Administrator</span>
+                                            <span class="permission-chip">Administrator</span>
                                             <span class="permission-chip">Legal Officer &amp; Partnership</span>
                                             <span class="permission-chip">Finance and Administration Coordinator</span>
                                         </div>
@@ -448,7 +448,7 @@
                                     <td>
                                         <div class="permission-wrap">
                                             <span class="permission-chip">Select All</span>
-                                            <span class="permission-chip">System Administrator</span>
+                                            <span class="permission-chip">Administrator</span>
                                             <span class="permission-chip">Legal Officer &amp; Partnership</span>
                                             <span class="permission-chip">Finance and Administration Coordinator</span>
                                             <span class="permission-chip">Accounting and Taxation</span>
@@ -471,7 +471,7 @@
                                     <td>
                                         <div class="permission-wrap">
                                             <span class="permission-chip">Select All</span>
-                                            <span class="permission-chip">System Administrator</span>
+                                            <span class="permission-chip">Administrator</span>
                                             <span class="permission-chip">Legal Officer &amp; Partnership</span>
                                             <span class="permission-chip">Finance and Administration Coordinator</span>
                                             <span class="permission-chip">Accounting and Taxation</span>
@@ -494,7 +494,7 @@
                                     <td>
                                         <div class="permission-wrap">
                                             <span class="permission-chip">Select All</span>
-                                            <span class="permission-chip">System Administrator</span>
+                                            <span class="permission-chip">Administrator</span>
                                             <span class="permission-chip">Legal Officer &amp; Partnership</span>
                                             <span class="permission-chip">Finance and Administration Coordinator</span>
                                             <span class="permission-chip">Accounting and Taxation</span>
@@ -517,7 +517,7 @@
                                     <td>
                                         <div class="permission-wrap">
                                             <span class="permission-chip">Select All</span>
-                                            <span class="permission-chip">System Administrator</span>
+                                            <span class="permission-chip">Administrator</span>
                                             <span class="permission-chip">Legal Officer &amp; Partnership</span>
                                             <span class="permission-chip">Finance and Administration Coordinator</span>
                                             <span class="permission-chip">Accounting and Taxation</span>
@@ -540,7 +540,7 @@
                                     <td>
                                         <div class="permission-wrap">
                                             <span class="permission-chip">Board of Directors</span>
-                                            <span class="permission-chip">System Administrator</span>
+                                            <span class="permission-chip">Administrator</span>
                                             <span class="permission-chip">Finance and Administration Coordinator</span>
                                             <span class="permission-chip">Accounting and Taxation</span>
                                         </div>
@@ -557,7 +557,7 @@
                                     <td>Options</td>
                                     <td>
                                         <div class="permission-wrap">
-                                            <span class="permission-chip">System Administrator</span>
+                                            <span class="permission-chip">Administrator</span>
                                         </div>
                                     </td>
                                 </tr>

@@ -303,6 +303,17 @@ class LeaveHistoryYearFilterTest extends TestCase
         $this->assertStringContainsString("'special_leave_sub_type_id' => ['nullable', 'exists:leave_sub_types,id']", $leaveRequestController);
         $this->assertStringContainsString("'handover_notes' => ['nullable', 'string', 'max:5000']", $leaveRequestController);
         $this->assertStringContainsString("'status' => 'pending',", $leaveRequestController);
+        $this->assertStringContainsString('$supervisorReview = $this->writeLeaveRequestHistory(', $leaveRequestController);
+        $this->assertStringContainsString("eventType: 'supervisor_review',", $leaveRequestController);
+        $this->assertStringContainsString("fromStatus: 'pending',", $leaveRequestController);
+        $this->assertStringContainsString("toStatus: 'pending',", $leaveRequestController);
+        $this->assertStringContainsString('shouldAutoEscalateLeaveToHr($employeeId)', $leaveRequestController);
+        $this->assertStringContainsString('&& ! $this->hasActiveStaffAssignments($employeeId)', $leaveRequestController);
+        $this->assertStringContainsString('private function hasActiveStaffAssignments(string $employeeId): bool', $leaveRequestController);
+        $this->assertStringContainsString("'auto_escalated' => true", $leaveRequestController);
+        $this->assertStringContainsString('$supervisorReview->update([', $leaveRequestController);
+        $this->assertStringContainsString('): LeaveRequestHistory {', $leaveRequestController);
+        $this->assertStringContainsString("->where('supervisor_employee_id', '<>', \$employeeId)", $leaveRequestController);
         $this->assertStringContainsString("eventType: 'updated',", $leaveRequestController);
         $this->assertStringContainsString("'handover_notes',", $leaveRequestController);
         $this->assertStringContainsString("'start_date_value' => \$startDate->toDateString(),", $leaveRequestController);

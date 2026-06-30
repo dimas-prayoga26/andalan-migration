@@ -30,8 +30,6 @@ class AttendanceOvertimeController extends Controller
 
     private const OVERTIME_STATUS_CANCELLED = 'cancelled';
 
-    private const OVERTIME_CLOCK_IN_GRACE_MINUTES = 60;
-
     private const OVERTIME_LIFECYCLE_PHASES = [
         'assignment_request' => [
             'title' => 'Phase 1: Assignment & Request',
@@ -222,7 +220,9 @@ class AttendanceOvertimeController extends Controller
                 'finished' => collect(),
             ],
             'taskProjectOptions' => $overtime instanceof AttendanceOvertime ? $this->buildTaskProjectOptions($overtime) : collect(),
-            'taskStoreUrl' => $overtime instanceof AttendanceOvertime ? route('attendance.overtimes.tasks.store', $overtime) : null,
+            'taskStoreUrl' => $overtime instanceof AttendanceOvertime && $this->canCreateOvertimeTask($overtime)
+                ? route('attendance.overtimes.tasks.store', $overtime)
+                : null,
             'taskDefaultDate' => $overtime instanceof AttendanceOvertime ? $this->formatDateInputValue($overtime->overtime_date) : Carbon::now('Asia/Jakarta')->toDateString(),
         ]);
     }
@@ -697,7 +697,7 @@ class AttendanceOvertimeController extends Controller
         $clockInUnavailableMessage = '';
         if ($hasActualStartTime) {
             $clockInUnavailableTitle = 'Absen Lembur Sudah Dilakukan';
-            $clockInUnavailableMessage = 'Sesi lembur sudah berjalan. Silakan selesaikan task lembur, lalu lakukan clock out setelah task sudah disubmit.';
+            $clockInUnavailableMessage = 'Sesi lembur sudah berjalan. Silakan selesaikan task lembur, lalu lakukan clock out setelah task sudah dikerjakan.';
         } elseif (! $hasAttendanceCheckInToday) {
             $clockInUnavailableTitle = 'Absen Kehadiran Belum Dilakukan';
             $clockInUnavailableMessage = 'Anda belum melakukan absen kehadiran hari ini. Silakan absen masuk terlebih dahulu sebelum absen lembur.';
@@ -736,6 +736,7 @@ class AttendanceOvertimeController extends Controller
             'clock_in_unavailable_message' => $clockInUnavailableMessage,
             'clock_in_window_start_label' => $clockInWindow['start_label'],
             'clock_in_window_end_label' => $clockInWindow['end_label'],
+            'can_create_task' => $this->canCreateOvertimeTask($overtime),
             'clock_out_allowed' => $clockOutReadiness['is_allowed'],
             'clock_out_unavailable_title' => $clockOutReadiness['title'],
             'clock_out_unavailable_message' => $clockOutReadiness['message'],
@@ -785,8 +786,10 @@ class AttendanceOvertimeController extends Controller
     private function resolveOvertimeClockInWindow(AttendanceOvertime $overtime, ?Carbon $now = null): array
     {
         $scheduledStartTime = $this->normalizeStoreTimeValue($overtime->planned_start_time);
+        $scheduledEndTime = $this->normalizeStoreTimeValue($overtime->planned_end_time);
         $scheduledStartAt = $this->overtimeDateTimeFromTime($overtime, $scheduledStartTime);
-        if (! $scheduledStartAt instanceof Carbon) {
+        $scheduledEndAt = $this->overtimeDateTimeFromTime($overtime, $scheduledEndTime);
+        if (! $scheduledStartAt instanceof Carbon || ! $scheduledEndAt instanceof Carbon) {
             return [
                 'is_allowed' => false,
                 'state' => 'invalid_schedule',
@@ -796,8 +799,11 @@ class AttendanceOvertimeController extends Controller
             ];
         }
 
-        $windowStartAt = $scheduledStartAt->copy()->subMinutes(self::OVERTIME_CLOCK_IN_GRACE_MINUTES);
-        $windowEndAt = $scheduledStartAt->copy()->addMinutes(self::OVERTIME_CLOCK_IN_GRACE_MINUTES);
+        $windowStartAt = $scheduledStartAt->copy();
+        $windowEndAt = $scheduledEndAt->copy();
+        if ($windowEndAt->lte($windowStartAt)) {
+            $windowEndAt->addDay();
+        }
         $currentTime = ($now instanceof Carbon ? $now : Carbon::now('Asia/Jakarta'))->copy()->timezone('Asia/Jakarta');
 
         if ($currentTime->lt($windowStartAt)) {
@@ -1387,6 +1393,13 @@ class AttendanceOvertimeController extends Controller
             ], 403);
         }
 
+        if (! $this->canCreateOvertimeTask($attendanceOvertime)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Task lembur hanya dapat ditambahkan setelah Overtime Clock In dan sebelum Overtime Clock Out.',
+            ], 422);
+        }
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:5000'],
@@ -1471,6 +1484,13 @@ class AttendanceOvertimeController extends Controller
         $projectTaskOvertimeId = is_string($projectTask->overtime_id) ? trim($projectTask->overtime_id) : '';
 
         return $projectTaskOvertimeId === '' || $projectTaskOvertimeId === (string) $attendanceOvertime->id;
+    }
+
+    private function canCreateOvertimeTask(AttendanceOvertime $attendanceOvertime): bool
+    {
+        return strtolower(trim((string) $attendanceOvertime->status)) === self::OVERTIME_STATUS_IN_PROGRESS
+            && $this->normalizeStoreTimeValue($attendanceOvertime->actual_start_time) !== null
+            && $this->normalizeStoreTimeValue($attendanceOvertime->actual_end_time) === null;
     }
 
     private function employeeIsProjectMember(string $employeeId, string $projectId): bool
@@ -1961,9 +1981,9 @@ class AttendanceOvertimeController extends Controller
         $this->updateOvertimeLifecycleLog(
             $overtime,
             'task_hours_verification',
-            'verified',
-            $overtime->assignedBy instanceof User ? $overtime->assignedBy : $actor,
-            $this->overtimeDateTimeFromTime($overtime, $actualEndTime)
+            'pending',
+            null,
+            null
         );
     }
 

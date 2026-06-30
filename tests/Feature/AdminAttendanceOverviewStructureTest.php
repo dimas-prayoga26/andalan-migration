@@ -182,6 +182,7 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString("->where('event_type', 'hr_verification')", $leaveController);
         $this->assertStringContainsString("->where('to_status', 'pending')", $leaveController);
         $this->assertStringContainsString("'event_type' => 'status_updated'", $leaveController);
+        $this->assertStringNotContainsString('Tidak dapat menyetujui pengajuan cuti milik sendiri.', $leaveController);
         $this->assertStringContainsString("default => 'text-warning',", $leaveController);
         $leaveRequestHistoryModel = File::get(app_path('Models/LeaveRequestHistory.php'));
         $this->assertStringContainsString("'title' => 'HR Verification (Pending)'", $leaveRequestHistoryModel);

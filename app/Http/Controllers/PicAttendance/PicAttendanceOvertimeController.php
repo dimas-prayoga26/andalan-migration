@@ -36,28 +36,28 @@ class PicAttendanceOvertimeController extends Controller
             'event_key' => 'session_started',
             'step_order' => 2,
             'title' => 'Overtime Session Started',
-            'status' => 'pending',
-        ],
-        [
-            'phase' => 'execution_time_tracking',
-            'event_key' => 'session_ended',
-            'step_order' => 3,
-            'title' => 'Overtime Session Ended',
-            'status' => 'pending',
+            'status' => 'waiting',
         ],
         [
             'phase' => 'execution_time_tracking',
             'event_key' => 'task_deliverables_submitted',
-            'step_order' => 4,
+            'step_order' => 3,
             'title' => 'Task & Deliverables Submitted',
-            'status' => 'pending',
+            'status' => 'waiting',
+        ],
+        [
+            'phase' => 'execution_time_tracking',
+            'event_key' => 'session_ended',
+            'step_order' => 4,
+            'title' => 'Overtime Session Ended',
+            'status' => 'waiting',
         ],
         [
             'phase' => 'review_approval',
             'event_key' => 'task_hours_verification',
             'step_order' => 5,
             'title' => 'Task & Hours Verification',
-            'status' => 'pending',
+            'status' => 'waiting',
         ],
         [
             'phase' => 'payroll_payment',
@@ -135,7 +135,6 @@ class PicAttendanceOvertimeController extends Controller
         $startTime = $this->normalizeSubmittedTime($validated['start_time']);
         $endTime = $this->normalizeSubmittedTime($validated['end_time']);
         $selectedEmployeeId = trim((string) $validated['employee_id']);
-        $projectTaskTitle = Str::limit(trim($validated['instruction']), 255);
         $assignableStaffIds = $this->activeSupervisedEmployeeIdsFor(
             $authenticatedUser,
             $this->currentCompanyIdFor($authenticatedUser),
@@ -146,11 +145,7 @@ class PicAttendanceOvertimeController extends Controller
             $this->throwPicOvertimeValidationException('employee_id', 'Staff yang dipilih bukan bawahan supervisor ini.');
         }
 
-        if ($startTime >= $endTime) {
-            $this->throwPicOvertimeValidationException('end_time', 'End time harus lebih besar dari start time.');
-        }
-
-        DB::transaction(function () use ($authenticatedUser, $validated, $selectedEmployeeId, $projectTaskTitle, $startDate, $endDate, $startTime, $endTime): void {
+        DB::transaction(function () use ($authenticatedUser, $validated, $selectedEmployeeId, $startDate, $endDate, $startTime, $endTime): void {
             $overtimeDate = $startDate->copy();
             $createdAt = Carbon::now('Asia/Jakarta');
 
@@ -166,22 +161,6 @@ class PicAttendanceOvertimeController extends Controller
                     'actual_end_time' => null,
                     'calculated_hours' => null,
                     'status' => 'assigned',
-                ]);
-
-                ProjectTask::query()->create([
-                    'project_id' => null,
-                    'employee_id' => $selectedEmployeeId,
-                    'assigned_by' => $authenticatedUser->id,
-                    'overtime_id' => $overtime->id,
-                    'title' => $projectTaskTitle,
-                    'description' => $validated['instruction'],
-                    'blockers' => null,
-                    'attachment_path' => null,
-                    'status' => 'pending',
-                    'priority' => 'medium',
-                    'start_date' => $startDate->toDateString(),
-                    'due_date' => $endDate->toDateString(),
-                    'completed_at' => null,
                 ]);
 
                 $this->createInitialOvertimeLifecycleLogs($overtime, $authenticatedUser, $createdAt);
@@ -310,10 +289,6 @@ class PicAttendanceOvertimeController extends Controller
 
         $approvedStartTime = $this->normalizeSubmittedTime($validated['approved_start_time']);
         $approvedEndTime = $this->normalizeSubmittedTime($validated['approved_end_time']);
-
-        if ($approvedStartTime >= $approvedEndTime) {
-            $this->throwPicOvertimeValidationException('approved_end_time', 'Approved end harus lebih besar dari approved start.', 'picOvertimeVerify');
-        }
 
         $overtime = AttendanceOvertime::query()
             ->select(['id', 'assigned_by', 'actual_start_time', 'actual_end_time'])

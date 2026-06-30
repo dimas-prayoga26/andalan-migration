@@ -34,54 +34,58 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
 
             $now = now('Asia/Jakarta');
             $rnbCompany = $this->companyByName('RNB');
-            $niskalaCompany = $this->companyByName('Niskala');
+            $niskalaCompany = $this->companyByNameOrFallback('Niskala', $rnbCompany);
 
             DB::transaction(function () use ($niskalaCompany, $now, $rnbCompany): void {
                 $this->seedRnbSecondAdministrator($rnbCompany, $now);
 
-                $mevia = $this->seedEmployeeAccount([
+                $mevia = $this->employeeByEmail('diktanamira@gmail.com') ?? $this->seedEmployeeAccount([
                     'username' => 'staff-rnb-mevia',
-                    'email' => 'pic-rnb-mevia@gmail.com',
+                    'email' => 'diktanamira@gmail.com',
                     'business_email' => 'mevia.dikta@rnb.local',
                     'name' => 'Mevia Dikta Namira',
                     'employee_code' => 'EMP-RNB-MEVIA',
                     'company_id' => (string) $rnbCompany->id,
                     'department_name' => 'Administration, Finance and Legal',
                     'position_name' => 'Finance and Administration Coordinator',
+                    'additional_position_names' => ['Administrator', 'Accounting and Taxation'],
                     'workplace' => 'RNB Jogja',
                     'phone' => '081300000031',
                 ], $now);
 
-                $erlin = $this->seedEmployeeAccount([
+                $erlin = $this->employeeByEmail('halloerlin@gmail.com') ?? $this->seedEmployeeAccount([
                     'username' => 'staff-rnb-erlin',
-                    'email' => 'pic-rnb-tsabita@gmail.com',
+                    'email' => 'halloerlin@gmail.com',
                     'business_email' => 'erlin.tsabita@rnb.local',
                     'name' => 'Tsabita Anisa Eriliana',
                     'employee_code' => 'EMP-RNB-ERLIN',
                     'company_id' => (string) $rnbCompany->id,
                     'department_name' => 'Administration, Finance and Legal',
                     'position_name' => 'Finance and Administration Coordinator',
+                    'additional_position_names' => ['Administrator', 'Accounting and Taxation'],
                     'workplace' => 'RNB Jogja',
                     'phone' => '081300000032',
                 ], $now);
 
-                $leonie = $this->seedEmployeeAccount([
+                $leonie = $this->employeeByEmail('leonieputri7@gmail.com') ?? $this->seedEmployeeAccount([
                     'username' => 'staff-niskala-leonie',
-                    'email' => 'staff-niskala-leonie@gmail.com',
+                    'email' => 'leonieputri7@gmail.com',
                     'business_email' => 'leonie.putri@niskala.local',
                     'name' => 'Leonie Putri Andhari',
                     'employee_code' => 'EMP-NISKALA-LEONIE',
                     'company_id' => (string) $niskalaCompany->id,
                     'department_name' => 'Operations',
                     'position_name' => 'Supervisor',
+                    'additional_position_names' => ['Administrator', 'Supervisor'],
                     'workplace' => 'Niskala',
                     'phone' => '081300000041',
                 ], $now);
 
-                $this->deactivatePicAssignmentsForStaff($leonie, $now);
+                $this->syncActivePicAssignments($leonie, [$leonie], $now);
                 $this->syncActivePicAssignments($mevia, [$leonie], $now);
                 $this->syncActivePicAssignments($erlin, [$leonie], $now);
                 $this->seedPendingSupervisorReviewLeaveRequest($mevia, $leonie->user, $now);
+                $this->seedPendingSupervisorReviewLeaveRequest($erlin, $leonie->user, $now);
             });
         } catch (Throwable $throwable) {
             throw new RuntimeException('NiskalaMultiPicLeaveSeeder gagal dijalankan.', 0, $throwable);
@@ -94,7 +98,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
             'companies',
             'users',
             'user_profiles',
-            'user_documents',
             'employees',
             'employee_profiles',
             'employee_deployments',
@@ -119,6 +122,15 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
         return $company;
     }
 
+    private function companyByNameOrFallback(string $name, Company $fallbackCompany): Company
+    {
+        $company = Company::query()
+            ->whereRaw('LOWER(name) = ?', [strtolower($name)])
+            ->first();
+
+        return $company instanceof Company ? $company : $fallbackCompany;
+    }
+
     private function seedRnbSecondAdministrator(Company $company, Carbon $now): Employee
     {
         return $this->seedEmployeeAccount([
@@ -129,10 +141,20 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
             'employee_code' => 'EMP-RNB-ADMIN-2',
             'company_id' => (string) $company->id,
             'department_name' => 'Administrator',
-            'position_name' => 'System Administrator',
+            'position_name' => 'Administrator',
             'workplace' => 'RNB Jogja',
             'phone' => '081300000033',
         ], $now);
+    }
+
+    private function employeeByEmail(string $email): ?Employee
+    {
+        return Employee::query()
+            ->with('user')
+            ->whereHas('user', static function ($query) use ($email): void {
+                $query->whereRaw('LOWER(email) = ?', [strtolower(trim($email))]);
+            })
+            ->first(['id', 'user_id']);
     }
 
     /**
@@ -145,6 +167,7 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
      *     company_id:string,
      *     department_name:string,
      *     position_name:string,
+     *     additional_position_names?:array<int, string>,
      *     workplace:string,
      *     phone:string
      * }  $data
@@ -177,20 +200,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
             ],
         );
 
-        DB::table('user_documents')->updateOrInsert(
-            ['user_id' => $user->id],
-            [
-                'ktp' => $this->documentNumber($data['employee_code'], '11'),
-                'kk' => $this->documentNumber($data['employee_code'], '22'),
-                'npwp' => 'NPWP-'.$this->shortNumericToken($data['employee_code'], '33'),
-                'bpjs' => 'BPJS-'.$this->shortNumericToken($data['employee_code'], '44'),
-                'bpjstk' => 'BPJSTK-'.$this->shortNumericToken($data['employee_code'], '55'),
-                'nik' => $this->documentNumber($data['employee_code'], '66'),
-                'updated_at' => $now,
-                'created_at' => $now,
-            ],
-        );
-
         $employee = Employee::query()->updateOrCreate(
             ['user_id' => $user->id],
             [
@@ -213,6 +222,7 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
 
         $identityPayload = [
             'nik' => $this->documentNumber($data['employee_code'], '66'),
+            'kk' => $this->documentNumber($data['employee_code'], '22'),
             'npwp' => 'NPWP-'.$this->shortNumericToken($data['employee_code'], '33'),
             'bpjs_ketenagakerjaan' => 'BPJSTK-'.$this->shortNumericToken($data['employee_code'], '55'),
             'bpjs_kesehatan' => 'BPJS-'.$this->shortNumericToken($data['employee_code'], '44'),
@@ -227,7 +237,7 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
             $identityPayload,
         );
 
-        EmployeeDeployment::query()->updateOrCreate(
+        $deployment = EmployeeDeployment::query()->updateOrCreate(
             ['employee_id' => $employee->id],
             [
                 'current_company_id' => $data['company_id'],
@@ -240,7 +250,61 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
             ],
         );
 
+        $this->syncDeploymentPosition($deployment, $deployment->current_position_id, $deployment->join_date?->toDateString());
+        $this->syncAdditionalDeploymentPositions($deployment, $data['additional_position_names'] ?? [], $deployment->join_date?->toDateString());
+
         return $employee->fresh(['user']) ?? $employee;
+    }
+
+    private function syncDeploymentPosition(EmployeeDeployment $deployment, mixed $positionId, ?string $joinDate): void
+    {
+        if (! Schema::hasTable('employee_deployment_positions') || ! is_string($positionId) || trim($positionId) === '') {
+            return;
+        }
+
+        DB::table('employee_deployment_positions')->updateOrInsert(
+            [
+                'employee_deployment_id' => $deployment->id,
+                'position_id' => $positionId,
+            ],
+            [
+                'is_primary' => true,
+                'status' => 'active',
+                'started_at' => $joinDate,
+                'ended_at' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
+    }
+
+    /**
+     * @param  array<int, string>  $positionNames
+     */
+    private function syncAdditionalDeploymentPositions(EmployeeDeployment $deployment, array $positionNames, ?string $joinDate): void
+    {
+        foreach ($positionNames as $positionName) {
+            $positionId = $this->tableIdByName('positions', $positionName);
+
+            if ($positionId === null) {
+                continue;
+            }
+
+            DB::table('employee_deployment_positions')->updateOrInsert(
+                [
+                    'employee_deployment_id' => $deployment->id,
+                    'position_id' => $positionId,
+                ],
+                [
+                    'is_primary' => false,
+                    'status' => 'active',
+                    'started_at' => $joinDate,
+                    'ended_at' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            );
+        }
     }
 
     /**
@@ -314,10 +378,16 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
             throw new RuntimeException('Leave type untuk request Niskala tidak ditemukan.');
         }
 
-        $reason = '[Seeder] RNB staff leave pending Leonie supervisor review';
+        $seedLabel = $this->employeeSeedLabel($staffEmployee);
+        $reason = '[Seeder] RNB staff leave pending Leonie supervisor review - '.$seedLabel;
         $legacyReason = '[Seeder] Niskala multi PIC leave pending supervisor review';
         $existingLeaveRequestIds = LeaveRequest::query()
-            ->whereIn('reason', [$reason, $legacyReason])
+            ->where('employee_id', $staffEmployee->id)
+            ->where(function ($query) use ($legacyReason): void {
+                $query
+                    ->where('reason', 'like', '[Seeder] RNB staff leave pending Leonie supervisor review%')
+                    ->orWhere('reason', $legacyReason);
+            })
             ->pluck('id')
             ->all();
 
@@ -384,6 +454,26 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
             ->value('id');
 
         return is_string($id) && trim($id) !== '' ? trim($id) : null;
+    }
+
+    private function employeeSeedLabel(Employee $employee): string
+    {
+        $profileName = DB::table('employee_profiles')
+            ->where('employee_id', $employee->id)
+            ->value('name');
+
+        if (is_string($profileName) && trim($profileName) !== '') {
+            return trim($profileName);
+        }
+
+        $email = DB::table('employees')
+            ->join('users', 'users.id', '=', 'employees.user_id')
+            ->where('employees.id', $employee->id)
+            ->value('users.email');
+
+        return is_string($email) && trim($email) !== ''
+            ? trim($email)
+            : (string) $employee->id;
     }
 
     private function currentOrPreviousWorkingDate(Carbon $date): Carbon

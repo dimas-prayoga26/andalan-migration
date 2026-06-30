@@ -18,7 +18,8 @@ class PositionSeeder extends Seeder
         try {
             $now = now();
             $positions = [
-                'System Administrator',
+                'Super Administrator',
+                'Administrator',
                 'Commissioner Independent',
                 'Commissioner',
                 'Chief Operating Officer',
@@ -36,17 +37,28 @@ class PositionSeeder extends Seeder
                 'Branding Designer',
             ];
 
-            DB::table('positions')->upsert(
-                array_map(static fn (string $name): array => [
+            foreach ($positions as $name) {
+                $positionId = DB::table('positions')->where('name', $name)->value('id');
+
+                if (is_string($positionId) && trim($positionId) !== '') {
+                    DB::table('positions')
+                        ->where('id', $positionId)
+                        ->update([
+                            'status' => 'active',
+                            'updated_at' => $now,
+                        ]);
+
+                    continue;
+                }
+
+                DB::table('positions')->insert([
                     'id' => (string) Str::uuid(),
                     'name' => $name,
                     'status' => 'active',
                     'created_at' => $now,
                     'updated_at' => $now,
-                ], $positions),
-                ['name'],
-                ['status', 'updated_at'],
-            );
+                ]);
+            }
         } catch (Throwable $throwable) {
             throw new RuntimeException('PositionSeeder gagal dijalankan.', 0, $throwable);
         }

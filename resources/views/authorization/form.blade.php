@@ -1,7 +1,7 @@
 @extends('layouts.main')
 
-@section('title', $mode === 'edit' ? 'Update Data Employee' : 'Create Users')
-@section('navbarTitle', $mode === 'edit' ? 'Update Data Employee' : 'Create Users')
+@section('title', $mode === 'edit' ? 'Update Data Employee' : 'Create User')
+@section('navbarTitle', $mode === 'edit' ? 'Update Data Employee' : 'Create User')
 
 @section('content')
 @php
@@ -16,7 +16,7 @@
 @endphp
 
 @include('layouts.breadcrumb', [
-    'title' => $isEdit ? 'Update Data Employee' : 'Create Users',
+    'title' => $isEdit ? 'Update Data Employee' : 'Create User',
     'current' => 'Data Employee',
     'homeRoute' => 'dashboard',
 ])
@@ -30,7 +30,7 @@
     <div class="card">
         <div class="card-header border-0">
             <div>
-                <h4 class="card-title mb-1">{{ $isEdit ? 'Update Employee' : 'Create Staff' }}</h4>
+                <h4 class="card-title mb-1">{{ $isEdit ? 'Update Employee' : 'Create User' }}</h4>
                 <p class="mb-0 text-muted fs-13">Lengkapi data user, profile, identity, deployment, dan PIC.</p>
             </div>
             <div class="form-check form-switch">
@@ -146,10 +146,19 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Jabatan</label>
-                    <select name="current_position_id" class="default-select form-control">
-                        <option value="">Open this select menu</option>
+                    @php
+                        $selectedPositionIds = collect(old('current_position_ids', $employee?->deployment?->positions?->pluck('id')->all() ?? []))
+                            ->when(
+                                old('current_position_ids') === null && $employee?->deployment?->current_position_id,
+                                fn ($collection) => $collection->prepend($employee->deployment->current_position_id)
+                            )
+                            ->map(fn ($positionId) => (string) $positionId)
+                            ->unique()
+                            ->values();
+                    @endphp
+                    <select name="current_position_ids[]" class="default-select form-control" multiple>
                         @foreach ($positions as $position)
-                            <option value="{{ $position->id }}" @selected(old('current_position_id', $employee?->deployment?->current_position_id) === $position->id)>{{ $position->name }}</option>
+                            <option value="{{ $position->id }}" @selected($selectedPositionIds->contains((string) $position->id))>{{ $position->name }}</option>
                         @endforeach
                     </select>
                 </div>

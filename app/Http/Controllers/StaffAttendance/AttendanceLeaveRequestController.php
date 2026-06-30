@@ -252,6 +252,28 @@ class AttendanceLeaveRequestController extends Controller
                 notes: null,
                 actorUserId: $authenticatedUserId !== '' ? $authenticatedUserId : null,
             );
+
+            $supervisorReview = $this->writeLeaveRequestHistory(
+                leaveRequest: $leaveRequest,
+                eventType: 'supervisor_review',
+                title: 'Supervisor Review',
+                fromStatus: 'pending',
+                toStatus: 'pending',
+                notes: null,
+                actorUserId: null,
+            );
+
+            if ($this->shouldAutoEscalateLeaveToHr($employeeId)) {
+                $supervisorReview->update([
+                    'to_status' => 'approved',
+                    'notes' => 'Auto-escalated because no valid supervisor assignment is available.',
+                    'metadata' => [
+                        'auto_escalated' => true,
+                        'reason' => 'no_valid_supervisor_assignment',
+                    ],
+                    'happened_at' => now('Asia/Jakarta'),
+                ]);
+            }
         });
 
         return response()->json([
@@ -1590,11 +1612,11 @@ class AttendanceLeaveRequestController extends Controller
         ?string $notes = null,
         ?string $actorUserId = null,
         ?array $metadata = null
-    ): void {
+    ): LeaveRequestHistory {
         $normalizedFromStatus = $this->normalizeLeaveRequestHistoryStatus($fromStatus);
         $normalizedToStatus = $this->normalizeLeaveRequestHistoryStatus($toStatus);
 
-        LeaveRequestHistory::query()->create([
+        return LeaveRequestHistory::query()->create([
             'leave_request_id' => $leaveRequest->id,
             'actor_user_id' => is_string($actorUserId) && trim($actorUserId) !== '' ? $actorUserId : null,
             'event_type' => trim($eventType),
@@ -1616,6 +1638,44 @@ class AttendanceLeaveRequestController extends Controller
             'refused' => 'rejected',
             default => null,
         };
+    }
+
+    private function shouldAutoEscalateLeaveToHr(string $employeeId): bool
+    {
+        return $this->activeSupervisorEmployeeIdFor($employeeId) === null
+            && ! $this->hasActiveStaffAssignments($employeeId);
+    }
+
+    private function activeSupervisorEmployeeIdFor(string $employeeId): ?string
+    {
+        if (trim($employeeId) === '') {
+            return null;
+        }
+
+        $supervisorEmployeeId = DB::table('employee_pic_assignments')
+            ->where('staff_employee_id', $employeeId)
+            ->where('supervisor_employee_id', '<>', $employeeId)
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->value('supervisor_employee_id');
+
+        return is_string($supervisorEmployeeId) && trim($supervisorEmployeeId) !== ''
+            ? trim($supervisorEmployeeId)
+            : null;
+    }
+
+    private function hasActiveStaffAssignments(string $employeeId): bool
+    {
+        if (trim($employeeId) === '') {
+            return false;
+        }
+
+        return DB::table('employee_pic_assignments')
+            ->where('supervisor_employee_id', $employeeId)
+            ->where('staff_employee_id', '<>', $employeeId)
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->exists();
     }
 
     private function publicDisk(): FilesystemAdapter

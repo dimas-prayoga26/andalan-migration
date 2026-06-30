@@ -35,7 +35,7 @@ class AuthorizationEmployeeListScopeTest extends TestCase
         $otherCompany = Company::query()->create(['name' => 'ABG']);
         $operationsDepartment = $this->createDepartment('Operations');
         $staffPosition = Position::query()->create(['name' => 'Staff']);
-        $administratorPosition = Position::query()->create(['name' => 'System Administrator']);
+        $administratorPosition = Position::query()->create(['name' => 'Administrator']);
 
         $rnbAdministrator = $this->createEmployeeUser(
             name: 'RNB Administrator',

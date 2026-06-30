@@ -17,7 +17,7 @@ class SidebarPermissionComposer
         }
 
         $view->with('canViewSidebarMenu', static function (string $permissionName) use ($user, $canViewAllMenus): bool {
-            return ($canViewAllMenus && ! in_array($permissionName, ['view-pic-attendance', 'view-director-attendance'], true))
+            return $canViewAllMenus
                 || ($user instanceof User && $user->hasAnyPositionPermission([$permissionName]));
         });
     }

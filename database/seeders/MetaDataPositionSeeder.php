@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 use Throwable;
 
@@ -15,9 +16,14 @@ class MetaDataPositionSeeder extends Seeder
     public function run(): void
     {
         try {
+            if (! Schema::hasTable('meta_data_positions')) {
+                return;
+            }
+
             $now = now();
             $positions = [
-                'System Administrator',
+                'Super Administrator',
+                'Administrator',
                 'Commissioner Independent',
                 'Commissioner',
                 'Chief Operating Officer',

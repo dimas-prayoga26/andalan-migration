@@ -14,31 +14,18 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $seeders = [
-            CompanySeeder::class,
-            RulesOfAttendacesSeeder::class,
             MetaDataDomiciliSeeder::class,
             MetaDataGenderSeeder::class,
             MetaDataMaritalStatusSeeder::class,
-            PositionSeeder::class,
             LeaveTypeSeeder::class,
             AttendanceHolidaySeeder::class,
             LeaveSubTypeSeeder::class,
-            UserSeeder::class,
+            PositionSeeder::class,
+            LegacySqlUserSeeder::class,
             PositionPermissionSeeder::class,
             EmployeePicAssignmentSeeder::class,
-            ProjectTaskSeeder::class,
-            OvertimeDeadlineTaskSeeder::class,
-            BusinessTripSeeder::class,
-            EmployeeProfileSeeder::class,
-            EmployeeIdentitySeeder::class,
-            EmployeeFamilySeeder::class,
-            EmployeeOrganizationSeeder::class,
-            EmployeeBankAccountSeeder::class,
-            EmployeeAddressSeeder::class,
-            LeaveRequestHistorySeeder::class,
-            LeaveRequestFinalApprovedSeeder::class,
-            LeaveBalanceSeeder::class,
             NiskalaMultiPicLeaveSeeder::class,
+            RulesOfAttendacesSeeder::class,
         ];
 
         foreach ($seeders as $seederClass) {

@@ -32,4 +32,12 @@ class Position extends Model
         return $this->belongsToMany(Permission::class, 'position_has_permissions', 'position_id', 'permission_id', 'id', 'uuid')
             ->withTimestamps();
     }
+
+    public function deployments(): BelongsToMany
+    {
+        return $this->belongsToMany(EmployeeDeployment::class, 'employee_deployment_positions', 'position_id', 'employee_deployment_id', 'id', 'id')
+            ->withPivot(['is_primary', 'status', 'started_at', 'ended_at'])
+            ->withTimestamps()
+            ->wherePivot('status', 'active');
+    }
 }

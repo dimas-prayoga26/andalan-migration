@@ -74,15 +74,39 @@ class User extends Authenticatable
      */
     public function hasAnyPositionPermission(array $permissionNames): bool
     {
-        if ($this->hasRole('superuser') && empty(array_intersect(['view-pic-attendance', 'view-director-attendance'], $permissionNames))) {
+        if ($this->hasRole('superuser')) {
             return true;
         }
 
-        $this->loadMissing('employee.deployment.position.permissions:uuid,name');
+        $this->loadMissing([
+            'employee.deployment.position.permissions:uuid,name',
+            'employee.deployment.positions.permissions:uuid,name',
+        ]);
 
-        return $this->employee?->deployment?->position?->permissions
-            ?->pluck('name')
+        $deployment = $this->employee?->deployment;
+        $positionPermissions = collect();
+
+        if ($deployment?->position !== null) {
+            if ($deployment->position->name === 'Super Administrator') {
+                return true;
+            }
+
+            $positionPermissions = $positionPermissions->merge($deployment->position->permissions);
+        }
+
+        if ($deployment?->positions !== null) {
+            if ($deployment->positions->contains('name', 'Super Administrator')) {
+                return true;
+            }
+
+            $positionPermissions = $positionPermissions->merge(
+                $deployment->positions->flatMap(static fn (Position $position) => $position->permissions)
+            );
+        }
+
+        return $positionPermissions
+            ->pluck('name')
             ->intersect($permissionNames)
-            ->isNotEmpty() ?? false;
+            ->isNotEmpty();
     }
 }

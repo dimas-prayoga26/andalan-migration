@@ -83,7 +83,7 @@
             </div>
             @if ($canManageDataEmployee)
                 <a href="{{ route('authorization.create') }}" class="btn btn-primary btn-sm">
-                    <i class="fa-solid fa-plus me-1"></i>Create Users
+                    <i class="fa-solid fa-plus me-1"></i>Create User
                 </a>
             @endif
         </div>

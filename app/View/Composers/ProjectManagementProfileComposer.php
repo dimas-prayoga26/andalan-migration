@@ -36,6 +36,7 @@ class ProjectManagementProfileComposer
                     'employee.profile:id,employee_id,name',
                     'employee.deployment:id,employee_id,current_position_id',
                     'employee.deployment.position:id,name',
+                    'employee.deployment.positions:id,name',
                     'employee.latestAddress' => static function ($query): void {
                         $query->select([
                             'employee_addresses.id',
@@ -68,9 +69,14 @@ class ProjectManagementProfileComposer
                 $profileData['profileDisplayName'] = trim($displayName);
             }
 
-            $positionName = $authenticatedUser->employee?->deployment?->position?->name;
-            if (is_string($positionName) && trim($positionName) !== '') {
-                $profileData['profilePositionName'] = trim($positionName);
+            $positionName = collect([$authenticatedUser->employee?->deployment?->position?->name])
+                ->merge($authenticatedUser->employee?->deployment?->positions?->pluck('name') ?? [])
+                ->map(fn (mixed $positionName): string => trim((string) $positionName))
+                ->filter()
+                ->unique()
+                ->implode(', ');
+            if ($positionName !== '') {
+                $profileData['profilePositionName'] = $positionName;
             }
 
             $latestAddress = $authenticatedUser->employee?->latestAddress;

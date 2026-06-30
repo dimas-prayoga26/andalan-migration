@@ -188,12 +188,16 @@ class AuthorizationController extends Controller
         ]);
 
         $submittedPositionIds = collect($validated['permission_positions'] ?? []);
+        $assignablePositionIds = $this->authorizationPositions()
+            ->pluck('id')
+            ->all();
 
         Permission::query()
             ->get(['uuid'])
-            ->each(function (Permission $permission) use ($submittedPositionIds): void {
+            ->each(function (Permission $permission) use ($assignablePositionIds, $submittedPositionIds): void {
                 $positionIds = collect($submittedPositionIds->get((string) $permission->uuid, []))
                     ->filter()
+                    ->intersect($assignablePositionIds)
                     ->unique()
                     ->values()
                     ->all();
@@ -212,6 +216,7 @@ class AuthorizationController extends Controller
     private function authorizationPositions(): Collection
     {
         return Position::query()
+            ->where('name', '<>', 'Super Administrator')
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn (Position $position): array => [
@@ -229,7 +234,7 @@ class AuthorizationController extends Controller
         $menuPermissionMetadata = $this->menuPermissionMetadata();
 
         return Permission::query()
-            ->with('positions:id,name')
+            ->with(['positions' => fn ($query) => $query->where('name', '<>', 'Super Administrator')->select(['positions.id', 'positions.name'])])
             ->orderBy('name')
             ->get(['uuid', 'name'])
             ->map(function (Permission $permission) use ($menuPermissionMetadata): array {
@@ -292,6 +297,7 @@ class AuthorizationController extends Controller
             'roles:uuid,name',
             'employee.deployment.company:id,name',
             'employee.deployment.position:id,name',
+            'employee.deployment.positions:id,name',
         ]);
 
         $query = User::query()
@@ -303,6 +309,7 @@ class AuthorizationController extends Controller
                 'employee.deployment:id,employee_id,current_company_id,current_position_id,status',
                 'employee.deployment.company:id,name',
                 'employee.deployment.position:id,name',
+                'employee.deployment.positions:id,name',
                 'employee.picAssignment',
                 'employee.picAssignment.supervisor:id',
                 'employee.picAssignment.supervisor.profile:id,employee_id,name',
@@ -343,9 +350,8 @@ class AuthorizationController extends Controller
 
     private function isAdministratorEmployee(User $user): bool
     {
-        $positionName = $user->employee?->deployment?->position?->name;
-
-        return $this->containsAdministrator($positionName);
+        return $this->positionNamesFor($user->employee)
+            ->contains(fn (string $positionName): bool => $this->containsAdministrator($positionName));
     }
 
     private function containsAdministrator(?string $value): bool
@@ -393,7 +399,7 @@ class AuthorizationController extends Controller
         return [
             'id' => (string) $user->employee?->id,
             'name' => $name,
-            'position' => (string) ($user->employee?->deployment?->position?->name ?? '-'),
+            'position' => $this->positionNamesFor($user->employee)->implode(', ') ?: '-',
             'company' => (string) ($user->employee?->deployment?->company?->name ?? '-'),
             'employee_code' => (string) ($user->employee?->employee_code ?? '-'),
             'nik' => (string) ($user->employee?->identity?->nik ?? '-'),
@@ -425,6 +431,7 @@ class AuthorizationController extends Controller
             'deployment.company:id,name',
             'deployment.department:id,name',
             'deployment.position:id,name',
+            'deployment.positions:id,name',
             'picAssignment',
             'picAssignment.supervisor:id',
             'picAssignment.supervisor.profile:id,employee_id,name',
@@ -491,6 +498,8 @@ class AuthorizationController extends Controller
             'current_company_id' => ['nullable', 'string', 'exists:companies,id'],
             'current_department_id' => ['nullable', 'string', 'exists:departments,id'],
             'current_position_id' => ['nullable', 'string', 'exists:positions,id'],
+            'current_position_ids' => ['array'],
+            'current_position_ids.*' => ['string', 'exists:positions,id'],
             'workplace' => ['nullable', 'string', 'max:255'],
             'join_date' => ['nullable', 'date'],
             'resignation_date' => ['nullable', 'date', 'after_or_equal:join_date'],
@@ -548,12 +557,27 @@ class AuthorizationController extends Controller
             ]
         );
 
-        EmployeeDeployment::query()->updateOrCreate(
+        $positionIds = collect($validated['current_position_ids'] ?? [])
+            ->filter()
+            ->unique()
+            ->values();
+        $primaryPositionId = $validated['current_position_id'] ?? $positionIds->first();
+
+        if (is_string($primaryPositionId) && trim($primaryPositionId) !== '') {
+            $positionIds = $positionIds
+                ->prepend($primaryPositionId)
+                ->unique()
+                ->values();
+        } else {
+            $primaryPositionId = null;
+        }
+
+        $deployment = EmployeeDeployment::query()->updateOrCreate(
             ['employee_id' => $employee->id],
             [
                 'current_company_id' => $validated['current_company_id'] ?? null,
                 'current_department_id' => $validated['current_department_id'] ?? null,
-                'current_position_id' => $validated['current_position_id'] ?? null,
+                'current_position_id' => $primaryPositionId,
                 'join_date' => $validated['join_date'] ?? null,
                 'resignation_date' => $validated['resignation_date'] ?? null,
                 'workplace' => $validated['workplace'] ?? null,
@@ -561,7 +585,71 @@ class AuthorizationController extends Controller
             ]
         );
 
+        $this->syncDeploymentPositions(
+            $deployment,
+            $positionIds,
+            $primaryPositionId,
+            $validated['join_date'] ?? null,
+            $validated['resignation_date'] ?? null,
+        );
+
         $this->syncPicAssignment($employee, $validated['pic_employee_id'] ?? null);
+    }
+
+    /**
+     * @param  Collection<int, string>  $positionIds
+     */
+    private function syncDeploymentPositions(
+        EmployeeDeployment $deployment,
+        Collection $positionIds,
+        ?string $primaryPositionId,
+        ?string $startedAt,
+        ?string $endedAt,
+    ): void {
+        $syncData = $positionIds
+            ->mapWithKeys(fn (string $positionId): array => [
+                $positionId => [
+                    'is_primary' => $primaryPositionId === $positionId,
+                    'status' => 'active',
+                    'started_at' => $startedAt,
+                    'ended_at' => $endedAt,
+                ],
+            ])
+            ->all();
+
+        $deployment->positions()->sync($syncData);
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function positionNamesFor(?Employee $employee): Collection
+    {
+        $deployment = $employee?->deployment;
+
+        if ($deployment === null) {
+            return collect();
+        }
+
+        $positionNames = collect();
+
+        if ($deployment->position !== null) {
+            $positionNames->push((string) $deployment->position->name);
+        }
+
+        if ($deployment->positions !== null) {
+            $positionNames = $positionNames->merge(
+                $deployment->positions
+                    ->pluck('name')
+                    ->map(fn (mixed $positionName): string => (string) $positionName)
+            );
+        }
+
+        return $positionNames
+            ->map(fn (string $positionName): string => trim($positionName))
+            ->filter()
+            ->unique()
+            ->values();
     }
 
     private function syncPicAssignment(Employee $employee, mixed $picEmployeeId): void

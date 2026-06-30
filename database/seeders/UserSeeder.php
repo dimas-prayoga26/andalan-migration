@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\EmployeeDeployment;
+use App\Models\EmployeeIdentity;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -104,8 +105,12 @@ class UserSeeder extends Seeder
                     ?? DB::table('positions')->where('name', 'Manager')->value('id')
                     ?? DB::table('positions')->orderBy('name')->value('id'),
             );
-            $adminPositionId = $this->toNullableString(
-                DB::table('positions')->where('name', 'System Administrator')->value('id')
+            $administratorPositionId = $this->toNullableString(
+                DB::table('positions')->where('name', 'Administrator')->value('id')
+                    ?? DB::table('positions')->orderBy('name')->value('id'),
+            );
+            $superAdministratorPositionId = $this->toNullableString(
+                DB::table('positions')->where('name', 'Super Administrator')->value('id')
                     ?? DB::table('positions')->orderBy('name')->value('id'),
             );
             $jakartaDomicileId = $this->toNullableInt(DB::table('meta_data_domicili')->where('name', 'Jakarta')->value('id'));
@@ -125,7 +130,7 @@ class UserSeeder extends Seeder
                 $superuser,
                 companyId: $companies->first()->id,
                 divisionId: $adminDivisionId,
-                positionId: $adminPositionId,
+                positionId: $superAdministratorPositionId,
                 domicileId: $jakartaDomicileId ?? $fallbackDomicileId,
                 genderId: $genderId,
                 maritalStatusId: $maritalStatusId,
@@ -194,7 +199,7 @@ class UserSeeder extends Seeder
                     $administrator,
                     companyId: $company->id,
                     divisionId: $adminDivisionId,
-                    positionId: $adminPositionId,
+                    positionId: $administratorPositionId,
                     domicileId: $domicileId,
                     genderId: $genderId,
                     maritalStatusId: $maritalStatusId,
@@ -275,20 +280,6 @@ class UserSeeder extends Seeder
             ],
         );
 
-        DB::table('user_documents')->updateOrInsert(
-            ['user_id' => $user->id],
-            [
-                'ktp' => $this->resolveDocumentNumber((string) $user->id, '11'),
-                'kk' => $this->resolveDocumentNumber((string) $user->id, '22'),
-                'npwp' => 'NPWP-'.$this->resolveShortNumericToken((string) $user->id, '33'),
-                'bpjs' => 'BPJS-'.$this->resolveShortNumericToken((string) $user->id, '44'),
-                'bpjstk' => 'BPJSTK-'.$this->resolveShortNumericToken((string) $user->id, '55'),
-                'nik' => $this->resolveDocumentNumber((string) $user->id, '66'),
-                'updated_at' => $now,
-                'created_at' => $now,
-            ],
-        );
-
         $employee = Employee::query()->updateOrCreate(
             ['user_id' => $user->id],
             [
@@ -296,6 +287,18 @@ class UserSeeder extends Seeder
                 'status' => 'Active',
                 'updated_at' => $now,
                 'created_at' => $now,
+            ],
+        );
+
+        EmployeeIdentity::query()->updateOrCreate(
+            ['employee_id' => $employee->id],
+            [
+                'nik' => $this->resolveDocumentNumber((string) $user->id, '66'),
+                'kk' => $this->resolveDocumentNumber((string) $user->id, '22'),
+                'npwp' => 'NPWP-'.$this->resolveShortNumericToken((string) $user->id, '33'),
+                'bpjs_ketenagakerjaan' => 'BPJSTK-'.$this->resolveShortNumericToken((string) $user->id, '55'),
+                'bpjs_kesehatan' => 'BPJS-'.$this->resolveShortNumericToken((string) $user->id, '44'),
+                'ptkp_status' => 'TK/0',
             ],
         );
 
@@ -331,10 +334,12 @@ class UserSeeder extends Seeder
             $deploymentData['current_office_location_id'] = $officeLocationId;
         }
 
-        EmployeeDeployment::query()->updateOrCreate(
+        $deployment = EmployeeDeployment::query()->updateOrCreate(
             ['employee_id' => $employee->id],
             $deploymentData,
         );
+
+        $this->syncDeploymentPosition($deployment, $positionId, $joinDate);
 
         $user->forceFill([
             'company_id' => $companyId,
@@ -360,6 +365,28 @@ class UserSeeder extends Seeder
         }
 
         return $fallbackDomicileId;
+    }
+
+    private function syncDeploymentPosition(EmployeeDeployment $deployment, ?string $positionId, ?string $joinDate): void
+    {
+        if (! Schema::hasTable('employee_deployment_positions') || ! is_string($positionId) || trim($positionId) === '') {
+            return;
+        }
+
+        DB::table('employee_deployment_positions')->updateOrInsert(
+            [
+                'employee_deployment_id' => $deployment->id,
+                'position_id' => $positionId,
+            ],
+            [
+                'is_primary' => true,
+                'status' => 'active',
+                'started_at' => $joinDate,
+                'ended_at' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
     }
 
     private function toNullableInt(mixed $value): ?int

@@ -29,11 +29,6 @@ class EmployeeIdentitySeeder extends Seeder
                 ->values()
                 ->all();
 
-            $userDocuments = DB::table('user_documents')
-                ->whereIn('user_id', $userIds)
-                ->get()
-                ->keyBy('user_id');
-
             $userProfiles = DB::table('user_profiles')
                 ->whereIn('user_id', $userIds)
                 ->get()
@@ -50,7 +45,6 @@ class EmployeeIdentitySeeder extends Seeder
                     continue;
                 }
 
-                $userDocument = $userDocuments->get($user->id);
                 $userProfile = $userProfiles->get($user->id);
                 $maritalStatusName = $userProfile?->marital_status_id
                     ? $maritalStatusNamesById->get($userProfile->marital_status_id)
@@ -61,11 +55,11 @@ class EmployeeIdentitySeeder extends Seeder
                     ->first();
 
                 $payload = [
-                    'nik' => $userDocument?->nik,
-                    'kk' => $userDocument?->kk,
-                    'npwp' => $userDocument?->npwp,
-                    'bpjs_ketenagakerjaan' => $userDocument?->bpjstk,
-                    'bpjs_kesehatan' => $userDocument?->bpjs,
+                    'nik' => $existingIdentity?->nik,
+                    'kk' => $existingIdentity?->kk,
+                    'npwp' => $existingIdentity?->npwp,
+                    'bpjs_ketenagakerjaan' => $existingIdentity?->bpjs_ketenagakerjaan,
+                    'bpjs_kesehatan' => $existingIdentity?->bpjs_kesehatan,
                     'ptkp_status' => $this->resolvePtkpStatus($maritalStatusName),
                     'updated_at' => $now,
                 ];

@@ -45,7 +45,7 @@ class RnbStaffSeederTest extends TestCase
             ->join('users', 'users.id', '=', 'employees.user_id')
             ->join('positions', 'positions.id', '=', 'employee_deployments.current_position_id')
             ->where('users.is_active', true)
-            ->where('positions.name', '!=', 'System Administrator')
+            ->where('positions.name', '!=', 'Administrator')
             ->where('positions.name', '!=', 'Director')
             ->where('positions.name', '!=', 'Supervisor')
             ->where('users.username', 'like', 'staff%')
@@ -76,7 +76,7 @@ class RnbStaffSeederTest extends TestCase
             ->join('users', 'users.id', '=', 'employees.user_id')
             ->join('positions', 'positions.id', '=', 'employee_deployments.current_position_id')
             ->where('users.is_active', true)
-            ->whereIn('positions.name', ['System Administrator', 'Director', 'Supervisor'])
+            ->whereIn('positions.name', ['Administrator', 'Director', 'Supervisor'])
             ->groupBy('companies.name', 'positions.name')
             ->orderBy('companies.name')
             ->get([
@@ -86,7 +86,7 @@ class RnbStaffSeederTest extends TestCase
             ]);
 
         foreach (['AndalanKu', 'KMA', 'Niskala', 'RNB', 'RNE', 'TMS', 'Trah'] as $companyName) {
-            foreach (['System Administrator', 'Director', 'Supervisor'] as $positionName) {
+            foreach (['Administrator', 'Director', 'Supervisor'] as $positionName) {
                 $positionCount = $positionCountsByCompany
                     ->first(
                         static fn (object $row): bool => (string) $row->company_name === $companyName
@@ -200,7 +200,7 @@ class RnbStaffSeederTest extends TestCase
             ->join('departments', 'departments.id', '=', 'employee_deployments.current_department_id')
             ->join('positions', 'positions.id', '=', 'employee_deployments.current_position_id')
             ->where('departments.name', 'Administrator')
-            ->where('positions.name', 'System Administrator')
+            ->where('positions.name', 'Administrator')
             ->where('users.username', 'like', 'admin%')
             ->orderBy('companies.name')
             ->get([

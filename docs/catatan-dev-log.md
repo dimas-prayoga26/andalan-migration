@@ -7,6 +7,31 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-07-01 (Rabu)
+- Mengubah `+ Add Overtime` PIC agar tidak otomatis membuat data `project_tasks`; staff yang di-assign wajib membuat task lemburnya sendiri.
+- Membatasi `+ Add Task` staff hanya setelah `Overtime Clock In` dan sebelum `Overtime Clock Out`, termasuk validasi backend.
+- Membuat window `Overtime Clock In` mengikuti jadwal PIC dari `planned_start_time` sampai `planned_end_time`, tanpa toleransi clock-in lebih awal.
+- Menyeragamkan urutan lifecycle overtime agar `task_deliverables_submitted` step 3 dan `session_ended` step 4, sehingga tidak bentrok unique key lifecycle log.
+- Menahan fase review/approval tetap `waiting` selama sesi berjalan; `task_hours_verification` baru menjadi `pending` setelah staff clock-out.
+- Mengganti copy "task sudah disubmit" menjadi "task sudah dikerjakan".
+- Detail: `docs/dev-log/2026-07-01-0126-perbaikan-flow-overtime-task-clock-in.md`.
+
+### 2026-06-30 (Selasa)
+- Menghapus schema akhir `user_documents` karena data identitas user sudah dipusatkan di `employee_identities`.
+- Menghapus migration create/drop `user_documents` agar tabel tersebut tidak dibuat pada `migrate:fresh --seed`.
+- Menghapus dependency seeder terhadap `user_documents` pada `UserSeeder`, `LegacySqlUserSeeder`, `NiskalaMultiPicLeaveSeeder`, dan `EmployeeIdentitySeeder`.
+- Mengarahkan seed dokumen demo ke `employee_identities`, termasuk NIK, KK, NPWP, BPJS Ketenagakerjaan, BPJS Kesehatan, dan PTKP.
+- Menambahkan dukungan multiple position pada `employee_deployments` melalui pivot `employee_deployment_positions` dengan `current_position_id` tetap sebagai primary position.
+- Menyesuaikan permission route/sidebar, form Data Employee, detail employee, profile composer, grouping Leave Admin/PIC, dan seeder agar membaca posisi aktif tambahan.
+- Menambahkan additional position untuk Erlin, Mevia, dan Leonie pada seeder serta database lokal aktif.
+- Menambahkan posisi Administrator dan Super Administrator, akses COO setara Director, unique index posisi langsung di migration utama, serta explicit PIC assignment untuk Leonie, Syafiq, Rexy, dan Fahmil.
+- Menghapus pemakaian `System Administrator`; admin biasa memakai `Administrator`, sedangkan akses tertinggi memakai `Super Administrator`.
+- Detail: `docs/dev-log/2026-06-30-1836-hapus-user-documents-gunakan-employee-identities.md`.
+- Detail: `docs/dev-log/2026-06-30-1853-multiple-position-employee-deployment.md`.
+- Detail: `docs/dev-log/2026-06-30-1902-tambah-additional-position-erlin-mevia-leonie.md`.
+- Detail: `docs/dev-log/2026-06-30-1936-administrator-superadmin-coo-pic-assignment.md`.
+- Detail: `docs/dev-log/2026-06-30-2158-ganti-system-administrator-ke-administrator.md`.
+
 ### 2026-06-29 (Senin)
 - Mengaktifkan menu Project Management Task List berbasis data `project_tasks`, menggantikan konten dummy template.
 - Memisahkan controller Task List ke `ProjectManagement\TaskListController`, sehingga tidak lagi menumpuk di controller Overview.
@@ -193,6 +218,16 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-07-01
+- `2026-07-01-0126-perbaikan-flow-overtime-task-clock-in.md`
+
+### 2026-06-30
+- `2026-06-30-1836-hapus-user-documents-gunakan-employee-identities.md`
+- `2026-06-30-1853-multiple-position-employee-deployment.md`
+- `2026-06-30-1902-tambah-additional-position-erlin-mevia-leonie.md`
+- `2026-06-30-1936-administrator-superadmin-coo-pic-assignment.md`
+- `2026-06-30-2158-ganti-system-administrator-ke-administrator.md`
 
 ### 2026-06-29
 - `2026-06-29-0142-project-management-task-list-ajax-filter-calendar.md`

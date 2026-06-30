@@ -410,13 +410,27 @@ class AttendanceLeaveController extends Controller
                 'user:id,username,email',
                 'deployment:id,employee_id,current_position_id,current_company_id,current_department_id',
                 'deployment.position:id,name',
+                'deployment.positions:id,name',
                 'deployment.department:id,name',
             ])
             ->get(['id', 'user_id'])
-            ->filter(static fn (Employee $employee): bool => $employee->deployment?->position !== null)
-            ->groupBy(fn (Employee $employee): string => (string) $employee->deployment?->current_position_id)
-            ->map(function (Collection $employees) use ($leaveRequestsByEmployee): array {
-                $positionName = $employees->first()?->deployment?->position?->name;
+            ->flatMap(function (Employee $employee): Collection {
+                $positions = collect([$employee->deployment?->position])
+                    ->merge($employee->deployment?->positions ?? [])
+                    ->filter()
+                    ->unique('id')
+                    ->values();
+
+                return $positions->map(fn ($position): array => [
+                    'position_id' => (string) $position->id,
+                    'position_name' => (string) $position->name,
+                    'employee' => $employee,
+                ]);
+            })
+            ->groupBy('position_id')
+            ->map(function (Collection $positionRows) use ($leaveRequestsByEmployee): array {
+                $positionName = $positionRows->first()['position_name'] ?? null;
+                $employees = $positionRows->pluck('employee');
 
                 return [
                     'position_name' => is_string($positionName) && trim($positionName) !== '' ? trim($positionName) : '-',

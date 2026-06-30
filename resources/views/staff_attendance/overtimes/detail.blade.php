@@ -460,7 +460,11 @@
                     <div class="card-header">
                         <h4 class="card-title">My Task Items</h4>
                         <div class="clearfix">
+                            @if ((bool) ($overtimeDetail['can_create_task'] ?? false))
                             <a class="text-success" data-bs-toggle="modal" data-bs-target="#task">+ Add Task</a>
+                            @else
+                            <button type="button" class="btn btn-link text-muted p-0" disabled title="Lakukan Overtime Clock In terlebih dahulu">+ Add Task</button>
+                            @endif
                         </div>
                     </div>
                     <div class="card-body p-0">

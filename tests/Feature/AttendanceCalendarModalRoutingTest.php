@@ -124,6 +124,15 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString('id="attendanceClockOutValue"', $attendanceCardsView);
         $this->assertStringContainsString('window.upsertAttendanceHistoryEvent(response.calendar_event);', $attendanceCardsView);
 
+        $profileIndexView = File::get(resource_path('views/staff_attendance/layouts/profile-index.blade.php'));
+        $this->assertStringContainsString('assets/vendor/apexcharts/dist/apexcharts.min.js', $profileIndexView);
+        $this->assertStringContainsString('function renderProfileProgressChart(chartElement)', $profileIndexView);
+        $this->assertStringContainsString('#chartProfileProgressDesktop, #chartProfileProgress', $profileIndexView);
+
+        $dashboardCss = File::get(public_path('assets/css/dashboard.css'));
+        $this->assertStringContainsString('.attendance-rate-mobile-slider .card:has(.effect):hover .avatar-secondary i', $dashboardCss);
+        $this->assertStringContainsString('.attendance-rate-mobile-slider .card:has(.effect):hover .avatar-info i', $dashboardCss);
+
         foreach ([$attendanceMutationService, $attendanceCardsService, $attendanceIpService] as $attendanceService) {
             $this->assertStringNotContainsString('Illuminate\Http\Request', $attendanceService);
             $this->assertStringNotContainsString('Request $request', $attendanceService);
@@ -151,5 +160,26 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString('calendar.refetchEvents();', $attendanceView);
         $this->assertStringContainsString('openAttendanceModal(props.attendanceModalId, props);', $attendanceView);
         $this->assertStringContainsString('openCalendarLabelModal(props.calendarModalId, props);', $attendanceView);
+        $this->assertStringContainsString('.app-fullcalendar .fc-button-primary {', $attendanceView);
+        $this->assertStringContainsString('.app-fullcalendar .fc-button-primary:not(:disabled).fc-button-active', $attendanceView);
+        $this->assertStringContainsString("right: 'dayGridMonth,dayGridWeek,dayGridDay'", $attendanceView);
+        $this->assertStringNotContainsString("right: 'dayGridMonth,dayGridWeek,dayGridDay,listSchedule'", $attendanceView);
+        $this->assertStringContainsString("month: 'Month'", $attendanceView);
+        $this->assertStringContainsString('firstDay: 1,', $attendanceView);
+        $this->assertStringContainsString('.app-fullcalendar .fc-prev-button', $attendanceView);
+        $this->assertStringContainsString('.app-fullcalendar .fc-today-button', $attendanceView);
+
+        $activityScheduleView = File::get(resource_path('views/activity_schedule/index.blade.php'));
+        $fullCalendarInit = File::get(public_path('assets/js/plugins-init/fullcalendar-init.js'));
+
+        $this->assertStringContainsString('.app-fullcalendar .fc-button-primary {', $activityScheduleView);
+        $this->assertStringContainsString('.app-fullcalendar .fc-button-primary:not(:disabled).fc-button-active', $activityScheduleView);
+        $this->assertStringContainsString('.app-fullcalendar .fc-prev-button', $activityScheduleView);
+        $this->assertStringContainsString('.app-fullcalendar .fc-today-button', $activityScheduleView);
+        $this->assertStringContainsString("right: 'dayGridMonth,dayGridWeek,dayGridDay,listSchedule'", $fullCalendarInit);
+        $this->assertStringContainsString("today: 'Today'", $fullCalendarInit);
+        $this->assertStringContainsString("month: 'Month'", $fullCalendarInit);
+        $this->assertStringContainsString("week: 'Week'", $fullCalendarInit);
+        $this->assertStringContainsString("day: 'Day'", $fullCalendarInit);
     }
 }

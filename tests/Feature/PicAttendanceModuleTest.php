@@ -68,6 +68,7 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString("'view-pic-attendance', 'view-director-attendance'", $permissionSeeder);
         $this->assertStringContainsString("'view-pic-attendance' => ['section' => 'HR Management', 'label' => 'PIC']", $authorizationController);
         $this->assertStringContainsString('employee_pic_assignments', $leaveController);
+        $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $leaveController);
         $this->assertStringContainsString('updateSupervisorReview', $leaveController);
         $this->assertStringContainsString("'event_type' => 'supervisor_review'", $leaveController);
         $this->assertStringContainsString('$query = $this->applySupervisorApprovedReviewFilter($query);', $leaveController);

@@ -14,12 +14,22 @@ class AuthorizationMenuRouteTest extends TestCase
     public function test_authorization_route_uses_controller(): void
     {
         $route = Route::getRoutes()->getByName('authorization');
+        $createRoute = Route::getRoutes()->getByName('authorization.create');
+        $storeRoute = Route::getRoutes()->getByName('authorization.store');
         $accessMenusRoute = Route::getRoutes()->getByName('authorization.access-menus');
         $updateRoute = Route::getRoutes()->getByName('authorization.position-permissions.update');
+        $showRoute = Route::getRoutes()->getByName('authorization.show');
+        $editRoute = Route::getRoutes()->getByName('authorization.edit');
+        $dataEmployeeUpdateRoute = Route::getRoutes()->getByName('authorization.update');
+        $destroyRoute = Route::getRoutes()->getByName('authorization.destroy');
 
         $this->assertNotNull($route);
         $this->assertSame('authorization', $route?->uri());
         $this->assertSame(AuthorizationController::class.'@index', $route?->getActionName());
+        $this->assertSame('authorization/create', $createRoute?->uri());
+        $this->assertSame(AuthorizationController::class.'@create', $createRoute?->getActionName());
+        $this->assertSame('authorization', $storeRoute?->uri());
+        $this->assertContains('POST', $storeRoute?->methods() ?? []);
         $this->assertNotNull($accessMenusRoute);
         $this->assertSame('authorization/access-menus', $accessMenusRoute?->uri());
         $this->assertSame(AuthorizationController::class.'@accessMenus', $accessMenusRoute?->getActionName());
@@ -27,6 +37,11 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertSame('authorization/position-permissions', $updateRoute?->uri());
         $this->assertContains('POST', $updateRoute?->methods() ?? []);
         $this->assertSame(AuthorizationController::class.'@updatePositionPermissions', $updateRoute?->getActionName());
+        $this->assertSame('authorization/{employee}', $showRoute?->uri());
+        $this->assertSame('authorization/{employee}/edit', $editRoute?->uri());
+        $this->assertSame('authorization/{employee}', $dataEmployeeUpdateRoute?->uri());
+        $this->assertSame('authorization/{employee}', $destroyRoute?->uri());
+        $this->assertContains('DELETE', $destroyRoute?->methods() ?? []);
     }
 
     public function test_authorization_page_view_is_registered(): void
@@ -37,10 +52,13 @@ class AuthorizationMenuRouteTest extends TestCase
         $bootstrapApp = File::get(base_path('bootstrap/app.php'));
         $routes = File::get(base_path('routes/web.php'));
         $authorizationView = File::get(resource_path('views/authorization/index.blade.php'));
+        $authorizationFormView = File::get(resource_path('views/authorization/form.blade.php'));
         $accessMenusView = File::get(resource_path('views/authorization/access-menus.blade.php'));
         $customJs = File::get(public_path('assets/js/custom.js'));
 
         $this->assertTrue(View::exists('authorization.index'));
+        $this->assertTrue(View::exists('authorization.form'));
+        $this->assertTrue(View::exists('authorization.show'));
         $this->assertTrue(View::exists('authorization.access-menus'));
         $this->assertStringContainsString("view('authorization.index'", $controller);
         $this->assertStringContainsString("view('authorization.access-menus'", $controller);
@@ -57,15 +75,32 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString("route('authorization.access-menus')", $controller);
         $this->assertStringContainsString('current_company_id', $controller);
         $this->assertStringContainsString('isSuperuser', $controller);
+        $this->assertStringContainsString('syncDataEmployeeRelations', $controller);
         $this->assertStringContainsString('List Employee', $authorizationView);
-        $this->assertStringContainsString("route('authorization.access-menus')", $authorizationView);
+        $this->assertStringContainsString("route('authorization.create')", $authorizationView);
         $this->assertStringContainsString('@forelse ($users as $user)', $authorizationView);
         $this->assertStringContainsString('<th>Name</th>', $authorizationView);
+        $this->assertStringContainsString('<th>NIK</th>', $authorizationView);
         $this->assertStringContainsString('<th>Position</th>', $authorizationView);
         $this->assertStringContainsString('<th>Company</th>', $authorizationView);
+        $this->assertStringContainsString('<th>PIC</th>', $authorizationView);
+        $this->assertStringContainsString('Detail</a>', $authorizationView);
+        $this->assertStringContainsString('Update</a>', $authorizationView);
+        $this->assertStringContainsString('Delete</button>', $authorizationView);
+        $this->assertStringNotContainsString('Manage Access', $authorizationView);
         $this->assertStringNotContainsString('<th>Role</th>', $authorizationView);
         $this->assertStringNotContainsString('<th>Department</th>', $authorizationView);
         $this->assertStringNotContainsString("\$user['email']", $authorizationView);
+        $this->assertStringContainsString('bpjs_ketenagakerjaan', $authorizationFormView);
+        $this->assertStringContainsString('bpjs_kesehatan', $authorizationFormView);
+        $this->assertStringContainsString('npwp', $authorizationFormView);
+        $this->assertStringContainsString('pic_employee_id', $authorizationFormView);
+        $this->assertStringContainsString('js-data-employee-date', $authorizationFormView);
+        $this->assertStringContainsString("format: 'DD/MM/YYYY'", $authorizationFormView);
+        $this->assertStringContainsString('name="employee_status" value="Active"', $authorizationFormView);
+        $this->assertStringNotContainsString('Employee Status</label>', $authorizationFormView);
+        $this->assertStringNotContainsString('@foreach ([\'Active\', \'Pending\', \'Inactive\'] as $status)', $authorizationFormView);
+        $this->assertStringNotContainsString('type="date"', $authorizationFormView);
         $this->assertStringContainsString('Assign Permission', $accessMenusView);
         $this->assertStringContainsString("route('authorization')", $accessMenusView);
         $this->assertStringContainsString('<th>Menu</th>', $accessMenusView);
@@ -106,7 +141,11 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString("route('authorization')", $sidebarView);
         $this->assertStringNotContainsString("route('authorization.access-menus')", $sidebarView);
         $this->assertStringNotContainsString('Assign Permission', $sidebarView);
-        $this->assertStringContainsString('Authorization', $sidebarView);
+        $this->assertStringContainsString('Data Employee', $sidebarView);
+        $this->assertStringNotContainsString('Zoom Meeting', $sidebarView);
+        $this->assertStringNotContainsString('Employee Database', $sidebarView);
+        $this->assertStringNotContainsString('Talent Acquisition', $sidebarView);
+        $this->assertStringNotContainsString('Payroll', $sidebarView);
         $this->assertStringContainsString("View::composer('layouts.sidebar', SidebarPermissionComposer::class)", $appServiceProvider);
         $this->assertStringContainsString('hasAnyPositionPermission([$permissionName])', $sidebarPermissionComposer);
         $this->assertStringNotContainsString('positionPermissionNamesFor', $sidebarPermissionComposer);
@@ -119,7 +158,7 @@ class AuthorizationMenuRouteTest extends TestCase
         ]);
 
         $this->assertStringContainsString('Dashboard', $sidebar);
-        $this->assertStringNotContainsString('Authorization </span>', $sidebar);
+        $this->assertStringNotContainsString('Data Employee </span>', $sidebar);
         $this->assertStringNotContainsString('Admin Attendance </span>', $sidebar);
     }
 
@@ -138,6 +177,6 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('view-authorization', $positionPermissionSeeder);
         $this->assertStringContainsString('syncPositionPermissions', $positionPermissionSeeder);
         $this->assertStringContainsString('menuPermissionData', $positionPermissionSeeder);
-        $this->assertStringContainsString("'System Administrator' => \$permissions->keys()->all()", $positionPermissionSeeder);
+        $this->assertStringContainsString("'System Administrator' => \$allPermissionsWithoutPic", $positionPermissionSeeder);
     }
 }

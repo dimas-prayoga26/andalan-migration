@@ -172,6 +172,29 @@
     border-radius: 1rem;
 }
 
+.attendance-rate-mobile-slider .card:has(.effect):hover .avatar-secondary,
+.attendance-rate-mobile-slider .card:has(.effect):hover .avatar-success,
+.attendance-rate-mobile-slider .card:has(.effect):hover .avatar-danger,
+.attendance-rate-mobile-slider .card:has(.effect):hover .avatar-info {
+    background-color: var(--bs-body-bg);
+}
+
+.attendance-rate-mobile-slider .card:has(.effect):hover .avatar-secondary i {
+    color: var(--bs-secondary) !important;
+}
+
+.attendance-rate-mobile-slider .card:has(.effect):hover .avatar-success i {
+    color: var(--bs-success) !important;
+}
+
+.attendance-rate-mobile-slider .card:has(.effect):hover .avatar-danger i {
+    color: var(--bs-danger) !important;
+}
+
+.attendance-rate-mobile-slider .card:has(.effect):hover .avatar-info i {
+    color: var(--bs-info) !important;
+}
+
 .attendance-item {
     background: #f4f4f4;
     border-radius: 0.9rem;

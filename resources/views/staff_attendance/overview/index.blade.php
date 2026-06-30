@@ -58,6 +58,10 @@
 @php
     $attendanceOverviewMonthLabel = (string) ($profileAttendanceOverviewMonthLabel ?? now('Asia/Jakarta')->format('F'));
     $attendanceOverviewSeries = array_values($profileAttendanceOverviewSeries ?? [0, 0, 0, 0]);
+    $attendanceOverviewChartSeries = array_sum($attendanceOverviewSeries) > 0 ? $attendanceOverviewSeries : [1];
+    $attendanceOverviewChartColors = array_sum($attendanceOverviewSeries) > 0
+        ? ['#27BC48', '#FF3282', '#1EA7C5', '#A02CFA']
+        : ['#F2F3F8'];
     $attendanceProgressPercent = (int) ($profileAttendanceProgressPercent ?? 0);
     $attendanceDaysCount = (int) ($profileAttendanceDaysCount ?? 0);
     $workingDaysCount = (int) ($profileWorkingDaysCount ?? 0);
@@ -322,7 +326,10 @@
     @php
         $dashboardJsPath = public_path('assets/js/dashboard.js');
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
+        $chartJsPath = public_path('assets/vendor/chart-js/chart.bundle.min.js');
+        $chartJsVersion = file_exists($chartJsPath) ? filemtime($chartJsPath) : time();
     @endphp
+    <script src="{{ asset('assets/vendor/chart-js/chart.bundle.min.js') }}?v={{ $chartJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
         function pieChart() {
@@ -332,7 +339,7 @@
             }
 
             new ApexCharts(chartElement, {
-                series: @json($attendanceOverviewSeries),
+                series: @json($attendanceOverviewChartSeries),
                 chart: {
                     type: 'donut',
                     height: 200
@@ -344,7 +351,7 @@
                 stroke: {
                     width: 0
                 },
-                colors: ['#27BC48', '#FF3282', '#1EA7C5', '#A02CFA'],
+                colors: @json($attendanceOverviewChartColors),
                 dataLabels: {
                     enabled: false
                 }

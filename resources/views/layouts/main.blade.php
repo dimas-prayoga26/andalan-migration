@@ -2,11 +2,17 @@
 
 <body>
 
-    @include('layouts.loader')
-
     @php
         $isSuperuserLogoShift = auth()->user()?->hasRole('superuser') ?? false;
     @endphp
+
+	<div id="preloader">
+		<div class="sk-three-bounce">
+			<div class="sk-child sk-bounce1"></div>
+			<div class="sk-child sk-bounce2"></div>
+			<div class="sk-child sk-bounce3"></div>
+		</div>
+	</div>
 
     <!-- Start - Main Wrapper -->
     <div id="main-wrapper" class="{{ $isSuperuserLogoShift ? 'superuser-logo-shift' : '' }}">

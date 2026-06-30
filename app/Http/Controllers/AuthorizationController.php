@@ -2,14 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Company;
+use App\Models\Department;
+use App\Models\Employee;
+use App\Models\EmployeeDeployment;
+use App\Models\EmployeeIdentity;
+use App\Models\EmployeePicAssignment;
+use App\Models\EmployeeProfile;
 use App\Models\Permission;
 use App\Models\Position;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class AuthorizationController extends Controller
 {
@@ -21,7 +32,135 @@ class AuthorizationController extends Controller
 
         return view('authorization.index', [
             'users' => $this->authorizationUsersFor($authenticatedUser),
+            'canManageDataEmployee' => $this->canManageAuthorization($authenticatedUser),
         ]);
+    }
+
+    public function create(Request $request): View
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+
+        return view('authorization.form', [
+            'mode' => 'create',
+            'employee' => null,
+        ] + $this->dataEmployeeFormOptions());
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+
+        $validated = $this->validatedDataEmployee($request);
+
+        $employee = DB::transaction(function () use ($validated): Employee {
+            $user = User::query()->create([
+                'username' => $validated['username'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+                'company_id' => $validated['current_company_id'] ?? null,
+                'password' => Hash::make((string) $validated['password']),
+                'is_active' => (bool) ($validated['is_active'] ?? true),
+            ]);
+
+            $employee = Employee::query()->create([
+                'user_id' => $user->id,
+                'employee_code' => $validated['employee_code'] ?? null,
+                'status' => $validated['employee_status'],
+            ]);
+
+            $this->syncDataEmployeeRelations($employee, $validated);
+
+            return $employee;
+        });
+
+        return redirect()
+            ->route('authorization.show', ['employee' => $employee])
+            ->with('status', 'Data employee berhasil dibuat.');
+    }
+
+    public function show(Request $request, Employee $employee): View
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canViewEmployee($authenticatedUser, $employee), 404);
+
+        return view('authorization.show', [
+            'employee' => $this->loadDataEmployee($employee),
+            'canManageDataEmployee' => $this->canManageAuthorization($authenticatedUser),
+        ]);
+    }
+
+    public function edit(Request $request, Employee $employee): View
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+        abort_unless($this->canViewEmployee($authenticatedUser, $employee), 404);
+
+        return view('authorization.form', [
+            'mode' => 'edit',
+            'employee' => $this->loadDataEmployee($employee),
+        ] + $this->dataEmployeeFormOptions($employee));
+    }
+
+    public function update(Request $request, Employee $employee): RedirectResponse
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+        abort_unless($this->canViewEmployee($authenticatedUser, $employee), 404);
+
+        $employee = $this->loadDataEmployee($employee);
+        $validated = $this->validatedDataEmployee($request, $employee);
+
+        DB::transaction(function () use ($employee, $validated): void {
+            $employee->user?->update([
+                'username' => $validated['username'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+                'company_id' => $validated['current_company_id'] ?? null,
+                'is_active' => (bool) ($validated['is_active'] ?? true),
+            ]);
+
+            if (filled($validated['password'] ?? null)) {
+                $employee->user?->update([
+                    'password' => Hash::make((string) $validated['password']),
+                ]);
+            }
+
+            $employee->update([
+                'employee_code' => $validated['employee_code'] ?? null,
+                'status' => $validated['employee_status'],
+            ]);
+
+            $this->syncDataEmployeeRelations($employee, $validated);
+        });
+
+        return redirect()
+            ->route('authorization.show', ['employee' => $employee])
+            ->with('status', 'Data employee berhasil diperbarui.');
+    }
+
+    public function destroy(Request $request, Employee $employee): RedirectResponse
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+        abort_unless($this->canViewEmployee($authenticatedUser, $employee), 404);
+
+        DB::transaction(function () use ($employee): void {
+            $employee->user?->update(['is_active' => false]);
+            $employee->picAssignment?->delete();
+            $employee->delete();
+        });
+
+        return redirect()
+            ->route('authorization')
+            ->with('status', 'Data employee berhasil dihapus.');
     }
 
     public function accessMenus(Request $request): View
@@ -130,7 +269,7 @@ class AuthorizationController extends Controller
             'view-pic-attendance' => ['section' => 'HR Management', 'label' => 'PIC'],
             'view-director-attendance' => ['section' => 'HR Management', 'label' => 'Director'],
             'view-organization' => ['section' => 'HR Management', 'label' => 'Organization'],
-            'view-authorization' => ['section' => 'HR Management', 'label' => 'Authorization'],
+            'view-authorization' => ['section' => 'HR Management', 'label' => 'Data Employee'],
             'view-employee-database' => ['section' => 'HR Management', 'label' => 'Employee Database'],
             'view-talent-acquisition' => ['section' => 'HR Management', 'label' => 'Talent Acquisition'],
             'view-payroll' => ['section' => 'Finance Management', 'label' => 'Payroll'],
@@ -158,11 +297,15 @@ class AuthorizationController extends Controller
         $query = User::query()
             ->with([
                 'roles:uuid,name',
-                'employee:id,user_id,status',
+                'employee:id,user_id,employee_code,status',
                 'employee.profile:id,employee_id,name',
+                'employee.identity:id,employee_id,nik',
                 'employee.deployment:id,employee_id,current_company_id,current_position_id,status',
                 'employee.deployment.company:id,name',
                 'employee.deployment.position:id,name',
+                'employee.picAssignment',
+                'employee.picAssignment.supervisor:id',
+                'employee.picAssignment.supervisor.profile:id,employee_id,name',
             ])
             ->whereHas('employee');
 
@@ -248,12 +391,201 @@ class AuthorizationController extends Controller
         }
 
         return [
+            'id' => (string) $user->employee?->id,
             'name' => $name,
             'position' => (string) ($user->employee?->deployment?->position?->name ?? '-'),
             'company' => (string) ($user->employee?->deployment?->company?->name ?? '-'),
+            'employee_code' => (string) ($user->employee?->employee_code ?? '-'),
+            'nik' => (string) ($user->employee?->identity?->nik ?? '-'),
+            'pic' => (string) ($user->employee?->picAssignment?->supervisor?->profile?->name ?? '-'),
             'status' => $status,
             'initials' => $this->initials($name),
         ];
+    }
+
+    private function canViewEmployee(User $viewer, Employee $employee): bool
+    {
+        if ($this->isSuperuser($viewer)) {
+            return true;
+        }
+
+        $companyId = $this->administratorCompanyId($viewer);
+
+        return $companyId !== null
+            && $employee->loadMissing('deployment')->deployment?->current_company_id === $companyId;
+    }
+
+    private function loadDataEmployee(Employee $employee): Employee
+    {
+        return $employee->loadMissing([
+            'user:id,company_id,username,phone,email,is_active',
+            'profile:id,employee_id,name,nickname,gender,place_of_birth,date_of_birth,marital_status',
+            'identity:id,employee_id,nik,npwp,bpjs_ketenagakerjaan,bpjs_kesehatan',
+            'deployment:id,employee_id,current_company_id,current_department_id,current_position_id,join_date,resignation_date,workplace,status',
+            'deployment.company:id,name',
+            'deployment.department:id,name',
+            'deployment.position:id,name',
+            'picAssignment',
+            'picAssignment.supervisor:id',
+            'picAssignment.supervisor.profile:id,employee_id,name',
+        ]);
+    }
+
+    /**
+     * @return array{
+     *     companies: Collection<int, Company>,
+     *     departments: Collection<int, Department>,
+     *     positions: Collection<int, Position>,
+     *     picEmployees: Collection<int, Employee>
+     * }
+     */
+    private function dataEmployeeFormOptions(?Employee $employee = null): array
+    {
+        return [
+            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'departments' => Department::query()->orderBy('name')->get(['id', 'name']),
+            'positions' => Position::query()->orderBy('name')->get(['id', 'name']),
+            'picEmployees' => Employee::query()
+                ->with('profile:id,employee_id,name')
+                ->when($employee instanceof Employee, fn ($query) => $query->whereKeyNot($employee->id))
+                ->orderBy('employee_code')
+                ->get(['id', 'employee_code']),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatedDataEmployee(Request $request, ?Employee $employee = null): array
+    {
+        $userId = $employee?->user_id;
+        $passwordRules = $employee instanceof Employee
+            ? ['nullable', 'string', 'min:6']
+            : ['required', 'string', 'min:6'];
+
+        $request->merge([
+            'date_of_birth' => $this->normalizeDateInput($request->input('date_of_birth')),
+            'employee_status' => 'Active',
+            'join_date' => $this->normalizeDateInput($request->input('join_date')),
+            'resignation_date' => $this->normalizeDateInput($request->input('resignation_date')),
+        ]);
+
+        return $request->validate([
+            'is_active' => ['nullable', 'boolean'],
+            'employee_status' => ['required', 'string', 'max:50'],
+            'employee_code' => ['nullable', 'string', 'max:50'],
+            'name' => ['required', 'string', 'max:255'],
+            'nickname' => ['nullable', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'username' => ['required', 'string', 'max:255', Rule::unique('users', 'username')->ignore($userId)],
+            'password' => $passwordRules,
+            'place_of_birth' => ['nullable', 'string', 'max:255'],
+            'date_of_birth' => ['nullable', 'date'],
+            'nik' => ['nullable', 'string', 'max:100'],
+            'npwp' => ['nullable', 'string', 'max:100'],
+            'bpjs_ketenagakerjaan' => ['nullable', 'string', 'max:100'],
+            'bpjs_kesehatan' => ['nullable', 'string', 'max:100'],
+            'gender' => ['nullable', 'string', 'max:50'],
+            'marital_status' => ['nullable', 'string', 'max:50'],
+            'current_company_id' => ['nullable', 'string', 'exists:companies,id'],
+            'current_department_id' => ['nullable', 'string', 'exists:departments,id'],
+            'current_position_id' => ['nullable', 'string', 'exists:positions,id'],
+            'workplace' => ['nullable', 'string', 'max:255'],
+            'join_date' => ['nullable', 'date'],
+            'resignation_date' => ['nullable', 'date', 'after_or_equal:join_date'],
+            'pic_employee_id' => ['nullable', 'string', 'exists:employees,id'],
+        ]);
+    }
+
+    private function normalizeDateInput(mixed $value): ?string
+    {
+        $dateValue = is_string($value) ? trim($value) : '';
+
+        if ($dateValue === '') {
+            return null;
+        }
+
+        foreach (['Y-m-d', 'd/m/Y', 'j/n/Y', 'd-m-Y', 'j-n-Y'] as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $dateValue);
+            } catch (\Throwable) {
+                continue;
+            }
+
+            if ($date instanceof Carbon && $date->format($format) === $dateValue) {
+                return $date->format('Y-m-d');
+            }
+        }
+
+        return $dateValue;
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function syncDataEmployeeRelations(Employee $employee, array $validated): void
+    {
+        EmployeeProfile::query()->updateOrCreate(
+            ['employee_id' => $employee->id],
+            [
+                'name' => $validated['name'],
+                'nickname' => $validated['nickname'] ?? null,
+                'gender' => $validated['gender'] ?? null,
+                'place_of_birth' => $validated['place_of_birth'] ?? null,
+                'date_of_birth' => $validated['date_of_birth'] ?? null,
+                'marital_status' => $validated['marital_status'] ?? null,
+            ]
+        );
+
+        EmployeeIdentity::query()->updateOrCreate(
+            ['employee_id' => $employee->id],
+            [
+                'nik' => $validated['nik'] ?? null,
+                'npwp' => $validated['npwp'] ?? null,
+                'bpjs_ketenagakerjaan' => $validated['bpjs_ketenagakerjaan'] ?? null,
+                'bpjs_kesehatan' => $validated['bpjs_kesehatan'] ?? null,
+            ]
+        );
+
+        EmployeeDeployment::query()->updateOrCreate(
+            ['employee_id' => $employee->id],
+            [
+                'current_company_id' => $validated['current_company_id'] ?? null,
+                'current_department_id' => $validated['current_department_id'] ?? null,
+                'current_position_id' => $validated['current_position_id'] ?? null,
+                'join_date' => $validated['join_date'] ?? null,
+                'resignation_date' => $validated['resignation_date'] ?? null,
+                'workplace' => $validated['workplace'] ?? null,
+                'status' => $validated['employee_status'],
+            ]
+        );
+
+        $this->syncPicAssignment($employee, $validated['pic_employee_id'] ?? null);
+    }
+
+    private function syncPicAssignment(Employee $employee, mixed $picEmployeeId): void
+    {
+        EmployeePicAssignment::query()
+            ->where('staff_employee_id', $employee->id)
+            ->update(['is_active' => false]);
+
+        $picEmployeeId = is_string($picEmployeeId) ? trim($picEmployeeId) : '';
+        if ($picEmployeeId === '' || $picEmployeeId === $employee->id) {
+            return;
+        }
+
+        $assignment = EmployeePicAssignment::withTrashed()->firstOrNew([
+            'supervisor_employee_id' => $picEmployeeId,
+            'staff_employee_id' => $employee->id,
+        ]);
+
+        if ($assignment->trashed()) {
+            $assignment->restore();
+        }
+
+        $assignment->fill(['is_active' => true]);
+        $assignment->save();
     }
 
     private function initials(string $name): string

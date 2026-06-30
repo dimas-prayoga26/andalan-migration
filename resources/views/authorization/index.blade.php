@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Authorization - List Employee')
+@section('title', 'Data Employee')
 
 @section('css')
     @php
@@ -48,11 +48,11 @@
     </style>
 @endsection
 
-@section('navbarTitle', 'Authorization')
+@section('navbarTitle', 'Data Employee')
 
 @section('content')
 @include('layouts.breadcrumb', [
-    'title' => 'Authorization',
+    'title' => 'Data Employee',
     'current' => 'List Employee',
     'homeRoute' => 'dashboard',
 ])
@@ -74,21 +74,34 @@
     <div class="card-header border-0 flex-wrap gap-3">
         <div>
             <h4 class="card-title mb-1">List Employee</h4>
-            <p class="mb-0 text-muted fs-13">List user yang nantinya bisa diberikan akses menu sidebar.</p>
+            <p class="mb-0 text-muted fs-13">Data karyawan, deployment, identitas, dan PIC.</p>
         </div>
-        <div class="input-group" style="max-width: 320px;">
-            <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass"></i></span>
-            <input type="text" class="form-control" placeholder="Search user">
+        <div class="d-flex gap-2 flex-wrap">
+            <div class="input-group" style="max-width: 320px;">
+                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" class="form-control" placeholder="Search user">
+            </div>
+            @if ($canManageDataEmployee)
+                <a href="{{ route('authorization.create') }}" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-plus me-1"></i>Create Users
+                </a>
+            @endif
         </div>
     </div>
+    @if (session('status'))
+        <div class="alert alert-success mx-4 mb-3">{{ session('status') }}</div>
+    @endif
     <div class="card-body pt-0">
         <div class="table-responsive">
             <table class="table align-middle">
                 <thead>
                     <tr>
                         <th>Name</th>
+                        <th>NIK</th>
+                        <th>Employee Code</th>
                         <th>Position</th>
                         <th>Company</th>
+                        <th>PIC</th>
                         <th>Status</th>
                         <th class="text-end">Action</th>
                     </tr>
@@ -104,8 +117,11 @@
                                     </div>
                                 </div>
                             </td>
+                            <td>{{ $user['nik'] }}</td>
+                            <td>{{ $user['employee_code'] }}</td>
                             <td>{{ $user['position'] }}</td>
                             <td>{{ $user['company'] }}</td>
+                            <td>{{ $user['pic'] }}</td>
                             <td>
                                 @php
                                     $statusClass = match ($user['status']) {
@@ -117,14 +133,22 @@
                                 <span class="badge badge-sm light {{ $statusClass }}">{{ $user['status'] }}</span>
                             </td>
                             <td class="text-end">
-                                <a href="{{ route('authorization.access-menus') }}" class="btn btn-primary light btn-sm">
-                                    <i class="fa-solid fa-pen me-1"></i>Manage Access
-                                </a>
+                                <div class="d-inline-flex gap-1">
+                                    <a href="{{ route('authorization.show', ['employee' => $user['id']]) }}" class="btn btn-info light btn-sm">Detail</a>
+                                    @if ($canManageDataEmployee)
+                                        <a href="{{ route('authorization.edit', ['employee' => $user['id']]) }}" class="btn btn-primary light btn-sm">Update</a>
+                                        <form action="{{ route('authorization.destroy', ['employee' => $user['id']]) }}" method="POST" onsubmit="return confirm('Hapus data employee ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-danger light btn-sm">Delete</button>
+                                        </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">No employee data available.</td>
+                            <td colspan="8" class="text-center text-muted py-4">No employee data available.</td>
                         </tr>
                     @endforelse
                 </tbody>

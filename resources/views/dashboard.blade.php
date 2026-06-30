@@ -39,7 +39,7 @@
                             <div class="card-body">
                                 <div class="d-flex gap-md-4 gap-3 align-items-center">
                                     <span class="avatar avatar-lg avatar-success rounded-circle border-0">
-                                        <i class="bx bx-notepad fs-1 text-success"></i>
+                                        <i class="fa-solid fa-clipboard-list fs-1 text-success"></i>
                                     </span>
                                     <div>
                                         <p class="fs-12 mb-2">Laporan Pekerjaan</p>
@@ -65,7 +65,7 @@
                             <div class="card-body">
                                 <div class="d-flex gap-md-4 gap-3 align-items-center">
                                     <span class="avatar avatar-lg avatar-secondary rounded-circle border-0">
-                                        <i class="bx bx-calendar-alt fs-1 text-secondary"></i>
+                                        <i class="fa-solid fa-calendar-days fs-1 text-secondary"></i>
                                     </span>
                                     <div>
                                         <p class="fs-12 mb-2">Agenda Kegiatan</p>
@@ -91,7 +91,7 @@
                             <div class="card-body">
                                 <div class="d-flex gap-md-4 gap-3 align-items-center">
                                     <span class="avatar avatar-lg avatar-danger rounded-circle border-0">
-                                        <i class="bx bx-fingerprint fs-1 text-danger"></i>
+                                        <i class="fa-solid fa-fingerprint fs-1 text-danger"></i>
                                     </span>
                                     <div>
                                         <p class="fs-12 mb-2">Attendance Data</p>
@@ -117,7 +117,7 @@
                             <div class="card-body">
                                 <div class="d-flex gap-md-4 gap-3 align-items-center">
                                     <span class="avatar avatar-lg avatar-warning rounded-circle border-0">
-                                        <i class="bx bx-id-card fs-1 text-warning"></i>
+                                        <i class="fa-solid fa-id-card fs-1 text-warning"></i>
                                     </span>
                                     <div>
                                         <p class="fs-12 mb-2">Data Pelamar</p>
@@ -143,7 +143,7 @@
                             <div class="card-body">
                                 <div class="d-flex gap-md-4 gap-3 align-items-center">
                                     <span class="avatar avatar-lg avatar-primary rounded-circle border-0">
-                                        <i class="bx bx-group fs-1 text-primary"></i>
+                                        <i class="fa-solid fa-users fs-1 text-primary"></i>
                                     </span>
                                     <div>
                                         <p class="fs-12 mb-2">Data Karyawan</p>
@@ -169,7 +169,7 @@
                             <div class="card-body">
                                 <div class="d-flex gap-md-4 gap-3 align-items-center">
                                     <span class="avatar avatar-lg avatar-info rounded-circle border-0">
-                                        <i class="bx bx-news fs-1 text-info"></i>
+                                        <i class="fa-solid fa-newspaper fs-1 text-info"></i>
                                     </span>
                                     <div>
                                         <p class="fs-12 mb-2">Blog Management</p>

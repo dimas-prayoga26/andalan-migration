@@ -83,8 +83,14 @@ Route::middleware('auth')->group(function (): void {
     // Authorization
     Route::middleware('position.permission:view-authorization')->group(function (): void {
         Route::get('/authorization', [AuthorizationController::class, 'index'])->name('authorization');
+        Route::get('/authorization/create', [AuthorizationController::class, 'create'])->name('authorization.create');
+        Route::post('/authorization', [AuthorizationController::class, 'store'])->name('authorization.store');
         Route::get('/authorization/access-menus', [AuthorizationController::class, 'accessMenus'])->name('authorization.access-menus');
         Route::post('/authorization/position-permissions', [AuthorizationController::class, 'updatePositionPermissions'])->name('authorization.position-permissions.update');
+        Route::get('/authorization/{employee}', [AuthorizationController::class, 'show'])->name('authorization.show');
+        Route::get('/authorization/{employee}/edit', [AuthorizationController::class, 'edit'])->name('authorization.edit');
+        Route::put('/authorization/{employee}', [AuthorizationController::class, 'update'])->name('authorization.update');
+        Route::delete('/authorization/{employee}', [AuthorizationController::class, 'destroy'])->name('authorization.destroy');
     });
 
     // Agenda

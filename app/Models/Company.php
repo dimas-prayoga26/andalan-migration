@@ -41,6 +41,11 @@ class Company extends Model
         return $this->hasMany(RulesOfAttendace::class, 'companies_id', 'id');
     }
 
+    public function officeLocations(): HasMany
+    {
+        return $this->hasMany(OfficeLocation::class, 'company_id', 'id');
+    }
+
     public function activeAttendanceRule(): HasOne
     {
         return $this->hasOne(RulesOfAttendace::class, 'companies_id', 'id')

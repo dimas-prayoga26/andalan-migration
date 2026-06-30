@@ -60,8 +60,11 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('recapVirtualHolidayRows', $recapController);
         $this->assertStringContainsString('recapDaysLabel', $recapController);
         $this->assertStringContainsString('recapEmployeeWorkDays', $recapController);
+        $this->assertStringContainsString('$holidayKeys = AttendanceHoliday::query()', $recapController);
+        $this->assertStringContainsString('->reject(fn (Carbon $date): bool => $holidayKeys->has($date->toDateString()))', $recapController);
         $this->assertStringContainsString('employeeDetailsDatatable', $recapController);
-        $this->assertStringContainsString('activeEmployeeIdsFor($now, $companyId)', $recapController);
+        $this->assertStringContainsString('activeEmployeeIdsFor($now)', $recapController);
+        $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $recapController);
         $this->assertStringContainsString("'recapDetailMonth' => \$detailContext['month']", $recapController);
         $this->assertStringContainsString('recapAttendanceLogRows', $recapController);
         $this->assertStringContainsString('recapMonthlyRows', $recapController);
@@ -133,6 +136,10 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('Attendance Recap', $detailView);
         $this->assertStringContainsString("recapDetailEmployee['employee_code']", $detailView);
         $this->assertStringContainsString("recapDetailEmployee['id']", $detailView);
+        $this->assertStringContainsString('admin-attendance-detail-info', $detailView);
+        $this->assertStringContainsString('admin-attendance-detail-info-value', $detailView);
+        $this->assertStringNotContainsString('<span>{{ $recapDetailEmployee[\'employee_code\'] ?? \'-\' }}</span> <br>', $detailView);
+        $this->assertStringContainsString('col-md-3 mb-3 mb-md-0', $detailView);
         $this->assertStringContainsString('id="recapDetailPeriodFilter"', $detailView);
         $this->assertStringContainsString('id="recapDetailMonthFilter"', $detailView);
         $this->assertStringContainsString('id="recapDetailYearFilter"', $detailView);
@@ -144,6 +151,9 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringNotContainsString("$('#tableLicenseUsage').DataTable", $detailView);
         $this->assertStringNotContainsString('scrollX: true', $detailView);
         $this->assertStringContainsString('admin-attendance-detail-avatar', $detailView);
+        $this->assertStringContainsString('assets/vendor/apexcharts/dist/apexcharts.min.js', $detailView);
+        $this->assertStringContainsString("typeof ApexCharts === 'undefined'", $detailView);
+        $this->assertStringContainsString('if (!$.fn.peity)', $detailView);
         $this->assertStringNotContainsString('admin-attendance-person-avatar', $detailView);
         $this->assertStringNotContainsString('admin-attendance-empty', $detailView);
         $this->assertStringNotContainsString('attendance-rate-mobile-slider', $detailView);

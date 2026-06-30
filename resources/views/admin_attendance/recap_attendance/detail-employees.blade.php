@@ -29,6 +29,22 @@
             object-fit: cover;
             width: 100%;
         }
+
+        .admin-attendance-detail-info {
+            display: flex;
+            gap: 8px;
+            justify-content: space-between;
+        }
+
+        .admin-attendance-detail-info-label {
+            flex: 0 0 auto;
+        }
+
+        .admin-attendance-detail-info-value {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            text-align: right;
+        }
     </style>
 @endsection
 
@@ -58,7 +74,7 @@
 <div class="row">
     
     <!-- Start - Portfolio -->
-    <div class="col-md-3">
+    <div class="col-md-3 mb-3 mb-md-0">
         <div class="card h-100">
             <div class="card-body py-sm-5">
                 <div class="text-center mb-3">
@@ -76,37 +92,21 @@
                         <span class="badge badge-sm light badge-danger fw-bold mt-1">{{ $recapDetailEmployee['company'] ?? '-' }}</span>
                     </div>
                 </div>
-                <div class="row py-1">
-                    <div class="col-12">
-                        <span>Employee ID :</span>
-                    </div>
-                    <div class="col-12">
-                        <span>{{ $recapDetailEmployee['employee_code'] ?? '-' }}</span> <br>
-                    </div>
+                <div class="admin-attendance-detail-info py-1">
+                    <span class="admin-attendance-detail-info-label">Employee ID :</span>
+                    <span class="admin-attendance-detail-info-value">{{ $recapDetailEmployee['employee_code'] ?? '-' }}</span>
                 </div>
-                <div class="row py-1">
-                    <div class="col-12">
-                        <span>Phone Number :</span>
-                    </div>
-                    <div class="col-12">
-                        <span>{{ $recapDetailEmployee['phone'] ?? '-' }}</span> <br>
-                    </div>
+                <div class="admin-attendance-detail-info py-1">
+                    <span class="admin-attendance-detail-info-label">Phone Number :</span>
+                    <span class="admin-attendance-detail-info-value">{{ $recapDetailEmployee['phone'] ?? '-' }}</span>
                 </div>
-                <div class="row py-1">
-                    <div class="col-12">
-                        <span>Email :</span>
-                    </div>
-                    <div class="col-12">
-                        <span>{{ $recapDetailEmployee['email'] ?? '-' }}</span> <br>
-                    </div>
+                <div class="admin-attendance-detail-info py-1">
+                    <span class="admin-attendance-detail-info-label">Email :</span>
+                    <span class="admin-attendance-detail-info-value">{{ $recapDetailEmployee['email'] ?? '-' }}</span>
                 </div>
-                <div class="row py-1">
-                    <div class="col-12">
-                        <span>Base :</span>
-                    </div>
-                    <div class="col-12">
-                        <span>{{ $recapDetailEmployee['base'] ?? '-' }}</span> <br>
-                    </div>
+                <div class="admin-attendance-detail-info py-1">
+                    <span class="admin-attendance-detail-info-label">Base :</span>
+                    <span class="admin-attendance-detail-info-value">{{ $recapDetailEmployee['base'] ?? '-' }}</span>
                 </div>
             </div>
         </div>
@@ -354,7 +354,13 @@
     @php
         $dashboardJsPath = public_path('assets/js/dashboard.js');
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
+        $dataTablesJsPath = public_path('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js');
+        $dataTablesJsVersion = file_exists($dataTablesJsPath) ? filemtime($dataTablesJsPath) : time();
+        $apexChartsPath = public_path('assets/vendor/apexcharts/dist/apexcharts.min.js');
+        $apexChartsVersion = file_exists($apexChartsPath) ? filemtime($apexChartsPath) : time();
     @endphp
+    <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
+    <script src="{{ asset('assets/vendor/apexcharts/dist/apexcharts.min.js') }}?v={{ $apexChartsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
 		(function($) {
@@ -739,10 +745,19 @@
 				labels: [''],
 				};
 
-				var chart = new ApexCharts(document.querySelector("#radialBar"), options);
+				var radialBarElement = document.querySelector("#radialBar");
+				if (!radialBarElement || typeof ApexCharts === 'undefined') {
+					return;
+				}
+
+				var chart = new ApexCharts(radialBarElement, options);
 				chart.render();
 			}
 			var donutChart = function(){
+				if (!$.fn.peity) {
+					return;
+				}
+
 				$("span.donut").peity("donut", {
 					width: "90",
 					height: "90"

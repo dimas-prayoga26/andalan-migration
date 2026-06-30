@@ -31,4 +31,9 @@ class RulesOfAttendace extends Model
     {
         return $this->belongsTo(Company::class, 'companies_id', 'id');
     }
+
+    public function officeLocation(): BelongsTo
+    {
+        return $this->belongsTo(OfficeLocation::class, 'office_location_id', 'id');
+    }
 }

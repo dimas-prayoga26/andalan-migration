@@ -5,10 +5,10 @@
             <button type="button" data-href="{{ route('attendance') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance') ? 'true' : 'false' }}">Overview</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button type="button" data-href="{{ route('attendance.today') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.today') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.today') ? 'true' : 'false' }}">Attendance</button>
+            <button type="button" data-href="{{ route('attendance.today') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.today*') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.today*') ? 'true' : 'false' }}">Attendance</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button type="button" data-href="{{ route('attendance.reports') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.reports') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.reports') ? 'true' : 'false' }}">Recap</button>
+            <button type="button" data-href="{{ route('attendance.reports') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.reports*') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.reports*') ? 'true' : 'false' }}">Recap</button>
         </li>
         <li class="nav-item" role="presentation">
             <button type="button" data-href="{{ route('attendance.leave-requests') }}" class="nav-link py-3 px-1 border-3 attendance-tab-btn {{ request()->routeIs('attendance.leave-requests*') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('attendance.leave-requests*') ? 'true' : 'false' }}">Leave</button>

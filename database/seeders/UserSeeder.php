@@ -11,6 +11,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 use Spatie\Permission\PermissionRegistrar;
 use Throwable;
@@ -299,20 +300,40 @@ class UserSeeder extends Seeder
         );
 
         $joinDate = $this->resolveJoinDate($user, (string) $employee->id, $now);
+        $officeLocationId = null;
+
+        if (
+            Schema::hasTable('office_locations')
+            && Schema::hasColumn('employee_deployments', 'current_office_location_id')
+            && is_string($companyId)
+            && trim($companyId) !== ''
+        ) {
+            $officeLocationId = DB::table('office_locations')
+                ->where('company_id', $companyId)
+                ->where('is_active', true)
+                ->orderByDesc('created_at')
+                ->value('id');
+        }
+
+        $deploymentData = [
+            'current_company_id' => $companyId,
+            'current_position_id' => $positionId,
+            'current_department_id' => $divisionId,
+            'join_date' => $joinDate,
+            'resignation_date' => null,
+            'workplace' => 'Onsite',
+            'status' => 'Active',
+            'updated_at' => $now,
+            'created_at' => $now,
+        ];
+
+        if (Schema::hasColumn('employee_deployments', 'current_office_location_id')) {
+            $deploymentData['current_office_location_id'] = $officeLocationId;
+        }
 
         EmployeeDeployment::query()->updateOrCreate(
             ['employee_id' => $employee->id],
-            [
-                'current_company_id' => $companyId,
-                'current_position_id' => $positionId,
-                'current_department_id' => $divisionId,
-                'join_date' => $joinDate,
-                'resignation_date' => null,
-                'workplace' => 'Onsite',
-                'status' => 'Active',
-                'updated_at' => $now,
-                'created_at' => $now,
-            ],
+            $deploymentData,
         );
 
         $user->forceFill([
@@ -422,8 +443,12 @@ class UserSeeder extends Seeder
     private function resolveRandomJoinDateFromYearStart(string $employeeId, Carbon $now): string
     {
         $startOfYear = $now->copy()->startOfYear();
-        $today = $now->copy()->startOfDay();
-        $dayRange = $startOfYear->diffInDays($today);
+        $latestJoinDate = $now->copy()->subMonth()->startOfDay();
+        if ($latestJoinDate->lessThan($startOfYear)) {
+            $latestJoinDate = $startOfYear->copy();
+        }
+
+        $dayRange = $startOfYear->diffInDays($latestJoinDate);
         $slotCount = $dayRange + 1;
         $slotHash = substr(hash('sha256', 'join-date|'.$employeeId.'|'.$now->format('Y')), 0, 8);
         $slot = hexdec($slotHash) % max(1, $slotCount);

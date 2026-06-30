@@ -443,6 +443,7 @@ class AttendanceMutationService
 
     /**
      * @return array{
+     *     id:string|null,
      *     name:string|null,
      *     address:string|null,
      *     latitude:float,
@@ -462,10 +463,24 @@ class AttendanceMutationService
         $currentUser = User::query()
             ->with([
                 'employee.deployment.company:id,name,address,latitude,longitude',
+                'employee.deployment.officeLocation:id,company_id,address,latitude,longitude,is_active',
+                'employee.deployment.officeLocation.company:id,name',
+                'employee.deployment.officeLocation.activeAttendanceRule' => static function ($query): void {
+                    $query->select([
+                        'rules_of_attendaces.id',
+                        'rules_of_attendaces.companies_id',
+                        'rules_of_attendaces.office_location_id',
+                        'rules_of_attendaces.radius',
+                        'rules_of_attendaces.ip_range',
+                        'rules_of_attendaces.office_start_time',
+                        'rules_of_attendaces.office_end_time',
+                    ]);
+                },
                 'employee.deployment.company.activeAttendanceRule' => static function ($query): void {
                     $query->select([
                         'rules_of_attendaces.id',
                         'rules_of_attendaces.companies_id',
+                        'rules_of_attendaces.office_location_id',
                         'rules_of_attendaces.radius',
                         'rules_of_attendaces.ip_range',
                         'rules_of_attendaces.office_start_time',
@@ -475,18 +490,47 @@ class AttendanceMutationService
             ])
             ->find($userId);
 
-        $officeCompany = $currentUser?->employee?->deployment?->company;
-        if (! $officeCompany || $officeCompany->latitude === null || $officeCompany->longitude === null) {
+        $deployment = $currentUser?->employee?->deployment;
+        $officeLocation = $deployment?->officeLocation;
+        $officeCompany = $officeLocation?->company ?: $deployment?->company;
+        $hasOfficeLocationCoordinates = $officeLocation
+            && $officeLocation->is_active !== false
+            && $officeLocation->latitude !== null
+            && $officeLocation->longitude !== null;
+
+        if ($hasOfficeLocationCoordinates) {
+            $attendanceRule = $officeLocation->activeAttendanceRule ?: $officeCompany?->activeAttendanceRule;
+
+            return [
+                'id' => $officeLocation->id,
+                'name' => $officeCompany?->name,
+                'address' => $officeLocation->address,
+                'latitude' => (float) $officeLocation->latitude,
+                'longitude' => (float) $officeLocation->longitude,
+                'radius_meters' => (int) ($attendanceRule->radius ?? 10),
+                'ip_range' => isset($attendanceRule?->ip_range) ? (string) $attendanceRule->ip_range : null,
+                'office_start_time' => isset($attendanceRule?->office_start_time) && is_string($attendanceRule->office_start_time)
+                    ? $attendanceRule->office_start_time
+                    : '08:00:00',
+                'office_end_time' => isset($attendanceRule?->office_end_time) && is_string($attendanceRule->office_end_time)
+                    ? $attendanceRule->office_end_time
+                    : '17:00:00',
+            ];
+        }
+
+        $fallbackCompany = $deployment?->company;
+        if (! $fallbackCompany || $fallbackCompany->latitude === null || $fallbackCompany->longitude === null) {
             return null;
         }
 
-        $attendanceRule = $officeCompany->activeAttendanceRule;
+        $attendanceRule = $fallbackCompany->activeAttendanceRule;
 
         return [
-            'name' => $officeCompany->name,
-            'address' => $officeCompany->address,
-            'latitude' => (float) $officeCompany->latitude,
-            'longitude' => (float) $officeCompany->longitude,
+            'id' => null,
+            'name' => $fallbackCompany->name,
+            'address' => $fallbackCompany->address,
+            'latitude' => (float) $fallbackCompany->latitude,
+            'longitude' => (float) $fallbackCompany->longitude,
             'radius_meters' => (int) ($attendanceRule->radius ?? 10),
             'ip_range' => isset($attendanceRule?->ip_range) ? (string) $attendanceRule->ip_range : null,
             'office_start_time' => isset($attendanceRule?->office_start_time) && is_string($attendanceRule->office_start_time)

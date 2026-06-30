@@ -374,6 +374,11 @@
 @endsection
 
 @section('script')
+@php
+    $dataTablesJsPath = public_path('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js');
+    $dataTablesJsVersion = file_exists($dataTablesJsPath) ? filemtime($dataTablesJsPath) : time();
+@endphp
+<script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
 <script>
     (function () {
         function setText(id, value) {

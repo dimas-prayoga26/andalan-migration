@@ -12,7 +12,7 @@
 @endphp
 <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
 <link rel="stylesheet" href="{{ asset('assets/css/attendance.css') }}?v={{ $attendanceCssVersion }}">
-<link rel="stylesheet" href="https://unpkg.com/antd@6.2.3/dist/antd.css">
+{{-- <link rel="stylesheet" href="https://unpkg.com/antd@6.2.3/dist/antd.css"> --}}
 <style>
     .project-task-overview-card .card-body {
         min-height: 235px;
@@ -396,7 +396,13 @@
     @php
         $dashboardJsPath = public_path('assets/js/dashboard.js');
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
+        $chartJsPath = public_path('assets/vendor/chart-js/chart.bundle.min.js');
+        $chartJsVersion = file_exists($chartJsPath) ? filemtime($chartJsPath) : time();
+        $apexChartsPath = public_path('assets/vendor/apexcharts/dist/apexcharts.min.js');
+        $apexChartsVersion = file_exists($apexChartsPath) ? filemtime($apexChartsPath) : time();
     @endphp
+    <script src="{{ asset('assets/vendor/chart-js/chart.bundle.min.js') }}?v={{ $chartJsVersion }}"></script>
+    <script src="{{ asset('assets/vendor/apexcharts/dist/apexcharts.min.js') }}?v={{ $apexChartsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -1474,5 +1480,3 @@
 	</script>
 
 @endsection
-
-

@@ -263,7 +263,7 @@ class PicAttendanceLeaveController extends Controller
      */
     private function activeEmployeeIdsFor(Carbon $date, ?string $companyId): Collection
     {
-        if (! is_string($companyId) || trim($companyId) === '' || $this->supervisorEmployeeId === null) {
+        if ($this->supervisorEmployeeId === null) {
             return collect();
         }
 
@@ -287,11 +287,10 @@ class PicAttendanceLeaveController extends Controller
             ->whereHas('user', function (Builder $query): void {
                 $query->where('is_active', true);
             })
-            ->whereHas('deployment', function (Builder $query) use ($todayDate, $companyId): void {
+            ->whereHas('deployment', function (Builder $query) use ($todayDate): void {
                 $query
                     ->whereNull('deleted_at')
                     ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                    ->where('current_company_id', $companyId)
                     ->where(function (Builder $query) use ($todayDate): void {
                         $query
                             ->whereNull('join_date')

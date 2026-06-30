@@ -38,6 +38,7 @@ class DatabaseSeeder extends Seeder
             LeaveRequestHistorySeeder::class,
             LeaveRequestFinalApprovedSeeder::class,
             LeaveBalanceSeeder::class,
+            NiskalaMultiPicLeaveSeeder::class,
         ];
 
         foreach ($seeders as $seederClass) {

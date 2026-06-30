@@ -43,6 +43,12 @@
                 center: 'title',
                 right: 'dayGridMonth,dayGridWeek,dayGridDay,listSchedule',
             },
+            buttonText: {
+                today: 'Today',
+                month: 'Month',
+                week: 'Week',
+                day: 'Day',
+            },
             views: {
                 listSchedule: {
                     type: 'list',

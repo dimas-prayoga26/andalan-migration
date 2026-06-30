@@ -11,7 +11,6 @@ use App\Models\AttendanceOvertime;
 use App\Models\BusinessTrip;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
-use App\Models\User;
 use App\Support\Attendance\AttendanceExceptionPresenter;
 use App\Support\Attendance\AttendanceLocationFormatter;
 use Illuminate\Contracts\View\View;
@@ -34,11 +33,7 @@ class AttendanceRecapController extends Controller
 
     public function monthlyDatatable(Request $request): JsonResponse
     {
-        $authenticatedUser = $request->user();
-        $companyId = $authenticatedUser instanceof User
-            ? $this->currentCompanyIdFor($authenticatedUser)
-            : null;
-        $monthlyData = $this->recapMonthlyData($request, $companyId);
+        $monthlyData = $this->recapMonthlyData($request);
 
         return response()->json([
             'data' => $monthlyData['recapMonthlyRows'],
@@ -89,9 +84,7 @@ class AttendanceRecapController extends Controller
         $periodStart = Carbon::create($selectedYear, $selectedMonth, 1, 0, 0, 0, 'Asia/Jakarta')->startOfDay();
         $periodEnd = $periodStart->copy()->endOfMonth()->startOfDay();
         $employeeId = trim($employeeId);
-        $authenticatedUser = $request->user();
-        $companyId = $authenticatedUser instanceof User ? $this->currentCompanyIdFor($authenticatedUser) : null;
-        $activeEmployeeIds = $this->activeEmployeeIdsFor($now, $companyId);
+        $activeEmployeeIds = $this->activeEmployeeIdsFor($now);
 
         abort_unless($employeeId !== '' && $activeEmployeeIds->contains($employeeId), 404);
 
@@ -104,7 +97,7 @@ class AttendanceRecapController extends Controller
                 'deployment.position:id,name',
                 'deployment.department:id,name',
             ])
-            ->findOrFail($employeeId, ['id', 'user_id', 'employee_code', 'attachment_path']);
+            ->findOrFail($employeeId, ['id', 'user_id', 'employee_code']);
 
         return [
             'employee' => $employee,
@@ -118,13 +111,9 @@ class AttendanceRecapController extends Controller
     private function recapViewData(Request $request): array
     {
         $attendanceDate = now('Asia/Jakarta')->startOfDay();
-        $authenticatedUser = $request->user();
-        $currentCompanyId = $authenticatedUser instanceof User
-            ? $this->currentCompanyIdFor($authenticatedUser)
-            : null;
-        $activeEmployeeIds = $this->activeEmployeeIdsFor($attendanceDate, $currentCompanyId);
+        $activeEmployeeIds = $this->activeEmployeeIdsFor($attendanceDate);
 
-        $recapMonthlyData = $this->recapMonthlyData($request, $currentCompanyId, false);
+        $recapMonthlyData = $this->recapMonthlyData($request, false);
 
         return [
             'recapAttendanceDateLabel' => $attendanceDate->format('d F Y'),
@@ -133,7 +122,7 @@ class AttendanceRecapController extends Controller
         ] + $recapMonthlyData;
     }
 
-    private function recapMonthlyData(Request $request, ?string $companyId, bool $includeRows = true): array
+    private function recapMonthlyData(Request $request, bool $includeRows = true): array
     {
         $now = now('Asia/Jakarta')->startOfDay();
         $selectedYear = $request->integer('year', (int) $now->year);
@@ -146,7 +135,7 @@ class AttendanceRecapController extends Controller
         $periodEnd = $selectedYear === (int) $now->year && $selectedMonth === (int) $now->month
             ? $now->copy()
             : $periodStart->copy()->endOfMonth()->startOfDay();
-        $activeEmployeeIds = $this->activeEmployeeIdsFor($periodEnd, $companyId);
+        $activeEmployeeIds = $this->activeEmployeeIdsFor($periodEnd);
 
         return [
             'recapMonthlyPeriodLabel' => $periodStart->format('F Y'),
@@ -501,7 +490,7 @@ class AttendanceRecapController extends Controller
                 'base' => $employee->deployment?->company?->address ?: '-',
                 'phone' => $employee->user?->phone ?: '-',
                 'email' => $employee->user?->email ?: '-',
-                'avatar_url' => filled($employee->attachment_path) ? asset('storage/'.$employee->attachment_path) : null,
+                'avatar_url' => null,
             ],
             'recapDetailMetrics' => [
                 'on_time' => $this->recapDaysLabel($onTimeCount),
@@ -829,21 +818,8 @@ class AttendanceRecapController extends Controller
         return 'https://maps.google.com/maps?q='.rawurlencode($latitude.','.$longitude).'&t=&z=13&ie=UTF8&iwloc=&output=embed';
     }
 
-    private function currentCompanyIdFor(User $user): ?string
+    private function activeEmployeeIdsFor(Carbon $date): Collection
     {
-        $user->loadMissing('employee.deployment:id,employee_id,current_company_id');
-
-        $companyId = $user->employee?->deployment?->current_company_id;
-
-        return is_string($companyId) && trim($companyId) !== '' ? trim($companyId) : null;
-    }
-
-    private function activeEmployeeIdsFor(Carbon $date, ?string $companyId): Collection
-    {
-        if (! is_string($companyId) || trim($companyId) === '') {
-            return collect();
-        }
-
         $todayDate = $date->toDateString();
 
         return Employee::query()
@@ -852,11 +828,10 @@ class AttendanceRecapController extends Controller
             ->whereHas('user', function ($query): void {
                 $query->where('is_active', true);
             })
-            ->whereHas('deployment', function ($query) use ($todayDate, $companyId): void {
+            ->whereHas('deployment', function ($query) use ($todayDate): void {
                 $query
                     ->whereNull('deleted_at')
                     ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                    ->where('current_company_id', $companyId)
                     ->where(function ($query) use ($todayDate): void {
                         $query
                             ->whereNull('join_date')

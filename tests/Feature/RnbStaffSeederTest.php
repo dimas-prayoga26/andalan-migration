@@ -132,6 +132,15 @@ class RnbStaffSeederTest extends TestCase
         $this->assertNotNull($staff31JoinDate);
         $this->assertTrue(Carbon::parse((string) $staff31JoinDate)->lessThan(now()->subYear()));
 
+        $latestGeneratedJoinDate = DB::table('users')
+            ->join('employees', 'employees.user_id', '=', 'users.id')
+            ->join('employee_deployments', 'employee_deployments.employee_id', '=', 'employees.id')
+            ->where('users.username', '<>', 'staff31')
+            ->max('employee_deployments.join_date');
+
+        $this->assertNotNull($latestGeneratedJoinDate);
+        $this->assertTrue(Carbon::parse((string) $latestGeneratedJoinDate)->lessThanOrEqualTo(now()->subMonth()->startOfDay()));
+
         $staffAssignments = DB::table('users')
             ->join('employees', 'employees.user_id', '=', 'users.id')
             ->join('employee_deployments', 'employee_deployments.employee_id', '=', 'employees.id')

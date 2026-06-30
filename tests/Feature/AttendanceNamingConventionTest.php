@@ -107,11 +107,18 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertTrue(class_exists(AttendanceProfileComposer::class));
 
         $appServiceProvider = File::get(app_path('Providers/AppServiceProvider.php'));
+        $attendanceCss = File::get(public_path('assets/css/attendance.css'));
+        $profileNavbarView = File::get(resource_path('views/staff_attendance/layouts/profile-navbar.blade.php'));
 
         $this->assertStringContainsString("'staff_attendance.overview.index'", $appServiceProvider);
         $this->assertStringContainsString("'staff_attendance.layouts.profile-header'", $appServiceProvider);
         $this->assertStringContainsString("'staff_attendance.components.card-analytics'", $appServiceProvider);
         $this->assertStringContainsString('AttendanceProfileComposer::class', $appServiceProvider);
+        $this->assertStringContainsString("request()->routeIs('attendance.today*')", $profileNavbarView);
+        $this->assertStringContainsString("request()->routeIs('attendance.reports*')", $profileNavbarView);
+        $this->assertStringContainsString("request()->routeIs('attendance.leave-requests*')", $profileNavbarView);
+        $this->assertStringContainsString('.attendance-tabs .attendance-tab-btn.active {', $attendanceCss);
+        $this->assertStringContainsString('border-bottom-color: var(--bs-primary);', $attendanceCss);
 
         $attendanceOverviewView = File::get(resource_path('views/staff_attendance/overview/index.blade.php'));
 
@@ -138,10 +145,13 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertSame(2, substr_count($attendanceOverviewView, '<div class="card flex-fill">'));
         $this->assertStringContainsString('row row-cols-2 g-2 list-unstyled mb-0 mx-auto w-100', $attendanceOverviewView);
         $this->assertStringContainsString('$attendanceOverviewSeries = array_values($profileAttendanceOverviewSeries ?? [0, 0, 0, 0]);', $attendanceOverviewView);
+        $this->assertStringContainsString('$attendanceOverviewChartSeries = array_sum($attendanceOverviewSeries) > 0 ? $attendanceOverviewSeries : [1];', $attendanceOverviewView);
+        $this->assertStringContainsString('$attendanceOverviewChartColors = array_sum($attendanceOverviewSeries) > 0', $attendanceOverviewView);
         $this->assertStringContainsString('Attendance Overview ({{ $attendanceOverviewMonthLabel }})', $attendanceOverviewView);
         $this->assertStringContainsString('Progress ({{ $attendanceOverviewMonthLabel }})', $attendanceOverviewView);
         $this->assertStringContainsString('Days Worked ({{ $attendanceDaysCount }}/{{ $workingDaysCount }} Days)', $attendanceOverviewView);
-        $this->assertStringContainsString('series: @json($attendanceOverviewSeries)', $attendanceOverviewView);
+        $this->assertStringContainsString('series: @json($attendanceOverviewChartSeries)', $attendanceOverviewView);
+        $this->assertStringContainsString('colors: @json($attendanceOverviewChartColors)', $attendanceOverviewView);
         $this->assertStringContainsString('series: [{{ $attendanceProgressPercent }}]', $attendanceOverviewView);
         $this->assertStringContainsString('On Time ({{ $progressOnTimePercent }}%)', $attendanceOverviewView);
         $this->assertStringContainsString('Late ({{ $progressLatePercent }}%)', $attendanceOverviewView);
@@ -175,11 +185,16 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertStringContainsString('.attendance-rate-mobile-slide {', $attendanceOverviewView);
 
         $attendanceTodayView = File::get(resource_path('views/staff_attendance/attendance/index.blade.php'));
+        $attendanceReportsView = File::get(resource_path('views/staff_attendance/reports/index.blade.php'));
         $attendanceCardAnalyticsView = File::get(resource_path('views/staff_attendance/components/card-analytics.blade.php'));
 
         $this->assertStringContainsString("@include('staff_attendance.components.card-analytics')", $attendanceTodayView);
         $this->assertStringContainsString('.attendance-rate-mobile-slider {', $attendanceTodayView);
         $this->assertStringContainsString('.attendance-rate-mobile-slide {', $attendanceTodayView);
+        $this->assertStringContainsString('.attendance-tabs .attendance-tab-btn.active {', $attendanceTodayView);
+        $this->assertStringContainsString('border-bottom-color: var(--bs-primary);', $attendanceTodayView);
+        $this->assertStringContainsString('.attendance-tabs .attendance-tab-btn.active {', $attendanceReportsView);
+        $this->assertStringContainsString('border-bottom-color: var(--bs-primary);', $attendanceReportsView);
         $this->assertStringContainsString('row attendance-rate-mobile-slider', $attendanceCardAnalyticsView);
         $this->assertStringContainsString('Attendance Rate', $attendanceCardAnalyticsView);
         $this->assertStringContainsString('On Time Rate', $attendanceCardAnalyticsView);
@@ -212,13 +227,14 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertStringContainsString('margin-top: 1rem;', $profileHeaderView);
 
         $commonJsView = File::get(resource_path('views/layouts/commonjs.blade.php'));
+        $profileIndexView = File::get(resource_path('views/staff_attendance/layouts/profile-index.blade.php'));
+        $adminRecapDetailView = File::get(resource_path('views/admin_attendance/recap_attendance/detail-employees.blade.php'));
 
-        foreach ([
-            'vendor/chart-js/chart.bundle.min.js',
-            'vendor/apexcharts/dist/apexcharts.min.js',
-            'vendor/peity/jquery.peity.min.js',
-        ] as $chartDependency) {
-            $this->assertStringContainsString($chartDependency, $commonJsView);
-        }
+        $this->assertStringContainsString('vendor/chart-js/chart.bundle.min.js', $attendanceOverviewView);
+        $this->assertStringNotContainsString('<script src="vendor/chart-js/chart.bundle.min.js', $commonJsView);
+        $this->assertStringContainsString('vendor/peity/jquery.peity.min.js', $commonJsView);
+        $this->assertStringNotContainsString('vendor/apexcharts/dist/apexcharts.min.js', $commonJsView);
+        $this->assertStringContainsString('vendor/apexcharts/dist/apexcharts.min.js', $profileIndexView);
+        $this->assertStringContainsString('vendor/apexcharts/dist/apexcharts.min.js', $adminRecapDetailView);
     }
 }

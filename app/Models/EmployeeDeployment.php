@@ -42,6 +42,11 @@ class EmployeeDeployment extends Model
         return $this->belongsTo(Company::class, 'current_company_id');
     }
 
+    public function officeLocation(): BelongsTo
+    {
+        return $this->belongsTo(OfficeLocation::class, 'current_office_location_id', 'id');
+    }
+
     public function position(): BelongsTo
     {
         return $this->belongsTo(Position::class, 'current_position_id', 'id');

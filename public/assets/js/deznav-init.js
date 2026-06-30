@@ -463,14 +463,26 @@ function getUrlParams(dParam){
         new dzSettings(dzSettingsOptions);
 	});
 	
+	function setStylesheetHref(selector, href) {
+		var stylesheet = jQuery(selector);
+		var currentHref = stylesheet.attr('href') || '';
+		var currentPath = currentHref.split('?')[0];
+
+		if (currentPath === href) {
+			return;
+		}
+
+		stylesheet.attr('href', href);
+	}
+
 	if(direction == 'rtl' || body.attr('direction') == 'rtl'){
-		jQuery('.main-switcher').attr('href','css/switcher-rtl.css');
-		jQuery('.main-plugins').attr('href','css/plugins-rtl.css');
-		jQuery('.main-css').attr('href','css/style-rtl.css');
+		setStylesheetHref('.main-switcher','css/switcher-rtl.css');
+		setStylesheetHref('.main-plugins','css/plugins-rtl.css');
+		setStylesheetHref('.main-css','css/style-rtl.css');
     }else{
-		jQuery('.main-switcher').attr('href','css/switcher.css');
-		jQuery('.main-plugins').attr('href','css/plugins.css');
-		jQuery('.main-css').attr('href','css/style.css');
+		setStylesheetHref('.main-switcher','css/switcher.css');
+		setStylesheetHref('.main-plugins','css/plugins.css');
+		setStylesheetHref('.main-css','css/style.css');
 	}
 
 })(jQuery);

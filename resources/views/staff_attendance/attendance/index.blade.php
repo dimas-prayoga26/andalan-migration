@@ -8,9 +8,12 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
         $attendanceCssPath = public_path('assets/css/attendance.css');
         $attendanceCssVersion = file_exists($attendanceCssPath) ? filemtime($attendanceCssPath) : time();
+        $fullCalendarCssPath = public_path('assets/vendor/fullcalendar/css/main.min.css');
+        $fullCalendarCssVersion = file_exists($fullCalendarCssPath) ? filemtime($fullCalendarCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
     <link rel="stylesheet" href="{{ asset('assets/css/attendance.css') }}?v={{ $attendanceCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/fullcalendar/css/main.min.css') }}?v={{ $fullCalendarCssVersion }}">
     <link rel="stylesheet" href="https://unpkg.com/antd@6.2.3/dist/antd.css">
     <!-- Start - All Required Plugins -->
     <style>
@@ -33,8 +36,16 @@
         }
 
         .attendance-tabs .attendance-tab-btn {
-            border: 0;
             background: transparent;
+            border: 0;
+            border-bottom: 3px solid transparent;
+            color: var(--bs-nav-link-color);
+            transition: color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+        }
+
+        .attendance-tabs .attendance-tab-btn.active {
+            border-bottom-color: var(--bs-primary);
+            color: var(--bs-primary);
         }
 
         .attendance-tabs .attendance-tab-btn:focus {
@@ -144,6 +155,122 @@
             height: 250px;
             border: 1px solid #e6eaf2;
             background: #f8fafc;
+        }
+
+        .app-fullcalendar .fc-toolbar {
+            align-items: center;
+            flex-direction: row !important;
+            gap: 1rem;
+        }
+
+        .app-fullcalendar .fc-toolbar-chunk {
+            align-items: center;
+            display: flex;
+        }
+
+        .app-fullcalendar .fc-toolbar-title {
+            color: var(--bs-heading-color);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            text-align: center;
+        }
+
+        .app-fullcalendar .fc-button {
+            border-radius: 0.75rem;
+            box-shadow: none !important;
+            font-size: 0.875rem;
+            font-weight: 600;
+            line-height: 1.25;
+            min-height: 38px;
+            padding: 0.6rem 1rem;
+            text-transform: capitalize;
+        }
+
+        .app-fullcalendar .fc-button-primary {
+            background-color: #ffffff !important;
+            border-color: var(--bs-border-color) !important;
+            color: var(--bs-heading-color) !important;
+        }
+
+        .app-fullcalendar .fc-button-primary:hover,
+        .app-fullcalendar .fc-button-primary:focus {
+            background-color: #f4f6fb !important;
+            border-color: var(--bs-primary) !important;
+            color: var(--bs-primary) !important;
+        }
+
+        .app-fullcalendar .fc-button-primary:disabled {
+            background-color: #f4f6fb !important;
+            border-color: var(--bs-border-color) !important;
+            color: #6c757d !important;
+            opacity: 1;
+        }
+
+        .app-fullcalendar .fc-button-primary:not(:disabled).fc-button-active,
+        .app-fullcalendar .fc-button-primary:not(:disabled):active {
+            background-color: var(--bs-primary) !important;
+            border-color: var(--bs-primary) !important;
+            color: #ffffff !important;
+        }
+
+        .app-fullcalendar .fc-button-group {
+            display: inline-flex;
+        }
+
+        .app-fullcalendar .fc-button-group>.fc-button {
+            border-radius: 0;
+        }
+
+        .app-fullcalendar .fc-button-group>.fc-button:first-child {
+            border-bottom-left-radius: 0.75rem;
+            border-top-left-radius: 0.75rem;
+        }
+
+        .app-fullcalendar .fc-button-group>.fc-button:last-child {
+            border-bottom-right-radius: 0.75rem;
+            border-top-right-radius: 0.75rem;
+        }
+
+        .app-fullcalendar .fc-prev-button,
+        .app-fullcalendar .fc-next-button {
+            align-items: center;
+            display: inline-flex;
+            height: 38px;
+            justify-content: center;
+            min-height: 38px;
+            padding: 0 !important;
+            width: 38px;
+        }
+
+        .app-fullcalendar .fc-prev-button {
+            border-bottom-left-radius: 0.75rem !important;
+            border-top-left-radius: 0.75rem !important;
+        }
+
+        .app-fullcalendar .fc-next-button {
+            border-bottom-right-radius: 0.75rem !important;
+            border-top-right-radius: 0.75rem !important;
+        }
+
+        .app-fullcalendar .fc-today-button {
+            margin-left: 0.75rem !important;
+        }
+
+        @media (max-width: 767.98px) {
+            .app-fullcalendar .fc-toolbar {
+                align-items: stretch;
+                flex-direction: column !important;
+            }
+
+            .app-fullcalendar .fc-toolbar-chunk {
+                justify-content: center;
+            }
+
+            .app-fullcalendar .fc-toolbar-chunk:first-child,
+            .app-fullcalendar .fc-toolbar-chunk:last-child {
+                overflow-x: auto;
+            }
         }
 
         .app-fullcalendar .fc-event.fc-weekend-dayoff-card,
@@ -779,7 +906,10 @@
     @php
         $dashboardJsPath = public_path('assets/js/dashboard.js');
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
+        $fullCalendarJsPath = public_path('assets/vendor/fullcalendar/js/main.js');
+        $fullCalendarJsVersion = file_exists($fullCalendarJsPath) ? filemtime($fullCalendarJsPath) : time();
     @endphp
+    <script src="{{ asset('assets/vendor/fullcalendar/js/main.js') }}?v={{ $fullCalendarJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -1218,15 +1348,15 @@
                     headerToolbar: {
                         left: 'prev,next today',
                         center: 'title',
-                        right: 'dayGridMonth,dayGridWeek,dayGridDay,listSchedule'
+                        right: 'dayGridMonth,dayGridWeek,dayGridDay'
                     },
-                    views: {
-                        listSchedule: {
-                            type: 'list',
-                            duration: { months: 4 },
-                            buttonText: 'Schedule'
-                        }
+                    buttonText: {
+                        today: 'Today',
+                        month: 'Month',
+                        week: 'Week',
+                        day: 'Day'
                     },
+                    firstDay: 1,
                     listDayFormat: { weekday: 'short', month: 'short', day: 'numeric' },
                     listDaySideFormat: { year: 'numeric' },
                     scrollTime: '07:30:00',

@@ -33,8 +33,16 @@
         }
 
         .attendance-tabs .attendance-tab-btn {
-            border: 0;
             background: transparent;
+            border: 0;
+            border-bottom: 3px solid transparent;
+            color: var(--bs-nav-link-color);
+            transition: color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+        }
+
+        .attendance-tabs .attendance-tab-btn.active {
+            border-bottom-color: var(--bs-primary);
+            color: var(--bs-primary);
         }
 
         .attendance-tabs .attendance-tab-btn:focus {
@@ -331,7 +339,10 @@
     @php
         $dashboardJsPath = public_path('assets/js/dashboard.js');
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
+        $dataTablesJsPath = public_path('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js');
+        $dataTablesJsVersion = file_exists($dataTablesJsPath) ? filemtime($dataTablesJsPath) : time();
     @endphp
+    <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 	
     <script>

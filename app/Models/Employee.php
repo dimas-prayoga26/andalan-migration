@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Employee extends Model
 {
     use GeneratesCustomSequenceUuid;
+    use SoftDeletes;
 
     protected $table = 'employees';
 
@@ -43,6 +45,18 @@ class Employee extends Model
     public function profile(): HasOne
     {
         return $this->hasOne(EmployeeProfile::class, 'employee_id', 'id');
+    }
+
+    public function identity(): HasOne
+    {
+        return $this->hasOne(EmployeeIdentity::class, 'employee_id', 'id');
+    }
+
+    public function picAssignment(): HasOne
+    {
+        return $this->hasOne(EmployeePicAssignment::class, 'staff_employee_id', 'id')
+            ->where('is_active', true)
+            ->latest('created_at');
     }
 
     public function addresses(): HasMany

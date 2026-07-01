@@ -49,7 +49,12 @@ class OfficeLocationGeofencingTest extends TestCase
         }
 
         $this->assertStringContainsString("DB::table('office_locations')->insert", $rulesSeeder);
+        $this->assertStringContainsString('Company::query()', $rulesSeeder);
+        $this->assertStringContainsString("->where('is_active', true)", $rulesSeeder);
+        $this->assertStringContainsString('syncCompanyAttendanceRule($company)', $rulesSeeder);
+        $this->assertStringContainsString('officeLocationDataForCompany', $rulesSeeder);
         $this->assertStringContainsString("\$ruleData['office_location_id'] = \$officeLocationId;", $rulesSeeder);
+        $this->assertStringContainsString("'current_office_location_id' => \$officeLocationId", $rulesSeeder);
         $this->assertStringContainsString("\$deploymentData['current_office_location_id'] = \$officeLocationId;", $userSeeder);
     }
 }

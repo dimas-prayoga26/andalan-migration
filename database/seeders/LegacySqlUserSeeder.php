@@ -27,6 +27,13 @@ class LegacySqlUserSeeder extends Seeder
     /**
      * @var array<int, string>
      */
+    private const LEGACY_PLACEHOLDER_ADMIN_EMAILS = [
+        'admin@andalanbersama.com',
+    ];
+
+    /**
+     * @var array<int, string>
+     */
     private array $companyIdsByLegacyId = [];
 
     /**
@@ -60,10 +67,11 @@ class LegacySqlUserSeeder extends Seeder
                 $this->seedPositions($this->parseInsertRows($dump, 'opt_positions'));
                 $this->seedRoles($this->parseInsertRows($dump, 'opt_roles'));
 
-                $legacyUsers = $this->parseInsertRows($dump, 'users');
+                $legacyUsers = $this->legacyUsersForImport($this->parseInsertRows($dump, 'users'));
                 $this->removeNonLegacyUsers($legacyUsers);
                 $this->seedUsers($legacyUsers);
                 $this->seedPositionPermissions($this->parseInsertRows($dump, 'users_authorization'));
+                $this->seedSuperAdministratorAccount();
 
                 app(PermissionRegistrar::class)->forgetCachedPermissions();
             });
@@ -186,6 +194,28 @@ class LegacySqlUserSeeder extends Seeder
 
             $this->roleNamesByLegacyId[$legacyId] = $roleName;
         });
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $legacyUsers
+     */
+    private function legacyUsersForImport(Collection $legacyUsers): Collection
+    {
+        return $legacyUsers
+            ->reject(fn (array $legacyUser): bool => $this->isPlaceholderAdmin($legacyUser))
+            ->values();
+    }
+
+    /**
+     * @param  array<string, mixed>  $legacyUser
+     */
+    private function isPlaceholderAdmin(array $legacyUser): bool
+    {
+        $email = strtolower(trim((string) ($legacyUser['email'] ?? '')));
+        $name = strtolower(trim((string) ($legacyUser['name'] ?? '')));
+
+        return in_array($email, self::LEGACY_PLACEHOLDER_ADMIN_EMAILS, true)
+            || $name === 'admin andalan';
     }
 
     /**
@@ -337,7 +367,6 @@ class LegacySqlUserSeeder extends Seeder
         $email = strtolower(trim((string) ($legacyUser['email'] ?? '')));
 
         $positionName = match ($email) {
-            'admin@andalanbersama.com' => 'Administrator',
             'diktanamira@gmail.com' => 'Administrator',
             default => null,
         };
@@ -383,7 +412,7 @@ class LegacySqlUserSeeder extends Seeder
         $officeLocationId = $this->officeLocationIdForCompany($companyId);
 
         $joinDate = $this->normalizeJoinDate($legacyUser);
-        $resignationDate = $this->normalizeResignationDate($legacyUser['end_date']);
+        $resignationDate = $this->legacyResignationDate($legacyUser);
 
         $deployment = EmployeeDeployment::query()->updateOrCreate(
             ['employee_id' => $employee->id],
@@ -463,7 +492,6 @@ class LegacySqlUserSeeder extends Seeder
         return match ($email) {
             'halloerlin@gmail.com' => ['Administrator', 'Accounting and Taxation'],
             'diktanamira@gmail.com' => ['Administrator', 'Accounting and Taxation'],
-            'admin@andalanbersama.com' => ['Administrator'],
             'msyafiq.dev@gmail.com' => ['Supervisor'],
             'rexy@andalanbersama.com' => ['Director', 'Supervisor'],
             'fuadmfahrudin@gmail.com' => ['Director', 'Supervisor'],
@@ -812,6 +840,107 @@ class LegacySqlUserSeeder extends Seeder
         $normalizedDate = $this->normalizeDate($value);
 
         return $normalizedDate === '1970-01-01' ? null : $normalizedDate;
+    }
+
+    /**
+     * @param  array<string, mixed>  $legacyUser
+     */
+    private function legacyResignationDate(array $legacyUser): ?string
+    {
+        if ((int) ($legacyUser['status'] ?? 0) === 1) {
+            return null;
+        }
+
+        return $this->normalizeResignationDate($legacyUser['end_date'] ?? null);
+    }
+
+    private function seedSuperAdministratorAccount(): void
+    {
+        $now = now();
+        $companyId = Company::query()
+            ->whereRaw('LOWER(name) = ?', ['rnb'])
+            ->value('id')
+            ?? Company::query()->orderBy('name')->value('id');
+        $departmentId = DB::table('departments')->where('name', 'Administrator')->value('id');
+        $positionId = DB::table('positions')->where('name', 'Super Administrator')->value('id');
+
+        if (! is_string($positionId) || trim($positionId) === '') {
+            throw new RuntimeException('Position Super Administrator tidak ditemukan.');
+        }
+
+        Role::query()->firstOrCreate([
+            'name' => 'superuser',
+            'guard_name' => 'web',
+        ]);
+
+        $user = User::query()->updateOrCreate(
+            ['email' => 'superadmin@andalanbersama.com'],
+            [
+                'company_id' => $companyId,
+                'username' => 'superadmin',
+                'business_email' => 'superadmin@andalanbersama.com',
+                'password' => Hash::make('password'),
+                'is_active' => true,
+                'deleted_at' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+        $user->syncRoles(['superuser']);
+
+        $employee = Employee::withTrashed()->updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'employee_code' => 'EMP-SUPERADMIN',
+                'status' => 'Active',
+                'deleted_at' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+
+        if ($employee->trashed()) {
+            $employee->restore();
+        }
+
+        DB::table('employee_profiles')->updateOrInsert(
+            ['employee_id' => $employee->id],
+            [
+                'id' => (string) (DB::table('employee_profiles')->where('employee_id', $employee->id)->value('id') ?? Str::uuid()),
+                'name' => 'superadmin',
+                'nickname' => 'superadmin',
+                'updated_at' => $now,
+                'created_at' => $now,
+            ],
+        );
+
+        DB::table('user_profiles')->updateOrInsert(
+            ['user_id' => $user->id],
+            [
+                'nickname' => 'superadmin',
+                'updated_at' => $now,
+                'created_at' => $now,
+            ],
+        );
+
+        $deployment = EmployeeDeployment::query()->updateOrCreate(
+            ['employee_id' => $employee->id],
+            [
+                'current_company_id' => $companyId,
+                'current_position_id' => $positionId,
+                'current_department_id' => is_string($departmentId) ? $departmentId : null,
+                ...$this->optionalOfficeLocationPayload($this->officeLocationIdForCompany(is_string($companyId) ? $companyId : null)),
+                'join_date' => $now->toDateString(),
+                'resignation_date' => null,
+                'workplace' => 'RNB',
+                'status' => 'Active',
+                'deleted_at' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+
+        $this->syncDeploymentPosition($deployment, $positionId, $now->toDateString(), null);
     }
 
     private function normalizeTimestamp(mixed $value): ?Carbon

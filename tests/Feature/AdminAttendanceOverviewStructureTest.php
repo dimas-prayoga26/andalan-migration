@@ -129,6 +129,12 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $leaveController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceLeaveController.php'));
 
         $this->assertStringContainsString('@forelse ($recapAttendanceLogRows as $row)', $recapView);
+        $this->assertStringContainsString('id="recapAttendanceCaptureButton"', $recapView);
+        $this->assertStringContainsString('id="recapAttendanceCaptureArea"', $recapView);
+        $this->assertStringContainsString('id="recapAttendanceCaptureTable"', $recapView);
+        $this->assertStringNotContainsString('<h4 class="card-title m-0">Attendance Logs ({{ $recapAttendanceDateLabel }})</h4>', $recapView);
+        $this->assertStringContainsString('function downloadRecapAttendanceImage()', $recapView);
+        $this->assertStringContainsString("link.download = filename + '.png';", $recapView);
         $this->assertStringContainsString('id="recapMonthlyTable"', $recapView);
         $this->assertStringContainsString('admin-attendance.recap.monthly-datatable', $recapView);
         $this->assertStringContainsString('employeeDetailBaseUrl', $recapView);

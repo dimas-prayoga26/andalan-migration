@@ -14,6 +14,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $normalizeDate = new ReflectionMethod($seeder, 'normalizeDate');
         $normalizeJoinDate = new ReflectionMethod($seeder, 'normalizeJoinDate');
         $normalizeResignationDate = new ReflectionMethod($seeder, 'normalizeResignationDate');
+        $legacyResignationDate = new ReflectionMethod($seeder, 'legacyResignationDate');
 
         $this->assertNull($normalizeDate->invoke($seeder, '0000-00-00'));
         $this->assertSame('1970-01-01', $normalizeDate->invoke($seeder, '1970-01-01'));
@@ -23,6 +24,16 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         ]));
         $this->assertNull($normalizeResignationDate->invoke($seeder, '1970-01-01'));
         $this->assertSame('2026-12-31', $normalizeResignationDate->invoke($seeder, '2026-12-31'));
+        $this->assertNull($legacyResignationDate->invoke($seeder, [
+            'email' => 'active@example.com',
+            'status' => 1,
+            'end_date' => '2023-12-31',
+        ]));
+        $this->assertSame('2023-12-31', $legacyResignationDate->invoke($seeder, [
+            'email' => 'inactive@example.com',
+            'status' => 0,
+            'end_date' => '2023-12-31',
+        ]));
     }
 
     public function test_multiple_position_schema_and_relations_are_registered(): void
@@ -143,6 +154,8 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringContainsString('employee_deployment_positions', $legacySeeder);
         $this->assertStringContainsString('syncDeploymentPosition(', $legacySeeder);
         $this->assertStringContainsString("'System Administrator' => 'Administrator'", $legacySeeder);
+        $this->assertStringContainsString('private const LEGACY_PLACEHOLDER_ADMIN_EMAILS', $legacySeeder);
+        $this->assertStringContainsString("'superadmin@andalanbersama.com'", $legacySeeder);
 
         $this->assertIsString($niskalaSeeder);
         $this->assertStringContainsString("employeeByEmail('diktanamira@gmail.com')", $niskalaSeeder);
@@ -194,8 +207,10 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $niskalaSeeder = file_get_contents(database_path('seeders/NiskalaMultiPicLeaveSeeder.php'));
 
         $this->assertIsString($legacySeeder);
-        $this->assertStringContainsString("'admin@andalanbersama.com' => 'Administrator'", $legacySeeder);
-        $this->assertStringContainsString("'admin@andalanbersama.com' => ['Administrator']", $legacySeeder);
+        $this->assertStringContainsString("'username' => 'superadmin'", $legacySeeder);
+        $this->assertStringContainsString("\$user->syncRoles(['superuser']);", $legacySeeder);
+        $this->assertStringNotContainsString("'admin@andalanbersama.com' => 'Administrator'", $legacySeeder);
+        $this->assertStringNotContainsString("'admin@andalanbersama.com' => ['Administrator']", $legacySeeder);
         $this->assertStringNotContainsString("'admin@andalanbersama.com' => 'Super Administrator'", $legacySeeder);
         $this->assertStringNotContainsString("'admin@andalanbersama.com' => ['Super Administrator']", $legacySeeder);
         $this->assertStringNotContainsString("'diktanamira@gmail.com' => ['Super Administrator']", $legacySeeder);
@@ -204,5 +219,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
 
         $this->assertIsString($niskalaSeeder);
         $this->assertStringNotContainsString("'additional_position_names' => ['Super Administrator']", $niskalaSeeder);
+        $this->assertStringNotContainsString('Admin RNB 2', $niskalaSeeder);
+        $this->assertStringNotContainsString('admin3b@gmail.com', $niskalaSeeder);
     }
 }

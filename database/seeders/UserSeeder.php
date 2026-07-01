@@ -118,9 +118,10 @@ class UserSeeder extends Seeder
             $fallbackDomicileId = $this->toNullableInt(DB::table('meta_data_domicili')->orderBy('id')->value('id'));
 
             $superuser = User::query()->updateOrCreate(
-                ['email' => 'superuser@gmail.com'],
+                ['email' => 'superadmin@andalanbersama.com'],
                 [
-                    'username' => 'superuser',
+                    'username' => 'superadmin',
+                    'business_email' => 'superadmin@andalanbersama.com',
                     'is_active' => true,
                     'password' => Hash::make('password'),
                 ],

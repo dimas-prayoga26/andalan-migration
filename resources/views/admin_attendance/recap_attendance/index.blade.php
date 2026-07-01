@@ -15,19 +15,18 @@
 </div>		
 
 <!-- Start - logs -->
-<div class="card">
-	<div class="card-header border-0 align-items-center">
-		<h4 class="card-title m-0">Attendance Logs ({{ $recapAttendanceDateLabel }})</h4>
+<div id="recapAttendanceCaptureArea" class="card" data-capture-title="{{ $recapAttendanceDayLabel }}" data-capture-subtitle="">
+	<div class="card-header border-0 align-items-center justify-content-end">
 		<div class="d-flex align-items-center">
 			<div class="clearfix">
-				<button class="btn btn-sm btn-primary light ms-2">Capture</button>
+				<button id="recapAttendanceCaptureButton" type="button" class="btn btn-sm btn-primary light ms-2">Capture</button>
 			</div>	
 		</div>	
 	</div>
 	<div class="card-body table-card-body p-0">
 		<h6 class="text-center fw-bold mb-3">{{ $recapAttendanceDayLabel }}</h6>
 		<div class="table-responsive">
-			<table class="table table-sm mb-0 table-bottom-borderless">
+			<table id="recapAttendanceCaptureTable" class="table table-sm mb-0 table-bottom-borderless">
 				<thead>
 					<tr>
 						<th>Name</th>
@@ -388,6 +387,208 @@
             }
         }
 
+        function normalizedTableText(element) {
+            var text = element ? element.textContent : '';
+            text = String(text || '').replace(/\s+/g, ' ').trim();
+
+            return text !== '' ? text : '-';
+        }
+
+        function wrapCanvasText(context, text, maxWidth) {
+            var words = String(text || '-').split(' ');
+            var lines = [];
+            var currentLine = '';
+
+            words.forEach(function (word) {
+                var testLine = currentLine === '' ? word : currentLine + ' ' + word;
+
+                if (context.measureText(testLine).width <= maxWidth || currentLine === '') {
+                    currentLine = testLine;
+                    return;
+                }
+
+                lines.push(currentLine);
+                currentLine = word;
+            });
+
+            if (currentLine !== '') {
+                lines.push(currentLine);
+            }
+
+            return lines.length > 0 ? lines : ['-'];
+        }
+
+        function drawRoundedRectangle(context, x, y, width, height, radius) {
+            context.beginPath();
+            context.moveTo(x + radius, y);
+            context.lineTo(x + width - radius, y);
+            context.quadraticCurveTo(x + width, y, x + width, y + radius);
+            context.lineTo(x + width, y + height - radius);
+            context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            context.lineTo(x + radius, y + height);
+            context.quadraticCurveTo(x, y + height, x, y + height - radius);
+            context.lineTo(x, y + radius);
+            context.quadraticCurveTo(x, y, x + radius, y);
+            context.closePath();
+        }
+
+        function downloadRecapAttendanceImage() {
+            var captureArea = document.getElementById('recapAttendanceCaptureArea');
+            var table = document.getElementById('recapAttendanceCaptureTable');
+
+            if (!captureArea || !table) {
+                return;
+            }
+
+            var title = captureArea.dataset.captureTitle || 'Attendance Logs';
+            var subtitle = captureArea.dataset.captureSubtitle || '';
+            var headers = Array.prototype.slice.call(table.querySelectorAll('thead th'))
+                .map(normalizedTableText);
+            var columnWidths = [260, 140, 140, 320, 180, 140];
+            var margin = 48;
+            var tableWidth = columnWidths.reduce(function (total, width) {
+                return total + width;
+            }, 0);
+            var canvasWidth = tableWidth + (margin * 2);
+            var scratchCanvas = document.createElement('canvas');
+            var scratchContext = scratchCanvas.getContext('2d');
+            scratchContext.font = '14px Arial';
+
+            var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr')).map(function (row) {
+                var cells = Array.prototype.slice.call(row.querySelectorAll('td'));
+                var emptyCell = cells.find(function (cell) {
+                    return cell.hasAttribute('colspan');
+                });
+
+                if (emptyCell) {
+                    return {
+                        empty: normalizedTableText(emptyCell),
+                    };
+                }
+
+                return {
+                    cells: cells.map(normalizedTableText),
+                };
+            });
+
+            var headerHeight = 46;
+            var titleHeight = 118;
+            var rowLayouts = rows.map(function (row) {
+                if (row.empty) {
+                    return {
+                        empty: row.empty,
+                        height: 64,
+                    };
+                }
+
+                var linesByCell = row.cells.map(function (cell, index) {
+                    return wrapCanvasText(scratchContext, cell, columnWidths[index] - 28);
+                });
+                var maxLines = linesByCell.reduce(function (highest, lines) {
+                    return Math.max(highest, lines.length);
+                }, 1);
+
+                return {
+                    linesByCell: linesByCell,
+                    height: Math.max(54, 24 + (maxLines * 20)),
+                };
+            });
+            var tableHeight = headerHeight + rowLayouts.reduce(function (total, row) {
+                return total + row.height;
+            }, 0);
+            var canvasHeight = titleHeight + tableHeight + margin;
+            var scale = Math.max(1, window.devicePixelRatio || 1);
+            var canvas = document.createElement('canvas');
+            canvas.width = canvasWidth * scale;
+            canvas.height = canvasHeight * scale;
+            canvas.style.width = canvasWidth + 'px';
+            canvas.style.height = canvasHeight + 'px';
+
+            var context = canvas.getContext('2d');
+            context.scale(scale, scale);
+            context.fillStyle = '#ffffff';
+            context.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            context.fillStyle = '#0f172a';
+            context.font = '700 28px Arial';
+            context.fillText(title, margin, 48);
+            context.fillStyle = '#334155';
+            context.font = '600 18px Arial';
+            context.fillText(subtitle, margin, 82);
+
+            var tableX = margin;
+            var tableY = titleHeight;
+            drawRoundedRectangle(context, tableX, tableY, tableWidth, tableHeight, 12);
+            context.fillStyle = '#ffffff';
+            context.fill();
+            context.strokeStyle = '#e5e7eb';
+            context.lineWidth = 1;
+            context.stroke();
+
+            context.save();
+            drawRoundedRectangle(context, tableX, tableY, tableWidth, tableHeight, 12);
+            context.clip();
+
+            context.fillStyle = '#f8fafc';
+            context.fillRect(tableX, tableY, tableWidth, headerHeight);
+            context.strokeStyle = '#e5e7eb';
+            context.beginPath();
+            context.moveTo(tableX, tableY + headerHeight);
+            context.lineTo(tableX + tableWidth, tableY + headerHeight);
+            context.stroke();
+
+            var x = tableX;
+            context.fillStyle = '#0f172a';
+            context.font = '700 14px Arial';
+            headers.forEach(function (header, index) {
+                context.fillText(header, x + 14, tableY + 29);
+                x += columnWidths[index];
+            });
+
+            var y = tableY + headerHeight;
+            context.font = '14px Arial';
+            rowLayouts.forEach(function (layout, rowIndex) {
+                context.fillStyle = rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc';
+                context.fillRect(tableX, y, tableWidth, layout.height);
+                context.strokeStyle = '#e5e7eb';
+                context.beginPath();
+                context.moveTo(tableX, y + layout.height);
+                context.lineTo(tableX + tableWidth, y + layout.height);
+                context.stroke();
+
+                if (layout.empty) {
+                    context.fillStyle = '#64748b';
+                    context.font = '14px Arial';
+                    context.textAlign = 'center';
+                    context.fillText(layout.empty, tableX + (tableWidth / 2), y + 38);
+                    context.textAlign = 'start';
+                    y += layout.height;
+                    return;
+                }
+
+                x = tableX;
+                layout.linesByCell.forEach(function (lines, columnIndex) {
+                    context.fillStyle = columnIndex === 0 ? '#334155' : '#475569';
+                    context.font = columnIndex === 0 ? '700 14px Arial' : '14px Arial';
+                    lines.forEach(function (line, lineIndex) {
+                        context.fillText(line, x + 14, y + 28 + (lineIndex * 20));
+                    });
+                    x += columnWidths[columnIndex];
+                });
+                y += layout.height;
+            });
+
+            context.restore();
+
+            var link = document.createElement('a');
+            var filename = title.toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-|-$/g, '') || 'attendance-logs';
+            link.download = filename + '.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
         function setLeaveModal(prefix, button) {
             setText(prefix + 'Type', button.dataset.recapLeaveType);
             setText(prefix + 'Reason', button.dataset.recapLeaveReason);
@@ -458,6 +659,11 @@
                 }
             });
         });
+
+        var captureButton = document.getElementById('recapAttendanceCaptureButton');
+        if (captureButton) {
+            captureButton.addEventListener('click', downloadRecapAttendanceImage);
+        }
 
         if (window.jQuery && jQuery.fn.DataTable) {
             jQuery(function ($) {

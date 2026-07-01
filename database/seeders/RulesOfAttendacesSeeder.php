@@ -13,90 +13,141 @@ use Throwable;
 class RulesOfAttendacesSeeder extends Seeder
 {
     /**
+     * @return array{address: string, latitude: float, longitude: float}
+     */
+    private function defaultOfficeLocationData(): array
+    {
+        return [
+            'address' => 'Bulurejo, RT.04/RW.02, Gantalan, Minomartani, Kec. Ngaglik, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55581',
+            'latitude' => -7.7299965,
+            'longitude' => 110.4040011,
+        ];
+    }
+
+    /**
      * Run the database seeds.
      */
     public function run(): void
     {
         try {
-            $rnbCompany = Company::query()
-                ->where('name', 'RNB')
-                ->first();
-
-            if (! $rnbCompany) {
-                return;
-            }
-
-            $now = now();
-            $officeLocationId = null;
-
-            if (
-                Schema::hasTable('office_locations')
-                && $rnbCompany->latitude !== null
-                && $rnbCompany->longitude !== null
-            ) {
-                $officeLocationId = DB::table('office_locations')
-                    ->where('company_id', $rnbCompany->id)
-                    ->where('address', $rnbCompany->address)
-                    ->value('id');
-
-                if (! is_string($officeLocationId) || trim($officeLocationId) === '') {
-                    $officeLocationId = (string) Str::uuid();
-
-                    DB::table('office_locations')->insert([
-                        'id' => $officeLocationId,
-                        'company_id' => $rnbCompany->id,
-                        'address' => $rnbCompany->address,
-                        'latitude' => $rnbCompany->latitude,
-                        'longitude' => $rnbCompany->longitude,
-                        'is_active' => true,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ]);
-                }
-            }
-
-            $existingRuleId = null;
-            if (Schema::hasColumn('rules_of_attendaces', 'office_location_id') && is_string($officeLocationId)) {
-                $existingRuleId = DB::table('rules_of_attendaces')
-                    ->where('office_location_id', $officeLocationId)
-                    ->value('id')
-                    ?? DB::table('rules_of_attendaces')
-                        ->where('companies_id', $rnbCompany->id)
-                        ->whereNull('office_location_id')
-                        ->value('id');
-            }
-
-            if (! is_string($existingRuleId) || trim($existingRuleId) === '') {
-                $existingRuleId = DB::table('rules_of_attendaces')
-                    ->where('companies_id', $rnbCompany->id)
-                    ->value('id');
-            }
-            $ruleId = is_string($existingRuleId) && trim($existingRuleId) !== ''
-                ? $existingRuleId
-                : (string) Str::uuid();
-
-            $ruleData = [
-                'id' => $ruleId,
-                'companies_id' => $rnbCompany->id,
-                'ip_range' => '182.8',
-                'radius' => 75,
-                'office_start_time' => '08:00:00',
-                'office_end_time' => '17:00:00',
-                'is_active' => true,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
-
-            if (Schema::hasColumn('rules_of_attendaces', 'office_location_id')) {
-                $ruleData['office_location_id'] = $officeLocationId;
-            }
-
-            DB::table('rules_of_attendaces')->updateOrInsert(
-                ['id' => $ruleId],
-                $ruleData
-            );
+            Company::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get()
+                ->each(fn (Company $company): bool => $this->syncCompanyAttendanceRule($company));
         } catch (Throwable $throwable) {
             throw new RuntimeException('RulesOfAttendacesSeeder gagal dijalankan.', 0, $throwable);
         }
+    }
+
+    private function syncCompanyAttendanceRule(Company $company): bool
+    {
+        $now = now();
+        $officeLocationId = null;
+        $officeData = $this->officeLocationDataForCompany($company);
+
+        if (Schema::hasTable('office_locations')) {
+            $officeLocationId = DB::table('office_locations')
+                ->where('company_id', $company->id)
+                ->where('address', $officeData['address'])
+                ->value('id');
+
+            if (! is_string($officeLocationId) || trim($officeLocationId) === '') {
+                $officeLocationId = (string) Str::uuid();
+
+                DB::table('office_locations')->insert([
+                    'id' => $officeLocationId,
+                    'company_id' => $company->id,
+                    'address' => $officeData['address'],
+                    'latitude' => $officeData['latitude'],
+                    'longitude' => $officeData['longitude'],
+                    'is_active' => true,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            } else {
+                DB::table('office_locations')
+                    ->where('id', $officeLocationId)
+                    ->update([
+                        'latitude' => $officeData['latitude'],
+                        'longitude' => $officeData['longitude'],
+                        'is_active' => true,
+                        'updated_at' => $now,
+                    ]);
+            }
+        }
+
+        $existingRuleId = null;
+        if (Schema::hasColumn('rules_of_attendaces', 'office_location_id') && is_string($officeLocationId)) {
+            $existingRuleId = DB::table('rules_of_attendaces')
+                ->where('office_location_id', $officeLocationId)
+                ->value('id')
+                ?? DB::table('rules_of_attendaces')
+                    ->where('companies_id', $company->id)
+                    ->whereNull('office_location_id')
+                    ->value('id');
+        }
+
+        if (! is_string($existingRuleId) || trim($existingRuleId) === '') {
+            $existingRuleId = DB::table('rules_of_attendaces')
+                ->where('companies_id', $company->id)
+                ->value('id');
+        }
+        $ruleId = is_string($existingRuleId) && trim($existingRuleId) !== ''
+            ? $existingRuleId
+            : (string) Str::uuid();
+
+        $ruleData = [
+            'id' => $ruleId,
+            'companies_id' => $company->id,
+            'ip_range' => '182.8',
+            'radius' => 75,
+            'office_start_time' => '08:00:00',
+            'office_end_time' => '17:00:00',
+            'is_active' => true,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+
+        if (Schema::hasColumn('rules_of_attendaces', 'office_location_id')) {
+            $ruleData['office_location_id'] = $officeLocationId;
+        }
+
+        DB::table('rules_of_attendaces')->updateOrInsert(
+            ['id' => $ruleId],
+            $ruleData
+        );
+
+        if (Schema::hasColumn('employee_deployments', 'current_office_location_id') && is_string($officeLocationId)) {
+            DB::table('employee_deployments')
+                ->where('current_company_id', $company->id)
+                ->whereNull('current_office_location_id')
+                ->update([
+                    'current_office_location_id' => $officeLocationId,
+                    'updated_at' => $now,
+                ]);
+        }
+
+        return true;
+    }
+
+    /**
+     * @return array{address: string, latitude: float, longitude: float}
+     */
+    private function officeLocationDataForCompany(Company $company): array
+    {
+        $defaultOffice = $this->defaultOfficeLocationData();
+
+        return [
+            'address' => is_string($company->address) && trim($company->address) !== ''
+                ? $company->address
+                : $defaultOffice['address'],
+            'latitude' => $company->latitude !== null
+                ? (float) $company->latitude
+                : $defaultOffice['latitude'],
+            'longitude' => $company->longitude !== null
+                ? (float) $company->longitude
+                : $defaultOffice['longitude'],
+        ];
     }
 }

@@ -37,8 +37,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
             $niskalaCompany = $this->companyByNameOrFallback('Niskala', $rnbCompany);
 
             DB::transaction(function () use ($niskalaCompany, $now, $rnbCompany): void {
-                $this->seedRnbSecondAdministrator($rnbCompany, $now);
-
                 $mevia = $this->employeeByEmail('diktanamira@gmail.com') ?? $this->seedEmployeeAccount([
                     'username' => 'staff-rnb-mevia',
                     'email' => 'diktanamira@gmail.com',
@@ -129,22 +127,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
             ->first();
 
         return $company instanceof Company ? $company : $fallbackCompany;
-    }
-
-    private function seedRnbSecondAdministrator(Company $company, Carbon $now): Employee
-    {
-        return $this->seedEmployeeAccount([
-            'username' => 'admin3b',
-            'email' => 'admin3b@gmail.com',
-            'business_email' => 'admin3b@rnb.local',
-            'name' => 'Admin RNB 2',
-            'employee_code' => 'EMP-RNB-ADMIN-2',
-            'company_id' => (string) $company->id,
-            'department_name' => 'Administrator',
-            'position_name' => 'Administrator',
-            'workplace' => 'RNB Jogja',
-            'phone' => '081300000033',
-        ], $now);
     }
 
     private function employeeByEmail(string $email): ?Employee

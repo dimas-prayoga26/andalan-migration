@@ -24,7 +24,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 
 	<!-- Favicon icon -->
-	<link rel="shortcut icon" type="image/x-icon" href="images/favicon.avif">
+	<link rel="shortcut icon" type="image/x-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
 
     @php
         $assetVersion = static function (string $path): int {
@@ -83,15 +83,34 @@
 
         .nav-header .brand-logo .logo-mobile {
             display: none;
-            width: 48px;
-            height: auto;
         }
 
-        .nav-header .brand-logo .logo-desktop {
-            display: block;
-            height: auto;
-            width: 210px;
+        .nav-header .brand-logo .brand-logo-icon {
+            width: 44px;
+            height: 44px;
+            flex: 0 0 44px;
+            object-fit: contain;
+            object-position: center;
+        }
+
+        .nav-header .brand-logo .brand-logo-desktop {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.625rem;
             max-width: 100%;
+            overflow: hidden;
+        }
+
+        .nav-header .brand-logo .brand-logo-text {
+            color: #000;
+            font-size: 0.8125rem;
+            font-weight: 800;
+            letter-spacing: 0;
+            line-height: 1.15;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-transform: uppercase;
         }
 
         #main-wrapper.menu-toggle .nav-header .brand-logo .logo-mobile {
@@ -130,7 +149,7 @@
                 display: block;
             }
 
-            .nav-header .brand-logo .logo-desktop {
+            .nav-header .brand-logo .brand-logo-desktop {
                 display: none;
             }
         }

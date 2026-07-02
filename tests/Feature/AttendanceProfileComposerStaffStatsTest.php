@@ -6,19 +6,32 @@ use App\Models\Attendance;
 use App\Models\AttendanceException;
 use App\Models\AttendanceHoliday;
 use App\Models\AttendanceOvertime;
+use App\Models\Company;
 use App\Models\Employee;
+use App\Models\EmployeeDeployment;
 use App\Models\LeaveRequest;
+use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
 use App\View\Composers\AttendanceProfileComposer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class AttendanceProfileComposerStaffStatsTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        if (! extension_loaded('pdo_sqlite')) {
+            $this->markTestSkipped('pdo_sqlite extension is not available.');
+        }
+
+        parent::setUp();
+    }
 
     public function test_staff_stats_are_computed_from_attendance_leave_and_holiday_tables(): void
     {
@@ -173,5 +186,90 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
         } finally {
             Carbon::setTestNow();
         }
+    }
+
+    public function test_chief_operating_officer_uses_staff_profile_cards_with_global_management_scope(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-02 09:00:00', 'Asia/Jakarta'));
+
+        try {
+            $rnbCompany = Company::query()->create(['name' => 'RNB']);
+            $otherCompany = Company::query()->create(['name' => 'Other Company']);
+            $cooPosition = Position::query()->create(['name' => 'Chief Operating Officer']);
+            $staffPosition = Position::query()->create(['name' => 'Staff']);
+
+            $cooUser = User::query()->create([
+                'username' => 'lukman',
+                'email' => 'lukman@example.test',
+                'password' => Hash::make('password'),
+                'is_active' => true,
+            ]);
+
+            $cooUser->assignRole(Role::query()->firstOrCreate([
+                'name' => 'Board of Directors',
+                'guard_name' => 'web',
+            ]));
+
+            $cooEmployee = Employee::query()->create([
+                'user_id' => $cooUser->id,
+                'status' => 'Active',
+            ]);
+
+            EmployeeDeployment::query()->create([
+                'employee_id' => $cooEmployee->id,
+                'current_company_id' => $rnbCompany->id,
+                'current_position_id' => $cooPosition->id,
+                'status' => 'Active',
+            ]);
+
+            $this->createEmployeeForAttendanceProfileScope($rnbCompany, $staffPosition);
+            $this->createEmployeeForAttendanceProfileScope($otherCompany, $staffPosition);
+
+            Attendance::query()->create([
+                'employee_id' => $cooEmployee->id,
+                'date' => '2026-07-02',
+                'clock_in' => '08:00:00',
+                'clock_out' => null,
+                'late_minutes' => 0,
+                'work_hours' => null,
+                'status' => 'Masuk',
+            ]);
+
+            $this->actingAs($cooUser);
+
+            $view = view('staff_attendance.layouts.profile-header');
+            app(AttendanceProfileComposer::class)->compose($view);
+            $data = $view->getData();
+
+            $this->assertSame('staff', $data['profileStatsMode']);
+            $this->assertSame(3, $data['managementTotalEmployeesCount']);
+            $this->assertSame(1, $data['managementPresentTodayCount']);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    private function createEmployeeForAttendanceProfileScope(Company $company, Position $position): Employee
+    {
+        $user = User::query()->create([
+            'username' => 'scope_user_'.Str::random(8),
+            'email' => Str::random(8).'@example.test',
+            'password' => Hash::make('password'),
+            'is_active' => true,
+        ]);
+
+        $employee = Employee::query()->create([
+            'user_id' => $user->id,
+            'status' => 'Active',
+        ]);
+
+        EmployeeDeployment::query()->create([
+            'employee_id' => $employee->id,
+            'current_company_id' => $company->id,
+            'current_position_id' => $position->id,
+            'status' => 'Active',
+        ]);
+
+        return $employee;
     }
 }

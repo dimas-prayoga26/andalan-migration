@@ -33,6 +33,7 @@
 						<th>Clock In</th>
 						<th>Clock Out</th>
 						<th>Note</th>
+						<th>Address</th>
 						<th>Working Hours</th>
 						<th>Attachment</th>
 					</tr>
@@ -56,6 +57,7 @@
 								@endif
 							</td>
 							<td data-capture-tone="{{ $row['attachment_badge'] }}">{{ $row['note'] }}</td>
+							<td>{{ $row['location_address'] }}</td>
 							<td>{{ $row['working_hours'] }}</td>
 							<td>
 								<button
@@ -96,7 +98,7 @@
 						</tr>
 					@empty
 						<tr>
-							<td colspan="6" class="text-center text-muted py-4">No attendance log data available.</td>
+							<td colspan="7" class="text-center text-muted py-4">No attendance log data available.</td>
 						</tr>
 					@endforelse
 				</tbody>
@@ -519,7 +521,7 @@
             var subtitle = captureArea.dataset.captureSubtitle || '';
             var headers = Array.prototype.slice.call(table.querySelectorAll('thead th'))
                 .map(normalizedTableText);
-            var columnWidths = [260, 140, 140, 320, 180, 140];
+            var columnWidths = [240, 130, 130, 260, 360, 160, 120];
             var margin = 48;
             var tableWidth = columnWidths.reduce(function (total, width) {
                 return total + width;

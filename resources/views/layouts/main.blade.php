@@ -19,9 +19,12 @@
 
         <!-- Start - Nav header -->
          <div class="nav-header">
-            <a href="{{ url('/') }}" class="brand-logo" aria-label="Andalan Bersama Group">
-                <img class="logo-mobile" src="{{ asset('images/favicon.png') }}" alt="Andalan Bersama Group Icon" width="48">
-                <img class="logo-desktop" src="{{ asset('images/logo.png') }}" alt="Andalan Bersama Group Logo">
+            <a href="{{ url('/') }}" class="brand-logo" aria-label="{{ $brandName ?? 'Andalan Bersama Group' }}">
+                <img class="logo-mobile brand-logo-icon" src="{{ $brandLogoUrl ?? asset('images/images.png') }}" alt="{{ $brandName ?? 'Andalan Bersama Group' }} Icon" width="48">
+                <span class="logo-desktop brand-logo-desktop">
+                    <img class="brand-logo-icon" src="{{ $brandLogoUrl ?? asset('images/images.png') }}" alt="{{ $brandName ?? 'Andalan Bersama Group' }} Icon">
+                    <span class="brand-logo-text">{{ $brandName ?? 'Dev' }}</span>
+                </span>
             </a>
 
             <div class="nav-control">

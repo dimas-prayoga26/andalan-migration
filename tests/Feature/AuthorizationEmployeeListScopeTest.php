@@ -184,7 +184,7 @@ class AuthorizationEmployeeListScopeTest extends TestCase
             });
     }
 
-    public function test_coo_can_view_company_employee_list_and_manage_permissions(): void
+    public function test_coo_can_view_all_company_employee_list_and_manage_permissions(): void
     {
         $rnbCompany = Company::query()->create(['name' => 'RNB']);
         $otherCompany = Company::query()->create(['name' => 'ABG']);
@@ -224,7 +224,7 @@ class AuthorizationEmployeeListScopeTest extends TestCase
             ->assertOk()
             ->assertSee('Lukman Prabowo')
             ->assertSee('RNB Staff')
-            ->assertDontSee('Other Company Staff')
+            ->assertSee('Other Company Staff')
             ->assertSee('Assign Permission');
 
         $this->actingAs($coo)

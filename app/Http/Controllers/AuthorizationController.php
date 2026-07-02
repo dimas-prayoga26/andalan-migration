@@ -394,16 +394,22 @@ class AuthorizationController extends Controller
             ->contains('superuser');
     }
 
+    private function isChiefOperatingOfficerEmployee(User $user): bool
+    {
+        return $this->positionNamesFor($user->employee)
+            ->contains(static fn (string $positionName): bool => strtolower(trim($positionName)) === 'chief operating officer');
+    }
+
     private function canManageAuthorization(User $user): bool
     {
-        return $this->isSuperuser($user) || $this->isAdministratorEmployee($user);
+        return $this->isSuperuser($user)
+            || $this->isAdministratorEmployee($user)
+            || $this->isChiefOperatingOfficerEmployee($user);
     }
 
     private function canManagePositionPermissions(User $user): bool
     {
-        return $this->canManageAuthorization($user)
-            || $this->positionNamesFor($user->employee)
-                ->contains(static fn (string $positionName): bool => strtolower(trim($positionName)) === 'chief operating officer');
+        return $this->canManageAuthorization($user);
     }
 
     /**

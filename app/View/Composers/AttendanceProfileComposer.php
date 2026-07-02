@@ -18,6 +18,14 @@ use Illuminate\View\View;
 
 class AttendanceProfileComposer
 {
+    /**
+     * @var array<int, string>
+     */
+    private const STAFF_STYLE_GLOBAL_MANAGEMENT_POSITIONS = [
+        'chief operating officer',
+        'super administrator',
+    ];
+
     public function compose(View $view): void
     {
         $nowJakarta = now('Asia/Jakarta');
@@ -105,8 +113,9 @@ class AttendanceProfileComposer
         $employeeId = is_string($authenticatedUser->employee?->id) ? trim($authenticatedUser->employee->id) : '';
         $isStaffUser = $this->isStaffUser($authenticatedUser);
         $isBoardOfDirectur = $this->isBoardOfDirectur($authenticatedUser);
+        $usesGlobalManagementScope = $this->hasAnyPositionName($authenticatedUser, self::STAFF_STYLE_GLOBAL_MANAGEMENT_POSITIONS);
 
-        $profileData['profileStatsMode'] = $isStaffUser ? 'staff' : 'management';
+        $profileData['profileStatsMode'] = ($isStaffUser || $usesGlobalManagementScope) ? 'staff' : 'management';
 
         $profilePicturePath = $this->availableProfilePicturePath($authenticatedUser->employee?->profile?->profile_picture_path);
         if ($profilePicturePath !== null) {
@@ -372,7 +381,7 @@ class AttendanceProfileComposer
         if (! $isStaffUser) {
             $employeeScopeQuery = Employee::query()->select('id');
 
-            if ($isBoardOfDirectur) {
+            if ($isBoardOfDirectur && ! $usesGlobalManagementScope) {
                 $currentCompanyId = $authenticatedUser->employee?->deployment?->current_company_id;
                 if (! is_string($currentCompanyId) || trim($currentCompanyId) === '') {
                     $employeeScopeQuery->whereRaw('1 = 0');
@@ -552,6 +561,50 @@ class AttendanceProfileComposer
 
         return $normalizedRoleNames->contains('board of directur')
             || $normalizedRoleNames->contains('board of directors');
+    }
+
+    /**
+     * @param  array<int, string>  $positionNames
+     */
+    private function hasAnyPositionName(?User $user, array $positionNames): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $normalizedTargetNames = collect($positionNames)
+            ->map(static fn (string $positionName): string => strtolower(trim($positionName)))
+            ->filter()
+            ->values();
+
+        if ($normalizedTargetNames->isEmpty()) {
+            return false;
+        }
+
+        $deployment = $user->employee?->deployment;
+        if (! $deployment) {
+            return false;
+        }
+
+        $normalizedUserPositionNames = collect();
+
+        $primaryPositionName = $deployment->position?->name;
+        if (is_string($primaryPositionName) && trim($primaryPositionName) !== '') {
+            $normalizedUserPositionNames->push(strtolower(trim($primaryPositionName)));
+        }
+
+        $deployment->positions
+            ->pluck('name')
+            ->filter(static fn (mixed $positionName): bool => is_string($positionName) && trim($positionName) !== '')
+            ->map(static fn (string $positionName): string => strtolower(trim($positionName)))
+            ->each(static function (string $positionName) use ($normalizedUserPositionNames): void {
+                $normalizedUserPositionNames->push($positionName);
+            });
+
+        return $normalizedUserPositionNames
+            ->unique()
+            ->intersect($normalizedTargetNames)
+            ->isNotEmpty();
     }
 
     private function availableProfilePicturePath(mixed $profilePicturePath): ?string

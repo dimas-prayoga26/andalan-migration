@@ -29,10 +29,18 @@ class LegacyEmployeeAssignmentSeederTest extends TestCase
 
         $this->assertIsString($legacySeeder);
         $this->assertStringContainsString('$this->seedExplicitRnbUsers();', $legacySeeder);
+        $this->assertStringContainsString('$this->syncRnbJakartaOfficeAssignments();', $legacySeeder);
+        $this->assertStringContainsString('RNB_JAKARTA_OFFICE', $legacySeeder);
+        $this->assertStringContainsString('Jl. Bhineka Blok Bhineka No.26', $legacySeeder);
+        $this->assertStringContainsString("'latitude' => -6.3636699", $legacySeeder);
+        $this->assertStringContainsString("'longitude' => 106.8016359", $legacySeeder);
+        $this->assertStringContainsString("'lukman@rnbmanagement.com'", $legacySeeder);
         $this->assertStringContainsString("'name' => 'Rully Priyatno'", $legacySeeder);
         $this->assertStringContainsString("'name' => 'Hilmi Ulwan'", $legacySeeder);
+        $this->assertStringContainsString("'workplace' => 'RNB Jakarta'", $legacySeeder);
         $this->assertStringContainsString("->where('is_primary', false)", $legacySeeder);
         $this->assertStringContainsString("->whereNotIn('position_id', \$positionIds->all())", $legacySeeder);
+        $this->assertStringContainsString("->orderBy('created_at')", $legacySeeder);
     }
 
     public function test_self_and_lukman_pic_assignments_are_registered(): void

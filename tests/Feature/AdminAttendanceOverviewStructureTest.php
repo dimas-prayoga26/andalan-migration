@@ -132,6 +132,9 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('id="recapAttendanceCaptureButton"', $recapView);
         $this->assertStringContainsString('id="recapAttendanceCaptureArea"', $recapView);
         $this->assertStringContainsString('id="recapAttendanceCaptureTable"', $recapView);
+        $this->assertStringContainsString('<th>Address</th>', $recapView);
+        $this->assertStringContainsString("<td>{{ \$row['location_address'] }}</td>", $recapView);
+        $this->assertStringContainsString('var columnWidths = [240, 130, 130, 260, 360, 160, 120];', $recapView);
         $this->assertStringNotContainsString('<h4 class="card-title m-0">Attendance Logs ({{ $recapAttendanceDateLabel }})</h4>', $recapView);
         $this->assertStringContainsString('function downloadRecapAttendanceImage()', $recapView);
         $this->assertStringContainsString('data-capture-tone="{{ $row[\'attachment_badge\'] }}"', $recapView);

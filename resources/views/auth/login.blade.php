@@ -26,7 +26,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 
 	<!-- Favicon icon -->
-	<link rel="shortcut icon" type="image/x-icon" href="images/favicon.avif">
+	<link rel="shortcut icon" type="image/x-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
     
 	<!-- Start - Basic CSS -->
     <link href="vendor/metismenu/dist/metisMenu.min.css" rel="stylesheet">
@@ -83,21 +83,9 @@
                 <div class="col-md-6">
 					<div class="card p-5 shadow-lg">
 						<div class="text-center mb-3">
-							@if (! empty($logoPaths))
-								<div id="company-logo-carousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="2200" data-bs-pause="false">
-									<div class="carousel-inner">
-										@foreach ($logoPaths as $logoPath)
-											<div class="carousel-item {{ $loop->first ? 'active' : '' }}">
-												<img src="{{ $logoPath }}" alt="Logo Perusahaan" style="max-width: 220px; width: 100%; height: 84px; object-fit: contain;">
-											</div>
-										@endforeach
-									</div>
-								</div>
-							@else
-								<a href="{{ route('login') }}" class="brand-logo" aria-label="Andalan Migration">
-									<span class="fw-semibold">Andalan Migration</span>
-								</a>
-							@endif
+							<a href="{{ route('login') }}" class="brand-logo d-inline-flex justify-content-center" aria-label="{{ $brandName ?? 'Andalan Bersama Group' }}">
+								<img src="{{ $brandLogoUrl ?? asset('images/images.png') }}" alt="{{ $brandName ?? 'Andalan Bersama Group' }} Logo" style="max-width: 220px; width: 100%; height: 84px; object-fit: contain;">
+							</a>
 						</div>
 						<h4 class="text-center mb-4">Sign in your account</h4>
 						@if ($errors->any())

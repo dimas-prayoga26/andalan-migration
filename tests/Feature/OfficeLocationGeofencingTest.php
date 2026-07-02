@@ -61,12 +61,14 @@ class OfficeLocationGeofencingTest extends TestCase
         $this->assertStringContainsString('Company::query()', $rulesSeeder);
         $this->assertStringContainsString("->where('is_active', true)", $rulesSeeder);
         $this->assertStringContainsString('syncCompanyAttendanceRule($company)', $rulesSeeder);
+        $this->assertStringContainsString('syncOfficeAttendanceRule($company, $officeLocationId, $now)', $rulesSeeder);
+        $this->assertStringContainsString("->pluck('id')", $rulesSeeder);
         $this->assertStringNotContainsString('officeLocationDataForCompany', $rulesSeeder);
         $this->assertStringNotContainsString('$company->address', $rulesSeeder);
         $this->assertStringNotContainsString('$company->latitude', $rulesSeeder);
         $this->assertStringNotContainsString('$company->longitude', $rulesSeeder);
         $this->assertStringContainsString("\$ruleData['office_location_id'] = \$officeLocationId;", $rulesSeeder);
-        $this->assertStringContainsString("'current_office_location_id' => \$officeLocationId", $rulesSeeder);
+        $this->assertStringContainsString("'current_office_location_id' => \$primaryOfficeLocationId", $rulesSeeder);
         $this->assertStringContainsString("\$deploymentData['current_office_location_id'] = \$officeLocationId;", $userSeeder);
         $this->assertStringContainsString('deployment.officeLocation', $employeeAddressSeeder);
         $this->assertStringNotContainsString('deployment?->company?->address', $employeeAddressSeeder);

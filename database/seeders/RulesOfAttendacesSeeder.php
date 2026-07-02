@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Company;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -43,16 +44,18 @@ class RulesOfAttendacesSeeder extends Seeder
     private function syncCompanyAttendanceRule(Company $company): bool
     {
         $now = now();
-        $officeLocationId = null;
+        $officeLocationIds = collect();
 
         if (Schema::hasTable('office_locations')) {
-            $officeLocationId = DB::table('office_locations')
+            $officeLocationIds = DB::table('office_locations')
                 ->where('company_id', $company->id)
                 ->where('is_active', true)
                 ->orderBy('created_at')
-                ->value('id');
+                ->pluck('id')
+                ->filter(static fn (mixed $officeLocationId): bool => is_string($officeLocationId) && trim($officeLocationId) !== '')
+                ->values();
 
-            if (! is_string($officeLocationId) || trim($officeLocationId) === '') {
+            if ($officeLocationIds->isEmpty()) {
                 $officeData = $this->defaultOfficeLocationData();
                 $officeLocationId = (string) Str::uuid();
 
@@ -66,9 +69,38 @@ class RulesOfAttendacesSeeder extends Seeder
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
+
+                $officeLocationIds = collect([$officeLocationId]);
             }
         }
 
+        if ($officeLocationIds->isEmpty()) {
+            $this->syncOfficeAttendanceRule($company, null, $now);
+
+            return true;
+        }
+
+        $officeLocationIds->each(function (string $officeLocationId) use ($company, $now): void {
+            $this->syncOfficeAttendanceRule($company, $officeLocationId, $now);
+        });
+
+        $primaryOfficeLocationId = $officeLocationIds->first();
+
+        if (Schema::hasColumn('employee_deployments', 'current_office_location_id') && is_string($primaryOfficeLocationId)) {
+            DB::table('employee_deployments')
+                ->where('current_company_id', $company->id)
+                ->whereNull('current_office_location_id')
+                ->update([
+                    'current_office_location_id' => $primaryOfficeLocationId,
+                    'updated_at' => $now,
+                ]);
+        }
+
+        return true;
+    }
+
+    private function syncOfficeAttendanceRule(Company $company, ?string $officeLocationId, Carbon $now): void
+    {
         $existingRuleId = null;
         if (Schema::hasColumn('rules_of_attendaces', 'office_location_id') && is_string($officeLocationId)) {
             $existingRuleId = DB::table('rules_of_attendaces')
@@ -80,7 +112,7 @@ class RulesOfAttendacesSeeder extends Seeder
                     ->value('id');
         }
 
-        if (! is_string($existingRuleId) || trim($existingRuleId) === '') {
+        if ((! is_string($existingRuleId) || trim($existingRuleId) === '') && ! is_string($officeLocationId)) {
             $existingRuleId = DB::table('rules_of_attendaces')
                 ->where('companies_id', $company->id)
                 ->value('id');
@@ -109,17 +141,5 @@ class RulesOfAttendacesSeeder extends Seeder
             ['id' => $ruleId],
             $ruleData
         );
-
-        if (Schema::hasColumn('employee_deployments', 'current_office_location_id') && is_string($officeLocationId)) {
-            DB::table('employee_deployments')
-                ->where('current_company_id', $company->id)
-                ->whereNull('current_office_location_id')
-                ->update([
-                    'current_office_location_id' => $officeLocationId,
-                    'updated_at' => $now,
-                ]);
-        }
-
-        return true;
     }
 }

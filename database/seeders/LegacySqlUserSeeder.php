@@ -40,6 +40,15 @@ class LegacySqlUserSeeder extends Seeder
     ];
 
     /**
+     * @var array{address: string, latitude: float, longitude: float}
+     */
+    private const RNB_JAKARTA_OFFICE = [
+        'address' => '4, Jl. Bhineka Blok Bhineka No.26, RT.4/RW.2, Cipedak, Kec. Jagakarsa, Kota Jakarta Selatan, Daerah Khusus Ibukota Jakarta 12630',
+        'latitude' => -6.3636699,
+        'longitude' => 106.8016359,
+    ];
+
+    /**
      * @var array<int, string>
      */
     private array $companyIdsByLegacyId = [];
@@ -79,6 +88,7 @@ class LegacySqlUserSeeder extends Seeder
                 $this->removeNonLegacyUsers($legacyUsers);
                 $this->seedUsers($legacyUsers);
                 $this->seedExplicitRnbUsers();
+                $this->syncRnbJakartaOfficeAssignments();
                 $this->seedPositionPermissions($this->parseInsertRows($dump, 'users_authorization'));
                 $this->seedSuperAdministratorAccount();
 
@@ -412,6 +422,69 @@ class LegacySqlUserSeeder extends Seeder
         }
     }
 
+    private function syncRnbJakartaOfficeAssignments(): void
+    {
+        if (! Schema::hasTable('office_locations') || ! Schema::hasColumn('employee_deployments', 'current_office_location_id')) {
+            return;
+        }
+
+        $companyId = Company::query()
+            ->whereRaw('LOWER(name) = ?', ['rnb'])
+            ->value('id');
+
+        if (! is_string($companyId) || trim($companyId) === '') {
+            throw new RuntimeException('Company RNB tidak ditemukan untuk assignment office Jakarta.');
+        }
+
+        $officeLocationId = DB::table('office_locations')
+            ->where('company_id', $companyId)
+            ->where('address', self::RNB_JAKARTA_OFFICE['address'])
+            ->value('id');
+        $officeLocationId = is_string($officeLocationId) && trim($officeLocationId) !== ''
+            ? $officeLocationId
+            : (string) Str::uuid();
+        $now = now();
+
+        DB::table('office_locations')->updateOrInsert(
+            ['id' => $officeLocationId],
+            [
+                'company_id' => $companyId,
+                'address' => self::RNB_JAKARTA_OFFICE['address'],
+                'latitude' => self::RNB_JAKARTA_OFFICE['latitude'],
+                'longitude' => self::RNB_JAKARTA_OFFICE['longitude'],
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+
+        $employeeIds = Employee::query()
+            ->whereHas('user', function ($query): void {
+                $query->whereIn('email', [
+                    'lukman@rnbmanagement.com',
+                    'rully.priyatno@andalanbersama.com',
+                    'hilmi.ulwan@andalanbersama.com',
+                ]);
+            })
+            ->pluck('id');
+
+        if ($employeeIds->count() !== 3) {
+            throw new RuntimeException('Employee Lukman, Rully, atau Hilmi tidak lengkap untuk assignment office Jakarta.');
+        }
+
+        EmployeeDeployment::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->update([
+                'current_company_id' => $companyId,
+                'current_office_location_id' => $officeLocationId,
+                'workplace' => 'RNB Jakarta',
+                'status' => 'Active',
+                'resignation_date' => null,
+                'deleted_at' => null,
+                'updated_at' => $now,
+            ]);
+    }
+
     /**
      * @param  Collection<int, array<string, mixed>>  $legacyAuthorizations
      */
@@ -716,7 +789,7 @@ class LegacySqlUserSeeder extends Seeder
         $officeLocationId = DB::table('office_locations')
             ->where('company_id', $companyId)
             ->where('is_active', true)
-            ->orderByDesc('updated_at')
+            ->orderBy('created_at')
             ->value('id');
 
         return is_string($officeLocationId) && trim($officeLocationId) !== ''

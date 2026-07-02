@@ -222,12 +222,8 @@
                                 <div class="card-body p-0">
                                     <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
                                         <div class="text-center">
-                                            <p class="fs-14 mb-2">Distance</p>
-                                            <span class="fs-20 text-black">{{ $todayAttendanceDistanceKm !== null ? number_format($todayAttendanceDistanceKm, 2).' KM' : '- KM' }}</span>
-                                        </div>
-                                        <div class="text-center">
-                                            <p class="fs-14 mb-2">Time</p>
-                                            <span class="fs-20 text-success" id="dashboardAttendanceSummaryTimeValue">--:--:--</span>
+                                            <p class="fs-14 mb-2">Date &amp; Time</p>
+                                            <span class="fs-20 text-success" id="dashboardAttendanceSummaryTimeValue">{{ now('Asia/Jakarta')->format('d/m/Y | H:i:s') }}</span>
                                         </div>
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Clock In</p>
@@ -261,12 +257,8 @@
                                 <div class="card-body p-0">
                                     <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
                                         <div class="text-center">
-                                            <p class="fs-14 mb-2">Distance</p>
-                                            <span class="fs-20 text-black">{{ $todayAttendanceDistanceOutKm !== null ? number_format($todayAttendanceDistanceOutKm, 2).' KM' : '- KM' }}</span>
-                                        </div>
-                                        <div class="text-center">
-                                            <p class="fs-14 mb-2">Time</p>
-                                            <span class="fs-20 text-black" id="dashboardAttendanceClockOutSummaryTimeValue">--:--:--</span>
+                                            <p class="fs-14 mb-2">Date &amp; Time</p>
+                                            <span class="fs-20 text-black" id="dashboardAttendanceClockOutSummaryTimeValue">{{ now('Asia/Jakarta')->format('d/m/Y | H:i:s') }}</span>
                                         </div>
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Clock Out</p>
@@ -396,8 +388,8 @@
                 </div>
                 <div class="modal-body">
                     <p class="form-label mb-3 text-center">
-                        <span id="dashboardClockInCurrentDate">--</span> -
-                        <span id="dashboardClockInRunningTime" class="onsite-running-time text-success fw-semibold">--:--:--</span>
+                        <span id="dashboardClockInCurrentDate" class="onsite-running-time text-success fw-semibold">--</span>
+                        <span id="dashboardClockInRunningTime" class="d-none">--:--:--</span>
                     </p>
                     <p class="form-label text-muted mb-3">
                         Grab your coffee and let's get things done. Clock in when you're ready to kick off your shift!
@@ -441,8 +433,8 @@
                 </div>
                 <div class="modal-body">
                     <p class="form-label mb-3 text-center">
-                        <span id="dashboardClockOutCurrentDate">--</span> -
-                        <span id="dashboardClockOutRunningTime" class="onsite-running-time text-black fw-semibold">--:--:--</span>
+                        <span id="dashboardClockOutCurrentDate" class="onsite-running-time text-black fw-semibold">--</span>
+                        <span id="dashboardClockOutRunningTime" class="d-none">--:--:--</span>
                     </p>
                     <p class="form-label text-muted mb-3">
                         Please make sure your daily tasks are wrapped up before clocking out. Thank you for your hard work, and enjoy the rest of your day!
@@ -564,6 +556,9 @@
             };
             var officeStartTotalMinutes = parseTimeStringToMinutes(officeLocation && officeLocation.office_start_time, 8 * 60);
             var officeEndTotalMinutes = parseTimeStringToMinutes(officeLocation && officeLocation.office_end_time, 17 * 60);
+            var lateGraceMinutes = Number(officeLocation && officeLocation.late_grace_minutes);
+            lateGraceMinutes = Number.isNaN(lateGraceMinutes) ? 0 : Math.max(lateGraceMinutes, 0);
+            var lateThresholdTotalMinutes = officeStartTotalMinutes + lateGraceMinutes;
 
             function parseTimeStringToMinutes(timeString, fallbackMinutes) {
                 if (typeof timeString !== 'string' || timeString.trim() === '') {
@@ -1126,6 +1121,12 @@
                     month: 'long',
                     year: 'numeric'
                 }).formatToParts(now);
+                var cardDateParts = new Intl.DateTimeFormat('en-GB', {
+                    timeZone: 'Asia/Jakarta',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                }).formatToParts(now);
                 var timeParts = new Intl.DateTimeFormat('id-ID', {
                     timeZone: 'Asia/Jakarta',
                     hour: '2-digit',
@@ -1138,30 +1139,42 @@
                 dateParts.forEach(function (part) {
                     dateMap[part.type] = part.value;
                 });
+                var cardDateMap = {};
+                cardDateParts.forEach(function (part) {
+                    cardDateMap[part.type] = part.value;
+                });
                 var timeMap = {};
                 timeParts.forEach(function (part) {
                     timeMap[part.type] = part.value;
                 });
                 var formattedTime = timeMap.hour + ':' + timeMap.minute + ':' + timeMap.second;
+                var formattedDateTime = cardDateMap.day + '/' + cardDateMap.month + '/' + cardDateMap.year + ' | ' + formattedTime;
                 var modalDate = dateMap.weekday + ', ' + dateMap.day + ' ' + dateMap.month + ' ' + dateMap.year;
+                var modalDateTime = modalDate + ' - ' + formattedTime;
+                var hour = parseInt(timeMap.hour, 10);
+                var minute = parseInt(timeMap.minute, 10);
+                var totalMinutes = (hour * 60) + minute;
+                var isWithinWorkRange = totalMinutes >= officeStartTotalMinutes && totalMinutes < officeEndTotalMinutes;
 
                 if (attendanceSummaryTimeElement) {
-                    attendanceSummaryTimeElement.textContent = formattedTime;
+                    attendanceSummaryTimeElement.textContent = formattedDateTime;
+                    attendanceSummaryTimeElement.classList.remove('text-success', 'text-danger');
+                    attendanceSummaryTimeElement.classList.add(totalMinutes <= lateThresholdTotalMinutes ? 'text-success' : 'text-danger');
                 }
                 if (attendanceClockOutSummaryTimeElement) {
-                    var hour = parseInt(timeMap.hour, 10);
-                    var minute = parseInt(timeMap.minute, 10);
-                    var totalMinutes = (hour * 60) + minute;
-                    var isWithinWorkRange = totalMinutes >= officeStartTotalMinutes && totalMinutes < officeEndTotalMinutes;
-                    attendanceClockOutSummaryTimeElement.textContent = formattedTime;
+                    attendanceClockOutSummaryTimeElement.textContent = formattedDateTime;
                     attendanceClockOutSummaryTimeElement.classList.remove('text-warning', 'text-black');
                     attendanceClockOutSummaryTimeElement.classList.add(isWithinWorkRange ? 'text-warning' : 'text-black');
                 }
                 if (clockInCurrentDateElement) {
-                    clockInCurrentDateElement.textContent = modalDate;
+                    clockInCurrentDateElement.textContent = modalDateTime;
+                    clockInCurrentDateElement.classList.remove('text-success', 'text-danger');
+                    clockInCurrentDateElement.classList.add(totalMinutes <= lateThresholdTotalMinutes ? 'text-success' : 'text-danger');
                 }
                 if (clockOutCurrentDateElement) {
-                    clockOutCurrentDateElement.textContent = modalDate;
+                    clockOutCurrentDateElement.textContent = modalDateTime;
+                    clockOutCurrentDateElement.classList.remove('text-warning', 'text-black');
+                    clockOutCurrentDateElement.classList.add(isWithinWorkRange ? 'text-warning' : 'text-black');
                 }
                 if (clockInRunningTimeElement) {
                     clockInRunningTimeElement.textContent = formattedTime;

@@ -26,7 +26,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 
 	<!-- Favicon icon -->
-	<link rel="shortcut icon" type="image/x-icon" href="images/favicon.avif">
+	<link rel="shortcut icon" type="image/x-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
     
 	<!-- Start - Basic CSS -->
     <link href="vendor/metismenu/dist/metisMenu.min.css" rel="stylesheet">
@@ -43,6 +43,35 @@
 	<link class="main-css" href="css/style.css" rel="stylesheet">	
 	<!-- End - Style Css -->
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+	<style>
+		html,
+		body {
+			height: 100%;
+			overflow: hidden;
+		}
+
+		.authincation .card {
+			max-height: calc(100vh - 2rem);
+			overflow-y: auto;
+		}
+
+		.show-pass {
+			cursor: pointer;
+			user-select: none;
+		}
+
+		.show-pass .hide {
+			display: none;
+		}
+
+		.show-pass.is-visible .show {
+			display: none;
+		}
+
+		.show-pass.is-visible .hide {
+			display: inline;
+		}
+	</style>
     
 </head>
 <body class="vh-100">
@@ -54,21 +83,9 @@
                 <div class="col-md-6">
 					<div class="card p-5 shadow-lg">
 						<div class="text-center mb-3">
-							@if (! empty($logoPaths))
-								<div id="company-logo-carousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="2200" data-bs-pause="false">
-									<div class="carousel-inner">
-										@foreach ($logoPaths as $logoPath)
-											<div class="carousel-item {{ $loop->first ? 'active' : '' }}">
-												<img src="{{ $logoPath }}" alt="Logo Perusahaan" style="max-width: 220px; width: 100%; height: 84px; object-fit: contain;">
-											</div>
-										@endforeach
-									</div>
-								</div>
-							@else
-								<a href="{{ route('login') }}" class="brand-logo" aria-label="Andalan Migration">
-									<span class="fw-semibold">Andalan Migration</span>
-								</a>
-							@endif
+							<a href="{{ route('login') }}" class="brand-logo d-inline-flex justify-content-center" aria-label="{{ $brandName ?? 'Andalan Bersama Group' }}">
+								<img src="{{ $brandLogoUrl ?? asset('images/images.png') }}" alt="{{ $brandName ?? 'Andalan Bersama Group' }} Logo" style="max-width: 220px; width: 100%; height: 84px; object-fit: contain;">
+							</a>
 						</div>
 						<h4 class="text-center mb-4">Sign in your account</h4>
 						@if ($errors->any())
@@ -95,7 +112,7 @@
 							<div class="form-row d-flex justify-content-between mt-4 mb-2 flex-wrap">
 								<div class="form-group mb-3">
 								   <div class="custom-control custom-checkbox ms-1">
-										<input type="checkbox" name="remember" class="form-check-input" id="basic_checkbox_1" {{ old('remember') ? 'checked' : '' }}>
+										<input type="checkbox" name="remember" value="1" class="form-check-input" id="basic_checkbox_1" {{ old('remember') ? 'checked' : '' }}>
 										<label class="form-check-label" for="basic_checkbox_1">Remember my preference</label>
 									</div>
 								</div>
@@ -131,9 +148,19 @@
 		(function () {
 			const loginForm = document.getElementById('login-form');
 			const submitButton = loginForm?.querySelector('button[type="submit"]');
+			const passwordInput = loginForm?.querySelector('input[name="password"]');
+			const showPassButton = loginForm?.querySelector('.show-pass');
 
 			if (!loginForm || typeof Swal === 'undefined') {
 				return;
+			}
+
+			if (passwordInput && showPassButton) {
+				showPassButton.addEventListener('click', function () {
+					const isCurrentlyVisible = passwordInput.type === 'text';
+					passwordInput.type = isCurrentlyVisible ? 'password' : 'text';
+					showPassButton.classList.toggle('is-visible', !isCurrentlyVisible);
+				});
 			}
 
 			loginForm.addEventListener('submit', async function (event) {

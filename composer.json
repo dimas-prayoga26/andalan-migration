@@ -10,8 +10,11 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "dompdf/dompdf": "^3.1",
+        "enyo/dropzone": "^5.9",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
+        "spatie/laravel-pdf": "^2.9",
         "spatie/laravel-permission": "^7.3"
     },
     "require-dev": {

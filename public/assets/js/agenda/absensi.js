@@ -1,3 +1,33 @@
+document.addEventListener("DOMContentLoaded", function () {
+    const btn = document.getElementById("btn-absen");
+
+    const data = window.absensiHariIni;
+
+    const jamMasuk = data?.jam_masuk;
+    const jamKeluar = data?.jam_keluar;
+
+    // ❌ belum absen sama sekali
+    if (!jamMasuk) {
+        return;
+    }
+
+    // ✅ sudah masuk → ubah jadi keluar
+    if (jamMasuk && !jamKeluar) {
+        btn.querySelector(".ag-label").innerHTML =
+            `<i class="bi bi-box-arrow-right me-1"></i> Absen Keluar`;
+
+        btn.setAttribute(
+            "onclick",
+            `agAbsen(this, 'filled', '${btn.dataset.url}', '${btn.dataset.urlUpdate}')`,
+        );
+    }
+
+    // ✅ sudah selesai
+    if (jamMasuk && jamKeluar) {
+        setBtnDone(btn);
+    }
+});
+
 // ── CLOCK ───────────────────────────────
 const agDays = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const agMonths = [
@@ -29,16 +59,109 @@ function agUpdateClock() {
 setInterval(agUpdateClock, 1000);
 agUpdateClock();
 
+function setBtnLoading(btn, isLoading) {
+    const label = btn.querySelector(".ag-label");
+    const loading = btn.querySelector(".ag-loading");
+
+    if (isLoading) {
+        btn.disabled = true;
+        label.classList.add("d-none");
+        loading.classList.remove("d-none");
+    } else {
+        btn.disabled = false;
+        label.classList.remove("d-none");
+        loading.classList.add("d-none");
+    }
+}
+
+function setBtnDone(btn) {
+    btn.disabled = true;
+    btn.classList.remove("btn-primary");
+    btn.classList.add("btn-secondary");
+
+    btn.querySelector(".ag-label").innerHTML =
+        `<i class="bi bi-check-circle me-1"></i> Selesai`;
+}
+
+function showToast(msg, isError = false) {
+    const toast = document.getElementById("ag-toast");
+
+    toast.classList.remove("d-none", "alert-success", "alert-danger");
+
+    toast.classList.add(isError ? "alert-danger" : "alert-success");
+    toast.innerText = msg;
+
+    setTimeout(() => toast.classList.add("d-none"), 3000);
+}
+
 // ── ABSEN TOAST ─────────────────────────
-function agAbsen(type) {
+function agAbsen(idUser, btn, jamMasuk, url, urlUpdate) {
     const now = new Date();
     const pad = (n) => String(n).padStart(2, "0");
 
-    const toast = document.getElementById("ag-toast");
-    toast.innerText = `Absen ${type} berhasil pukul ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    toast.classList.remove("d-none");
+    const payloadMasuk = {
+        id_user: idUser,
+        tanggal: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+        domisili: "Yogyakarta",
+        jam_masuk: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+        status: now.getHours() >= 8.15 ? "Terlambat" : "Hadir",
+    };
 
-    setTimeout(() => toast.classList.add("d-none"), 3000);
+    const payloadKeluar = {
+        id_user: idUser,
+        jam_keluar: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+    };
+
+    setBtnLoading(btn, true);
+
+    // ⛳ BELUM ABSEN MASUK
+    if (!jamMasuk) {
+        axios
+            .post(url, payloadMasuk)
+            .then((res) => {
+                if (res.data.success) {
+                    showToast(`Absen masuk berhasil`);
+
+                    // ubah tombol jadi "Absen Keluar"
+                    btn.querySelector(".ag-label").innerHTML =
+                        `<i class="bi bi-box-arrow-right me-1"></i> Absen Keluar`;
+
+                    // update state lokal
+                    btn.setAttribute(
+                        "onclick",
+                        `agAbsen(${idUser}, this, 'filled', this.dataset.url, this.dataset.urlUpdate)`,
+                    );
+                }
+            })
+            .catch((err) => {
+                showToast("Absen masuk gagal!", true);
+                // showToast(err.response.data.message, true);
+                console.log(err.response);
+            })
+            .finally(() => {
+                setBtnLoading(btn, false);
+            });
+    }
+
+    // ⛳ SUDAH MASUK → ABSEN KELUAR
+    else {
+        axios
+            .put(urlUpdate, payloadKeluar)
+            .then((res) => {
+                if (res.data.success) {
+                    showToast(`Absen keluar berhasil`);
+                    setBtnDone(btn);
+                }
+            })
+            .catch((err) => {
+                showToast("Absen keluar gagal!", true);
+                // showToast(err.response.data.message, true);
+                console.log(err.response.data.message);
+            })
+            .finally(() => {
+                setBtnLoading(btn, false);
+            });
+    }
 }
 
 // ── DATA ABSENSI ───────────────────────
@@ -163,7 +286,7 @@ function agRenderCal() {
             const badgeMap = {
                 Terlambat: "text-bg-danger",
                 Hadir: "text-bg-success",
-                Libur: "text-bg-warning",
+                Libur: "text-bg-danger",
                 Cuti: "text-bg-warning",
                 Lembur: "text-bg-info",
             };
@@ -181,8 +304,11 @@ function agRenderCal() {
                 document.getElementById("agDetailStatus").className =
                     "badge " + badgeMap["Libur"];
 
-                document.getElementById("agDetailStatus").innerText =
-                    agLibur[date];
+                document.getElementById("agDetailStatus").innerText = "Libur";
+
+                document.getElementById("agDetailMasuk").innerText =
+                    "Alasan Tanggal Merah: \t" + agLibur[date];
+                document.getElementById("agDetailKeluar").innerText = "";
             } else if (izin) {
                 document.getElementById("agDetailStatus").className =
                     "badge " + badgeMap["Cuti"];
@@ -203,11 +329,17 @@ function agRenderCal() {
                 document.getElementById("agDetailStatus").innerText =
                     masuk.status;
 
-                document.getElementById("agDetailMasuk").innerText =
-                    "Jam Masuk: \t\t\t" + masuk.jam_masuk || "-";
+                document
+                    .getElementById("agDetailMasuk")
+                    .classList.add("text-center");
 
-                document.getElementById("agDetailKeluar").innerText =
-                    "Jam Keluar: \t\t\t" + keluar.jam_keluar || "-";
+                document.getElementById("agDetailMasuk").innerText =
+                    "Jam Masuk: \t\t\t" +
+                    masuk.jam_masuk +
+                    " | Jam Keluar: \t\t\t" +
+                    masuk.jam_keluar;
+
+                document.getElementById("agDetailKeluar").innerText = "";
             }
 
             // ✅ LEMBUR (DITAMBAH, bukan else!)
@@ -218,10 +350,11 @@ function agRenderCal() {
                 document.getElementById("agDetailStatus").innerText = "Lembur";
 
                 document.getElementById("agDetailMasuk").innerText =
-                    "Jam Masuk: \t\t\t" + `${lembur.jam_mulai || "-"} (Lembur)`;
+                    "Jam Masuk: \t\t\t" +
+                    `${lembur.jam_mulai || "-"} | Jam Keluar: \t\t\t` +
+                    `${lembur.jam_selesai || "-"}`;
 
-                document.getElementById("agDetailKeluar").innerText =
-                    "Jam Keluar: \t\t\t" + `${lembur.jam_selesai || "-"}`;
+                document.getElementById("agDetailKeluar").innerText = "";
             }
 
             new bootstrap.Modal(

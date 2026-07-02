@@ -2,33 +2,54 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Fillable;
+use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable([
-    'name',
-    'legal_name',
-    'address',
-    'city',
-    'province',
-    'postal_code',
-    'country',
-    'industry',
-    'primary_color',
-    'secondary_color',
-    'vision',
-    'mission',
-    'description',
-    'phone',
-    'email',
-    'website',
-    'is_active',
-])]
 class Company extends Model
 {
+    use GeneratesCustomSequenceUuid;
+
+    protected $guarded = [];
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $company): void {
+            if (! is_string($company->id) || trim($company->id) === '') {
+                $company->id = static::generateCustomSequenceUuid('id');
+            }
+        });
+    }
+
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'company_id', 'id');
+    }
+
+    public function attendanceRules(): HasMany
+    {
+        return $this->hasMany(RulesOfAttendace::class, 'companies_id', 'id');
+    }
+
+    public function officeLocations(): HasMany
+    {
+        return $this->hasMany(OfficeLocation::class, 'company_id', 'id');
+    }
+
+    public function activeAttendanceRule(): HasOne
+    {
+        return $this->hasOne(RulesOfAttendace::class, 'companies_id', 'id')
+            ->where('rules_of_attendaces.is_active', true)
+            ->latestOfMany('created_at');
     }
 }

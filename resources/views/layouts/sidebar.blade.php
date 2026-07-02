@@ -2,120 +2,104 @@
           <div class="deznav">
             <div class="deznav-scroll">
 				<ul class="metismenu" id="menu">
-                    <li class="nav-label first">Main</li>
-                    <li>
-						<a href="{{ url('/') }}" class="ai-icon" aria-expanded="false">
-							<i class="bi bi-house-door"></i>
-							<span class="nav-text">Dashboard</span>
+					@php
+						$isDashboardMenu = request()->routeIs('dashboard');
+						$isCalendarMenu = request()->routeIs('activity-schadule*');
+						$isAttendanceMenu = request()->routeIs('attendance*') || request()->is('attendance*');
+						$isAdminAttendanceMenu = request()->routeIs('admin-attendance*') || request()->is('admin-attendance*');
+						$isPicAttendanceMenu = request()->routeIs('pic-attendance*') || request()->is('pic-attendance*');
+						$isDirectorAttendanceMenu = request()->routeIs('director-attendance*') || request()->is('director-attendance*');
+						$isReportingMenu = request()->routeIs('project_management', 'project_management.detail') || request()->is('project-management*');
+						$isAuthorizationMenu = request()->routeIs('authorization*') || request()->is('authorization*');
+						$canViewSidebarMenu = $canViewSidebarMenu ?? static fn (string $permissionName): bool => true;
+						$canViewDashboardMenu = $canViewSidebarMenu('view-dashboard');
+						$canViewCalendarMenu = $canViewSidebarMenu('view-calendar');
+						$canViewAttendanceMenu = $canViewSidebarMenu('view-attendance');
+						$canViewTimesheetReportingMenu = $canViewSidebarMenu('view-timesheet-reporting');
+						$canViewAdminAttendanceMenu = $canViewSidebarMenu('view-admin-attendance');
+						$canViewPicAttendanceMenu = $canViewSidebarMenu('view-pic-attendance');
+						$canViewDirectorAttendanceMenu = $canViewSidebarMenu('view-director-attendance');
+						$canViewAuthorizationMenu = $canViewSidebarMenu('view-authorization');
+					@endphp
+					@if ($canViewDashboardMenu || $canViewCalendarMenu)
+					<div class="copyright mt-1">
+						<p class="mb-1"><strong>Main</strong> </p>
+					</div>
+					@endif
+					@if ($canViewDashboardMenu)
+                    <li class="{{ $isDashboardMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isDashboardMenu ? 'active' : '' }}" href="{{ route('dashboard') }}">
+							<i class="fa-solid fa-gauge"></i>
+							<span class="nav-text" data-i18n="Dashboard">Dashboard</span>
 						</a>
-					</li>
-                    <li>
-						<a href="javascript:void(0)" class="ai-icon" aria-expanded="false">
-							<i class="bi bi-calendar-event"></i>
-							<span class="nav-text">Agenda Kegiatan</span>
-						</a>
-					</li>
-
-                    <li class="nav-label">Data Siap</li>
-                    <li>
-						<a href="{{ url('/absensi') }}" class="ai-icon" aria-expanded="false">
-							<i class="bi bi-archive"></i>
-							<span class="nav-text">Data Absensi</span>
-						</a>
-					</li>
-                    <li>
-						<a href="javascript:void(0)" class="ai-icon" aria-expanded="false">
-							<i class="bi bi-file-earmark-plus"></i>
-							<span class="nav-text">Laporan Pekerjaan</span>
-						</a>
-					</li>
-                    <li>
-						<a href="javascript:void(0)" class="ai-icon" aria-expanded="false">
-							<i class="bi bi-layout-text-sidebar"></i>
-							<span class="nav-text">Data Pelamar</span>
-						</a>
-					</li>
-                    <li>
-						<a href="javascript:void(0)" class="ai-icon" aria-expanded="false">
-							<i class="bi bi-people"></i>
-							<span class="nav-text">Data Karyawan</span>
-						</a>
-					</li>
-
-                    <li class="nav-label">Website Features</li>
-                    <li>
-						<a href="javascript:void(0)" class="ai-icon" aria-expanded="false">
-							<i class="bi bi-type-bold"></i>
-							<span class="nav-text">Blog Management</span>
-						</a>
-					</li>
-                    <li>
-						<a href="javascript:void(0)" class="ai-icon" aria-expanded="false">
-							<i class="bi bi-file-earmark-text"></i>
-							<span class="nav-text">Project List</span>
-						</a>
-					</li>
-
-                    <li class="nav-label">Administration Features</li>
-                    <li>
-						<a href="javascript:void(0)" class="ai-icon" aria-expanded="false">
-							<i class="bi bi-wallet2"></i>
-							<span class="nav-text">Finance Management</span>
-						</a>
-					</li>
-                    <li>
-						<a href="javascript:void(0)" class="ai-icon" aria-expanded="false">
-							<i class="bi bi-window-sidebar"></i>
-							<span class="nav-text">Administration Management</span>
-						</a>
-					</li>
-
-                    <li class="nav-label">Meeting</li>
-                    <li>
-						<a href="javascript:void(0)" class="ai-icon" aria-expanded="false">
-							<i class="bi bi-camera-video"></i>
-							<span class="nav-text">Zoom Meeting</span>
-						</a>
-					</li>
-
-                    <li class="nav-label">Resource</li>
-                    <li>
-						<a href="javascript:void(0)" class="ai-icon" aria-expanded="false">
-							<i class="bi bi-list-task"></i>
-							<span class="nav-text">Options</span>
-						</a>
-					</li>
-
-                    <li class="nav-label">My Account</li>
-                    <li>
-						<a href="javascript:void(0)" class="ai-icon" aria-expanded="false">
-							<i class="bi bi-person"></i>
-							<span class="nav-text">My Profile</span>
-						</a>
-					</li>
-
-                    <li class="nav-label">Miscellaneous</li>
-                    <li>
-						<a class="has-arrow ai-icon" href="javascript:void(0)" aria-expanded="false">
-							<i class="bi bi-command"></i>
-							<span class="nav-text">Other Menu</span>
-						</a>
-                        <ul aria-expanded="false">
-                            <li><a href="javascript:void(0)">Information</a></li>
-                        </ul>
-						<ul aria-expanded="false">
-                            <li><a href="javascript:void(0)">Setting</a></li>
-                        </ul>
-						<ul aria-expanded="false">
-                            <li><a href="javascript:void(0)">Help Center</a></li>
-                        </ul>
-						<ul aria-expanded="false">
-                            <li><a href="javascript:void(0)">Privacy Policy</a></li>
-                        </ul>
-						<ul aria-expanded="false">
-                            <li><a href="javascript:void(0)">Sitemap</a></li>
-                        </ul>
                     </li>
+					@endif
+					@if ($canViewCalendarMenu)
+					<li class="{{ $isCalendarMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isCalendarMenu ? 'active' : '' }}" href="{{ route('activity-schadule') }}">
+							<i class="fa-regular fa-calendar-days"></i>
+							<span class="nav-text" data-i18n="Google Calendar">Google Calendar </span>
+						</a>
+					</li>
+					@endif
+					@if ($canViewAttendanceMenu || $canViewTimesheetReportingMenu)
+					<div class="copyright mt-1">
+						<p class="mb-1"><strong>Siap</strong> </p>
+					</div>
+					@endif
+					@if ($canViewAttendanceMenu)
+					<li class="{{ $isAttendanceMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isAttendanceMenu ? 'active' : '' }}" href="{{ route('attendance') }}" aria-expanded="{{ $isAttendanceMenu ? 'true' : 'false' }}">
+							<i class="fa-regular fa-clock"></i>
+							<span class="nav-text" data-i18n="Attendance">Attendance </span>
+						</a>
+					</li>
+					@endif
+					@if ($canViewTimesheetReportingMenu)
+					<li class="{{ $isReportingMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isReportingMenu ? 'active' : '' }}" href="{{ route('project_management') }}" aria-expanded="{{ $isReportingMenu ? 'true' : 'false' }}">
+							<i class="fa-regular fa-file-lines"></i>
+							<span class="nav-text" data-i18n="Timesheet & Reporting">Timesheet & Reporting </span>
+						</a>
+					</li>
+					@endif
+					@if ($canViewAdminAttendanceMenu || $canViewPicAttendanceMenu || $canViewDirectorAttendanceMenu || $canViewAuthorizationMenu)
+					<div class="copyright mt-1">
+						<p class="mb-1"><strong>HR Management</strong> </p>
+					</div>
+					@endif
+					@if ($canViewAdminAttendanceMenu)
+					<li class="{{ $isAdminAttendanceMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isAdminAttendanceMenu ? 'active' : '' }}" href="{{ route('admin-attendance.overview') }}" aria-expanded="{{ $isAdminAttendanceMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-user-clock"></i>
+							<span class="nav-text" data-i18n="Admin Attendance">Admin Attendance </span>
+						</a>
+					</li>
+					@endif
+					@if ($canViewPicAttendanceMenu)
+					<li class="{{ $isPicAttendanceMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isPicAttendanceMenu ? 'active' : '' }}" href="{{ route('pic-attendance.attendance') }}" aria-expanded="{{ $isPicAttendanceMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-clipboard-check"></i>
+							<span class="nav-text" data-i18n="PIC">PIC</span>
+						</a>
+					</li>
+					@endif
+					@if ($canViewDirectorAttendanceMenu)
+					<li class="{{ $isDirectorAttendanceMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isDirectorAttendanceMenu ? 'active' : '' }}" href="{{ route('director-attendance.attendance') }}" aria-expanded="{{ $isDirectorAttendanceMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-user-tie"></i>
+							<span class="nav-text" data-i18n="Director">Director</span>
+						</a>
+					</li>
+					@endif
+					@if ($canViewAuthorizationMenu)
+					<li class="{{ $isAuthorizationMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isAuthorizationMenu ? 'active' : '' }}" href="{{ route('authorization') }}" aria-expanded="{{ $isAuthorizationMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-id-card"></i>
+							<span class="nav-text" data-i18n="Data Employee">Data Employee </span>
+						</a>
+					</li>
+					@endif
                 </ul>
 			</div>
         </div>

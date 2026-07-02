@@ -24,27 +24,53 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 
 	<!-- Favicon icon -->
-	<link rel="shortcut icon" type="image/x-icon" href="images/favicon.avif">
+	<link rel="shortcut icon" type="image/x-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
+
+    @php
+        $assetVersion = static function (string $path): int {
+            $assetPath = public_path('assets/' . ltrim($path, '/'));
+
+            return file_exists($assetPath) ? filemtime($assetPath) : time();
+        };
+    @endphp
 
 	<!-- All Required CSS -->
-	<link href="vendor/owl-carousel/owl.carousel.css" rel="stylesheet">
-	<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+	<link href="vendor/owl-carousel/owl.carousel.css?v={{ $assetVersion('vendor/owl-carousel/owl.carousel.css') }}" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
 	<!-- Start - Basic CSS -->
-    <link href="vendor/metismenu/dist/metisMenu.min.css" rel="stylesheet">
-    <link href="vendor/bootstrap-select/dist/css/bootstrap-select.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="vendor/chartist/css/chartist.min.css">
+    <link href="vendor/metismenu/dist/metisMenu.min.css?v={{ $assetVersion('vendor/metismenu/dist/metisMenu.min.css') }}" rel="stylesheet">
+    <link rel="preload" href="vendor/bootstrap-select/dist/css/bootstrap-select.min.css?v={{ $assetVersion('vendor/bootstrap-select/dist/css/bootstrap-select.min.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="vendor/bootstrap-select/dist/css/bootstrap-select.min.css?v={{ $assetVersion('vendor/bootstrap-select/dist/css/bootstrap-select.min.css') }}" rel="stylesheet"></noscript>
+    <link rel="preload" href="icons/bootstrap-icons/font/bootstrap-icons.css?v={{ $assetVersion('icons/bootstrap-icons/font/bootstrap-icons.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="icons/bootstrap-icons/font/bootstrap-icons.css?v={{ $assetVersion('icons/bootstrap-icons/font/bootstrap-icons.css') }}" rel="stylesheet"></noscript>
+    <link href="icons/font-awesome/css/all.min.css?v={{ $assetVersion('icons/font-awesome/css/all.min.css') }}" rel="stylesheet">
+    <link rel="preload" href="icons/line-awesome/css/line-awesome.min.css?v={{ $assetVersion('icons/line-awesome/css/line-awesome.min.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="icons/line-awesome/css/line-awesome.min.css?v={{ $assetVersion('icons/line-awesome/css/line-awesome.min.css') }}" rel="stylesheet"></noscript>
+    <link rel="preload" href="icons/avasta/css/style.css?v={{ $assetVersion('icons/avasta/css/style.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="icons/avasta/css/style.css?v={{ $assetVersion('icons/avasta/css/style.css') }}" rel="stylesheet"></noscript>
+    <link rel="preload" href="icons/flaticon/flaticon.css?v={{ $assetVersion('icons/flaticon/flaticon.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="icons/flaticon/flaticon.css?v={{ $assetVersion('icons/flaticon/flaticon.css') }}" rel="stylesheet"></noscript>
+    <link rel="preload" href="icons/flaticon-1/font/flaticon-1.css?v={{ $assetVersion('icons/flaticon-1/font/flaticon-1.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="icons/flaticon-1/font/flaticon-1.css?v={{ $assetVersion('icons/flaticon-1/font/flaticon-1.css') }}" rel="stylesheet"></noscript>
     <!-- End - Basic CSS -->
 
 	<!-- Start - Switcher CSS -->
-	<link class="main-switcher" href="css/switcher.css" rel="stylesheet">
+	<link class="main-switcher" rel="preload" href="css/switcher.css?v={{ $assetVersion('css/switcher.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link class="main-switcher" href="css/switcher.css?v={{ $assetVersion('css/switcher.css') }}" rel="stylesheet"></noscript>
 	<!-- End - Switcher CSS -->
+	<!-- End - All Required css -->
+    <!-- All Required CSS -->
+	<link rel="preload" href="vendor/daterangepicker/daterangepicker.css?v={{ $assetVersion('vendor/daterangepicker/daterangepicker.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="vendor/daterangepicker/daterangepicker.css?v={{ $assetVersion('vendor/daterangepicker/daterangepicker.css') }}" rel="stylesheet"></noscript>
 
 	<!-- Start - Style Css -->
-	<link class="main-plugins" href="css/plugins.css" rel="stylesheet">
-	<link class="main-css" href="css/style.css" rel="stylesheet">
+	<link class="main-plugins" rel="preload" href="css/plugins.css?v={{ $assetVersion('css/plugins.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link class="main-plugins" href="css/plugins.css?v={{ $assetVersion('css/plugins.css') }}" rel="stylesheet"></noscript>
+	<link class="main-css" href="css/style.css?v={{ $assetVersion('css/style.css') }}" rel="stylesheet">
 	<!-- End - Style Css -->
-
     <style>
         .deznav {
             box-shadow: none !important;
@@ -57,15 +83,34 @@
 
         .nav-header .brand-logo .logo-mobile {
             display: none;
-            width: 48px;
-            height: auto;
         }
 
-        .nav-header .brand-logo .logo-desktop {
-            display: block;
-            height: auto;
-            width: 210px;
+        .nav-header .brand-logo .brand-logo-icon {
+            width: 44px;
+            height: 44px;
+            flex: 0 0 44px;
+            object-fit: contain;
+            object-position: center;
+        }
+
+        .nav-header .brand-logo .brand-logo-desktop {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.625rem;
             max-width: 100%;
+            overflow: hidden;
+        }
+
+        .nav-header .brand-logo .brand-logo-text {
+            color: #000;
+            font-size: 0.8125rem;
+            font-weight: 800;
+            letter-spacing: 0;
+            line-height: 1.15;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-transform: uppercase;
         }
 
         #main-wrapper.menu-toggle .nav-header .brand-logo .logo-mobile {
@@ -104,8 +149,20 @@
                 display: block;
             }
 
-            .nav-header .brand-logo .logo-desktop {
+            .nav-header .brand-logo .brand-logo-desktop {
                 display: none;
+            }
+        }
+
+        @media only screen and (max-width: 1024px) {
+            body:not([data-sidebar-style]) .deznav {
+                left: -100% !important;
+                transition: none !important;
+            }
+
+            body:not([data-sidebar-style]) #main-wrapper.menu-toggle .deznav {
+                left: 0 !important;
+                transition: none !important;
             }
         }
 

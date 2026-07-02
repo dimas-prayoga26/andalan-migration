@@ -1,0 +1,436 @@
+@extends('layouts.main')
+
+@section('title', 'Dashboard Andalan')
+
+@section('css')
+    @php
+        $dashboardCssPath = public_path('assets/css/dashboard.css');
+        $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
+    @endphp
+    <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <style>
+        @media (max-width: 767.98px) {
+            .overtime-summary-mobile-slider {
+                display: flex;
+                flex-wrap: nowrap;
+                gap: 12px;
+                overflow-x: auto;
+                scroll-snap-type: x mandatory;
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+
+            .overtime-summary-mobile-slider::-webkit-scrollbar {
+                display: none;
+                width: 0;
+                height: 0;
+            }
+
+            .overtime-summary-mobile-slide {
+                flex: 0 0 100%;
+                width: 100%;
+                max-width: 100%;
+                scroll-snap-align: start;
+            }
+        }
+    </style>
+@endsection
+
+@section('navbarTitle', 'Attendances')
+
+@section('content')
+@php
+    $overtimeSummary = $overtimeSummary ?? [];
+    $overtimeStatusFilterValue = $overtimeStatusFilter ?? 'all';
+    $overtimeTimeframeFilterValue = $overtimeTimeframeFilter ?? 'year_to_date';
+    $activeOvertimeFilterCount = (int) ($overtimeStatusFilterValue !== 'all')
+        + (int) ($overtimeTimeframeFilterValue !== 'year_to_date');
+@endphp
+
+@include('layouts.breadcrumb', [
+    'title' => 'Attendances',
+    'current' => 'Overtime',
+    'homeRoute' => 'dashboard',
+])
+
+@include('staff_attendance.layouts.profile-index')
+
+<div class="row overtime-summary-mobile-slider">
+    <div class="col-md-3 col-sm-6 overtime-summary-mobile-slide">
+        <div class="card overflow-hidden avtivity-card">
+            <div class="card-body">
+                <div class="d-flex gap-md-4 gap-3 align-items-center">
+                    <span class="avatar avatar-lg avatar-info rounded-circle border-0">
+                        <svg width="40" height="37" viewBox="0 0 40 37" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1.64826 26.5285C0.547125 26.7394 -0.174308 27.8026 0.0366371 28.9038C0.222269 29.8741 1.07449 30.5491 2.02796 30.5491C2.15453 30.5491 2.28531 30.5364 2.41188 30.5112L10.7653 28.908C11.242 28.8152 11.6682 28.5578 11.9719 28.1781L15.558 23.6554L14.3599 23.0437C13.4739 22.5965 12.8579 21.7865 12.6469 20.8035L9.26338 25.0688L1.64826 26.5285Z" fill="#A02CFA"/>
+                            <path d="M31.3999 8.89345C33.8558 8.89345 35.8467 6.90258 35.8467 4.44673C35.8467 1.99087 33.8558 0 31.3999 0C28.9441 0 26.9532 1.99087 26.9532 4.44673C26.9532 6.90258 28.9441 8.89345 31.3999 8.89345Z" fill="#A02CFA"/>
+                            <path d="M21.6965 3.33297C21.2282 2.85202 20.7937 2.66217 20.3169 2.66217C20.1439 2.66217 19.971 2.68748 19.7853 2.72967L12.1534 4.53958C11.0986 4.78849 10.4489 5.84744 10.6979 6.89795C10.913 7.80079 11.7146 8.40831 12.6048 8.40831C12.7567 8.40831 12.9086 8.39144 13.0605 8.35347L19.5618 6.81357C19.9837 7.28187 22.0974 9.57273 22.4813 9.97775C19.7938 12.855 17.1064 15.7281 14.4189 18.6054C14.3767 18.6519 14.3388 18.6982 14.3008 18.7446C13.5161 19.7445 13.7566 21.3139 14.9379 21.9088L23.1774 26.1151L18.8994 33.0467C18.313 34.0002 18.6083 35.249 19.5618 35.8396C19.8951 36.0464 20.2621 36.1434 20.6249 36.1434C21.3042 36.1434 21.9707 35.8017 22.3547 35.1815L27.7886 26.3766C28.0882 25.8915 28.1683 25.305 28.0122 24.7608C27.8561 24.2123 27.4806 23.7567 26.9702 23.4993L21.3885 20.66L27.2571 14.3823L31.6869 18.1371C32.0539 18.4493 32.5054 18.6012 32.9526 18.6012C33.4335 18.6012 33.9145 18.424 34.2899 18.078L39.3737 13.3402C40.1669 12.6019 40.2133 11.3615 39.475 10.5684C39.0868 10.1549 38.5637 9.944 38.0406 9.944C37.5638 9.944 37.0829 10.117 36.7074 10.4671L32.9019 14.0068C32.8977 14.011 23.363 5.04163 21.6965 3.33297Z" fill="#A02CFA"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <p class="fs-14 mb-2">Total Logged Hours ({{ $overtimeSummary['current_month_label'] ?? now('Asia/Jakarta')->format('M') }})</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['total_logged_hours_label'] ?? '0 Hours' }}</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
+                        <div class="progress-bar rounded bg-info" style="width: {{ $overtimeSummary['overtime_cap_progress'] ?? 0 }}%; height:5px;" aria-label="Progess-info" role="progressbar">
+                            <span class="sr-only">{{ $overtimeSummary['overtime_cap_progress'] ?? 0 }}% Complete</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="effect bg-secondary"></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 overtime-summary-mobile-slide">
+        <div class="card overflow-hidden avtivity-card">
+            <div class="card-body">
+                <div class="d-flex gap-md-4 gap-3 align-items-center">
+                    <span class="avatar avatar-lg avatar-success rounded-circle border-0">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <g clip-path="url(#clip2)">
+                            <path d="M14.6406 24.384C14.4639 24.1871 14.421 23.904 14.5305 23.6633C15.9635 20.513 14.4092 18.7501 14.564 11.6323C14.5713 11.2944 14.8346 10.9721 15.2564 10.9801C15.6201 10.987 15.905 11.2962 15.8971 11.6598C15.8902 11.9762 15.8871 12.2939 15.8875 12.6123C15.888 12.9813 16.1893 13.2826 16.5583 13.2776C17.6426 13.2628 19.752 12.9057 20.5684 10.4567L20.9744 9.23876C21.7257 6.9847 20.4421 4.55115 18.1335 3.91572L13.9816 2.77294C12.3274 2.31768 10.5363 2.94145 9.52387 4.32498C4.66826 10.9599 1.44452 18.5903 0.0754914 26.6727C-0.300767 28.8937 0.754757 31.1346 2.70222 32.2488C13.6368 38.5051 26.6023 39.1113 38.35 33.6379C39.3524 33.1709 40.0002 32.1534 40.0002 31.0457V19.1321C40.0002 18.182 39.5322 17.2976 38.7484 16.7664C34.5339 13.91 29.1672 14.2521 25.5723 18.0448C25.2519 18.3828 25.3733 18.937 25.8031 19.1166C27.4271 19.7957 28.9625 20.7823 30.2439 21.9475C30.5225 22.2008 30.542 22.6396 30.2654 22.9155C30.0143 23.1658 29.6117 23.1752 29.3485 22.9376C25.9907 19.9053 21.4511 18.5257 16.935 19.9686C16.658 20.0571 16.4725 20.3193 16.477 20.61C16.496 21.8194 16.294 22.9905 15.7421 24.2172C15.5453 24.6544 14.9607 24.7409 14.6406 24.384Z" fill="#27BC48"/>
+                            </g>
+                            <defs>
+                            <clipPath id="clip2">
+                            <rect width="40" height="40" fill="white"/>
+                            </clipPath>
+                            </defs>
+                        </svg>
+                    </span>
+                    <div>
+                        <p class="fs-14 mb-2">Overtime Cap (40 Hours)</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['overtime_cap_label'] ?? '0 H (0%)' }}</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
+                        <div class="progress-bar bg-success position-absolute rounded bootom-0" style="width: {{ $overtimeSummary['overtime_cap_progress'] ?? 0 }}%; height:5px;" aria-label="Progess-success" role="progressbar">
+                            <span class="sr-only">{{ $overtimeSummary['overtime_cap_progress'] ?? 0 }}% Complete</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="effect bg-success"></div>
+        </div>
+    </div>
+    <!-- Start - Daily Cycling -->
+    <div class="col-md-3 col-sm-6 overtime-summary-mobile-slide">
+        <div class="card overflow-hidden avtivity-card">
+            <div class="card-body">
+                <div class="d-flex gap-md-4 gap-3 align-items-center">
+                    <span class="avatar avatar-lg avatar-danger rounded-circle border-0">
+                        <svg width="40" height="39" viewBox="0 0 40 39" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18.0977 7.90402L9.78535 16.7845C9.17929 17.6683 9.40656 18.872 10.2862 19.4738L18.6574 25.2104V30.787C18.6574 31.8476 19.4992 32.7357 20.5598 32.7568C21.6456 32.7735 22.5295 31.9023 22.5295 30.8207V24.1961C22.5295 23.5564 22.2138 22.9588 21.6877 22.601L16.3174 18.9184L20.8376 14.1246L23.1524 19.3982C23.4596 20.101 24.1582 20.5556 24.9243 20.5556H31.974C33.0346 20.5556 33.9226 19.7139 33.9437 18.6532C33.9605 17.5674 33.0893 16.6835 32.0076 16.6835H26.1953C25.4293 14.9411 24.6128 13.2155 23.9015 11.4478C23.5395 10.5556 23.3376 10.1684 22.6726 9.55389C22.5379 9.42763 21.5993 8.56904 20.7618 7.80305C19.9916 7.10435 18.8047 7.15065 18.0977 7.90402Z" fill="#FF3282"/>
+                            <path d="M26.0269 8.87206C28.4769 8.87206 30.463 6.88598 30.463 4.43603C30.463 1.98608 28.4769 0 26.0269 0C23.577 0 21.5909 1.98608 21.5909 4.43603C21.5909 6.88598 23.577 8.87206 26.0269 8.87206Z" fill="#FF3282"/>
+                            <path d="M8.16498 38.388C12.6744 38.388 16.33 34.7325 16.33 30.2231C16.33 25.7137 12.6744 22.0581 8.16498 22.0581C3.65559 22.0581 0 25.7137 0 30.2231C0 34.7325 3.65559 38.388 8.16498 38.388Z" fill="#FF3282"/>
+                            <path d="M31.835 38.388C36.3444 38.388 40 34.7325 40 30.2231C40 25.7137 36.3444 22.0581 31.835 22.0581C27.3256 22.0581 23.67 25.7137 23.67 30.2231C23.67 34.7325 27.3256 38.388 31.835 38.388Z" fill="#FF3282"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <p class="fs-14 mb-2">Average Extra Hours</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['average_extra_hours_label'] ?? '0 H / Week' }}</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
+                        <div class="progress-bar rounded bg-danger" style="width: 10%; height:5px;" aria-label="Progess-danger"  role="progressbar">
+                            <span class="sr-only">10% Complete</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="effect bg-danger"></div>
+        </div>
+    </div>
+    <!-- End - Daily Cycling -->
+    <div class="col-md-3 col-sm-6 overtime-summary-mobile-slide">
+        <div class="card overflow-hidden avtivity-card">
+            <div class="card-body">
+                <div class="d-flex gap-md-4 gap-3 align-items-center">
+                    <span class="avatar avatar-lg avatar-secondary rounded-circle border-0">
+                        <svg width="40" height="37" viewBox="0 0 40 37" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1.64826 26.5285C0.547125 26.7394 -0.174308 27.8026 0.0366371 28.9038C0.222269 29.8741 1.07449 30.5491 2.02796 30.5491C2.15453 30.5491 2.28531 30.5364 2.41188 30.5112L10.7653 28.908C11.242 28.8152 11.6682 28.5578 11.9719 28.1781L15.558 23.6554L14.3599 23.0437C13.4739 22.5965 12.8579 21.7865 12.6469 20.8035L9.26338 25.0688L1.64826 26.5285Z" fill="#A02CFA"/>
+                            <path d="M31.3999 8.89345C33.8558 8.89345 35.8467 6.90258 35.8467 4.44673C35.8467 1.99087 33.8558 0 31.3999 0C28.9441 0 26.9532 1.99087 26.9532 4.44673C26.9532 6.90258 28.9441 8.89345 31.3999 8.89345Z" fill="#A02CFA"/>
+                            <path d="M21.6965 3.33297C21.2282 2.85202 20.7937 2.66217 20.3169 2.66217C20.1439 2.66217 19.971 2.68748 19.7853 2.72967L12.1534 4.53958C11.0986 4.78849 10.4489 5.84744 10.6979 6.89795C10.913 7.80079 11.7146 8.40831 12.6048 8.40831C12.7567 8.40831 12.9086 8.39144 13.0605 8.35347L19.5618 6.81357C19.9837 7.28187 22.0974 9.57273 22.4813 9.97775C19.7938 12.855 17.1064 15.7281 14.4189 18.6054C14.3767 18.6519 14.3388 18.6982 14.3008 18.7446C13.5161 19.7445 13.7566 21.3139 14.9379 21.9088L23.1774 26.1151L18.8994 33.0467C18.313 34.0002 18.6083 35.249 19.5618 35.8396C19.8951 36.0464 20.2621 36.1434 20.6249 36.1434C21.3042 36.1434 21.9707 35.8017 22.3547 35.1815L27.7886 26.3766C28.0882 25.8915 28.1683 25.305 28.0122 24.7608C27.8561 24.2123 27.4806 23.7567 26.9702 23.4993L21.3885 20.66L27.2571 14.3823L31.6869 18.1371C32.0539 18.4493 32.5054 18.6012 32.9526 18.6012C33.4335 18.6012 33.9145 18.424 34.2899 18.078L39.3737 13.3402C40.1669 12.6019 40.2133 11.3615 39.475 10.5684C39.0868 10.1549 38.5637 9.944 38.0406 9.944C37.5638 9.944 37.0829 10.117 36.7074 10.4671L32.9019 14.0068C32.8977 14.011 23.363 5.04163 21.6965 3.33297Z" fill="#A02CFA"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <p class="fs-14 mb-2">Tasks Finalized</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['tasks_finalized_label'] ?? '0 Tasks' }}</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
+                        <div class="progress-bar rounded bg-secondary" style="width: 10%; height:5px;" aria-label="Progess-secondary" role="progressbar">
+                            <span class="sr-only">10%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="effect bg-secondary"></div>
+        </div>
+    </div>
+</div>
+
+<div class="row overtime-summary-mobile-slider">
+    <div class="col-md-3 col-sm-6 overtime-summary-mobile-slide">
+        <div class="card overflow-hidden avtivity-card">
+            <div class="card-body">
+                <div class="d-flex gap-md-4 gap-3 align-items-center">
+                    <span class="avatar avatar-lg avatar-info rounded-circle border-0">
+                        <svg width="40" height="37" viewBox="0 0 40 37" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1.64826 26.5285C0.547125 26.7394 -0.174308 27.8026 0.0366371 28.9038C0.222269 29.8741 1.07449 30.5491 2.02796 30.5491C2.15453 30.5491 2.28531 30.5364 2.41188 30.5112L10.7653 28.908C11.242 28.8152 11.6682 28.5578 11.9719 28.1781L15.558 23.6554L14.3599 23.0437C13.4739 22.5965 12.8579 21.7865 12.6469 20.8035L9.26338 25.0688L1.64826 26.5285Z" fill="#A02CFA"/>
+                            <path d="M31.3999 8.89345C33.8558 8.89345 35.8467 6.90258 35.8467 4.44673C35.8467 1.99087 33.8558 0 31.3999 0C28.9441 0 26.9532 1.99087 26.9532 4.44673C26.9532 6.90258 28.9441 8.89345 31.3999 8.89345Z" fill="#A02CFA"/>
+                            <path d="M21.6965 3.33297C21.2282 2.85202 20.7937 2.66217 20.3169 2.66217C20.1439 2.66217 19.971 2.68748 19.7853 2.72967L12.1534 4.53958C11.0986 4.78849 10.4489 5.84744 10.6979 6.89795C10.913 7.80079 11.7146 8.40831 12.6048 8.40831C12.7567 8.40831 12.9086 8.39144 13.0605 8.35347L19.5618 6.81357C19.9837 7.28187 22.0974 9.57273 22.4813 9.97775C19.7938 12.855 17.1064 15.7281 14.4189 18.6054C14.3767 18.6519 14.3388 18.6982 14.3008 18.7446C13.5161 19.7445 13.7566 21.3139 14.9379 21.9088L23.1774 26.1151L18.8994 33.0467C18.313 34.0002 18.6083 35.249 19.5618 35.8396C19.8951 36.0464 20.2621 36.1434 20.6249 36.1434C21.3042 36.1434 21.9707 35.8017 22.3547 35.1815L27.7886 26.3766C28.0882 25.8915 28.1683 25.305 28.0122 24.7608C27.8561 24.2123 27.4806 23.7567 26.9702 23.4993L21.3885 20.66L27.2571 14.3823L31.6869 18.1371C32.0539 18.4493 32.5054 18.6012 32.9526 18.6012C33.4335 18.6012 33.9145 18.424 34.2899 18.078L39.3737 13.3402C40.1669 12.6019 40.2133 11.3615 39.475 10.5684C39.0868 10.1549 38.5637 9.944 38.0406 9.944C37.5638 9.944 37.0829 10.117 36.7074 10.4671L32.9019 14.0068C32.8977 14.011 23.363 5.04163 21.6965 3.33297Z" fill="#A02CFA"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <p class="fs-14 mb-2">Pending SPV Approval</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['pending_spv_approval_hours_label'] ?? '0 Hours' }}</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
+                        <div class="progress-bar rounded bg-info" style="width: {{ $overtimeSummary['pending_spv_approval_hours_progress'] ?? 0 }}%; height:5px;" aria-label="Progess-info" role="progressbar">
+                            <span class="sr-only">{{ $overtimeSummary['pending_spv_approval_hours_progress'] ?? 0 }}% Pending SPV Approval</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="effect bg-secondary"></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 overtime-summary-mobile-slide">
+        <div class="card overflow-hidden avtivity-card">
+            <div class="card-body">
+                <div class="d-flex gap-md-4 gap-3 align-items-center">
+                    <span class="avatar avatar-lg avatar-success rounded-circle border-0">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <g clip-path="url(#clip2)">
+                            <path d="M14.6406 24.384C14.4639 24.1871 14.421 23.904 14.5305 23.6633C15.9635 20.513 14.4092 18.7501 14.564 11.6323C14.5713 11.2944 14.8346 10.9721 15.2564 10.9801C15.6201 10.987 15.905 11.2962 15.8971 11.6598C15.8902 11.9762 15.8871 12.2939 15.8875 12.6123C15.888 12.9813 16.1893 13.2826 16.5583 13.2776C17.6426 13.2628 19.752 12.9057 20.5684 10.4567L20.9744 9.23876C21.7257 6.9847 20.4421 4.55115 18.1335 3.91572L13.9816 2.77294C12.3274 2.31768 10.5363 2.94145 9.52387 4.32498C4.66826 10.9599 1.44452 18.5903 0.0754914 26.6727C-0.300767 28.8937 0.754757 31.1346 2.70222 32.2488C13.6368 38.5051 26.6023 39.1113 38.35 33.6379C39.3524 33.1709 40.0002 32.1534 40.0002 31.0457V19.1321C40.0002 18.182 39.5322 17.2976 38.7484 16.7664C34.5339 13.91 29.1672 14.2521 25.5723 18.0448C25.2519 18.3828 25.3733 18.937 25.8031 19.1166C27.4271 19.7957 28.9625 20.7823 30.2439 21.9475C30.5225 22.2008 30.542 22.6396 30.2654 22.9155C30.0143 23.1658 29.6117 23.1752 29.3485 22.9376C25.9907 19.9053 21.4511 18.5257 16.935 19.9686C16.658 20.0571 16.4725 20.3193 16.477 20.61C16.496 21.8194 16.294 22.9905 15.7421 24.2172C15.5453 24.6544 14.9607 24.7409 14.6406 24.384Z" fill="#27BC48"/>
+                            </g>
+                            <defs>
+                            <clipPath id="clip2">
+                            <rect width="40" height="40" fill="white"/>
+                            </clipPath>
+                            </defs>
+                        </svg>
+                    </span>
+                    <div>
+                        <p class="fs-14 mb-2">Completed & Locked</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['completed_locked_hours_label'] ?? '0 Hours' }}</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
+                        <div class="progress-bar bg-success position-absolute rounded bootom-0" style="width: {{ $overtimeSummary['completed_locked_progress'] ?? 0 }}%; height:5px;" aria-label="Progess-success" role="progressbar">
+                            <span class="sr-only">{{ $overtimeSummary['completed_locked_progress'] ?? 0 }}% Complete</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="effect bg-success"></div>
+        </div>
+    </div>
+    <!-- Start - Daily Cycling -->
+    <div class="col-md-3 col-sm-6 overtime-summary-mobile-slide">
+        <div class="card overflow-hidden avtivity-card">
+            <div class="card-body">
+                <div class="d-flex gap-md-4 gap-3 align-items-center">
+                    <span class="avatar avatar-lg avatar-danger rounded-circle border-0">
+                        <svg width="40" height="39" viewBox="0 0 40 39" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18.0977 7.90402L9.78535 16.7845C9.17929 17.6683 9.40656 18.872 10.2862 19.4738L18.6574 25.2104V30.787C18.6574 31.8476 19.4992 32.7357 20.5598 32.7568C21.6456 32.7735 22.5295 31.9023 22.5295 30.8207V24.1961C22.5295 23.5564 22.2138 22.9588 21.6877 22.601L16.3174 18.9184L20.8376 14.1246L23.1524 19.3982C23.4596 20.101 24.1582 20.5556 24.9243 20.5556H31.974C33.0346 20.5556 33.9226 19.7139 33.9437 18.6532C33.9605 17.5674 33.0893 16.6835 32.0076 16.6835H26.1953C25.4293 14.9411 24.6128 13.2155 23.9015 11.4478C23.5395 10.5556 23.3376 10.1684 22.6726 9.55389C22.5379 9.42763 21.5993 8.56904 20.7618 7.80305C19.9916 7.10435 18.8047 7.15065 18.0977 7.90402Z" fill="#FF3282"/>
+                            <path d="M26.0269 8.87206C28.4769 8.87206 30.463 6.88598 30.463 4.43603C30.463 1.98608 28.4769 0 26.0269 0C23.577 0 21.5909 1.98608 21.5909 4.43603C21.5909 6.88598 23.577 8.87206 26.0269 8.87206Z" fill="#FF3282"/>
+                            <path d="M8.16498 38.388C12.6744 38.388 16.33 34.7325 16.33 30.2231C16.33 25.7137 12.6744 22.0581 8.16498 22.0581C3.65559 22.0581 0 25.7137 0 30.2231C0 34.7325 3.65559 38.388 8.16498 38.388Z" fill="#FF3282"/>
+                            <path d="M31.835 38.388C36.3444 38.388 40 34.7325 40 30.2231C40 25.7137 36.3444 22.0581 31.835 22.0581C27.3256 22.0581 23.67 25.7137 23.67 30.2231C23.67 34.7325 27.3256 38.388 31.835 38.388Z" fill="#FF3282"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <p class="fs-14 mb-2">Estimated Extra Earnings</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['estimated_extra_earnings_label'] ?? 'Rp 225.000' }}</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
+                        <div class="progress-bar rounded bg-danger" style="width: 10%; height:5px;" aria-label="Progess-danger"  role="progressbar">
+                            <span class="sr-only">10% Complete</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="effect bg-danger"></div>
+        </div>
+    </div>
+    <!-- End - Daily Cycling -->
+    <div class="col-md-3 col-sm-6 overtime-summary-mobile-slide">
+        <div class="card overflow-hidden avtivity-card">
+            <div class="card-body">
+                <div class="d-flex gap-md-4 gap-3 align-items-center">
+                    <span class="avatar avatar-lg avatar-secondary rounded-circle border-0">
+                        <svg width="40" height="37" viewBox="0 0 40 37" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1.64826 26.5285C0.547125 26.7394 -0.174308 27.8026 0.0366371 28.9038C0.222269 29.8741 1.07449 30.5491 2.02796 30.5491C2.15453 30.5491 2.28531 30.5364 2.41188 30.5112L10.7653 28.908C11.242 28.8152 11.6682 28.5578 11.9719 28.1781L15.558 23.6554L14.3599 23.0437C13.4739 22.5965 12.8579 21.7865 12.6469 20.8035L9.26338 25.0688L1.64826 26.5285Z" fill="#A02CFA"/>
+                            <path d="M31.3999 8.89345C33.8558 8.89345 35.8467 6.90258 35.8467 4.44673C35.8467 1.99087 33.8558 0 31.3999 0C28.9441 0 26.9532 1.99087 26.9532 4.44673C26.9532 6.90258 28.9441 8.89345 31.3999 8.89345Z" fill="#A02CFA"/>
+                            <path d="M21.6965 3.33297C21.2282 2.85202 20.7937 2.66217 20.3169 2.66217C20.1439 2.66217 19.971 2.68748 19.7853 2.72967L12.1534 4.53958C11.0986 4.78849 10.4489 5.84744 10.6979 6.89795C10.913 7.80079 11.7146 8.40831 12.6048 8.40831C12.7567 8.40831 12.9086 8.39144 13.0605 8.35347L19.5618 6.81357C19.9837 7.28187 22.0974 9.57273 22.4813 9.97775C19.7938 12.855 17.1064 15.7281 14.4189 18.6054C14.3767 18.6519 14.3388 18.6982 14.3008 18.7446C13.5161 19.7445 13.7566 21.3139 14.9379 21.9088L23.1774 26.1151L18.8994 33.0467C18.313 34.0002 18.6083 35.249 19.5618 35.8396C19.8951 36.0464 20.2621 36.1434 20.6249 36.1434C21.3042 36.1434 21.9707 35.8017 22.3547 35.1815L27.7886 26.3766C28.0882 25.8915 28.1683 25.305 28.0122 24.7608C27.8561 24.2123 27.4806 23.7567 26.9702 23.4993L21.3885 20.66L27.2571 14.3823L31.6869 18.1371C32.0539 18.4493 32.5054 18.6012 32.9526 18.6012C33.4335 18.6012 33.9145 18.424 34.2899 18.078L39.3737 13.3402C40.1669 12.6019 40.2133 11.3615 39.475 10.5684C39.0868 10.1549 38.5637 9.944 38.0406 9.944C37.5638 9.944 37.0829 10.117 36.7074 10.4671L32.9019 14.0068C32.8977 14.011 23.363 5.04163 21.6965 3.33297Z" fill="#A02CFA"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <p class="fs-14 mb-2">Disputed Hours</p>
+                        <span class="title text-black fs-28 fw-semibold">{{ $overtimeSummary['disputed_hours_label'] ?? '0 Hours' }}</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
+                        <div class="progress-bar rounded bg-secondary" style="width: 10%; height:5px;" aria-label="Progess-secondary" role="progressbar">
+                            <span class="sr-only">10%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="effect bg-secondary"></div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+
+    <div class="col-lg-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Overtime List</h5>
+            <div class="d-flex align-items-center">
+                <button type="button" class="btn rounded btn-primary mt-xxl-0 mt-xl-3 mt-lg-0 mt-3 position-relative" data-bs-toggle="modal" data-bs-target="#filter">
+                    <svg class="me-2" width="25" height="24" viewBox="0 0 25 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3.31615 6H14.4744C14.4744 6.53043 14.6882 7.03914 15.0686 7.41421C15.4491 7.78929 15.9651 8 16.5032 8H18.532C19.07 8 19.5861 7.78929 19.9665 7.41421C20.347 7.03914 20.5607 6.53043 20.5607 6H21.5751C21.8442 6 22.1022 5.89464 22.2924 5.70711C22.4827 5.51957 22.5895 5.26522 22.5895 5C22.5895 4.73478 22.4827 4.48043 22.2924 4.29289C22.1022 4.10536 21.8442 4 21.5751 4H20.5607C20.5607 3.46957 20.347 2.96086 19.9665 2.58579C19.5861 2.21071 19.07 2 18.532 2H16.5032C15.9651 2 15.4491 2.21071 15.0686 2.58579C14.6882 2.96086 14.4744 3.46957 14.4744 4H3.31615C3.04711 4 2.7891 4.10536 2.59887 4.29289C2.40863 4.48043 2.30176 4.73478 2.30176 5C2.30176 5.26522 2.40863 5.51957 2.59887 5.70711C2.7891 5.89464 3.04711 6 3.31615 6ZM16.5032 4H18.532V5V6H16.5032V4ZM21.5751 11H12.4456C12.4456 10.4696 12.2319 9.96086 11.8514 9.58579C11.471 9.21071 10.9549 9 10.4169 9H8.38809C7.85002 9 7.334 9.21071 6.95353 9.58579C6.57306 9.96086 6.35931 10.4696 6.35931 11H3.31615C3.04711 11 2.7891 11.1054 2.59887 11.2929C2.40863 11.4804 2.30176 11.7348 2.30176 12C2.30176 12.2652 2.40863 12.5196 2.59887 12.7071C2.7891 12.8946 3.04711 13 3.31615 13H6.35931C6.35931 13.5304 6.57306 14.0391 6.95353 14.4142C7.334 14.7893 7.85002 15 8.38809 15H10.4169C10.9549 15 11.471 14.7893 11.8514 14.4142C12.2319 14.0391 12.4456 13.5304 12.4456 13H21.5751C21.8442 13 22.1022 12.8946 22.2924 12.7071C22.4827 12.5196 22.5895 12.2652 22.5895 12C22.5895 11.7348 22.4827 11.4804 22.2924 11.2929C22.1022 11.1054 21.8442 11 21.5751 11ZM8.38809 13V11H10.4169V12V13H8.38809ZM21.5751 18H18.532C18.532 17.4696 18.3182 16.9609 17.9378 16.5858C17.5573 16.2107 17.0413 16 16.5032 16H14.4744C13.9364 16 13.4203 16.2107 13.0399 16.5858C12.6594 16.9609 12.4456 17.4696 12.4456 18H3.31615C3.04711 18 2.7891 18.1054 2.59887 18.2929C2.40863 18.4804 2.30176 18.7348 2.30176 19C2.30176 19.2652 2.40863 19.5196 2.59887 19.7071C2.7891 19.8946 3.04711 20 3.31615 20H12.4456C12.4456 20.5304 12.6594 21.0391 13.0399 21.4142C13.4203 21.7893 13.9364 22 14.4744 22H16.5032C17.0413 22 17.5573 21.7893 17.9378 21.4142C18.3182 21.0391 18.532 20.5304 18.532 20H21.5751C21.8442 20 22.1022 19.8946 22.2924 19.7071C22.4827 19.5196 22.5895 19.2652 22.5895 19C22.5895 18.7348 22.4827 18.4804 22.2924 18.2929C22.1022 18.1054 21.8442 18 21.5751 18ZM14.4744 20V18H16.5032V19V20H14.4744Z" fill="#fff"></path>
+                    </svg>
+                    Filter
+                    @if ($activeOvertimeFilterCount > 0)
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ $activeOvertimeFilterCount }}</span>
+                    @endif
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3" id="overtime-list">
+        @forelse (($overtimeList ?? collect()) as $overtimeItem)
+            <div class="col-xxl-3 col-xl-4 col-sm-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="clearfix d-flex">
+                            <div class="avatar avatar-sm rounded me-3 p-2 bg-primary text-white flex-shrink-0">
+                                <span class="fw-semibold">O</span>
+                            </div>
+                            <div class="clearfix min-w-0">
+                                <h6 class="mb-0 fw-semibold text-truncate">
+                                    <a href="{{ $overtimeItem['detail_url'] ?? route('attendance.overtimes') }}" class="stretched-link">
+                                        {{ $overtimeItem['reference'] ?? '#OVT' }}
+                                    </a>
+                                </h6>
+                                <span class="small d-block text-muted">{{ $overtimeItem['overtime_date'] ?? '-' }}, {{ $overtimeItem['time_range'] ?? '-' }} ({{ $overtimeItem['duration'] ?? '-' }})</span>
+                            </div>
+                        </div>
+                        <div class="my-3">
+                            <p class="mb-0 text-muted fs-13">{{ $overtimeItem['instruction'] ?? '-' }}</p>
+                        </div>
+                        <div class="mt-3">
+                            <div class="d-flex justify-content-between">
+                                <span>{{ $overtimeItem['progress_label'] ?? 'Complete' }}</span>
+                                <span>{{ $overtimeItem['progress_percent'] ?? 0 }}%</span>
+                            </div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-purple" style="width:{{ $overtimeItem['progress_percent'] ?? 0 }}%;" role="progressbar" aria-valuenow="{{ $overtimeItem['progress_percent'] ?? 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex justify-content-between flex-wrap gap-2">
+                        <p class="mb-0 fw-medium">Due <span class="text-purple">: {{ $overtimeItem['due_label'] ?? '-' }}</span></p>
+                        <span class="badge badge-sm {{ $overtimeItem['footer_status_badge_class'] ?? 'badge-warning light' }}">{{ $overtimeItem['footer_status_label'] ?? 'Pending' }}</span>
+                    </div>
+                </div>
+            </div>
+        @empty
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <h6 class="mb-1">No overtime records found</h6>
+                        <p class="mb-0 text-muted">Data overtime belum tersedia untuk filter saat ini.</p>
+                    </div>
+                </div>
+            </div>
+        @endforelse
+    </div>
+
+</div>
+
+<!-- Modal Box Start -->
+<div class="modal fade" id="filter" tabindex="-1" aria-labelledby="filterLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="filterLabel">Filter Details</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="GET" action="{{ route('attendance.overtimes') }}" id="overtimeFilterForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <div class="mb-3">
+                                <label class="form-label" for="overtimeStatusFilter">Filter by Status</label>
+                                <select class="form-control selectpicker" id="overtimeStatusFilter" name="status">
+                                    <option value="all" @selected($overtimeStatusFilterValue === 'all')>Select All</option>
+                                    <option value="assigned" @selected($overtimeStatusFilterValue === 'assigned')>Assigned</option>
+                                    <option value="in_progress" @selected($overtimeStatusFilterValue === 'in_progress')>In Progress</option>
+                                    <option value="completed" @selected($overtimeStatusFilterValue === 'completed')>Completed</option>
+                                    <option value="cancelled" @selected($overtimeStatusFilterValue === 'cancelled')>Cancelled</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="overtimeTimeframeFilter">Filter by Timeframe</label>
+                                <select class="form-control selectpicker" id="overtimeTimeframeFilter" name="timeframe">
+                                    <option value="all" @selected($overtimeTimeframeFilterValue === 'all')>Select All</option>
+                                    <option value="this_month" @selected($overtimeTimeframeFilterValue === 'this_month')>This Month</option>
+                                    <option value="last_month" @selected($overtimeTimeframeFilterValue === 'last_month')>Last Month</option>
+                                    <option value="year_to_date" @selected($overtimeTimeframeFilterValue === 'year_to_date')>Year-to-Date</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="{{ route('attendance.overtimes') }}" class="btn btn-danger light">Reset</a>
+                    <button type="submit" class="btn btn-primary">Apply Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Modal-Box-End -->
+
+@endsection
+
+@section('script')
+    @php
+        $dashboardJsPath = public_path('assets/js/dashboard.js');
+        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
+    @endphp
+    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script>
+        $(function () {
+            $('.attendance-tab-btn').on('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                var targetUrl = $(this).data('href');
+                if (targetUrl) {
+                    window.location.href = targetUrl;
+                }
+            });
+
+            $('#filter').on('shown.bs.modal', function () {
+                if ($.fn.selectpicker) {
+                    $(this).find('.selectpicker').selectpicker('refresh');
+                }
+            });
+        });
+    </script>
+@endsection

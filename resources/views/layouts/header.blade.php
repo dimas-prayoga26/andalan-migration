@@ -102,19 +102,19 @@
                             </li>
                             <li class="nav-item dropdown header-profile">
                                 <a class="nav-link" href="javascript:void(0)" role="button" data-bs-toggle="dropdown">
-                                    <img src="images/profile/10.webp" width="20" alt="/">
+                                    <img src="{{ $headerUserAvatarUrl }}" width="20" alt="{{ $headerUserName }}">
 									<div class="header-info">
-										<span class="text-black fw-semibold"><p class="mb-1">Peter Parkur</p></span>
-										<p class="fs-12 mb-0">Super Admin</p>
+										<span class="text-black fw-semibold"><p class="mb-1">{{ $headerUserName }}</p></span>
+										<p class="fs-12 mb-0">{{ $headerUserPositionLabel }}</p>
 									</div>
                                 </a>
 								<ul class="dropdown-menu dropdown-menu-end">
 									<li>
 										<div class="py-2 d-flex px-3">
-											<img src="images/profile/10.webp" class="avatar avatar-sm rounded-circle" alt="">
+											<img src="{{ $headerUserAvatarUrl }}" class="avatar avatar-sm rounded-circle" alt="{{ $headerUserName }}">
 											<div class="ms-2">
-												<h6 class="mb-0">Johndoe</h6>
-												<small>Super Admin</small>
+												<h6 class="mb-0">{{ $headerUserName }}</h6>
+												<small>{{ $headerUserPositionLabel }}</small>
 											</div>
 										</div>
 									</li>
@@ -167,14 +167,17 @@
 									</li>
 									<li><hr class="dropdown-divider"></li>
 									<li>
-										<a href="page-login.html" class="dropdown-item">
-											<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--bs-danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-												<path stroke="var(--bs-danger)" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-												<polyline stroke="var(--bs-danger)" points="16 17 21 12 16 7"></polyline>
-												<line x1="21" y1="12" x2="9" y2="12"></line>
-											</svg>
-											<span class="ms-2 text-danger">Logout </span>
-										</a>
+										<form action="{{ route('logout') }}" method="POST" class="m-0">
+											@csrf
+											<button type="submit" class="dropdown-item">
+												<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--bs-danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+													<path stroke="var(--bs-danger)" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+													<polyline stroke="var(--bs-danger)" points="16 17 21 12 16 7"></polyline>
+													<line x1="21" y1="12" x2="9" y2="12"></line>
+												</svg>
+												<span class="ms-2 text-danger">Logout </span>
+											</button>
+										</form>
 									</li>
 								</ul>
                             </li>

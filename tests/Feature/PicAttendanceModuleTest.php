@@ -1,0 +1,156 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Http\Controllers\PicAttendance\PicAttendanceController;
+use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
+use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
+use App\Http\Controllers\PicAttendance\PicAttendanceTaskController;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\View;
+use Tests\TestCase;
+
+class PicAttendanceModuleTest extends TestCase
+{
+    public function test_pic_attendance_routes_use_separate_controllers(): void
+    {
+        $attendanceRoute = Route::getRoutes()->getByName('pic-attendance.attendance');
+        $attendanceDatatableRoute = Route::getRoutes()->getByName('pic-attendance.attendance.monthly-datatable');
+        $leaveRoute = Route::getRoutes()->getByName('pic-attendance.leave');
+        $leavePendingDatatableRoute = Route::getRoutes()->getByName('pic-attendance.leave.pending-datatable');
+        $leaveSupervisorReviewRoute = Route::getRoutes()->getByName('pic-attendance.leave.supervisor-review.update');
+        $overtimeRoute = Route::getRoutes()->getByName('pic-attendance.overtime');
+        $overtimeStoreRoute = Route::getRoutes()->getByName('pic-attendance.overtime.store');
+        $overtimeDetailRoute = Route::getRoutes()->getByName('pic-attendance.overtime.detail');
+        $taskRoute = Route::getRoutes()->getByName('pic-attendance.task');
+        $taskDatatableRoute = Route::getRoutes()->getByName('pic-attendance.task.datatable');
+
+        $this->assertSame(PicAttendanceController::class.'@index', $attendanceRoute?->getActionName());
+        $this->assertSame(PicAttendanceController::class.'@monthlyDatatable', $attendanceDatatableRoute?->getActionName());
+        $this->assertSame(PicAttendanceLeaveController::class.'@index', $leaveRoute?->getActionName());
+        $this->assertSame(PicAttendanceLeaveController::class.'@pendingDatatable', $leavePendingDatatableRoute?->getActionName());
+        $this->assertSame(PicAttendanceLeaveController::class.'@updateSupervisorReview', $leaveSupervisorReviewRoute?->getActionName());
+        $this->assertSame(PicAttendanceOvertimeController::class.'@index', $overtimeRoute?->getActionName());
+        $this->assertSame(PicAttendanceOvertimeController::class.'@store', $overtimeStoreRoute?->getActionName());
+        $this->assertSame(PicAttendanceOvertimeController::class.'@detail', $overtimeDetailRoute?->getActionName());
+        $this->assertSame(PicAttendanceTaskController::class.'@index', $taskRoute?->getActionName());
+        $this->assertSame(PicAttendanceTaskController::class.'@datatable', $taskDatatableRoute?->getActionName());
+        $this->assertSame('pic-attendance', $attendanceRoute?->uri());
+        $this->assertSame('pic-attendance/leave', $leaveRoute?->uri());
+        $this->assertSame('pic-attendance/leave/detail/{uid}/supervisor-review', $leaveSupervisorReviewRoute?->uri());
+        $this->assertSame('pic-attendance/overtime', $overtimeRoute?->uri());
+        $this->assertSame('pic-attendance/overtime', $overtimeStoreRoute?->uri());
+        $this->assertNotNull($taskRoute);
+        $this->assertSame('pic-attendance/task', $taskRoute?->uri());
+        $this->assertContains('position.permission:view-pic-attendance', $taskRoute?->gatherMiddleware() ?? []);
+        $this->assertSame('pic-attendance/task/datatable', $taskDatatableRoute?->uri());
+        $this->assertContains('position.permission:view-pic-attendance', $taskDatatableRoute?->gatherMiddleware() ?? []);
+        $this->assertSame('pic-attendance/overtime/detail/{uid}', $overtimeDetailRoute?->uri());
+    }
+
+    public function test_pic_module_has_its_own_views_navigation_and_permission(): void
+    {
+        $sidebar = File::get(resource_path('views/layouts/sidebar.blade.php'));
+        $navigation = File::get(resource_path('views/pic_attendance/layout/navbar.blade.php'));
+        $permissionSeeder = File::get(database_path('seeders/PositionPermissionSeeder.php'));
+        $authorizationController = File::get(app_path('Http/Controllers/AuthorizationController.php'));
+        $attendanceController = File::get(app_path('Http/Controllers/PicAttendance/PicAttendanceController.php'));
+        $leaveController = File::get(app_path('Http/Controllers/PicAttendance/PicAttendanceLeaveController.php'));
+        $attendanceView = File::get(resource_path('views/pic_attendance/attendance/index.blade.php'));
+        $leaveView = File::get(resource_path('views/pic_attendance/leave/detail.blade.php'));
+        $overtimeView = File::get(resource_path('views/pic_attendance/overtime/index.blade.php'));
+        $taskView = File::get(resource_path('views/pic_attendance/task/index.blade.php'));
+        $taskController = File::get(app_path('Http/Controllers/PicAttendance/PicAttendanceTaskController.php'));
+
+        $this->assertTrue(View::exists('pic_attendance.attendance.index'));
+        $this->assertTrue(View::exists('pic_attendance.attendance.detail-employees'));
+        $this->assertTrue(View::exists('pic_attendance.leave.index'));
+        $this->assertTrue(View::exists('pic_attendance.leave.detail'));
+        $this->assertTrue(View::exists('pic_attendance.overtime.index'));
+        $this->assertTrue(View::exists('pic_attendance.overtime.detail'));
+        $this->assertTrue(View::exists('pic_attendance.task.index'));
+        $this->assertStringContainsString('view-pic-attendance', $sidebar);
+        $this->assertStringContainsString("route('pic-attendance.attendance')", $sidebar);
+        $this->assertStringContainsString("route('pic-attendance.attendance')", $navigation);
+        $this->assertStringContainsString("route('pic-attendance.leave')", $navigation);
+        $this->assertStringContainsString("route('pic-attendance.overtime')", $navigation);
+        $this->assertStringContainsString("route('pic-attendance.task')", $navigation);
+        $this->assertStringContainsString("request()->routeIs('pic-attendance.task*')", $navigation);
+        $this->assertStringNotContainsString('Business Trip', $navigation);
+        $this->assertStringContainsString('Overtime', $navigation);
+        $this->assertStringContainsString("'view-pic-attendance'", $permissionSeeder);
+        $this->assertStringContainsString("'Supervisor' => array_merge", $permissionSeeder);
+        $this->assertStringContainsString("'Administrator' => \$allPermissionsWithoutPic", $permissionSeeder);
+        $this->assertStringNotContainsString("'System Administrator' =>", $permissionSeeder);
+        $this->assertStringContainsString("'view-pic-attendance', 'view-director-attendance'", $permissionSeeder);
+        $this->assertStringContainsString("'view-pic-attendance' => ['section' => 'HR Management', 'label' => 'PIC']", $authorizationController);
+        $this->assertStringContainsString('employee_pic_assignments', $leaveController);
+        $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $leaveController);
+        $this->assertStringContainsString('employee_pic_assignments', $attendanceController);
+        $this->assertStringContainsString('$monthlyWorkingDaysCount = $this->recapWorkDaysBetween(', $attendanceController);
+        $this->assertStringContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$monthlyWorkingDaysCount.' days',", $attendanceController);
+        $this->assertStringNotContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$employeeWorkDays->count().' days'", $attendanceController);
+        $this->assertStringContainsString('private function currentCompanyIdFor(User $user): ?string', $attendanceController);
+        $this->assertStringContainsString('protected function activeEmployeeIdsFor(Carbon $date, ?string $companyId): Collection', $attendanceController);
+        $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $attendanceController);
+        $this->assertStringContainsString('updateSupervisorReview', $leaveController);
+        $this->assertStringContainsString("'event_type' => 'supervisor_review'", $leaveController);
+        $this->assertStringContainsString("'event_type' => 'hr_verification'", $leaveController);
+        $this->assertStringContainsString('->push($this->supervisorEmployeeId)', $leaveController);
+        $this->assertStringContainsString('->unique()', $leaveController);
+        $this->assertStringContainsString("'leavePendingCards' => \$this->pendingLeaveCardsFor(\$request),", $leaveController);
+        $this->assertStringContainsString('private function pendingLeaveCardsFor(Request $request): Collection', $leaveController);
+        $this->assertStringNotContainsString('pendingLeaveCardsFor($request, $selectedPeriod)', $leaveController);
+        $this->assertStringNotContainsString('Tidak dapat menyetujui pengajuan cuti milik sendiri.', $leaveController);
+        $this->assertStringContainsString('$query = $this->applySupervisorApprovedReviewFilter($query);', $leaveController);
+        $this->assertStringContainsString('pic-attendance.leave.supervisor-review.update', $leaveView);
+        $this->assertStringContainsString('w-100 btn-lg', $leaveView);
+        $this->assertStringContainsString('id="recapAttendanceCaptureButton"', $attendanceView);
+        $this->assertStringContainsString('id="recapAttendanceCaptureArea"', $attendanceView);
+        $this->assertStringContainsString('id="recapAttendanceCaptureTable"', $attendanceView);
+        $this->assertStringContainsString('data-capture-tone="{{ $row[\'attachment_badge\'] }}"', $attendanceView);
+        $this->assertStringContainsString('function downloadRecapAttendanceImage()', $attendanceView);
+        $this->assertStringContainsString('function captureToneFromElement(element)', $attendanceView);
+        $this->assertStringContainsString('function captureTonePalette(tone)', $attendanceView);
+        $this->assertStringContainsString('drawCaptureBadge(context, lines[0], palette', $attendanceView);
+        $this->assertStringContainsString("captureButton.addEventListener('click', downloadRecapAttendanceImage)", $attendanceView);
+        $this->assertStringContainsString('Add Overtime', $overtimeView);
+        $this->assertStringContainsString('picAddOvertimeModal', $overtimeView);
+        $this->assertStringContainsString("route('pic-attendance.overtime.store')", $overtimeView);
+        $this->assertStringContainsString('Task Monitoring', $taskView);
+        $this->assertStringContainsString('id="picTaskStaffFilter"', $taskView);
+        $this->assertStringContainsString('name="staff_filter"', $taskView);
+        $this->assertStringNotContainsString('Semua Staff', $taskView);
+        $this->assertStringContainsString('Pilih Staff', $taskView);
+        $this->assertStringContainsString('<option value="" selected disabled>Pilih Staff</option>', $taskView);
+        $this->assertStringContainsString('Tidak ada staff', $taskView);
+        $this->assertStringContainsString('$picTaskStaffOptions', $taskView);
+        $this->assertStringContainsString('id="picTaskTable"', $taskView);
+        $this->assertStringContainsString('<th>Staff</th>', $taskView);
+        $this->assertStringContainsString('<th>Task</th>', $taskView);
+        $this->assertStringContainsString('<th>Due Date</th>', $taskView);
+        $this->assertStringNotContainsString('<th>Priority</th>', $taskView);
+        $this->assertStringContainsString('<th>Status</th>', $taskView);
+        $this->assertStringContainsString('row.status_class', $taskView);
+        $this->assertStringContainsString('row.status', $taskView);
+        $this->assertStringContainsString("route('pic-attendance.task.datatable')", $taskView);
+        $this->assertStringContainsString('DataTable', $taskView);
+        $this->assertStringContainsString('taskTable.ajax.reload();', $taskView);
+        $this->assertStringContainsString("$('#picTaskTable tbody td.dataTables_empty')", $taskView);
+        $this->assertStringContainsString("addClass('text-center py-4 text-muted')", $taskView);
+        $this->assertStringContainsString('EmployeePicAssignment::query()', $taskController);
+        $this->assertStringContainsString("->where('supervisor_employee_id', \$supervisorEmployeeId)", $taskController);
+        $this->assertStringContainsString("->whereIn('employee_id', \$visibleEmployeeIds->all())", $taskController);
+        $this->assertStringContainsString('$visibleEmployeeIds = collect([$selectedStaffId]);', $taskController);
+        $this->assertStringNotContainsString('return $staffEmployeeIds->first();', $taskController);
+        $this->assertStringContainsString("->whereNull('overtime_id')", $taskController);
+        $this->assertStringContainsString("'due_date' => \$this->dateRangeLabel(\$projectTask->start_date, \$projectTask->due_date)", $taskController);
+        $this->assertStringNotContainsString("'priority' =>", $taskController);
+        $this->assertStringContainsString("'status' => \$this->statusLabel(", $taskController);
+        $this->assertStringContainsString("'status_class' => \$isCompleted ? 'success' : 'warning'", $taskController);
+        $this->assertStringNotContainsString('Staff Task List', $taskView);
+        $this->assertStringContainsString('No task data available.', $taskView);
+        $this->assertStringNotContainsString('<form', $taskView);
+    }
+}

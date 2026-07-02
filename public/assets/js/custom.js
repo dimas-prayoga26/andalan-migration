@@ -108,12 +108,65 @@ var Gymove = function(){
 			$(".hamburger").toggleClass("is-active");
 		});
 	}
+
+	var handleAutoCloseSidebarOnLinkClick = function() {
+		$('#menu').on('click', 'a', function() {
+			var href = $(this).attr('href') || '';
+			var isPlaceholderLink = href === '#' || href.startsWith('javascript:');
+
+			if (isPlaceholderLink) {
+				return;
+			}
+
+			if (window.matchMedia('(max-width: 1024px)').matches) {
+				$('#main-wrapper').removeClass('menu-toggle');
+				$('.hamburger').removeClass('is-active').show();
+				$('.fixed-content-box').removeClass('active');
+				$('.menu-tabs .nav-link').removeClass('open');
+			}
+		});
+	}
   
 	var handleCurrentActive = function() {
-		var nk = window.location.href;
-		var o = $("ul#menu a").filter(function() {
-			return this.href === nk;
+		var currentUrl = new URL(window.location.href);
+		var currentPath = currentUrl.pathname.replace(/\/+$/, '') || '/';
+		var currentSidebarPath = currentPath;
+		var matchedLink = null;
+		var longestMatchedPathLength = -1;
+
+		if (currentPath === '/attendance' || currentPath.startsWith('/attendance/')) {
+			currentSidebarPath = '/attendance/overview';
+		} else if (currentPath === '/admin-attendance' || currentPath.startsWith('/admin-attendance/')) {
+			currentSidebarPath = '/admin-attendance/overview';
+		} else if (currentPath === '/project-management' || currentPath.startsWith('/project-management/')) {
+			currentSidebarPath = '/project-management/overview';
+		}
+
+		$("ul#menu a").each(function() {
+			var href = $(this).attr("href");
+			if (!href || href === "#" || href.startsWith("javascript:")) {
+				return;
+			}
+
+			var linkUrl;
+			try {
+				linkUrl = new URL(this.href, window.location.origin);
+			} catch (error) {
+				return;
+			}
+
+			var linkPath = linkUrl.pathname.replace(/\/+$/, '') || '/';
+			var isExactMatch = currentSidebarPath === linkPath;
+			var isChildPathMatch = linkPath !== '/' && currentSidebarPath.startsWith(linkPath + '/');
+			var isRootMatch = linkPath === '/' && currentSidebarPath === '/';
+
+			if ((isExactMatch || isChildPathMatch || isRootMatch) && linkPath.length > longestMatchedPathLength) {
+				matchedLink = this;
+				longestMatchedPathLength = linkPath.length;
+			}
 		});
+
+		var o = matchedLink ? $(matchedLink) : $();
 
 		// Remove existing classes first
 		$("ul#menu li").removeClass("mm-active");
@@ -136,11 +189,19 @@ var Gymove = function(){
 				parentUl = upperLi.parent();
 			}
 		} else {
-			// Default: only activate the first <li> and its structure
-			var firstLi = $("ul#menu > li:first");
-			firstLi.addClass("mm-active");
-			firstLi.children('a').attr('aria-expanded', 'true').addClass('mm-active');
-			firstLi.children('ul').addClass('mm-show').attr('aria-expanded', 'true');
+			// Default: activate first real link item (ignore labels / javascript:void links)
+			var firstValidLink = $("ul#menu > li > a").filter(function() {
+				var href = $(this).attr("href");
+				return href && href !== "#" && !href.startsWith("javascript:");
+			}).first();
+
+			if (firstValidLink.length > 0) {
+				firstValidLink.addClass("mm-active");
+				var firstLi = firstValidLink.parent("li");
+				firstLi.addClass("mm-active");
+				firstValidLink.attr('aria-expanded', 'true');
+				firstLi.children('ul').addClass('mm-show').attr('aria-expanded', 'true');
+			}
 		}
 	};
 
@@ -688,7 +749,7 @@ var Gymove = function(){
 	
 	var handelBootstrapSelect = function(){
 		/* Bootstrap Select box function by  = bootstrap-select.min.js */ 
-		jQuery('select').selectpicker();
+		jQuery('select').not('.js-skip-selectpicker').selectpicker();
 		/* Bootstrap Select box function by  = bootstrap-select.min.js end*/
 	}	
 
@@ -770,6 +831,7 @@ var Gymove = function(){
 			handleMetisMenu();
 			handleAllChecked();
 			handleNavigation();
+			handleAutoCloseSidebarOnLinkClick();
 			handleCurrentActive();
 			handleMiniSidebar();
 			handleMinHeight();

@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\Absensi\Absen;
-use App\Models\Absensi\Izin;
-use App\Models\Absensi\Lembur;
 use Illuminate\Database\Seeder;
+use RuntimeException;
+use Throwable;
 
 class DatabaseSeeder extends Seeder
 {
@@ -14,15 +13,27 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $seeders = [
+            MetaDataDomiciliSeeder::class,
+            MetaDataGenderSeeder::class,
+            MetaDataMaritalStatusSeeder::class,
+            LeaveTypeSeeder::class,
+            AttendanceHolidaySeeder::class,
+            LeaveSubTypeSeeder::class,
+            PositionSeeder::class,
+            LegacySqlUserSeeder::class,
+            PositionPermissionSeeder::class,
+            EmployeePicAssignmentSeeder::class,
+            NiskalaMultiPicLeaveSeeder::class,
+            RulesOfAttendacesSeeder::class,
+        ];
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
-
-        Absen::factory(4)->create();
-        Izin::factory(2)->create();
-        Lembur::factory(4)->create();
+        foreach ($seeders as $seederClass) {
+            try {
+                $this->call([$seederClass]);
+            } catch (Throwable $throwable) {
+                throw new RuntimeException("Seeder {$seederClass} gagal dijalankan.", 0, $throwable);
+            }
+        }
     }
 }

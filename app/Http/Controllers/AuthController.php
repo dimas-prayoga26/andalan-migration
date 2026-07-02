@@ -6,21 +6,13 @@ use App\Http\Requests\LoginRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
 use Illuminate\View\View;
 
 class AuthController extends Controller
 {
     public function create(): View
     {
-        $logoPaths = collect(File::files(public_path('assets/logo_perusahaan')))
-            ->map(static fn ($file): string => asset('assets/logo_perusahaan/'.rawurlencode($file->getFilename())))
-            ->values()
-            ->all();
-
-        return view('auth.login', [
-            'logoPaths' => $logoPaths,
-        ]);
+        return view('auth.login');
     }
 
     public function store(LoginRequest $request): JsonResponse|RedirectResponse

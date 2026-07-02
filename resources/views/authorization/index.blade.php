@@ -45,6 +45,84 @@
             color: #2448c7;
             font-weight: 700;
         }
+
+        .authorization-list-actions {
+            display: grid;
+            grid-template-columns: minmax(240px, 320px) auto;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .authorization-employee-search {
+            margin: 0;
+        }
+
+        .authorization-list-actions .btn {
+            min-height: 42px;
+            white-space: nowrap;
+        }
+
+        .authorization-table-card .table-card-body {
+            padding: 0;
+        }
+
+        .authorization-table-card .table-responsive {
+            margin: 0;
+        }
+
+        .authorization-table-card table {
+            margin-bottom: 0;
+        }
+
+        .authorization-table-card table th,
+        .authorization-table-card table td {
+            vertical-align: middle;
+        }
+
+        .authorization-table-footer.dataTables_wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 12px 30px;
+            border-top: 1px solid var(--bs-border-color);
+        }
+
+        .authorization-table-footer.dataTables_wrapper .dataTables_info,
+        .authorization-table-footer.dataTables_wrapper .dataTables_paginate {
+            float: none;
+            padding: 0;
+        }
+
+        .authorization-table-footer .paginate_button.disabled {
+            pointer-events: none;
+            opacity: .35;
+        }
+
+        @media (max-width: 767.98px) {
+            .authorization-table-footer.dataTables_wrapper {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 12px 16px;
+            }
+
+            .authorization-table-footer.dataTables_wrapper .dataTables_info,
+            .authorization-table-footer.dataTables_wrapper .dataTables_paginate {
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .authorization-list-actions {
+                grid-template-columns: minmax(0, 1fr);
+                width: 100%;
+            }
+
+            .authorization-list-actions .btn {
+                width: 100%;
+            }
+        }
     </style>
 @endsection
 
@@ -63,24 +141,39 @@
             <li class="nav-item">
                 <a class="nav-link py-3 px-1 active" href="{{ route('authorization') }}">List Employee</a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link py-3 px-1" href="{{ route('authorization.access-menus') }}">Assign Permission</a>
-            </li>
+            @if ($canManagePositionPermissions)
+                <li class="nav-item">
+                    <a class="nav-link py-3 px-1" href="{{ route('authorization.access-menus') }}">Assign Permission</a>
+                </li>
+            @endif
         </ul>
     </div>
 </div>
 
-<div class="card">
+<div class="card authorization-table-card">
     <div class="card-header border-0 flex-wrap gap-3">
         <div>
             <h4 class="card-title mb-1">List Employee</h4>
             <p class="mb-0 text-muted fs-13">Data karyawan, deployment, identitas, dan PIC.</p>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
-            <div class="input-group" style="max-width: 320px;">
-                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass"></i></span>
-                <input type="text" class="form-control" placeholder="Search user">
-            </div>
+        <div class="authorization-list-actions">
+            <form method="GET" action="{{ route('authorization') }}" class="authorization-employee-search">
+                <div class="input-group">
+                    <button type="submit" class="input-group-text bg-white" aria-label="Search employee">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                    <input
+                        id="authorizationEmployeeSearch"
+                        name="search"
+                        type="search"
+                        class="form-control"
+                        value="{{ $search }}"
+                        placeholder="Search employee"
+                        autocomplete="off"
+                        aria-label="Search employee"
+                    >
+                </div>
+            </form>
             @if ($canManageDataEmployee)
                 <a href="{{ route('authorization.create') }}" class="btn btn-primary btn-sm">
                     <i class="fa-solid fa-plus me-1"></i>Create User
@@ -91,9 +184,9 @@
     @if (session('status'))
         <div class="alert alert-success mx-4 mb-3">{{ session('status') }}</div>
     @endif
-    <div class="card-body pt-0">
+    <div class="card-body table-card-body p-0">
         <div class="table-responsive">
-            <table class="table align-middle">
+            <table id="authorizationEmployeeTable" class="table table-sm mb-0 table-bottom-borderless table-striped align-middle">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -148,12 +241,42 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">No employee data available.</td>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                {{ $search !== '' ? 'No matching employee found.' : 'No employee data available.' }}
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
+        @if ($users->total() > 0)
+            <div class="authorization-table-footer dataTables_wrapper no-footer">
+                <div class="dataTables_info">
+                    Showing {{ $users->firstItem() }} to {{ $users->lastItem() }} of {{ $users->total() }} entries
+                </div>
+                <div class="dataTables_paginate paging_simple_numbers">
+                    <a
+                        class="paginate_button previous {{ $users->onFirstPage() ? 'disabled' : '' }}"
+                        href="{{ $users->previousPageUrl() ?? '#' }}"
+                        aria-label="Previous page"
+                    ><i class="fa-solid fa-angle-left"></i></a>
+                    <span>
+                        @foreach ($users->getUrlRange(1, $users->lastPage()) as $page => $url)
+                            <a
+                                class="paginate_button {{ $page === $users->currentPage() ? 'current' : '' }}"
+                                href="{{ $url }}"
+                                @if ($page === $users->currentPage()) aria-current="page" @endif
+                            >{{ $page }}</a>
+                        @endforeach
+                    </span>
+                    <a
+                        class="paginate_button next {{ $users->hasMorePages() ? '' : 'disabled' }}"
+                        href="{{ $users->nextPageUrl() ?? '#' }}"
+                        aria-label="Next page"
+                    ><i class="fa-solid fa-angle-right"></i></a>
+                </div>
+            </div>
+        @endif
     </div>
 </div>
 @endsection

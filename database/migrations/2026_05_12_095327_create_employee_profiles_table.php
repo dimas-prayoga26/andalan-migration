@@ -29,6 +29,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('sibling_count')->nullable();
             $table->unsignedTinyInteger('sibling_index')->nullable();
             $table->text('hobbies')->nullable();
+            $table->string('profile_picture_path')->nullable();
             $table->timestamps();
         });
     }

@@ -29,7 +29,7 @@
         <div class="clearfix">
             <div class="d-inline-block position-relative me-sm-4 me-3 mb-3 mb-lg-0">
                 @php
-                    $defaultAvatarPath = asset('assets/images/avatar/large/avatar5.webp');
+                    $defaultAvatarPath = asset('assets/default_user.jpg');
                     $profilePictureValue = is_string($profilePicturePath ?? null) ? trim($profilePicturePath) : '';
                     $profileAvatarPath = $profilePictureValue === ''
                         ? $defaultAvatarPath
@@ -38,7 +38,6 @@
                             : asset(ltrim($profilePictureValue, '/')));
                 @endphp
                 <img src="{{ $profileAvatarPath }}" class="avatar avatar-xxl" alt="User Avatar">
-                <span class="fa fa-circle border border-3 border-white text-success position-absolute bottom-0 end-0 rounded-circle"></span>
             </div>
         </div>
         <div class="clearfix d-xl-flex flex-grow-1">

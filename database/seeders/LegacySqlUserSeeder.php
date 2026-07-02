@@ -34,6 +34,14 @@ class LegacySqlUserSeeder extends Seeder
     /**
      * @var array<int, string>
      */
+    private const EXPLICIT_RNB_USER_EMAILS = [
+        'rully.priyatno@andalanbersama.com',
+        'hilmi.ulwan@andalanbersama.com',
+    ];
+
+    /**
+     * @var array<int, string>
+     */
     private array $companyIdsByLegacyId = [];
 
     /**
@@ -70,6 +78,7 @@ class LegacySqlUserSeeder extends Seeder
                 $legacyUsers = $this->legacyUsersForImport($this->parseInsertRows($dump, 'users'));
                 $this->removeNonLegacyUsers($legacyUsers);
                 $this->seedUsers($legacyUsers);
+                $this->seedExplicitRnbUsers();
                 $this->seedPositionPermissions($this->parseInsertRows($dump, 'users_authorization'));
                 $this->seedSuperAdministratorAccount();
 
@@ -202,20 +211,22 @@ class LegacySqlUserSeeder extends Seeder
     private function legacyUsersForImport(Collection $legacyUsers): Collection
     {
         return $legacyUsers
-            ->reject(fn (array $legacyUser): bool => $this->isPlaceholderAdmin($legacyUser))
+            ->reject(fn (array $legacyUser): bool => $this->isExcludedLegacyUser($legacyUser))
             ->values();
     }
 
     /**
      * @param  array<string, mixed>  $legacyUser
      */
-    private function isPlaceholderAdmin(array $legacyUser): bool
+    private function isExcludedLegacyUser(array $legacyUser): bool
     {
         $email = strtolower(trim((string) ($legacyUser['email'] ?? '')));
         $name = strtolower(trim((string) ($legacyUser['name'] ?? '')));
 
         return in_array($email, self::LEGACY_PLACEHOLDER_ADMIN_EMAILS, true)
-            || $name === 'admin andalan';
+            || $name === 'admin andalan'
+            || $email === 'adik@andalanbersama.com'
+            || in_array($name, ['adik wiriyanto', 'adik wiryanto'], true);
     }
 
     /**
@@ -227,6 +238,7 @@ class LegacySqlUserSeeder extends Seeder
             ->pluck('email')
             ->filter(static fn (mixed $email): bool => is_string($email) && trim($email) !== '')
             ->map(static fn (string $email): string => trim(strtolower($email)))
+            ->merge(self::EXPLICIT_RNB_USER_EMAILS)
             ->values()
             ->all();
 
@@ -289,8 +301,115 @@ class LegacySqlUserSeeder extends Seeder
             $this->seedEmployeeIdentity($employee, $legacyUser);
             $this->seedEmployeeDeployment($employee, $legacyUser, $companyId, $positionId, $departmentId, $isActive);
             $this->seedEmployeeAddress($employee, $legacyUser);
-            $this->seedLegacyUserProfile($user, $legacyUser);
         });
+    }
+
+    private function seedExplicitRnbUsers(): void
+    {
+        $companyId = Company::query()
+            ->whereRaw('LOWER(name) = ?', ['rnb'])
+            ->value('id');
+        $departmentId = DB::table('departments')
+            ->where('name', 'Operations')
+            ->value('id');
+        $positionId = DB::table('positions')
+            ->where('name', 'Operations Coordinator')
+            ->value('id');
+
+        if (! is_string($companyId) || ! is_string($positionId)) {
+            throw new RuntimeException('Company RNB atau position Operations Coordinator tidak ditemukan.');
+        }
+
+        Role::query()->firstOrCreate([
+            'name' => 'Staff',
+            'guard_name' => 'web',
+        ]);
+
+        $users = [
+            [
+                'name' => 'Rully Priyatno',
+                'nickname' => 'Rully',
+                'email' => 'rully.priyatno@andalanbersama.com',
+                'username' => 'rully.priyatno',
+                'employee_code' => 'EMP-RULLY-PRIYATNO',
+            ],
+            [
+                'name' => 'Hilmi Ulwan',
+                'nickname' => 'Hilmi',
+                'email' => 'hilmi.ulwan@andalanbersama.com',
+                'username' => 'hilmi.ulwan',
+                'employee_code' => 'EMP-HILMI-ULWAN',
+            ],
+        ];
+
+        foreach ($users as $userData) {
+            $now = now();
+            $user = User::query()->updateOrCreate(
+                ['email' => $userData['email']],
+                [
+                    'company_id' => $companyId,
+                    'username' => $userData['username'],
+                    'business_email' => $userData['email'],
+                    'password' => Hash::make('password'),
+                    'is_active' => true,
+                    'deleted_at' => null,
+                    'updated_at' => $now,
+                    'created_at' => $now,
+                ],
+            );
+            $user->syncRoles(['Staff']);
+
+            $employee = Employee::withTrashed()->updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'employee_code' => $userData['employee_code'],
+                    'status' => 'Active',
+                    'deleted_at' => null,
+                    'updated_at' => $now,
+                    'created_at' => $now,
+                ],
+            );
+
+            if ($employee->trashed()) {
+                $employee->restore();
+            }
+
+            DB::table('employee_profiles')->updateOrInsert(
+                ['employee_id' => $employee->id],
+                [
+                    'id' => (string) (DB::table('employee_profiles')->where('employee_id', $employee->id)->value('id') ?? Str::uuid()),
+                    'name' => $userData['name'],
+                    'nickname' => $userData['nickname'],
+                    'updated_at' => $now,
+                    'created_at' => $now,
+                ],
+            );
+
+            $existingJoinDate = EmployeeDeployment::query()
+                ->where('employee_id', $employee->id)
+                ->value('join_date');
+            $joinDate = is_string($existingJoinDate) && trim($existingJoinDate) !== ''
+                ? $existingJoinDate
+                : $now->toDateString();
+            $deployment = EmployeeDeployment::query()->updateOrCreate(
+                ['employee_id' => $employee->id],
+                [
+                    'current_company_id' => $companyId,
+                    'current_position_id' => $positionId,
+                    'current_department_id' => is_string($departmentId) ? $departmentId : null,
+                    ...$this->optionalOfficeLocationPayload($this->officeLocationIdForCompany($companyId)),
+                    'join_date' => $joinDate,
+                    'resignation_date' => null,
+                    'workplace' => 'RNB Jakarta',
+                    'status' => 'Active',
+                    'deleted_at' => null,
+                    'updated_at' => $now,
+                    'created_at' => $now,
+                ],
+            );
+
+            $this->syncDeploymentPosition($deployment, $positionId, $joinDate, null);
+        }
     }
 
     /**
@@ -356,6 +475,7 @@ class LegacySqlUserSeeder extends Seeder
                 'place_of_birth' => $this->nullIfEmpty($legacyUser['pob']),
                 'date_of_birth' => $this->normalizeDate($legacyUser['dob']),
                 'marital_status' => $this->legacyMaritalStatusName((int) $legacyUser['marital_status']),
+                'profile_picture_path' => $this->nullIfEmpty($legacyUser['profile_picture']),
                 'updated_at' => now(),
                 'created_at' => now(),
             ],
@@ -458,9 +578,33 @@ class LegacySqlUserSeeder extends Seeder
 
     private function syncAdditionalLegacyPositions(EmployeeDeployment $deployment, array $legacyUser, ?string $joinDate, ?string $resignationDate): void
     {
-        foreach ($this->additionalPositionNamesForLegacyUser($legacyUser) as $positionName) {
-            $positionId = DB::table('positions')->where('name', $positionName)->value('id');
+        $email = strtolower(trim((string) ($legacyUser['email'] ?? '')));
 
+        if (! in_array($email, $this->managedAdditionalPositionEmails(), true)) {
+            return;
+        }
+
+        $positionNames = $this->additionalPositionNamesForLegacyUser($legacyUser);
+        $positionIds = DB::table('positions')
+            ->whereIn('name', $positionNames)
+            ->pluck('id')
+            ->filter(static fn (mixed $positionId): bool => is_string($positionId) && trim($positionId) !== '')
+            ->values();
+        $managedPositionIds = DB::table('positions')
+            ->whereIn('name', ['Administrator', 'Accounting and Taxation', 'Director', 'Supervisor'])
+            ->pluck('id');
+
+        DB::table('employee_deployment_positions')
+            ->where('employee_deployment_id', $deployment->id)
+            ->where('is_primary', false)
+            ->whereIn('position_id', $managedPositionIds->all())
+            ->when(
+                $positionIds->isNotEmpty(),
+                fn ($query) => $query->whereNotIn('position_id', $positionIds->all()),
+            )
+            ->delete();
+
+        foreach ($positionIds as $positionId) {
             if (! is_string($positionId) || trim($positionId) === '') {
                 continue;
             }
@@ -496,10 +640,27 @@ class LegacySqlUserSeeder extends Seeder
             'rexy@andalanbersama.com' => ['Director', 'Supervisor'],
             'fuadmfahrudin@gmail.com' => ['Director', 'Supervisor'],
             'fahmil@andalanbersama.com' => ['Director', 'Supervisor'],
-            'lukman@rnbmanagement.com' => ['Chief Operating Officer', 'Supervisor'],
-            'leonieputri7@gmail.com' => ['Administrator', 'Supervisor'],
+            'lukman@rnbmanagement.com' => ['Supervisor'],
+            'leonieputri7@gmail.com' => ['Supervisor'],
             default => [],
         };
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function managedAdditionalPositionEmails(): array
+    {
+        return [
+            'halloerlin@gmail.com',
+            'diktanamira@gmail.com',
+            'msyafiq.dev@gmail.com',
+            'rexy@andalanbersama.com',
+            'fuadmfahrudin@gmail.com',
+            'fahmil@andalanbersama.com',
+            'lukman@rnbmanagement.com',
+            'leonieputri7@gmail.com',
+        ];
     }
 
     /**
@@ -591,26 +752,6 @@ class LegacySqlUserSeeder extends Seeder
                 'address_line' => $this->nullIfEmpty($legacyUser['address']),
                 'province' => $this->legacyDomicileName((int) $legacyUser['domicile']),
                 'country' => 'Indonesia',
-                'updated_at' => now(),
-                'created_at' => now(),
-            ],
-        );
-    }
-
-    private function seedLegacyUserProfile(User $user, array $legacyUser): void
-    {
-        DB::table('user_profiles')->updateOrInsert(
-            ['user_id' => $user->id],
-            [
-                'nickname' => $this->nullIfEmpty($legacyUser['nickname']),
-                'gender_id' => $this->legacyMetaDataGenderId((int) $legacyUser['gender']),
-                'marital_status_id' => $this->legacyMetaDataMaritalStatusId((int) $legacyUser['marital_status']),
-                'pob' => $this->nullIfEmpty($legacyUser['pob']),
-                'dob' => $this->normalizeDate($legacyUser['dob']),
-                'phone' => $this->nullIfEmpty($legacyUser['phone']),
-                'address' => $this->nullIfEmpty($legacyUser['address']),
-                'profile_picture' => $this->nullIfEmpty($legacyUser['profile_picture']),
-                'profile_header' => $this->nullIfEmpty($legacyUser['profile_header']),
                 'updated_at' => now(),
                 'created_at' => now(),
             ],
@@ -914,15 +1055,6 @@ class LegacySqlUserSeeder extends Seeder
             ],
         );
 
-        DB::table('user_profiles')->updateOrInsert(
-            ['user_id' => $user->id],
-            [
-                'nickname' => 'superadmin',
-                'updated_at' => $now,
-                'created_at' => $now,
-            ],
-        );
-
         $deployment = EmployeeDeployment::query()->updateOrCreate(
             ['employee_id' => $employee->id],
             [
@@ -1007,32 +1139,6 @@ class LegacySqlUserSeeder extends Seeder
             2 => 'Daerah Khusus Ibukota Jakarta',
             default => null,
         };
-    }
-
-    private function legacyMetaDataGenderId(int $legacyGenderId): ?int
-    {
-        $name = $this->legacyGenderName($legacyGenderId);
-
-        if (! is_string($name)) {
-            return null;
-        }
-
-        $id = DB::table('meta_data_gender')->where('name', $name)->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
-    }
-
-    private function legacyMetaDataMaritalStatusId(int $legacyMaritalStatusId): ?int
-    {
-        $name = $this->legacyMaritalStatusName($legacyMaritalStatusId);
-
-        if (! is_string($name)) {
-            return null;
-        }
-
-        $id = DB::table('meta_data_marital_statuses')->where('name', $name)->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
     }
 
     /**

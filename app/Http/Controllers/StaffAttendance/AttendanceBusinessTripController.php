@@ -166,7 +166,6 @@ class AttendanceBusinessTripController extends Controller
             'reimbursements',
             'lifecycleLogs.actor',
             'lifecycleLogs.actor.employee.profile',
-            'lifecycleLogs.actor.userProfile',
         ]);
 
         $businessTripRequestDetails = $this->buildBusinessTripRequestDetails($businessTrip);
@@ -332,7 +331,7 @@ class AttendanceBusinessTripController extends Controller
 
         $authenticatedUser = Auth::user();
         if ($authenticatedUser instanceof User) {
-            $authenticatedUser->loadMissing(['employee.profile', 'userProfile']);
+            $authenticatedUser->loadMissing('employee.profile');
         }
 
         $actorUser = $authenticatedUser instanceof User ? $authenticatedUser : null;
@@ -1083,14 +1082,14 @@ class AttendanceBusinessTripController extends Controller
             return '-';
         }
 
-        $user->loadMissing(['employee.profile', 'userProfile']);
+        $user->loadMissing('employee.profile');
 
         $employeeName = trim((string) ($user->employee?->profile?->name ?? ''));
         if ($employeeName !== '') {
             return $employeeName;
         }
 
-        $nickname = trim((string) ($user->userProfile?->nickname ?? ''));
+        $nickname = trim((string) ($user->employee?->profile?->nickname ?? ''));
         if ($nickname !== '') {
             return $nickname;
         }

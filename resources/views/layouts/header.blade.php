@@ -1,28 +1,3 @@
-@php
-    $authenticatedUser = auth()->user();
-    $headerUserName = '-';
-    if ($authenticatedUser) {
-        $employeeId = $authenticatedUser->employee?->id;
-        $employeeProfileName = null;
-
-        if (is_string($employeeId) && trim($employeeId) !== '') {
-            $employeeProfileName = \Illuminate\Support\Facades\DB::table('employee_profiles')
-                ->where('employee_id', $employeeId)
-                ->value('name');
-        }
-
-        if (is_string($employeeProfileName) && trim($employeeProfileName) !== '') {
-            $headerUserName = trim($employeeProfileName);
-        } elseif (is_string($authenticatedUser->username) && trim($authenticatedUser->username) !== '') {
-            $headerUserName = trim($authenticatedUser->username);
-        } elseif (is_string($authenticatedUser->email) && trim($authenticatedUser->email) !== '') {
-            $headerUserName = (string) explode('@', trim($authenticatedUser->email))[0];
-        }
-    }
-    $headerUserRole = $authenticatedUser?->getRoleNames()->first();
-    $headerUserRoleLabel = $headerUserRole ? \Illuminate\Support\Str::headline($headerUserRole) : '-';
-@endphp
-
 <!-- Start - Header -->
         <header class="header">
             <div class="header-content">
@@ -127,19 +102,19 @@
                             </li>
                             <li class="nav-item dropdown header-profile">
                                 <a class="nav-link" href="javascript:void(0)" role="button" data-bs-toggle="dropdown">
-                                    <img src="images/profile/10.webp" width="20" alt="/">
+                                    <img src="{{ $headerUserAvatarUrl }}" width="20" alt="{{ $headerUserName }}">
 									<div class="header-info">
 										<span class="text-black fw-semibold"><p class="mb-1">{{ $headerUserName }}</p></span>
-										<p class="fs-12 mb-0">{{ $headerUserRoleLabel }}</p>
+										<p class="fs-12 mb-0">{{ $headerUserPositionLabel }}</p>
 									</div>
                                 </a>
 								<ul class="dropdown-menu dropdown-menu-end">
 									<li>
 										<div class="py-2 d-flex px-3">
-											<img src="images/profile/10.webp" class="avatar avatar-sm rounded-circle" alt="">
+											<img src="{{ $headerUserAvatarUrl }}" class="avatar avatar-sm rounded-circle" alt="{{ $headerUserName }}">
 											<div class="ms-2">
 												<h6 class="mb-0">{{ $headerUserName }}</h6>
-												<small>{{ $headerUserRoleLabel }}</small>
+												<small>{{ $headerUserPositionLabel }}</small>
 											</div>
 										</div>
 									</li>

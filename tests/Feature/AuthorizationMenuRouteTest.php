@@ -80,6 +80,29 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString("route('authorization.create')", $authorizationView);
         $this->assertStringContainsString('Create User', $authorizationView);
         $this->assertStringNotContainsString('Create Users', $authorizationView);
+        $this->assertStringContainsString('class="authorization-list-actions"', $authorizationView);
+        $this->assertStringContainsString('class="authorization-employee-search"', $authorizationView);
+        $this->assertStringContainsString('method="GET"', $authorizationView);
+        $this->assertStringContainsString('id="authorizationEmployeeSearch"', $authorizationView);
+        $this->assertStringContainsString('name="search"', $authorizationView);
+        $this->assertStringContainsString('type="search"', $authorizationView);
+        $this->assertStringContainsString('placeholder="Search employee"', $authorizationView);
+        $this->assertStringContainsString('id="authorizationEmployeeTable"', $authorizationView);
+        $this->assertStringContainsString('class="card authorization-table-card"', $authorizationView);
+        $this->assertStringContainsString('table table-sm mb-0 table-bottom-borderless table-striped', $authorizationView);
+        $this->assertStringContainsString('authorization-table-footer dataTables_wrapper no-footer', $authorizationView);
+        $this->assertStringContainsString('dataTables_info', $authorizationView);
+        $this->assertStringContainsString('dataTables_paginate paging_simple_numbers', $authorizationView);
+        $this->assertStringContainsString('paginate_button previous', $authorizationView);
+        $this->assertStringContainsString('paginate_button next', $authorizationView);
+        $this->assertStringContainsString('$users->getUrlRange(1, $users->lastPage())', $authorizationView);
+        $this->assertStringContainsString('$users->total()', $authorizationView);
+        $this->assertStringNotContainsString("searchInput.addEventListener('input'", $authorizationView);
+        $this->assertStringContainsString("\$request->string('search')->trim()->toString()", $controller);
+        $this->assertStringContainsString('->paginate(10)', $controller);
+        $this->assertStringContainsString('->withQueryString()', $controller);
+        $this->assertStringContainsString("->orWhereHas('employee'", $controller);
+        $this->assertStringContainsString('if (! $this->canManageAuthorization($viewer))', $controller);
         $this->assertStringContainsString('@forelse ($users as $user)', $authorizationView);
         $this->assertStringContainsString('<th>Name</th>', $authorizationView);
         $this->assertStringContainsString('<th>NIK</th>', $authorizationView);
@@ -151,6 +174,19 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString("View::composer('layouts.sidebar', SidebarPermissionComposer::class)", $appServiceProvider);
         $this->assertStringContainsString('hasAnyPositionPermission([$permissionName])', $sidebarPermissionComposer);
         $this->assertStringNotContainsString('positionPermissionNamesFor', $sidebarPermissionComposer);
+    }
+
+    public function test_assign_permission_tab_is_only_rendered_for_authorization_managers(): void
+    {
+        $authorizationIndex = File::get(resource_path('views/authorization/index.blade.php'));
+        $authorizationController = File::get(app_path('Http/Controllers/AuthorizationController.php'));
+
+        $this->assertStringContainsString('@if ($canManagePositionPermissions)', $authorizationIndex);
+        $this->assertStringContainsString("route('authorization.access-menus')", $authorizationIndex);
+        $this->assertStringContainsString('private function viewerCompanyId(User $user): ?string', $authorizationController);
+        $this->assertStringContainsString('private function canManagePositionPermissions(User $user): bool', $authorizationController);
+        $this->assertStringContainsString("=== 'chief operating officer'", $authorizationController);
+        $this->assertStringNotContainsString('private function administratorCompanyId(User $user): ?string', $authorizationController);
     }
 
     public function test_sidebar_hides_menu_without_position_permission(): void

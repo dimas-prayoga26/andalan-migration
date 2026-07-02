@@ -86,7 +86,7 @@ class BusinessTripPageCleanupTest extends TestCase
         $this->assertStringContainsString("'reimbursements'", $businessTripController);
         $this->assertStringContainsString("'lifecycleLogs.actor'", $businessTripController);
         $this->assertStringContainsString("'lifecycleLogs.actor.employee.profile'", $businessTripController);
-        $this->assertStringContainsString("'lifecycleLogs.actor.userProfile'", $businessTripController);
+        $this->assertStringNotContainsString('userProfile', $businessTripController);
         $this->assertStringContainsString('$businessTripRequestDetails = $this->buildBusinessTripRequestDetails($businessTrip);', $businessTripController);
         $this->assertStringContainsString('$businessTripCashAdvanceRows = $this->buildBusinessTripCashAdvanceRows($businessTrip);', $businessTripController);
         $this->assertStringContainsString("'businessTripRequestDetails' => \$businessTripRequestDetails", $businessTripController);
@@ -883,7 +883,6 @@ class BusinessTripPageCleanupTest extends TestCase
             'email' => 'staff72@example.test',
         ]);
         $user->setRelation('employee', null);
-        $user->setRelation('userProfile', null);
 
         return $user;
     }

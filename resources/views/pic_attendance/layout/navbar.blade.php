@@ -10,6 +10,9 @@
             <li class="nav-item" role="presentation">
                 <a href="{{ route('pic-attendance.overtime') }}" class="nav-link py-3 px-1 border-3 {{ request()->routeIs('pic-attendance.overtime*') ? 'active' : '' }}">Overtime</a>
             </li>
+            <li class="nav-item" role="presentation">
+                <a href="{{ route('pic-attendance.task') }}" class="nav-link py-3 px-1 border-3 {{ request()->routeIs('pic-attendance.task*') ? 'active' : '' }}">Task</a>
+            </li>
         </ul>
     </div>
 </div>

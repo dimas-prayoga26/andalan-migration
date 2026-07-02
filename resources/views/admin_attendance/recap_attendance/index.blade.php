@@ -55,12 +55,13 @@
 									<span class="fw-bold">{{ $row['clock_out'] }}</span>
 								@endif
 							</td>
-							<td>{{ $row['note'] }}</td>
+							<td data-capture-tone="{{ $row['attachment_badge'] }}">{{ $row['note'] }}</td>
 							<td>{{ $row['working_hours'] }}</td>
 							<td>
 								<button
 									type="button"
 									class="btn btn-square btn-{{ $row['attachment_badge'] }} light btn-xs"
+									data-capture-tone="{{ $row['attachment_badge'] }}"
 									data-bs-toggle="modal"
 									data-bs-target="#{{ $row['modal_id'] }}"
 									data-recap-attendance-modal
@@ -432,6 +433,80 @@
             context.closePath();
         }
 
+        function captureToneFromElement(element) {
+            if (!element) {
+                return '';
+            }
+
+            var tone = element.dataset ? (element.dataset.captureTone || '') : '';
+            var toneElement = element.querySelector('[data-capture-tone], .badge, .btn');
+            if (tone === '' && toneElement && toneElement.dataset) {
+                tone = toneElement.dataset.captureTone || '';
+            }
+
+            var className = toneElement ? toneElement.className : element.className;
+            className = typeof className === 'string' ? className : '';
+            ['success', 'danger', 'secondary', 'info', 'warning', 'primary'].some(function (candidate) {
+                if (tone !== '') {
+                    return true;
+                }
+
+                if (className.indexOf('badge-' + candidate) !== -1 || className.indexOf('btn-' + candidate) !== -1) {
+                    tone = candidate;
+                    return true;
+                }
+
+                return false;
+            });
+
+            if (tone === '') {
+                var text = normalizedTableText(element).toLowerCase();
+                if (text.indexOf('late') !== -1 || text.indexOf('terlambat') !== -1) {
+                    tone = 'danger';
+                } else if (text.indexOf('on time') !== -1 || text.indexOf('masuk') !== -1) {
+                    tone = 'success';
+                } else if (text.indexOf('deviation') !== -1 || text.indexOf('exception') !== -1 || text.indexOf('arrival') !== -1 || text.indexOf('departure') !== -1) {
+                    tone = 'secondary';
+                }
+            }
+
+            return tone;
+        }
+
+        function captureTonePalette(tone) {
+            var palettes = {
+                success: { background: '#dcfce7', border: '#bbf7d0', text: '#16a34a' },
+                danger: { background: '#ffe4e6', border: '#fecdd3', text: '#e11d48' },
+                secondary: { background: '#f3e8ff', border: '#e9d5ff', text: '#7c3aed' },
+                info: { background: '#e0f2fe', border: '#bae6fd', text: '#0284c7' },
+                warning: { background: '#fef3c7', border: '#fde68a', text: '#d97706' },
+                primary: { background: '#dbeafe', border: '#bfdbfe', text: '#1d4ed8' },
+            };
+
+            return palettes[tone] || null;
+        }
+
+        function captureCellPayload(cell) {
+            return {
+                text: normalizedTableText(cell),
+                tone: captureToneFromElement(cell),
+            };
+        }
+
+        function drawCaptureBadge(context, text, palette, x, y, maxWidth) {
+            var textWidth = Math.min(context.measureText(text).width, maxWidth - 28);
+            var badgeWidth = Math.min(Math.max(textWidth + 24, 34), maxWidth);
+            var badgeHeight = 26;
+
+            drawRoundedRectangle(context, x, y, badgeWidth, badgeHeight, 8);
+            context.fillStyle = palette.background;
+            context.fill();
+            context.strokeStyle = palette.border;
+            context.stroke();
+            context.fillStyle = palette.text;
+            context.fillText(text, x + 12, y + 18);
+        }
+
         function downloadRecapAttendanceImage() {
             var captureArea = document.getElementById('recapAttendanceCaptureArea');
             var table = document.getElementById('recapAttendanceCaptureTable');
@@ -467,7 +542,7 @@
                 }
 
                 return {
-                    cells: cells.map(normalizedTableText),
+                    cells: cells.map(captureCellPayload),
                 };
             });
 
@@ -482,7 +557,7 @@
                 }
 
                 var linesByCell = row.cells.map(function (cell, index) {
-                    return wrapCanvasText(scratchContext, cell, columnWidths[index] - 28);
+                    return wrapCanvasText(scratchContext, cell.text, columnWidths[index] - 28);
                 });
                 var maxLines = linesByCell.reduce(function (highest, lines) {
                     return Math.max(highest, lines.length);
@@ -568,8 +643,21 @@
 
                 x = tableX;
                 layout.linesByCell.forEach(function (lines, columnIndex) {
+                    var cell = rows[rowIndex].cells[columnIndex];
+                    var palette = captureTonePalette(cell.tone);
                     context.fillStyle = columnIndex === 0 ? '#334155' : '#475569';
                     context.font = columnIndex === 0 ? '700 14px Arial' : '14px Arial';
+
+                    if (palette && lines.length === 1) {
+                        drawCaptureBadge(context, lines[0], palette, x + 14, y + 14, columnWidths[columnIndex] - 28);
+                        x += columnWidths[columnIndex];
+                        return;
+                    }
+
+                    if (palette) {
+                        context.fillStyle = palette.text;
+                    }
+
                     lines.forEach(function (line, lineIndex) {
                         context.fillText(line, x + 14, y + 28 + (lineIndex * 20));
                     });

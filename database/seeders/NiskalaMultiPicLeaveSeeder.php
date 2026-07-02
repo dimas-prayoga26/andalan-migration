@@ -79,7 +79,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
                     'phone' => '081300000041',
                 ], $now);
 
-                $this->syncActivePicAssignments($leonie, [$leonie], $now);
                 $this->syncActivePicAssignments($mevia, [$leonie], $now);
                 $this->syncActivePicAssignments($erlin, [$leonie], $now);
                 $this->seedPendingSupervisorReviewLeaveRequest($mevia, $leonie->user, $now);
@@ -95,7 +94,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
         return collect([
             'companies',
             'users',
-            'user_profiles',
             'employees',
             'employee_profiles',
             'employee_deployments',
@@ -170,17 +168,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
         );
 
         $user->syncRoles(['Staff']);
-
-        DB::table('user_profiles')->updateOrInsert(
-            ['user_id' => $user->id],
-            [
-                'nickname' => $data['name'],
-                'phone' => $data['phone'],
-                'address' => $data['workplace'],
-                'updated_at' => $now,
-                'created_at' => $now,
-            ],
-        );
 
         $employee = Employee::query()->updateOrCreate(
             ['user_id' => $user->id],

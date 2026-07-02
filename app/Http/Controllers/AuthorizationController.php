@@ -13,8 +13,10 @@ use App\Models\Permission;
 use App\Models\Position;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -30,9 +32,13 @@ class AuthorizationController extends Controller
 
         abort_unless($authenticatedUser instanceof User, 403);
 
+        $search = $request->string('search')->trim()->toString();
+
         return view('authorization.index', [
-            'users' => $this->authorizationUsersFor($authenticatedUser),
+            'users' => $this->authorizationUsersFor($authenticatedUser, $search),
+            'search' => $search,
             'canManageDataEmployee' => $this->canManageAuthorization($authenticatedUser),
+            'canManagePositionPermissions' => $this->canManagePositionPermissions($authenticatedUser),
         ]);
     }
 
@@ -167,7 +173,7 @@ class AuthorizationController extends Controller
     {
         $authenticatedUser = $request->user();
 
-        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+        abort_unless($authenticatedUser instanceof User && $this->canManagePositionPermissions($authenticatedUser), 403);
 
         return view('authorization.access-menus', [
             'positions' => $this->authorizationPositions(),
@@ -179,7 +185,7 @@ class AuthorizationController extends Controller
     {
         $authenticatedUser = $request->user();
 
-        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+        abort_unless($authenticatedUser instanceof User && $this->canManagePositionPermissions($authenticatedUser), 403);
 
         $validated = $request->validate([
             'permission_positions' => ['array'],
@@ -283,7 +289,7 @@ class AuthorizationController extends Controller
     }
 
     /**
-     * @return Collection<int, array{
+     * @return LengthAwarePaginator<int, array{
      *     name: string,
      *     position: string,
      *     company: string,
@@ -291,7 +297,7 @@ class AuthorizationController extends Controller
      *     initials: string
      * }>
      */
-    private function authorizationUsersFor(User $viewer): Collection
+    private function authorizationUsersFor(User $viewer, string $search = ''): LengthAwarePaginator
     {
         $viewer->loadMissing([
             'roles:uuid,name',
@@ -316,11 +322,11 @@ class AuthorizationController extends Controller
             ])
             ->whereHas('employee');
 
-        if (! $this->isSuperuser($viewer)) {
-            $companyId = $this->administratorCompanyId($viewer);
+        if (! $this->canManageAuthorization($viewer)) {
+            $companyId = $this->viewerCompanyId($viewer);
 
             if ($companyId === null) {
-                return collect();
+                return new LengthAwarePaginator([], 0, 10);
             }
 
             $query->whereHas('employee.deployment', function ($query) use ($companyId): void {
@@ -328,18 +334,39 @@ class AuthorizationController extends Controller
             });
         }
 
+        if ($search !== '') {
+            $query->where(function (Builder $query) use ($search): void {
+                $searchTerm = '%'.$search.'%';
+
+                $query
+                    ->where('username', 'like', $searchTerm)
+                    ->orWhere('email', 'like', $searchTerm)
+                    ->orWhereHas('employee', function (Builder $employeeQuery) use ($searchTerm): void {
+                        $employeeQuery
+                            ->where('employee_code', 'like', $searchTerm)
+                            ->orWhere('status', 'like', $searchTerm)
+                            ->orWhereHas('profile', fn (Builder $profileQuery) => $profileQuery->where('name', 'like', $searchTerm))
+                            ->orWhereHas('identity', fn (Builder $identityQuery) => $identityQuery->where('nik', 'like', $searchTerm))
+                            ->orWhereHas('deployment.company', fn (Builder $companyQuery) => $companyQuery->where('name', 'like', $searchTerm))
+                            ->orWhereHas('deployment.position', fn (Builder $positionQuery) => $positionQuery->where('name', 'like', $searchTerm))
+                            ->orWhereHas('deployment.positions', fn (Builder $positionsQuery) => $positionsQuery->where('name', 'like', $searchTerm))
+                            ->orWhereHas('picAssignment.supervisor.profile', fn (Builder $profileQuery) => $profileQuery->where('name', 'like', $searchTerm));
+                    });
+            });
+        }
+
         return $query
             ->orderBy('username')
-            ->get()
-            ->map(fn (User $user): array => $this->presentAuthorizationUser($user))
-            ->values();
+            ->paginate(10)
+            ->withQueryString()
+            ->through(fn (User $user): array => $this->presentAuthorizationUser($user));
     }
 
-    private function administratorCompanyId(User $user): ?string
+    private function viewerCompanyId(User $user): ?string
     {
         $deployment = $user->employee?->deployment;
 
-        if ($deployment === null || ! $this->isAdministratorEmployee($user)) {
+        if ($deployment === null) {
             return null;
         }
 
@@ -370,6 +397,13 @@ class AuthorizationController extends Controller
     private function canManageAuthorization(User $user): bool
     {
         return $this->isSuperuser($user) || $this->isAdministratorEmployee($user);
+    }
+
+    private function canManagePositionPermissions(User $user): bool
+    {
+        return $this->canManageAuthorization($user)
+            || $this->positionNamesFor($user->employee)
+                ->contains(static fn (string $positionName): bool => strtolower(trim($positionName)) === 'chief operating officer');
     }
 
     /**
@@ -411,11 +445,11 @@ class AuthorizationController extends Controller
 
     private function canViewEmployee(User $viewer, Employee $employee): bool
     {
-        if ($this->isSuperuser($viewer)) {
+        if ($this->canManageAuthorization($viewer)) {
             return true;
         }
 
-        $companyId = $this->administratorCompanyId($viewer);
+        $companyId = $this->viewerCompanyId($viewer);
 
         return $companyId !== null
             && $employee->loadMissing('deployment')->deployment?->current_company_id === $companyId;

@@ -88,33 +88,60 @@ class EmployeePicAssignmentSeeder extends Seeder
     private function syncExplicitPicAssignments(): void
     {
         $assignments = [
+            'lukman@rnbmanagement.com' => [
+                'lukman@rnbmanagement.com',
+                'rully.priyatno@andalanbersama.com',
+                'hilmi.ulwan@andalanbersama.com',
+            ],
             'leonieputri7@gmail.com' => [
                 'leonieputri7@gmail.com',
                 'diktanamira@gmail.com',
                 'halloerlin@gmail.com',
             ],
             'msyafiq.dev@gmail.com' => [
+                'msyafiq.dev@gmail.com',
                 'syarifhidayatullah.040203@gmail.com',
                 'rifkafebriza456@gmail.com',
                 'dimas.prayoga260403@gmail.com',
             ],
             'rexy@andalanbersama.com' => [
+                'rexy@andalanbersama.com',
                 'arumkusumawati98@gmail.com',
                 'dedystwn.interior@gmail.com',
             ],
             'fahmil@andalanbersama.com' => [
+                'fahmil@andalanbersama.com',
                 'aryapardomuan@gmail.com',
                 'abasyamanyusuf1999@gmail.com',
                 'aarissubakti@gmail.com',
                 'airarizqi22@gmail.com',
             ],
+            'fuadmfahrudin@gmail.com' => [
+                'fuadmfahrudin@gmail.com',
+            ],
         ];
 
         foreach ($assignments as $supervisorEmail => $staffEmails) {
             $supervisorEmployeeId = $this->employeeIdByEmail($supervisorEmail);
+            $staffEmployeeIds = collect($staffEmails)
+                ->map(fn (string $staffEmail): ?string => $this->employeeIdByEmail($staffEmail))
+                ->filter()
+                ->values();
 
-            foreach ($staffEmails as $staffEmail) {
-                $this->syncPicAssignment($supervisorEmployeeId, $this->employeeIdByEmail($staffEmail));
+            if (! is_string($supervisorEmployeeId) || trim($supervisorEmployeeId) === '') {
+                continue;
+            }
+
+            DB::table('employee_pic_assignments')
+                ->where('supervisor_employee_id', $supervisorEmployeeId)
+                ->whereNotIn('staff_employee_id', $staffEmployeeIds->all())
+                ->update([
+                    'is_active' => false,
+                    'updated_at' => now(),
+                ]);
+
+            foreach ($staffEmployeeIds as $staffEmployeeId) {
+                $this->syncPicAssignment($supervisorEmployeeId, $staffEmployeeId);
             }
         }
     }

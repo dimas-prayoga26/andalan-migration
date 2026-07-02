@@ -47,6 +47,9 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertTrue(View::exists('project_management.task_list.index'));
         $this->assertTrue(View::exists('project_management.projects.index'));
         $this->assertTrue(View::exists('project_management.projects.detail'));
+        $this->assertStringContainsString("asset('assets/default_user.jpg')", $profileHeader);
+        $this->assertStringContainsString('employee.profile:id,employee_id,name,profile_picture_path', $profileComposer);
+        $this->assertStringNotContainsString('userProfile', $profileComposer);
         $this->assertIsString(view('project_management.overview.index')->render());
         $this->assertStringContainsString('ProjectManagementOverviewController::class', $routes);
         $this->assertStringContainsString('ProjectManagementTaskListController::class', $routes);
@@ -157,7 +160,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('projectTaskTimeline', $projectController);
         $this->assertStringContainsString('private function projectTaskTimelineValue(Project $project, Collection $tasks): array', $projectController);
         $this->assertStringContainsString('betweenIncluded($weekStart, $weekEnd)', $projectController);
-        $this->assertStringContainsString('memberships.employee.user.userProfile:id,user_id,profile_picture', $projectController);
+        $this->assertStringContainsString('memberships.employee.profile:id,employee_id,name,profile_picture_path', $projectController);
         $this->assertStringContainsString('team_members', $projectController);
         $this->assertStringContainsString('private function teamMemberValue(?Employee $employee): array', $projectController);
         $this->assertStringContainsString('private function profilePictureUrl(mixed $profilePicturePath): ?string', $projectController);
@@ -639,6 +642,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             $table->uuid('id')->primary();
             $table->foreignUuid('employee_id')->constrained('employees', 'id')->cascadeOnDelete();
             $table->string('name')->nullable();
+            $table->string('profile_picture_path')->nullable();
             $table->timestamps();
         });
 

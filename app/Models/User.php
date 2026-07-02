@@ -49,11 +49,6 @@ class User extends Authenticatable
         return $this->hasOne(Employee::class, 'user_id', 'id');
     }
 
-    public function userProfile(): HasOne
-    {
-        return $this->hasOne(UserProfile::class, 'user_id', 'id');
-    }
-
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'id');

@@ -168,12 +168,15 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringContainsString('NiskalaMultiPicLeaveSeeder::class', $databaseSeeder);
         $this->assertStringContainsString("'halloerlin@gmail.com' => ['Administrator', 'Accounting and Taxation']", $legacySeeder);
         $this->assertStringContainsString("'diktanamira@gmail.com' => ['Administrator', 'Accounting and Taxation']", $legacySeeder);
-        $this->assertStringContainsString("'leonieputri7@gmail.com' => ['Administrator', 'Supervisor']", $legacySeeder);
+        $this->assertStringContainsString("'leonieputri7@gmail.com' => ['Supervisor']", $legacySeeder);
         $this->assertStringContainsString("'msyafiq.dev@gmail.com' => ['Supervisor']", $legacySeeder);
         $this->assertStringContainsString("'rexy@andalanbersama.com' => ['Director', 'Supervisor']", $legacySeeder);
         $this->assertStringContainsString("'fuadmfahrudin@gmail.com' => ['Director', 'Supervisor']", $legacySeeder);
         $this->assertStringContainsString("'fahmil@andalanbersama.com' => ['Director', 'Supervisor']", $legacySeeder);
-        $this->assertStringContainsString("'lukman@rnbmanagement.com' => ['Chief Operating Officer', 'Supervisor']", $legacySeeder);
+        $this->assertStringContainsString("'lukman@rnbmanagement.com' => ['Supervisor']", $legacySeeder);
+        $this->assertStringContainsString("'rully.priyatno@andalanbersama.com'", $legacySeeder);
+        $this->assertStringContainsString("'hilmi.ulwan@andalanbersama.com'", $legacySeeder);
+        $this->assertStringContainsString("'adik@andalanbersama.com'", $legacySeeder);
     }
 
     public function test_explicit_pic_assignment_mapping_is_registered(): void
@@ -181,12 +184,15 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $picSeeder = file_get_contents(database_path('seeders/EmployeePicAssignmentSeeder.php'));
 
         $this->assertIsString($picSeeder);
+        $this->assertStringContainsString("'lukman@rnbmanagement.com' =>", $picSeeder);
+        $this->assertStringContainsString("'rully.priyatno@andalanbersama.com'", $picSeeder);
+        $this->assertStringContainsString("'hilmi.ulwan@andalanbersama.com'", $picSeeder);
         $this->assertStringContainsString("'leonieputri7@gmail.com' =>", $picSeeder);
-        $this->assertGreaterThanOrEqual(2, substr_count($picSeeder, "'leonieputri7@gmail.com'"));
+        $this->assertSame(2, substr_count($picSeeder, "'leonieputri7@gmail.com'"));
         $this->assertStringContainsString("'diktanamira@gmail.com'", $picSeeder);
         $this->assertStringContainsString("'halloerlin@gmail.com'", $picSeeder);
         $this->assertStringNotContainsString('$supervisorEmployeeId === $staffEmployeeId', $picSeeder);
-        $this->assertStringContainsString('syncActivePicAssignments($leonie, [$leonie], $now)', file_get_contents(database_path('seeders/NiskalaMultiPicLeaveSeeder.php')));
+        $this->assertStringNotContainsString('syncActivePicAssignments($leonie, [$leonie], $now)', file_get_contents(database_path('seeders/NiskalaMultiPicLeaveSeeder.php')));
         $this->assertStringContainsString("'msyafiq.dev@gmail.com' =>", $picSeeder);
         $this->assertStringContainsString("'syarifhidayatullah.040203@gmail.com'", $picSeeder);
         $this->assertStringContainsString("'rifkafebriza456@gmail.com'", $picSeeder);
@@ -199,6 +205,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringContainsString("'abasyamanyusuf1999@gmail.com'", $picSeeder);
         $this->assertStringContainsString("'aarissubakti@gmail.com'", $picSeeder);
         $this->assertStringContainsString("'airarizqi22@gmail.com'", $picSeeder);
+        $this->assertStringContainsString("'fuadmfahrudin@gmail.com' =>", $picSeeder);
     }
 
     public function test_leonie_mevia_and_erlin_are_not_super_administrators(): void

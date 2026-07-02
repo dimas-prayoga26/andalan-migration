@@ -13,6 +13,7 @@ use App\Http\Controllers\DirectorAttendance\DirectorAttendanceOvertimeController
 use App\Http\Controllers\PicAttendance\PicAttendanceController;
 use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
+use App\Http\Controllers\PicAttendance\PicAttendanceTaskController;
 use App\Http\Controllers\ProjectManagement\OverviewController as ProjectManagementOverviewController;
 use App\Http\Controllers\ProjectManagement\ProjectController as ProjectManagementProjectController;
 use App\Http\Controllers\ProjectManagement\TaskListController as ProjectManagementTaskListController;
@@ -180,6 +181,10 @@ Route::middleware('auth')->group(function (): void {
             ->name('pic-attendance.overtime.verify-session');
         Route::put('/pic-attendance/overtime/detail/{attendanceOvertime}/tasks/{projectTask}', [PicAttendanceOvertimeController::class, 'updateTask'])
             ->name('pic-attendance.overtime.tasks.update');
+        Route::get('/pic-attendance/task', [PicAttendanceTaskController::class, 'index'])
+            ->name('pic-attendance.task');
+        Route::get('/pic-attendance/task/datatable', [PicAttendanceTaskController::class, 'datatable'])
+            ->name('pic-attendance.task.datatable');
     });
 
     // Director attendance routes

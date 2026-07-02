@@ -192,7 +192,6 @@ class AttendanceOvertimeController extends Controller
                 'assignedBy.employee.profile:id,employee_id,name',
                 'lifecycleLogs.actor',
                 'lifecycleLogs.actor.employee.profile',
-                'lifecycleLogs.actor.userProfile',
                 'projectTasks' => function ($query): void {
                     $query
                         ->orderBy('due_date')

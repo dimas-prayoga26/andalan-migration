@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\EmployeeDeployment;
 use App\Models\EmployeeIdentity;
+use App\Models\EmployeeProfile;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -268,19 +269,6 @@ class UserSeeder extends Seeder
     ): void {
         $now = now();
 
-        DB::table('user_profiles')->updateOrInsert(
-            ['user_id' => $user->id],
-            [
-                'nickname' => $this->resolveDisplayName($user),
-                'gender_id' => $genderId,
-                'marital_status_id' => $maritalStatusId,
-                'phone' => $this->resolvePhoneNumber((string) $user->id),
-                'address' => 'Alamat belum diisi',
-                'updated_at' => $now,
-                'created_at' => $now,
-            ],
-        );
-
         $employee = Employee::query()->updateOrCreate(
             ['user_id' => $user->id],
             [
@@ -288,6 +276,21 @@ class UserSeeder extends Seeder
                 'status' => 'Active',
                 'updated_at' => $now,
                 'created_at' => $now,
+            ],
+        );
+
+        EmployeeProfile::query()->updateOrCreate(
+            ['employee_id' => $employee->id],
+            [
+                'name' => $this->resolveDisplayName($user),
+                'nickname' => $this->resolveDisplayName($user),
+                'gender' => $genderId !== null
+                    ? DB::table('meta_data_gender')->where('id', $genderId)->value('name')
+                    : null,
+                'marital_status' => $maritalStatusId !== null
+                    ? DB::table('meta_data_marital_statuses')->where('id', $maritalStatusId)->value('name')
+                    : null,
+                'nationality' => 'Indonesia',
             ],
         );
 

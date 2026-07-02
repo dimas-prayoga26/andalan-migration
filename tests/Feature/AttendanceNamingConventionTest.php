@@ -225,6 +225,7 @@ class AttendanceNamingConventionTest extends TestCase
 
         $this->assertStringContainsString('.mobile-stats-slider {', $profileHeaderView);
         $this->assertStringContainsString('margin-top: 1rem;', $profileHeaderView);
+        $this->assertStringContainsString("asset('assets/default_user.jpg')", $profileHeaderView);
 
         $commonJsView = File::get(resource_path('views/layouts/commonjs.blade.php'));
         $profileIndexView = File::get(resource_path('views/staff_attendance/layouts/profile-index.blade.php'));

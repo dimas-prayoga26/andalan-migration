@@ -12,6 +12,8 @@ use App\Models\LeaveRequest;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AttendanceProfileComposer
@@ -78,9 +80,8 @@ class AttendanceProfileComposer
         $authenticatedUser = (is_string($authenticatedUserId) || is_int($authenticatedUserId))
             ? User::query()
                 ->with([
-                    'userProfile:id,user_id,profile_picture',
                     'employee:id,user_id',
-                    'employee.profile:id,employee_id,name',
+                    'employee.profile:id,employee_id,name,profile_picture_path',
                     'employee.deployment:id,employee_id,current_company_id,current_position_id',
                     'employee.deployment.position:id,name',
                     'employee.deployment.positions:id,name',
@@ -107,8 +108,9 @@ class AttendanceProfileComposer
 
         $profileData['profileStatsMode'] = $isStaffUser ? 'staff' : 'management';
 
-        if (is_string($authenticatedUser->userProfile?->profile_picture) && trim($authenticatedUser->userProfile->profile_picture) !== '') {
-            $profileData['profilePicturePath'] = trim($authenticatedUser->userProfile->profile_picture);
+        $profilePicturePath = $this->availableProfilePicturePath($authenticatedUser->employee?->profile?->profile_picture_path);
+        if ($profilePicturePath !== null) {
+            $profileData['profilePicturePath'] = $profilePicturePath;
         }
 
         if (is_string($authenticatedUser->business_email) && trim($authenticatedUser->business_email) !== '') {
@@ -550,6 +552,22 @@ class AttendanceProfileComposer
 
         return $normalizedRoleNames->contains('board of directur')
             || $normalizedRoleNames->contains('board of directors');
+    }
+
+    private function availableProfilePicturePath(mixed $profilePicturePath): ?string
+    {
+        $profilePicturePath = trim((string) $profilePicturePath);
+        if ($profilePicturePath === '') {
+            return null;
+        }
+
+        if (Str::startsWith($profilePicturePath, ['http://', 'https://'])) {
+            return $profilePicturePath;
+        }
+
+        $publicPath = ltrim($profilePicturePath, '/');
+
+        return File::exists(public_path($publicPath)) ? $publicPath : null;
     }
 
     private function isStaffUser(?User $user): bool

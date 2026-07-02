@@ -141,7 +141,6 @@ class BusinessTripStoreTest extends TestCase
             'employee_pic_assignments',
             'employee_profiles',
             'employees',
-            'user_profiles',
             'users',
         ] as $table) {
             Schema::dropIfExists($table);
@@ -157,13 +156,6 @@ class BusinessTripStoreTest extends TestCase
             $table->timestamps();
         });
 
-        Schema::create('user_profiles', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('user_id')->unique()->constrained('users', 'id')->cascadeOnDelete();
-            $table->string('profile_picture')->nullable();
-            $table->timestamps();
-        });
-
         Schema::create('employees', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->unique()->constrained('users', 'id')->cascadeOnDelete();
@@ -175,6 +167,8 @@ class BusinessTripStoreTest extends TestCase
             $table->uuid('id')->primary();
             $table->foreignUuid('employee_id')->unique()->constrained('employees', 'id')->cascadeOnDelete();
             $table->string('name')->nullable();
+            $table->string('nickname')->nullable();
+            $table->string('profile_picture_path')->nullable();
             $table->timestamps();
         });
 

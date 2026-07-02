@@ -20,24 +20,8 @@ class EmployeeIdentitySeeder extends Seeder
             $now = now();
 
             $employees = Employee::query()
-                ->with('user')
+                ->with(['user', 'profile'])
                 ->get();
-
-            $userIds = $employees
-                ->pluck('user_id')
-                ->filter()
-                ->values()
-                ->all();
-
-            $userProfiles = DB::table('user_profiles')
-                ->whereIn('user_id', $userIds)
-                ->get()
-                ->keyBy('user_id');
-
-            $maritalStatusNamesById = DB::table('meta_data_marital_statuses')
-                ->select(['id', 'name'])
-                ->get()
-                ->pluck('name', 'id');
 
             foreach ($employees as $employee) {
                 $user = $employee->user;
@@ -45,10 +29,7 @@ class EmployeeIdentitySeeder extends Seeder
                     continue;
                 }
 
-                $userProfile = $userProfiles->get($user->id);
-                $maritalStatusName = $userProfile?->marital_status_id
-                    ? $maritalStatusNamesById->get($userProfile->marital_status_id)
-                    : null;
+                $maritalStatusName = $employee->profile?->marital_status;
 
                 $existingIdentity = DB::table('employee_identities')
                     ->where('employee_id', $employee->id)

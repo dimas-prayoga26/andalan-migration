@@ -27,11 +27,26 @@
 
 @section('content')
 
+    @php
+        $showDashboardMenuCarousel = false;
+        $showDashboardInactiveShortcuts = false;
+        $dashboardUser = auth()->user();
+        $canViewDashboardEmployeeShortcut = false;
+
+        if ($dashboardUser instanceof \App\Models\User) {
+            $canViewDashboardEmployeeShortcut = $dashboardUser->hasAnyPositionPermission([
+                'view-authorization',
+                'view-employee-database',
+            ]);
+        }
+    @endphp
+
     <div class="row">
 
         <div class="col-xl-12 col-xxl-12">
             <div class="row">
 
+                @if ($showDashboardMenuCarousel)
                 <div class="dashboard-menu-carousel owl-carousel">
                     <!-- Start - Laporan Pekerjaan -->
                     <div class="dashboard-activity-item">
@@ -189,6 +204,7 @@
                     </div>
                     <!-- End - Blog Management -->
                 </div>
+                @endif
 
             </div>
 
@@ -281,30 +297,33 @@
                 <div class="col-xl-12 mb-3">
                     <h4 class="mb-3">Menu</h4>
                     <div class="dashboard-shortcut-menu">
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--attendance shortcut-card" aria-label="Attendance">
+                        <a href="{{ route('attendance.today') }}" class="dashboard-shortcut-item dashboard-shortcut-item--attendance shortcut-card" aria-label="Attendance">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bx-calendar-check.svg.svg') }}" alt="Attendance icon" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Attendance</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--agenda shortcut-card" aria-label="Agenda">
+                        <a href="{{ route('activity-schadule') }}" class="dashboard-shortcut-item dashboard-shortcut-item--agenda shortcut-card" aria-label="Agenda">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bx-calendar.svg.svg') }}" alt="Icon Agenda" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Agenda</span>
                         </a>
+                        @if ($showDashboardInactiveShortcuts)
                         <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--blog shortcut-card" aria-label="Blog">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bxs-detail.svg.svg') }}" alt="Icon Blog" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Blog</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--project shortcut-card" aria-label="Project">
+                        @endif
+                        <a href="{{ route('project_management.projects') }}" class="dashboard-shortcut-item dashboard-shortcut-item--project shortcut-card" aria-label="Project">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bx-task.svg.svg') }}" alt="Icon Project" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Project</span>
                         </a>
+                        @if ($showDashboardInactiveShortcuts)
                         <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--meeting shortcut-card" aria-label="Meeting">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bxl-zoom.svg.svg') }}" alt="Icon Meeting" class="dashboard-shortcut-icon-image">
@@ -317,30 +336,38 @@
                             </span>
                             <span class="dashboard-shortcut-text">Finance</span>
                         </a>
+                        @endif
+                        @if ($showDashboardInactiveShortcuts)
                         <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--profile shortcut-card" aria-label="Profile">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bx-user-pin.svg.svg') }}" alt="Icon Profile" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Profile</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--laporan shortcut-card" aria-label="Laporan">
+                        @endif
+                        <a href="{{ route('project_management.task_list') }}" class="dashboard-shortcut-item dashboard-shortcut-item--laporan shortcut-card" aria-label="Laporan">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bxs-report.svg.svg') }}" alt="Icon Lainnya" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Laporan</span>
                         </a>
+                        @if ($showDashboardInactiveShortcuts)
                         <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--pelamar shortcut-card" aria-label="Pelamar">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bx-user-plus.svg.svg') }}" alt="Icon Pelamar" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Pelamar</span>
                         </a>
-                        <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--karyawan shortcut-card" aria-label="Karyawan">
+                        @endif
+                        @if ($canViewDashboardEmployeeShortcut)
+                        <a href="{{ route('employee_data') }}" class="dashboard-shortcut-item dashboard-shortcut-item--karyawan shortcut-card" aria-label="Karyawan">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bxs-user-detail.svg.svg') }}" alt="Icon Karyawan" class="dashboard-shortcut-icon-image">
                             </span>
                             <span class="dashboard-shortcut-text">Karyawan</span>
                         </a>
+                        @endif
+                        @if ($showDashboardInactiveShortcuts)
                         <a href="javascript:void(0)" class="dashboard-shortcut-item dashboard-shortcut-item--setting shortcut-card" aria-label="Setting">
                             <span class="dashboard-shortcut-box">
                                 <img src="{{ asset('assets/icon-menus/bx-slider-alt.svg.svg') }}" alt="Icon Setting" class="dashboard-shortcut-icon-image">
@@ -353,6 +380,7 @@
                             </span>
                             <span class="dashboard-shortcut-text">Administration</span>
                         </a>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -452,11 +480,7 @@
 @endsection
 
 @section('script')
-    @php
-        $dashboardJsPath = public_path('assets/js/dashboard.js');
-        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
-    @endphp
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ file_exists(public_path('assets/js/dashboard.js')) ? filemtime(public_path('assets/js/dashboard.js')) : time() }}"></script>
     <script>
         (function () {
             if (typeof window.jQuery === 'undefined') {

@@ -4,6 +4,8 @@ namespace App\View\Composers;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ProjectManagementProfileComposer
@@ -31,9 +33,8 @@ class ProjectManagementProfileComposer
             ? User::query()
                 ->select(['id', 'email', 'username'])
                 ->with([
-                    'userProfile:id,user_id,profile_picture',
                     'employee:id,user_id',
-                    'employee.profile:id,employee_id,name',
+                    'employee.profile:id,employee_id,name,profile_picture_path',
                     'employee.deployment:id,employee_id,current_position_id',
                     'employee.deployment.position:id,name',
                     'employee.deployment.positions:id,name',
@@ -51,9 +52,9 @@ class ProjectManagementProfileComposer
             : null;
 
         if ($authenticatedUser instanceof User) {
-            $profilePicturePath = $authenticatedUser->userProfile?->profile_picture;
-            if (is_string($profilePicturePath) && trim($profilePicturePath) !== '') {
-                $profileData['profilePicturePath'] = trim($profilePicturePath);
+            $profilePicturePath = $this->availableProfilePicturePath($authenticatedUser->employee?->profile?->profile_picture_path);
+            if ($profilePicturePath !== null) {
+                $profileData['profilePicturePath'] = $profilePicturePath;
             }
 
             $profileData['profileBusinessEmail'] = is_string($authenticatedUser->email) && trim($authenticatedUser->email) !== ''
@@ -93,5 +94,21 @@ class ProjectManagementProfileComposer
         }
 
         $view->with($profileData);
+    }
+
+    private function availableProfilePicturePath(mixed $profilePicturePath): ?string
+    {
+        $profilePicturePath = trim((string) $profilePicturePath);
+        if ($profilePicturePath === '') {
+            return null;
+        }
+
+        if (Str::startsWith($profilePicturePath, ['http://', 'https://'])) {
+            return $profilePicturePath;
+        }
+
+        $publicPath = ltrim($profilePicturePath, '/');
+
+        return File::exists(public_path($publicPath)) ? $publicPath : null;
     }
 }

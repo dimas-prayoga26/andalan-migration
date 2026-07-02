@@ -55,8 +55,7 @@ class ProjectController extends Controller
             'creator:id,username',
             'memberships.employee:id,user_id',
             'memberships.employee.user:id,username',
-            'memberships.employee.user.userProfile:id,user_id,profile_picture',
-            'memberships.employee.profile:id,employee_id,name',
+            'memberships.employee.profile:id,employee_id,name,profile_picture_path',
             'memberships.employee.deployment:id,employee_id,current_department_id',
             'memberships.employee.deployment.department:id,name',
         ]);
@@ -67,8 +66,7 @@ class ProjectController extends Controller
                 'assignedBy:id,username',
                 'employee:id,user_id',
                 'employee.user:id,username',
-                'employee.user.userProfile:id,user_id,profile_picture',
-                'employee.profile:id,employee_id,name',
+                'employee.profile:id,employee_id,name,profile_picture_path',
                 'employee.deployment:id,employee_id,current_department_id',
                 'employee.deployment.department:id,name',
             ])
@@ -366,7 +364,7 @@ class ProjectController extends Controller
 
         return [
             'name' => $displayName !== '' ? $displayName : 'Staff',
-            'avatar_url' => $this->profilePictureUrl($employee->user?->userProfile?->profile_picture),
+            'avatar_url' => $this->profilePictureUrl($employee->profile?->profile_picture_path),
             'fallback_label' => $this->teamAvatarFallbackLabel($displayName),
         ];
     }

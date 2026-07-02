@@ -25,21 +25,17 @@ class EmployeeAddressSeeder extends Seeder
             $now = now();
 
             $employees = Employee::query()
-                ->with(['user.userProfile', 'deployment.company'])
+                ->with('deployment.company')
                 ->get();
 
             foreach ($employees as $employee) {
                 $employeeId = (string) $employee->id;
-                $userProfile = $employee->user?->userProfile;
                 $companyAddress = is_string($employee->deployment?->company?->address)
                     ? trim((string) $employee->deployment?->company?->address)
                     : '';
                 $companyCity = is_string($employee->deployment?->company?->city)
                     ? trim((string) $employee->deployment?->company?->city)
                     : '';
-                $addressLine = is_string($userProfile?->address) && trim((string) $userProfile?->address) !== ''
-                    ? trim((string) $userProfile?->address)
-                    : ($companyAddress !== '' ? $companyAddress : 'Alamat belum diisi');
                 $regency = $companyCity !== '' ? $companyCity : 'Sleman';
                 $subdistrict = $regency === 'Jakarta' ? 'Tanah Abang' : 'Depok';
                 $village = $subdistrict === 'Tanah Abang' ? 'Kebon Kacang' : 'Condongcatur';
@@ -48,6 +44,10 @@ class EmployeeAddressSeeder extends Seeder
                     ->where('employee_id', $employeeId)
                     ->where('type', 'Domisili')
                     ->first();
+                $existingAddressLine = trim((string) ($existingAddress?->address_line ?? ''));
+                $addressLine = $existingAddressLine !== ''
+                    ? $existingAddressLine
+                    : ($companyAddress !== '' ? $companyAddress : 'Alamat belum diisi');
 
                 $payload = [
                     'address_line' => $addressLine,

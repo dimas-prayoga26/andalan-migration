@@ -861,7 +861,7 @@ class PicAttendanceController extends Controller
 
     protected function activeEmployeeIdsFor(Carbon $date, ?string $companyId): Collection
     {
-        if (! is_string($companyId) || trim($companyId) === '' || $this->supervisorEmployeeId === null) {
+        if ($this->supervisorEmployeeId === null) {
             return collect();
         }
 
@@ -885,11 +885,10 @@ class PicAttendanceController extends Controller
             ->whereHas('user', function ($query): void {
                 $query->where('is_active', true);
             })
-            ->whereHas('deployment', function ($query) use ($todayDate, $companyId): void {
+            ->whereHas('deployment', function ($query) use ($todayDate): void {
                 $query
                     ->whereNull('deleted_at')
                     ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                    ->where('current_company_id', $companyId)
                     ->where(function ($query) use ($todayDate): void {
                         $query
                             ->whereNull('join_date')

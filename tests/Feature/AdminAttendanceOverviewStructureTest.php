@@ -134,6 +134,10 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('id="recapAttendanceCaptureTable"', $recapView);
         $this->assertStringNotContainsString('<h4 class="card-title m-0">Attendance Logs ({{ $recapAttendanceDateLabel }})</h4>', $recapView);
         $this->assertStringContainsString('function downloadRecapAttendanceImage()', $recapView);
+        $this->assertStringContainsString('data-capture-tone="{{ $row[\'attachment_badge\'] }}"', $recapView);
+        $this->assertStringContainsString('function captureToneFromElement(element)', $recapView);
+        $this->assertStringContainsString('function captureTonePalette(tone)', $recapView);
+        $this->assertStringContainsString('drawCaptureBadge(context, lines[0], palette', $recapView);
         $this->assertStringContainsString("link.download = filename + '.png';", $recapView);
         $this->assertStringContainsString('id="recapMonthlyTable"', $recapView);
         $this->assertStringContainsString('admin-attendance.recap.monthly-datatable', $recapView);

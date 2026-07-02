@@ -56,6 +56,8 @@
                     buttonText: 'Schedule',
                 },
             },
+            firstDay: 1,
+            dayHeaderFormat: { weekday: 'short' },
             listDayFormat: { weekday: 'short', month: 'short', day: 'numeric' },
             listDaySideFormat: { year: 'numeric' },
             scrollTime: '07:30:00',

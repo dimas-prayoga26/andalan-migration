@@ -163,6 +163,14 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertStringContainsString('Leave Overview ({{ $yearChartYear }})', $attendanceOverviewView);
         $this->assertStringContainsString('Business Trip Overview ({{ $yearChartYear }})', $attendanceOverviewView);
         $this->assertStringContainsString('Overtime Overview ({{ $yearChartYear }})', $attendanceOverviewView);
+        $this->assertStringContainsString('.attendance-year-chart-wrapper {', $attendanceOverviewView);
+        $this->assertStringContainsString('.attendance-year-chart-wrapper canvas {', $attendanceOverviewView);
+        $this->assertStringContainsString('function isMobileChartViewport()', $attendanceOverviewView);
+        $this->assertStringContainsString('function canvasLegendOptions()', $attendanceOverviewView);
+        $this->assertStringContainsString('function canvasAxisTickOptions()', $attendanceOverviewView);
+        $this->assertStringContainsString('maxTicksLimit: isMobile ? 6 : 12', $attendanceOverviewView);
+        $this->assertSame(4, substr_count($attendanceOverviewView, '<div class="attendance-year-chart-wrapper">'));
+        $this->assertSame(4, substr_count($attendanceOverviewView, 'maintainAspectRatio: false'));
         $this->assertStringContainsString('labels: @json($yearMonthLabels)', $attendanceOverviewView);
         $this->assertStringContainsString('data: @json($yearAttendanceOnTimeSeries)', $attendanceOverviewView);
         $this->assertStringContainsString('data: @json($yearAttendanceLateSeries)', $attendanceOverviewView);
@@ -211,6 +219,11 @@ class AttendanceNamingConventionTest extends TestCase
 
         $overtimeIndexView = File::get(resource_path('views/staff_attendance/overtimes/index.blade.php'));
 
+        $this->assertStringContainsString('row overtime-summary-mobile-slider', $overtimeIndexView);
+        $this->assertStringContainsString('.overtime-summary-mobile-slider {', $overtimeIndexView);
+        $this->assertStringContainsString('.overtime-summary-mobile-slide {', $overtimeIndexView);
+        $this->assertSame(2, substr_count($overtimeIndexView, 'row overtime-summary-mobile-slider'));
+        $this->assertSame(8, substr_count($overtimeIndexView, 'col-md-3 col-sm-6 overtime-summary-mobile-slide'));
         $this->assertStringContainsString("\$overtimeItem['detail_url']", $overtimeIndexView);
         $this->assertStringNotContainsString('attendance-overtime-details.html', $overtimeIndexView);
 

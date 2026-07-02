@@ -80,7 +80,41 @@
         margin: 0;
     }
 
-    @media (max-width: 575.98px) {
+    .project-overview-chart-wrapper {
+        position: relative;
+        width: 100%;
+        height: 300px;
+    }
+
+    .project-overview-chart-wrapper canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    @media (max-width: 767.98px) {
+        .project-summary-mobile-slider {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 12px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .project-summary-mobile-slider::-webkit-scrollbar {
+            display: none;
+            width: 0;
+            height: 0;
+        }
+
+        .project-summary-mobile-slide {
+            flex: 0 0 100%;
+            width: 100%;
+            max-width: 100%;
+            scroll-snap-align: start;
+        }
+
         .project-task-overview-card .card-body {
             min-height: 220px;
         }
@@ -100,6 +134,15 @@
 
         .project-progress-card .card-body {
             display: block;
+        }
+
+        .project-overview-chart-wrapper {
+            height: 280px;
+        }
+
+        .project-overview-chart-card .card-body {
+            padding-left: 12px;
+            padding-right: 12px;
         }
     }
 </style>
@@ -336,7 +379,7 @@
     <div class="col-md-6 col-12">
         <div class="row">
             <div class="col-md-12">
-                <div class="card">
+                <div class="card project-overview-chart-card">
                     <div class="card-header border-0 pb-0">
                         <h4 class="card-title" id="projectMonthlyOverviewTitle">Task Overview ({{ $projectCurrentMonthYearLabel }})</h4>
                         <div class="clearfix">
@@ -358,13 +401,15 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <canvas
-                            id="barChart_3"
-                            data-selected-month="{{ $projectMonthlyOverviewSelectedMonth }}"
-                            data-monthly-charts='@json($projectMonthlyOverviewChartsByMonth)'
-                            data-chart-labels='@json($projectMonthlyOverviewChartLabels)'
-                            data-completed-series='@json($projectMonthlyOverviewCompletedSeries)'
-                            data-incomplete-series='@json($projectMonthlyOverviewIncompleteSeries)'></canvas>
+                        <div class="project-overview-chart-wrapper">
+                            <canvas
+                                id="barChart_3"
+                                data-selected-month="{{ $projectMonthlyOverviewSelectedMonth }}"
+                                data-monthly-charts='@json($projectMonthlyOverviewChartsByMonth)'
+                                data-chart-labels='@json($projectMonthlyOverviewChartLabels)'
+                                data-completed-series='@json($projectMonthlyOverviewCompletedSeries)'
+                                data-incomplete-series='@json($projectMonthlyOverviewIncompleteSeries)'></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -373,16 +418,18 @@
     <div class="col-md-6 col-12">
         <div class="row">
             <div class="col-md-12">
-                <div class="card">
+                <div class="card project-overview-chart-card">
                     <div class="card-header border-0 pb-0">
                         <h4 class="card-title">Task Overview ({{ $projectCurrentYearLabel }})</h4>
                     </div>
                     <div class="card-body">
-                        <canvas
-                            id="lineChart_3"
-                            data-chart-labels='@json($projectYearlyOverviewChartLabels)'
-                            data-daily-series='@json($projectYearlyOverviewDailySeries)'
-                            data-project-series='@json($projectYearlyOverviewProjectSeries)'></canvas>
+                        <div class="project-overview-chart-wrapper">
+                            <canvas
+                                id="lineChart_3"
+                                data-chart-labels='@json($projectYearlyOverviewChartLabels)'
+                                data-daily-series='@json($projectYearlyOverviewDailySeries)'
+                                data-project-series='@json($projectYearlyOverviewProjectSeries)'></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -414,6 +461,8 @@
 			//let draw = Chart.controllers.line.__super__.draw; //draw shadow
 			
 			var screenWidth = $(window).width();
+			var monthlyOverviewChart = null;
+			var yearlyOverviewChart = null;
 			var parseChartData = function(value, fallback){
 				if(!value){
 					return fallback;
@@ -439,6 +488,53 @@
 				} catch (error) {
 					return fallback;
 				}
+			};
+			var isMobileChartViewport = function(){
+				return window.matchMedia('(max-width: 767.98px)').matches;
+			};
+			var chartAxisFont = function(){
+				return {
+					size: isMobileChartViewport() ? 10 : 12
+				};
+			};
+			var chartXAxisTickOptions = function(isMonthly){
+				return {
+					autoSkip: true,
+					maxTicksLimit: isMobileChartViewport() ? 6 : 12,
+					maxRotation: isMobileChartViewport() ? 0 : 50,
+					minRotation: 0,
+					font: chartAxisFont(),
+					callback: function(value){
+						var label = String(this.getLabelForValue(value) || '');
+
+						if(isMobileChartViewport() && isMonthly){
+							return label.split('-')[0] || label;
+						}
+
+						if(isMobileChartViewport()){
+							return label.substring(0, 3);
+						}
+
+						return label;
+					}
+				};
+			};
+			var chartYAxisTickOptions = function(stepSize){
+				return {
+					beginAtZero: true,
+					stepSize: stepSize,
+					precision: 0,
+					padding: isMobileChartViewport() ? 4 : 10,
+					font: chartAxisFont(),
+					callback: function(value) {
+						return Number.isInteger(value) ? value : '';
+					}
+				};
+			};
+			var hiddenChartLegendOptions = function(){
+				return {
+					display: false
+				};
 			};
 
 			var barChart1 = function(){
@@ -522,12 +618,18 @@
 						}]
 					};
 
-					var monthlyOverviewChart = new Chart(barChart_3, {
+					if(monthlyOverviewChart){
+						monthlyOverviewChart.destroy();
+					}
+
+					monthlyOverviewChart = new Chart(barChart_3, {
 						type: 'bar',
 						data: barChartData,
 						options: {
+							responsive: true,
+							maintainAspectRatio: false,
 							plugins:{
-								legend:false,
+								legend: hiddenChartLegendOptions(),
 								tooltip: {
 									mode: 'index',
 									intersect: false
@@ -537,27 +639,21 @@
 							title: {
 								display: false
 							},
-							responsive: true,
 							scales: {
 								x:{
 									stacked: true,
+									ticks: chartXAxisTickOptions(true)
 								},
 								y:{
 									stacked: true,
 									beginAtZero: true,
-									ticks: {
-										stepSize: 1,
-										precision: 0,
-										callback: function(value) {
-											return Number.isInteger(value) ? value : '';
-										}
-									}
+									ticks: chartYAxisTickOptions(1)
 								}
 							}
 						}
 					});
 
-					$('#projectMonthlyOverviewMonthFilter').on('change', function(){
+					$('#projectMonthlyOverviewMonthFilter').off('change.projectMonthlyOverview').on('change.projectMonthlyOverview', function(){
 						var selectedFilterMonth = this.value;
 						var chartData = monthlyChartMap[selectedFilterMonth] || {
 							labels: [],
@@ -614,7 +710,9 @@
 				Custom.defaults = Chart.LineController.defaults;
 
 				// Stores the controller so that the chart initialization routine can look it up
-				Chart.register(Custom);
+				if(!Chart.registry.controllers.items.shadowLine){
+					Chart.register(Custom);
+				}
 					
 					
 				lineChart_2.height = 100;
@@ -706,11 +804,17 @@
 				Custom.defaults = Chart.LineController.defaults;
 
 				// Stores the controller so that the chart initialization routine can look it up
-				Chart.register(Custom);
+				if(!Chart.registry.controllers.items.shadowLine){
+					Chart.register(Custom);
+				}
 					
 				lineChart_3.height = 100;
 
-				new Chart(lineChart_3, {
+				if(yearlyOverviewChart){
+					yearlyOverviewChart.destroy();
+				}
+
+				yearlyOverviewChart = new Chart(lineChart_3, {
 					type: 'line',
 					data: {
 						defaultFontFamily: 'Poppins',
@@ -736,24 +840,20 @@
 						]
 					},
 					options: {
+						responsive: true,
+						maintainAspectRatio: false,
 						plugins:{
-							legend:false,
+							legend: hiddenChartLegendOptions(),
 							
 						},
 						scales: {
 							y:{
 								max: 100, 
 								min: 0, 
-								ticks: {
-									beginAtZero: true, 
-									stepSize: 20, 
-									padding: 10
-								}
+								ticks: chartYAxisTickOptions(20)
 							},
 							x:{ 
-								ticks: {
-									padding: 5
-								}
+								ticks: chartXAxisTickOptions(false)
 							}
 						}
 					}

@@ -177,6 +177,8 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString('.app-fullcalendar .fc-prev-button', $activityScheduleView);
         $this->assertStringContainsString('.app-fullcalendar .fc-today-button', $activityScheduleView);
         $this->assertStringContainsString("right: 'dayGridMonth,dayGridWeek,dayGridDay,listSchedule'", $fullCalendarInit);
+        $this->assertStringContainsString('firstDay: 1,', $fullCalendarInit);
+        $this->assertStringContainsString("dayHeaderFormat: { weekday: 'short' }", $fullCalendarInit);
         $this->assertStringContainsString("today: 'Today'", $fullCalendarInit);
         $this->assertStringContainsString("month: 'Month'", $fullCalendarInit);
         $this->assertStringContainsString("week: 'Week'", $fullCalendarInit);

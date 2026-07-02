@@ -32,6 +32,34 @@
                 max-width: 100%;
                 scroll-snap-align: start;
             }
+
+            #pieChart,
+            #radialBar {
+                max-width: 100%;
+                overflow: hidden;
+            }
+        }
+
+        .attendance-year-chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: 280px;
+        }
+
+        .attendance-year-chart-wrapper canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        @media (max-width: 767.98px) {
+            .attendance-year-chart-wrapper {
+                height: 260px;
+            }
+
+            .attendance-year-chart-card .card-body {
+                padding-left: 12px;
+                padding-right: 12px;
+            }
         }
     </style>
 @endsection
@@ -266,12 +294,14 @@
     <div class="col-md-6 col-12">
         <div class="row">
             <div class="col-md-12">
-                <div class="card">
+                <div class="card attendance-year-chart-card">
                     <div class="card-header border-0 pb-0">
                         <h4 class="card-title">Attendance Overview ({{ $yearChartYear }})</h4>
                     </div>
                     <div class="card-body">
-                        <canvas id="barChart_3"></canvas>
+                        <div class="attendance-year-chart-wrapper">
+                            <canvas id="barChart_3"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -280,12 +310,14 @@
     <div class="col-md-6 col-12">
         <div class="row">
             <div class="col-md-12">
-                <div class="card">
+                <div class="card attendance-year-chart-card">
                     <div class="card-header border-0 pb-0">
                         <h4 class="card-title">Leave Overview ({{ $yearChartYear }})</h4>
                     </div>
                     <div class="card-body">
-                        <canvas id="lineChart_3"></canvas>
+                        <div class="attendance-year-chart-wrapper">
+                            <canvas id="lineChart_3"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -294,12 +326,14 @@
     <div class="col-md-6 col-12">
         <div class="row">
             <div class="col-md-12">
-                <div class="card">
+                <div class="card attendance-year-chart-card">
                     <div class="card-header border-0 pb-0">
                         <h4 class="card-title">Business Trip Overview ({{ $yearChartYear }})</h4>
                     </div>
                     <div class="card-body">
-                        <canvas id="barChart_1"></canvas>
+                        <div class="attendance-year-chart-wrapper">
+                            <canvas id="barChart_1"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -308,12 +342,14 @@
     <div class="col-md-6 col-12">
         <div class="row">
             <div class="col-md-12">
-                <div class="card">
+                <div class="card attendance-year-chart-card">
                     <div class="card-header border-0 pb-0">
                         <h4 class="card-title">Overtime Overview ({{ $yearChartYear }})</h4>
                     </div>
                     <div class="card-body">
-                        <canvas id="lineChart_2"></canvas>
+                        <div class="attendance-year-chart-wrapper">
+                            <canvas id="lineChart_2"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -332,6 +368,41 @@
     <script src="{{ asset('assets/vendor/chart-js/chart.bundle.min.js') }}?v={{ $chartJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
+        function isMobileChartViewport() {
+            return window.matchMedia('(max-width: 767.98px)').matches;
+        }
+
+        function canvasLegendOptions() {
+            var isMobile = isMobileChartViewport();
+
+            return {
+                display: true,
+                position: 'top',
+                labels: {
+                    boxWidth: isMobile ? 14 : 40,
+                    padding: isMobile ? 10 : 16,
+                    font: {
+                        size: isMobile ? 10 : 12
+                    }
+                }
+            };
+        }
+
+        function canvasAxisTickOptions() {
+            var isMobile = isMobileChartViewport();
+
+            return {
+                autoSkip: true,
+                maxTicksLimit: isMobile ? 6 : 12,
+                maxRotation: isMobile ? 0 : 50,
+                minRotation: 0,
+                padding: isMobile ? 4 : 8,
+                font: {
+                    size: isMobile ? 10 : 12
+                }
+            };
+        }
+
         function pieChart() {
             var chartElement = document.querySelector('#pieChart');
             if (!chartElement || typeof ApexCharts === 'undefined') {
@@ -354,7 +425,15 @@
                 colors: @json($attendanceOverviewChartColors),
                 dataLabels: {
                     enabled: false
-                }
+                },
+                responsive: [{
+                    breakpoint: 768,
+                    options: {
+                        chart: {
+                            height: 180
+                        }
+                    }
+                }]
             }).render();
         }
 
@@ -407,7 +486,29 @@
                     lineCap: 'round',
                     colors: '#0B2A97'
                 },
-                labels: ['']
+                labels: [''],
+                responsive: [{
+                    breakpoint: 768,
+                    options: {
+                        chart: {
+                            height: 230,
+                            offsetY: -5
+                        },
+                        plotOptions: {
+                            radialBar: {
+                                dataLabels: {
+                                    name: {
+                                        fontSize: '14px',
+                                        offsetY: 95
+                                    },
+                                    value: {
+                                        fontSize: '28px'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }]
             }).render();
         }
 
@@ -456,18 +557,22 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            display: true
-                        }
+                        legend: canvasLegendOptions()
                     },
                     scales: {
                         x: {
-                            stacked: true
+                            stacked: true,
+                            ticks: canvasAxisTickOptions()
                         },
                         y: {
                             beginAtZero: true,
-                            stacked: true
+                            stacked: true,
+                            ticks: {
+                                precision: 0,
+                                font: canvasAxisTickOptions().font
+                            }
                         }
                     }
                 }
@@ -498,9 +603,20 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: canvasLegendOptions()
+                    },
                     scales: {
+                        x: {
+                            ticks: canvasAxisTickOptions()
+                        },
                         y: {
-                            beginAtZero: true
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0,
+                                font: canvasAxisTickOptions().font
+                            }
                         }
                     }
                 }
@@ -522,11 +638,19 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: canvasLegendOptions()
+                    },
                     scales: {
+                        x: {
+                            ticks: canvasAxisTickOptions()
+                        },
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                precision: 0
+                                precision: 0,
+                                font: canvasAxisTickOptions().font
                             }
                         }
                     }
@@ -552,9 +676,20 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: canvasLegendOptions()
+                    },
                     scales: {
+                        x: {
+                            ticks: canvasAxisTickOptions()
+                        },
                         y: {
-                            beginAtZero: true
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0,
+                                font: canvasAxisTickOptions().font
+                            }
                         }
                     }
                 }

@@ -5,8 +5,8 @@
     $projectTasksInProgressCount = (int) ($projectTasksInProgressCount ?? 0);
 @endphp
 
-<div class="row g-4 mb-4">
-    <div class="col-md-3 col-sm-6">
+<div class="row g-4 mb-4 project-summary-mobile-slider">
+    <div class="col-md-3 col-sm-6 project-summary-mobile-slide">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -33,7 +33,7 @@
             <div class="effect bg-secondary"></div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6">
+    <div class="col-md-3 col-sm-6 project-summary-mobile-slide">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -66,7 +66,7 @@
         </div>
     </div>
     <!-- Start - Daily Cycling -->
-    <div class="col-md-3 col-sm-6">
+    <div class="col-md-3 col-sm-6 project-summary-mobile-slide">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">
@@ -95,7 +95,7 @@
         </div>
     </div>
     <!-- End - Daily Cycling -->
-    <div class="col-md-3 col-sm-6">
+    <div class="col-md-3 col-sm-6 project-summary-mobile-slide">
         <div class="card overflow-hidden avtivity-card">
             <div class="card-body">
                 <div class="d-flex gap-md-4 gap-3 align-items-center">

@@ -49,8 +49,10 @@ class DashboardStructureTest extends TestCase
         $dashboardView = File::get(resource_path('views/dashboard.blade.php'));
 
         $this->assertStringContainsString('Date &amp; Time', $dashboardView);
-        $this->assertStringContainsString("format('d/m/Y | H:i:s')", $dashboardView);
-        $this->assertStringContainsString("var formattedDateTime = cardDateMap.day + '/' + cardDateMap.month + '/' + cardDateMap.year + ' | ' + formattedTime;", $dashboardView);
+        $this->assertStringContainsString("format('d M Y | H:i:s')", $dashboardView);
+        $this->assertStringContainsString("month: 'short'", $dashboardView);
+        $this->assertStringContainsString("var formattedCardMonth = String(cardDateMap.month || '').replace('.', '');", $dashboardView);
+        $this->assertStringContainsString("var formattedDateTime = cardDateMap.day + ' ' + formattedCardMonth + ' ' + cardDateMap.year + ' | ' + formattedTime;", $dashboardView);
         $this->assertStringContainsString('var lateThresholdTotalMinutes = officeStartTotalMinutes + lateGraceMinutes;', $dashboardView);
         $this->assertStringContainsString("attendanceSummaryTimeElement.classList.add(totalMinutes <= lateThresholdTotalMinutes ? 'text-success' : 'text-danger');", $dashboardView);
         $this->assertStringContainsString("attendanceClockOutSummaryTimeElement.classList.add(isWithinWorkRange ? 'text-warning' : 'text-black');", $dashboardView);

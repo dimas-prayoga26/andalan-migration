@@ -223,7 +223,7 @@
                                     <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Date &amp; Time</p>
-                                            <span class="fs-20 text-success" id="dashboardAttendanceSummaryTimeValue">{{ now('Asia/Jakarta')->format('d/m/Y | H:i:s') }}</span>
+                                            <span class="fs-20 text-success" id="dashboardAttendanceSummaryTimeValue">{{ now('Asia/Jakarta')->format('d M Y | H:i:s') }}</span>
                                         </div>
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Clock In</p>
@@ -258,7 +258,7 @@
                                     <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Date &amp; Time</p>
-                                            <span class="fs-20 text-black" id="dashboardAttendanceClockOutSummaryTimeValue">{{ now('Asia/Jakarta')->format('d/m/Y | H:i:s') }}</span>
+                                            <span class="fs-20 text-black" id="dashboardAttendanceClockOutSummaryTimeValue">{{ now('Asia/Jakarta')->format('d M Y | H:i:s') }}</span>
                                         </div>
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Clock Out</p>
@@ -1124,7 +1124,7 @@
                 var cardDateParts = new Intl.DateTimeFormat('en-GB', {
                     timeZone: 'Asia/Jakarta',
                     day: '2-digit',
-                    month: '2-digit',
+                    month: 'short',
                     year: 'numeric'
                 }).formatToParts(now);
                 var timeParts = new Intl.DateTimeFormat('id-ID', {
@@ -1148,7 +1148,8 @@
                     timeMap[part.type] = part.value;
                 });
                 var formattedTime = timeMap.hour + ':' + timeMap.minute + ':' + timeMap.second;
-                var formattedDateTime = cardDateMap.day + '/' + cardDateMap.month + '/' + cardDateMap.year + ' | ' + formattedTime;
+                var formattedCardMonth = String(cardDateMap.month || '').replace('.', '');
+                var formattedDateTime = cardDateMap.day + ' ' + formattedCardMonth + ' ' + cardDateMap.year + ' | ' + formattedTime;
                 var modalDate = dateMap.weekday + ', ' + dateMap.day + ' ' + dateMap.month + ' ' + dateMap.year;
                 var modalDateTime = modalDate + ' - ' + formattedTime;
                 var hour = parseInt(timeMap.hour, 10);

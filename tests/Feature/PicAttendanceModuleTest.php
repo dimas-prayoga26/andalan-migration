@@ -88,6 +88,9 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('employee_pic_assignments', $leaveController);
         $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $leaveController);
         $this->assertStringContainsString('employee_pic_assignments', $attendanceController);
+        $this->assertStringContainsString('$monthlyWorkingDaysCount = $this->recapWorkDaysBetween(', $attendanceController);
+        $this->assertStringContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$monthlyWorkingDaysCount.' days',", $attendanceController);
+        $this->assertStringNotContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$employeeWorkDays->count().' days'", $attendanceController);
         $this->assertStringContainsString('private function currentCompanyIdFor(User $user): ?string', $attendanceController);
         $this->assertStringContainsString('protected function activeEmployeeIdsFor(Carbon $date, ?string $companyId): Collection', $attendanceController);
         $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $attendanceController);

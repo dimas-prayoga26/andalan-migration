@@ -68,6 +68,9 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString("'recapDetailMonth' => \$detailContext['month']", $recapController);
         $this->assertStringContainsString('recapAttendanceLogRows', $recapController);
         $this->assertStringContainsString('recapMonthlyRows', $recapController);
+        $this->assertStringContainsString('$monthlyWorkingDaysCount = $this->recapWorkDaysBetween(', $recapController);
+        $this->assertStringContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$monthlyWorkingDaysCount.' days',", $recapController);
+        $this->assertStringNotContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$employeeWorkDays->count().' days'", $recapController);
         $this->assertStringContainsString("'leaveOverviewStats' => \$this->leaveOverviewStatsFor(\$request)", $leaveController);
         $this->assertStringContainsString("'leavePendingCards' => \$this->pendingLeaveCardsFor(\$request, \$selectedPeriod)", $leaveController);
         $this->assertStringContainsString("'leaveGridPositionGroups' => \$this->leaveGridPositionGroupsFor(\$request, \$selectedPeriod)", $leaveController);

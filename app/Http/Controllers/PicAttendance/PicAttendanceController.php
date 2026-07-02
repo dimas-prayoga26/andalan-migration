@@ -185,6 +185,10 @@ class PicAttendanceController extends Controller
     private function recapMonthlyRows(Carbon $periodStart, Carbon $periodEnd, Collection $activeEmployeeIds): Collection
     {
         $workDays = $this->recapWorkDaysBetween($periodStart, $periodEnd);
+        $monthlyWorkingDaysCount = $this->recapWorkDaysBetween(
+            $periodStart,
+            $periodStart->copy()->endOfMonth()->startOfDay(),
+        )->count();
         $employeeRelations = [
             'profile:id,employee_id,name',
             'user:id,username,email',
@@ -259,6 +263,7 @@ class PicAttendanceController extends Controller
                 $overtimesByEmployeeId,
                 $yearLeaveRequestsByEmployeeId,
                 $workDays,
+                $monthlyWorkingDaysCount,
                 $yearWorkDays
             ): array {
                 $employeeId = $employee->id;
@@ -307,7 +312,7 @@ class PicAttendanceController extends Controller
                 return [
                     'employee_id' => $employeeId,
                     'name' => $this->employeeDisplayName($employee),
-                    'working_days' => $attendedDateKeys->count().' / '.$employeeWorkDays->count().' days',
+                    'working_days' => $attendedDateKeys->count().' / '.$monthlyWorkingDaysCount.' days',
                     'working_hours' => $this->recapCompactMinutesLabel($workedMinutes).' / '.$this->recapCompactMinutesLabel($expectedWorkMinutes),
                     'on_time' => $this->recapDaysLabel($onTimeCount),
                     'late' => $this->recapLateLabel($lateAttendances->count(), $lateMinutes),

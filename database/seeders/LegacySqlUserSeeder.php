@@ -1029,8 +1029,7 @@ class LegacySqlUserSeeder extends Seeder
 
     private function normalizeJoinDate(array $legacyUser): ?string
     {
-        return $this->normalizeDate($legacyUser['start_date'])
-            ?? $this->normalizeDate($legacyUser['created_at']);
+        return $this->normalizeDate($legacyUser['created_at'] ?? null);
     }
 
     private function normalizeDate(mixed $value): ?string

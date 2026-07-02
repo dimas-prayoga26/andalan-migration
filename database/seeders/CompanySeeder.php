@@ -49,9 +49,6 @@ class CompanySeeder extends Seeder
                 [
                     'name' => 'RNB',
                     'legal_name' => 'PT RNB Indonesia',
-                    'address' => 'Bulurejo, RT.04/RW.02, Gantalan, Minomartani, Kec. Ngaglik, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55581',
-                    'latitude' => -7.7299965,
-                    'longitude' => 110.4040011,
                     'city' => 'Surabaya',
                     'province' => 'Jawa Timur',
                     'country' => 'Indonesia',

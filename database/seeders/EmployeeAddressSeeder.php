@@ -25,13 +25,13 @@ class EmployeeAddressSeeder extends Seeder
             $now = now();
 
             $employees = Employee::query()
-                ->with('deployment.company')
+                ->with(['deployment.company', 'deployment.officeLocation'])
                 ->get();
 
             foreach ($employees as $employee) {
                 $employeeId = (string) $employee->id;
-                $companyAddress = is_string($employee->deployment?->company?->address)
-                    ? trim((string) $employee->deployment?->company?->address)
+                $officeAddress = is_string($employee->deployment?->officeLocation?->address)
+                    ? trim((string) $employee->deployment?->officeLocation?->address)
                     : '';
                 $companyCity = is_string($employee->deployment?->company?->city)
                     ? trim((string) $employee->deployment?->company?->city)
@@ -47,7 +47,7 @@ class EmployeeAddressSeeder extends Seeder
                 $existingAddressLine = trim((string) ($existingAddress?->address_line ?? ''));
                 $addressLine = $existingAddressLine !== ''
                     ? $existingAddressLine
-                    : ($companyAddress !== '' ? $companyAddress : 'Alamat belum diisi');
+                    : ($officeAddress !== '' ? $officeAddress : 'Alamat belum diisi');
 
                 $payload = [
                     'address_line' => $addressLine,

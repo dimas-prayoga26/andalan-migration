@@ -462,21 +462,9 @@ class AttendanceMutationService
 
         $currentUser = User::query()
             ->with([
-                'employee.deployment.company:id,name,address,latitude,longitude',
                 'employee.deployment.officeLocation:id,company_id,address,latitude,longitude,is_active',
                 'employee.deployment.officeLocation.company:id,name',
                 'employee.deployment.officeLocation.activeAttendanceRule' => static function ($query): void {
-                    $query->select([
-                        'rules_of_attendaces.id',
-                        'rules_of_attendaces.companies_id',
-                        'rules_of_attendaces.office_location_id',
-                        'rules_of_attendaces.radius',
-                        'rules_of_attendaces.ip_range',
-                        'rules_of_attendaces.office_start_time',
-                        'rules_of_attendaces.office_end_time',
-                    ]);
-                },
-                'employee.deployment.company.activeAttendanceRule' => static function ($query): void {
                     $query->select([
                         'rules_of_attendaces.id',
                         'rules_of_attendaces.companies_id',
@@ -492,45 +480,24 @@ class AttendanceMutationService
 
         $deployment = $currentUser?->employee?->deployment;
         $officeLocation = $deployment?->officeLocation;
-        $officeCompany = $officeLocation?->company ?: $deployment?->company;
+        $officeCompany = $officeLocation?->company;
         $hasOfficeLocationCoordinates = $officeLocation
             && $officeLocation->is_active !== false
             && $officeLocation->latitude !== null
             && $officeLocation->longitude !== null;
 
-        if ($hasOfficeLocationCoordinates) {
-            $attendanceRule = $officeLocation->activeAttendanceRule ?: $officeCompany?->activeAttendanceRule;
-
-            return [
-                'id' => $officeLocation->id,
-                'name' => $officeCompany?->name,
-                'address' => $officeLocation->address,
-                'latitude' => (float) $officeLocation->latitude,
-                'longitude' => (float) $officeLocation->longitude,
-                'radius_meters' => (int) ($attendanceRule->radius ?? 10),
-                'ip_range' => isset($attendanceRule?->ip_range) ? (string) $attendanceRule->ip_range : null,
-                'office_start_time' => isset($attendanceRule?->office_start_time) && is_string($attendanceRule->office_start_time)
-                    ? $attendanceRule->office_start_time
-                    : '08:00:00',
-                'office_end_time' => isset($attendanceRule?->office_end_time) && is_string($attendanceRule->office_end_time)
-                    ? $attendanceRule->office_end_time
-                    : '17:00:00',
-            ];
-        }
-
-        $fallbackCompany = $deployment?->company;
-        if (! $fallbackCompany || $fallbackCompany->latitude === null || $fallbackCompany->longitude === null) {
+        if (! $hasOfficeLocationCoordinates) {
             return null;
         }
 
-        $attendanceRule = $fallbackCompany->activeAttendanceRule;
+        $attendanceRule = $officeLocation->activeAttendanceRule;
 
         return [
-            'id' => null,
-            'name' => $fallbackCompany->name,
-            'address' => $fallbackCompany->address,
-            'latitude' => (float) $fallbackCompany->latitude,
-            'longitude' => (float) $fallbackCompany->longitude,
+            'id' => $officeLocation->id,
+            'name' => $officeCompany?->name,
+            'address' => $officeLocation->address,
+            'latitude' => (float) $officeLocation->latitude,
+            'longitude' => (float) $officeLocation->longitude,
             'radius_meters' => (int) ($attendanceRule->radius ?? 10),
             'ip_range' => isset($attendanceRule?->ip_range) ? (string) $attendanceRule->ip_range : null,
             'office_start_time' => isset($attendanceRule?->office_start_time) && is_string($attendanceRule->office_start_time)

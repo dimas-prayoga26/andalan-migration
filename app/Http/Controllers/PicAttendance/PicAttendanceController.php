@@ -112,8 +112,9 @@ class PicAttendanceController extends Controller
             ->with([
                 'profile:id,employee_id,name',
                 'user:id,username,email,phone',
-                'deployment:id,employee_id,current_company_id,current_position_id,current_department_id',
-                'deployment.company:id,name,address',
+                'deployment:id,employee_id,current_company_id,current_position_id,current_department_id,current_office_location_id',
+                'deployment.company:id,name',
+                'deployment.officeLocation:id,address',
                 'deployment.position:id,name',
                 'deployment.department:id,name',
             ])
@@ -511,7 +512,7 @@ class PicAttendanceController extends Controller
                 'position' => $employee->deployment?->position?->name ?: '-',
                 'department' => $employee->deployment?->department?->name ?: '-',
                 'company' => $employee->deployment?->company?->name ?: '-',
-                'base' => $employee->deployment?->company?->address ?: '-',
+                'base' => $employee->deployment?->officeLocation?->address ?: '-',
                 'phone' => $employee->user?->phone ?: '-',
                 'email' => $employee->user?->email ?: '-',
                 'avatar_url' => filled($employee->attachment_path) ? asset('storage/'.$employee->attachment_path) : null,

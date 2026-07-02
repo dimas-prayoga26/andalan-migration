@@ -120,7 +120,7 @@ class LegacySqlUserSeeder extends Seeder
                     'website' => $this->nullIfEmpty($legacyCompany['website']),
                     'country' => 'Indonesia',
                     'is_active' => true,
-                ] + $this->defaultOfficeLocationData(),
+                ],
             );
 
             $this->syncOfficeLocation($company);
@@ -681,14 +681,17 @@ class LegacySqlUserSeeder extends Seeder
             return;
         }
 
-        $officeData = $this->defaultOfficeLocationData();
         $existingOfficeLocationId = DB::table('office_locations')
             ->where('company_id', $company->id)
+            ->where('is_active', true)
+            ->orderBy('created_at')
             ->value('id');
 
-        DB::table('office_locations')->updateOrInsert(
-            ['id' => is_string($existingOfficeLocationId) ? $existingOfficeLocationId : (string) Str::uuid()],
-            [
+        if (! is_string($existingOfficeLocationId) || trim($existingOfficeLocationId) === '') {
+            $officeData = $this->defaultOfficeLocationData();
+
+            DB::table('office_locations')->insert([
+                'id' => (string) Str::uuid(),
                 'company_id' => $company->id,
                 'address' => $officeData['address'],
                 'latitude' => $officeData['latitude'],
@@ -696,8 +699,8 @@ class LegacySqlUserSeeder extends Seeder
                 'is_active' => true,
                 'updated_at' => now(),
                 'created_at' => now(),
-            ],
-        );
+            ]);
+        }
     }
 
     private function officeLocationIdForCompany(?string $companyId): ?string

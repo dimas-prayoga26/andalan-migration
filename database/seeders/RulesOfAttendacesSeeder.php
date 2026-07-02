@@ -44,15 +44,16 @@ class RulesOfAttendacesSeeder extends Seeder
     {
         $now = now();
         $officeLocationId = null;
-        $officeData = $this->officeLocationDataForCompany($company);
 
         if (Schema::hasTable('office_locations')) {
             $officeLocationId = DB::table('office_locations')
                 ->where('company_id', $company->id)
-                ->where('address', $officeData['address'])
+                ->where('is_active', true)
+                ->orderBy('created_at')
                 ->value('id');
 
             if (! is_string($officeLocationId) || trim($officeLocationId) === '') {
+                $officeData = $this->defaultOfficeLocationData();
                 $officeLocationId = (string) Str::uuid();
 
                 DB::table('office_locations')->insert([
@@ -65,15 +66,6 @@ class RulesOfAttendacesSeeder extends Seeder
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
-            } else {
-                DB::table('office_locations')
-                    ->where('id', $officeLocationId)
-                    ->update([
-                        'latitude' => $officeData['latitude'],
-                        'longitude' => $officeData['longitude'],
-                        'is_active' => true,
-                        'updated_at' => $now,
-                    ]);
             }
         }
 
@@ -129,25 +121,5 @@ class RulesOfAttendacesSeeder extends Seeder
         }
 
         return true;
-    }
-
-    /**
-     * @return array{address: string, latitude: float, longitude: float}
-     */
-    private function officeLocationDataForCompany(Company $company): array
-    {
-        $defaultOffice = $this->defaultOfficeLocationData();
-
-        return [
-            'address' => is_string($company->address) && trim($company->address) !== ''
-                ? $company->address
-                : $defaultOffice['address'],
-            'latitude' => $company->latitude !== null
-                ? (float) $company->latitude
-                : $defaultOffice['latitude'],
-            'longitude' => $company->longitude !== null
-                ? (float) $company->longitude
-                : $defaultOffice['longitude'],
-        ];
     }
 }

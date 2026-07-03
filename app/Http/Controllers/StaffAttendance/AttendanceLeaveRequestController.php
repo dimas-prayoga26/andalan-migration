@@ -12,6 +12,7 @@ use App\Models\LeaveRequest;
 use App\Models\LeaveRequestHistory;
 use App\Models\LeaveType;
 use App\Models\User;
+use App\Services\Leave\AnnualLeaveBalanceService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Filesystem\FilesystemAdapter;
@@ -26,6 +27,8 @@ use Illuminate\Support\Str;
 
 class AttendanceLeaveRequestController extends Controller
 {
+    public function __construct(private readonly AnnualLeaveBalanceService $annualLeaveBalanceService) {}
+
     public function index(): View
     {
         $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
@@ -114,7 +117,6 @@ class AttendanceLeaveRequestController extends Controller
         $endDate = Carbon::parse($validated['end_date']);
         $durationDays = $startDate->diffInDays($endDate) + 1;
         $currentYear = (int) $startDate->year;
-        $currentMonth = (int) $startDate->month;
         $authenticatedUser = $this->resolveAuthenticatedUser(['employee.deployment']);
         $employeeId = (string) ($authenticatedUser?->employee?->id ?? '');
         $authenticatedUserId = is_string($authenticatedUser?->id) || is_int($authenticatedUser?->id)
@@ -154,6 +156,14 @@ class AttendanceLeaveRequestController extends Controller
         }
 
         if ($normalizedPermissionType === 'cuti tahunan') {
+            $joinDate = $authenticatedUser?->employee?->deployment?->join_date;
+            if (! $this->annualLeaveBalanceService->isEligible($joinDate, now('Asia/Jakarta'))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda belum eligible mengajukan Cuti Tahunan karena masa kerja belum tercapai.',
+                ], 422);
+            }
+
             $hasCheckedInToday = Attendance::query()
                 ->where('employee_id', $employeeId)
                 ->whereDate('date', now('Asia/Jakarta')->toDateString())
@@ -167,8 +177,16 @@ class AttendanceLeaveRequestController extends Controller
                 ], 422);
             }
 
-            $leaveSummary = $this->calculateStaffLeaveSummary($employeeId, $currentYear, $currentMonth);
+            $this->annualLeaveBalanceService->syncEmployeeBalance($employeeId, $currentYear, now('Asia/Jakarta'));
+            $leaveSummary = $this->calculateStaffLeaveSummary($employeeId, $currentYear);
             $remainingAnnualBalance = (int) $leaveSummary['remaining_annual_balance'];
+
+            if ($remainingAnnualBalance <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Saldo Cuti Tahunan sudah habis. Pengajuan tidak dapat dibuat sampai saldo berikutnya tersedia.',
+                ], 422);
+            }
 
             if ($remainingAnnualBalance < $durationDays) {
                 return response()->json([
@@ -348,6 +366,42 @@ class AttendanceLeaveRequestController extends Controller
         $startDate = Carbon::parse($validated['start_date']);
         $endDate = Carbon::parse($validated['end_date']);
         $durationDays = $startDate->diffInDays($endDate) + 1;
+        if ($normalizedPermissionType === 'cuti tahunan') {
+            $joinDate = $authenticatedUser?->employee?->deployment?->join_date;
+            if (! $this->annualLeaveBalanceService->isEligible($joinDate, now('Asia/Jakarta'))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda belum eligible mengajukan Cuti Tahunan karena masa kerja belum tercapai.',
+                ], 422);
+            }
+
+            $this->annualLeaveBalanceService->syncEmployeeBalance(
+                (string) $leaveRequest->employee_id,
+                (int) $startDate->year,
+                now('Asia/Jakarta')
+            );
+            $leaveSummary = $this->calculateStaffLeaveSummary((string) $leaveRequest->employee_id, (int) $startDate->year);
+            $remainingAnnualBalance = (int) $leaveSummary['remaining_annual_balance'];
+            $existingApprovedDays = strtolower(trim((string) $leaveRequest->status)) === 'approved'
+                ? (int) round((float) $leaveRequest->total_days)
+                : 0;
+            $availableAnnualBalance = $remainingAnnualBalance + $existingApprovedDays;
+
+            if ($availableAnnualBalance <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Saldo Cuti Tahunan sudah habis. Pengajuan tidak dapat diperbarui sampai saldo berikutnya tersedia.',
+                ], 422);
+            }
+
+            if ($availableAnnualBalance < $durationDays) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sisa cuti tahunan tidak mencukupi untuk perubahan pengajuan ini.',
+                ], 422);
+            }
+        }
+
         $currentStatus = is_string($leaveRequest->status) ? strtolower(trim($leaveRequest->status)) : null;
         if (! in_array($currentStatus, ['pending', 'approved', 'refused', 'rejected'], true)) {
             $currentStatus = null;
@@ -416,14 +470,14 @@ class AttendanceLeaveRequestController extends Controller
             );
         });
 
-        $this->syncAnnualLeaveBalance((string) $leaveRequest->employee_id, $oldLeaveRequestYear, $oldLeaveRequestMonth);
+        $this->syncAnnualLeaveBalance((string) $leaveRequest->employee_id, $oldLeaveRequestYear);
         if ($this->isSpecialLeaveTypeId($oldLeaveTypeId)) {
             $this->syncMonthlySpecialLeaveLimitFlag((string) $leaveRequest->employee_id, $oldLeaveRequestYear, $oldLeaveRequestMonth);
         }
 
         $newLeaveRequestYear = (int) Carbon::parse($validated['start_date'])->year;
         $newLeaveRequestMonth = (int) Carbon::parse($validated['start_date'])->month;
-        $this->syncAnnualLeaveBalance((string) $leaveRequest->employee_id, $newLeaveRequestYear, $newLeaveRequestMonth);
+        $this->syncAnnualLeaveBalance((string) $leaveRequest->employee_id, $newLeaveRequestYear);
         if ($this->isSpecialLeaveTypeId((string) $validated['permission_type_id'])) {
             $this->syncMonthlySpecialLeaveLimitFlag((string) $leaveRequest->employee_id, $newLeaveRequestYear, $newLeaveRequestMonth);
         }
@@ -539,7 +593,7 @@ class AttendanceLeaveRequestController extends Controller
         $leaveRequestMonth = (int) Carbon::parse($leaveRequest->start_date)->month;
         $leaveRequestTypeId = is_string($leaveRequest->leave_type_id) ? trim($leaveRequest->leave_type_id) : '';
 
-        $this->syncAnnualLeaveBalance((string) $leaveRequest->employee_id, $leaveRequestYear, $leaveRequestMonth);
+        $this->syncAnnualLeaveBalance((string) $leaveRequest->employee_id, $leaveRequestYear);
         if ($this->isSpecialLeaveTypeId($leaveRequestTypeId)) {
             $this->syncMonthlySpecialLeaveLimitFlag((string) $leaveRequest->employee_id, $leaveRequestYear, $leaveRequestMonth);
         }
@@ -681,50 +735,23 @@ class AttendanceLeaveRequestController extends Controller
      *     remaining_annual_balance:int
      * }
      */
-    private function calculateStaffLeaveSummary(string $employeeId, int $year, int $currentMonth): array
+    private function calculateStaffLeaveSummary(string $employeeId, int $year): array
     {
-        $baseAnnualBalance = (int) round((float) LeaveBalance::query()
+        $leaveBalance = LeaveBalance::query()
             ->where('employee_id', $employeeId)
             ->where('period_year', $year)
             ->whereHas('leaveType', function ($query): void {
-                $query->whereRaw('LOWER(name) = ?', ['cuti tahunan']);
+                $query->whereRaw('LOWER(code) IN (?, ?)', ['annual', 'annual_leave'])
+                    ->orWhereRaw('LOWER(name) IN (?, ?)', ['cuti tahunan', 'annual leave']);
             })
-            ->sum('earned_quota'));
-        $employmentStartDateRaw = EmployeeDeployment::query()
-            ->where('employee_id', $employeeId)
-            ->value('join_date');
-
-        $calculationStartDate = Carbon::create($year, 1, 1)->startOfMonth();
-        if (is_string($employmentStartDateRaw) && trim($employmentStartDateRaw) !== '') {
-            $employmentStartDate = Carbon::parse($employmentStartDateRaw)->startOfMonth();
-            if ($employmentStartDate->greaterThan($calculationStartDate)) {
-                $calculationStartDate = $employmentStartDate;
-            }
-        }
-
-        $currentMonthStartDate = Carbon::create($year, max($currentMonth, 1), 1)->startOfMonth();
-        $accruedMonthLimit = 0;
-        if (! $calculationStartDate->greaterThan($currentMonthStartDate)) {
-            $accruedMonthLimit = $calculationStartDate->diffInMonths($currentMonthStartDate) + 1;
-        }
-
-        $baseAnnualBalance = min($baseAnnualBalance, $accruedMonthLimit);
-
-        $usedAnnualBalance = (int) LeaveRequest::query()
-            ->where('employee_id', $employeeId)
-            ->whereYear('start_date', $year)
-            ->whereHas('leaveType', function ($query): void {
-                $query->whereRaw('LOWER(name) = ?', ['cuti tahunan']);
-            })
-            ->whereRaw('LOWER(status) = ?', ['approved'])
-            ->sum('total_days');
-
-        $monthlyBonus = 0;
-        $remainingAnnualBalance = max($baseAnnualBalance - $usedAnnualBalance, 0);
+            ->first();
+        $baseAnnualBalance = (int) round((float) ($leaveBalance?->earned_quota ?? 0));
+        $usedAnnualBalance = (int) round((float) ($leaveBalance?->used_quota ?? 0));
+        $remainingAnnualBalance = (int) round((float) ($leaveBalance?->remaining_quota ?? 0));
 
         return [
             'base_annual_balance' => $baseAnnualBalance,
-            'monthly_bonus' => $monthlyBonus,
+            'monthly_bonus' => 0,
             'used_annual_balance' => $usedAnnualBalance,
             'remaining_annual_balance' => $remainingAnnualBalance,
         ];
@@ -1217,7 +1244,6 @@ class AttendanceLeaveRequestController extends Controller
     {
         $now = now('Asia/Jakarta');
         $currentYear = (int) $now->year;
-        $currentMonth = (int) $now->month;
         $jointHolidaySummary = $this->buildJointHolidaySummary($currentYear, $now);
 
         $defaultData = [
@@ -1280,29 +1306,35 @@ class AttendanceLeaveRequestController extends Controller
         $isEligible = false;
         $joinDate = null;
         if ($joinDateRaw instanceof \DateTimeInterface) {
-            $joinDate = Carbon::instance($joinDateRaw)->startOfDay();
+            $joinDate = Carbon::createFromFormat('Y-m-d', $joinDateRaw->format('Y-m-d'), 'Asia/Jakarta')->startOfDay();
         } elseif (is_string($joinDateRaw) && trim($joinDateRaw) !== '') {
-            $joinDate = Carbon::parse($joinDateRaw)->startOfDay();
+            $joinDate = Carbon::parse($joinDateRaw, 'Asia/Jakarta')->startOfDay();
         }
 
         if ($joinDate instanceof Carbon) {
             $joinDateLabel = $joinDate->format('d F Y');
             $tenureMonths = max((int) floor($joinDate->diffInMonths($now, true)), 0);
             $tenureLabel = $this->formatTenureLabel($tenureMonths);
-            $isEligible = $tenureMonths >= 12;
+            $isEligible = $this->annualLeaveBalanceService->isEligible($joinDate, $now);
         }
 
-        $leaveSummary = $this->calculateStaffLeaveSummary($employeeId, $currentYear, $currentMonth);
+        $leaveSummary = $this->calculateStaffLeaveSummary($employeeId, $currentYear);
+        $earnedAnnualBalance = (int) ($leaveSummary['base_annual_balance'] ?? 0);
         $remainingAnnualBalance = (int) ($leaveSummary['remaining_annual_balance'] ?? 0);
+        $personalAnnualQuota = $this->annualLeaveBalanceService->personalAnnualQuota($currentYear);
 
         $annualLeaveMonthlyAccrual = (float) LeaveType::query()
             ->whereRaw('LOWER(name) = ?', ['cuti tahunan'])
             ->value('monthly_accrual_rate');
-        $nextAccrualDays = max((int) round($annualLeaveMonthlyAccrual), 0);
+        $nextAccrualDays = $earnedAnnualBalance < $personalAnnualQuota
+            ? max((int) round($annualLeaveMonthlyAccrual), 0)
+            : 0;
         $nextAccrualLabel = '+'.$nextAccrualDays.' '.Str::plural('Day', $nextAccrualDays);
-        $nextAccrualNote = $nextAccrualDays > 0
-            ? 'Will be automatically added next month'
-            : 'No automatic accrual configured.';
+        $nextAccrualNote = match (true) {
+            $earnedAnnualBalance >= $personalAnnualQuota => 'Maximum personal annual leave balance reached.',
+            $nextAccrualDays > 0 => 'Will be automatically added at the beginning of next month.',
+            default => 'No automatic accrual configured.',
+        };
 
         return [
             'full_name' => trim((string) $fullName) !== '' ? trim((string) $fullName) : '-',
@@ -1311,7 +1343,9 @@ class AttendanceLeaveRequestController extends Controller
             'tenure_label' => $tenureLabel,
             'is_eligible' => $isEligible,
             'available_balance_label' => $remainingAnnualBalance.' '.Str::plural('Day', $remainingAnnualBalance),
-            'available_balance_note' => $remainingAnnualBalance > 0 ? 'Rolled over from previous months' : 'No available annual leave balance.',
+            'available_balance_note' => $remainingAnnualBalance > 0
+                ? 'Balance after joint holiday allocation and approved annual leave usage.'
+                : 'No available annual leave balance.',
             'next_accrual_label' => $nextAccrualLabel,
             'next_accrual_note' => $nextAccrualNote,
             'joint_holiday_label' => $jointHolidaySummary['label'],
@@ -1691,48 +1725,13 @@ class AttendanceLeaveRequestController extends Controller
         return asset('storage/'.ltrim($path, '/'));
     }
 
-    private function syncAnnualLeaveBalance(string $employeeId, int $year, ?int $month = null): void
+    private function syncAnnualLeaveBalance(string $employeeId, int $year): void
     {
         if (trim($employeeId) === '' || $year <= 0) {
             return;
         }
 
-        $annualLeaveTypeId = LeaveType::query()
-            ->whereRaw('LOWER(name) = ?', ['cuti tahunan'])
-            ->value('id');
-
-        if (! is_string($annualLeaveTypeId) || trim($annualLeaveTypeId) === '') {
-            return;
-        }
-
-        $existingLeaveBalance = LeaveBalance::withTrashed()
-            ->where('employee_id', $employeeId)
-            ->where('leave_type_id', $annualLeaveTypeId)
-            ->where('period_year', $year)
-            ->first();
-
-        $earnedQuota = (float) ($existingLeaveBalance?->earned_quota ?? 0);
-        $usedQuota = (float) LeaveRequest::query()
-            ->where('employee_id', $employeeId)
-            ->where('leave_type_id', $annualLeaveTypeId)
-            ->whereYear('start_date', $year)
-            ->whereRaw('LOWER(status) = ?', ['approved'])
-            ->sum('total_days');
-        $remainingQuota = max($earnedQuota - $usedQuota, 0);
-
-        LeaveBalance::withTrashed()->updateOrCreate(
-            [
-                'employee_id' => $employeeId,
-                'leave_type_id' => $annualLeaveTypeId,
-                'period_year' => $year,
-            ],
-            [
-                'earned_quota' => $earnedQuota,
-                'used_quota' => $usedQuota,
-                'remaining_quota' => $remainingQuota,
-                'deleted_at' => null,
-            ]
-        );
+        $this->annualLeaveBalanceService->syncEmployeeBalance($employeeId, $year, now('Asia/Jakarta'));
     }
 
     private function syncMonthlySpecialLeaveLimitFlag(string $employeeId, int $year, int $month): void

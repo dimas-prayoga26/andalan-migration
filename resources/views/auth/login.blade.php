@@ -2,8 +2,13 @@
 <html lang="en">
 
 <head>
-   
-	<base href="{{ asset('assets') }}/">
+    @php
+        $assetVersion = static function (string $path): int {
+            $assetPath = public_path('assets/' . ltrim($path, '/'));
+
+            return file_exists($assetPath) ? filemtime($assetPath) : time();
+        };
+    @endphp
     
 	<!-- Title -->
 	<title>Gymove  - Fitness Bootstrap Admin Dashboard Template</title>
@@ -29,18 +34,18 @@
 	<link rel="shortcut icon" type="image/x-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
     
 	<!-- Start - Basic CSS -->
-    <link href="vendor/metismenu/dist/metisMenu.min.css" rel="stylesheet">
-    <link href="vendor/bootstrap-select/dist/css/bootstrap-select.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="vendor/chartist/css/chartist.min.css">
+    <link href="{{ asset('assets/vendor/metismenu/dist/metisMenu.min.css') }}?v={{ $assetVersion('vendor/metismenu/dist/metisMenu.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/vendor/bootstrap-select/dist/css/bootstrap-select.min.css') }}?v={{ $assetVersion('vendor/bootstrap-select/dist/css/bootstrap-select.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/chartist/css/chartist.min.css') }}?v={{ $assetVersion('vendor/chartist/css/chartist.min.css') }}">
     <!-- End - Basic CSS -->
     
 	<!-- Start - Switcher CSS -->
-	<link class="main-switcher" href="css/switcher.css" rel="stylesheet">
+	<link class="main-switcher" href="{{ asset('assets/css/switcher.css') }}?v={{ $assetVersion('css/switcher.css') }}" rel="stylesheet">
 	<!-- End - Switcher CSS -->
 
 	<!-- Start - Style Css -->
-	<link class="main-plugins" href="css/plugins.css" rel="stylesheet">
-	<link class="main-css" href="css/style.css" rel="stylesheet">	
+	<link class="main-plugins" href="{{ asset('assets/css/plugins.css') }}?v={{ $assetVersion('css/plugins.css') }}" rel="stylesheet">
+	<link class="main-css" href="{{ asset('assets/css/style.css') }}?v={{ $assetVersion('css/style.css') }}" rel="stylesheet">
 	<!-- End - Style Css -->
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 	<style>
@@ -129,11 +134,11 @@
 	<!-- End - Authincation Section -->
 	
 	<!-- Start - Script -->
-	<script src="vendor/jquery/dist/jquery.min.js"></script>
-	<script src="vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-	<script src="vendor/bootstrap-select/dist/js/bootstrap-select.min.js"></script>
-	<script src="vendor/@yaireo/tagify/dist/tagify.js"></script>
-	<script src="vendor/metismenu/dist/metisMenu.min.js"></script>
+	<script src="{{ asset('assets/vendor/jquery/dist/jquery.min.js') }}?v={{ $assetVersion('vendor/jquery/dist/jquery.min.js') }}"></script>
+	<script src="{{ asset('assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js') }}?v={{ $assetVersion('vendor/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
+	<script src="{{ asset('assets/vendor/bootstrap-select/dist/js/bootstrap-select.min.js') }}?v={{ $assetVersion('vendor/bootstrap-select/dist/js/bootstrap-select.min.js') }}"></script>
+	<script src="{{ asset('assets/vendor/@yaireo/tagify/dist/tagify.js') }}?v={{ $assetVersion('vendor/@yaireo/tagify/dist/tagify.js') }}"></script>
+	<script src="{{ asset('assets/vendor/metismenu/dist/metisMenu.min.js') }}?v={{ $assetVersion('vendor/metismenu/dist/metisMenu.min.js') }}"></script>
 	{{-- <script src="vendor/chart-js/chart.bundle.min.js"></script> --}}
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         

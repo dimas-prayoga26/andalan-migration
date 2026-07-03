@@ -41,6 +41,10 @@ class HostBrandingResolverTest extends TestCase
         $this->assertStringContainsString('color: #000;', $mainHead);
         $this->assertStringContainsString('text-transform: uppercase;', $mainHead);
         $this->assertStringContainsString('$brandLogoUrl', $loginView);
+        $this->assertStringContainsString("public_path('assets/' . ltrim(\$path, '/'))", $loginView);
+        $this->assertStringContainsString("asset('assets/css/style.css')", $loginView);
+        $this->assertStringContainsString("\$assetVersion('css/style.css')", $loginView);
+        $this->assertStringNotContainsString('<base href="{{ asset(\'assets\') }}/">', $loginView);
         $this->assertStringContainsString(HostBrandingResolver::class, $appServiceProvider);
         $this->assertStringNotContainsString('$logoPaths', $loginView);
         $this->assertStringNotContainsString('company-logo-carousel', $loginView);

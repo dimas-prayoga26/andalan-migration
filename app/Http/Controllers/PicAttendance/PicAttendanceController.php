@@ -12,6 +12,7 @@ use App\Models\BusinessTrip;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\User;
+use App\Support\Attendance\AttendanceDurationFormatter;
 use App\Support\Attendance\AttendanceExceptionPresenter;
 use App\Support\Attendance\AttendanceLocationFormatter;
 use Illuminate\Contracts\View\View;
@@ -26,6 +27,7 @@ class PicAttendanceController extends Controller
     private ?string $supervisorEmployeeId = null;
 
     public function __construct(
+        private readonly AttendanceDurationFormatter $attendanceDurationFormatter,
         private readonly AttendanceExceptionPresenter $attendanceExceptionPresenter,
         private readonly AttendanceLocationFormatter $attendanceLocationFormatter,
     ) {}
@@ -489,7 +491,7 @@ class PicAttendanceController extends Controller
                 'clock_in_badge' => $isException && $attendanceException->type === 'late_arrival' ? 'secondary' : ($isLate ? 'danger' : 'success'),
                 'clock_out' => $attendance->clock_out?->format('H:i') ?? '-',
                 'clock_out_badge' => $isException && $attendanceException->type === 'early_departure' ? 'secondary' : 'light',
-                'note' => $isException ? $this->attendanceExceptionPresenter->requestTypeLabel($attendanceException) : ($isLate ? 'Late '.$attendance->late_minutes.' Minutes' : 'On Time'),
+                'note' => $isException ? $this->attendanceExceptionPresenter->requestTypeLabel($attendanceException) : ($isLate ? $this->attendanceDurationFormatter->lateLabel((int) $attendance->late_minutes) : 'On Time'),
                 'working_hours' => $this->recapMinutesLabel($this->recapAttendanceWorkMinutes($attendance)),
             ];
         });
@@ -721,7 +723,7 @@ class PicAttendanceController extends Controller
         $clockOut = $attendance->clock_out?->format('H:i') ?? '-';
         $attendanceStatus = $hasDeviation
             ? $this->attendanceExceptionPresenter->requestTypeLabel($attendanceException)
-            : ($isLate ? ($lateMinutes > 0 ? 'Late '.$lateMinutes.' Minutes' : 'Late Arrival') : 'On Time');
+            : ($isLate ? $this->attendanceDurationFormatter->lateLabel($lateMinutes) : 'On Time');
 
         return [
             'name' => $this->employeeDisplayName($attendance->employee),

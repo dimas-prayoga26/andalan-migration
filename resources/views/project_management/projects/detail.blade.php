@@ -864,7 +864,7 @@
 
             $.ajax({
                 url: form.attr('action'),
-                type: formData.get('_method') || 'POST',
+                type: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,

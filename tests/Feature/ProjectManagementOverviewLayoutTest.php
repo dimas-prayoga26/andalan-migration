@@ -135,6 +135,10 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('id="taskDeleteModal"', $taskList);
         $this->assertStringContainsString('id="taskDetailsModal"', $taskList);
         $this->assertStringContainsString('$.ajax({', $taskList);
+        $this->assertStringContainsString("type: 'POST',", $taskList);
+        $this->assertStringContainsString("type: 'POST',", $projectsDetail);
+        $this->assertStringNotContainsString("type: formData.get('_method') || 'POST',", $taskList);
+        $this->assertStringNotContainsString("type: formData.get('_method') || 'POST',", $projectsDetail);
         $this->assertStringContainsString('text: response.message', $taskList);
         $this->assertStringContainsString("'X-Requested-With': 'XMLHttpRequest'", $taskList);
         $this->assertStringContainsString('Task berhasil ditambahkan.', $taskListController);

@@ -826,7 +826,7 @@
 
             $.ajax({
                 url: form.attr('action') || taskStoreUrl,
-                type: formData.get('_method') || 'POST',
+                type: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,

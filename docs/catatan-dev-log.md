@@ -7,6 +7,18 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-07-02 (Kamis)
+- Menyempurnakan Data Employee dan Authorization dengan pencarian employee, pagination server-side, scope akses administrator/COO, serta assignment permission berbasis position.
+- Menambahkan menu Task pada PIC Attendance untuk melihat task staff berdasarkan assignment PIC aktif.
+- Merapikan multiple position, assignment PIC, akun RNB tambahan, import user legacy, foto profil employee, dan header profile aplikasi.
+- Menyesuaikan geofencing agar memakai office location employee serta menambahkan titik kantor RNB Jakarta beserta rules attendance-nya.
+- Menambahkan branding logo berdasarkan host/domain untuk aplikasi dan halaman login.
+- Merapikan Dashboard, Attendance Overview, Overtime, dan Project Management agar lebih responsif pada mobile.
+- Memperbaiki denominator Working Days bulanan pada Admin dan PIC Attendance Recap.
+- Menambahkan service accrual saldo cuti tahunan, pengurangan kuota berdasarkan cuti bersama, validasi masa kerja, dan scheduler sinkronisasi bulanan.
+- Mengganti README bawaan Laravel dengan dokumentasi setup project dan menambah test untuk seluruh area terkait.
+- Detail: `docs/dev-log/2026-07-02-1545-ringkasan-perubahan-harian.md`.
+
 ### 2026-07-01 (Rabu)
 - Mengubah `+ Add Overtime` PIC agar tidak otomatis membuat data `project_tasks`; staff yang di-assign wajib membuat task lemburnya sendiri.
 - Membatasi `+ Add Task` staff hanya setelah `Overtime Clock In` dan sebelum `Overtime Clock Out`, termasuk validasi backend.
@@ -218,6 +230,9 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-07-02
+- `2026-07-02-1545-ringkasan-perubahan-harian.md`
 
 ### 2026-07-01
 - `2026-07-01-0126-perbaikan-flow-overtime-task-clock-in.md`

@@ -58,6 +58,7 @@ class PicAttendanceModuleTest extends TestCase
         $attendanceController = File::get(app_path('Http/Controllers/PicAttendance/PicAttendanceController.php'));
         $leaveController = File::get(app_path('Http/Controllers/PicAttendance/PicAttendanceLeaveController.php'));
         $attendanceView = File::get(resource_path('views/pic_attendance/attendance/index.blade.php'));
+        $attendanceDetailView = File::get(resource_path('views/pic_attendance/attendance/detail-employees.blade.php'));
         $leaveView = File::get(resource_path('views/pic_attendance/leave/detail.blade.php'));
         $overtimeView = File::get(resource_path('views/pic_attendance/overtime/index.blade.php'));
         $taskView = File::get(resource_path('views/pic_attendance/task/index.blade.php'));
@@ -88,6 +89,10 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('employee_pic_assignments', $leaveController);
         $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $leaveController);
         $this->assertStringContainsString('employee_pic_assignments', $attendanceController);
+        $this->assertStringContainsString("'profile:id,employee_id,name,profile_picture_path'", $attendanceController);
+        $this->assertStringContainsString("'avatar_url' => \$this->employeeAvatarUrl(\$employee->profile?->profile_picture_path)", $attendanceController);
+        $this->assertStringNotContainsString("['id', 'user_id', 'employee_code', 'attachment_path']", $attendanceController);
+        $this->assertStringNotContainsString('filled($employee->attachment_path)', $attendanceController);
         $this->assertStringContainsString('$monthlyWorkingDaysCount = $this->recapWorkDaysBetween(', $attendanceController);
         $this->assertStringContainsString('$monthlyExpectedWorkMinutes = $monthlyWorkingDaysCount * 8 * 60;', $attendanceController);
         $this->assertStringContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$monthlyWorkingDaysCount.' days',", $attendanceController);
@@ -117,6 +122,11 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('function captureTonePalette(tone)', $attendanceView);
         $this->assertStringContainsString('drawCaptureBadge(context, lines[0], palette', $attendanceView);
         $this->assertStringContainsString("captureButton.addEventListener('click', downloadRecapAttendanceImage)", $attendanceView);
+        $this->assertStringContainsString("asset('assets/vendor/apexcharts/dist/apexcharts.min.js')", $attendanceDetailView);
+        $this->assertStringContainsString("typeof window.ApexCharts === 'undefined'", $attendanceDetailView);
+        $this->assertStringContainsString("typeof \$.fn.peity !== 'function'", $attendanceDetailView);
+        $this->assertStringContainsString('employeeAvatarUrl', $attendanceController);
+        $this->assertStringContainsString("asset('assets/default_user.jpg')", $attendanceController);
         $this->assertStringContainsString('Add Overtime', $overtimeView);
         $this->assertStringContainsString('picAddOvertimeModal', $overtimeView);
         $this->assertStringContainsString("route('pic-attendance.overtime.store')", $overtimeView);

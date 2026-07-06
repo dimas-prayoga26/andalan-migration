@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmployeeDeployment;
+use App\Models\EmployeePicAssignment;
 use App\Models\EmployeeProfile;
 use App\Models\Permission;
 use App\Models\Position;
@@ -184,6 +185,105 @@ class AuthorizationEmployeeListScopeTest extends TestCase
             });
     }
 
+    public function test_employee_list_only_contains_active_staff_and_is_sorted_by_company_pic_and_name(): void
+    {
+        $abgCompany = Company::query()->create(['name' => 'ABG']);
+        $rnbCompany = Company::query()->create(['name' => 'RNB']);
+        $operationsDepartment = $this->createDepartment('Operations');
+        $staffPosition = Position::query()->create(['name' => 'Staff']);
+        $administratorPosition = Position::query()->create(['name' => 'Administrator']);
+
+        $administrator = $this->createEmployeeUser(
+            name: 'Administrator Viewer',
+            username: 'administrator.viewer',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $administratorPosition,
+        );
+        $alphaPic = $this->createEmployeeUser(
+            name: 'Alpha PIC',
+            username: 'alpha.pic',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+        $zuluPic = $this->createEmployeeUser(
+            name: 'Zulu PIC',
+            username: 'zulu.pic',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+        $abgStaff = $this->createEmployeeUser(
+            name: 'Ordered Staff ABG',
+            username: 'ordered.abg',
+            company: $abgCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+        $alphaStaffA = $this->createEmployeeUser(
+            name: 'Ordered Staff Alpha A',
+            username: 'ordered.alpha.a',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+        $alphaStaffZ = $this->createEmployeeUser(
+            name: 'Ordered Staff Alpha Z',
+            username: 'ordered.alpha.z',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+        $zuluStaff = $this->createEmployeeUser(
+            name: 'Ordered Staff Zulu',
+            username: 'ordered.zulu',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+        $inactiveStaff = $this->createEmployeeUser(
+            name: 'Ordered Staff Inactive',
+            username: 'ordered.inactive',
+            company: $abgCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+
+        $inactiveStaff->update(['is_active' => false]);
+        $this->assignPositionPermission($administratorPosition, 'view-authorization');
+
+        foreach ([$administrator, $alphaPic, $zuluPic, $abgStaff, $alphaStaffA, $alphaStaffZ, $zuluStaff, $inactiveStaff] as $user) {
+            $this->assignRole($user, 'Staff');
+        }
+
+        foreach ([
+            [$abgStaff, $zuluPic],
+            [$alphaStaffA, $alphaPic],
+            [$alphaStaffZ, $alphaPic],
+            [$zuluStaff, $zuluPic],
+        ] as [$staff, $pic]) {
+            EmployeePicAssignment::query()->create([
+                'staff_employee_id' => $staff->employee->id,
+                'supervisor_employee_id' => $pic->employee->id,
+                'is_active' => true,
+            ]);
+        }
+
+        $this->actingAs($administrator)
+            ->get(route('authorization', ['search' => 'Ordered Staff']))
+            ->assertOk()
+            ->assertDontSee('Ordered Staff Inactive')
+            ->assertViewHas('users', function (LengthAwarePaginator $users): bool {
+                return collect($users->items())->pluck('name')->all() === [
+                    'Ordered Staff ABG',
+                    'Ordered Staff Alpha A',
+                    'Ordered Staff Alpha Z',
+                    'Ordered Staff Zulu',
+                ];
+            });
+    }
+
     public function test_coo_can_view_all_company_employee_list_and_manage_permissions(): void
     {
         $rnbCompany = Company::query()->create(['name' => 'RNB']);
@@ -277,7 +377,7 @@ class AuthorizationEmployeeListScopeTest extends TestCase
         $response = $this->actingAs($superuser)->get(route('authorization'));
 
         $response->assertOk();
-        $response->assertSee('Main Superuser');
+        $response->assertDontSee('Main Superuser');
         $response->assertSee('RNB Staff');
         $response->assertSee('Other Company Staff');
         $response->assertSee('RNB');

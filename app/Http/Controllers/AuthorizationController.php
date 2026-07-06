@@ -70,7 +70,7 @@ class AuthorizationController extends Controller
                 'phone' => $validated['phone'] ?? null,
                 'company_id' => $validated['current_company_id'] ?? null,
                 'password' => Hash::make((string) $validated['password']),
-                'is_active' => (bool) ($validated['is_active'] ?? true),
+                'is_active' => (bool) $validated['is_active'],
             ]);
 
             $employee = Employee::query()->create([
@@ -130,7 +130,7 @@ class AuthorizationController extends Controller
                 'email' => $validated['email'],
                 'phone' => $validated['phone'] ?? null,
                 'company_id' => $validated['current_company_id'] ?? null,
-                'is_active' => (bool) ($validated['is_active'] ?? true),
+                'is_active' => (bool) $validated['is_active'],
             ]);
 
             if (filled($validated['password'] ?? null)) {
@@ -308,6 +308,11 @@ class AuthorizationController extends Controller
         ]);
 
         $query = User::query()
+            ->addSelect([
+                'authorization_company_name' => $this->authorizationCompanyNameSubquery(),
+                'authorization_pic_name' => $this->authorizationPicNameSubquery(),
+                'authorization_employee_name' => $this->authorizationEmployeeNameSubquery(),
+            ])
             ->with([
                 'roles:uuid,name',
                 'employee:id,user_id,employee_code,status',
@@ -321,7 +326,17 @@ class AuthorizationController extends Controller
                 'employee.picAssignment.supervisor:id',
                 'employee.picAssignment.supervisor.profile:id,employee_id,name',
             ])
-            ->whereHas('employee');
+            ->where('is_active', true)
+            ->whereDoesntHave('roles', function (Builder $roleQuery): void {
+                $roleQuery->where('name', 'superuser');
+            })
+            ->whereHas('employee', function (Builder $employeeQuery): void {
+                $employeeQuery
+                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+                    ->whereHas('deployment', function (Builder $deploymentQuery): void {
+                        $deploymentQuery->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+                    });
+            });
 
         if (! $this->canManageAuthorization($viewer)) {
             $companyId = $this->viewerCompanyId($viewer);
@@ -357,10 +372,62 @@ class AuthorizationController extends Controller
         }
 
         return $query
+            ->orderByRaw('CASE WHEN authorization_company_name IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('authorization_company_name')
+            ->orderByRaw('CASE WHEN authorization_pic_name IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('authorization_pic_name')
+            ->orderBy('authorization_employee_name')
             ->orderBy('username')
             ->paginate(10)
             ->withQueryString()
             ->through(fn (User $user): array => $this->presentAuthorizationUser($user));
+    }
+
+    private function authorizationCompanyNameSubquery(): Builder
+    {
+        return Company::query()
+            ->select('name')
+            ->where(
+                'id',
+                EmployeeDeployment::query()
+                    ->select('current_company_id')
+                    ->where('employee_id', $this->authorizationEmployeeIdSubquery())
+                    ->limit(1)
+            )
+            ->limit(1);
+    }
+
+    private function authorizationPicNameSubquery(): Builder
+    {
+        return EmployeeProfile::query()
+            ->select('name')
+            ->where(
+                'employee_id',
+                EmployeePicAssignment::query()
+                    ->select('supervisor_employee_id')
+                    ->where('staff_employee_id', $this->authorizationEmployeeIdSubquery())
+                    ->where('is_active', true)
+                    ->whereNull('deleted_at')
+                    ->latest('created_at')
+                    ->limit(1)
+            )
+            ->limit(1);
+    }
+
+    private function authorizationEmployeeNameSubquery(): Builder
+    {
+        return EmployeeProfile::query()
+            ->select('name')
+            ->where('employee_id', $this->authorizationEmployeeIdSubquery())
+            ->limit(1);
+    }
+
+    private function authorizationEmployeeIdSubquery(): Builder
+    {
+        return Employee::query()
+            ->select('id')
+            ->whereColumn('user_id', (new User)->qualifyColumn('id'))
+            ->limit(1);
     }
 
     private function viewerCompanyId(User $user): ?string
@@ -526,6 +593,7 @@ class AuthorizationController extends Controller
             : ['required', 'string', 'min:6'];
 
         $request->merge([
+            'is_active' => $request->boolean('is_active'),
             'date_of_birth' => $this->normalizeDateInput($request->input('date_of_birth')),
             'employee_status' => 'Active',
             'join_date' => $this->normalizeDateInput($request->input('join_date')),
@@ -533,7 +601,7 @@ class AuthorizationController extends Controller
         ]);
 
         return $request->validate([
-            'is_active' => ['nullable', 'boolean'],
+            'is_active' => ['required', 'boolean'],
             'employee_status' => ['required', 'string', 'max:50'],
             'employee_code' => ['nullable', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],

@@ -21,6 +21,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class PicAttendanceController extends Controller
 {
@@ -112,7 +114,7 @@ class PicAttendanceController extends Controller
 
         $employee = Employee::query()
             ->with([
-                'profile:id,employee_id,name',
+                'profile:id,employee_id,name,profile_picture_path',
                 'user:id,username,email,phone',
                 'deployment:id,employee_id,current_company_id,current_position_id,current_department_id,current_office_location_id',
                 'deployment.company:id,name',
@@ -120,7 +122,7 @@ class PicAttendanceController extends Controller
                 'deployment.position:id,name',
                 'deployment.department:id,name',
             ])
-            ->findOrFail($employeeId, ['id', 'user_id', 'employee_code', 'attachment_path']);
+            ->findOrFail($employeeId, ['id', 'user_id', 'employee_code']);
 
         return [
             'employee' => $employee,
@@ -523,7 +525,7 @@ class PicAttendanceController extends Controller
                 'base' => $employee->deployment?->officeLocation?->address ?: '-',
                 'phone' => $employee->user?->phone ?: '-',
                 'email' => $employee->user?->email ?: '-',
-                'avatar_url' => filled($employee->attachment_path) ? asset('storage/'.$employee->attachment_path) : null,
+                'avatar_url' => $this->employeeAvatarUrl($employee->profile?->profile_picture_path),
             ],
             'recapDetailMetrics' => [
                 'on_time' => $this->recapDaysLabel($onTimeCount),
@@ -603,14 +605,15 @@ class PicAttendanceController extends Controller
     private function recapAttendanceLogRows(Carbon $date, Collection $activeEmployeeIds): Collection
     {
         $dateKey = $date->toDateString();
-        $employeeRelations = [
-            'employee:id,user_id',
-            'employee.profile:id,employee_id,name',
-            'employee.user:id,username,email',
-        ];
+        $employees = Employee::query()
+            ->with([
+                'profile:id,employee_id,name',
+                'user:id,username,email',
+            ])
+            ->whereIn('id', $activeEmployeeIds)
+            ->get(['id', 'user_id']);
 
         $attendances = Attendance::query()
-            ->with($employeeRelations)
             ->whereIn('employee_id', $activeEmployeeIds)
             ->whereDate('date', $dateKey)
             ->whereNull('deleted_at')
@@ -659,7 +662,6 @@ class PicAttendanceController extends Controller
 
         $leaveRequestsByEmployeeId = LeaveRequest::query()
             ->with([
-                ...$employeeRelations,
                 'leaveType:id,name,code',
             ])
             ->whereIn('employee_id', $activeEmployeeIds)
@@ -684,23 +686,33 @@ class PicAttendanceController extends Controller
             ->keyBy('employee_id');
 
         $attendanceByEmployeeId = $attendances->keyBy('employee_id');
-        $attendanceRows = $attendances
-            ->filter(function (Attendance $attendance) use ($leaveRequestsByEmployeeId): bool {
-                return $attendance->clock_in !== null || ! $leaveRequestsByEmployeeId->has($attendance->employee_id);
+
+        return $employees
+            ->map(function (Employee $employee) use ($attendanceByEmployeeId, $attendanceLogsByAttendanceId, $attendanceExceptionsByAttendanceId, $leaveRequestsByEmployeeId): array {
+                $attendance = $attendanceByEmployeeId->get($employee->id);
+                $attendanceException = $attendance instanceof Attendance
+                    ? $attendanceExceptionsByAttendanceId->get($attendance->id)
+                    : null;
+
+                if ($attendance instanceof Attendance && ($attendance->clock_in !== null || $attendanceException instanceof AttendanceException)) {
+                    $attendance->setRelation('employee', $employee);
+
+                    return $this->recapAttendanceRow(
+                        $attendance,
+                        $attendanceLogsByAttendanceId->get($attendance->id),
+                        $attendanceException,
+                    );
+                }
+
+                $leaveRequest = $leaveRequestsByEmployeeId->get($employee->id);
+                if ($leaveRequest instanceof LeaveRequest) {
+                    $leaveRequest->setRelation('employee', $employee);
+
+                    return $this->recapLeaveRow($leaveRequest);
+                }
+
+                return $this->recapEmptyAttendanceRow($employee);
             })
-            ->map(fn (Attendance $attendance): array => $this->recapAttendanceRow(
-                $attendance,
-                $attendanceLogsByAttendanceId->get($attendance->id),
-                $attendanceExceptionsByAttendanceId->get($attendance->id)
-            ));
-
-        $leaveRows = $leaveRequestsByEmployeeId
-            ->reject(fn (LeaveRequest $leaveRequest): bool => $attendanceByEmployeeId->has($leaveRequest->employee_id)
-                && $attendanceByEmployeeId->get($leaveRequest->employee_id)?->clock_in !== null)
-            ->map(fn (LeaveRequest $leaveRequest): array => $this->recapLeaveRow($leaveRequest));
-
-        return $attendanceRows
-            ->concat($leaveRows)
             ->sortBy([
                 ['clock_in_sort', 'asc'],
                 ['name', 'asc'],
@@ -728,6 +740,7 @@ class PicAttendanceController extends Controller
 
         return [
             'name' => $this->employeeDisplayName($attendance->employee),
+            'has_detail' => true,
             'clock_in' => $clockIn,
             'clock_in_sort' => $clockIn === '-' ? '99:99' : $clockIn,
             'clock_in_class' => $isLate ? 'text-danger' : 'text-success',
@@ -766,6 +779,7 @@ class PicAttendanceController extends Controller
 
         return [
             'name' => $this->employeeDisplayName($leaveRequest->employee),
+            'has_detail' => true,
             'clock_in' => $leaveType,
             'clock_in_sort' => '99:99',
             'clock_in_class' => 'text-success',
@@ -794,6 +808,45 @@ class PicAttendanceController extends Controller
             'leave_status' => str($leaveRequest->status)->replace('_', ' ')->title()->toString(),
             'leave_status_date' => $this->leaveApprovedDateLabel($leaveRequest),
             'leave_attachment_url' => $this->leaveAttachmentUrl($leaveRequest),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function recapEmptyAttendanceRow(Employee $employee): array
+    {
+        return [
+            'name' => $this->employeeDisplayName($employee),
+            'has_detail' => false,
+            'clock_in' => '-',
+            'clock_in_sort' => '99:99',
+            'clock_in_class' => '',
+            'clock_in_badge' => '',
+            'clock_out' => '-',
+            'clock_out_badge' => '',
+            'note' => '-',
+            'working_hours' => '-',
+            'modal_id' => '',
+            'attachment_badge' => '',
+            'location_name' => '-',
+            'location_address' => '-',
+            'map_url' => '',
+            'attendance_status' => '-',
+            'attendance_status_class' => '',
+            'deviation_title' => '-',
+            'deviation_intro' => '-',
+            'deviation_request_type' => '-',
+            'deviation_reason' => '-',
+            'deviation_time_variance' => '-',
+            'deviation_status' => '-',
+            'deviation_status_date' => '-',
+            'leave_type' => '-',
+            'leave_reason' => '-',
+            'leave_duration' => '-',
+            'leave_status' => '-',
+            'leave_status_date' => '-',
+            'leave_attachment_url' => '',
         ];
     }
 
@@ -1041,5 +1094,23 @@ class PicAttendanceController extends Controller
             ->implode('');
 
         return mb_strtoupper($initials !== '' ? $initials : 'U');
+    }
+
+    private function employeeAvatarUrl(mixed $profilePicturePath): string
+    {
+        $defaultAvatarUrl = asset('assets/default_user.jpg');
+        $profilePicturePath = trim((string) $profilePicturePath);
+
+        if ($profilePicturePath === '') {
+            return $defaultAvatarUrl;
+        }
+
+        if (Str::startsWith($profilePicturePath, ['http://', 'https://'])) {
+            return $profilePicturePath;
+        }
+
+        $publicPath = ltrim($profilePicturePath, '/');
+
+        return File::exists(public_path($publicPath)) ? asset($publicPath) : $defaultAvatarUrl;
     }
 }

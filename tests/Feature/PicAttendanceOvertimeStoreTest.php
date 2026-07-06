@@ -18,13 +18,18 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString("route('pic-attendance.overtime.store')", $view);
         $this->assertStringNotContainsString('id="pic-overtime-task"', $view);
         $this->assertLessThan(
-            strpos($view, 'name="start_date"'),
+            strpos($view, 'name="overtime_date"'),
             strpos($view, 'name="instruction"')
         );
-        $this->assertStringContainsString('name="start_date"', $view);
-        $this->assertStringContainsString('name="end_date"', $view);
+        $this->assertStringContainsString('name="overtime_date"', $view);
+        $this->assertStringNotContainsString('id="pic-overtime-start-date"', $view);
+        $this->assertStringNotContainsString('id="pic-overtime-end-date"', $view);
         $this->assertStringContainsString('name="start_time"', $view);
         $this->assertStringContainsString('name="end_time"', $view);
+        $this->assertStringContainsString('name="ends_next_day" value="0"', $view);
+        $this->assertStringContainsString('id="pic-overtime-ends-next-day" name="ends_next_day" value="1"', $view);
+        $this->assertStringContainsString('Berakhir hari berikutnya', $view);
+        $this->assertStringContainsString('id="pic-overtime-schedule-preview"', $view);
         $this->assertStringContainsString('name="employee_id"', $view);
         $this->assertStringContainsString('name="instruction"', $view);
         $this->assertStringContainsString('$assignableStaffOptions', $view);
@@ -76,31 +81,48 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('activeSupervisedEmployeeIdsFor($user, $companyId', $controller);
         $this->assertStringContainsString('staffGridGroupLabel', $controller);
         $this->assertStringContainsString('paidOutOvertimeMinutes', $controller);
+        $this->assertStringContainsString("'overtime_date' => ['required', 'date_format:Y-m-d']", $controller);
+        $this->assertStringContainsString("'ends_next_day' => ['required', 'boolean']", $controller);
+        $this->assertStringContainsString('overtimeEndDateTime', $controller);
+        $this->assertStringContainsString('Durasi overtime tidak boleh lebih dari 24 jam.', $controller);
     }
 
-    public function test_pic_overtime_store_treats_next_day_overnight_as_single_assignment_date(): void
+    public function test_pic_overtime_store_resolves_next_day_end_datetime(): void
     {
-        $method = new ReflectionMethod(PicAttendanceOvertimeController::class, 'overtimeAssignmentDates');
+        $method = new ReflectionMethod(PicAttendanceOvertimeController::class, 'overtimeEndDateTime');
         $method->setAccessible(true);
         $controller = app(PicAttendanceOvertimeController::class);
 
-        $overnightDates = $method->invoke(
+        $sameDayEnd = $method->invoke(
             $controller,
-            Carbon::parse('2026-06-30', 'Asia/Jakarta')->startOfDay(),
-            Carbon::parse('2026-07-01', 'Asia/Jakarta')->startOfDay(),
-            '23:00:00',
-            '01:00:00'
+            Carbon::parse('2026-07-06', 'Asia/Jakarta')->startOfDay(),
+            '22:00:00',
+            false
         );
-        $multiDateRange = $method->invoke(
+        $overnightEnd = $method->invoke(
             $controller,
-            Carbon::parse('2026-06-30', 'Asia/Jakarta')->startOfDay(),
-            Carbon::parse('2026-07-02', 'Asia/Jakarta')->startOfDay(),
-            '09:00:00',
-            '10:00:00'
+            Carbon::parse('2026-07-06', 'Asia/Jakarta')->startOfDay(),
+            '02:00:00',
+            true
         );
 
-        $this->assertSame(['2026-06-30'], $overnightDates->map->toDateString()->all());
-        $this->assertSame(['2026-06-30', '2026-07-01', '2026-07-02'], $multiDateRange->map->toDateString()->all());
+        $this->assertSame('2026-07-06 22:00:00', $sameDayEnd->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-07-07 02:00:00', $overnightEnd->format('Y-m-d H:i:s'));
+    }
+
+    public function test_pic_overtime_card_displays_overnight_date_range_and_badge(): void
+    {
+        $controller = app(PicAttendanceOvertimeController::class);
+        $isOvernightMethod = new ReflectionMethod(PicAttendanceOvertimeController::class, 'isOvernightTimeRange');
+        $dateLabelMethod = new ReflectionMethod(PicAttendanceOvertimeController::class, 'overtimeDateLabel');
+        $view = File::get(resource_path('views/pic_attendance/overtime/index.blade.php'));
+
+        $this->assertTrue($isOvernightMethod->invoke($controller, '23:00:00', '02:00:00'));
+        $this->assertFalse($isOvernightMethod->invoke($controller, '18:00:00', '22:00:00'));
+        $this->assertSame('06 Jul 2026 → 07 Jul 2026', $dateLabelMethod->invoke($controller, '2026-07-06', true));
+        $this->assertSame('06 Jul 2026', $dateLabelMethod->invoke($controller, '2026-07-06', false));
+        $this->assertStringContainsString("\$overtimeCard['is_overnight']", $view);
+        $this->assertStringContainsString('>Overnight</span>', $view);
     }
 
     public function test_pic_overtime_detail_can_submit_session_verification(): void

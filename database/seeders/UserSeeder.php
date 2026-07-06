@@ -316,7 +316,7 @@ class UserSeeder extends Seeder
             && trim($companyId) !== ''
         ) {
             $officeLocationId = DB::table('office_locations')
-                ->where('company_id', $companyId)
+                ->where('name', 'Yogyakarta')
                 ->where('is_active', true)
                 ->orderByDesc('created_at')
                 ->value('id');

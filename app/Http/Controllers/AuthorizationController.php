@@ -537,7 +537,7 @@ class AuthorizationController extends Controller
             'identity:id,employee_id,nik,npwp,bpjs_ketenagakerjaan,bpjs_kesehatan',
             'deployment:id,employee_id,current_company_id,current_office_location_id,current_department_id,current_position_id,join_date,resignation_date,workplace,status',
             'deployment.company:id,name',
-            'deployment.officeLocation:id,company_id,name,address',
+            'deployment.officeLocation:id,name,address',
             'deployment.department:id,name',
             'deployment.position:id,name',
             'deployment.positions:id,name',
@@ -550,7 +550,7 @@ class AuthorizationController extends Controller
     /**
      * @return array{
      *     companies: Collection<int, Company>,
-     *     officeLocationOptions: Collection<int, array{id: string, company_id: string, label: string}>,
+     *     officeLocationOptions: Collection<int, array{id: string, label: string}>,
      *     departments: Collection<int, Department>,
      *     positions: Collection<int, Position>,
      *     picEmployees: Collection<int, Employee>
@@ -561,16 +561,14 @@ class AuthorizationController extends Controller
         return [
             'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
             'officeLocationOptions' => OfficeLocation::query()
-                ->with('company:id,name')
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->orderBy('address')
-                ->get(['id', 'company_id', 'name', 'address'])
+                ->get(['id', 'name', 'address'])
                 ->map(fn (OfficeLocation $officeLocation): array => [
                     'id' => (string) $officeLocation->id,
-                    'company_id' => (string) $officeLocation->company_id,
                     'label' => $officeLocation->name
-                        ?: trim((string) $officeLocation->company?->name.' - '.(string) $officeLocation->address),
+                        ?: trim((string) $officeLocation->address),
                 ])
                 ->values(),
             'departments' => Department::query()->orderBy('name')->get(['id', 'name']),
@@ -623,10 +621,8 @@ class AuthorizationController extends Controller
                 'required_with:current_company_id',
                 'nullable',
                 'string',
-                Rule::exists('office_locations', 'id')->where(function ($query) use ($request): void {
-                    $query
-                        ->where('company_id', $request->input('current_company_id'))
-                        ->where('is_active', true);
+                Rule::exists('office_locations', 'id')->where(function ($query): void {
+                    $query->where('is_active', true);
                 }),
             ],
             'current_department_id' => ['nullable', 'string', 'exists:departments,id'],
@@ -706,11 +702,9 @@ class AuthorizationController extends Controller
 
         $officeLocation = filled($validated['current_office_location_id'] ?? null)
             ? OfficeLocation::query()
-                ->with('company:id,name')
                 ->find($validated['current_office_location_id'])
             : null;
-        $workplace = $officeLocation?->name
-            ?? $officeLocation?->company?->name;
+        $workplace = $officeLocation?->name;
 
         $deployment = EmployeeDeployment::query()->updateOrCreate(
             ['employee_id' => $employee->id],

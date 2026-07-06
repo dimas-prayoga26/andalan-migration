@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Company extends Model
 {
@@ -34,22 +33,5 @@ class Company extends Model
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class, 'company_id', 'id');
-    }
-
-    public function attendanceRules(): HasMany
-    {
-        return $this->hasMany(RulesOfAttendace::class, 'companies_id', 'id');
-    }
-
-    public function officeLocations(): HasMany
-    {
-        return $this->hasMany(OfficeLocation::class, 'company_id', 'id');
-    }
-
-    public function activeAttendanceRule(): HasOne
-    {
-        return $this->hasOne(RulesOfAttendace::class, 'companies_id', 'id')
-            ->where('rules_of_attendaces.is_active', true)
-            ->latestOfMany('created_at');
     }
 }

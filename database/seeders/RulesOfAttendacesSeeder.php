@@ -62,6 +62,7 @@ class RulesOfAttendacesSeeder extends Seeder
                 DB::table('office_locations')->insert([
                     'id' => $officeLocationId,
                     'company_id' => $company->id,
+                    'name' => 'Yogyakarta',
                     'address' => $officeData['address'],
                     'latitude' => $officeData['latitude'],
                     'longitude' => $officeData['longitude'],

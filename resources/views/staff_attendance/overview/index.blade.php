@@ -9,6 +9,36 @@
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
     <style>
+        .attendance-overview-donut {
+            position: relative;
+            width: 240px;
+            max-width: 100%;
+            margin: 0 auto 1.5rem;
+        }
+
+        .attendance-overview-donut #pieChart {
+            width: 100%;
+        }
+
+        .attendance-overview-donut #pieChart:empty {
+            min-height: 180px;
+        }
+
+        .attendance-overview-donut-icon {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            pointer-events: none;
+        }
+
+        .attendance-progress-radial-chart {
+            width: 100%;
+            max-width: 300px;
+            margin-inline: auto;
+            overflow: hidden;
+        }
+
         @media (max-width: 767.98px) {
             .attendance-rate-mobile-slider {
                 display: flex;
@@ -37,6 +67,10 @@
             #radialBar {
                 max-width: 100%;
                 overflow: hidden;
+            }
+
+            .attendance-overview-donut {
+                width: 220px;
             }
         }
 
@@ -130,9 +164,9 @@
                         <h4 class="card-title">Attendance Overview ({{ $attendanceOverviewMonthLabel }})</h4>
                     </div>
                     <div class="card-body d-flex flex-column justify-content-center">
-                        <div class="position-relative mb-4 text-center">
+                        <div class="attendance-overview-donut">
                             <div id="pieChart"></div>
-                            <div class="position-absolute top-50 start-50 translate-middle">
+                            <div class="attendance-overview-donut-icon">
                                 <svg width="39" height="74" viewBox="0 0 39 74" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M30.5325 18.9448C27.7921 15.402 23.5761 13.6 18.0001 13.6C12.4241 13.6 8.2081 15.402 5.4677 18.9448C0.082099 25.908 2.8701 36.9376 2.9925 37.4C3.34508 38.8603 4.81456 39.7583 6.27486 39.4057C7.71986 39.0568 8.61712 37.6123 8.2897 36.1624C8.2897 36.0808 6.6985 27.8596 10.3297 23.3988L10.5269 23.1676V36.6588L9.1669 65.1508C9.0921 66.6164 10.1934 67.8771 11.6557 68H11.8801C13.2659 68.0095 14.4372 66.9758 14.6001 65.5996L17.5309 40.8H18.4625L21.4001 65.5996C21.563 66.9758 22.7343 68.0095 24.1201 68H24.3513C25.8136 67.8771 26.9149 66.6164 26.8401 65.1508L25.4801 36.6588V23.1744L25.6637 23.392C29.3357 27.88 27.7037 36.074 27.7037 36.176C27.3657 37.6407 28.279 39.1021 29.7437 39.44C31.2084 39.778 32.6697 38.8647 33.0077 37.4C33.1301 36.9376 35.9181 25.908 30.5325 18.9448Z" fill="#ff9900"/>
                                     <path d="M18.0001 12.24C21.3801 12.24 24.1201 9.49998 24.1201 6.12C24.1201 2.74002 21.3801 0 18.0001 0C14.6201 0 11.8801 2.74002 11.8801 6.12C11.8801 9.49998 14.6201 12.24 18.0001 12.24Z" fill="#ff9900"/>
@@ -177,7 +211,7 @@
             <div class="card-body pt-0 pb-3">
                 <div class="row align-items-center">
                     <div class="col-lg-4 mb-lg-0 mb-4 text-center radialBar">
-                        <div id="radialBar"></div>
+                        <div id="radialBar" class="attendance-progress-radial-chart"></div>
                         <h4 class="fs-18 text-black">Days Worked ({{ $attendanceDaysCount }}/{{ $workingDaysCount }} Days)</h4>
                         <p class="fs-14">Tracking your scheduled attendance and active working days for the current month.</p>
                     </div>
@@ -413,7 +447,8 @@
                 series: @json($attendanceOverviewChartSeries),
                 chart: {
                     type: 'donut',
-                    height: 200
+                    height: 200,
+                    parentHeightOffset: 0
                 },
                 labels: ['On Time', 'Late', 'Leave', 'Deviation'],
                 legend: {
@@ -430,7 +465,8 @@
                     breakpoint: 768,
                     options: {
                         chart: {
-                            height: 180
+                            height: 180,
+                            parentHeightOffset: 0
                         }
                     }
                 }]
@@ -448,7 +484,8 @@
                 chart: {
                     height: 280,
                     type: 'radialBar',
-                    offsetY: -10
+                    offsetY: -10,
+                    parentHeightOffset: 0
                 },
                 plotOptions: {
                     radialBar: {

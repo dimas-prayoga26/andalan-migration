@@ -436,11 +436,11 @@
 
                     <div id="sickAttachmentWrapper" class="d-none">
                         <div class="d-flex flex-column align-items-start gap-2">
-                            <label class="form-label mb-0">Attachment (max 1 MB) <span class="text-danger">*</span></label>
+                            <label class="form-label mb-0">Attachment (optional, max 1 MB)</label>
                             <div class="avatar avatar-xl avatar-preview">
-                                <img class="imagePreview w-100 h-100" id="leaveAttachmentPreview" src="{{ asset('assets/images/avatar/placeholder.avif') }}" alt="Attachment Preview">
-                                <input type="file" class="imageUpload d-none" id="leaveAttachmentFileInput" name="attachment_file" accept=".png,.jpg,.jpeg,.pdf">
-                                <a class="avatar avatar-xs position-absolute bottom-0 end-0 bg-white shadow-sm upload-trigger" id="leaveAttachmentUploadTrigger">
+                                <img class="w-100 h-100" id="leaveAttachmentPreview" src="{{ asset('assets/images/avatar/placeholder.avif') }}" alt="Attachment Preview">
+                                <input type="file" class="d-none" id="leaveAttachmentFileInput" name="attachment_file" accept=".png,.jpg,.jpeg,.pdf">
+                                <a class="avatar avatar-xs position-absolute bottom-0 end-0 bg-white shadow-sm" id="leaveAttachmentUploadTrigger">
                                     <i class="fa-solid fa-upload"></i>
                                 </a>
                             </div>
@@ -469,7 +469,7 @@
         <div class="row leave-history-mobile-slider" id="leaveHistoryCardsSlider">
             @forelse (($leaveHistoryCards ?? collect()) as $leaveHistoryCard)
                 <div class="col-xxl-3 col-xl-4 col-sm-6 leave-history-mobile-slide">
-                    <div class="card leave-history-detail-trigger" role="button" tabindex="0" data-leave-request-id="{{ $leaveHistoryCard['id'] ?? '' }}" data-leave-type-id="{{ $leaveHistoryCard['leave_type_id'] ?? '' }}" data-start-date="{{ $leaveHistoryCard['start_date_value'] ?? '' }}" data-end-date="{{ $leaveHistoryCard['end_date_value'] ?? '' }}" data-handover-notes="{{ $leaveHistoryCard['handover_notes'] ?? '' }}" data-detail-title="{{ $leaveHistoryCard['title'] ?? 'Leave Request' }}" data-detail-modal-title="{{ $leaveHistoryCard['modal_title'] ?? ($leaveHistoryCard['title'] ?? 'Leave Request') }}" data-detail-leave-type="{{ $leaveHistoryCard['detail_leave_type'] ?? ($leaveHistoryCard['title'] ?? 'Leave Request') }}" data-detail-period="{{ $leaveHistoryCard['period_label'] ?? '-' }}" data-detail-reason="{{ $leaveHistoryCard['reason'] ?? '-' }}" data-detail-due="{{ $leaveHistoryCard['due_date_label'] ?? '-' }}" data-detail-status="{{ $leaveHistoryCard['status_label'] ?? 'Pending' }}" data-detail-status-class="{{ $leaveHistoryCard['status_badge_class'] ?? 'badge-primary light' }}" data-detail-status-text-class="{{ $leaveHistoryCard['status_text_class'] ?? 'text-primary' }}" data-detail-status-date="{{ $leaveHistoryCard['status_date_label'] ?? '' }}" data-detail-is-sick="{{ ! empty($leaveHistoryCard['is_sick_leave']) ? 'true' : 'false' }}" data-detail-attachment-url="{{ $leaveHistoryCard['attachment_url'] ?? '' }}" data-detail-timeline='@json($leaveHistoryCard['timeline'] ?? [])'>
+                    <div class="card leave-history-detail-trigger" role="button" tabindex="0" data-leave-request-id="{{ $leaveHistoryCard['id'] ?? '' }}" data-leave-type-id="{{ $leaveHistoryCard['leave_type_id'] ?? '' }}" data-start-date="{{ $leaveHistoryCard['start_date_value'] ?? '' }}" data-end-date="{{ $leaveHistoryCard['end_date_value'] ?? '' }}" data-handover-notes="{{ $leaveHistoryCard['handover_notes'] ?? '' }}" data-update-attachment-only="{{ ! empty($leaveHistoryCard['attachment_only_update']) ? 'true' : 'false' }}" data-detail-title="{{ $leaveHistoryCard['title'] ?? 'Leave Request' }}" data-detail-modal-title="{{ $leaveHistoryCard['modal_title'] ?? ($leaveHistoryCard['title'] ?? 'Leave Request') }}" data-detail-leave-type="{{ $leaveHistoryCard['detail_leave_type'] ?? ($leaveHistoryCard['title'] ?? 'Leave Request') }}" data-detail-period="{{ $leaveHistoryCard['period_label'] ?? '-' }}" data-detail-reason="{{ $leaveHistoryCard['reason'] ?? '-' }}" data-detail-due="{{ $leaveHistoryCard['due_date_label'] ?? '-' }}" data-detail-status="{{ $leaveHistoryCard['status_label'] ?? 'Pending' }}" data-detail-status-class="{{ $leaveHistoryCard['status_badge_class'] ?? 'badge-primary light' }}" data-detail-status-text-class="{{ $leaveHistoryCard['status_text_class'] ?? 'text-primary' }}" data-detail-status-date="{{ $leaveHistoryCard['status_date_label'] ?? '' }}" data-detail-is-sick="{{ ! empty($leaveHistoryCard['is_sick_leave']) ? 'true' : 'false' }}" data-detail-attachment-url="{{ $leaveHistoryCard['attachment_url'] ?? '' }}" data-detail-timeline='@json($leaveHistoryCard['timeline'] ?? [])'>
                         <div class="card-body">
                             <div class="clearfix d-flex">
                                 <div class="avatar avatar-sm rounded me-3 p-2">
@@ -772,11 +772,11 @@
                     </div>
                     <div class="d-none" id="leaveUpdateSickAttachmentWrapper">
                         <div class="d-flex flex-column align-items-start gap-2">
-                            <label class="form-label mb-0">Attachment (max 1 MB)</label>
+                            <label class="form-label mb-0" id="leaveUpdateAttachmentLabel">Attachment (max 1 MB)</label>
                             <div class="avatar avatar-xl avatar-preview">
-                                <img class="imagePreview w-100 h-100" id="leaveUpdateAttachmentPreview" src="{{ asset('assets/images/avatar/placeholder.avif') }}" alt="Attachment Preview">
-                                <input type="file" class="imageUpload d-none" id="leaveUpdateAttachmentFileInput" name="attachment_file" accept=".png,.jpg,.jpeg,.pdf">
-                                <a class="avatar avatar-xs position-absolute bottom-0 end-0 bg-white shadow-sm upload-trigger" id="leaveUpdateAttachmentUploadTrigger">
+                                <img class="w-100 h-100" id="leaveUpdateAttachmentPreview" src="{{ asset('assets/images/avatar/placeholder.avif') }}" alt="Attachment Preview">
+                                <input type="file" class="d-none" id="leaveUpdateAttachmentFileInput" name="attachment_file" accept=".png,.jpg,.jpeg,.pdf">
+                                <a class="avatar avatar-xs position-absolute bottom-0 end-0 bg-white shadow-sm" id="leaveUpdateAttachmentUploadTrigger">
                                     <i class="fa-solid fa-upload"></i>
                                 </a>
                             </div>
@@ -900,6 +900,7 @@
                 var statusDateLabel = card.status_date_label || '';
                 var isSickLeave = card.is_sick_leave ? 'true' : 'false';
                 var attachmentUrl = card.attachment_url || '';
+                var attachmentOnlyUpdate = card.attachment_only_update === true ? 'true' : 'false';
                 var timelineItems = Array.isArray(card.timeline) ? card.timeline : [];
                 var timelineAttribute = escapeHtml(JSON.stringify(timelineItems));
 
@@ -910,6 +911,7 @@
                     + ' data-start-date="' + escapeHtml(startDateValue) + '"'
                     + ' data-end-date="' + escapeHtml(endDateValue) + '"'
                     + ' data-handover-notes="' + escapeHtml(handoverNotes) + '"'
+                    + ' data-update-attachment-only="' + attachmentOnlyUpdate + '"'
                     + ' data-detail-title="' + escapeHtml(title) + '"'
                     + ' data-detail-modal-title="' + escapeHtml(modalTitle) + '"'
                     + ' data-detail-leave-type="' + escapeHtml(detailLeaveType) + '"'
@@ -1090,6 +1092,7 @@
             var $leaveUpdateAttachmentFileInput = $('#leaveUpdateAttachmentFileInput');
             var $leaveUpdateAttachmentUploadTrigger = $('#leaveUpdateAttachmentUploadTrigger');
             var $leaveUpdateAttachmentPreview = $('#leaveUpdateAttachmentPreview');
+            var $leaveUpdateAttachmentLabel = $('#leaveUpdateAttachmentLabel');
             var $leaveUpdateSubmitButton = $('#leaveUpdateSubmitButton');
             var $leaveUpdateAlert = $('#leaveUpdateAlert');
             var $leaveDeleteForm = $('#leaveRequestDeleteForm');
@@ -1230,7 +1233,7 @@
 
                 if (isSickLeave) {
                     $sickAttachmentWrapper.removeClass('d-none');
-                    $attachmentFileInput.prop('required', true);
+                    $attachmentFileInput.prop('required', false);
                 } else {
                     $sickAttachmentWrapper.addClass('d-none');
                     $attachmentFileInput.prop('required', false);
@@ -1258,7 +1261,7 @@
 
                 if (isSickLeave) {
                     $leaveUpdateSickAttachmentWrapper.removeClass('d-none');
-                    $leaveUpdateAttachmentFileInput.prop('required', !($leaveUpdateForm.data('existingAttachmentUrl') || ''));
+                    $leaveUpdateAttachmentFileInput.prop('required', false);
                 } else {
                     $leaveUpdateSickAttachmentWrapper.addClass('d-none');
                     $leaveUpdateAttachmentFileInput.prop('required', false);
@@ -1267,12 +1270,24 @@
                 }
             }
 
+            function setLeaveUpdateAttachmentOnlyMode(isAttachmentOnly) {
+                $leaveUpdateForm.data('attachmentOnly', isAttachmentOnly);
+                $leaveUpdateTypeSelect.prop('disabled', isAttachmentOnly).selectpicker('refresh');
+                $leaveUpdateSpecialLeaveSubTypeSelect.prop('disabled', isAttachmentOnly).selectpicker('refresh');
+                $leaveUpdateDateRangeInput.prop('disabled', isAttachmentOnly);
+                $leaveUpdateReasonInput.prop('readonly', isAttachmentOnly);
+                $leaveUpdateHandoverNotesInput.prop('readonly', isAttachmentOnly);
+                $leaveUpdateAttachmentFileInput.attr('accept', isAttachmentOnly ? '.png,.jpg,.jpeg' : '.png,.jpg,.jpeg,.pdf');
+                $leaveUpdateAttachmentLabel.text(isAttachmentOnly ? 'Medical Notes Image (max 1 MB)' : 'Attachment (max 1 MB)');
+            }
+
             function fillLeaveUpdateModal($card) {
                 var leaveRequestId = $card.data('leave-request-id') || '';
                 var leaveTypeId = $card.data('leave-type-id') || '';
                 var startDateValue = $card.data('start-date') || '';
                 var endDateValue = $card.data('end-date') || '';
                 var attachmentUrl = $card.data('detail-attachment-url') || '';
+                var attachmentOnlyUpdate = String($card.data('update-attachment-only')) === 'true';
 
                 clearUpdateAlert();
                 $leaveUpdateRequestIdInput.val(leaveRequestId);
@@ -1294,6 +1309,7 @@
                 $leaveUpdateTypeSelect.selectpicker('refresh');
                 $leaveUpdateSpecialLeaveSubTypeSelect.selectpicker('refresh');
                 toggleUpdateConditionalFields();
+                setLeaveUpdateAttachmentOnlyMode(attachmentOnlyUpdate);
             }
 
             function showLeaveUpdateModal($card) {
@@ -1534,12 +1550,21 @@
                         return;
                     }
 
-                    if (!$leaveUpdateStartDateInput.val() || !$leaveUpdateEndDateInput.val()) {
+                    var attachmentOnlyUpdate = $leaveUpdateForm.data('attachmentOnly') === true;
+                    if (!attachmentOnlyUpdate && (!$leaveUpdateStartDateInput.val() || !$leaveUpdateEndDateInput.val())) {
                         showUpdateAlert('error', 'Pilih rentang tanggal izin terlebih dahulu.');
                         return;
                     }
 
                     var formData = new FormData($leaveUpdateForm[0]);
+                    if (attachmentOnlyUpdate) {
+                        formData.delete('permission_type_id');
+                        formData.delete('special_leave_sub_type_id');
+                        formData.delete('start_date');
+                        formData.delete('end_date');
+                        formData.delete('reason');
+                        formData.delete('handover_notes');
+                    }
                     $leaveUpdateSubmitButton.prop('disabled', true);
 
                     $.ajax({

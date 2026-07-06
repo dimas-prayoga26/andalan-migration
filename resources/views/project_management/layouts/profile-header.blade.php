@@ -1,5 +1,35 @@
 <!-- Start - Profile Header -->
     <style>
+        .profile-header-content,
+        .profile-header-identity,
+        .profile-contact-list,
+        .profile-contact-email {
+            min-width: 0;
+        }
+
+        .profile-header-identity {
+            max-width: 100%;
+        }
+
+        .profile-header-identity h3,
+        .profile-contact-email {
+            overflow-wrap: anywhere;
+        }
+
+        .profile-contact-email {
+            max-width: 100%;
+        }
+
+        .profile-contact-email i {
+            flex: 0 0 auto;
+        }
+
+        .profile-contact-email span {
+            min-width: 0;
+            max-width: 100%;
+            word-break: break-word;
+        }
+
         @media (max-width: 767.98px) {
             .mobile-stats-offset {
                 margin-top: -8px;
@@ -40,18 +70,18 @@
                 <img src="{{ $profileAvatarPath }}" class="avatar avatar-xxl" alt="User Avatar">
             </div>
         </div>
-        <div class="clearfix d-xl-flex flex-grow-1">
-            <div class="clearfix pe-md-5">
+        <div class="clearfix d-xl-flex flex-grow-1 profile-header-content">
+            <div class="clearfix pe-md-5 profile-header-identity">
                 <h3 class="fw-semibold mb-1">{{ $profileDisplayName ?? '-' }}</h3>
-                <ul class="d-flex flex-wrap align-items-center">
+                <ul class="d-flex flex-wrap align-items-center profile-contact-list">
                     <li class="me-3 d-inline-flex align-items-center">
                         <i class="las la-suitcase me-1"></i>{{ $profilePositionName ?? '-' }}
                     </li>
                     <li class="me-3 d-inline-flex align-items-center">
                         <i class="las la-map-marker me-1"></i>{{ $profileAddressSummary ?? '-' }}
                     </li>
-                    <li class="me-3 d-inline-flex align-items-center">
-                        <i class="las la-envelope me-1"></i>{{ $profileBusinessEmail ?? '-' }}
+                    <li class="me-3 d-inline-flex align-items-start profile-contact-email">
+                        <i class="las la-envelope me-1 mt-1"></i><span>{{ $profileBusinessEmail ?? '-' }}</span>
                     </li>
                 </ul>
                 @php

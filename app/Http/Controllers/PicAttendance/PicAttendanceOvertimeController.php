@@ -646,7 +646,7 @@ class PicAttendanceOvertimeController extends Controller
      */
     private function picOvertimeCardsFor(?string $companyId, ?string $assignedByUserId, int $month, int $year): Collection
     {
-        if (! is_string($companyId) || trim($companyId) === '' || ! is_string($assignedByUserId) || trim($assignedByUserId) === '') {
+        if (! is_string($assignedByUserId) || trim($assignedByUserId) === '') {
             return collect();
         }
 
@@ -670,13 +670,11 @@ class PicAttendanceOvertimeController extends Controller
             ->where('assigned_by', trim($assignedByUserId))
             ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled'])
             ->whereBetween('overtime_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
-            ->whereHas('employee', function (Builder $query) use ($companyId): void {
+            ->whereHas('employee', function (Builder $query): void {
                 $query
                     ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                    ->whereHas('deployment', function (Builder $query) use ($companyId): void {
-                        $query
-                            ->where('current_company_id', trim($companyId))
-                            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+                    ->whereHas('deployment', function (Builder $query): void {
+                        $query->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
                     });
             })
             ->with([
@@ -1139,7 +1137,7 @@ class PicAttendanceOvertimeController extends Controller
     {
         $supervisorEmployeeId = $this->currentEmployeeIdFor($user);
 
-        if ($supervisorEmployeeId === null || $companyId === null) {
+        if ($supervisorEmployeeId === null) {
             return collect();
         }
 
@@ -1165,9 +1163,8 @@ class PicAttendanceOvertimeController extends Controller
                     ->where('is_active', true)
                     ->whereNull('deleted_at');
             })
-            ->whereHas('deployment', function ($query) use ($companyId, $referenceDate): void {
+            ->whereHas('deployment', function ($query) use ($referenceDate): void {
                 $query
-                    ->where('current_company_id', $companyId)
                     ->whereRaw("LOWER(COALESCE(status, '')) = ?", ['active'])
                     ->whereNull('deleted_at')
                     ->where(function ($dateQuery) use ($referenceDate): void {

@@ -7,6 +7,20 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-07-06 (Senin)
+- Menambahkan dropdown Branch / Office pada create/update Data Employee dan menyinkronkannya dengan office location untuk geofencing.
+- Menyelaraskan 18 staff aktif hasil import legacy dengan company, branch/workplace, office location, deployment, dan position terbaru.
+- Menonaktifkan akun legacy yang tidak lagi termasuk daftar staff terbaru beserta assignment PIC aktifnya.
+- Memperbaiki cakupan PIC Overtime agar assignment supervisor dapat berlaku lintas company.
+- Merapikan email profile dan chart Attendance serta Project Management pada tampilan mobile.
+- Membuat attachment Sick Leave opsional dan menghapus konflik handler yang menyebabkan file picker diproses dua kali.
+- Mencatat bahwa branch saat ini memakai `employee_deployments.workplace`; form Branch terpisah pada create/update employee belum diimplementasikan.
+- Detail: `docs/dev-log/2026-07-06-1018-sinkronisasi-staff-pic-chart-dan-leave.md`.
+- Detail: `docs/dev-log/2026-07-06-1047-data-employee-branch-office.md`.
+- Detail: `docs/dev-log/2026-07-06-1050-fix-parse-error-branch-office.md`.
+- Detail: `docs/dev-log/2026-07-06-1053-normalisasi-label-office-ke-kota.md`.
+- Detail: `docs/dev-log/2026-07-06-1105-admin-attendance-overview-18-staff.md`.
+
 ### 2026-07-02 (Kamis)
 - Menyempurnakan Data Employee dan Authorization dengan pencarian employee, pagination server-side, scope akses administrator/COO, serta assignment permission berbasis position.
 - Menambahkan menu Task pada PIC Attendance untuk melihat task staff berdasarkan assignment PIC aktif.
@@ -230,6 +244,9 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-07-06
+- `2026-07-06-1018-sinkronisasi-staff-pic-chart-dan-leave.md`
 
 ### 2026-07-02
 - `2026-07-02-1545-ringkasan-perubahan-harian.md`

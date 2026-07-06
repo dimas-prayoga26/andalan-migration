@@ -191,6 +191,7 @@ class PicAttendanceController extends Controller
             $periodStart,
             $periodStart->copy()->endOfMonth()->startOfDay(),
         )->count();
+        $monthlyExpectedWorkMinutes = $monthlyWorkingDaysCount * 8 * 60;
         $employeeRelations = [
             'profile:id,employee_id,name',
             'user:id,username,email',
@@ -265,6 +266,7 @@ class PicAttendanceController extends Controller
                 $overtimesByEmployeeId,
                 $yearLeaveRequestsByEmployeeId,
                 $workDays,
+                $monthlyExpectedWorkMinutes,
                 $monthlyWorkingDaysCount,
                 $yearWorkDays
             ): array {
@@ -300,7 +302,6 @@ class PicAttendanceController extends Controller
                     ->get($employeeId, collect())
                     ->filter(fn (AttendanceOvertime $overtime): bool => $employeeWorkDayKeys->contains($this->dateKey($overtime->overtime_date)))
                     ->sum(fn (AttendanceOvertime $overtime): int => max(0, (int) round((float) $overtime->calculated_hours * 60)));
-                $expectedWorkMinutes = $employeeWorkDays->count() * 8 * 60;
                 $alphaDays = $employeeWorkDayKeys
                     ->filter(function (string $dateKey) use ($attendedDateKeys, $leaveRequests, $businessTrips): bool {
                         $date = Carbon::parse($dateKey, 'Asia/Jakarta');
@@ -315,7 +316,7 @@ class PicAttendanceController extends Controller
                     'employee_id' => $employeeId,
                     'name' => $this->employeeDisplayName($employee),
                     'working_days' => $attendedDateKeys->count().' / '.$monthlyWorkingDaysCount.' days',
-                    'working_hours' => $this->recapCompactMinutesLabel($workedMinutes).' / '.$this->recapCompactMinutesLabel($expectedWorkMinutes),
+                    'working_hours' => $this->recapCompactMinutesLabel($workedMinutes).' / '.$this->recapCompactMinutesLabel($monthlyExpectedWorkMinutes),
                     'on_time' => $this->recapDaysLabel($onTimeCount),
                     'late' => $this->recapLateLabel($lateAttendances->count(), $lateMinutes),
                     'leave' => $this->recapDaysLabel($leaveDays),

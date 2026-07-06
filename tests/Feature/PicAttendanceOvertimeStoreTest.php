@@ -60,6 +60,8 @@ class PicAttendanceOvertimeStoreTest extends TestCase
             $controller
         );
         $this->assertStringContainsString('picOvertimeCardsFor', $controller);
+        $this->assertStringContainsString('if ($supervisorEmployeeId === null) {', $controller);
+        $this->assertStringNotContainsString('if ($supervisorEmployeeId === null || $companyId === null) {', $controller);
         $this->assertStringContainsString("'status' => 'complete'", $controller);
         $this->assertStringContainsString("'status' => 'pending'", $controller);
         $this->assertGreaterThan(

@@ -39,6 +39,13 @@
         width: 100%;
     }
 
+    .project-progress-radial-chart {
+        width: 100%;
+        max-width: 320px;
+        margin-inline: auto;
+        overflow: hidden;
+    }
+
     .project-task-donut-wrap {
         min-height: 170px;
         display: flex;
@@ -259,7 +266,7 @@
             <div class="card-body pt-0 pb-3">
                 <div class="row align-items-center">
                     <div class="col-lg-4 mb-lg-0 mb-4 text-center radialBar">
-                        <div id="radialBar" data-progress-rate="{{ $projectTaskCompletionRate }}"></div>
+                        <div id="radialBar" class="project-progress-radial-chart" data-progress-rate="{{ $projectTaskCompletionRate }}"></div>
                         <h4 class="fs-18 text-black">Tasks Completed ({{ $projectTasksCompletedCount }}/{{ $projectTotalTasksCount }} Completed)</h4>
                         <p class="fs-14">Tracking your assigned tasks and active deliverables for the current month.</p>
                     </div>
@@ -1488,7 +1495,8 @@
 				chart: {
 				height: 280,
 				type: 'radialBar',
-				offsetY: -10
+				offsetY: -10,
+				parentHeightOffset: 0
 				},
 				plotOptions: {
 				radialBar: {
@@ -1528,6 +1536,29 @@
 					colors:'#0B2A97'
 				},
 				labels: [''],
+				responsive: [{
+					breakpoint: 768,
+					options: {
+						chart: {
+							height: 230,
+							offsetY: -5,
+							parentHeightOffset: 0
+						},
+						plotOptions: {
+							radialBar: {
+								dataLabels: {
+									name: {
+										fontSize: '14px',
+										offsetY: 95
+									},
+									value: {
+										fontSize: '28px'
+									}
+								}
+							}
+						}
+					}
+				}],
 				};
 
 				var chart = new ApexCharts(radialBarTarget, options);

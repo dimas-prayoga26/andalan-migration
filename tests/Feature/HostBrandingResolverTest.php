@@ -38,16 +38,38 @@ class HostBrandingResolverTest extends TestCase
         $this->assertStringContainsString('brand-logo-text', $mainLayout);
         $this->assertStringContainsString('brand-logo-desktop', $mainLayout);
         $this->assertStringContainsString('$brandLogoUrl', $mainHead);
+        $this->assertStringContainsString("\$documentTitle = (\$brandName ?? 'Dev').' - Siap';", $mainHead);
+        $this->assertStringContainsString('<title>{{ $documentTitle }}</title>', $mainHead);
+        $this->assertStringContainsString('<meta property="og:title" content="{{ $documentTitle }}">', $mainHead);
         $this->assertStringContainsString('color: #000;', $mainHead);
         $this->assertStringContainsString('text-transform: uppercase;', $mainHead);
         $this->assertStringContainsString('$brandLogoUrl', $loginView);
+        $this->assertStringContainsString("\$documentTitle = (\$brandName ?? 'Dev').' - Siap';", $loginView);
+        $this->assertStringContainsString('<title>{{ $documentTitle }}</title>', $loginView);
+        $this->assertStringContainsString('<meta property="og:title" content="{{ $documentTitle }}">', $loginView);
+        $this->assertStringNotContainsString('<title>Test</title>', $loginView);
         $this->assertStringContainsString("public_path('assets/' . ltrim(\$path, '/'))", $loginView);
         $this->assertStringContainsString("asset('assets/css/style.css')", $loginView);
         $this->assertStringContainsString("\$assetVersion('css/style.css')", $loginView);
+        $this->assertStringContainsString("asset('assets/icons/font-awesome/css/all.min.css')", $loginView);
+        $this->assertStringContainsString('type="button" class="show-pass', $loginView);
+        $this->assertStringContainsString('aria-label="Tampilkan password"', $loginView);
+        $this->assertStringContainsString('showPassButton.setAttribute(\'aria-pressed\'', $loginView);
         $this->assertStringNotContainsString('<base href="{{ asset(\'assets\') }}/">', $loginView);
         $this->assertStringContainsString(HostBrandingResolver::class, $appServiceProvider);
         $this->assertStringNotContainsString('$logoPaths', $loginView);
         $this->assertStringNotContainsString('company-logo-carousel', $loginView);
         $this->assertStringNotContainsString('File::files', $authController);
+    }
+
+    public function test_login_document_and_open_graph_titles_follow_the_request_host(): void
+    {
+        $this->call('GET', 'http://siap.rnb.co.id/login', server: [
+            'HTTP_HOST' => 'siap.rnb.co.id',
+            'SERVER_NAME' => 'siap.rnb.co.id',
+        ])
+            ->assertOk()
+            ->assertSee('<title>RNB - Siap</title>', false)
+            ->assertSee('<meta property="og:title" content="RNB - Siap">', false);
     }
 }

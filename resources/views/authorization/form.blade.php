@@ -139,7 +139,10 @@
                 <div class="col-md-3">
                     <label class="form-label">Branch / Office</label>
                     <select id="dataEmployeeOfficeLocation" name="current_office_location_id" class="form-control @error('current_office_location_id') is-invalid @enderror">
-                        <option value="">Pilih perusahaan terlebih dahulu</option>
+                        <option value="">Pilih branch / office</option>
+                        @foreach ($officeLocationOptions as $officeLocation)
+                            <option value="{{ $officeLocation['id'] }}" @selected((string) old('current_office_location_id', $employee?->deployment?->current_office_location_id ?? '') === $officeLocation['id'])>{{ $officeLocation['label'] }}</option>
+                        @endforeach
                     </select>
                     @error('current_office_location_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
@@ -210,48 +213,7 @@
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
-        var dataEmployeeOfficeLocations = @json($officeLocationOptions);
-        var selectedDataEmployeeOfficeLocationId = @json((string) old('current_office_location_id', $employee?->deployment?->current_office_location_id ?? ''));
-
-        function updateDataEmployeeOfficeOptions() {
-            var companySelect = document.getElementById('dataEmployeeCompany');
-            var officeSelect = document.getElementById('dataEmployeeOfficeLocation');
-
-            if (!companySelect || !officeSelect) {
-                return;
-            }
-
-            var companyId = companySelect.value;
-            var currentSelection = officeSelect.value || selectedDataEmployeeOfficeLocationId;
-            var matchingOffices = dataEmployeeOfficeLocations.filter(function (officeLocation) {
-                return officeLocation.company_id === companyId;
-            });
-
-            officeSelect.innerHTML = '';
-            officeSelect.append(new Option(
-                companyId ? 'Pilih branch / office' : 'Pilih perusahaan terlebih dahulu',
-                ''
-            ));
-
-            matchingOffices.forEach(function (officeLocation) {
-                officeSelect.append(new Option(
-                    officeLocation.label,
-                    officeLocation.id,
-                    false,
-                    officeLocation.id === currentSelection
-                ));
-            });
-
-            officeSelect.disabled = companyId === '' || matchingOffices.length === 0;
-            selectedDataEmployeeOfficeLocationId = '';
-        }
-
         document.addEventListener('DOMContentLoaded', function () {
-            var companySelect = document.getElementById('dataEmployeeCompany');
-
-            updateDataEmployeeOfficeOptions();
-            companySelect?.addEventListener('change', updateDataEmployeeOfficeOptions);
-
             if (!window.jQuery || !jQuery.fn.daterangepicker || typeof moment === 'undefined') {
                 return;
             }

@@ -63,4 +63,16 @@ class DashboardStructureTest extends TestCase
         $this->assertStringContainsString("clockOutCurrentDateElement.classList.add(isWithinWorkRange ? 'text-warning' : 'text-black');", $dashboardView);
         $this->assertStringNotContainsString('<p class="fs-14 mb-2">Distance</p>', $dashboardView);
     }
+
+    public function test_dashboard_attendance_confirmation_matches_attendance_menu_radius_behavior(): void
+    {
+        $dashboardView = File::get(resource_path('views/dashboard.blade.php'));
+
+        $this->assertStringContainsString('context.hasVerifiedOnsite = true;', $dashboardView);
+        $this->assertStringContainsString("setVerificationMessage(context, 'Verifikasi berhasil.', 'success');", $dashboardView);
+        $this->assertStringNotContainsString('context.isWithinOfficeRadius = inRadius;', $dashboardView);
+        $this->assertStringNotContainsString('if (context.isWithinOfficeRadius) {', $dashboardView);
+        $this->assertStringNotContainsString("setVerificationMessage(context, 'Lokasi berada di luar radius kantor.', 'warning');", $dashboardView);
+        $this->assertStringNotContainsString('context.hasVerifiedOnsite = inRadius;', $dashboardView);
+    }
 }

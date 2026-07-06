@@ -462,12 +462,10 @@ class AttendanceMutationService
 
         $currentUser = User::query()
             ->with([
-                'employee.deployment.officeLocation:id,company_id,address,latitude,longitude,is_active',
-                'employee.deployment.officeLocation.company:id,name',
+                'employee.deployment.officeLocation:id,name,address,latitude,longitude,is_active',
                 'employee.deployment.officeLocation.activeAttendanceRule' => static function ($query): void {
                     $query->select([
                         'rules_of_attendaces.id',
-                        'rules_of_attendaces.companies_id',
                         'rules_of_attendaces.office_location_id',
                         'rules_of_attendaces.radius',
                         'rules_of_attendaces.ip_range',
@@ -480,7 +478,6 @@ class AttendanceMutationService
 
         $deployment = $currentUser?->employee?->deployment;
         $officeLocation = $deployment?->officeLocation;
-        $officeCompany = $officeLocation?->company;
         $hasOfficeLocationCoordinates = $officeLocation
             && $officeLocation->is_active !== false
             && $officeLocation->latitude !== null
@@ -494,7 +491,7 @@ class AttendanceMutationService
 
         return [
             'id' => $officeLocation->id,
-            'name' => $officeCompany?->name,
+            'name' => $officeLocation->name,
             'address' => $officeLocation->address,
             'latitude' => (float) $officeLocation->latitude,
             'longitude' => (float) $officeLocation->longitude,

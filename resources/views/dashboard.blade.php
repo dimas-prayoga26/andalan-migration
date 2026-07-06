@@ -864,15 +864,7 @@
                     lat: position.coords.latitude,
                     lng: position.coords.longitude
                 };
-                var distance = calculateDistanceInMeters(
-                    userPosition.lat,
-                    userPosition.lng,
-                    officePosition.lat,
-                    officePosition.lng
-                );
-                var allowedRadius = Number(officeLocation.radius_meters || 100);
-                var inRadius = distance <= allowedRadius;
-                context.hasVerifiedOnsite = inRadius;
+                context.hasVerifiedOnsite = true;
 
                 if (!context.userMarker) {
                     context.userMarker = new window.google.maps.Marker({
@@ -906,9 +898,6 @@
                 });
 
                 context.mapInstance.panTo(userPosition);
-                if (!inRadius) {
-                    setVerificationMessage(context, 'Lokasi di luar radius kantor.', 'warning');
-                }
             }
 
             function verifyTelegramUsernameSync() {
@@ -976,11 +965,7 @@
                     navigator.geolocation.getCurrentPosition(
                         function (position) {
                             updateUserLocationOnMap(context, position);
-                            if (context.hasVerifiedOnsite) {
-                                setVerificationMessage(context, 'Verifikasi berhasil.', 'success');
-                            } else {
-                                setVerificationMessage(context, 'Lokasi berada di luar radius kantor.', 'warning');
-                            }
+                            setVerificationMessage(context, 'Verifikasi berhasil.', 'success');
                             renderSubmitButtons();
                         },
                         function () {

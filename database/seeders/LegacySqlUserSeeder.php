@@ -175,7 +175,7 @@ class LegacySqlUserSeeder extends Seeder
                 ],
             );
 
-            $this->syncOfficeLocation($company);
+            $this->syncOfficeLocation();
             $this->companyIdsByLegacyId[$legacyId] = (string) $company->id;
         });
     }
@@ -449,7 +449,7 @@ class LegacySqlUserSeeder extends Seeder
                     'current_company_id' => $companyId,
                     'current_position_id' => $positionId,
                     'current_department_id' => is_string($departmentId) ? $departmentId : null,
-                    ...$this->optionalOfficeLocationPayload($this->officeLocationIdForCompany($companyId)),
+                    ...$this->optionalOfficeLocationPayload($this->defaultOfficeLocationId()),
                     'join_date' => $joinDate,
                     'resignation_date' => null,
                     'workplace' => 'RNB Jakarta',
@@ -479,8 +479,7 @@ class LegacySqlUserSeeder extends Seeder
         }
 
         $officeLocationId = DB::table('office_locations')
-            ->where('company_id', $companyId)
-            ->where('address', self::RNB_JAKARTA_OFFICE['address'])
+            ->where('name', 'Jakarta')
             ->value('id');
         $officeLocationId = is_string($officeLocationId) && trim($officeLocationId) !== ''
             ? $officeLocationId
@@ -488,10 +487,9 @@ class LegacySqlUserSeeder extends Seeder
         $now = now();
 
         DB::table('office_locations')->updateOrInsert(
-            ['id' => $officeLocationId],
+            ['name' => 'Jakarta'],
             [
-                'company_id' => $companyId,
-                'name' => 'Jakarta',
+                'id' => $officeLocationId,
                 'address' => self::RNB_JAKARTA_OFFICE['address'],
                 'latitude' => self::RNB_JAKARTA_OFFICE['latitude'],
                 'longitude' => self::RNB_JAKARTA_OFFICE['longitude'],
@@ -545,7 +543,7 @@ class LegacySqlUserSeeder extends Seeder
             }
 
             $companyId = $this->companyIdForLatestDeployment($deploymentData['company']);
-            $officeLocationId = $this->officeLocationIdForLatestDeployment($companyId, $deploymentData['office']);
+            $officeLocationId = $this->officeLocationIdForLatestDeployment($deploymentData['office']);
             $joinDate = $this->existingDeploymentJoinDate($employee) ?? $now->copy()->subMonth()->toDateString();
 
             $employee->forceFill([
@@ -637,12 +635,12 @@ class LegacySqlUserSeeder extends Seeder
             ],
         );
 
-        $this->syncOfficeLocation($company);
+        $this->syncOfficeLocation();
 
         return (string) $company->id;
     }
 
-    private function officeLocationIdForLatestDeployment(string $companyId, string $officeKey): ?string
+    private function officeLocationIdForLatestDeployment(string $officeKey): ?string
     {
         if (! Schema::hasTable('office_locations') || ! Schema::hasColumn('employee_deployments', 'current_office_location_id')) {
             return null;
@@ -653,17 +651,15 @@ class LegacySqlUserSeeder extends Seeder
             : self::DEFAULT_JOGJA_OFFICE;
 
         $officeLocationId = DB::table('office_locations')
-            ->where('company_id', $companyId)
-            ->where('address', $officeData['address'])
+            ->where('name', $officeKey === 'rnb_jakarta' ? 'Jakarta' : 'Yogyakarta')
             ->value('id');
         $officeLocationId = is_string($officeLocationId) && trim($officeLocationId) !== ''
             ? $officeLocationId
             : (string) Str::uuid();
         DB::table('office_locations')->updateOrInsert(
-            ['id' => $officeLocationId],
+            ['name' => $officeKey === 'rnb_jakarta' ? 'Jakarta' : 'Yogyakarta'],
             [
-                'company_id' => $companyId,
-                'name' => $officeKey === 'rnb_jakarta' ? 'Jakarta' : 'Yogyakarta',
+                'id' => $officeLocationId,
                 'address' => $officeData['address'],
                 'latitude' => $officeData['latitude'],
                 'longitude' => $officeData['longitude'],
@@ -804,7 +800,7 @@ class LegacySqlUserSeeder extends Seeder
         ?string $departmentId,
         bool $isActive,
     ): void {
-        $officeLocationId = $this->officeLocationIdForCompany($companyId);
+        $officeLocationId = $this->defaultOfficeLocationId();
 
         $joinDate = $this->normalizeJoinDate($legacyUser);
         $resignationDate = $this->legacyResignationDate($legacyUser);
@@ -950,14 +946,14 @@ class LegacySqlUserSeeder extends Seeder
         ];
     }
 
-    private function syncOfficeLocation(Company $company): void
+    private function syncOfficeLocation(): void
     {
         if (! Schema::hasTable('office_locations')) {
             return;
         }
 
         $existingOfficeLocationId = DB::table('office_locations')
-            ->where('company_id', $company->id)
+            ->where('name', 'Yogyakarta')
             ->where('is_active', true)
             ->orderBy('created_at')
             ->value('id');
@@ -967,7 +963,6 @@ class LegacySqlUserSeeder extends Seeder
 
             DB::table('office_locations')->insert([
                 'id' => (string) Str::uuid(),
-                'company_id' => $company->id,
                 'name' => 'Yogyakarta',
                 'address' => $officeData['address'],
                 'latitude' => $officeData['latitude'],
@@ -979,18 +974,14 @@ class LegacySqlUserSeeder extends Seeder
         }
     }
 
-    private function officeLocationIdForCompany(?string $companyId): ?string
+    private function defaultOfficeLocationId(): ?string
     {
         if (! Schema::hasTable('office_locations') || ! Schema::hasColumn('employee_deployments', 'current_office_location_id')) {
             return null;
         }
 
-        if (! is_string($companyId) || trim($companyId) === '') {
-            return null;
-        }
-
         $officeLocationId = DB::table('office_locations')
-            ->where('company_id', $companyId)
+            ->where('name', 'Yogyakarta')
             ->where('is_active', true)
             ->orderBy('created_at')
             ->value('id');
@@ -1339,7 +1330,7 @@ class LegacySqlUserSeeder extends Seeder
                 'current_company_id' => $companyId,
                 'current_position_id' => $positionId,
                 'current_department_id' => is_string($departmentId) ? $departmentId : null,
-                ...$this->optionalOfficeLocationPayload($this->officeLocationIdForCompany(is_string($companyId) ? $companyId : null)),
+                ...$this->optionalOfficeLocationPayload($this->defaultOfficeLocationId()),
                 'join_date' => $now->toDateString(),
                 'resignation_date' => null,
                 'workplace' => 'RNB',

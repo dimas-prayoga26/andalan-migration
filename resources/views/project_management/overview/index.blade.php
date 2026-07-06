@@ -39,6 +39,13 @@
         width: 100%;
     }
 
+    .project-progress-radial-chart {
+        width: 100%;
+        max-width: 320px;
+        margin-inline: auto;
+        overflow: hidden;
+    }
+
     .project-task-donut-wrap {
         min-height: 170px;
         display: flex;
@@ -259,7 +266,7 @@
             <div class="card-body pt-0 pb-3">
                 <div class="row align-items-center">
                     <div class="col-lg-4 mb-lg-0 mb-4 text-center radialBar">
-                        <div id="radialBar" data-progress-rate="{{ $projectTaskCompletionRate }}"></div>
+                        <div id="radialBar" class="project-progress-radial-chart" data-progress-rate="{{ $projectTaskCompletionRate }}"></div>
                         <h4 class="fs-18 text-black">Tasks Completed ({{ $projectTasksCompletedCount }}/{{ $projectTotalTasksCount }} Completed)</h4>
                         <p class="fs-14">Tracking your assigned tasks and active deliverables for the current month.</p>
                     </div>

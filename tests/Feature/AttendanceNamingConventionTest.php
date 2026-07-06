@@ -148,6 +148,9 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertStringContainsString('$attendanceOverviewChartSeries = array_sum($attendanceOverviewSeries) > 0 ? $attendanceOverviewSeries : [1];', $attendanceOverviewView);
         $this->assertStringContainsString('$attendanceOverviewChartColors = array_sum($attendanceOverviewSeries) > 0', $attendanceOverviewView);
         $this->assertStringContainsString('Attendance Overview ({{ $attendanceOverviewMonthLabel }})', $attendanceOverviewView);
+        $this->assertStringContainsString('class="attendance-overview-donut"', $attendanceOverviewView);
+        $this->assertStringContainsString('class="attendance-overview-donut-icon"', $attendanceOverviewView);
+        $this->assertStringContainsString('class="attendance-progress-radial-chart"', $attendanceOverviewView);
         $this->assertStringContainsString('Progress ({{ $attendanceOverviewMonthLabel }})', $attendanceOverviewView);
         $this->assertStringContainsString('Days Worked ({{ $attendanceDaysCount }}/{{ $workingDaysCount }} Days)', $attendanceOverviewView);
         $this->assertStringContainsString('series: @json($attendanceOverviewChartSeries)', $attendanceOverviewView);
@@ -238,6 +241,8 @@ class AttendanceNamingConventionTest extends TestCase
 
         $this->assertStringContainsString('.mobile-stats-slider {', $profileHeaderView);
         $this->assertStringContainsString('margin-top: 1rem;', $profileHeaderView);
+        $this->assertStringContainsString('overflow-wrap: anywhere;', $profileHeaderView);
+        $this->assertStringContainsString('profile-contact-email', $profileHeaderView);
         $this->assertStringContainsString("asset('assets/default_user.jpg')", $profileHeaderView);
 
         $commonJsView = File::get(resource_path('views/layouts/commonjs.blade.php'));

@@ -10,11 +10,9 @@ use App\Models\BusinessTrip;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
-use App\Models\User;
 use App\Support\Attendance\AttendanceExceptionPresenter;
 use App\Support\Attendance\AttendanceLocationFormatter;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -22,19 +20,15 @@ class AttendanceOverviewController extends Controller
 {
     public function __construct(private readonly AttendanceExceptionPresenter $attendanceExceptionPresenter, private readonly AttendanceLocationFormatter $attendanceLocationFormatter) {}
 
-    public function index(Request $request): View
+    public function index(): View
     {
-        return view('admin_attendance.overview.index', $this->overviewViewData($request));
+        return view('admin_attendance.overview.index', $this->overviewViewData());
     }
 
-    private function overviewViewData(Request $request): array
+    private function overviewViewData(): array
     {
         $dailyAttendanceDate = now('Asia/Jakarta')->startOfDay();
-        $authenticatedUser = $request->user();
-        $currentCompanyId = $authenticatedUser instanceof User
-            ? $this->currentCompanyIdFor($authenticatedUser)
-            : null;
-        $activeEmployeeIds = $this->activeEmployeeIdsFor($dailyAttendanceDate, $currentCompanyId);
+        $activeEmployeeIds = $this->activeEmployeeIdsFor($dailyAttendanceDate);
 
         return $this->dailyAttendanceSummary($dailyAttendanceDate, $activeEmployeeIds)
             + $this->dailyAttendanceLists($dailyAttendanceDate, $activeEmployeeIds)
@@ -132,25 +126,19 @@ class AttendanceOverviewController extends Controller
         return ['yearToDateYearLabel' => $yearStart->format('Y'),            'yearToDateMonthLabels' => $monthNumbers->map(fn (int $month): string => Carbon::create((int) $yearStart->format('Y'), $month, 1)->format('M'))->all(),            'yearToDateLeaveSeries' => $leaveTypes->map(fn (object $leaveType): array => ['name' => (string) $leaveType->name,                    'data' => $monthNumbers->map(fn (int $month): int => $this->leaveDaysForMonth($leaveRows, $leaveType->id, (int) $yearStart->format('Y'), $month))->all()])->values()->all(),            'yearToDateOvertimeHoursSeries' => $monthNumbers->map(fn (int $month): float|int => $overtimeHoursByMonth[$month] ?? 0)->all()];
     }
 
-    private function currentCompanyIdFor(User $user): ?string
-    {
-        $user->loadMissing('employee.deployment:id,employee_id,current_company_id');
-        $companyId = $user->employee?->deployment?->current_company_id;
-
-        return is_string($companyId) && trim($companyId) !== '' ? trim($companyId) : null;
-    }
-
     /**     * @return Collection<int, string>     */
-    private function activeEmployeeIdsFor(Carbon $date, ?string $companyId): Collection
+    private function activeEmployeeIdsFor(Carbon $date): Collection
     {
-        if (! is_string($companyId) || trim($companyId) === '') {
-            return collect();
-        }        $todayDate = $date->toDateString();
+        $todayDate = $date->toDateString();
 
         return Employee::query()->whereNull('deleted_at')->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])->whereHas('user', function ($query): void {
-            $query->where('is_active', true);
-        })->whereHas('deployment', function ($query) use ($todayDate, $companyId): void {
-            $query->whereNull('deleted_at')->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])->where('current_company_id', $companyId)->where(function ($query) use ($todayDate): void {
+            $query
+                ->where('is_active', true)
+                ->whereDoesntHave('roles', function ($roleQuery): void {
+                    $roleQuery->where('name', 'superuser');
+                });
+        })->whereHas('deployment', function ($query) use ($todayDate): void {
+            $query->whereNull('deleted_at')->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])->where(function ($query) use ($todayDate): void {
                 $query->whereNull('join_date')->orWhereDate('join_date', '<=', $todayDate);
             })->where(function ($query) use ($todayDate): void {
                 $query->whereNull('resignation_date')->orWhereDate('resignation_date', '>=', $todayDate);

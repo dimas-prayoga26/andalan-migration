@@ -9,6 +9,7 @@ use App\Models\EmployeeDeployment;
 use App\Models\EmployeeIdentity;
 use App\Models\EmployeePicAssignment;
 use App\Models\EmployeeProfile;
+use App\Models\OfficeLocation;
 use App\Models\Permission;
 use App\Models\Position;
 use App\Models\User;
@@ -467,8 +468,9 @@ class AuthorizationController extends Controller
             'user:id,company_id,username,phone,email,is_active',
             'profile:id,employee_id,name,nickname,gender,place_of_birth,date_of_birth,marital_status',
             'identity:id,employee_id,nik,npwp,bpjs_ketenagakerjaan,bpjs_kesehatan',
-            'deployment:id,employee_id,current_company_id,current_department_id,current_position_id,join_date,resignation_date,workplace,status',
+            'deployment:id,employee_id,current_company_id,current_office_location_id,current_department_id,current_position_id,join_date,resignation_date,workplace,status',
             'deployment.company:id,name',
+            'deployment.officeLocation:id,company_id,name,address',
             'deployment.department:id,name',
             'deployment.position:id,name',
             'deployment.positions:id,name',
@@ -481,6 +483,7 @@ class AuthorizationController extends Controller
     /**
      * @return array{
      *     companies: Collection<int, Company>,
+     *     officeLocationOptions: Collection<int, array{id: string, company_id: string, label: string}>,
      *     departments: Collection<int, Department>,
      *     positions: Collection<int, Position>,
      *     picEmployees: Collection<int, Employee>
@@ -490,6 +493,19 @@ class AuthorizationController extends Controller
     {
         return [
             'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'officeLocationOptions' => OfficeLocation::query()
+                ->with('company:id,name')
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->orderBy('address')
+                ->get(['id', 'company_id', 'name', 'address'])
+                ->map(fn (OfficeLocation $officeLocation): array => [
+                    'id' => (string) $officeLocation->id,
+                    'company_id' => (string) $officeLocation->company_id,
+                    'label' => $officeLocation->name
+                        ?: trim((string) $officeLocation->company?->name.' - '.(string) $officeLocation->address),
+                ])
+                ->values(),
             'departments' => Department::query()->orderBy('name')->get(['id', 'name']),
             'positions' => Position::query()->orderBy('name')->get(['id', 'name']),
             'picEmployees' => Employee::query()
@@ -536,11 +552,20 @@ class AuthorizationController extends Controller
             'gender' => ['nullable', 'string', 'max:50'],
             'marital_status' => ['nullable', 'string', 'max:50'],
             'current_company_id' => ['nullable', 'string', 'exists:companies,id'],
+            'current_office_location_id' => [
+                'required_with:current_company_id',
+                'nullable',
+                'string',
+                Rule::exists('office_locations', 'id')->where(function ($query) use ($request): void {
+                    $query
+                        ->where('company_id', $request->input('current_company_id'))
+                        ->where('is_active', true);
+                }),
+            ],
             'current_department_id' => ['nullable', 'string', 'exists:departments,id'],
             'current_position_id' => ['nullable', 'string', 'exists:positions,id'],
             'current_position_ids' => ['array'],
             'current_position_ids.*' => ['string', 'exists:positions,id'],
-            'workplace' => ['nullable', 'string', 'max:255'],
             'join_date' => ['nullable', 'date'],
             'resignation_date' => ['nullable', 'date', 'after_or_equal:join_date'],
             'pic_employee_id' => ['nullable', 'string', 'exists:employees,id'],
@@ -612,15 +637,24 @@ class AuthorizationController extends Controller
             $primaryPositionId = null;
         }
 
+        $officeLocation = filled($validated['current_office_location_id'] ?? null)
+            ? OfficeLocation::query()
+                ->with('company:id,name')
+                ->find($validated['current_office_location_id'])
+            : null;
+        $workplace = $officeLocation?->name
+            ?? $officeLocation?->company?->name;
+
         $deployment = EmployeeDeployment::query()->updateOrCreate(
             ['employee_id' => $employee->id],
             [
                 'current_company_id' => $validated['current_company_id'] ?? null,
+                'current_office_location_id' => $officeLocation?->id,
                 'current_department_id' => $validated['current_department_id'] ?? null,
                 'current_position_id' => $primaryPositionId,
                 'join_date' => $validated['join_date'] ?? null,
                 'resignation_date' => $validated['resignation_date'] ?? null,
-                'workplace' => $validated['workplace'] ?? null,
+                'workplace' => $workplace,
                 'status' => $validated['employee_status'],
             ]
         );

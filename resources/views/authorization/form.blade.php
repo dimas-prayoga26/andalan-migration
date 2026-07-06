@@ -128,12 +128,19 @@
 
                 <div class="col-md-3">
                     <label class="form-label">Perusahaan</label>
-                    <select name="current_company_id" class="default-select form-control">
+                    <select id="dataEmployeeCompany" name="current_company_id" class="default-select form-control">
                         <option value="">Open this select menu</option>
                         @foreach ($companies as $company)
                             <option value="{{ $company->id }}" @selected(old('current_company_id', $employee?->deployment?->current_company_id) === $company->id)>{{ $company->name }}</option>
                         @endforeach
                     </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Branch / Office</label>
+                    <select id="dataEmployeeOfficeLocation" name="current_office_location_id" class="form-control @error('current_office_location_id') is-invalid @enderror">
+                        <option value="">Pilih perusahaan terlebih dahulu</option>
+                    </select>
+                    @error('current_office_location_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Divisi</label>
@@ -162,7 +169,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-3">
                     <label class="form-label">PIC / Penanggung Jawab</label>
                     <select name="pic_employee_id" class="default-select form-control">
                         <option value="">Open this select menu</option>
@@ -181,10 +188,6 @@
                 <div class="col-md-3">
                     <label class="form-label">End Contract</label>
                     <input type="text" name="resignation_date" class="form-control js-data-employee-date" value="{{ old('resignation_date', $formatDate($employee?->deployment?->resignation_date)) }}" placeholder="dd/mm/yyyy" autocomplete="off">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Workplace / Domicile</label>
-                    <textarea name="workplace" class="form-control" rows="1">{{ old('workplace', $employee?->deployment?->workplace) }}</textarea>
                 </div>
             </div>
         </div>
@@ -206,7 +209,48 @@
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
+        var dataEmployeeOfficeLocations = @json($officeLocationOptions);
+        var selectedDataEmployeeOfficeLocationId = @json((string) old('current_office_location_id', $employee?->deployment?->current_office_location_id ?? ''));
+
+        function updateDataEmployeeOfficeOptions() {
+            var companySelect = document.getElementById('dataEmployeeCompany');
+            var officeSelect = document.getElementById('dataEmployeeOfficeLocation');
+
+            if (!companySelect || !officeSelect) {
+                return;
+            }
+
+            var companyId = companySelect.value;
+            var currentSelection = officeSelect.value || selectedDataEmployeeOfficeLocationId;
+            var matchingOffices = dataEmployeeOfficeLocations.filter(function (officeLocation) {
+                return officeLocation.company_id === companyId;
+            });
+
+            officeSelect.innerHTML = '';
+            officeSelect.append(new Option(
+                companyId ? 'Pilih branch / office' : 'Pilih perusahaan terlebih dahulu',
+                ''
+            ));
+
+            matchingOffices.forEach(function (officeLocation) {
+                officeSelect.append(new Option(
+                    officeLocation.label,
+                    officeLocation.id,
+                    false,
+                    officeLocation.id === currentSelection
+                ));
+            });
+
+            officeSelect.disabled = companyId === '' || matchingOffices.length === 0;
+            selectedDataEmployeeOfficeLocationId = '';
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
+            var companySelect = document.getElementById('dataEmployeeCompany');
+
+            updateDataEmployeeOfficeOptions();
+            companySelect?.addEventListener('change', updateDataEmployeeOfficeOptions);
+
             if (!window.jQuery || !jQuery.fn.daterangepicker || typeof moment === 'undefined') {
                 return;
             }

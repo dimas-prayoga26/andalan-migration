@@ -24,6 +24,12 @@
             flex: 0 0 auto;
         }
 
+        .profile-contact-email span {
+            min-width: 0;
+            max-width: 100%;
+            word-break: break-word;
+        }
+
         @media (max-width: 767.98px) {
             .mobile-stats-offset {
                 margin-top: -8px;

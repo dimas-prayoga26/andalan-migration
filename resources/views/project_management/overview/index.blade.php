@@ -1495,7 +1495,8 @@
 				chart: {
 				height: 280,
 				type: 'radialBar',
-				offsetY: -10
+				offsetY: -10,
+				parentHeightOffset: 0
 				},
 				plotOptions: {
 				radialBar: {
@@ -1535,6 +1536,29 @@
 					colors:'#0B2A97'
 				},
 				labels: [''],
+				responsive: [{
+					breakpoint: 768,
+					options: {
+						chart: {
+							height: 230,
+							offsetY: -5,
+							parentHeightOffset: 0
+						},
+						plotOptions: {
+							radialBar: {
+								dataLabels: {
+									name: {
+										fontSize: '14px',
+										offsetY: 95
+									},
+									value: {
+										fontSize: '28px'
+									}
+								}
+							}
+						}
+					}
+				}],
 				};
 
 				var chart = new ApexCharts(radialBarTarget, options);

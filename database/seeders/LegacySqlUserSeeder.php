@@ -49,6 +49,46 @@ class LegacySqlUserSeeder extends Seeder
     ];
 
     /**
+     * @var array{address: string, latitude: float, longitude: float}
+     */
+    private const DEFAULT_JOGJA_OFFICE = [
+        'address' => 'Bulurejo, RT.04/RW.02, Gantalan, Minomartani, Kec. Ngaglik, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55581',
+        'latitude' => -7.7299965,
+        'longitude' => 110.4040011,
+    ];
+
+    /**
+     * @var array<string, array{company: string, workplace: string, office: string}>
+     */
+    private const LATEST_STAFF_DEPLOYMENTS = [
+        'lukman@rnbmanagement.com' => ['company' => 'RNB', 'workplace' => 'RNB Branch Jakarta', 'office' => 'rnb_jakarta'],
+        'rully.priyatno@andalanbersama.com' => ['company' => 'RNB', 'workplace' => 'RNB Branch Jakarta', 'office' => 'rnb_jakarta'],
+        'hilmi.ulwan@andalanbersama.com' => ['company' => 'RNB', 'workplace' => 'RNB Branch Jakarta', 'office' => 'rnb_jakarta'],
+        'diktanamira@gmail.com' => ['company' => 'RNB', 'workplace' => 'RNB Branch Jogja', 'office' => 'default_jogja'],
+        'halloerlin@gmail.com' => ['company' => 'RNB', 'workplace' => 'RNB Branch Jogja', 'office' => 'default_jogja'],
+        'fahmil@andalanbersama.com' => ['company' => 'KMA', 'workplace' => 'KMA', 'office' => 'default_jogja'],
+        'aryapardomuan@gmail.com' => ['company' => 'KMA', 'workplace' => 'KMA', 'office' => 'default_jogja'],
+        'abasyamanyusuf1999@gmail.com' => ['company' => 'KMA', 'workplace' => 'KMA', 'office' => 'default_jogja'],
+        'aarissubakti@gmail.com' => ['company' => 'KMA', 'workplace' => 'KMA', 'office' => 'default_jogja'],
+        'fuadmfahrudin@gmail.com' => ['company' => 'RNE', 'workplace' => 'RNE', 'office' => 'default_jogja'],
+        'rexy@andalanbersama.com' => ['company' => 'Trah', 'workplace' => 'TRAH', 'office' => 'default_jogja'],
+        'arumkusumawati98@gmail.com' => ['company' => 'Trah', 'workplace' => 'TRAH', 'office' => 'default_jogja'],
+        'dedystwn.interior@gmail.com' => ['company' => 'Trah', 'workplace' => 'TRAH', 'office' => 'default_jogja'],
+        'leonieputri7@gmail.com' => ['company' => 'Niskala', 'workplace' => 'Niskala', 'office' => 'default_jogja'],
+        'msyafiq.dev@gmail.com' => ['company' => 'TMS', 'workplace' => 'TMS', 'office' => 'default_jogja'],
+        'syarifhidayatullah.040203@gmail.com' => ['company' => 'TMS', 'workplace' => 'TMS', 'office' => 'default_jogja'],
+        'rifkafebriza456@gmail.com' => ['company' => 'TMS', 'workplace' => 'TMS', 'office' => 'default_jogja'],
+        'dimas.prayoga260403@gmail.com' => ['company' => 'TMS', 'workplace' => 'TMS', 'office' => 'default_jogja'],
+    ];
+
+    /**
+     * @var array<int, string>
+     */
+    private const DEACTIVATED_LEGACY_STAFF_EMAILS = [
+        'airarizqi22@gmail.com',
+    ];
+
+    /**
      * @var array<int, string>
      */
     private array $companyIdsByLegacyId = [];
@@ -89,6 +129,8 @@ class LegacySqlUserSeeder extends Seeder
                 $this->seedUsers($legacyUsers);
                 $this->seedExplicitRnbUsers();
                 $this->syncRnbJakartaOfficeAssignments();
+                $this->syncLatestStaffDeployments();
+                $this->deactivateRemovedLegacyStaff();
                 $this->seedPositionPermissions($this->parseInsertRows($dump, 'users_authorization'));
                 $this->seedSuperAdministratorAccount();
 
@@ -449,6 +491,7 @@ class LegacySqlUserSeeder extends Seeder
             ['id' => $officeLocationId],
             [
                 'company_id' => $companyId,
+                'name' => 'Jakarta',
                 'address' => self::RNB_JAKARTA_OFFICE['address'],
                 'latitude' => self::RNB_JAKARTA_OFFICE['latitude'],
                 'longitude' => self::RNB_JAKARTA_OFFICE['longitude'],
@@ -483,6 +526,165 @@ class LegacySqlUserSeeder extends Seeder
                 'deleted_at' => null,
                 'updated_at' => $now,
             ]);
+    }
+
+    private function syncLatestStaffDeployments(): void
+    {
+        $now = now();
+
+        foreach (self::LATEST_STAFF_DEPLOYMENTS as $email => $deploymentData) {
+            $employee = Employee::query()
+                ->whereHas('user', function ($query) use ($email): void {
+                    $query->whereRaw('LOWER(email) = ?', [strtolower($email)]);
+                })
+                ->with('user:id,email,company_id,is_active')
+                ->first();
+
+            if (! $employee instanceof Employee) {
+                continue;
+            }
+
+            $companyId = $this->companyIdForLatestDeployment($deploymentData['company']);
+            $officeLocationId = $this->officeLocationIdForLatestDeployment($companyId, $deploymentData['office']);
+            $joinDate = $this->existingDeploymentJoinDate($employee) ?? $now->copy()->subMonth()->toDateString();
+
+            $employee->forceFill([
+                'status' => 'Active',
+                'deleted_at' => null,
+                'updated_at' => $now,
+            ])->save();
+
+            $employee->user?->forceFill([
+                'company_id' => $companyId,
+                'is_active' => true,
+                'deleted_at' => null,
+                'updated_at' => $now,
+            ])->save();
+
+            $deployment = EmployeeDeployment::query()->updateOrCreate(
+                ['employee_id' => $employee->id],
+                [
+                    'current_company_id' => $companyId,
+                    ...$this->optionalOfficeLocationPayload($officeLocationId),
+                    'join_date' => $joinDate,
+                    'resignation_date' => null,
+                    'workplace' => $deploymentData['workplace'],
+                    'status' => 'Active',
+                    'deleted_at' => null,
+                    'updated_at' => $now,
+                    'created_at' => $now,
+                ],
+            );
+
+            $this->syncDeploymentPosition(
+                $deployment,
+                is_string($deployment->current_position_id) ? $deployment->current_position_id : null,
+                $joinDate,
+                null,
+            );
+        }
+    }
+
+    private function deactivateRemovedLegacyStaff(): void
+    {
+        $now = now();
+
+        User::query()
+            ->whereIn(DB::raw('LOWER(email)'), self::DEACTIVATED_LEGACY_STAFF_EMAILS)
+            ->with('employee.deployment')
+            ->get()
+            ->each(function (User $user) use ($now): void {
+                $user->forceFill([
+                    'is_active' => false,
+                    'updated_at' => $now,
+                ])->save();
+
+                $employee = $user->employee;
+                if (! $employee instanceof Employee) {
+                    return;
+                }
+
+                $employee->forceFill([
+                    'status' => 'Inactive',
+                    'updated_at' => $now,
+                ])->save();
+
+                if ($employee->deployment instanceof EmployeeDeployment) {
+                    $employee->deployment->forceFill([
+                        'status' => 'Inactive',
+                        'resignation_date' => $employee->deployment->resignation_date ?? $now->toDateString(),
+                        'updated_at' => $now,
+                    ])->save();
+                }
+
+                DB::table('employee_pic_assignments')
+                    ->where('staff_employee_id', $employee->id)
+                    ->update([
+                        'is_active' => false,
+                        'updated_at' => $now,
+                    ]);
+            });
+    }
+
+    private function companyIdForLatestDeployment(string $companyName): string
+    {
+        $company = Company::query()->firstOrCreate(
+            ['name' => $companyName],
+            [
+                'legal_name' => 'PT '.$companyName.' Indonesia',
+                'country' => 'Indonesia',
+                'is_active' => true,
+            ],
+        );
+
+        $this->syncOfficeLocation($company);
+
+        return (string) $company->id;
+    }
+
+    private function officeLocationIdForLatestDeployment(string $companyId, string $officeKey): ?string
+    {
+        if (! Schema::hasTable('office_locations') || ! Schema::hasColumn('employee_deployments', 'current_office_location_id')) {
+            return null;
+        }
+
+        $officeData = $officeKey === 'rnb_jakarta'
+            ? self::RNB_JAKARTA_OFFICE
+            : self::DEFAULT_JOGJA_OFFICE;
+
+        $officeLocationId = DB::table('office_locations')
+            ->where('company_id', $companyId)
+            ->where('address', $officeData['address'])
+            ->value('id');
+        $officeLocationId = is_string($officeLocationId) && trim($officeLocationId) !== ''
+            ? $officeLocationId
+            : (string) Str::uuid();
+        DB::table('office_locations')->updateOrInsert(
+            ['id' => $officeLocationId],
+            [
+                'company_id' => $companyId,
+                'name' => $officeKey === 'rnb_jakarta' ? 'Jakarta' : 'Yogyakarta',
+                'address' => $officeData['address'],
+                'latitude' => $officeData['latitude'],
+                'longitude' => $officeData['longitude'],
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
+
+        return $officeLocationId;
+    }
+
+    private function existingDeploymentJoinDate(Employee $employee): ?string
+    {
+        $joinDate = EmployeeDeployment::query()
+            ->where('employee_id', $employee->id)
+            ->value('join_date');
+
+        return is_string($joinDate) && trim($joinDate) !== ''
+            ? $joinDate
+            : null;
     }
 
     /**
@@ -766,6 +968,7 @@ class LegacySqlUserSeeder extends Seeder
             DB::table('office_locations')->insert([
                 'id' => (string) Str::uuid(),
                 'company_id' => $company->id,
+                'name' => 'Yogyakarta',
                 'address' => $officeData['address'],
                 'latitude' => $officeData['latitude'],
                 'longitude' => $officeData['longitude'],

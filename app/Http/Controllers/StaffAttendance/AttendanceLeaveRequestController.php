@@ -204,16 +204,6 @@ class AttendanceLeaveRequestController extends Controller
             ], 422);
         }
 
-        if ($normalizedPermissionType === 'sakit') {
-            $hasUploadFile = $request->hasFile('attachment_file') && $request->file('attachment_file')?->isValid() === true;
-            if (! $hasUploadFile && $temporaryAttachmentPath === null) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Lampiran wajib diisi untuk Sick Leave.',
-                ], 422);
-            }
-        }
-
         DB::transaction(function () use ($request, $validated, $durationDays, $employeeId, $temporaryAttachmentPath, $authenticatedUserId): void {
             $storedAttachmentPath = null;
             $attachmentDirectory = 'leave-request-attachments';
@@ -308,6 +298,10 @@ class AttendanceLeaveRequestController extends Controller
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk mengubah data izin ini.',
             ], 403);
+        }
+
+        if ($this->canUpdateApprovedSickAttachment($authenticatedUser, $leaveRequest)) {
+            return $this->updateApprovedSickAttachment($request, $leaveRequest, $authenticatedUser);
         }
 
         if ($leaveRequest->hasApprovedSupervisorReview()) {
@@ -408,14 +402,6 @@ class AttendanceLeaveRequestController extends Controller
         }
 
         $existingAttachmentPath = is_string($leaveRequest->attachment_path) ? trim($leaveRequest->attachment_path) : '';
-        $hasNewAttachment = $request->hasFile('attachment_file') && $request->file('attachment_file')?->isValid() === true;
-        if ($normalizedPermissionType === 'sakit' && ! $hasNewAttachment && $existingAttachmentPath === '') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Lampiran wajib diisi untuk Sick Leave.',
-            ], 422);
-        }
-
         $authenticatedUserId = is_string($authenticatedUser?->id) || is_int($authenticatedUser?->id)
             ? (string) $authenticatedUser->id
             : '';
@@ -698,7 +684,91 @@ class AttendanceLeaveRequestController extends Controller
     private function canUpdatePermissionRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
     {
         return $this->canStaffManageOwnLeaveRequest($authenticatedUser, $leaveRequest)
-            && ! $leaveRequest->hasApprovedSupervisorReview();
+            && (
+                ! $leaveRequest->hasApprovedSupervisorReview()
+                || $this->canUpdateApprovedSickAttachment($authenticatedUser, $leaveRequest)
+            );
+    }
+
+    private function canUpdateApprovedSickAttachment(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
+    {
+        if (! $this->canStaffManageOwnLeaveRequest($authenticatedUser, $leaveRequest)) {
+            return false;
+        }
+
+        $status = strtolower(trim((string) $leaveRequest->status));
+
+        return $status === 'approved' && $this->isSickLeaveRequest($leaveRequest);
+    }
+
+    private function isSickLeaveRequest(LeaveRequest $leaveRequest): bool
+    {
+        $leaveRequest->loadMissing('leaveType:id,code,name');
+        $leaveTypeCode = strtolower(trim((string) $leaveRequest->leaveType?->code));
+        $leaveTypeName = strtolower(trim((string) $leaveRequest->leaveType?->name));
+
+        return in_array($leaveTypeCode, ['sick', 'sick_leave'], true)
+            || in_array($leaveTypeName, ['sakit', 'cuti sakit', 'sick leave'], true);
+    }
+
+    private function updateApprovedSickAttachment(Request $request, LeaveRequest $leaveRequest, User $authenticatedUser): JsonResponse
+    {
+        $request->validate([
+            'attachment_file' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:1024'],
+        ]);
+
+        $attachmentFile = $request->file('attachment_file');
+        if (! $attachmentFile || ! $attachmentFile->isValid()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Medical Notes image tidak valid.',
+            ], 422);
+        }
+
+        $attachmentDirectory = 'leave-request-attachments';
+        if (! $this->publicDisk()->directoryExists($attachmentDirectory)) {
+            $this->publicDisk()->makeDirectory($attachmentDirectory);
+        }
+
+        $originalName = $attachmentFile->getClientOriginalName();
+        $sanitizedName = Str::slug(pathinfo($originalName, PATHINFO_FILENAME));
+        $extension = strtolower((string) $attachmentFile->getClientOriginalExtension());
+        $storedFileName = now()->format('YmdHis').'_'.Str::random(8).'_'.$sanitizedName.'.'.$extension;
+        $newStoredPath = $attachmentFile->storeAs($attachmentDirectory, $storedFileName, 'public');
+        if ($newStoredPath === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Medical Notes image gagal disimpan.',
+            ], 422);
+        }
+
+        $existingAttachmentPath = trim((string) $leaveRequest->attachment_path);
+        $authenticatedUserId = (string) $authenticatedUser->id;
+
+        DB::transaction(function () use ($leaveRequest, $newStoredPath, $authenticatedUserId): void {
+            $leaveRequest->update([
+                'attachment_path' => $newStoredPath,
+            ]);
+
+            $this->writeLeaveRequestHistory(
+                leaveRequest: $leaveRequest,
+                eventType: 'attachment_updated',
+                title: 'Medical Notes Updated',
+                fromStatus: 'approved',
+                toStatus: 'approved',
+                notes: null,
+                actorUserId: $authenticatedUserId,
+            );
+        });
+
+        if ($existingAttachmentPath !== '' && $existingAttachmentPath !== $newStoredPath) {
+            $this->publicDisk()->delete($existingAttachmentPath);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Medical Notes image berhasil diperbarui.',
+        ]);
     }
 
     private function canStaffManageOwnLeaveRequest(?User $authenticatedUser, LeaveRequest $leaveRequest): bool
@@ -781,6 +851,7 @@ class AttendanceLeaveRequestController extends Controller
      *     id:string,
      *     can_view:bool,
      *     can_update:bool,
+     *     attachment_only_update:bool,
      *     can_delete:bool,
      *     leave_type_id:string,
      *     start_date_value:string,
@@ -880,11 +951,13 @@ class AttendanceLeaveRequestController extends Controller
             $modalTitle = $isSickLeave ? 'Attendance Sick' : $leaveTypeName;
             $attachmentPath = is_string($leaveRequest->attachment_path) ? trim($leaveRequest->attachment_path) : '';
             $hasApprovedSupervisorReview = $leaveRequest->hasApprovedSupervisorReview();
+            $attachmentOnlyUpdate = $this->canUpdateApprovedSickAttachment($authenticatedUser, $leaveRequest);
 
             return [
                 'id' => (string) $leaveRequest->id,
                 'can_view' => ! $hasApprovedSupervisorReview,
                 'can_update' => $this->canUpdatePermissionRequest($authenticatedUser, $leaveRequest),
+                'attachment_only_update' => $attachmentOnlyUpdate,
                 'can_delete' => $this->canDeletePermissionRequest($authenticatedUser, $leaveRequest),
                 'leave_type_id' => (string) $leaveRequest->leave_type_id,
                 'start_date_value' => $startDate->toDateString(),

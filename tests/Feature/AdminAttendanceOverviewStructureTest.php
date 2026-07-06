@@ -52,6 +52,11 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertSame('admin-attendance/recap-attendance/{employee}', $detailRoute?->uri());
         $this->assertSame('admin-attendance/recap-attendance/{employee}/datatable', $detailDatatableRoute?->uri());
         $this->assertStringContainsString('overviewViewData', $overviewController);
+        $this->assertStringContainsString('activeEmployeeIdsFor($dailyAttendanceDate)', $overviewController);
+        $this->assertStringContainsString("->whereDoesntHave('roles'", $overviewController);
+        $this->assertStringContainsString("->where('name', 'superuser')", $overviewController);
+        $this->assertStringNotContainsString('currentCompanyIdFor', $overviewController);
+        $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $overviewController);
         $this->assertStringNotContainsString('function recap', $overviewController);
         $this->assertStringNotContainsString('AttendanceOverviewController', $recapController);
         $this->assertStringContainsString('recapViewData', $recapController);

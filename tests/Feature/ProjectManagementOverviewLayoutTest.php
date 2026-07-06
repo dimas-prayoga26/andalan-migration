@@ -50,7 +50,9 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("asset('assets/default_user.jpg')", $profileHeader);
         $this->assertStringContainsString('overflow-wrap: anywhere;', $profileHeader);
         $this->assertStringContainsString('profile-contact-email', $profileHeader);
+        $this->assertStringContainsString('word-break: break-word;', $profileHeader);
         $this->assertStringContainsString('class="project-progress-radial-chart"', $overview);
+        $this->assertStringContainsString('parentHeightOffset: 0', $overview);
         $this->assertStringContainsString('employee.profile:id,employee_id,name,profile_picture_path', $profileComposer);
         $this->assertStringNotContainsString('userProfile', $profileComposer);
         $this->assertIsString(view('project_management.overview.index')->render());

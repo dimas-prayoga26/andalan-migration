@@ -13,13 +13,15 @@
             position: relative;
             width: 240px;
             max-width: 100%;
-            height: 200px;
             margin: 0 auto 1.5rem;
         }
 
         .attendance-overview-donut #pieChart {
             width: 100%;
-            height: 100%;
+        }
+
+        .attendance-overview-donut #pieChart:empty {
+            min-height: 180px;
         }
 
         .attendance-overview-donut-icon {
@@ -69,7 +71,6 @@
 
             .attendance-overview-donut {
                 width: 220px;
-                height: 180px;
             }
         }
 
@@ -446,7 +447,8 @@
                 series: @json($attendanceOverviewChartSeries),
                 chart: {
                     type: 'donut',
-                    height: 200
+                    height: 200,
+                    parentHeightOffset: 0
                 },
                 labels: ['On Time', 'Late', 'Leave', 'Deviation'],
                 legend: {
@@ -463,7 +465,8 @@
                     breakpoint: 768,
                     options: {
                         chart: {
-                            height: 180
+                            height: 180,
+                            parentHeightOffset: 0
                         }
                     }
                 }]
@@ -481,7 +484,8 @@
                 chart: {
                     height: 280,
                     type: 'radialBar',
-                    offsetY: -10
+                    offsetY: -10,
+                    parentHeightOffset: 0
                 },
                 plotOptions: {
                     radialBar: {

@@ -17,7 +17,7 @@ class LegacyEmployeeAssignmentSeederTest extends TestCase
         $this->assertSame(['Supervisor'], $additionalPositions->invoke($seeder, [
             'email' => 'lukman@rnbmanagement.com',
         ]));
-        $this->assertSame(['Supervisor'], $additionalPositions->invoke($seeder, [
+        $this->assertSame(['Administrator', 'Supervisor'], $additionalPositions->invoke($seeder, [
             'email' => 'leonieputri7@gmail.com',
         ]));
         $this->assertTrue($isExcludedLegacyUser->invoke($seeder, [

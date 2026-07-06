@@ -172,7 +172,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringContainsString('NiskalaMultiPicLeaveSeeder::class', $databaseSeeder);
         $this->assertStringContainsString("'halloerlin@gmail.com' => ['Administrator', 'Accounting and Taxation']", $legacySeeder);
         $this->assertStringContainsString("'diktanamira@gmail.com' => ['Administrator', 'Accounting and Taxation']", $legacySeeder);
-        $this->assertStringContainsString("'leonieputri7@gmail.com' => ['Supervisor']", $legacySeeder);
+        $this->assertStringContainsString("'leonieputri7@gmail.com' => ['Administrator', 'Supervisor']", $legacySeeder);
         $this->assertStringContainsString("'msyafiq.dev@gmail.com' => ['Supervisor']", $legacySeeder);
         $this->assertStringContainsString("'rexy@andalanbersama.com' => ['Director', 'Supervisor']", $legacySeeder);
         $this->assertStringContainsString("'fuadmfahrudin@gmail.com' => ['Director', 'Supervisor']", $legacySeeder);

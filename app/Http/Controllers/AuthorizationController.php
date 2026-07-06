@@ -111,7 +111,7 @@ class AuthorizationController extends Controller
         return view('authorization.form', [
             'mode' => 'edit',
             'employee' => $this->loadDataEmployee($employee),
-        ] + $this->dataEmployeeFormOptions($employee));
+        ] + $this->dataEmployeeFormOptions());
     }
 
     public function update(Request $request, Employee $employee): RedirectResponse
@@ -489,7 +489,7 @@ class AuthorizationController extends Controller
      *     picEmployees: Collection<int, Employee>
      * }
      */
-    private function dataEmployeeFormOptions(?Employee $employee = null): array
+    private function dataEmployeeFormOptions(): array
     {
         return [
             'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
@@ -510,7 +510,6 @@ class AuthorizationController extends Controller
             'positions' => Position::query()->orderBy('name')->get(['id', 'name']),
             'picEmployees' => Employee::query()
                 ->with('profile:id,employee_id,name')
-                ->when($employee instanceof Employee, fn ($query) => $query->whereKeyNot($employee->id))
                 ->orderBy('employee_code')
                 ->get(['id', 'employee_code']),
         ];
@@ -733,7 +732,7 @@ class AuthorizationController extends Controller
             ->update(['is_active' => false]);
 
         $picEmployeeId = is_string($picEmployeeId) ? trim($picEmployeeId) : '';
-        if ($picEmployeeId === '' || $picEmployeeId === $employee->id) {
+        if ($picEmployeeId === '') {
             return;
         }
 

@@ -8,10 +8,11 @@
 
             return file_exists($assetPath) ? filemtime($assetPath) : time();
         };
+        $documentTitle = ($brandName ?? 'Dev').' - Siap';
     @endphp
     
 	<!-- Title -->
-	<title>Gymove  - Fitness Bootstrap Admin Dashboard Template</title>
+	<title>{{ $documentTitle }}</title>
 
 	<!-- Meta -->
 	<meta charset="utf-8">
@@ -22,7 +23,7 @@
 	<meta name="keywords" content="admin, admin dashboard, admin template, bootstrap, bootstrap 5, bootstrap 5 admin template, fitness, fitness admin, modern, responsive admin dashboard, sales dashboard, sass, ui kit, web app">
 	<meta name="description" content="Discover Gymove, the ultimate fitness solution that is designed to help you achieve a healthier lifestyle with its cutting-edge features and personalized programs. Gymove is a fully mobile-responsive admin dashboard template that provides the perfect blend of exercise, nutrition, and motivation. Begin your fitness journey today with Gymove and visit DexignZone for more information.">
 
-	<meta property="og:title" content="Gymove  - Fitness Bootstrap Admin Dashboard Template">
+	<meta property="og:title" content="{{ $documentTitle }}">
 	<meta property="og:description" content="Discover Gymove, the ultimate fitness solution that is designed to help you achieve a healthier lifestyle with its cutting-edge features and personalized programs. Gymove is a fully mobile-responsive admin dashboard template that provides the perfect blend of exercise, nutrition, and motivation. Begin your fitness journey today with Gymove and visit DexignZone for more information.">
 	<meta property="og:image" content="https://gymove.dexignzone.com/xhtml/social-image.avif">
 	<meta name="format-detection" content="telephone=no">
@@ -46,6 +47,7 @@
 	<!-- Start - Style Css -->
 	<link class="main-plugins" href="{{ asset('assets/css/plugins.css') }}?v={{ $assetVersion('css/plugins.css') }}" rel="stylesheet">
 	<link class="main-css" href="{{ asset('assets/css/style.css') }}?v={{ $assetVersion('css/style.css') }}" rel="stylesheet">
+	<link href="{{ asset('assets/icons/font-awesome/css/all.min.css') }}?v={{ $assetVersion('icons/font-awesome/css/all.min.css') }}" rel="stylesheet">
 	<!-- End - Style Css -->
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 	<style>
@@ -61,8 +63,18 @@
 		}
 
 		.show-pass {
+			width: 2.5rem;
+			height: 2.5rem;
+			border: 0;
+			background: transparent;
+			color: var(--bs-body-color);
 			cursor: pointer;
 			user-select: none;
+		}
+
+		.show-pass:focus-visible {
+			outline: 2px solid var(--bs-primary);
+			outline-offset: 2px;
 		}
 
 		.show-pass .hide {
@@ -74,7 +86,7 @@
 		}
 
 		.show-pass.is-visible .hide {
-			display: inline;
+			display: inline-flex;
 		}
 	</style>
     
@@ -107,11 +119,11 @@
 							<div class="form-group mb-3">
 								<label class="form-label"><strong>Password</strong></label>
 								<div class="position-relative">
-									<input type="password" name="password" autocomplete="current-password" class="form-control form-control-lg dz-password" placeholder="Enter your password" required>
-									<span class="show-pass position-absolute top-50 end-0 me-2 translate-middle">
-										<span class="show"><i class="fa fa-eye-slash"></i></span>
-										<span class="hide"><i class="fa fa-eye"></i></span>
-									</span>
+									<input type="password" name="password" autocomplete="current-password" class="form-control form-control-lg dz-password pe-5" placeholder="Enter your password" required>
+									<button type="button" class="show-pass position-absolute top-50 end-0 me-2 translate-middle-y" aria-label="Tampilkan password" aria-pressed="false" title="Tampilkan password">
+										<span class="show" aria-hidden="true"><i class="fa-solid fa-eye"></i></span>
+										<span class="hide" aria-hidden="true"><i class="fa-solid fa-eye-slash"></i></span>
+									</button>
 								</div>
 							</div>
 							<div class="form-row d-flex justify-content-between mt-4 mb-2 flex-wrap">
@@ -156,7 +168,7 @@
 			const passwordInput = loginForm?.querySelector('input[name="password"]');
 			const showPassButton = loginForm?.querySelector('.show-pass');
 
-			if (!loginForm || typeof Swal === 'undefined') {
+			if (!loginForm) {
 				return;
 			}
 
@@ -165,7 +177,14 @@
 					const isCurrentlyVisible = passwordInput.type === 'text';
 					passwordInput.type = isCurrentlyVisible ? 'password' : 'text';
 					showPassButton.classList.toggle('is-visible', !isCurrentlyVisible);
+					showPassButton.setAttribute('aria-pressed', String(!isCurrentlyVisible));
+					showPassButton.setAttribute('aria-label', isCurrentlyVisible ? 'Tampilkan password' : 'Sembunyikan password');
+					showPassButton.setAttribute('title', isCurrentlyVisible ? 'Tampilkan password' : 'Sembunyikan password');
 				});
+			}
+
+			if (typeof Swal === 'undefined') {
+				return;
 			}
 
 			loginForm.addEventListener('submit', async function (event) {

@@ -267,6 +267,9 @@
                                 </div>
                                 <div class="col-12">
                                     <span>{{ $overtimeCard['date_label'] }}</span> <br>
+                                    @if ($overtimeCard['is_overnight'])
+                                        <span class="badge badge-sm badge-primary light fw-semibold mt-1">Overnight</span>
+                                    @endif
                                 </div>
                             </div>
                             <div class="row py-1">
@@ -423,15 +426,9 @@
                         <textarea class="form-control @error('instruction', 'picOvertimeStore') is-invalid @enderror" id="pic-overtime-instruction" name="instruction" rows="4" required>{{ old('instruction') }}</textarea>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="pic-overtime-start-date" class="form-label">Start Date</label>
-                            <input type="text" class="form-control pic-overtime-date-picker @error('start_date', 'picOvertimeStore') is-invalid @enderror" id="pic-overtime-start-date" name="start_date" value="{{ old('start_date') }}" placeholder="yyyy-mm-dd" autocomplete="off" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="pic-overtime-end-date" class="form-label">End Date</label>
-                            <input type="text" class="form-control pic-overtime-date-picker @error('end_date', 'picOvertimeStore') is-invalid @enderror" id="pic-overtime-end-date" name="end_date" value="{{ old('end_date') }}" placeholder="yyyy-mm-dd" autocomplete="off" required>
-                        </div>
+                    <div class="mb-3">
+                        <label for="pic-overtime-date" class="form-label">Overtime Date</label>
+                        <input type="text" class="form-control pic-overtime-date-picker @error('overtime_date', 'picOvertimeStore') is-invalid @enderror" id="pic-overtime-date" name="overtime_date" value="{{ old('overtime_date') }}" placeholder="yyyy-mm-dd" autocomplete="off" required>
                     </div>
 
                     <div class="row">
@@ -444,6 +441,13 @@
                             <input type="time" class="form-control @error('end_time', 'picOvertimeStore') is-invalid @enderror" id="pic-overtime-end-time" name="end_time" value="{{ old('end_time') }}" required>
                         </div>
                     </div>
+
+                    <div class="form-check form-switch mb-2">
+                        <input type="hidden" name="ends_next_day" value="0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="pic-overtime-ends-next-day" name="ends_next_day" value="1" @checked(old('ends_next_day'))>
+                        <label class="form-check-label fw-semibold" for="pic-overtime-ends-next-day">Berakhir hari berikutnya</label>
+                    </div>
+                    <div class="form-text mb-3" id="pic-overtime-schedule-preview">Isi tanggal dan waktu untuk melihat jadwal overtime.</div>
 
                     <div class="mb-3">
                         <label for="pic-overtime-assign-staff" class="form-label">Assign Staff</label>
@@ -484,10 +488,13 @@
             }
 
             var $modal = jQuery('#picAddOvertimeModal');
-            var $startDate = jQuery('#pic-overtime-start-date');
-            var $endDate = jQuery('#pic-overtime-end-date');
+            var $overtimeDate = jQuery('#pic-overtime-date');
+            var $startTime = jQuery('#pic-overtime-start-time');
+            var $endTime = jQuery('#pic-overtime-end-time');
+            var $endsNextDay = jQuery('#pic-overtime-ends-next-day');
+            var $schedulePreview = jQuery('#pic-overtime-schedule-preview');
 
-            if (!$modal.length || !$startDate.length || !$endDate.length) {
+            if (!$modal.length || !$overtimeDate.length) {
                 return;
             }
 
@@ -501,25 +508,56 @@
                 zIndexOffset: 1060,
             };
 
-            $endDate.datepicker(datepickerOptions);
+            function formatOvertimeDate(dateValue) {
+                var parts = dateValue.split('-');
 
-            $startDate.datepicker(datepickerOptions).on('changeDate', function (event) {
-                var endDate = $endDate.datepicker('getDate');
-
-                $endDate.datepicker('setStartDate', event.date);
-
-                if (endDate && event.date && endDate < event.date) {
-                    $endDate.datepicker('setDate', event.date);
+                if (parts.length !== 3) {
+                    return null;
                 }
-            });
 
-            $startDate.on('clearDate', function () {
-                $endDate.datepicker('setStartDate', null);
-            });
+                var date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+
+                return Number.isNaN(date.getTime()) ? null : date;
+            }
+
+            function formatOvertimeDateLabel(date) {
+                return new Intl.DateTimeFormat('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                }).format(date);
+            }
+
+            function updateOvertimeSchedulePreview() {
+                var date = formatOvertimeDate($overtimeDate.val());
+                var startTime = $startTime.val();
+                var endTime = $endTime.val();
+
+                if (!date || !startTime || !endTime) {
+                    $schedulePreview.text('Isi tanggal dan waktu untuk melihat jadwal overtime.');
+
+                    return;
+                }
+
+                var startLabel = formatOvertimeDateLabel(date) + ', ' + startTime;
+                var endLabel = endTime;
+
+                if ($endsNextDay.is(':checked')) {
+                    var endDate = new Date(date.getTime());
+                    endDate.setDate(endDate.getDate() + 1);
+                    endLabel = formatOvertimeDateLabel(endDate) + ', ' + endTime;
+                }
+
+                $schedulePreview.text('Schedule: ' + startLabel + ' → ' + endLabel);
+            }
+
+            $overtimeDate.datepicker(datepickerOptions)
+                .on('changeDate clearDate change', updateOvertimeSchedulePreview);
+            $startTime.add($endTime).add($endsNextDay).on('change input', updateOvertimeSchedulePreview);
+            updateOvertimeSchedulePreview();
 
             $modal.on('hidden.bs.modal', function () {
-                $startDate.datepicker('hide');
-                $endDate.datepicker('hide');
+                $overtimeDate.datepicker('hide');
             });
         });
     </script>

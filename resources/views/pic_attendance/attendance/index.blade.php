@@ -59,7 +59,8 @@
 							<td data-capture-tone="{{ $row['attachment_badge'] }}">{{ $row['note'] }}</td>
 							<td>{{ $row['working_hours'] }}</td>
 							<td>
-								<button
+								@if ($row['has_detail'])
+									<button
 									type="button"
 									class="btn btn-square btn-{{ $row['attachment_badge'] }} light btn-xs"
 									data-capture-tone="{{ $row['attachment_badge'] }}"
@@ -92,7 +93,10 @@
 									aria-label="View {{ $row['name'] }} attendance details"
 								>
 									<i class="fa-regular fa-file-lines"></i>
-								</button>
+									</button>
+								@else
+									<span>-</span>
+								@endif
 							</td>
 						</tr>
 					@empty

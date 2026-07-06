@@ -34,6 +34,7 @@
                 <p class="mb-0 text-muted fs-13">Lengkapi data user, profile, identity, deployment, dan PIC.</p>
             </div>
             <div class="form-check form-switch">
+                <input type="hidden" name="is_active" value="0">
                 <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" @checked(old('is_active', $employee?->user?->is_active ?? true))>
                 <label class="form-check-label fw-semibold" for="is_active">Status Karyawan</label>
             </div>

@@ -70,7 +70,7 @@ class AuthorizationController extends Controller
                 'phone' => $validated['phone'] ?? null,
                 'company_id' => $validated['current_company_id'] ?? null,
                 'password' => Hash::make((string) $validated['password']),
-                'is_active' => (bool) ($validated['is_active'] ?? true),
+                'is_active' => (bool) $validated['is_active'],
             ]);
 
             $employee = Employee::query()->create([
@@ -130,7 +130,7 @@ class AuthorizationController extends Controller
                 'email' => $validated['email'],
                 'phone' => $validated['phone'] ?? null,
                 'company_id' => $validated['current_company_id'] ?? null,
-                'is_active' => (bool) ($validated['is_active'] ?? true),
+                'is_active' => (bool) $validated['is_active'],
             ]);
 
             if (filled($validated['password'] ?? null)) {
@@ -526,6 +526,7 @@ class AuthorizationController extends Controller
             : ['required', 'string', 'min:6'];
 
         $request->merge([
+            'is_active' => $request->boolean('is_active'),
             'date_of_birth' => $this->normalizeDateInput($request->input('date_of_birth')),
             'employee_status' => 'Active',
             'join_date' => $this->normalizeDateInput($request->input('join_date')),
@@ -533,7 +534,7 @@ class AuthorizationController extends Controller
         ]);
 
         return $request->validate([
-            'is_active' => ['nullable', 'boolean'],
+            'is_active' => ['required', 'boolean'],
             'employee_status' => ['required', 'string', 'max:50'],
             'employee_code' => ['nullable', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],

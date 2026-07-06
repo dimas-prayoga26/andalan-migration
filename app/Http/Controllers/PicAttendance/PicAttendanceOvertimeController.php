@@ -119,10 +119,10 @@ class PicAttendanceOvertimeController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validateWithBag('picOvertimeStore', [
-            'start_date' => ['required', 'date_format:Y-m-d'],
-            'end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date'],
+            'overtime_date' => ['required', 'date_format:Y-m-d'],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i'],
+            'ends_next_day' => ['required', 'boolean'],
             'employee_id' => ['required', 'string'],
             'instruction' => ['required', 'string', 'max:5000'],
         ]);
@@ -130,42 +130,49 @@ class PicAttendanceOvertimeController extends Controller
         $authenticatedUser = $request->user();
         abort_unless($authenticatedUser instanceof User, 403);
 
-        $startDate = Carbon::createFromFormat('Y-m-d', $validated['start_date'], 'Asia/Jakarta')->startOfDay();
-        $endDate = Carbon::createFromFormat('Y-m-d', $validated['end_date'], 'Asia/Jakarta')->startOfDay();
+        $overtimeDate = Carbon::createFromFormat('Y-m-d', $validated['overtime_date'], 'Asia/Jakarta')->startOfDay();
         $startTime = $this->normalizeSubmittedTime($validated['start_time']);
         $endTime = $this->normalizeSubmittedTime($validated['end_time']);
+        $endsNextDay = (bool) $validated['ends_next_day'];
+        $startDateTime = $this->overtimeDateTime($overtimeDate, $startTime);
+        $endDateTime = $this->overtimeEndDateTime($overtimeDate, $endTime, $endsNextDay);
+
+        if ($endDateTime->lessThanOrEqualTo($startDateTime)) {
+            $this->throwPicOvertimeValidationException('end_time', 'End time harus setelah start time. Aktifkan Berakhir hari berikutnya jika lembur melewati tengah malam.');
+        }
+
+        if ($startDateTime->diffInMinutes($endDateTime) > 1440) {
+            $this->throwPicOvertimeValidationException('end_time', 'Durasi overtime tidak boleh lebih dari 24 jam.');
+        }
+
         $selectedEmployeeId = trim((string) $validated['employee_id']);
         $assignableStaffIds = $this->activeSupervisedEmployeeIdsFor(
             $authenticatedUser,
             $this->currentCompanyIdFor($authenticatedUser),
-            $startDate
+            $overtimeDate
         );
 
         if (! $assignableStaffIds->contains($selectedEmployeeId)) {
             $this->throwPicOvertimeValidationException('employee_id', 'Staff yang dipilih bukan bawahan supervisor ini.');
         }
 
-        $overtimeDates = $this->overtimeAssignmentDates($startDate, $endDate, $startTime, $endTime);
-
-        DB::transaction(function () use ($authenticatedUser, $validated, $selectedEmployeeId, $overtimeDates, $startTime, $endTime): void {
+        DB::transaction(function () use ($authenticatedUser, $validated, $selectedEmployeeId, $overtimeDate, $startTime, $endTime): void {
             $createdAt = Carbon::now('Asia/Jakarta');
 
-            foreach ($overtimeDates as $overtimeDate) {
-                $overtime = AttendanceOvertime::query()->create([
-                    'employee_id' => $selectedEmployeeId,
-                    'assigned_by' => $authenticatedUser->id,
-                    'overtime_date' => $overtimeDate->toDateString(),
-                    'planned_start_time' => $startTime,
-                    'planned_end_time' => $endTime,
-                    'instruction' => $validated['instruction'],
-                    'actual_start_time' => null,
-                    'actual_end_time' => null,
-                    'calculated_hours' => null,
-                    'status' => 'assigned',
-                ]);
+            $overtime = AttendanceOvertime::query()->create([
+                'employee_id' => $selectedEmployeeId,
+                'assigned_by' => $authenticatedUser->id,
+                'overtime_date' => $overtimeDate->toDateString(),
+                'planned_start_time' => $startTime,
+                'planned_end_time' => $endTime,
+                'instruction' => $validated['instruction'],
+                'actual_start_time' => null,
+                'actual_end_time' => null,
+                'calculated_hours' => null,
+                'status' => 'assigned',
+            ]);
 
-                $this->createInitialOvertimeLifecycleLogs($overtime, $authenticatedUser, $createdAt);
-            }
+            $this->createInitialOvertimeLifecycleLogs($overtime, $authenticatedUser, $createdAt);
         });
 
         return redirect()
@@ -425,30 +432,16 @@ class PicAttendanceOvertimeController extends Controller
             && (string) $projectTask->employee_id === (string) $attendanceOvertime->employee_id;
     }
 
-    /**
-     * @return Collection<int, Carbon>
-     */
-    private function overtimeAssignmentDates(Carbon $startDate, Carbon $endDate, string $startTime, string $endTime): Collection
+    private function overtimeDateTime(Carbon $overtimeDate, string $time): Carbon
     {
-        if ($this->isSingleOvernightDateRange($startDate, $endDate, $startTime, $endTime)) {
-            return collect([$startDate->copy()]);
-        }
-
-        $dates = collect();
-        $overtimeDate = $startDate->copy();
-
-        while ($overtimeDate->lte($endDate)) {
-            $dates->push($overtimeDate->copy());
-            $overtimeDate->addDay();
-        }
-
-        return $dates;
+        return Carbon::parse($overtimeDate->toDateString().' '.$time, 'Asia/Jakarta');
     }
 
-    private function isSingleOvernightDateRange(Carbon $startDate, Carbon $endDate, string $startTime, string $endTime): bool
+    private function overtimeEndDateTime(Carbon $overtimeDate, string $endTime, bool $endsNextDay): Carbon
     {
-        return $endTime <= $startTime
-            && $startDate->copy()->addDay()->isSameDay($endDate);
+        $endDateTime = $this->overtimeDateTime($overtimeDate, $endTime);
+
+        return $endsNextDay ? $endDateTime->addDay() : $endDateTime;
     }
 
     /**
@@ -638,6 +631,7 @@ class PicAttendanceOvertimeController extends Controller
      *     employee_name:string,
      *     instruction:string,
      *     date_label:string,
+     *     is_overnight:bool,
      *     time_lines:array<int, array{label:string,strike:bool}>,
      *     supervisor_name:string,
      *     detail_url:string,
@@ -684,7 +678,6 @@ class PicAttendanceOvertimeController extends Controller
                 'assignedBy:id,username,email',
                 'assignedBy.employee:id,user_id',
                 'assignedBy.employee.profile:id,employee_id,name',
-                'projectTasks:id,overtime_id,start_date,due_date',
                 'lifecycleLogs:id,overtime_id,event_key,title,status,step_order',
             ])
             ->orderByDesc('overtime_date')
@@ -701,6 +694,7 @@ class PicAttendanceOvertimeController extends Controller
      *     employee_name:string,
      *     instruction:string,
      *     date_label:string,
+     *     is_overnight:bool,
      *     time_lines:array<int, array{label:string,strike:bool}>,
      *     supervisor_name:string,
      *     detail_url:string,
@@ -709,17 +703,18 @@ class PicAttendanceOvertimeController extends Controller
      */
     private function picOvertimeCardFor(AttendanceOvertime $overtime): array
     {
-        $task = $overtime->projectTasks->first();
         $lifecycleLogsByEvent = $overtime->lifecycleLogs->keyBy('event_key');
         $verificationStatus = strtolower(trim((string) ($lifecycleLogsByEvent->get('task_hours_verification')?->status ?? '')));
         $isVerified = $verificationStatus === 'verified';
+        $isOvernight = $this->isOvernightTimeRange($overtime->planned_start_time, $overtime->planned_end_time);
 
         return [
             'uid' => (string) $overtime->id,
             'record_number' => '#'.(is_string($overtime->record_number) && trim($overtime->record_number) !== '' ? trim($overtime->record_number) : '-'),
             'employee_name' => $this->employeeDisplayName($overtime->employee),
             'instruction' => is_string($overtime->instruction) && trim($overtime->instruction) !== '' ? trim($overtime->instruction) : '-',
-            'date_label' => $this->dateRangeLabel($task?->start_date ?: $overtime->overtime_date, $task?->due_date ?: $overtime->overtime_date),
+            'date_label' => $this->overtimeDateLabel($overtime->overtime_date, $isOvernight),
+            'is_overnight' => $isOvernight,
             'time_lines' => $this->timeLinesFor($overtime, $isVerified),
             'supervisor_name' => $this->supervisorDisplayName($overtime),
             'detail_url' => route('pic-attendance.overtime.detail', ['uid' => $overtime->id]),
@@ -777,6 +772,26 @@ class PicAttendanceOvertimeController extends Controller
         }
 
         return $startDate->format('d M Y').' - '.$endDate->format('d M Y');
+    }
+
+    private function overtimeDateLabel(mixed $overtimeDateValue, bool $isOvernight): string
+    {
+        $startDate = Carbon::parse($overtimeDateValue, 'Asia/Jakarta');
+
+        if (! $isOvernight) {
+            return $startDate->format('d M Y');
+        }
+
+        return $startDate->format('d M Y').' → '.$startDate->copy()->addDay()->format('d M Y');
+    }
+
+    private function isOvernightTimeRange(mixed $startTimeValue, mixed $endTimeValue): bool
+    {
+        if (! is_string($startTimeValue) || ! is_string($endTimeValue)) {
+            return false;
+        }
+
+        return trim($endTimeValue) <= trim($startTimeValue);
     }
 
     /**

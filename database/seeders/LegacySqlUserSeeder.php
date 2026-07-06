@@ -916,7 +916,7 @@ class LegacySqlUserSeeder extends Seeder
             'fuadmfahrudin@gmail.com' => ['Director', 'Supervisor'],
             'fahmil@andalanbersama.com' => ['Director', 'Supervisor'],
             'lukman@rnbmanagement.com' => ['Supervisor'],
-            'leonieputri7@gmail.com' => ['Supervisor'],
+            'leonieputri7@gmail.com' => ['Administrator', 'Supervisor'],
             default => [],
         };
     }

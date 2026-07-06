@@ -57,4 +57,14 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
             $this->assertStringContainsString("'{$email}'", $controller);
         }
     }
+
+    public function test_admin_attendance_employee_avatar_uses_default_and_remote_profile_urls(): void
+    {
+        $controller = app(AttendanceRecapController::class);
+        $method = new ReflectionMethod(AttendanceRecapController::class, 'employeeAvatarUrl');
+
+        $this->assertSame(asset('assets/default_user.jpg'), $method->invoke($controller, null));
+        $this->assertSame(asset('assets/default_user.jpg'), $method->invoke($controller, 'missing/profile.jpg'));
+        $this->assertSame('https://example.test/profile.jpg', $method->invoke($controller, 'https://example.test/profile.jpg'));
+    }
 }

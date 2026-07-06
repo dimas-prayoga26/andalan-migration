@@ -19,6 +19,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class AttendanceRecapController extends Controller
 {
@@ -98,7 +100,7 @@ class AttendanceRecapController extends Controller
 
         $employee = Employee::query()
             ->with([
-                'profile:id,employee_id,name',
+                'profile:id,employee_id,name,profile_picture_path',
                 'user:id,username,email,phone',
                 'deployment:id,employee_id,current_company_id,current_position_id,current_department_id,current_office_location_id',
                 'deployment.company:id,name',
@@ -505,7 +507,7 @@ class AttendanceRecapController extends Controller
                 'base' => $employee->deployment?->officeLocation?->address ?: '-',
                 'phone' => $employee->user?->phone ?: '-',
                 'email' => $employee->user?->email ?: '-',
-                'avatar_url' => null,
+                'avatar_url' => $this->employeeAvatarUrl($employee->profile?->profile_picture_path),
             ],
             'recapDetailMetrics' => [
                 'on_time' => $this->recapDaysLabel($onTimeCount),
@@ -1046,5 +1048,23 @@ class AttendanceRecapController extends Controller
             ->implode('');
 
         return mb_strtoupper($initials !== '' ? $initials : 'U');
+    }
+
+    private function employeeAvatarUrl(mixed $profilePicturePath): string
+    {
+        $defaultAvatarUrl = asset('assets/default_user.jpg');
+        $profilePicturePath = trim((string) $profilePicturePath);
+
+        if ($profilePicturePath === '') {
+            return $defaultAvatarUrl;
+        }
+
+        if (Str::startsWith($profilePicturePath, ['http://', 'https://'])) {
+            return $profilePicturePath;
+        }
+
+        $publicPath = ltrim($profilePicturePath, '/');
+
+        return File::exists(public_path($publicPath)) ? asset($publicPath) : $defaultAvatarUrl;
     }
 }

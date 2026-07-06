@@ -62,6 +62,9 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('recapViewData', $recapController);
         $this->assertStringContainsString('monthlyDatatable', $recapController);
         $this->assertStringContainsString('recapEmployeeDetailData', $recapController);
+        $this->assertStringContainsString("'profile:id,employee_id,name,profile_picture_path'", $recapController);
+        $this->assertStringContainsString("'avatar_url' => \$this->employeeAvatarUrl(\$employee->profile?->profile_picture_path)", $recapController);
+        $this->assertStringContainsString("asset('assets/default_user.jpg')", $recapController);
         $this->assertStringContainsString('recapVirtualHolidayRows', $recapController);
         $this->assertStringContainsString('recapDaysLabel', $recapController);
         $this->assertStringContainsString('recapEmployeeWorkDays', $recapController);

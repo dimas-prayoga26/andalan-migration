@@ -67,9 +67,6 @@
             navLinks: true,
             nowIndicator: true,
             longPressDelay: 0,
-            datesSet: function (info) {
-                mountDateFilterInToolbar(info.view.calendar);
-            },
             dateClick: function (info) {
                 if (info.view.type === 'dayGridMonth' || info.view.type === 'dayGridWeek') {
                     info.view.calendar.changeView('dayGridDay', info.date);
@@ -178,46 +175,6 @@
         window.activityScheduleCalendar = calendar;
         calendarEl.dataset.fcInitialized = '1';
 
-        mountDateFilterInToolbar(calendar);
-        bindDateFilter(calendar);
-    }
-
-    function mountDateFilterInToolbar(calendar) {
-        const wrap = document.getElementById('calendar-date-filter-wrap');
-        if (!wrap) {
-            return;
-        }
-
-        const toolbarLeft = calendar.el.querySelector('.fc-header-toolbar .fc-toolbar-chunk:first-child');
-        if (!toolbarLeft) {
-            return;
-        }
-
-        if (!toolbarLeft.contains(wrap)) {
-            wrap.classList.remove('d-none');
-            wrap.classList.add('d-inline-flex', 'align-items-center', 'ms-2');
-            toolbarLeft.appendChild(wrap);
-        }
-    }
-
-    function bindDateFilter(calendar) {
-        const dateInput = document.getElementById('calendar-date-filter');
-
-        if (!dateInput || dateInput.dataset.bound === '1') {
-            return;
-        }
-
-        const applyDateFilter = function () {
-            if (!dateInput.value) {
-                return;
-            }
-
-            calendar.changeView('dayGridMonth', dateInput.value);
-        };
-
-        dateInput.addEventListener('change', applyDateFilter);
-
-        dateInput.dataset.bound = '1';
     }
 
     document.addEventListener('DOMContentLoaded', initializeCalendar);

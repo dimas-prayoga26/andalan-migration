@@ -15,6 +15,8 @@ use App\Models\LeaveRequest;
 use App\Models\User;
 use App\Services\Attendance\AttendanceCardsViewDataService;
 use App\Services\Attendance\AttendanceMutationService;
+use App\Support\Attendance\AttendanceDurationFormatter;
+use App\Support\Attendance\AttendanceLocationFormatter;
 use App\Support\Attendance\AttendanceWorkDurationCalculator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -33,7 +35,9 @@ class AttendanceReportController extends Controller
     public function __construct(
         private AttendanceCardsViewDataService $attendanceCardsViewDataService,
         private AttendanceMutationService $attendanceMutationService,
-        private AttendanceWorkDurationCalculator $attendanceWorkDurationCalculator
+        private AttendanceWorkDurationCalculator $attendanceWorkDurationCalculator,
+        private AttendanceDurationFormatter $attendanceDurationFormatter,
+        private AttendanceLocationFormatter $attendanceLocationFormatter
     ) {}
 
     public function index(AttendanceIndexRequest $request): View
@@ -214,12 +218,6 @@ class AttendanceReportController extends Controller
                 $selectedMonth = (int) $currentMonthStart->month;
             }
 
-            $staffAttendances = Attendance::query()
-                ->where('employee_id', $staffEmployeeId)
-                ->whereMonth('date', $selectedMonth)
-                ->whereYear('date', $selectedYear)
-                ->get(['id', 'date', 'leave_request_id', 'status', 'clock_in', 'clock_out', 'late_minutes', 'work_hours', 'created_at']);
-
             $staffProfileName = EmployeeProfile::query()
                 ->where('employee_id', $staffEmployeeId)
                 ->value('name');
@@ -228,6 +226,19 @@ class AttendanceReportController extends Controller
                 : ((is_string($staffUser->username) && trim($staffUser->username) !== '')
                     ? trim($staffUser->username)
                     : ((is_string($staffUser->email) && trim($staffUser->email) !== '') ? trim($staffUser->email) : '-'));
+
+            $periodStart = Carbon::create($selectedYear, $selectedMonth, 1, 0, 0, 0, 'Asia/Jakarta')->startOfDay();
+            $periodEnd = $periodStart->copy()->endOfMonth()->startOfDay();
+            $todayJakarta = now('Asia/Jakarta')->startOfDay();
+            if ($selectedYear === (int) $todayJakarta->year && $selectedMonth === (int) $todayJakarta->month) {
+                $periodEnd = $todayJakarta->copy();
+            }
+
+            $staffAttendances = Attendance::query()
+                ->where('employee_id', $staffEmployeeId)
+                ->whereMonth('date', $selectedMonth)
+                ->whereYear('date', $selectedYear)
+                ->get(['id', 'date', 'leave_request_id', 'status', 'clock_in', 'clock_out', 'late_minutes', 'work_hours', 'created_at']);
 
             $attendanceLogsByAttendanceId = AttendanceLog::query()
                 ->whereIn('attendance_id', $staffAttendances->pluck('id'))
@@ -260,17 +271,21 @@ class AttendanceReportController extends Controller
                 ->whereIn('id', $staffAttendances->pluck('leave_request_id')->filter()->values())
                 ->get(['id', 'leave_type_id', 'attachment_path'])
                 ->keyBy('id');
+            $approvedLeaveRequests = LeaveRequest::query()
+                ->with(['leaveType:id,name,code'])
+                ->where('employee_id', $staffEmployeeId)
+                ->whereDate('start_date', '<=', $periodEnd->toDateString())
+                ->whereDate('end_date', '>=', $periodStart->toDateString())
+                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['approved'])
+                ->where('is_active', true)
+                ->whereNull('deleted_at')
+                ->orderBy('start_date')
+                ->get(['id', 'leave_type_id', 'start_date', 'end_date', 'attachment_path']);
             $attendanceByDate = $staffAttendances
                 ->filter(fn (Attendance $attendanceItem): bool => $attendanceItem->date !== null)
                 ->sortBy('date')
                 ->keyBy(fn (Attendance $attendanceItem): string => $attendanceItem->date->format('Y-m-d'));
             $holidayMapByDate = $this->buildHolidayMapByMonth($selectedYear, $selectedMonth);
-            $periodStart = Carbon::create($selectedYear, $selectedMonth, 1, 0, 0, 0, 'Asia/Jakarta')->startOfDay();
-            $periodEnd = $periodStart->copy()->endOfMonth()->startOfDay();
-            $todayJakarta = now('Asia/Jakarta')->startOfDay();
-            if ($selectedYear === (int) $todayJakarta->year && $selectedMonth === (int) $todayJakarta->month) {
-                $periodEnd = $todayJakarta->copy();
-            }
             $tableRows = collect();
 
             for ($cursorDate = $periodStart->copy(); $cursorDate->lte($periodEnd); $cursorDate->addDay()) {
@@ -290,6 +305,10 @@ class AttendanceReportController extends Controller
                     $checkOutValue = $attendanceItem->clock_out?->format('H:i');
                     $noteLabel = $this->resolveAttendanceNoteLabel($attendanceItem, $attendanceException, $leaveRequest);
                     $attachmentUrl = $this->resolveLeaveRequestAttachmentUrl($leaveRequest);
+                    $isLate = $this->isLateAttendance($attendanceItem);
+                    $locationName = $this->attendanceLocationFormatter->name($attendanceLog);
+                    $locationAddress = $this->attendanceLocationFormatter->address($attendanceLog);
+                    $attendanceStatus = $this->resolveAttendanceStatusLabel($attendanceItem, $attendanceException, $leaveRequest);
 
                     $tableRows->push([
                         'attendance_id' => $attendanceItem->id,
@@ -302,6 +321,14 @@ class AttendanceReportController extends Controller
                         'work_hours' => $this->formatWorkHoursLabel($checkInValue, $checkOutValue, $attendanceItem->work_hours),
                         'note' => $noteLabel,
                         'attachment' => $attachmentUrl,
+                        'has_detail' => true,
+                        'is_late' => $isLate,
+                        'clock_in_class' => $isLate ? 'text-danger' : 'text-success',
+                        'attendance_status' => $attendanceStatus,
+                        'attendance_status_class' => $isLate ? 'text-danger' : 'text-success',
+                        'location_name' => $locationName,
+                        'location_address' => $locationAddress,
+                        'location_display' => $locationAddress,
                         'status' => $attendanceItem->status,
                         'row_type' => 'attendance',
                         'is_virtual' => false,
@@ -335,6 +362,14 @@ class AttendanceReportController extends Controller
                         'work_hours' => '0 hours',
                         'note' => $isNationalHoliday ? 'Libur Nasional' : 'Cuti Bersama',
                         'attachment' => null,
+                        'has_detail' => false,
+                        'is_late' => false,
+                        'clock_in_class' => '',
+                        'attendance_status' => $isNationalHoliday ? 'Libur Nasional' : 'Cuti Bersama',
+                        'attendance_status_class' => '',
+                        'location_name' => '-',
+                        'location_address' => '-',
+                        'location_display' => '-',
                         'status' => null,
                         'row_type' => $isNationalHoliday ? 'national_holiday' : 'joint_leave',
                         'is_virtual' => true,
@@ -366,6 +401,14 @@ class AttendanceReportController extends Controller
                         'work_hours' => '0 hours',
                         'note' => 'Weekend / Day Off',
                         'attachment' => null,
+                        'has_detail' => false,
+                        'is_late' => false,
+                        'clock_in_class' => '',
+                        'attendance_status' => 'Weekend / Day Off',
+                        'attendance_status_class' => '',
+                        'location_name' => '-',
+                        'location_address' => '-',
+                        'location_display' => '-',
                         'status' => null,
                         'row_type' => 'weekend',
                         'is_virtual' => true,
@@ -381,11 +424,91 @@ class AttendanceReportController extends Controller
                         'address_province' => null,
                         'address_postal_code' => null,
                     ]);
+
+                    continue;
                 }
+
+                $approvedLeaveRequest = $approvedLeaveRequests
+                    ->first(fn (LeaveRequest $leaveRequest): bool => $this->overlapsDate($leaveRequest->start_date, $leaveRequest->end_date, $cursorDate));
+                if ($approvedLeaveRequest instanceof LeaveRequest) {
+                    $leaveTypeLabel = $this->formatLeaveTypeLabel($approvedLeaveRequest);
+
+                    $tableRows->push([
+                        'attendance_id' => null,
+                        'attendance_date' => $cursorDate->translatedFormat('d M Y'),
+                        'attendance_date_iso' => $isoDate,
+                        'staff_name' => $staffDisplayName,
+                        'company_name' => $staffUser->employee?->deployment?->company?->name,
+                        'check_in' => $leaveTypeLabel,
+                        'check_out' => '-',
+                        'work_hours' => '0 hours',
+                        'note' => $leaveTypeLabel,
+                        'attachment' => $this->resolveLeaveRequestAttachmentUrl($approvedLeaveRequest),
+                        'has_detail' => true,
+                        'is_late' => false,
+                        'clock_in_class' => 'text-success',
+                        'attendance_status' => $leaveTypeLabel,
+                        'attendance_status_class' => 'text-success',
+                        'location_name' => '-',
+                        'location_address' => '-',
+                        'location_display' => '-',
+                        'status' => 'approved',
+                        'row_type' => 'leave',
+                        'is_virtual' => true,
+                        'check_in_latitude' => null,
+                        'check_in_longitude' => null,
+                        'distance_meters' => null,
+                        'radius_result' => null,
+                        'formatted_address' => null,
+                        'address_village' => null,
+                        'address_district' => null,
+                        'address_regency' => null,
+                        'address_city' => null,
+                        'address_province' => null,
+                        'address_postal_code' => null,
+                    ]);
+
+                    continue;
+                }
+
+                $tableRows->push([
+                    'attendance_id' => null,
+                    'attendance_date' => $cursorDate->translatedFormat('d M Y'),
+                    'attendance_date_iso' => $isoDate,
+                    'staff_name' => $staffDisplayName,
+                    'company_name' => $staffUser->employee?->deployment?->company?->name,
+                    'check_in' => '-',
+                    'check_out' => '-',
+                    'work_hours' => '0 hours',
+                    'note' => 'Alpha',
+                    'attachment' => null,
+                    'has_detail' => false,
+                    'is_late' => false,
+                    'clock_in_class' => '',
+                    'attendance_status' => 'Alpha',
+                    'attendance_status_class' => 'text-warning',
+                    'location_name' => '-',
+                    'location_address' => '-',
+                    'location_display' => '-',
+                    'status' => null,
+                    'row_type' => 'alpha',
+                    'is_virtual' => true,
+                    'check_in_latitude' => null,
+                    'check_in_longitude' => null,
+                    'distance_meters' => null,
+                    'radius_result' => null,
+                    'formatted_address' => null,
+                    'address_village' => null,
+                    'address_district' => null,
+                    'address_regency' => null,
+                    'address_city' => null,
+                    'address_province' => null,
+                    'address_postal_code' => null,
+                ]);
             }
 
             return response()->json([
-                'data' => $tableRows,
+                'data' => $tableRows->sortByDesc('attendance_date_iso')->values(),
             ]);
         }
 
@@ -474,6 +597,9 @@ class AttendanceReportController extends Controller
             $checkInValue = $attendanceToday?->clock_in?->format('H:i') ?? $leaveTypeLabel;
             $checkOutValue = $attendanceToday?->clock_out?->format('H:i');
             $workHours = $this->formatWorkHoursLabel($checkInValue, $checkOutValue, $attendanceToday?->work_hours);
+            $isLate = $attendanceToday instanceof Attendance && $this->isLateAttendance($attendanceToday);
+            $locationName = $attendanceToday instanceof Attendance ? $this->attendanceLocationFormatter->name($attendanceLog) : '-';
+            $locationAddress = $attendanceToday instanceof Attendance ? $this->attendanceLocationFormatter->address($attendanceLog) : '-';
             $employeeId = $user->employee?->id;
             $profileName = is_string($employeeId) ? $employeeProfileNamesByEmployeeId->get($employeeId) : null;
             $staffDisplayName = is_string($profileName) && trim($profileName) !== ''
@@ -495,6 +621,16 @@ class AttendanceReportController extends Controller
                     ? $this->resolveAttendanceNoteLabel($attendanceToday, $attendanceException, $leaveRequest)
                     : '-',
                 'attachment' => $this->resolveLeaveRequestAttachmentUrl($leaveRequest),
+                'has_detail' => $attendanceToday instanceof Attendance,
+                'is_late' => $isLate,
+                'clock_in_class' => $isLate ? 'text-danger' : 'text-success',
+                'attendance_status' => $attendanceToday instanceof Attendance
+                    ? $this->resolveAttendanceStatusLabel($attendanceToday, $attendanceException, $leaveRequest)
+                    : '-',
+                'attendance_status_class' => $isLate ? 'text-danger' : 'text-success',
+                'location_name' => $locationName,
+                'location_address' => $locationAddress,
+                'location_display' => $locationAddress,
                 'status' => $attendanceToday?->status,
                 'row_type' => 'attendance',
                 'is_virtual' => false,
@@ -789,6 +925,37 @@ class AttendanceReportController extends Controller
             ->contains('staff');
     }
 
+    private function isLateAttendance(Attendance $attendance): bool
+    {
+        return (int) ($attendance->late_minutes ?? 0) > 0;
+    }
+
+    private function resolveAttendanceStatusLabel(
+        Attendance $attendance,
+        ?AttendanceException $attendanceException,
+        ?LeaveRequest $leaveRequest
+    ): string {
+        if ($leaveRequest instanceof LeaveRequest) {
+            return $this->formatLeaveTypeLabel($leaveRequest);
+        }
+
+        if ($attendanceException instanceof AttendanceException) {
+            $attendanceExceptionLabel = $this->formatAttendanceExceptionNoteLabel($attendanceException);
+
+            return $attendanceExceptionLabel !== null ? $attendanceExceptionLabel : 'Schedule Deviation';
+        }
+
+        if ($this->isLateAttendance($attendance)) {
+            return $this->attendanceDurationFormatter->lateLabel((int) ($attendance->late_minutes ?? 0));
+        }
+
+        if ($attendance->clock_in !== null) {
+            return 'On Time';
+        }
+
+        return 'Alpha';
+    }
+
     private function resolveAttendanceNoteLabel(
         Attendance $attendance,
         ?AttendanceException $attendanceException,
@@ -924,6 +1091,19 @@ class AttendanceReportController extends Controller
         }
 
         return $leaveTypeName !== '' ? $leaveTypeName : 'Leave';
+    }
+
+    private function overlapsDate(mixed $startDate, mixed $endDate, Carbon $date): bool
+    {
+        if ($startDate === null || $endDate === null) {
+            return false;
+        }
+
+        return $date->between(
+            Carbon::parse($startDate, 'Asia/Jakarta')->startOfDay(),
+            Carbon::parse($endDate, 'Asia/Jakarta')->endOfDay(),
+            true
+        );
     }
 
     private function resolveLeaveRequestAttachmentUrl(?LeaveRequest $leaveRequest): ?string

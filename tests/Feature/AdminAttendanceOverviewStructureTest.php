@@ -27,6 +27,7 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $businessTripDetailRoute = Route::getRoutes()->getByName('admin-attendance.business-trip.detail');
         $overtimeRoute = Route::getRoutes()->getByName('admin-attendance.overtime');
         $overtimeDetailRoute = Route::getRoutes()->getByName('admin-attendance.overtime.detail');
+        $overviewView = File::get(resource_path('views/admin_attendance/overview/index.blade.php'));
         $overviewController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceOverviewController.php'));
         $recapController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceRecapController.php'));
         $leaveController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceLeaveController.php'));
@@ -108,6 +109,13 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('supervisorApprovedLeaveRequestQuery', $leaveController);
         $this->assertStringContainsString('return (int) $this->supervisorApprovedLeaveRequestQuery($activeEmployeeIds)', $leaveController);
         $this->assertStringContainsString('current_company_id', $leaveController);
+        $this->assertStringContainsString('<span class="fs-12 text-black">Alpha</span>', $overviewView);
+        $this->assertStringContainsString('text-warning"></i>', $overviewView);
+        $this->assertStringContainsString('Alpha ({{ $dailyDeviationPercent }}%)', $overviewView);
+        $this->assertStringContainsString('"fill": ["var(--bs-warning)", "var(--bs-light)"]', $overviewView);
+        $this->assertStringContainsString("['#2BC155', '#F94687', '#1EA7C5', '#FFBC11']", $overviewView);
+        $this->assertStringNotContainsString('<span class="fs-12 text-black">Deviation</span>', $overviewView);
+        $this->assertStringNotContainsString('Deviation ({{ $dailyDeviationPercent }}%)', $overviewView);
         $this->assertTrue(View::exists('admin_attendance.overview.index'));
         $this->assertTrue(View::exists('admin_attendance.recap_attendance.index'));
         $this->assertTrue(View::exists('admin_attendance.recap_attendance.detail-employees'));

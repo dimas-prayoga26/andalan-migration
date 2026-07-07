@@ -273,7 +273,7 @@ class AuthorizationController extends Controller
     {
         return [
             'view-dashboard' => ['section' => 'Main', 'label' => 'Dashboard'],
-            'view-calendar' => ['section' => 'Main', 'label' => 'Google Calendar'],
+            'view-calendar' => ['section' => 'Main', 'label' => 'Activity Calendar'],
             'view-attendance' => ['section' => 'Siap', 'label' => 'Attendance'],
             'view-timesheet-reporting' => ['section' => 'Siap', 'label' => 'Timesheet & Reporting'],
             'view-meeting' => ['section' => 'Siap', 'label' => 'Zoom Meeting'],

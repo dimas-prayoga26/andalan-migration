@@ -66,9 +66,9 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
                 'employee_id' => $employee->id,
                 'date' => '2026-05-26',
                 'clock_in' => '08:00:00',
-                'clock_out' => '17:00:00',
+                'clock_out' => '18:30:00',
                 'late_minutes' => 0,
-                'work_hours' => 9,
+                'work_hours' => 10.5,
                 'status' => 'Masuk',
             ]);
             $lateAttendance = Attendance::query()->create([
@@ -148,16 +148,17 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
             $this->assertSame('staff', $data['profileStatsMode']);
             $this->assertSame(1, $data['profileLateInCount']);
             $this->assertSame(1, $data['profileLeavesAndSickCount']);
-            $this->assertSame(15, $data['profileAttendanceRatePercent']);
-            $this->assertSame(10, $data['profileOnTimeRatePercent']);
-            $this->assertSame(5, $data['profileLatenessRatePercent']);
+            $this->assertSame(20, $data['profileElapsedWorkingDaysCount']);
+            $this->assertSame(15.0, $data['profileAttendanceRatePercent']);
+            $this->assertSame(95.0, $data['profileOnTimeRatePercent']);
+            $this->assertSame(5.0, $data['profileLatenessRatePercent']);
             $this->assertSame(50, $data['profileOvertimeRatePercent']);
             $this->assertSame(75, $data['profileWeeklyAttendancePercent']);
             $this->assertSame(67, $data['profileWeeklyOnTimePercent']);
-            $this->assertSame([2, 1, 1, 1], $data['profileAttendanceOverviewSeries']);
-            $this->assertSame(15, $data['profileAttendanceProgressPercent']);
-            $this->assertSame(67, $data['profileProgressOnTimePercent']);
-            $this->assertSame(33, $data['profileProgressLatePercent']);
+            $this->assertSame([2, 1, 1, 17], $data['profileAttendanceOverviewSeries']);
+            $this->assertSame(15.0, $data['profileAttendanceProgressPercent']);
+            $this->assertSame(95.0, $data['profileProgressOnTimePercent']);
+            $this->assertSame(5.0, $data['profileProgressLatePercent']);
             $this->assertSame(8.0, (float) $data['profileWeeklyRequiredHours']);
             $this->assertSame(20, $data['profileWeeklyRequiredHoursPercent']);
             $this->assertSame(36.0, (float) $data['profileWeeklyOvertimeHours']);
@@ -183,6 +184,67 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
             $this->assertSame(0, $data['profileYearSickSeries'][4]);
             $this->assertSame(0, $data['profileYearBusinessTripSeries'][4]);
             $this->assertSame(36.0, (float) $data['profileYearOvertimeHoursSeries'][4]);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_attendance_rate_starts_at_full_value_and_only_alpha_days_reduce_it(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-02 09:00:00', 'Asia/Jakarta'));
+
+        try {
+            $role = Role::query()->firstOrCreate([
+                'name' => 'staff',
+                'guard_name' => 'web',
+            ]);
+
+            $user = User::query()->create([
+                'username' => 'staff_alpha_rate_tester',
+                'email' => 'staff_alpha_rate_tester@example.com',
+                'password' => Hash::make('password'),
+                'is_active' => true,
+            ]);
+            $user->assignRole($role);
+
+            $employee = Employee::query()->create([
+                'user_id' => $user->id,
+                'status' => 'Active',
+            ]);
+
+            LeaveRequest::query()->create([
+                'employee_id' => $employee->id,
+                'leave_type_id' => null,
+                'start_date' => '2026-07-01',
+                'end_date' => '2026-07-01',
+                'total_days' => 1,
+                'reason' => 'Approved leave should not count as alpha.',
+                'status' => 'approved',
+                'is_active' => true,
+            ]);
+
+            Attendance::query()->create([
+                'employee_id' => $employee->id,
+                'date' => '2026-07-02',
+                'clock_in' => '08:00:00',
+                'clock_out' => null,
+                'late_minutes' => 0,
+                'work_hours' => null,
+                'status' => 'Masuk',
+            ]);
+
+            $this->actingAs($user);
+
+            $view = view('staff_attendance.layouts.profile-header');
+            app(AttendanceProfileComposer::class)->compose($view);
+            $data = $view->getData();
+
+            $this->assertSame(1, $data['profileAttendanceDaysCount']);
+            $this->assertSame(2, $data['profileElapsedWorkingDaysCount']);
+            $this->assertSame(23, $data['profileWorkingDaysCount']);
+            $this->assertSame([1, 0, 1, 0], $data['profileAttendanceOverviewSeries']);
+            $this->assertSame(100.0, $data['profileAttendanceRatePercent']);
+            $this->assertSame(100.0, $data['profileAttendanceProgressPercent']);
         } finally {
             Carbon::setTestNow();
         }

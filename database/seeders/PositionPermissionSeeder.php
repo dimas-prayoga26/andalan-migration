@@ -47,7 +47,7 @@ class PositionPermissionSeeder extends Seeder
     {
         return [
             ['section' => 'Main', 'label' => 'Dashboard', 'permission' => 'view-dashboard'],
-            ['section' => 'Main', 'label' => 'Google Calendar', 'permission' => 'view-calendar'],
+            ['section' => 'Main', 'label' => 'Activity Calendar', 'permission' => 'view-calendar'],
             ['section' => 'Siap', 'label' => 'Attendance', 'permission' => 'view-attendance'],
             ['section' => 'Siap', 'label' => 'Timesheet & Reporting', 'permission' => 'view-timesheet-reporting'],
             ['section' => 'Siap', 'label' => 'Zoom Meeting', 'permission' => 'view-meeting'],

@@ -21,6 +21,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
     public function test_monthly_overview_cards_use_equal_height_layout(): void
     {
         $overview = File::get(resource_path('views/project_management/overview/index.blade.php'));
+        $profileIndex = File::get(resource_path('views/project_management/layouts/profile-index.blade.php'));
         $profileHeader = File::get(resource_path('views/project_management/layouts/profile-header.blade.php'));
         $summaryCards = File::get(resource_path('views/project_management/overview/partials/summary-cards.blade.php'));
         $profileComposer = File::get(app_path('View/Composers/ProjectManagementProfileComposer.php'));
@@ -381,10 +382,14 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringNotContainsString('Staff Late (Today)', $profileHeader);
         $this->assertStringNotContainsString('Staff Leave (Today)', $profileHeader);
         $this->assertStringNotContainsString('profileStatsMode', $profileComposer);
-        $this->assertStringContainsString('data: progressSeries', $overview);
-        $this->assertStringContainsString('categories: progressLabels', $overview);
-        $this->assertStringContainsString('Array.from({ length: 12 }', $overview);
-        $this->assertStringContainsString("toLocaleString('en-US', { month: 'long' })", $overview);
+        $this->assertStringContainsString('assets/vendor/apexcharts/dist/apexcharts.min.js', $profileIndex);
+        $this->assertStringContainsString('function renderProfileProgressChart(chartElement)', $profileIndex);
+        $this->assertStringContainsString('typeof window.ApexCharts', $profileIndex);
+        $this->assertStringContainsString('data: progressSeries', $profileIndex);
+        $this->assertStringContainsString('categories: progressLabels', $profileIndex);
+        $this->assertStringContainsString('Array.from({ length: 12 }', $profileIndex);
+        $this->assertStringContainsString("toLocaleString('en-US', { month: 'long' })", $profileIndex);
+        $this->assertStringNotContainsString('dzProfile', $overview);
         $this->assertStringContainsString('parseChartObject', $overview);
         $this->assertStringContainsString("$('#projectMonthlyOverviewMonthFilter').off('change.projectMonthlyOverview').on('change.projectMonthlyOverview'", $overview);
         $this->assertStringContainsString('monthlyOverviewChart.update();', $overview);
@@ -392,8 +397,11 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('ticks: chartYAxisTickOptions(1)', $overview);
         $this->assertStringContainsString('precision: 0', $overview);
         $this->assertStringContainsString("return Number.isInteger(value) ? value : '';", $overview);
-        $this->assertStringContainsString('visibleChartTarget', $overview);
-        $this->assertStringContainsString("dataset.profileProgressRendered = 'true'", $overview);
+        $this->assertStringContainsString('visibleChartTarget', $profileIndex);
+        $this->assertStringContainsString("dataset.profileProgressRendered = 'true'", $profileIndex);
+        $this->assertStringNotContainsString('chartBar();', $overview);
+        $this->assertStringNotContainsString('chartBar2();', $overview);
+        $this->assertStringNotContainsString('chartBar3();', $overview);
         $this->assertStringNotContainsString('data: [18, 18, 18, 20, 20, 22, 13, 15, 16, 17, 18, 12]', $overview);
         $this->assertStringNotContainsString("'01-Monday', '02-Tuesday', '03-Wednesday', '04-Thursday', '05-Friday'", $overview);
         $this->assertStringNotContainsString("data: ['18', '17', '15', '18', '16']", $overview);

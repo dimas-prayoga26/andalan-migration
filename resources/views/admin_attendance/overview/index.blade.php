@@ -121,7 +121,7 @@
     $attendanceOverviewSeries = array_values($attendanceOverviewSeries ?? [0, 0, 0, 0]);
     $attendanceOverviewChartSeries = array_sum($attendanceOverviewSeries) > 0 ? $attendanceOverviewSeries : [1];
     $attendanceOverviewChartColors = array_sum($attendanceOverviewSeries) > 0
-        ? ['#2BC155', '#F94687', '#1EA7C5', '#A02CFA']
+        ? ['#2BC155', '#F94687', '#1EA7C5', '#FFBC11']
         : ['#F2F3F8'];
     $weeklyAttendanceRangeLabel = (string) ($weeklyAttendanceRangeLabel ?? now('Asia/Jakarta')->startOfWeek()->format('d').' - '.now('Asia/Jakarta')->startOfWeek()->addDays(4)->format('d F Y'));
     $weeklyDayLabels = array_values($weeklyDayLabels ?? []);
@@ -226,8 +226,8 @@
                                         <span class="fs-12 text-black">Leave</span>
                                     </li>
                                     <li class="d-flex align-items-center gap-3 me-5 mb-2">
-                                        <i class="fa fa-circle text-secondary"></i>
-                                        <span class="fs-12 text-black">Deviation</span>
+                                        <i class="fa fa-circle text-warning"></i>
+                                        <span class="fs-12 text-black">Alpha</span>
                                     </li>
                                 </ul>
                             </div>
@@ -305,14 +305,14 @@
                                     <div class="col-sm-6">
                                         <div class="d-flex align-items-center mb-sm-5 mb-3">
                                             <div class="position-relative me-3">
-                                                <span class="donut" data-peity='{ "fill": ["var(--bs-secondary)", "var(--bs-light)"],   "innerRadius": 34, "radius": 10}'>{{ $dailyDeviationDonutValue }}</span>
+                                                <span class="donut" data-peity='{ "fill": ["var(--bs-warning)", "var(--bs-light)"],   "innerRadius": 34, "radius": 10}'>{{ $dailyDeviationDonutValue }}</span>
                                                 <small class="position-absolute top-50 start-50 translate-middle">
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <g clip-path="url(#clip5)">
-                                                        <path d="M10.8586 5.22596L5.87121 10.5542C5.50758 11.0845 5.64394 11.8068 6.17172 12.1679L11.1945 15.6098L11.1945 18.9558C11.1945 19.5921 11.6995 20.125 12.3359 20.1376C12.9874 20.1477 13.5177 19.6249 13.5177 18.976L13.5177 15.0012C13.5177 14.6174 13.3283 14.2588 13.0126 14.0442L9.79041 11.8346L12.5025 8.95833L13.8914 12.1225C14.0758 12.5442 14.4949 12.8169 14.9546 12.8169L19.1844 12.8169C19.8207 12.8169 20.3536 12.3119 20.3662 11.6755C20.3763 11.024 19.8536 10.4937 19.2046 10.4937L15.7172 10.4937C15.2576 9.44821 14.7677 8.41285 14.3409 7.35225C14.1237 6.81689 14.0025 6.58457 13.6036 6.21588C13.5227 6.14013 12.9596 5.62498 12.4571 5.16538C11.995 4.74616 11.2828 4.77394 10.8586 5.22596Z" fill="#FF3282"/>
-                                                        <path d="M15.6162 5.80678C17.0861 5.80678 18.2778 4.61514 18.2778 3.14517C18.2778 1.6752 17.0861 0.483551 15.6162 0.483551C14.1462 0.483551 12.9545 1.6752 12.9545 3.14517C12.9545 4.61514 14.1462 5.80678 15.6162 5.80678Z" fill="#FF3282"/>
-                                                        <path d="M4.89899 23.5164C7.60463 23.5164 9.79798 21.323 9.79798 18.6174C9.79798 15.9117 7.60463 13.7184 4.89899 13.7184C2.19335 13.7184 -1.81927e-07 15.9117 -2.13831e-07 18.6174C-2.45735e-07 21.323 2.19335 23.5164 4.89899 23.5164Z" fill="#FF3282"/>
-                                                        <path d="M19.101 23.5164C21.8066 23.5164 24 21.323 24 18.6174C24 15.9118 21.8066 13.7184 19.101 13.7184C16.3954 13.7184 14.202 15.9118 14.202 18.6174C14.202 21.323 16.3954 23.5164 19.101 23.5164Z" fill="#FF3282"/>
+                                                        <path d="M10.8586 5.22596L5.87121 10.5542C5.50758 11.0845 5.64394 11.8068 6.17172 12.1679L11.1945 15.6098L11.1945 18.9558C11.1945 19.5921 11.6995 20.125 12.3359 20.1376C12.9874 20.1477 13.5177 19.6249 13.5177 18.976L13.5177 15.0012C13.5177 14.6174 13.3283 14.2588 13.0126 14.0442L9.79041 11.8346L12.5025 8.95833L13.8914 12.1225C14.0758 12.5442 14.4949 12.8169 14.9546 12.8169L19.1844 12.8169C19.8207 12.8169 20.3536 12.3119 20.3662 11.6755C20.3763 11.024 19.8536 10.4937 19.2046 10.4937L15.7172 10.4937C15.2576 9.44821 14.7677 8.41285 14.3409 7.35225C14.1237 6.81689 14.0025 6.58457 13.6036 6.21588C13.5227 6.14013 12.9596 5.62498 12.4571 5.16538C11.995 4.74616 11.2828 4.77394 10.8586 5.22596Z" fill="#FFBC11"/>
+                                                        <path d="M15.6162 5.80678C17.0861 5.80678 18.2778 4.61514 18.2778 3.14517C18.2778 1.6752 17.0861 0.483551 15.6162 0.483551C14.1462 0.483551 12.9545 1.6752 12.9545 3.14517C12.9545 4.61514 14.1462 5.80678 15.6162 5.80678Z" fill="#FFBC11"/>
+                                                        <path d="M4.89899 23.5164C7.60463 23.5164 9.79798 21.323 9.79798 18.6174C9.79798 15.9117 7.60463 13.7184 4.89899 13.7184C2.19335 13.7184 -1.81927e-07 15.9117 -2.13831e-07 18.6174C-2.45735e-07 21.323 2.19335 23.5164 4.89899 23.5164Z" fill="#FFBC11"/>
+                                                        <path d="M19.101 23.5164C21.8066 23.5164 24 21.323 24 18.6174C24 15.9118 21.8066 13.7184 19.101 13.7184C16.3954 13.7184 14.202 15.9118 14.202 18.6174C14.202 21.323 16.3954 23.5164 19.101 23.5164Z" fill="#FFBC11"/>
                                                         </g>
                                                         <defs>
                                                         <clipPath id="clip5">
@@ -323,7 +323,7 @@
                                                 </small>
                                             </div>
                                             <div>
-                                                <h4 class="fs-18 text-black">Deviation ({{ $dailyDeviationPercent }}%)</h4>
+                                                <h4 class="fs-18 text-black">Alpha ({{ $dailyDeviationPercent }}%)</h4>
                                                 <span>{{ $dailyDeviationCount }} Staff / {{ $dailyTotalStaffCount }} Staff</span>
                                             </div>
                                         </div>

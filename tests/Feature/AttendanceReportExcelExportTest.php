@@ -19,13 +19,21 @@ class AttendanceReportExcelExportTest extends TestCase
         $this->assertStringContainsString('<i class="fa-solid fa-file-excel me-1"></i> Export Report', $reportView);
         $this->assertStringNotContainsString('Export Excel', $reportView);
         $this->assertStringNotContainsString('<th class="mw-100">Variance</th>', $reportView);
+        $this->assertStringContainsString('<th class="mw-200">Location</th>', $reportView);
         $this->assertStringContainsString('<th class="mw-150">Note</th>', $reportView);
         $this->assertStringContainsString('<th class="mw-150">Attachment</th>', $reportView);
         $this->assertSame(1, substr_count($reportView, '<th class="mw-150">Note</th>'));
         $this->assertStringNotContainsString("{ data: 'variance', defaultContent: '-' }", $reportView);
+        $this->assertStringContainsString("{ data: 'location_display', defaultContent: '-' }", $reportView);
         $this->assertStringContainsString("{ data: 'note', defaultContent: '-' }", $reportView);
         $this->assertStringContainsString("{ data: 'attachment', defaultContent: '-' }", $reportView);
         $this->assertStringContainsString('class="attendance-attachment-link">View Attachment</a>', $reportView);
+        $this->assertStringContainsString('id="attendanceReportDetailModal"', $reportView);
+        $this->assertStringContainsString('data-bs-target="#attendanceReportDetailModal"', $reportView);
+        $this->assertStringContainsString('Belum Absen Masuk', $reportView);
+        $this->assertStringNotContainsString('Belum Absen Pulang', $reportView);
+        $this->assertStringNotContainsString('attendanceReportMap', $reportView);
+        $this->assertStringNotContainsString('<iframe', $reportView);
         $this->assertStringContainsString('function escapeHtml(value)', $reportView);
     }
 
@@ -116,6 +124,12 @@ class AttendanceReportExcelExportTest extends TestCase
 
         $this->assertStringContainsString("'note' => \$noteLabel,", $reportController);
         $this->assertStringContainsString("'attachment' => \$attachmentUrl,", $reportController);
+        $this->assertStringContainsString("'location_display' => \$locationAddress,", $reportController);
+        $this->assertStringContainsString("'note' => 'Alpha',", $reportController);
+        $this->assertStringContainsString("'row_type' => 'alpha',", $reportController);
+        $this->assertStringContainsString("'row_type' => 'leave',", $reportController);
+        $this->assertStringContainsString("whereRaw('LOWER(COALESCE(status, \"\")) = ?', ['approved'])", $reportController);
+        $this->assertStringContainsString("'data' => \$tableRows->sortByDesc('attendance_date_iso')->values(),", $reportController);
         $this->assertStringContainsString("'note' => \$isNationalHoliday ? 'Libur Nasional' : 'Cuti Bersama',", $reportController);
         $this->assertStringContainsString("'note' => 'Weekend / Day Off',", $reportController);
         $this->assertStringNotContainsString("'variance' =>", $reportController);

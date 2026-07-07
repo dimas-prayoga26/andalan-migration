@@ -1,9 +1,3 @@
-@php
-    $attendanceCardDateLabel = isset($todayJakartaDate)
-        ? \Illuminate\Support\Carbon::parse($todayJakartaDate, 'Asia/Jakarta')->format('d M')
-        : now('Asia/Jakarta')->format('d M');
-@endphp
-
 <div class="row attendance-mobile-slider">
     <!-- Start - Workout Details -->
     <div class="col-md-4 attendance-mobile-slide" id="attendanceConfirmationCardSlide">
@@ -26,12 +20,8 @@
                 </div>
                 <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
                     <div class="text-center">
-                        <p class="fs-14 mb-2">Date</p>
-                        <span class="fs-20 text-black">{{ $attendanceCardDateLabel }}</span>
-                    </div>
-                    <div class="text-center">
-                        <p class="fs-14 mb-2">Time</p>
-                        <span class="fs-20 text-success" id="attendanceSummaryTimeValue">--:--:--</span>
+                        <p class="fs-14 mb-2">Date &amp; Time</p>
+                        <span class="fs-20 text-success" id="attendanceSummaryTimeValue">{{ now('Asia/Jakarta')->format('d M Y | H:i:s') }}</span>
                     </div>
                     <div class="text-center">
                         <p class="fs-14 mb-2">Clock In</p>
@@ -76,12 +66,8 @@
                 </div>
                 <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
                     <div class="text-center">
-                        <p class="fs-14 mb-2">Date</p>
-                        <span class="fs-20 text-black">{{ $attendanceCardDateLabel }}</span>
-                    </div>
-                    <div class="text-center">
-                        <p class="fs-14 mb-2">Time</p>
-                        <span class="fs-20 text-black" id="attendanceClockOutSummaryTimeValue">--:--:--</span>
+                        <p class="fs-14 mb-2">Date &amp; Time</p>
+                        <span class="fs-20 text-black" id="attendanceClockOutSummaryTimeValue">{{ now('Asia/Jakarta')->format('d M Y | H:i:s') }}</span>
                     </div>
                     <div class="text-center">
                         <p class="fs-14 mb-2">Clock Out</p>
@@ -116,15 +102,9 @@
             </div>
             <div class="card-body p-0">
                 <div class="d-flex gap-3 align-items-center avatar-secondary p-4">
-                    <svg width="51" height="51" viewBox="0 0 51 51" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="51" height="51" rx="25.5" fill="#A02CFA"></rect>
-                        <g>
-                            <path d="M23.8586 19.226L18.8712 24.5542C18.5076 25.0845 18.6439 25.8068 19.1717 26.1679L24.1945 29.6098L24.1945 32.9558C24.1945 33.5921 24.6995 34.125 25.3359 34.1376C25.9874 34.1477 26.5177 33.6249 26.5177 32.976L26.5177 29.0012C26.5177 28.6174 26.3283 28.2588 26.0126 28.0442L22.7904 25.8346L25.5025 22.9583L26.8914 26.1225C27.0758 26.5442 27.4949 26.8169 27.9546 26.8169L32.1844 26.8169C32.8207 26.8169 33.3536 26.3119 33.3662 25.6755C33.3763 25.024 32.8536 24.4937 32.2046 24.4937L28.7172 24.4937C28.2576 23.4482 27.7677 22.4129 27.3409 21.3522C27.1237 20.8169 27.0025 20.5846 26.6036 20.2159C26.5227 20.1401 25.9596 19.625 25.4571 19.1654C24.995 18.7462 24.2828 18.7739 23.8586 19.226Z" fill="white"></path>
-                            <path d="M28.6162 19.8068C30.0861 19.8068 31.2778 18.6151 31.2778 17.1452C31.2778 15.6752 30.0861 14.4836 28.6162 14.4836C27.1462 14.4836 25.9545 15.6752 25.9545 17.1452C25.9545 18.6151 27.1462 19.8068 28.6162 19.8068Z" fill="white"></path>
-                            <path d="M17.899 37.5164C20.6046 37.5164 22.798 35.323 22.798 32.6174C22.798 29.9117 20.6046 27.7184 17.899 27.7184C15.1934 27.7184 13 29.9117 13 32.6174C13 35.323 15.1934 37.5164 17.899 37.5164Z" fill="white"></path>
-                            <path d="M32.101 37.5164C34.8066 37.5164 37 35.323 37 32.6174C37 29.9118 34.8066 27.7184 32.101 27.7184C29.3954 27.7184 27.202 29.9118 27.202 32.6174C27.202 35.323 29.3954 37.5164 32.101 37.5164Z" fill="white"></path>
-                        </g>
-                    </svg>
+                    <span class="avatar avatar-lg rounded-circle bg-white border-0 flex-shrink-0">
+                        <i class="fa-solid fa-calendar-xmark fs-24 text-secondary" aria-hidden="true"></i>
+                    </span>
                     <div>
                         <h6 class="fs-16 text-black mb-0">Schedule Deviation?</h6>
                         <span class="fs-12">Adjusting your schedule? Please leave a brief note for your records.</span>
@@ -170,8 +150,8 @@
             </div>
             <div class="modal-body">
                 <p class="form-label mb-3 text-center">
-                    <span id="clockInCurrentDate">--</span> -
-                    <span id="clockInRunningTime" class="onsite-running-time text-success fw-semibold">--:--:--</span>
+                    <span id="clockInCurrentDate" class="onsite-running-time text-success fw-semibold">--</span>
+                    <span id="clockInRunningTime" class="d-none">--:--:--</span>
                 </p>
                 <p class="form-label text-muted mb-3">
                     Grab your coffee and let's get things done. Clock in when you're ready to kick off your shift!
@@ -217,8 +197,8 @@
             </div>
             <div class="modal-body">
                 <p class="form-label mb-3 text-center">
-                    <span id="clockOutCurrentDate">--</span> -
-                    <span id="clockOutRunningTime" class="onsite-running-time text-black fw-semibold">--:--:--</span>
+                    <span id="clockOutCurrentDate" class="onsite-running-time text-black fw-semibold">--</span>
+                    <span id="clockOutRunningTime" class="d-none">--:--:--</span>
                 </p>
                 <p class="form-label text-muted mb-3">
                     Please make sure your daily tasks are wrapped up before clocking out. Thank you for your hard work, and enjoy the rest of your day!
@@ -321,7 +301,6 @@
             if (typeof window.jQuery === 'undefined') {
                 return;
             }
-            var attendanceDateElement = document.getElementById('attendanceDateTime');
             var attendanceSummaryTimeElement = document.getElementById('attendanceSummaryTimeValue');
             var attendanceClockOutSummaryTimeElement = document.getElementById('attendanceClockOutSummaryTimeValue');
             var attendanceClockInValueElement = document.getElementById('attendanceClockInValue');
@@ -1111,6 +1090,35 @@
                     year: 'numeric'
                 }).formatToParts(now);
 
+                var dateMap = {};
+                dateParts.forEach(function (part) {
+                    dateMap[part.type] = part.value;
+                });
+
+                var modalDate = dateMap.weekday + ', ' + dateMap.day + ' ' + dateMap.month + ' ' + dateMap.year;
+                if (exceptionCurrentDateElement) {
+                    exceptionCurrentDateElement.textContent = modalDate;
+                }
+            }
+
+            function renderOnsiteRunningTime() {
+                var now = new Date();
+
+                var dateParts = new Intl.DateTimeFormat('id-ID', {
+                    timeZone: 'Asia/Jakarta',
+                    weekday: 'long',
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                }).formatToParts(now);
+
+                var cardDateParts = new Intl.DateTimeFormat('id-ID', {
+                    timeZone: 'Asia/Jakarta',
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                }).formatToParts(now);
+
                 var timeParts = new Intl.DateTimeFormat('id-ID', {
                     timeZone: 'Asia/Jakarta',
                     hour: '2-digit',
@@ -1123,44 +1131,10 @@
                 dateParts.forEach(function (part) {
                     dateMap[part.type] = part.value;
                 });
-
-                var timeMap = {};
-                timeParts.forEach(function (part) {
-                    timeMap[part.type] = part.value;
+                var cardDateMap = {};
+                cardDateParts.forEach(function (part) {
+                    cardDateMap[part.type] = part.value;
                 });
-
-                var hourNumber = parseInt(timeMap.hour, 10);
-                var meridiem = hourNumber < 12 ? 'AM' : 'PM';
-                var formattedDateTime = dateMap.weekday + ', ' + dateMap.day + ' ' + dateMap.month + ' ' + dateMap.year
-                    + ' | ' + timeMap.hour + ':' + timeMap.minute + ':' + timeMap.second + ' ' + meridiem;
-
-                if (attendanceDateElement) {
-                    attendanceDateElement.textContent = formattedDateTime;
-                }
-
-                var modalDate = dateMap.weekday + ', ' + dateMap.day + ' ' + dateMap.month + ' ' + dateMap.year;
-                if (clockInCurrentDateElement) {
-                    clockInCurrentDateElement.textContent = modalDate;
-                }
-                if (clockOutCurrentDateElement) {
-                    clockOutCurrentDateElement.textContent = modalDate;
-                }
-                if (exceptionCurrentDateElement) {
-                    exceptionCurrentDateElement.textContent = modalDate;
-                }
-            }
-
-            function renderOnsiteRunningTime() {
-                var now = new Date();
-
-                var timeParts = new Intl.DateTimeFormat('id-ID', {
-                    timeZone: 'Asia/Jakarta',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hourCycle: 'h23'
-                }).formatToParts(now);
-
                 var timeMap = {};
                 timeParts.forEach(function (part) {
                     timeMap[part.type] = part.value;
@@ -1170,22 +1144,34 @@
                 var minute = parseInt(timeMap.minute, 10);
                 var totalMinutes = (hour * 60) + minute;
                 var formattedTime = timeMap.hour + ':' + timeMap.minute + ':' + timeMap.second;
+                var formattedCardMonth = String(cardDateMap.month || '').replace('.', '');
+                var formattedDateTime = cardDateMap.day + ' ' + formattedCardMonth + ' ' + cardDateMap.year + ' | ' + formattedTime;
+                var modalDate = dateMap.weekday + ', ' + dateMap.day + ' ' + dateMap.month + ' ' + dateMap.year;
+                var modalDateTime = modalDate + ' - ' + formattedTime;
+                var isWithinWorkRange = totalMinutes >= officeStartTotalMinutes && totalMinutes < officeEndTotalMinutes;
 
                 if (attendanceSummaryTimeElement) {
-                    attendanceSummaryTimeElement.textContent = formattedTime;
+                    attendanceSummaryTimeElement.textContent = formattedDateTime;
                     attendanceSummaryTimeElement.classList.remove('text-success', 'text-danger');
                     attendanceSummaryTimeElement.classList.add(totalMinutes <= lateThresholdTotalMinutes ? 'text-success' : 'text-danger');
                 }
 
                 if (attendanceClockOutSummaryTimeElement) {
-                    var isWithinWorkRangeForClockOutSummary = totalMinutes >= officeStartTotalMinutes
-                        && totalMinutes < officeEndTotalMinutes;
-
-                    attendanceClockOutSummaryTimeElement.textContent = formattedTime;
+                    attendanceClockOutSummaryTimeElement.textContent = formattedDateTime;
                     attendanceClockOutSummaryTimeElement.classList.remove('text-warning', 'text-black');
-                    attendanceClockOutSummaryTimeElement.classList.add(
-                        isWithinWorkRangeForClockOutSummary ? 'text-warning' : 'text-black'
-                    );
+                    attendanceClockOutSummaryTimeElement.classList.add(isWithinWorkRange ? 'text-warning' : 'text-black');
+                }
+
+                if (clockInCurrentDateElement) {
+                    clockInCurrentDateElement.textContent = modalDateTime;
+                    clockInCurrentDateElement.classList.remove('text-success', 'text-danger');
+                    clockInCurrentDateElement.classList.add(totalMinutes <= lateThresholdTotalMinutes ? 'text-success' : 'text-danger');
+                }
+
+                if (clockOutCurrentDateElement) {
+                    clockOutCurrentDateElement.textContent = modalDateTime;
+                    clockOutCurrentDateElement.classList.remove('text-warning', 'text-black');
+                    clockOutCurrentDateElement.classList.add(isWithinWorkRange ? 'text-warning' : 'text-black');
                 }
 
                 [clockInRunningTimeElement, clockOutRunningTimeElement].forEach(function (runningTimeElement) {
@@ -1197,9 +1183,7 @@
                     runningTimeElement.classList.remove('text-success', 'text-warning', 'text-danger', 'text-secondary', 'text-black');
 
                     if (runningTimeElement === clockOutRunningTimeElement) {
-                        var isWithinWorkRangeForClockOut = totalMinutes >= officeStartTotalMinutes
-                            && totalMinutes < officeEndTotalMinutes;
-                        runningTimeElement.classList.add(isWithinWorkRangeForClockOut ? 'text-warning' : 'text-black');
+                        runningTimeElement.classList.add(isWithinWorkRange ? 'text-warning' : 'text-black');
 
                         return;
                     }

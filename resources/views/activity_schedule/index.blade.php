@@ -114,10 +114,6 @@
             margin-left: 0.75rem !important;
         }
 
-        .app-fullcalendar #calendar-date-filter {
-            min-height: 38px;
-        }
-
         @media (max-width: 767.98px) {
             .app-fullcalendar .fc-toolbar {
                 align-items: stretch;
@@ -165,16 +161,13 @@
             <div class="card-header">
                 <ul class="nav nav-underline card-header-tabs" id="nav-tab" role="tablist">
                     <li class="nav-item">
-                        <button class="nav-link active" id="underline-Posts-tab" data-bs-toggle="tab" data-bs-target="#underline-Posts" type="button" role="tab" aria-controls="underline-Posts" aria-selected="true">Google Calendar</button>
+                        <button class="nav-link active" id="underline-Posts-tab" data-bs-toggle="tab" data-bs-target="#underline-Posts" type="button" role="tab" aria-controls="underline-Posts" aria-selected="true">Activity Calendar</button>
                     </li>
                 </ul>
             </div>
             <div class="row">
                 <div class="col-xxl-12 col-xl-12">
                     <div class="card-body">
-                        <div id="calendar-date-filter-wrap" class="d-none">
-                            <input type="date" id="calendar-date-filter" class="form-control form-control-sm" style="width: 180px;">
-                        </div>
                         <div id="calendar" class="app-fullcalendar" data-event-source-url="{{ route('activity-schadule.events') }}" data-time-zone="Asia/Jakarta"></div>
                     </div>
                 </div>

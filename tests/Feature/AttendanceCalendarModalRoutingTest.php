@@ -128,6 +128,19 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString('id="attendanceExceptionCardButton"', $attendanceCardsView);
         $this->assertStringContainsString('id="attendanceClockInValue"', $attendanceCardsView);
         $this->assertStringContainsString('id="attendanceClockOutValue"', $attendanceCardsView);
+        $this->assertStringContainsString('Date &amp; Time', $attendanceCardsView);
+        $this->assertStringContainsString("format('d M Y | H:i:s')", $attendanceCardsView);
+        $this->assertStringContainsString("month: 'short'", $attendanceCardsView);
+        $this->assertStringContainsString("var formattedCardMonth = String(cardDateMap.month || '').replace('.', '');", $attendanceCardsView);
+        $this->assertStringContainsString("var formattedDateTime = cardDateMap.day + ' ' + formattedCardMonth + ' ' + cardDateMap.year + ' | ' + formattedTime;", $attendanceCardsView);
+        $this->assertStringContainsString("var modalDateTime = modalDate + ' - ' + formattedTime;", $attendanceCardsView);
+        $this->assertStringContainsString('clockInCurrentDateElement.textContent = modalDateTime;', $attendanceCardsView);
+        $this->assertStringContainsString("clockInCurrentDateElement.classList.add(totalMinutes <= lateThresholdTotalMinutes ? 'text-success' : 'text-danger');", $attendanceCardsView);
+        $this->assertStringContainsString('clockOutCurrentDateElement.textContent = modalDateTime;', $attendanceCardsView);
+        $this->assertStringContainsString("clockOutCurrentDateElement.classList.add(isWithinWorkRange ? 'text-warning' : 'text-black');", $attendanceCardsView);
+        $this->assertStringNotContainsString('<p class="fs-14 mb-2">Date</p>', $attendanceCardsView);
+        $this->assertStringContainsString('fa-solid fa-calendar-xmark fs-24 text-secondary', $attendanceCardsView);
+        $this->assertStringNotContainsString('viewBox="0 0 51 51"', $attendanceCardsView);
         $this->assertStringContainsString('window.upsertAttendanceHistoryEvent(response.calendar_event);', $attendanceCardsView);
 
         $profileIndexView = File::get(resource_path('views/staff_attendance/layouts/profile-index.blade.php'));
@@ -182,6 +195,9 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString('.app-fullcalendar .fc-button-primary:not(:disabled).fc-button-active', $activityScheduleView);
         $this->assertStringContainsString('.app-fullcalendar .fc-prev-button', $activityScheduleView);
         $this->assertStringContainsString('.app-fullcalendar .fc-today-button', $activityScheduleView);
+        $this->assertStringContainsString('Activity Calendar', $activityScheduleView);
+        $this->assertStringNotContainsString('Google Calendar', $activityScheduleView);
+        $this->assertStringNotContainsString('calendar-date-filter', $activityScheduleView);
         $this->assertStringContainsString("right: 'dayGridMonth,dayGridWeek,dayGridDay,listSchedule'", $fullCalendarInit);
         $this->assertStringContainsString('firstDay: 1,', $fullCalendarInit);
         $this->assertStringContainsString("dayHeaderFormat: { weekday: 'short' }", $fullCalendarInit);
@@ -189,5 +205,7 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString("month: 'Month'", $fullCalendarInit);
         $this->assertStringContainsString("week: 'Week'", $fullCalendarInit);
         $this->assertStringContainsString("day: 'Day'", $fullCalendarInit);
+        $this->assertStringNotContainsString('mountDateFilterInToolbar', $fullCalendarInit);
+        $this->assertStringNotContainsString('bindDateFilter', $fullCalendarInit);
     }
 }

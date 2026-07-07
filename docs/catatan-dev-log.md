@@ -7,6 +7,14 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-07-07 (Selasa)
+- Merombak office location menjadi global location yang tidak lagi terikat company.
+- Mengalihkan geofencing attendance agar membaca `employee_deployments.current_office_location_id`.
+- Menyesuaikan attendance rule, seeder, Data Employee, Admin Attendance, dan PIC Attendance dengan konsep lokasi kerja per employee.
+- Menyamakan Attendance Confirmation pada Dashboard dengan menu Attendance: lokasi di luar radius tidak memblokir Clock In/Clock Out setelah GPS dan Telegram valid.
+- Merapikan scope staff aktif, hide super admin, urutan company/PIC/nama, profile default, dan tampilan attendance logs harian dengan fallback `-`.
+- Detail: `docs/dev-log/2026-07-07-0930-ringkasan-perubahan-office-location-attendance-employee.md`.
+
 ### 2026-07-06 (Senin)
 - Menambahkan dropdown Branch / Office pada create/update Data Employee dan menyinkronkannya dengan office location untuk geofencing.
 - Menyelaraskan 18 staff aktif hasil import legacy dengan company, branch/workplace, office location, deployment, dan position terbaru.
@@ -244,6 +252,9 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-07-07
+- `2026-07-07-0930-ringkasan-perubahan-office-location-attendance-employee.md`
 
 ### 2026-07-06
 - `2026-07-06-1018-sinkronisasi-staff-pic-chart-dan-leave.md`

@@ -731,7 +731,36 @@ class LegacySqlUserSeeder extends Seeder
             $position->permissions()->sync($permissionIds);
         });
 
+        $this->syncDirectorAttendancePositionPermissions($permissionsByName);
         $this->syncRolePermissions();
+    }
+
+    /**
+     * @param  Collection<string, string>  $permissionsByName
+     */
+    private function syncDirectorAttendancePositionPermissions(Collection $permissionsByName): void
+    {
+        $adminAttendancePermissionId = $permissionsByName->get('view-admin-attendance');
+        $directorAttendancePermissionId = $permissionsByName->get('view-director-attendance');
+
+        if (! is_string($adminAttendancePermissionId) || ! is_string($directorAttendancePermissionId)) {
+            return;
+        }
+
+        Position::query()
+            ->whereIn('name', ['Chief Operating Officer', 'Director'])
+            ->get()
+            ->each(function (Position $position) use ($adminAttendancePermissionId, $directorAttendancePermissionId): void {
+                $permissionIds = $position->permissions()
+                    ->pluck('permissions.uuid')
+                    ->filter(static fn (mixed $permissionId): bool => is_string($permissionId) && $permissionId !== $adminAttendancePermissionId)
+                    ->push($directorAttendancePermissionId)
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $position->permissions()->sync($permissionIds);
+            });
     }
 
     private function seedEmployeeProfile(Employee $employee, array $legacyUser): void
@@ -1487,7 +1516,7 @@ class LegacySqlUserSeeder extends Seeder
                 'view-calendar',
                 'view-attendance',
                 'view-timesheet-reporting',
-                'view-admin-attendance',
+                'view-director-attendance',
                 'view-authorization',
                 'view-employee-database',
                 'view-talent-acquisition',

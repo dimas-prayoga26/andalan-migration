@@ -15,6 +15,7 @@ use App\Models\LeaveRequest;
 use App\Models\User;
 use App\Services\Attendance\AttendanceCardsViewDataService;
 use App\Services\Attendance\AttendanceMutationService;
+use App\Support\Attendance\AttendanceWorkDurationCalculator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,7 +32,8 @@ class AttendanceReportController extends Controller
 {
     public function __construct(
         private AttendanceCardsViewDataService $attendanceCardsViewDataService,
-        private AttendanceMutationService $attendanceMutationService
+        private AttendanceMutationService $attendanceMutationService,
+        private AttendanceWorkDurationCalculator $attendanceWorkDurationCalculator
     ) {}
 
     public function index(AttendanceIndexRequest $request): View
@@ -970,12 +972,8 @@ class AttendanceReportController extends Controller
     private function formatWorkHoursLabel(?string $clockInValue, ?string $clockOutValue, mixed $storedWorkHours): string
     {
         if (is_string($clockInValue) && is_string($clockOutValue)) {
-            $clockInTimestamp = strtotime($clockInValue);
-            $clockOutTimestamp = strtotime($clockOutValue);
-
-            if ($clockInTimestamp !== false && $clockOutTimestamp !== false) {
-                $minutes = max(0, (int) round(abs(($clockOutTimestamp - $clockInTimestamp) / 60)));
-
+            $minutes = $this->attendanceWorkDurationCalculator->netMinutesBetweenTimeLabels($clockInValue, $clockOutValue);
+            if ($minutes !== null) {
                 return $this->formatMinutesToHoursLabel($minutes);
             }
         }

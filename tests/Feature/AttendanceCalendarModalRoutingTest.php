@@ -10,6 +10,8 @@ use App\Http\Requests\Attendance\CurrentAttendanceIpRequest;
 use App\Http\Requests\Attendance\StoreAttendanceExceptionRequest;
 use App\Http\Requests\Attendance\StoreAttendanceRequest;
 use App\Http\Requests\Attendance\UpdateAttendanceRequest;
+use App\Services\Attendance\AttendanceMutationService;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
@@ -21,6 +23,10 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertInstanceOf(AttendanceController::class, app(AttendanceController::class));
         $this->assertInstanceOf(DashboardController::class, app(DashboardController::class));
         $this->assertInstanceOf(AttendanceReportController::class, app(AttendanceReportController::class));
+        $this->assertSame(8.0, app(AttendanceMutationService::class)->calculateWorkHours(
+            Carbon::parse('2026-07-07 08:00:00', 'Asia/Jakarta'),
+            Carbon::parse('2026-07-07 17:00:00', 'Asia/Jakarta')
+        ));
 
         $request = new StoreAttendanceExceptionRequest;
         $this->assertSame(

@@ -186,4 +186,14 @@ class AttendanceReportExcelExportTest extends TestCase
             )
         );
     }
+
+    public function test_attendance_report_work_hours_uses_effective_hours_with_rest_deduction(): void
+    {
+        $controller = app(AttendanceReportController::class);
+        $formatWorkHoursLabel = new ReflectionMethod(AttendanceReportController::class, 'formatWorkHoursLabel');
+        $formatWorkHoursLabel->setAccessible(true);
+
+        $this->assertSame('8 hours', $formatWorkHoursLabel->invoke($controller, '08:00', '17:00', 9));
+        $this->assertSame('4 hours', $formatWorkHoursLabel->invoke($controller, '08:00', '12:00', null));
+    }
 }

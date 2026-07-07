@@ -158,8 +158,8 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
             $this->assertSame(15, $data['profileAttendanceProgressPercent']);
             $this->assertSame(67, $data['profileProgressOnTimePercent']);
             $this->assertSame(33, $data['profileProgressLatePercent']);
-            $this->assertSame(9.0, (float) $data['profileWeeklyRequiredHours']);
-            $this->assertSame(23, $data['profileWeeklyRequiredHoursPercent']);
+            $this->assertSame(8.0, (float) $data['profileWeeklyRequiredHours']);
+            $this->assertSame(20, $data['profileWeeklyRequiredHoursPercent']);
             $this->assertSame(36.0, (float) $data['profileWeeklyOvertimeHours']);
             $this->assertSame(100, $data['profileWeeklyOvertimeHoursPercent']);
             $this->assertIsArray($data['profileMonthlyAttendanceLabels']);

@@ -9,6 +9,7 @@ use App\Models\AttendanceLog;
 use App\Models\TelegramUser;
 use App\Models\User;
 use App\Support\Attendance\AttendanceExceptionPresenter;
+use App\Support\Attendance\AttendanceWorkDurationCalculator;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
@@ -19,7 +20,8 @@ class AttendanceMutationService
 {
     public function __construct(
         private TelegramAttendanceNotifier $telegramAttendanceNotifier,
-        private AttendanceExceptionPresenter $attendanceExceptionPresenter
+        private AttendanceExceptionPresenter $attendanceExceptionPresenter,
+        private AttendanceWorkDurationCalculator $attendanceWorkDurationCalculator
     ) {}
 
     /**
@@ -359,7 +361,7 @@ class AttendanceMutationService
                     : $officeStartTime;
                 $lateMinutes = $this->calculateMinutesBetweenTimes($exceptionDate, $officeStartTime, $clockInTime);
                 $workedMinutes = $this->calculateMinutesBetweenTimes($exceptionDate, $clockInTime, $fromTime);
-                $workHours = round($workedMinutes / 60, 2);
+                $workHours = round($this->attendanceWorkDurationCalculator->netMinutesFromGrossMinutes($workedMinutes) / 60, 2);
                 $attendanceStatus = $lateMinutes > 0 ? 'Terlambat' : 'Masuk';
             }
 
@@ -521,12 +523,7 @@ class AttendanceMutationService
 
     public function calculateWorkHours(Carbon $clockInTime, Carbon $clockOutTime): float
     {
-        $workedMinutes = (int) $clockInTime->diffInMinutes($clockOutTime, false);
-        if ($workedMinutes < 0) {
-            return 0.0;
-        }
-
-        return round($workedMinutes / 60, 2);
+        return $this->attendanceWorkDurationCalculator->netHoursBetween($clockInTime, $clockOutTime);
     }
 
     public function normalizeTimeToSeconds(string $timeValue): string

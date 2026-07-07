@@ -10,6 +10,7 @@ use App\Models\BusinessTrip;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\User;
+use App\Support\Attendance\AttendanceWorkDurationCalculator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
@@ -25,6 +26,10 @@ class AttendanceProfileComposer
         'chief operating officer',
         'super administrator',
     ];
+
+    public function __construct(
+        private readonly AttendanceWorkDurationCalculator $attendanceWorkDurationCalculator
+    ) {}
 
     public function compose(View $view): void
     {
@@ -480,19 +485,19 @@ class AttendanceProfileComposer
 
     private function calculateAttendanceWorkMinutes(Attendance $attendance): int
     {
+        if ($attendance->clock_in instanceof \DateTimeInterface && $attendance->clock_out instanceof \DateTimeInterface) {
+            return $this->attendanceWorkDurationCalculator->netMinutesBetween(
+                Carbon::instance($attendance->clock_in),
+                Carbon::instance($attendance->clock_out)
+            );
+        }
+
         $workHours = $attendance->work_hours;
         if (is_numeric($workHours)) {
             return max(0, (int) round(((float) $workHours) * 60));
         }
 
-        if (! $attendance->clock_in instanceof \DateTimeInterface || ! $attendance->clock_out instanceof \DateTimeInterface) {
-            return 0;
-        }
-
-        return $this->calculateOvertimeMinutes(
-            $attendance->clock_in->format('H:i:s'),
-            $attendance->clock_out->format('H:i:s')
-        );
+        return 0;
     }
 
     private function calculateOvertimeMinutes(mixed $startTimeValue, mixed $endTimeValue): int

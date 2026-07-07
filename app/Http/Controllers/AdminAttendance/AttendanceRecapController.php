@@ -14,6 +14,7 @@ use App\Models\LeaveRequest;
 use App\Support\Attendance\AttendanceDurationFormatter;
 use App\Support\Attendance\AttendanceExceptionPresenter;
 use App\Support\Attendance\AttendanceLocationFormatter;
+use App\Support\Attendance\AttendanceWorkDurationCalculator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,11 +35,12 @@ class AttendanceRecapController extends Controller
         private readonly AttendanceDurationFormatter $attendanceDurationFormatter,
         private readonly AttendanceExceptionPresenter $attendanceExceptionPresenter,
         private readonly AttendanceLocationFormatter $attendanceLocationFormatter,
+        private readonly AttendanceWorkDurationCalculator $attendanceWorkDurationCalculator,
     ) {}
 
     public function index(Request $request): View
     {
-        return view('admin_attendance.recap_attendance.index', $this->recapViewData($request));
+        return view($this->attendanceIndexView(), $this->recapViewData($request));
     }
 
     public function monthlyDatatable(Request $request): JsonResponse
@@ -55,7 +57,7 @@ class AttendanceRecapController extends Controller
     {
         $detailContext = $this->recapEmployeeDetailContext($request, $employee);
 
-        return view('admin_attendance.recap_attendance.detail-employees', [
+        return view($this->attendanceDetailView(), [
             'recapDetailMonth' => $detailContext['month'],
             'recapDetailYear' => $detailContext['year'],
         ] + $this->recapEmployeeDetailData(
@@ -78,6 +80,16 @@ class AttendanceRecapController extends Controller
             'data' => $detailData['recapDetailAttendanceRows'],
             'period_label' => $detailData['recapDetailPeriodLabel'],
         ]);
+    }
+
+    protected function attendanceIndexView(): string
+    {
+        return 'admin_attendance.recap_attendance.index';
+    }
+
+    protected function attendanceDetailView(): string
+    {
+        return 'admin_attendance.recap_attendance.detail-employees';
     }
 
     /**
@@ -269,10 +281,10 @@ class AttendanceRecapController extends Controller
                 $leaveDays = $this->recapOverlappingWorkDayCount($leaveRequests, $employeeWorkDays);
                 $businessTripDays = $this->recapOverlappingWorkDayCount($businessTrips, $employeeWorkDays);
                 $onTimeCount = $attendances
-                    ->filter(fn (Attendance $attendance): bool => strtolower((string) $attendance->status) === 'masuk')
+                    ->reject(fn (Attendance $attendance): bool => $this->isLateAttendance($attendance))
                     ->count();
                 $lateAttendances = $attendances
-                    ->filter(fn (Attendance $attendance): bool => strtolower((string) $attendance->status) === 'terlambat' || (int) $attendance->late_minutes > 0);
+                    ->filter(fn (Attendance $attendance): bool => $this->isLateAttendance($attendance));
                 $lateMinutes = $lateAttendances->sum(fn (Attendance $attendance): int => (int) $attendance->late_minutes);
                 $deviationCount = $exceptionsByEmployeeId
                     ->get($employeeId, collect())
@@ -355,16 +367,18 @@ class AttendanceRecapController extends Controller
 
     private function recapAttendanceWorkMinutes(Attendance $attendance): int
     {
+        if ($attendance->clock_in instanceof \DateTimeInterface && $attendance->clock_out instanceof \DateTimeInterface) {
+            return $this->attendanceWorkDurationCalculator->netMinutesBetween(
+                Carbon::instance($attendance->clock_in),
+                Carbon::instance($attendance->clock_out)
+            );
+        }
+
         if (is_numeric($attendance->work_hours)) {
             return max(0, (int) round((float) $attendance->work_hours * 60));
         }
 
-        if (! $attendance->clock_in instanceof \DateTimeInterface || ! $attendance->clock_out instanceof \DateTimeInterface) {
-            return 0;
-        }
-
-        return (int) Carbon::instance($attendance->clock_in)
-            ->diffInMinutes(Carbon::instance($attendance->clock_out));
+        return 0;
     }
 
     private function recapCompactMinutesLabel(int $minutes): string
@@ -444,10 +458,10 @@ class AttendanceRecapController extends Controller
             ->map(fn (Attendance $attendance): string => $this->dateKey($attendance->date))
             ->unique();
         $onTimeCount = $attendances
-            ->filter(fn (Attendance $attendance): bool => strtolower((string) $attendance->status) === 'masuk')
+            ->reject(fn (Attendance $attendance): bool => $this->isLateAttendance($attendance))
             ->count();
         $lateAttendances = $attendances
-            ->filter(fn (Attendance $attendance): bool => strtolower((string) $attendance->status) === 'terlambat' || (int) $attendance->late_minutes > 0);
+            ->filter(fn (Attendance $attendance): bool => $this->isLateAttendance($attendance));
         $lateMinutes = $lateAttendances->sum(fn (Attendance $attendance): int => (int) $attendance->late_minutes);
         $deviationCount = $attendanceExceptionsByAttendanceId->count();
         $leaveDays = $this->recapOverlappingWorkDayCount($leaveRequests, $workDays);
@@ -466,7 +480,7 @@ class AttendanceRecapController extends Controller
         $leaveTypeDays = $this->recapLeaveTypeDays($leaveRequests, $workDays);
         $attendanceRows = $attendances->map(function (Attendance $attendance) use ($attendanceExceptionsByAttendanceId): array {
             $attendanceException = $attendanceExceptionsByAttendanceId->get($attendance->id);
-            $isLate = strtolower((string) $attendance->status) === 'terlambat' || (int) $attendance->late_minutes > 0;
+            $isLate = $this->isLateAttendance($attendance);
             $isException = $attendanceException instanceof AttendanceException;
 
             return [
@@ -707,9 +721,8 @@ class AttendanceRecapController extends Controller
         ?AttendanceLog $attendanceLog,
         ?AttendanceException $attendanceException
     ): array {
-        $normalizedStatus = strtolower(trim((string) $attendance->status));
         $lateMinutes = (int) ($attendance->late_minutes ?? 0);
-        $isLate = $normalizedStatus === 'terlambat' || $lateMinutes > 0;
+        $isLate = $this->isLateAttendance($attendance);
         $hasDeviation = $attendanceException instanceof AttendanceException;
         $exceptionType = $hasDeviation ? strtolower(trim((string) $attendanceException->type)) : '';
         $isLateArrival = $exceptionType === 'late_arrival';
@@ -834,20 +847,27 @@ class AttendanceRecapController extends Controller
 
     private function recapWorkingHoursLabel(Attendance $attendance): string
     {
+        if ($attendance->clock_in instanceof \DateTimeInterface && $attendance->clock_out instanceof \DateTimeInterface) {
+            $minutes = $this->attendanceWorkDurationCalculator->netMinutesBetween(
+                Carbon::instance($attendance->clock_in),
+                Carbon::instance($attendance->clock_out)
+            );
+
+            return $this->recapMinutesLabel($minutes);
+        }
+
         if (is_numeric($attendance->work_hours)) {
             $minutes = max(0, (int) round((float) $attendance->work_hours * 60));
 
             return $this->recapMinutesLabel($minutes);
         }
 
-        if ($attendance->clock_in instanceof \DateTimeInterface && $attendance->clock_out instanceof \DateTimeInterface) {
-            $minutes = (int) Carbon::instance($attendance->clock_in)
-                ->diffInMinutes(Carbon::instance($attendance->clock_out));
-
-            return $this->recapMinutesLabel($minutes);
-        }
-
         return '0 hours';
+    }
+
+    private function isLateAttendance(Attendance $attendance): bool
+    {
+        return (int) ($attendance->late_minutes ?? 0) > 0;
     }
 
     private function recapMinutesLabel(int $minutes): string

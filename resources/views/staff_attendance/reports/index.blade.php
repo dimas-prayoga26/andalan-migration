@@ -523,7 +523,7 @@
                                 return '<span class="attendance-tag attendance-tag--leave">' + escapeHtml(data || 'Leave') + '</span>';
                             }
 
-                            if (rowType === 'alpha') {
+                            if (rowType === 'alpha' || rowType === 'pending') {
                                 return '-';
                             }
 
@@ -542,7 +542,7 @@
                         targets: checkOutColumnIndex,
                         render: function (data, type, rowData) {
                             var rowType = rowData && rowData.row_type ? String(rowData.row_type) : '';
-                            if (rowType === 'national_holiday' || rowType === 'joint_leave' || rowType === 'weekend' || rowType === 'leave' || rowType === 'alpha') {
+                            if (rowType === 'national_holiday' || rowType === 'joint_leave' || rowType === 'weekend' || rowType === 'leave' || rowType === 'alpha' || rowType === 'pending') {
                                 return '-';
                             }
 

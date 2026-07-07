@@ -471,6 +471,45 @@ class AttendanceReportController extends Controller
                     continue;
                 }
 
+                if ($cursorDate->greaterThanOrEqualTo($todayJakarta)) {
+                    $tableRows->push([
+                        'attendance_id' => null,
+                        'attendance_date' => $cursorDate->translatedFormat('d M Y'),
+                        'attendance_date_iso' => $isoDate,
+                        'staff_name' => $staffDisplayName,
+                        'company_name' => $staffUser->employee?->deployment?->company?->name,
+                        'check_in' => '-',
+                        'check_out' => '-',
+                        'work_hours' => '-',
+                        'note' => '-',
+                        'attachment' => null,
+                        'has_detail' => false,
+                        'is_late' => false,
+                        'clock_in_class' => '',
+                        'attendance_status' => '-',
+                        'attendance_status_class' => '',
+                        'location_name' => '-',
+                        'location_address' => '-',
+                        'location_display' => '-',
+                        'status' => null,
+                        'row_type' => 'pending',
+                        'is_virtual' => true,
+                        'check_in_latitude' => null,
+                        'check_in_longitude' => null,
+                        'distance_meters' => null,
+                        'radius_result' => null,
+                        'formatted_address' => null,
+                        'address_village' => null,
+                        'address_district' => null,
+                        'address_regency' => null,
+                        'address_city' => null,
+                        'address_province' => null,
+                        'address_postal_code' => null,
+                    ]);
+
+                    continue;
+                }
+
                 $tableRows->push([
                     'attendance_id' => null,
                     'attendance_date' => $cursorDate->translatedFormat('d M Y'),

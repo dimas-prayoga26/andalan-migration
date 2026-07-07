@@ -32,6 +32,7 @@ class AttendanceReportExcelExportTest extends TestCase
         $this->assertStringContainsString('data-bs-target="#attendanceReportDetailModal"', $reportView);
         $this->assertStringContainsString('Belum Absen Masuk', $reportView);
         $this->assertStringNotContainsString('Belum Absen Pulang', $reportView);
+        $this->assertStringContainsString("rowType === 'alpha' || rowType === 'pending'", $reportView);
         $this->assertStringNotContainsString('attendanceReportMap', $reportView);
         $this->assertStringNotContainsString('<iframe', $reportView);
         $this->assertStringContainsString('function escapeHtml(value)', $reportView);
@@ -128,6 +129,8 @@ class AttendanceReportExcelExportTest extends TestCase
         $this->assertStringContainsString("'note' => 'Alpha',", $reportController);
         $this->assertStringContainsString("'row_type' => 'alpha',", $reportController);
         $this->assertStringContainsString("'row_type' => 'leave',", $reportController);
+        $this->assertStringContainsString('$cursorDate->greaterThanOrEqualTo($todayJakarta)', $reportController);
+        $this->assertStringContainsString("'row_type' => 'pending',", $reportController);
         $this->assertStringContainsString("whereRaw('LOWER(COALESCE(status, \"\")) = ?', ['approved'])", $reportController);
         $this->assertStringContainsString("'data' => \$tableRows->sortByDesc('attendance_date_iso')->values(),", $reportController);
         $this->assertStringContainsString("'note' => \$isNationalHoliday ? 'Libur Nasional' : 'Cuti Bersama',", $reportController);

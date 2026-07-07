@@ -38,7 +38,7 @@
 					<li class="{{ $isCalendarMenu ? 'mm-active' : '' }}">
 						<a class="{{ $isCalendarMenu ? 'active' : '' }}" href="{{ route('activity-schadule') }}">
 							<i class="fa-regular fa-calendar-days"></i>
-							<span class="nav-text" data-i18n="Google Calendar">Google Calendar </span>
+							<span class="nav-text" data-i18n="Activity Calendar">Activity Calendar </span>
 						</a>
 					</li>
 					@endif

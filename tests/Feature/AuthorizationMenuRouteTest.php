@@ -226,6 +226,8 @@ class AuthorizationMenuRouteTest extends TestCase
         $dropSidebarMenuMigration = File::get(database_path('migrations/2026_06_21_165133_drop_sidebar_menus_table.php'));
         $positionPermissionSeeder = File::get(database_path('seeders/PositionPermissionSeeder.php'));
         $databaseSeeder = File::get(database_path('seeders/DatabaseSeeder.php'));
+        $authorizationController = File::get(app_path('Http/Controllers/AuthorizationController.php'));
+        $sidebar = File::get(resource_path('views/layouts/sidebar.blade.php'));
 
         $this->assertStringContainsString("Schema::dropIfExists('sidebar_menus')", $dropSidebarMenuMigration);
         $this->assertStringContainsString("Schema::create('position_has_permissions'", $positionPermissionMigration);
@@ -235,6 +237,10 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('view-authorization', $positionPermissionSeeder);
         $this->assertStringContainsString('syncPositionPermissions', $positionPermissionSeeder);
         $this->assertStringContainsString('menuPermissionData', $positionPermissionSeeder);
+        $this->assertStringContainsString("'label' => 'Activity Calendar'", $positionPermissionSeeder);
+        $this->assertStringContainsString("'label' => 'Activity Calendar'", $authorizationController);
+        $this->assertStringContainsString('data-i18n="Activity Calendar">Activity Calendar', $sidebar);
+        $this->assertStringNotContainsString('Google Calendar', $positionPermissionSeeder.$authorizationController.$sidebar);
         $this->assertStringContainsString("'Administrator' => \$allPermissionsWithoutPic", $positionPermissionSeeder);
         $this->assertStringContainsString("'Web Developer' => \$baseStaffPermissions", $positionPermissionSeeder);
         $this->assertStringNotContainsString("'Web Developer' => array_merge(\$baseStaffPermissions, ['view-authorization'])", $positionPermissionSeeder);

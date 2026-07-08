@@ -114,7 +114,7 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertSame('02 Jam 00 Menit', $method->invoke($controller, '23:00:00', '01:00:00'));
     }
 
-    public function test_overtime_task_can_only_be_created_during_an_active_clocked_in_session(): void
+    public function test_overtime_task_can_be_created_after_clock_in_even_after_clock_out(): void
     {
         $method = new ReflectionMethod(AttendanceOvertimeController::class, 'canCreateOvertimeTask');
         $controller = app(AttendanceOvertimeController::class);
@@ -132,7 +132,7 @@ class ProjectOvertimeRelationTest extends TestCase
 
         $this->assertFalse($method->invoke($controller, $beforeClockIn));
         $this->assertTrue($method->invoke($controller, $duringSession));
-        $this->assertFalse($method->invoke($controller, $afterClockOut));
+        $this->assertTrue($method->invoke($controller, $afterClockOut));
     }
 
     public function test_project_task_and_overtime_relationships_are_available(): void
@@ -334,7 +334,7 @@ class ProjectOvertimeRelationTest extends TestCase
             'private function completedOvertimeTaskSubmittedAt',
             'private function overtimeTaskItemValue',
             'public function storeTask',
-            'Task lembur hanya dapat ditambahkan setelah Overtime Clock In dan sebelum Overtime Clock Out.',
+            'Task lembur hanya dapat ditambahkan setelah Overtime Clock In.',
             'public function updateTask',
             'public function destroyTask',
             'private function canUpdateOvertimeTask',
@@ -549,8 +549,19 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertStringContainsString('name="task_category"', $overtimeDetailView);
         $this->assertStringContainsString('name="project_id"', $overtimeDetailView);
         $this->assertStringContainsString('Belum ada pilihan project tersedia', $overtimeDetailView);
-        $this->assertStringContainsString('type="date" class="form-control" name="start_date"', $overtimeDetailView);
-        $this->assertStringContainsString('type="date" class="form-control" name="due_date"', $overtimeDetailView);
+        $this->assertStringContainsString('id="createTaskStartDateValue" value="{{ $taskDefaultDate ?? now(\'Asia/Jakarta\')->toDateString() }}" required', $overtimeDetailView);
+        $this->assertStringContainsString('id="createTaskStartDatePicker" data-date-target="#createTaskStartDateValue"', $overtimeDetailView);
+        $this->assertStringContainsString('id="createTaskDueDateValue" value="{{ $taskDefaultDate ?? now(\'Asia/Jakarta\')->toDateString() }}" required', $overtimeDetailView);
+        $this->assertStringContainsString('id="createTaskDueDatePicker" data-date-target="#createTaskDueDateValue"', $overtimeDetailView);
+        $this->assertStringContainsString('id="updateTaskStartDateValue" required', $overtimeDetailView);
+        $this->assertStringContainsString('id="updateTaskStartDatePicker" data-date-target="#updateTaskStartDateValue"', $overtimeDetailView);
+        $this->assertStringContainsString('id="updateTaskDueDateValue" required', $overtimeDetailView);
+        $this->assertStringContainsString('id="updateTaskDueDatePicker" data-date-target="#updateTaskDueDateValue"', $overtimeDetailView);
+        $this->assertStringContainsString('class="form-control overtime-task-single-date-picker"', $overtimeDetailView);
+        $this->assertStringContainsString('singleDatePicker: true', $overtimeDetailView);
+        $this->assertStringContainsString('function initTaskSingleDatePickers()', $overtimeDetailView);
+        $this->assertStringNotContainsString('type="date" class="form-control" name="start_date"', $overtimeDetailView);
+        $this->assertStringNotContainsString('type="date" class="form-control" name="due_date"', $overtimeDetailView);
         $this->assertStringContainsString('function submitCreateTaskForm(event)', $overtimeDetailView);
         $this->assertStringContainsString('function updateCreateTaskProjectState()', $overtimeDetailView);
         $this->assertStringContainsString('id="updateTaskForm"', $overtimeDetailView);

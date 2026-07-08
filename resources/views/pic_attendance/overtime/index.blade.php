@@ -8,7 +8,6 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
-    <link rel="stylesheet" href="{{ asset('assets/vendor/bootstrap-datepicker/css/bootstrap-datepicker3.min.css') }}">
 
 @endsection
 
@@ -428,7 +427,8 @@
 
                     <div class="mb-3">
                         <label for="pic-overtime-date" class="form-label">Overtime Date</label>
-                        <input type="text" class="form-control pic-overtime-date-picker @error('overtime_date', 'picOvertimeStore') is-invalid @enderror" id="pic-overtime-date" name="overtime_date" value="{{ old('overtime_date') }}" placeholder="yyyy-mm-dd" autocomplete="off" required>
+                        <input type="hidden" id="pic-overtime-date-value" name="overtime_date" value="{{ old('overtime_date') }}" required>
+                        <input type="text" class="form-control pic-overtime-date-picker @error('overtime_date', 'picOvertimeStore') is-invalid @enderror" id="pic-overtime-date" data-date-target="#pic-overtime-date-value" placeholder="Select date" autocomplete="off" readonly required>
                     </div>
 
                     <div class="row">
@@ -479,16 +479,16 @@
         $dashboardJsPath = public_path('assets/js/dashboard.js');
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
-    <script src="{{ asset('assets/vendor/bootstrap-datepicker/js/bootstrap-datepicker.min.js') }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            if (!window.jQuery || !jQuery.fn.datepicker) {
+            if (!window.jQuery) {
                 return;
             }
 
             var $modal = jQuery('#picAddOvertimeModal');
             var $overtimeDate = jQuery('#pic-overtime-date');
+            var $overtimeDateValue = jQuery('#pic-overtime-date-value');
             var $startTime = jQuery('#pic-overtime-start-time');
             var $endTime = jQuery('#pic-overtime-end-time');
             var $endsNextDay = jQuery('#pic-overtime-ends-next-day');
@@ -497,17 +497,6 @@
             if (!$modal.length || !$overtimeDate.length) {
                 return;
             }
-
-            var datepickerOptions = {
-                autoclose: true,
-                clearBtn: true,
-                container: '#picAddOvertimeModal',
-                format: 'yyyy-mm-dd',
-                orientation: 'bottom auto',
-                todayHighlight: true,
-                weekStart: 1,
-                zIndexOffset: 1060,
-            };
 
             function formatOvertimeDate(dateValue) {
                 var parts = dateValue.split('-');
@@ -529,8 +518,62 @@
                 }).format(date);
             }
 
+            function formatOvertimeDateDisplay(dateValue) {
+                if (!dateValue || typeof moment === 'undefined') {
+                    return '';
+                }
+
+                var date = moment(dateValue, 'YYYY-MM-DD');
+
+                return date.isValid() ? date.format('DD/MM/YYYY') : '';
+            }
+
+            function setOvertimeDateValue(dateValue) {
+                var normalizedDate = dateValue || '';
+
+                $overtimeDateValue.val(normalizedDate);
+                $overtimeDate.val(formatOvertimeDateDisplay(normalizedDate));
+
+                if (jQuery.fn.daterangepicker && $overtimeDate.data('daterangepicker') && typeof moment !== 'undefined' && normalizedDate) {
+                    var date = moment(normalizedDate, 'YYYY-MM-DD');
+                    if (date.isValid()) {
+                        $overtimeDate.data('daterangepicker').setStartDate(date);
+                        $overtimeDate.data('daterangepicker').setEndDate(date);
+                    }
+                }
+
+                $overtimeDateValue.trigger('change');
+            }
+
+            function initOvertimeDatePicker() {
+                $overtimeDate.val(formatOvertimeDateDisplay($overtimeDateValue.val()));
+
+                if (!jQuery.fn.daterangepicker) {
+                    return;
+                }
+
+                $overtimeDate.daterangepicker({
+                    autoApply: true,
+                    autoUpdateInput: false,
+                    singleDatePicker: true,
+                    parentEl: '#picAddOvertimeModal',
+                    locale: {
+                        format: 'DD/MM/YYYY',
+                        cancelLabel: 'Clear'
+                    }
+                });
+
+                $overtimeDate.on('apply.daterangepicker', function (event, picker) {
+                    setOvertimeDateValue(picker.startDate.format('YYYY-MM-DD'));
+                });
+
+                $overtimeDate.on('cancel.daterangepicker', function () {
+                    setOvertimeDateValue('');
+                });
+            }
+
             function updateOvertimeSchedulePreview() {
-                var date = formatOvertimeDate($overtimeDate.val());
+                var date = formatOvertimeDate($overtimeDateValue.val());
                 var startTime = $startTime.val();
                 var endTime = $endTime.val();
 
@@ -552,14 +595,10 @@
                 $schedulePreview.text('Schedule: ' + startLabel + ' → ' + endLabel);
             }
 
-            $overtimeDate.datepicker(datepickerOptions)
-                .on('changeDate clearDate change', updateOvertimeSchedulePreview);
+            initOvertimeDatePicker();
+            $overtimeDateValue.on('change', updateOvertimeSchedulePreview);
             $startTime.add($endTime).add($endsNextDay).on('change input', updateOvertimeSchedulePreview);
             updateOvertimeSchedulePreview();
-
-            $modal.on('hidden.bs.modal', function () {
-                $overtimeDate.datepicker('hide');
-            });
         });
     </script>
     @if ($picOvertimeErrors->any())

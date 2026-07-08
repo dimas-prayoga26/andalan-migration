@@ -265,6 +265,14 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertStringContainsString('border-bottom-color: var(--bs-primary);', $attendanceTodayView);
         $this->assertStringContainsString('.attendance-tabs .attendance-tab-btn.active {', $attendanceReportsView);
         $this->assertStringContainsString('border-bottom-color: var(--bs-primary);', $attendanceReportsView);
+        $this->assertStringContainsString('function renderAdminAttendanceBadge(value, tone)', $attendanceReportsView);
+        $this->assertStringContainsString('class="badge badge-sm badge-\' + safeTone + \' light fw-bold"', $attendanceReportsView);
+        $this->assertStringContainsString('function clockInBadgeTone(rowData)', $attendanceReportsView);
+        $this->assertStringContainsString('function clockOutBadgeTone(rowData)', $attendanceReportsView);
+        $this->assertStringContainsString("return rowData && rowData.is_late ? 'danger' : 'success';", $attendanceReportsView);
+        $this->assertStringContainsString("return renderAdminAttendanceBadge('Alpha', 'danger');", $attendanceReportsView);
+        $this->assertStringNotContainsString("return '<span class=\"text-danger fw-semibold\">' + data + '</span>';", $attendanceReportsView);
+        $this->assertStringNotContainsString("return '<span class=\"attendance-tag attendance-tag--weekend\">' + (data || 'Weekend / Day Off') + '</span>';", $attendanceReportsView);
         $this->assertStringContainsString('row attendance-rate-mobile-slider', $attendanceCardAnalyticsView);
         $this->assertStringContainsString('Attendance Rate', $attendanceCardAnalyticsView);
         $this->assertStringContainsString('On Time Rate', $attendanceCardAnalyticsView);

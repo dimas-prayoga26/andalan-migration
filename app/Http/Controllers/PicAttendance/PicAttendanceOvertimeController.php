@@ -175,6 +175,13 @@ class PicAttendanceOvertimeController extends Controller
             ]);
 
             $this->createInitialOvertimeLifecycleLogs($overtime, $authenticatedUser, $createdAt);
+
+            ProjectTask::query()->create($this->initialOvertimeProjectTaskPayload(
+                $overtime,
+                (string) $validated['instruction'],
+                $overtimeDate,
+                $authenticatedUser
+            ));
         });
 
         return redirect()
@@ -354,6 +361,7 @@ class PicAttendanceOvertimeController extends Controller
      *     planned_end_time:string,
      *     actual_start_time:string,
      *     actual_end_time:string,
+     *     staff_submitted_time_range:string,
      *     approved_start_time:string,
      *     approved_end_time:string,
      *     planned_time_range:string,
@@ -413,6 +421,7 @@ class PicAttendanceOvertimeController extends Controller
             'planned_end_time' => $plannedEndTime,
             'actual_start_time' => $actualStartTime,
             'actual_end_time' => $actualEndTime,
+            'staff_submitted_time_range' => $actualTimeRange,
             'approved_start_time' => $approvedStartTime,
             'approved_end_time' => $approvedEndTime,
             'planned_time_range' => $plannedTimeRange,
@@ -448,6 +457,40 @@ class PicAttendanceOvertimeController extends Controller
         return (string) $attendanceOvertime->assigned_by === (string) $authenticatedUser->id
             && (string) $projectTask->overtime_id === (string) $attendanceOvertime->id
             && (string) $projectTask->employee_id === (string) $attendanceOvertime->employee_id;
+    }
+
+    /**
+     * @return array{
+     *     project_id:null,
+     *     employee_id:string,
+     *     assigned_by:string,
+     *     overtime_id:string,
+     *     title:string,
+     *     description:string,
+     *     status:string,
+     *     priority:string,
+     *     start_date:string,
+     *     due_date:string,
+     *     completed_at:null
+     * }
+     */
+    private function initialOvertimeProjectTaskPayload(AttendanceOvertime $overtime, string $instruction, Carbon $overtimeDate, User $assignedBy): array
+    {
+        $instructionText = trim($instruction);
+
+        return [
+            'project_id' => null,
+            'employee_id' => (string) $overtime->employee_id,
+            'assigned_by' => (string) $assignedBy->id,
+            'overtime_id' => (string) $overtime->id,
+            'title' => Str::limit($instructionText, 255, ''),
+            'description' => $instructionText,
+            'status' => 'pending',
+            'priority' => 'high',
+            'start_date' => $overtimeDate->toDateString(),
+            'due_date' => $overtimeDate->toDateString(),
+            'completed_at' => null,
+        ];
     }
 
     private function overtimeDateTime(Carbon $overtimeDate, string $time): Carbon

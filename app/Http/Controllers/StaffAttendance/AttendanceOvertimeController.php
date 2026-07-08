@@ -1502,7 +1502,7 @@ class AttendanceOvertimeController extends Controller
         if (! $this->canCreateOvertimeTask($attendanceOvertime)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Task lembur hanya dapat ditambahkan setelah Overtime Clock In dan sebelum Overtime Clock Out.',
+                'message' => 'Task lembur hanya dapat ditambahkan setelah Overtime Clock In.',
             ], 422);
         }
 
@@ -1594,9 +1594,11 @@ class AttendanceOvertimeController extends Controller
 
     private function canCreateOvertimeTask(AttendanceOvertime $attendanceOvertime): bool
     {
-        return strtolower(trim((string) $attendanceOvertime->status)) === self::OVERTIME_STATUS_IN_PROGRESS
-            && $this->normalizeStoreTimeValue($attendanceOvertime->actual_start_time) !== null
-            && $this->normalizeStoreTimeValue($attendanceOvertime->actual_end_time) === null;
+        return in_array(strtolower(trim((string) $attendanceOvertime->status)), [
+            self::OVERTIME_STATUS_IN_PROGRESS,
+            self::OVERTIME_STATUS_COMPLETED,
+        ], true)
+            && $this->normalizeStoreTimeValue($attendanceOvertime->actual_start_time) !== null;
     }
 
     private function employeeIsProjectMember(string $employeeId, string $projectId): bool

@@ -902,14 +902,16 @@
                         </div>
                         <div class="col-6 col-md-3">
                             <div class="mb-3">
-                                <label class="form-label">Date <span class="required text-danger">*</span></label>
-                                <input type="date" class="form-control" name="start_date" value="{{ $taskDefaultDate ?? now('Asia/Jakarta')->toDateString() }}" required>
+                                <label class="form-label" for="createTaskStartDatePicker">Date <span class="required text-danger">*</span></label>
+                                <input type="hidden" name="start_date" id="createTaskStartDateValue" value="{{ $taskDefaultDate ?? now('Asia/Jakarta')->toDateString() }}" required>
+                                <input type="text" class="form-control overtime-task-single-date-picker" id="createTaskStartDatePicker" data-date-target="#createTaskStartDateValue" placeholder="Select date" readonly required>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
                             <div class="mb-3">
-                                <label class="form-label">Due Date <span class="required text-danger">*</span></label>
-                                <input type="date" class="form-control" name="due_date" value="{{ $taskDefaultDate ?? now('Asia/Jakarta')->toDateString() }}" required>
+                                <label class="form-label" for="createTaskDueDatePicker">Due Date <span class="required text-danger">*</span></label>
+                                <input type="hidden" name="due_date" id="createTaskDueDateValue" value="{{ $taskDefaultDate ?? now('Asia/Jakarta')->toDateString() }}" required>
+                                <input type="text" class="form-control overtime-task-single-date-picker" id="createTaskDueDatePicker" data-date-target="#createTaskDueDateValue" placeholder="Select due date" readonly required>
                             </div>
                         </div>
                         <div class="col-12 col-md-6">
@@ -1012,14 +1014,16 @@
                         </div>
                         <div class="col-6 col-md-3">
                             <div class="mb-3">
-                                <label class="form-label">Date <span class="required text-danger">*</span></label>
-                                <input type="date" class="form-control" name="start_date" required>
+                                <label class="form-label" for="updateTaskStartDatePicker">Date <span class="required text-danger">*</span></label>
+                                <input type="hidden" name="start_date" id="updateTaskStartDateValue" required>
+                                <input type="text" class="form-control overtime-task-single-date-picker" id="updateTaskStartDatePicker" data-date-target="#updateTaskStartDateValue" placeholder="Select date" readonly required>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
                             <div class="mb-3">
-                                <label class="form-label">Due Date <span class="required text-danger">*</span></label>
-                                <input type="date" class="form-control" name="due_date" required>
+                                <label class="form-label" for="updateTaskDueDatePicker">Due Date <span class="required text-danger">*</span></label>
+                                <input type="hidden" name="due_date" id="updateTaskDueDateValue" required>
+                                <input type="text" class="form-control overtime-task-single-date-picker" id="updateTaskDueDatePicker" data-date-target="#updateTaskDueDateValue" placeholder="Select due date" readonly required>
                             </div>
                         </div>
                         <div class="col-12 col-md-6">
@@ -1331,22 +1335,21 @@
                 }
             });
             $('#deleteTaskForm').on('submit', submitDeleteTaskForm);
+            initTaskSingleDatePickers();
             $('#createTaskForm input[name="start_date"]').on('change', function () {
                 var startDate = $(this).val();
                 var dueDateInput = $('#createTaskForm input[name="due_date"]');
 
-                dueDateInput.attr('min', startDate);
                 if (dueDateInput.val() && startDate && dueDateInput.val() < startDate) {
-                    dueDateInput.val(startDate);
+                    setTaskDatePickerValue($('#createTaskDueDatePicker'), startDate);
                 }
             }).trigger('change');
             $('#updateTaskForm input[name="start_date"]').on('change', function () {
                 var startDate = $(this).val();
                 var dueDateInput = $('#updateTaskForm input[name="due_date"]');
 
-                dueDateInput.attr('min', startDate);
                 if (dueDateInput.val() && startDate && dueDateInput.val() < startDate) {
-                    dueDateInput.val(startDate);
+                    setTaskDatePickerValue($('#updateTaskDueDatePicker'), startDate);
                 }
             });
             $('#task').on('hidden.bs.modal', function () {
@@ -1354,6 +1357,8 @@
                 if (form) {
                     form.reset();
                 }
+                refreshTaskDatePickerDisplays('#createTaskForm');
+                $('#createTaskForm input[name="start_date"]').trigger('change');
                 updateCreateTaskProjectState();
             });
             $('#update').on('hidden.bs.modal', function () {
@@ -1364,6 +1369,7 @@
                 $('#updateTaskForm').attr('action', '');
                 setSelectValue($('#updateTaskPrioritySelect'), 'medium');
                 setSelectValue($('#updateTaskStatusSelect'), 'pending');
+                refreshTaskDatePickerDisplays('#updateTaskForm');
                 updateUpdateTaskProjectState();
             });
             $('#delete').on('hidden.bs.modal', function () {
@@ -1441,6 +1447,76 @@
                 }
             }
 
+            function formatTaskDateDisplay(dateValue) {
+                if (!dateValue || typeof moment === 'undefined') {
+                    return dateValue || '';
+                }
+
+                var date = moment(dateValue, 'YYYY-MM-DD');
+
+                return date.isValid() ? date.format('DD/MM/YYYY') : '';
+            }
+
+            function setTaskDatePickerValue(datePickerInput, dateValue) {
+                var pickerInput = $(datePickerInput);
+                var targetInput = $(pickerInput.data('date-target'));
+                var normalizedDate = dateValue || '';
+
+                targetInput.val(normalizedDate);
+                pickerInput.val(formatTaskDateDisplay(normalizedDate));
+
+                if ($.fn.daterangepicker && pickerInput.data('daterangepicker') && typeof moment !== 'undefined' && normalizedDate) {
+                    var date = moment(normalizedDate, 'YYYY-MM-DD');
+                    if (date.isValid()) {
+                        pickerInput.data('daterangepicker').setStartDate(date);
+                        pickerInput.data('daterangepicker').setEndDate(date);
+                    }
+                }
+
+                targetInput.trigger('change');
+            }
+
+            function refreshTaskDatePickerDisplays(scopeSelector) {
+                $(scopeSelector).find('.overtime-task-single-date-picker').each(function () {
+                    var pickerInput = $(this);
+                    var targetInput = $(pickerInput.data('date-target'));
+
+                    pickerInput.val(formatTaskDateDisplay(targetInput.val()));
+                });
+            }
+
+            function initTaskSingleDatePickers() {
+                $('.overtime-task-single-date-picker').each(function () {
+                    var pickerInput = $(this);
+
+                    refreshTaskDatePickerDisplays(pickerInput.closest('form'));
+
+                    if (!$.fn.daterangepicker || pickerInput.data('daterangepicker-initialized')) {
+                        return;
+                    }
+
+                    pickerInput.daterangepicker({
+                        autoApply: true,
+                        autoUpdateInput: false,
+                        singleDatePicker: true,
+                        locale: {
+                            format: 'DD/MM/YYYY',
+                            cancelLabel: 'Clear'
+                        }
+                    });
+
+                    pickerInput.on('apply.daterangepicker', function (event, picker) {
+                        setTaskDatePickerValue($(this), picker.startDate.format('YYYY-MM-DD'));
+                    });
+
+                    pickerInput.on('cancel.daterangepicker', function () {
+                        setTaskDatePickerValue($(this), '');
+                    });
+
+                    pickerInput.data('daterangepicker-initialized', true);
+                });
+            }
+
             function showSwalAlert(iconType, titleText, messageText) {
                 if (typeof Swal !== 'undefined' && Swal && typeof Swal.fire === 'function') {
                     Swal.fire({
@@ -1489,6 +1565,7 @@
                     setSelectValue($('#updateTaskProjectSelect'), '');
                 }
 
+                refreshTaskDatePickerDisplays('#updateTaskForm');
                 $('#updateTaskForm input[name="start_date"]').trigger('change');
                 updateUpdateTaskProjectState();
                 $('#updateTaskSubmit').prop('disabled', false);

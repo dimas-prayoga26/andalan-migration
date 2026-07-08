@@ -49,8 +49,8 @@ class AttendanceProfileComposer
             'profileLeavesAndSickCount' => 0,
             'profileWeeklyAttendancePercent' => 0,
             'profileWeeklyOnTimePercent' => 0,
-            'profileAttendanceRatePercent' => 0,
-            'profileOnTimeRatePercent' => 0,
+            'profileAttendanceRatePercent' => 100.0,
+            'profileOnTimeRatePercent' => 100.0,
             'profileLatenessRatePercent' => 0.0,
             'profileOvertimeRatePercent' => 0,
             'profileAttendanceOverviewMonthLabel' => $nowJakarta->format('F'),
@@ -59,7 +59,8 @@ class AttendanceProfileComposer
             'profileAttendanceOverviewLateCount' => 0,
             'profileAttendanceOverviewLeaveCount' => 0,
             'profileAttendanceOverviewDeviationCount' => 0,
-            'profileAttendanceProgressPercent' => 0,
+            'profileAttendanceProgressPercent' => 100.0,
+            'profileDaysWorkedProgressPercent' => 0,
             'profileProgressOnTimePercent' => 0,
             'profileProgressOnTimeCount' => 0,
             'profileProgressOnTimeTotal' => 0,
@@ -168,17 +169,20 @@ class AttendanceProfileComposer
                 $profileData['profileAddressSummary'] = $subdistrictName;
             }
 
+            $monthStart = $nowJakarta->copy()->startOfMonth();
+            $monthEnd = $nowJakarta->copy()->endOfMonth();
+            $effectiveMonthStart = $this->attendanceTrackingPeriodStart($monthStart, $monthEnd);
+            $workingDaysInCurrentMonth = $this->calculateWorkingDaysInPeriod($monthStart, $monthEnd);
+
             $profileData['profileAttendanceDaysCount'] = Attendance::query()
                 ->where('employee_id', $employeeId)
-                ->whereYear('date', (int) $nowJakarta->year)
-                ->whereMonth('date', (int) $nowJakarta->month)
+                ->whereBetween('date', [$effectiveMonthStart->toDateString(), $monthEnd->toDateString()])
                 ->whereNotNull('clock_in')
                 ->count();
 
             $monthlyAttendanceQuery = Attendance::query()
                 ->where('employee_id', $employeeId)
-                ->whereYear('date', (int) $nowJakarta->year)
-                ->whereMonth('date', (int) $nowJakarta->month);
+                ->whereBetween('date', [$effectiveMonthStart->toDateString(), $monthEnd->toDateString()]);
             $monthlyOnTimeCount = (clone $monthlyAttendanceQuery)
                 ->whereNotNull('clock_in')
                 ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['masuk'])
@@ -190,24 +194,20 @@ class AttendanceProfileComposer
 
             $profileData['profileLateInCount'] = Attendance::query()
                 ->where('employee_id', $employeeId)
-                ->whereYear('date', (int) $nowJakarta->year)
-                ->whereMonth('date', (int) $nowJakarta->month)
+                ->whereBetween('date', [$effectiveMonthStart->toDateString(), $monthEnd->toDateString()])
                 ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['terlambat'])
                 ->count();
 
             $profileData['profileLeavesAndSickCount'] = LeaveRequest::query()
                 ->where('employee_id', $employeeId)
-                ->whereYear('start_date', (int) $nowJakarta->year)
-                ->whereMonth('start_date', (int) $nowJakarta->month)
+                ->whereDate('start_date', '<=', $monthEnd->toDateString())
+                ->whereDate('end_date', '>=', $effectiveMonthStart->toDateString())
                 ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['approved'])
                 ->where('is_active', true)
                 ->whereNull('deleted_at')
                 ->count();
 
-            $monthStart = $nowJakarta->copy()->startOfMonth();
-            $monthEnd = $nowJakarta->copy()->endOfMonth();
-            $workingDaysInCurrentMonth = $this->calculateWorkingDaysInMonth($nowJakarta);
-            $monthlyLeaveDaysCount = $this->countApprovedLeaveDaysForPeriod($employeeId, $monthStart, $monthEnd);
+            $monthlyLeaveDaysCount = $this->countApprovedLeaveDaysForPeriod($employeeId, $effectiveMonthStart, $monthEnd);
             $elapsedMonthEnd = $nowJakarta->lessThan($monthEnd)
                 ? $nowJakarta->copy()->startOfDay()
                 : $monthEnd->copy();
@@ -215,8 +215,7 @@ class AttendanceProfileComposer
             $monthlyAlphaDaysCount = $this->countAlphaWorkDaysForPeriod($employeeId, $monthStart, $elapsedMonthEnd);
             $monthlyOvertimeMinutes = AttendanceOvertime::query()
                 ->where('employee_id', $employeeId)
-                ->whereYear('overtime_date', (int) $nowJakarta->year)
-                ->whereMonth('overtime_date', (int) $nowJakarta->month)
+                ->whereBetween('overtime_date', [$effectiveMonthStart->toDateString(), $monthEnd->toDateString()])
                 ->whereNotNull('actual_start_time')
                 ->whereNotNull('actual_end_time')
                 ->get(['actual_start_time', 'actual_end_time'])
@@ -232,18 +231,17 @@ class AttendanceProfileComposer
             $profileData['profileAttendanceOverviewLateCount'] = (int) $monthlyLateCount;
             $profileData['profileAttendanceOverviewLeaveCount'] = (int) $monthlyLeaveDaysCount;
             $profileData['profileAttendanceOverviewDeviationCount'] = (int) $monthlyAlphaDaysCount;
-            $profileData['profileAttendanceRatePercent'] = $workingDaysInCurrentMonth > 0
-                ? max(0.0, min(100 - (($monthlyAlphaDaysCount / $workingDaysInCurrentMonth) * 100), 100.0))
-                : 100.0;
-            $profileData['profileOnTimeRatePercent'] = $workingDaysInCurrentMonth > 0
-                ? max(0.0, min(100 - (($monthlyLateCount / $workingDaysInCurrentMonth) * 100), 100.0))
-                : 100.0;
-            $profileData['profileLatenessRatePercent'] = $workingDaysInCurrentMonth > 0
-                ? max(0.0, min(($monthlyLateCount / $workingDaysInCurrentMonth) * 100, 100.0))
-                : 0.0;
+            $alphaRateImpactPercent = $this->rateImpactPercent((int) $monthlyAlphaDaysCount, $workingDaysInCurrentMonth);
+            $lateRateImpactPercent = $this->rateImpactPercent((int) $monthlyLateCount, $workingDaysInCurrentMonth);
+            $profileData['profileAttendanceRatePercent'] = max(0.0, round(100.0 - $alphaRateImpactPercent));
+            $profileData['profileOnTimeRatePercent'] = max(0.0, round(100.0 - $lateRateImpactPercent));
+            $profileData['profileLatenessRatePercent'] = $lateRateImpactPercent;
             $profileData['profileOvertimeRatePercent'] = max(0, min((int) round((($monthlyOvertimeMinutes / 60) / 72) * 100), 100));
             $profileData['profileAttendanceProgressPercent'] = $profileData['profileAttendanceRatePercent'];
-            $profileData['profileProgressOnTimeCount'] = max(0, $workingDaysInCurrentMonth - (int) $monthlyLateCount);
+            $profileData['profileDaysWorkedProgressPercent'] = $workingDaysInCurrentMonth > 0
+                ? max(0.0, min(round(($profileData['profileElapsedWorkingDaysCount'] / $workingDaysInCurrentMonth) * 100), 100.0))
+                : 0.0;
+            $profileData['profileProgressOnTimeCount'] = (int) $monthlyOnTimeCount;
             $profileData['profileProgressOnTimeTotal'] = (int) $workingDaysInCurrentMonth;
             $profileData['profileProgressOnTimePercent'] = $profileData['profileOnTimeRatePercent'];
             $profileData['profileProgressLateCount'] = (int) $monthlyLateCount;
@@ -440,6 +438,35 @@ class AttendanceProfileComposer
     private function calculateWorkingDaysInPeriod(Carbon $periodStart, Carbon $periodEnd): int
     {
         return count($this->workingDayDateKeysForPeriod($periodStart, $periodEnd));
+    }
+
+    private function attendanceTrackingPeriodStart(Carbon $periodStart, Carbon $periodEnd): Carbon
+    {
+        $configuredStartDate = config('attendance.tracking_start_date');
+        if (! is_string($configuredStartDate) || trim($configuredStartDate) === '') {
+            return $periodStart->copy()->startOfDay();
+        }
+
+        try {
+            $trackingStart = Carbon::parse(trim($configuredStartDate), 'Asia/Jakarta')->startOfDay();
+        } catch (\Throwable) {
+            return $periodStart->copy()->startOfDay();
+        }
+
+        if ($trackingStart->lessThanOrEqualTo($periodStart) || $trackingStart->greaterThan($periodEnd)) {
+            return $periodStart->copy()->startOfDay();
+        }
+
+        return $trackingStart;
+    }
+
+    private function rateImpactPercent(int $eventCount, int $workingDaysCount): float
+    {
+        if ($workingDaysCount <= 0) {
+            return 0.0;
+        }
+
+        return max(0.0, min(round(($eventCount / $workingDaysCount) * 100), 100.0));
     }
 
     /**

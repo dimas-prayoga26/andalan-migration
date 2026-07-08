@@ -116,7 +116,7 @@
                     </select>
                 </div>
             </div>
-            <div class="col-12 col-md-12">
+            <div class="col-12 col-md-12" id="businessTripTransportationModeWrapper">
                 <div class="mb-3">
                     <label class="form-label">Transportation Mode</label>
                     <div class="form-group mt-1 mb-0">
@@ -211,6 +211,8 @@
             var $businessTripCityRegencySelect = $('#businessTripCityRegencySelect');
             var $businessTripCityDestinationInput = $('#businessTripCityDestinationInput');
             var $businessTripTransportationSelect = $('#businessTripTransportationSelect');
+            var $businessTripTransportationModeWrapper = $('#businessTripTransportationModeWrapper');
+            var $businessTripTransportationModeInputs = $('input[name="transportation_mode"]');
             var $businessTripDepartureDateWrapper = $('#businessTripDepartureDateWrapper');
             var $businessTripDepartureDateInput = $('#businessTripDepartureDateInput');
             var $businessTripDepartureDateValueInput = $('#businessTripDepartureDateValueInput');
@@ -296,15 +298,19 @@
             }
 
             function toggleTransportationFields() {
-                var isBookedByGa = $businessTripTransportationSelect.val() === 'booked_by_ga';
+                var shouldShowTransportationBookingFields = $businessTripTransportationSelect.val() === 'booked_by_ga';
 
-                $businessTripDepartureDateWrapper.toggleClass('d-none', isBookedByGa);
-                $businessTripDepartureTimeWrapper.toggleClass('d-none', isBookedByGa);
-                $businessTripDepartureDateInput.prop('required', !isBookedByGa);
-                $businessTripDepartureTimeSelect.prop('required', !isBookedByGa);
-                $businessTripDepartureTimeSelect.prop('disabled', isBookedByGa);
+                $businessTripTransportationModeWrapper.toggleClass('d-none', !shouldShowTransportationBookingFields);
+                $businessTripDepartureDateWrapper.toggleClass('d-none', !shouldShowTransportationBookingFields);
+                $businessTripDepartureTimeWrapper.toggleClass('d-none', !shouldShowTransportationBookingFields);
+                $businessTripTransportationModeInputs.prop('required', shouldShowTransportationBookingFields);
+                $businessTripTransportationModeInputs.prop('disabled', !shouldShowTransportationBookingFields);
+                $businessTripDepartureDateInput.prop('required', shouldShowTransportationBookingFields);
+                $businessTripDepartureTimeSelect.prop('required', shouldShowTransportationBookingFields);
+                $businessTripDepartureTimeSelect.prop('disabled', !shouldShowTransportationBookingFields);
 
-                if (isBookedByGa) {
+                if (!shouldShowTransportationBookingFields) {
+                    $businessTripTransportationModeInputs.prop('checked', false);
                     $businessTripDepartureDateInput.val('');
                     $businessTripDepartureDateValueInput.val('');
                     $businessTripDepartureTimeSelect.selectpicker('val', '');
@@ -314,14 +320,14 @@
             }
 
             function toggleAccommodationFields() {
-                var isBookedByGa = $businessTripAccommodationSelect.val() === 'booked_by_ga';
+                var shouldShowAccommodationBookingFields = $businessTripAccommodationSelect.val() === 'booked_by_ga';
 
-                $businessTripCheckInDateWrapper.toggleClass('d-none', isBookedByGa);
-                $businessTripCheckOutDateWrapper.toggleClass('d-none', isBookedByGa);
-                $businessTripCheckInDateInput.prop('required', !isBookedByGa);
-                $businessTripCheckOutDateInput.prop('required', !isBookedByGa);
+                $businessTripCheckInDateWrapper.toggleClass('d-none', !shouldShowAccommodationBookingFields);
+                $businessTripCheckOutDateWrapper.toggleClass('d-none', !shouldShowAccommodationBookingFields);
+                $businessTripCheckInDateInput.prop('required', shouldShowAccommodationBookingFields);
+                $businessTripCheckOutDateInput.prop('required', shouldShowAccommodationBookingFields);
 
-                if (isBookedByGa) {
+                if (!shouldShowAccommodationBookingFields) {
                     $businessTripCheckInDateInput.val('');
                     $businessTripCheckInDateValueInput.val('');
                     $businessTripCheckOutDateInput.val('');

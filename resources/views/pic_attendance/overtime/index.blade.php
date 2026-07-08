@@ -505,6 +505,7 @@
                 format: 'yyyy-mm-dd',
                 orientation: 'bottom auto',
                 todayHighlight: true,
+                weekStart: 1,
                 zIndexOffset: 1060,
             };
 

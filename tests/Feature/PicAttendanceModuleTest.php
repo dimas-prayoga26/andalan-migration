@@ -113,6 +113,15 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('$query = $this->applySupervisorApprovedReviewFilter($query);', $leaveController);
         $this->assertStringContainsString('pic-attendance.leave.supervisor-review.update', $leaveView);
         $this->assertStringContainsString('w-100 btn-lg', $leaveView);
+        $this->assertStringContainsString('card leave-summary-card mb-4', $leaveView);
+        $this->assertStringContainsString('leave-summary-icon--eligibility', $leaveView);
+        $this->assertStringContainsString('leave-summary-icon--tracker', $leaveView);
+        $this->assertStringContainsString('href="#Eligibility"', $leaveView);
+        $this->assertStringContainsString('href="#Tracker"', $leaveView);
+        $this->assertStringContainsString('id="Eligibility"', $leaveView);
+        $this->assertStringContainsString('id="Tracker"', $leaveView);
+        $this->assertStringNotContainsString('href="#Running"', $leaveView);
+        $this->assertStringNotContainsString('href="#Cycling"', $leaveView);
         $this->assertStringContainsString('id="recapAttendanceCaptureButton"', $attendanceView);
         $this->assertStringContainsString('id="recapAttendanceCaptureArea"', $attendanceView);
         $this->assertStringContainsString('id="recapAttendanceCaptureTable"', $attendanceView);

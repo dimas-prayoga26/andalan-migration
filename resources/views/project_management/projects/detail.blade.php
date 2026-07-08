@@ -644,6 +644,12 @@
     $(function () {
         var projectTaskDeleteUrl = '';
 
+        if (typeof moment !== 'undefined') {
+            moment.updateLocale('en', {
+                week: { dow: 1 },
+            });
+        }
+
         var parseProjectChartData = function (value) {
             try {
                 var parsedValue = JSON.parse(value || '[]');

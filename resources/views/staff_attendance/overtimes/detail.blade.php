@@ -162,7 +162,10 @@
                                 <span>Time</span>
                             </div>
                             <div class="col-md-6 col-12">
-                                @if (($overtimeDetail['has_actual_time'] ?? false) && ($overtimeDetail['time_changed'] ?? false))
+                                @if (($overtimeDetail['is_pic_verified'] ?? false))
+                                    <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
+                                    <span class="text-gray">, {{ $overtimeDetail['log_time_range'] ?? ($overtimeDetail['approved_time_range'] ?? '-') }}</span>
+                                @elseif (($overtimeDetail['has_actual_time'] ?? false) && ($overtimeDetail['time_changed'] ?? false))
                                     <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
                                     <span class="text-gray">, {{ $overtimeDetail['actual_time_range'] ?? '-' }}</span>
                                 @else
@@ -175,7 +178,10 @@
                                 <span>Total Duration</span>
                             </div>
                             <div class="col-md-6 col-12">
-                                @if (($overtimeDetail['has_actual_time'] ?? false) && ($overtimeDetail['duration_changed'] ?? false))
+                                @if (($overtimeDetail['is_pic_verified'] ?? false))
+                                    <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
+                                    <span class="text-gray">, {{ $overtimeDetail['log_duration'] ?? ($overtimeDetail['approved_duration'] ?? '-') }}</span>
+                                @elseif (($overtimeDetail['has_actual_time'] ?? false) && ($overtimeDetail['duration_changed'] ?? false))
                                     <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
                                     <span class="text-gray">, {{ $overtimeDetail['actual_duration'] ?? '-' }}</span>
                                 @else

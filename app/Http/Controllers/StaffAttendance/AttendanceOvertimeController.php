@@ -30,6 +30,8 @@ class AttendanceOvertimeController extends Controller
 
     private const OVERTIME_STATUS_CANCELLED = 'cancelled';
 
+    private const OVERTIME_CLOCK_TOLERANCE_MINUTES = 30;
+
     private const OVERTIME_LIFECYCLE_PHASES = [
         'assignment_request' => [
             'title' => 'Phase 1: Assignment & Request',
@@ -340,7 +342,7 @@ class AttendanceOvertimeController extends Controller
                 'assignedBy:id,username',
                 'assignedBy.employee:id,user_id',
                 'assignedBy.employee.profile:id,employee_id,name',
-                'lifecycleLogs:id,overtime_id,status',
+                'lifecycleLogs:id,overtime_id,event_key,status',
                 'projectTasks' => function ($query): void {
                     $query
                         ->select([
@@ -376,7 +378,13 @@ class AttendanceOvertimeController extends Controller
 
         $overtimesQuery = $this->applyOvertimeAccessFilter($overtimesQuery, $authenticatedUser);
 
-        if ($statusFilter !== null) {
+        if ($statusFilter === self::OVERTIME_STATUS_COMPLETED) {
+            $overtimesQuery->whereHas('lifecycleLogs', function (Builder $query): void {
+                $query
+                    ->where('event_key', 'task_hours_verification')
+                    ->whereRaw('LOWER(status) = ?', ['verified']);
+            });
+        } elseif ($statusFilter !== null) {
             $overtimesQuery->where('status', $statusFilter);
         }
 
@@ -472,6 +480,8 @@ class AttendanceOvertimeController extends Controller
                     'planned_end_time',
                     'actual_start_time',
                     'actual_end_time',
+                    'approved_start_time',
+                    'approved_end_time',
                     'status',
                 ])
                 ->with(['lifecycleLogs:id,overtime_id,event_key,status'])
@@ -494,12 +504,19 @@ class AttendanceOvertimeController extends Controller
             return ! $verificationLog instanceof OvertimeLifecycleLog
                 || $this->normalizeOvertimeLifecycleState((string) $verificationLog->status) !== 'completed';
         };
+        $isVerifiedSupervisorOvertime = function (AttendanceOvertime $overtime): bool {
+            $verificationLog = $overtime->lifecycleLogs
+                ->first(fn (OvertimeLifecycleLog $lifecycleLog): bool => (string) $lifecycleLog->event_key === 'task_hours_verification');
+
+            return $verificationLog instanceof OvertimeLifecycleLog
+                && strtolower(trim((string) $verificationLog->status)) === 'verified';
+        };
         $pendingSupervisorApprovalMinutes = $activeOvertimes
             ->filter($isPendingSupervisorOvertimeApproval)
             ->sum(fn (AttendanceOvertime $overtime): int => $this->durationMinutesFromTimeValues($overtime->actual_start_time, $overtime->actual_end_time));
         $completedMinutes = $activeOvertimes
-            ->where('status', self::OVERTIME_STATUS_COMPLETED)
-            ->sum(fn (AttendanceOvertime $overtime): int => $this->durationMinutesFromTimeValues($overtime->actual_start_time, $overtime->actual_end_time));
+            ->filter($isVerifiedSupervisorOvertime)
+            ->sum(fn (AttendanceOvertime $overtime): int => $this->approvedOrActualDurationMinutes($overtime));
         $tasksFinalized = $activeOvertimes
             ->flatMap(fn (AttendanceOvertime $overtime): Collection => $overtime->projectTasks)
             ->filter(fn (ProjectTask $projectTask): bool => strtolower(trim((string) $projectTask->status)) === 'completed' || $projectTask->completed_at !== null)
@@ -522,7 +539,7 @@ class AttendanceOvertimeController extends Controller
             'pending_spv_approval_hours_progress' => min(100, (int) round(($pendingSupervisorApprovalHours / $overtimeCapHours) * 100)),
             'completed_locked_hours_label' => $this->formatOvertimeSummaryHours($completedHours),
             'completed_locked_progress' => min(100, (int) round(($completedHours / $overtimeCapHours) * 100)),
-            'estimated_extra_earnings_label' => 'Rp 225.000',
+            'estimated_extra_earnings_label' => 'Rp 0',
             'disputed_hours_label' => '0 Hours',
         ];
     }
@@ -624,10 +641,16 @@ class AttendanceOvertimeController extends Controller
      *     overtime_date:string,
      *     planned_time_range:string,
      *     actual_time_range:string,
+     *     approved_time_range:string,
+     *     log_time_range:string,
      *     has_actual_time:bool,
+     *     has_approved_time:bool,
+     *     is_pic_verified:bool,
      *     time_changed:bool,
      *     planned_duration:string,
      *     actual_duration:string,
+     *     approved_duration:string,
+     *     log_duration:string,
      *     duration_changed:bool,
      *     overtime_card_duration:string,
      *     overtime_card_start:string,
@@ -676,15 +699,30 @@ class AttendanceOvertimeController extends Controller
         $plannedEndTime = $this->normalizeTimeString($overtime->planned_end_time);
         $actualStartTime = $this->normalizeTimeString($overtime->actual_start_time);
         $actualEndTime = $this->normalizeTimeString($overtime->actual_end_time);
+        $approvedStartTime = $this->normalizeTimeString($overtime->approved_start_time);
+        $approvedEndTime = $this->normalizeTimeString($overtime->approved_end_time);
         $overtimeDate = Carbon::parse($overtime->overtime_date)->timezone('Asia/Jakarta');
         $hasActualTime = $actualStartTime !== '-' && $actualEndTime !== '-';
+        $hasApprovedTime = $approvedStartTime !== '-' && $approvedEndTime !== '-';
         $plannedTimeRange = $plannedStartTime.' - '.$plannedEndTime;
         $actualTimeRange = $hasActualTime ? $actualStartTime.' - '.$actualEndTime : '-';
+        $approvedTimeRange = $hasApprovedTime ? $approvedStartTime.' - '.$approvedEndTime : '-';
         $plannedDuration = $this->calculateDurationLabel($overtime->planned_start_time, $overtime->planned_end_time);
         $actualDuration = $hasActualTime
             ? $this->calculateDurationLabel($overtime->actual_start_time, $overtime->actual_end_time)
             : '-';
+        $approvedDuration = $hasApprovedTime
+            ? $this->calculateDurationLabel($overtime->approved_start_time, $overtime->approved_end_time)
+            : '-';
         $verificationLog = $this->overtimeLifecycleLog($overtime, 'task_hours_verification');
+        $isPicVerified = $verificationLog instanceof OvertimeLifecycleLog
+            && strtolower(trim((string) $verificationLog->status)) === 'verified';
+        $logTimeRange = $isPicVerified
+            ? ($hasApprovedTime ? $approvedTimeRange : ($hasActualTime ? $actualTimeRange : $plannedTimeRange))
+            : ($hasActualTime ? $actualTimeRange : $plannedTimeRange);
+        $logDuration = $isPicVerified
+            ? ($hasApprovedTime ? $approvedDuration : ($hasActualTime ? $actualDuration : $plannedDuration))
+            : ($hasActualTime ? $actualDuration : $plannedDuration);
         $directorApprovalLog = $this->overtimeLifecycleLog($overtime, 'director_approval');
         $directorApprover = $directorApprovalLog?->actor instanceof User
             ? $directorApprovalLog->actor
@@ -715,15 +753,21 @@ class AttendanceOvertimeController extends Controller
         return [
             'staff_name' => $this->resolveEmployeeDisplayName($overtime->employee),
             'supervisor_name' => $this->resolveUserDisplayName($overtime->assignedBy),
-            'log_status' => $this->overtimeDetailStatusLabel((string) ($overtime->status ?? self::OVERTIME_STATUS_ASSIGNED)),
+            'log_status' => $isPicVerified ? 'Completed' : $this->overtimeDetailStatusLabel((string) ($overtime->status ?? self::OVERTIME_STATUS_ASSIGNED)),
             'overtime_date' => $overtimeDate->format('d M Y'),
             'planned_time_range' => $plannedTimeRange,
             'actual_time_range' => $actualTimeRange,
+            'approved_time_range' => $approvedTimeRange,
+            'log_time_range' => $logTimeRange,
             'has_actual_time' => $hasActualTime,
-            'time_changed' => $hasActualTime && $actualTimeRange !== $plannedTimeRange,
+            'has_approved_time' => $hasApprovedTime,
+            'is_pic_verified' => $isPicVerified,
+            'time_changed' => ($isPicVerified ? $logTimeRange : $actualTimeRange) !== '-' && ($isPicVerified ? $logTimeRange : $actualTimeRange) !== $plannedTimeRange,
             'planned_duration' => $plannedDuration,
             'actual_duration' => $actualDuration,
-            'duration_changed' => $hasActualTime && $actualDuration !== $plannedDuration,
+            'approved_duration' => $approvedDuration,
+            'log_duration' => $logDuration,
+            'duration_changed' => ($isPicVerified ? $logDuration : $actualDuration) !== '-' && ($isPicVerified ? $logDuration : $actualDuration) !== $plannedDuration,
             'overtime_card_duration' => $hasActualTime
                 ? $this->calculateDurationClockLabel($overtime->actual_start_time, $overtime->actual_end_time)
                 : '--:--',
@@ -785,10 +829,8 @@ class AttendanceOvertimeController extends Controller
     private function resolveOvertimeClockInWindow(AttendanceOvertime $overtime, ?Carbon $now = null): array
     {
         $scheduledStartTime = $this->normalizeStoreTimeValue($overtime->planned_start_time);
-        $scheduledEndTime = $this->normalizeStoreTimeValue($overtime->planned_end_time);
         $scheduledStartAt = $this->overtimeDateTimeFromTime($overtime, $scheduledStartTime);
-        $scheduledEndAt = $this->overtimeDateTimeFromTime($overtime, $scheduledEndTime);
-        if (! $scheduledStartAt instanceof Carbon || ! $scheduledEndAt instanceof Carbon) {
+        if (! $scheduledStartAt instanceof Carbon) {
             return [
                 'is_allowed' => false,
                 'state' => 'invalid_schedule',
@@ -798,18 +840,15 @@ class AttendanceOvertimeController extends Controller
             ];
         }
 
-        $windowStartAt = $scheduledStartAt->copy();
-        $windowEndAt = $scheduledEndAt->copy();
-        if ($windowEndAt->lte($windowStartAt)) {
-            $windowEndAt->addDay();
-        }
+        $windowStartAt = $scheduledStartAt->copy()->subMinutes(self::OVERTIME_CLOCK_TOLERANCE_MINUTES);
+        $windowEndAt = $scheduledStartAt->copy()->addMinutes(self::OVERTIME_CLOCK_TOLERANCE_MINUTES);
         $currentTime = ($now instanceof Carbon ? $now : Carbon::now('Asia/Jakarta'))->copy()->timezone('Asia/Jakarta');
 
         if ($currentTime->lt($windowStartAt)) {
             return [
                 'is_allowed' => false,
                 'state' => 'before_window',
-                'message' => 'Clock in lembur tersedia mulai '.$this->formatOvertimeClockInWindowLabel($windowStartAt).'.',
+                'message' => 'Clock in lembur tersedia mulai '.$this->formatOvertimeClockInWindowLabel($windowStartAt).' sampai '.$this->formatOvertimeClockInWindowLabel($windowEndAt).'.',
                 'start_label' => $this->formatOvertimeClockInWindowLabel($windowStartAt),
                 'end_label' => $this->formatOvertimeClockInWindowLabel($windowEndAt),
             ];
@@ -840,9 +879,65 @@ class AttendanceOvertimeController extends Controller
     }
 
     /**
+     * @return array{is_allowed:bool,title:string,message:string,start_label:string,end_label:string}
+     */
+    private function resolveOvertimeClockOutWindow(AttendanceOvertime $overtime, ?Carbon $now = null): array
+    {
+        $scheduledStartTime = $this->normalizeStoreTimeValue($overtime->planned_start_time);
+        $scheduledEndTime = $this->normalizeStoreTimeValue($overtime->planned_end_time);
+        $scheduledStartAt = $this->overtimeDateTimeFromTime($overtime, $scheduledStartTime);
+        $scheduledEndAt = $this->overtimeDateTimeFromTime($overtime, $scheduledEndTime);
+        if (! $scheduledStartAt instanceof Carbon || ! $scheduledEndAt instanceof Carbon) {
+            return [
+                'is_allowed' => false,
+                'title' => 'Jadwal Lembur Tidak Valid',
+                'message' => 'Jadwal selesai lembur belum valid. Silakan hubungi PIC untuk mengubah jadwal lemburnya.',
+                'start_label' => '-',
+                'end_label' => '-',
+            ];
+        }
+
+        if ($scheduledEndAt->lte($scheduledStartAt)) {
+            $scheduledEndAt->addDay();
+        }
+
+        $windowStartAt = $scheduledEndAt->copy()->subMinutes(self::OVERTIME_CLOCK_TOLERANCE_MINUTES);
+        $windowEndAt = $scheduledEndAt->copy()->addMinutes(self::OVERTIME_CLOCK_TOLERANCE_MINUTES);
+        $currentTime = ($now instanceof Carbon ? $now : Carbon::now('Asia/Jakarta'))->copy()->timezone('Asia/Jakarta');
+
+        if ($currentTime->lt($windowStartAt)) {
+            return [
+                'is_allowed' => false,
+                'title' => 'Clock Out Lembur Belum Tersedia',
+                'message' => 'Clock out lembur tersedia mulai '.$this->formatOvertimeClockInWindowLabel($windowStartAt).' sampai '.$this->formatOvertimeClockInWindowLabel($windowEndAt).'.',
+                'start_label' => $this->formatOvertimeClockInWindowLabel($windowStartAt),
+                'end_label' => $this->formatOvertimeClockInWindowLabel($windowEndAt),
+            ];
+        }
+
+        if ($currentTime->gt($windowEndAt)) {
+            return [
+                'is_allowed' => false,
+                'title' => 'Batas Clock Out Lembur Sudah Lewat',
+                'message' => 'Waktu clock out lembur sudah melewati batas toleransi 30 menit dari jadwal selesai. Silakan hubungi PIC untuk mengubah jadwal lemburnya.',
+                'start_label' => $this->formatOvertimeClockInWindowLabel($windowStartAt),
+                'end_label' => $this->formatOvertimeClockInWindowLabel($windowEndAt),
+            ];
+        }
+
+        return [
+            'is_allowed' => true,
+            'title' => '',
+            'message' => '',
+            'start_label' => $this->formatOvertimeClockInWindowLabel($windowStartAt),
+            'end_label' => $this->formatOvertimeClockInWindowLabel($windowEndAt),
+        ];
+    }
+
+    /**
      * @return array{is_allowed:bool,title:string,message:string,task_count:int,incomplete_task_count:int,completed_after_clock_in_count:int}
      */
-    private function resolveOvertimeClockOutReadiness(AttendanceOvertime $overtime, ?string $actualStartTime, bool $hasActualEndTime): array
+    private function resolveOvertimeClockOutReadiness(AttendanceOvertime $overtime, ?string $actualStartTime, bool $hasActualEndTime, ?Carbon $now = null): array
     {
         $actualStartAt = $this->overtimeDateTimeFromTime($overtime, $actualStartTime);
         if (! $actualStartAt instanceof Carbon) {
@@ -861,6 +956,18 @@ class AttendanceOvertimeController extends Controller
                 'is_allowed' => false,
                 'title' => 'Sesi Lembur Sudah Selesai',
                 'message' => 'Sesi lembur ini sudah memiliki waktu selesai.',
+                'task_count' => 0,
+                'incomplete_task_count' => 0,
+                'completed_after_clock_in_count' => 0,
+            ];
+        }
+
+        $clockOutWindow = $this->resolveOvertimeClockOutWindow($overtime, $now);
+        if (! $clockOutWindow['is_allowed']) {
+            return [
+                'is_allowed' => false,
+                'title' => $clockOutWindow['title'],
+                'message' => $clockOutWindow['message'],
                 'task_count' => 0,
                 'incomplete_task_count' => 0,
                 'completed_after_clock_in_count' => 0,
@@ -1599,6 +1706,20 @@ class AttendanceOvertimeController extends Controller
         } catch (\Throwable) {
             return 0;
         }
+    }
+
+    private function approvedOrActualDurationMinutes(AttendanceOvertime $overtime): int
+    {
+        if (
+            is_string($overtime->approved_start_time)
+            && trim($overtime->approved_start_time) !== ''
+            && is_string($overtime->approved_end_time)
+            && trim($overtime->approved_end_time) !== ''
+        ) {
+            return $this->durationMinutesFromTimeValues($overtime->approved_start_time, $overtime->approved_end_time);
+        }
+
+        return $this->durationMinutesFromTimeValues($overtime->actual_start_time, $overtime->actual_end_time);
     }
 
     private function formatOvertimeSummaryHours(float $hours, string $suffix = 'Hours'): string

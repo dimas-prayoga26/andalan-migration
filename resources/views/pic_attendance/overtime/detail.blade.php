@@ -198,12 +198,16 @@
             @php
                 $verificationReady = (bool) ($overtimeDetail['verification_ready'] ?? false);
                 $isTaskHoursVerified = (bool) ($overtimeDetail['is_task_hours_verified'] ?? false);
-                $approvedStartValue = ($overtimeDetail['actual_start_time'] ?? '-') !== '-'
-                    ? $overtimeDetail['actual_start_time']
-                    : ($overtimeDetail['planned_start_time'] ?? '18:00');
-                $approvedEndValue = ($overtimeDetail['actual_end_time'] ?? '-') !== '-'
-                    ? $overtimeDetail['actual_end_time']
-                    : ($overtimeDetail['planned_end_time'] ?? '20:00');
+                $approvedStartValue = ($overtimeDetail['approved_start_time'] ?? '-') !== '-'
+                    ? $overtimeDetail['approved_start_time']
+                    : (($overtimeDetail['actual_start_time'] ?? '-') !== '-'
+                        ? $overtimeDetail['actual_start_time']
+                        : ($overtimeDetail['planned_start_time'] ?? '18:00'));
+                $approvedEndValue = ($overtimeDetail['approved_end_time'] ?? '-') !== '-'
+                    ? $overtimeDetail['approved_end_time']
+                    : (($overtimeDetail['actual_end_time'] ?? '-') !== '-'
+                        ? $overtimeDetail['actual_end_time']
+                        : ($overtimeDetail['planned_end_time'] ?? '20:00'));
             @endphp
 
             <div class="col-md-6">

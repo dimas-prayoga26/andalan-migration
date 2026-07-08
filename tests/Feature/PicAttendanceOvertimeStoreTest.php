@@ -130,21 +130,30 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $view = File::get(resource_path('views/pic_attendance/overtime/detail.blade.php'));
         $controller = File::get(app_path('Http/Controllers/PicAttendance/PicAttendanceOvertimeController.php'));
         $routes = File::get(base_path('routes/web.php'));
+        $approvedTimesMigration = File::get(database_path('migrations/2026_07_08_074125_add_approved_times_to_overtimes_table.php'));
 
         $this->assertStringContainsString("route('pic-attendance.overtime.verify-session'", $view);
         $this->assertStringContainsString('name="approved_start_time"', $view);
         $this->assertStringContainsString('name="approved_end_time"', $view);
         $this->assertStringContainsString('$overtimeDetail[\'verification_start_time\']', $view);
         $this->assertStringContainsString('$overtimeDetail[\'verification_end_time\']', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'approved_start_time\']', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'approved_end_time\']', $view);
         $this->assertStringContainsString('public function verifySession(Request $request, string $uid): RedirectResponse', $controller);
         $this->assertStringContainsString("validateWithBag('picOvertimeVerify'", $controller);
         $this->assertStringContainsString('isTaskDeliverablesSubmitted', $controller);
+        $this->assertStringContainsString("'approved_start_time' => \$approvedStartTime", $controller);
+        $this->assertStringContainsString("'approved_end_time' => \$approvedEndTime", $controller);
+        $this->assertStringContainsString("'calculated_hours' => round(\$this->durationMinutes(\$approvedStartTime, \$approvedEndTime) / 60, 2)", $controller);
         $this->assertStringContainsString("'task_hours_verification',", $controller);
         $this->assertStringContainsString("'verified',", $controller);
         $this->assertStringNotContainsString('$approvedStartTime >= $approvedEndTime', $controller);
         $this->assertStringNotContainsString('Approved end harus lebih besar dari approved start.', $controller);
         $this->assertStringContainsString("'payroll_processing',", $controller);
         $this->assertStringContainsString("'pending',", $controller);
+        $this->assertStringContainsString("\$table->time('approved_start_time')->nullable()", $approvedTimesMigration);
+        $this->assertStringContainsString("\$table->time('approved_end_time')->nullable()", $approvedTimesMigration);
+        $this->assertStringContainsString("\$table->dropColumn(['approved_start_time', 'approved_end_time']);", $approvedTimesMigration);
         $this->assertStringContainsString("Route::post('/pic-attendance/overtime/detail/{uid}/verify-session'", $routes);
         $this->assertStringContainsString("->name('pic-attendance.overtime.verify-session')", $routes);
     }

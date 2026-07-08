@@ -284,11 +284,40 @@ class AttendanceNamingConventionTest extends TestCase
 
         $overtimeIndexView = File::get(resource_path('views/staff_attendance/overtimes/index.blade.php'));
 
-        $this->assertStringContainsString('row overtime-summary-mobile-slider', $overtimeIndexView);
-        $this->assertStringContainsString('.overtime-summary-mobile-slider {', $overtimeIndexView);
-        $this->assertStringContainsString('.overtime-summary-mobile-slide {', $overtimeIndexView);
-        $this->assertSame(2, substr_count($overtimeIndexView, 'row overtime-summary-mobile-slider'));
-        $this->assertSame(8, substr_count($overtimeIndexView, 'col-md-3 col-sm-6 overtime-summary-mobile-slide'));
+        $this->assertStringContainsString('row overtime-summary-slider', $overtimeIndexView);
+        $this->assertStringContainsString('.overtime-summary-slider {', $overtimeIndexView);
+        $this->assertStringContainsString('.overtime-summary-slide {', $overtimeIndexView);
+        $this->assertStringContainsString('gap: 24px;', $overtimeIndexView);
+        $this->assertStringContainsString('flex: 0 0 calc((100% - 72px) / 4);', $overtimeIndexView);
+        $this->assertStringContainsString('flex-basis: 100%;', $overtimeIndexView);
+        $this->assertStringContainsString('display: inline-flex !important;', $overtimeIndexView);
+        $this->assertStringContainsString('font-size: 31px;', $overtimeIndexView);
+        $this->assertStringContainsString('padding-bottom: 2rem;', $overtimeIndexView);
+        $this->assertStringContainsString('$overtimeSummaryCards = [', $overtimeIndexView);
+        $this->assertStringContainsString('@foreach ($overtimeSummaryCards as $summaryCard)', $overtimeIndexView);
+        $this->assertSame(1, substr_count($overtimeIndexView, 'row overtime-summary-slider'));
+        $this->assertSame(8, substr_count($overtimeIndexView, "'icon' =>"));
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-clock'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-gauge-high'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-chart-line'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-list-check'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-user-clock'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-lock'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-coins'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-triangle-exclamation'", $overtimeIndexView);
+        $this->assertStringContainsString("'avatar_class' => 'avatar-info'", $overtimeIndexView);
+        $this->assertStringContainsString("'progress_class' => 'bg-info'", $overtimeIndexView);
+        $this->assertStringContainsString("'effect_class' => 'bg-secondary'", $overtimeIndexView);
+        $this->assertStringContainsString("{{ \$summaryCard['avatar_class'] }}", $overtimeIndexView);
+        $this->assertStringContainsString("{{ \$summaryCard['progress_class'] }}", $overtimeIndexView);
+        $this->assertStringContainsString("{{ \$summaryCard['effect_class'] }}", $overtimeIndexView);
+        $this->assertStringNotContainsString("'icon_bg' =>", $overtimeIndexView);
+        $this->assertStringNotContainsString("'accent_color' =>", $overtimeIndexView);
+        $this->assertStringNotContainsString('background: var(--summary-icon-bg) !important;', $overtimeIndexView);
+        $this->assertStringNotContainsString('background-color: var(--summary-accent-color);', $overtimeIndexView);
+        $this->assertStringNotContainsString('card overflow-hidden avtivity-card h-100', $overtimeIndexView);
+        $this->assertStringNotContainsString('row overtime-summary-mobile-slider', $overtimeIndexView);
+        $this->assertStringNotContainsString('col-md-3 col-sm-6 overtime-summary-mobile-slide', $overtimeIndexView);
         $this->assertStringContainsString("\$overtimeItem['detail_url']", $overtimeIndexView);
         $this->assertStringNotContainsString('attendance-overtime-details.html', $overtimeIndexView);
 

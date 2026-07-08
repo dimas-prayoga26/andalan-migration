@@ -1,10 +1,10 @@
 @php
     $attendanceRatePercent = (float) ($profileAttendanceRatePercent ?? 0);
-    $attendanceRateLabel = rtrim(rtrim(number_format($attendanceRatePercent, 2, '.', ''), '0'), '.');
+    $attendanceRateLabel = number_format($attendanceRatePercent, 0, '.', '');
     $onTimeRatePercent = (float) ($profileOnTimeRatePercent ?? 0);
-    $onTimeRateLabel = rtrim(rtrim(number_format($onTimeRatePercent, 2, '.', ''), '0'), '.');
+    $onTimeRateLabel = number_format($onTimeRatePercent, 0, '.', '');
     $latenessRatePercent = (float) ($profileLatenessRatePercent ?? 0);
-    $latenessRateLabel = rtrim(rtrim(number_format($latenessRatePercent, 2, '.', ''), '0'), '.');
+    $latenessRateLabel = number_format($latenessRatePercent, 0, '.', '');
     $overtimeRatePercent = (int) ($profileOvertimeRatePercent ?? 0);
 @endphp
 

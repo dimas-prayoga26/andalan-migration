@@ -16,6 +16,13 @@
 
 <!-- Script For Daterangepicker -->
 <script src="vendor/daterangepicker/moment.min.js?v={{ $assetVersion('vendor/daterangepicker/moment.min.js') }}"></script>
+<script>
+    if (typeof moment !== 'undefined') {
+        moment.updateLocale('en', {
+            week: { dow: 1 },
+        });
+    }
+</script>
 <script src="vendor/daterangepicker/daterangepicker.js?v={{ $assetVersion('vendor/daterangepicker/daterangepicker.js') }}"></script>
 <script src="js/plugins-init/daterangepicker-init.js?v={{ $assetVersion('js/plugins-init/daterangepicker-init.js') }}"></script>
 <script src="vendor/bootstrap-datetimepicker/js/bootstrap-datetimepicker.min.js?v={{ $assetVersion('vendor/bootstrap-datetimepicker/js/bootstrap-datetimepicker.min.js') }}"></script>

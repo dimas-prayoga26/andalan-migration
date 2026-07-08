@@ -125,15 +125,16 @@
         ? ['#27BC48', '#FF3282', '#1EA7C5', '#FFBC11']
         : ['#F2F3F8'];
     $attendanceProgressPercent = (float) ($profileAttendanceProgressPercent ?? 0);
+    $daysWorkedProgressPercent = (float) ($profileDaysWorkedProgressPercent ?? 0);
     $attendanceDaysCount = (int) ($profileAttendanceDaysCount ?? 0);
     $elapsedWorkingDaysCount = (int) ($profileElapsedWorkingDaysCount ?? 0);
     $workingDaysCount = (int) ($profileWorkingDaysCount ?? 0);
     $progressOnTimePercent = (float) ($profileProgressOnTimePercent ?? 0);
-    $progressOnTimeLabel = rtrim(rtrim(number_format($progressOnTimePercent, 2, '.', ''), '0'), '.');
+    $progressOnTimeLabel = number_format($progressOnTimePercent, 0, '.', '');
     $progressOnTimeCount = (int) ($profileProgressOnTimeCount ?? 0);
     $progressOnTimeTotal = (int) ($profileProgressOnTimeTotal ?? $attendanceDaysCount);
     $progressLatePercent = (float) ($profileProgressLatePercent ?? 0);
-    $progressLateLabel = rtrim(rtrim(number_format($progressLatePercent, 2, '.', ''), '0'), '.');
+    $progressLateLabel = number_format($progressLatePercent, 0, '.', '');
     $progressLateCount = (int) ($profileProgressLateCount ?? 0);
     $progressLateTotal = (int) ($profileProgressLateTotal ?? $attendanceDaysCount);
     $weeklyRequiredHours = (float) ($profileWeeklyRequiredHours ?? 0);
@@ -216,7 +217,7 @@
                     <div class="col-lg-4 mb-lg-0 mb-4 text-center radialBar">
                         <div id="radialBar" class="attendance-progress-radial-chart"></div>
                         <h4 class="fs-18 text-black">Days Worked ({{ $elapsedWorkingDaysCount }}/{{ $workingDaysCount }} Days)</h4>
-                        <p class="fs-14">Tracking your scheduled attendance and active working days for the current month.</p>
+                        <p class="fs-14">Tracking working days that have elapsed against scheduled working days for the current month.</p>
                     </div>
                     <div class="col-lg-8">
                         <div class="row">
@@ -367,7 +368,7 @@
         function formatPercentageLabel(value) {
             var numericValue = Number(value) || 0;
 
-            return numericValue.toFixed(2).replace(/\.?0+$/, '');
+            return String(Math.round(numericValue));
         }
 
         function canvasLegendOptions() {
@@ -444,7 +445,7 @@
             }
 
             new ApexCharts(chartElement, {
-                series: [{{ $attendanceProgressPercent }}],
+                series: [{{ $daysWorkedProgressPercent }}],
                 chart: {
                     height: 280,
                     type: 'radialBar',

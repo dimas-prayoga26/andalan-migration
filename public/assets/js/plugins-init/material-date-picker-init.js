@@ -3,7 +3,7 @@
 
     // MAterial Date picker
     $('#mdate').bootstrapMaterialDatePicker({
-        weekStart: 0,
+        weekStart: 1,
         time: false
     });
     $('#timepicker').bootstrapMaterialDatePicker({
@@ -12,11 +12,13 @@
         date: false
     });
     $('#date-format').bootstrapMaterialDatePicker({
-        format: 'dddd DD MMMM YYYY - HH:mm'
+        format: 'dddd DD MMMM YYYY - HH:mm',
+        weekStart: 1
     });
 
     $('#min-date').bootstrapMaterialDatePicker({
         format: 'DD/MM/YYYY HH:mm',
+        weekStart: 1,
         minDate: new Date()
     });
 

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\StaffAttendance;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
-use App\Models\AttendanceHoliday;
 use App\Models\EmployeeDeployment;
 use App\Models\EmployeeProfile;
 use App\Models\LeaveBalance;
@@ -13,6 +12,7 @@ use App\Models\LeaveRequestHistory;
 use App\Models\LeaveType;
 use App\Models\User;
 use App\Services\Leave\AnnualLeaveBalanceService;
+use App\Services\Leave\JointHolidaySummaryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Filesystem\FilesystemAdapter;
@@ -27,7 +27,10 @@ use Illuminate\Support\Str;
 
 class AttendanceLeaveRequestController extends Controller
 {
-    public function __construct(private readonly AnnualLeaveBalanceService $annualLeaveBalanceService) {}
+    public function __construct(
+        private readonly AnnualLeaveBalanceService $annualLeaveBalanceService,
+        private readonly JointHolidaySummaryService $jointHolidaySummaryService
+    ) {}
 
     public function index(): View
     {
@@ -1317,7 +1320,7 @@ class AttendanceLeaveRequestController extends Controller
     {
         $now = now('Asia/Jakarta');
         $currentYear = (int) $now->year;
-        $jointHolidaySummary = $this->buildJointHolidaySummary($currentYear, $now);
+        $jointHolidaySummary = $this->jointHolidaySummaryService->forYear($currentYear, $now);
 
         $defaultData = [
             'full_name' => '-',
@@ -1630,53 +1633,6 @@ class AttendanceLeaveRequestController extends Controller
             ->whereYear('start_date', $year)
             ->whereIn(DB::raw('LOWER(status)'), $normalizedStatuses)
             ->count();
-    }
-
-    /**
-     * @return array{label:string, items:list<string>}
-     */
-    private function buildJointHolidaySummary(int $year, Carbon $today): array
-    {
-        $jointHolidayRows = AttendanceHoliday::query()
-            ->whereYear('date', $year)
-            ->where('type', 2)
-            ->orderBy('date')
-            ->get(['date', 'name']);
-
-        $totalDays = $jointHolidayRows->count();
-        $passedDays = $jointHolidayRows
-            ->filter(function (AttendanceHoliday $attendanceHoliday) use ($today): bool {
-                $holidayDate = $attendanceHoliday->date instanceof Carbon
-                    ? $attendanceHoliday->date
-                    : Carbon::parse((string) $attendanceHoliday->date);
-
-                return $holidayDate->isSameDay($today) || $holidayDate->lessThan($today);
-            })
-            ->count();
-        $remainingDays = max($totalDays - $passedDays, 0);
-
-        $items = $jointHolidayRows
-            ->groupBy(static fn (AttendanceHoliday $attendanceHoliday): string => trim((string) $attendanceHoliday->name) !== '' ? trim((string) $attendanceHoliday->name) : 'Joint Holiday')
-            ->map(function (Collection $items, string $holidayName): string {
-                $dateLabels = $items
-                    ->map(function (AttendanceHoliday $attendanceHoliday): string {
-                        $holidayDate = $attendanceHoliday->date instanceof Carbon
-                            ? $attendanceHoliday->date
-                            : Carbon::parse((string) $attendanceHoliday->date);
-
-                        return $holidayDate->format('d M');
-                    })
-                    ->implode(', ');
-
-                return $holidayName.' ('.$dateLabels.')';
-            })
-            ->values()
-            ->all();
-
-        return [
-            'label' => $remainingDays.' / '.$totalDays.' '.Str::plural('Day', $totalDays),
-            'items' => $items !== [] ? $items : ['No joint holiday scheduled.'],
-        ];
     }
 
     private function formatTenureLabel(int $tenureMonths): string

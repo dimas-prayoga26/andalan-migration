@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\PicAttendance;
 
 use App\Http\Controllers\Controller;
-use App\Models\AttendanceHoliday;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\LeaveRequestHistory;
 use App\Models\LeaveType;
 use App\Models\User;
+use App\Services\Leave\JointHolidaySummaryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -24,6 +24,8 @@ use Illuminate\Validation\ValidationException;
 class PicAttendanceLeaveController extends Controller
 {
     private ?string $supervisorEmployeeId = null;
+
+    public function __construct(private readonly JointHolidaySummaryService $jointHolidaySummaryService) {}
 
     public function index(Request $request): View
     {
@@ -860,7 +862,7 @@ class PicAttendanceLeaveController extends Controller
         $tenureMonths = $joinDate instanceof Carbon
             ? max((int) floor($joinDate->diffInMonths($today, true)), 0)
             : 0;
-        $jointHolidaySummary = $this->jointHolidaySummaryFor($year, $today);
+        $jointHolidaySummary = $this->jointHolidaySummaryService->forYear($year, $today);
         $annualBalance = $this->annualLeaveBalanceFor($employeeId, $year);
         $monthlyAccrual = (int) round((float) DB::table('leave_types')
             ->whereIn(DB::raw('LOWER(code)'), ['annual', 'annual_leave'])
@@ -1100,30 +1102,6 @@ class PicAttendanceLeaveController extends Controller
             ->count();
 
         return $count.' '.Str::plural('Request', $count);
-    }
-
-    /**
-     * @return array{label:string, items:list<string>}
-     */
-    private function jointHolidaySummaryFor(int $year, Carbon $today): array
-    {
-        $jointHolidays = AttendanceHoliday::query()
-            ->whereYear('date', $year)
-            ->where('type', 2)
-            ->orderBy('date')
-            ->get(['date', 'name']);
-        $totalDays = $jointHolidays->count();
-        $passedDays = $jointHolidays
-            ->filter(fn (AttendanceHoliday $holiday): bool => $holiday->date->lessThanOrEqualTo($today))
-            ->count();
-
-        return [
-            'label' => max($totalDays - $passedDays, 0).' / '.$totalDays.' '.Str::plural('Day', $totalDays),
-            'items' => $jointHolidays
-                ->map(fn (AttendanceHoliday $holiday): string => trim((string) $holiday->name).' ('.$holiday->date->format('d M').')')
-                ->values()
-                ->all(),
-        ];
     }
 
     private function tenureLabel(int $tenureMonths): string

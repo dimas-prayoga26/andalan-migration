@@ -2,6 +2,8 @@
     "use strict"
 
     //date picker classic default
-    $('.datepicker-default').pickadate();
+    $('.datepicker-default').pickadate({
+        firstDay: 1
+    });
 
 })(jQuery);

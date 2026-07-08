@@ -160,7 +160,35 @@ class BusinessTripPageCleanupTest extends TestCase
         $this->assertStringNotContainsString('buildBusinessTripLifecycleValues', $businessTripController);
         $this->assertStringContainsString('@forelse (($businessTripCards ?? collect()) as $businessTripCard)', $businessTripView);
         $this->assertStringContainsString('<a href="{{ $businessTripCard[\'detail_url\'] ?? \'#\' }}"', $businessTripView);
-        $this->assertStringContainsString("{{ \$businessTripSummary['total_trips'] ?? 0 }} Trips", $businessTripView);
+        foreach ([
+            '$businessTripSummaryCards = [',
+            "'icon' => 'suitcase'",
+            "'icon' => 'calendar-days'",
+            "'icon' => 'approval'",
+            "'icon' => 'upcoming'",
+            "'icon' => 'wallet'",
+            "'icon' => 'receipt'",
+            "'icon' => 'overdue'",
+            "'icon' => 'settled'",
+            "'avatar_class' => 'avatar-primary'",
+            "'avatar_class' => 'avatar-warning'",
+            "'progress_class' => 'bg-warning'",
+            "'effect_class' => 'bg-danger'",
+            'business-trip-summary-icon',
+            "{{ \$summaryCard['label'] }}",
+            "{{ \$summaryCard['value'] }}",
+        ] as $expectedBusinessTripSummaryFragment) {
+            $this->assertStringContainsString($expectedBusinessTripSummaryFragment, $businessTripView);
+        }
+
+        foreach ([
+            'M18.0977 7.90402',
+            'M1.64826 26.5285',
+            'Daily Cycling',
+        ] as $removedBusinessTripSummaryFragment) {
+            $this->assertStringNotContainsString($removedBusinessTripSummaryFragment, $businessTripView);
+        }
+
         $this->assertStringContainsString("<span>{{ \$businessTripCard['progress_percentage'] ?? 0 }}%</span>", $businessTripView);
         $this->assertStringContainsString("style=\"width: {{ \$businessTripCard['progress_percentage'] ?? 0 }}%;\"", $businessTripView);
         $this->assertStringContainsString('method="GET" action="{{ route(\'attendance.business-trips\') }}"', $businessTripView);
@@ -196,17 +224,20 @@ class BusinessTripPageCleanupTest extends TestCase
         $this->assertStringContainsString('name="check_out_date" id="businessTripCheckOutDateValueInput"', $businessTripCreateView);
         $this->assertStringContainsString('id="businessTripTransportationSelect" name="transportation_arrangement"', $businessTripCreateView);
         $this->assertStringContainsString('<option value="booked_by_ga">Booked by GA</option>', $businessTripCreateView);
+        $this->assertStringContainsString('id="businessTripTransportationModeWrapper"', $businessTripCreateView);
         $this->assertStringContainsString('id="businessTripDepartureDateWrapper"', $businessTripCreateView);
         $this->assertStringContainsString('id="businessTripDepartureTimeWrapper"', $businessTripCreateView);
-        $this->assertStringContainsString("var isBookedByGa = \$businessTripTransportationSelect.val() === 'booked_by_ga';", $businessTripCreateView);
-        $this->assertStringContainsString("\$businessTripDepartureDateWrapper.toggleClass('d-none', isBookedByGa);", $businessTripCreateView);
-        $this->assertStringContainsString("\$businessTripDepartureTimeWrapper.toggleClass('d-none', isBookedByGa);", $businessTripCreateView);
+        $this->assertStringContainsString("var shouldShowTransportationBookingFields = \$businessTripTransportationSelect.val() === 'booked_by_ga';", $businessTripCreateView);
+        $this->assertStringContainsString("\$businessTripTransportationModeWrapper.toggleClass('d-none', !shouldShowTransportationBookingFields);", $businessTripCreateView);
+        $this->assertStringContainsString("\$businessTripDepartureDateWrapper.toggleClass('d-none', !shouldShowTransportationBookingFields);", $businessTripCreateView);
+        $this->assertStringContainsString("\$businessTripDepartureTimeWrapper.toggleClass('d-none', !shouldShowTransportationBookingFields);", $businessTripCreateView);
+        $this->assertStringContainsString("\$businessTripTransportationModeInputs.prop('disabled', !shouldShowTransportationBookingFields);", $businessTripCreateView);
         $this->assertStringContainsString('id="businessTripAccommodationSelect" name="accommodation_arrangement"', $businessTripCreateView);
         $this->assertStringContainsString('id="businessTripCheckInDateWrapper"', $businessTripCreateView);
         $this->assertStringContainsString('id="businessTripCheckOutDateWrapper"', $businessTripCreateView);
-        $this->assertStringContainsString("var isBookedByGa = \$businessTripAccommodationSelect.val() === 'booked_by_ga';", $businessTripCreateView);
-        $this->assertStringContainsString("\$businessTripCheckInDateWrapper.toggleClass('d-none', isBookedByGa);", $businessTripCreateView);
-        $this->assertStringContainsString("\$businessTripCheckOutDateWrapper.toggleClass('d-none', isBookedByGa);", $businessTripCreateView);
+        $this->assertStringContainsString("var shouldShowAccommodationBookingFields = \$businessTripAccommodationSelect.val() === 'booked_by_ga';", $businessTripCreateView);
+        $this->assertStringContainsString("\$businessTripCheckInDateWrapper.toggleClass('d-none', !shouldShowAccommodationBookingFields);", $businessTripCreateView);
+        $this->assertStringContainsString("\$businessTripCheckOutDateWrapper.toggleClass('d-none', !shouldShowAccommodationBookingFields);", $businessTripCreateView);
         $this->assertStringContainsString('class="form-control business-trip-single-date-picker"', $businessTripCreateView);
         $this->assertStringContainsString('singleDatePicker: true', $businessTripCreateView);
         $this->assertStringContainsString('href="{{ route(\'attendance.business-trips\') }}"', $businessTripCreateView);

@@ -103,7 +103,9 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString("->value('supervisor_employee_id')", $leaveController);
         $this->assertStringContainsString('leaveBalanceCardsFor', $leaveController);
         $this->assertStringContainsString('leaveTrackerFor', $leaveController);
-        $this->assertStringContainsString('AttendanceHoliday::query()', $leaveController);
+        $this->assertStringContainsString('use App\Services\Leave\JointHolidaySummaryService;', $leaveController);
+        $this->assertStringContainsString('private readonly JointHolidaySummaryService $jointHolidaySummaryService', $leaveController);
+        $this->assertStringContainsString('$this->jointHolidaySummaryService->forYear($year, $today)', $leaveController);
         $this->assertStringContainsString('countLeaveRequestsBetween', $leaveController);
         $this->assertStringContainsString('countLeaveRequestsByType', $leaveController);
         $this->assertStringContainsString('supervisorApprovedLeaveRequestQuery', $leaveController);
@@ -210,6 +212,15 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString("\$leaveTracker['annual_leave_taken_month_label']", $leaveDetailView);
         $this->assertStringContainsString("\$leaveTracker['pending_requests_label']", $leaveDetailView);
         $this->assertStringContainsString("\$leaveTracker['unpaid_leave_taken_label']", $leaveDetailView);
+        $this->assertStringContainsString('card leave-summary-card mb-4', $leaveDetailView);
+        $this->assertStringContainsString('leave-summary-icon--eligibility', $leaveDetailView);
+        $this->assertStringContainsString('leave-summary-icon--tracker', $leaveDetailView);
+        $this->assertStringContainsString('href="#Eligibility"', $leaveDetailView);
+        $this->assertStringContainsString('href="#Tracker"', $leaveDetailView);
+        $this->assertStringContainsString('id="Eligibility"', $leaveDetailView);
+        $this->assertStringContainsString('id="Tracker"', $leaveDetailView);
+        $this->assertStringNotContainsString('href="#Running"', $leaveDetailView);
+        $this->assertStringNotContainsString('href="#Cycling"', $leaveDetailView);
         $this->assertStringContainsString("\$leaveApproval['special_leave_type_label']", $leaveDetailView);
         $this->assertStringContainsString("\$leaveApproval['attachment_url']", $leaveDetailView);
         $this->assertStringContainsString('admin-attendance.leave.approval.update', $leaveDetailView);

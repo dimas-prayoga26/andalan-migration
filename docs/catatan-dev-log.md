@@ -7,6 +7,18 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-07-08 (Rabu)
+- Menyesuaikan hitungan cuti bersama 2026 agar memakai tanggal sistem dan diterapkan pada Staff, Admin, serta PIC Leave.
+- Merapikan Leave Summary: tombol request time off, ikon Eligibility/Tracker, week start Senin, dan margin bawah kartu.
+- Mengubah field Business Trip booking agar kondisional berdasarkan opsi booking/self managed.
+- Memperbaiki Attendance Overview: `Attendance Rate`, `On Time Rate`, `Lateness Rate`, dan `Days Worked` memakai logika dinamis sesuai kalender kerja.
+- Mengubah summary card Overtime menjadi slider satu baris, memperbarui ikon/warna, dan menahan `Estimated Extra Earnings` sementara di `Rp 0`.
+- Menambahkan approved time pada overtime serta mengubah flow PIC verification agar jam final tersimpan di `approved_start_time`/`approved_end_time`.
+- Mengatur `Completed & Locked` dan filter `Completed` overtime agar berbasis lifecycle `task_hours_verification = verified`.
+- Menambahkan toleransi clock-in/clock-out overtime 30 menit dari jadwal planned.
+- Menampilkan planned time/duration sebagai strikethrough dan approved time/duration sebagai nilai normal pada detail overtime completed.
+- Detail: `docs/dev-log/2026-07-08-1515-ringkasan-perubahan-attendance-leave-business-trip-overtime.md`.
+
 ### 2026-07-07 (Selasa)
 - Merombak office location menjadi global location yang tidak lagi terikat company.
 - Mengalihkan geofencing attendance agar membaca `employee_deployments.current_office_location_id`.
@@ -252,6 +264,9 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-07-08
+- `2026-07-08-1515-ringkasan-perubahan-attendance-leave-business-trip-overtime.md`
 
 ### 2026-07-07
 - `2026-07-07-0930-ringkasan-perubahan-office-location-attendance-employee.md`

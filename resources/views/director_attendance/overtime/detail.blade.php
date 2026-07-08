@@ -19,12 +19,16 @@
     $finishedTaskItems = collect($overtimeTaskItems['finished'] ?? []);
     $pendingTaskItems = collect($overtimeTaskItems['pending'] ?? []);
     $taskItems = $finishedTaskItems->merge($pendingTaskItems)->values();
-    $approvedStartValue = ($overtimeDetail['actual_start_time'] ?? '-') !== '-'
-        ? $overtimeDetail['actual_start_time']
-        : ($overtimeDetail['planned_start_time'] ?? '18:00');
-    $approvedEndValue = ($overtimeDetail['actual_end_time'] ?? '-') !== '-'
-        ? $overtimeDetail['actual_end_time']
-        : ($overtimeDetail['planned_end_time'] ?? '20:00');
+    $approvedStartValue = ($overtimeDetail['approved_start_time'] ?? '-') !== '-'
+        ? $overtimeDetail['approved_start_time']
+        : (($overtimeDetail['actual_start_time'] ?? '-') !== '-'
+            ? $overtimeDetail['actual_start_time']
+            : ($overtimeDetail['planned_start_time'] ?? '18:00'));
+    $approvedEndValue = ($overtimeDetail['approved_end_time'] ?? '-') !== '-'
+        ? $overtimeDetail['approved_end_time']
+        : (($overtimeDetail['actual_end_time'] ?? '-') !== '-'
+            ? $overtimeDetail['actual_end_time']
+            : ($overtimeDetail['planned_end_time'] ?? '20:00'));
     $directorApprovalStatus = $overtimeDetail['director_approval_status'] ?? 'pending';
     $canUpdateDirectorApproval = ($overtimeDetail['can_update_director_approval'] ?? false) === true;
 @endphp

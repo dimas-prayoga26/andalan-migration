@@ -254,16 +254,12 @@
                                 <textarea class="form-control" rows="3" name="description" id="taskDescription" placeholder="Tambahkan detail atau konteks pekerjaan"></textarea>
                             </div>
                         </div>
-                        <div class="col-6 col-md-3">
+                        <div class="col-12 col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Date <span class="required text-danger">*</span></label>
-                                <input type="text" class="form-control js-task-date-input" name="start_date" id="taskStartDate" placeholder="yyyy-mm-dd" autocomplete="off" required>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="mb-3">
-                                <label class="form-label">Due Date <span class="required text-danger">*</span></label>
-                                <input type="text" class="form-control js-task-date-input" name="due_date" id="taskDueDate" placeholder="yyyy-mm-dd" autocomplete="off" required>
+                                <input type="hidden" name="start_date" id="taskStartDate" required>
+                                <input type="hidden" name="due_date" id="taskDueDate" required>
+                                <input type="text" class="form-control js-task-date-range-input" id="taskDateRange" placeholder="Select date range" autocomplete="off" readonly required>
                             </div>
                         </div>
                         <div class="col-12 col-md-3">
@@ -513,6 +509,7 @@
             $('#taskCategory').val('daily');
             $('#taskAssigneeEmployeeId').val(taskDefaultAssigneeEmployeeId);
             $('#taskAssigneeEmployeeId').prop('disabled', false);
+            setTaskDateRange('', '');
             setProjectFieldState();
         }
 
@@ -523,8 +520,7 @@
             $('#taskFormSubmit').removeClass('btn-success').addClass('btn-warning').text('Save changes');
             $('#taskTitle').val(nullableValue(task.title));
             $('#taskDescription').val(nullableValue(task.description));
-            $('#taskStartDate').val(nullableValue(task.start_date));
-            $('#taskDueDate').val(nullableValue(task.due_date));
+            setTaskDateRange(nullableValue(task.start_date), nullableValue(task.due_date));
             $('#taskPriority').val(nullableValue(task.priority) || 'medium');
             $('#taskStatus').val(nullableValue(task.status) || 'pending');
             $('#taskAttachment').val(nullableValue(task.attachment_path));
@@ -601,39 +597,73 @@
             return selectedMoment;
         }
 
-        function initializeTaskDatePickers() {
-            if (! $.fn.datetimepicker || typeof moment === 'undefined') {
+        function formatTaskDateRangeDisplay(startDateValue, dueDateValue) {
+            if (! startDateValue || ! dueDateValue || typeof moment === 'undefined') {
+                return '';
+            }
+
+            var startDate = moment(startDateValue, 'YYYY-MM-DD');
+            var dueDate = moment(dueDateValue, 'YYYY-MM-DD');
+
+            if (! startDate.isValid() || ! dueDate.isValid()) {
+                return '';
+            }
+
+            return startDate.format('DD/MM/YYYY') + ' - ' + dueDate.format('DD/MM/YYYY');
+        }
+
+        function setTaskDateRange(startDateValue, dueDateValue) {
+            var startDate = startDateValue || '';
+            var dueDate = dueDateValue || startDate;
+            var dateRangeInput = $('#taskDateRange');
+
+            $('#taskStartDate').val(startDate);
+            $('#taskDueDate').val(dueDate);
+            dateRangeInput.val(formatTaskDateRangeDisplay(startDate, dueDate));
+
+            if ($.fn.daterangepicker && dateRangeInput.data('daterangepicker') && typeof moment !== 'undefined' && startDate && dueDate) {
+                var startMoment = moment(startDate, 'YYYY-MM-DD');
+                var dueMoment = moment(dueDate, 'YYYY-MM-DD');
+
+                if (startMoment.isValid() && dueMoment.isValid()) {
+                    dateRangeInput.data('daterangepicker').setStartDate(startMoment);
+                    dateRangeInput.data('daterangepicker').setEndDate(dueMoment);
+                }
+            }
+        }
+
+        function initializeTaskDateRangePicker() {
+            var dateRangeInput = $('#taskDateRange');
+
+            if (! dateRangeInput.length) {
                 return;
             }
 
-            $('.js-task-date-input').each(function () {
-                if ($(this).data('DateTimePicker')) {
-                    return;
-                }
+            dateRangeInput.val(formatTaskDateRangeDisplay($('#taskStartDate').val(), $('#taskDueDate').val()));
 
-                $(this).datetimepicker({
-                    format: 'YYYY-MM-DD',
-                    useCurrent: false,
-                    widgetPositioning: {
-                        horizontal: 'auto',
-                        vertical: 'top',
-                    },
-                    icons: {
-                        previous: 'las la-angle-left',
-                        next: 'las la-angle-right',
-                    },
-                });
-            });
-        }
+            if (! $.fn.daterangepicker || dateRangeInput.data('daterangepicker-initialized')) {
+                return;
+            }
 
-        function hideTaskDatePickers() {
-            $('.js-task-date-input').each(function () {
-                var datePicker = $(this).data('DateTimePicker');
-
-                if (datePicker) {
-                    datePicker.hide();
+            dateRangeInput.daterangepicker({
+                autoApply: true,
+                autoUpdateInput: false,
+                parentEl: '#taskFormModal',
+                locale: {
+                    format: 'DD/MM/YYYY',
+                    cancelLabel: 'Clear'
                 }
             });
+
+            dateRangeInput.on('apply.daterangepicker', function (event, picker) {
+                setTaskDateRange(picker.startDate.format('YYYY-MM-DD'), picker.endDate.format('YYYY-MM-DD'));
+            });
+
+            dateRangeInput.on('cancel.daterangepicker', function () {
+                setTaskDateRange('', '');
+            });
+
+            dateRangeInput.data('daterangepicker-initialized', true);
         }
 
         function updateCalendar(monthValue) {
@@ -752,17 +782,7 @@
         $('#taskCategory').on('change', setProjectFieldState);
         $('#taskAssigneeEmployeeId').on('change', setProjectFieldState);
 
-        $('#taskFormModal').on('shown.bs.modal', initializeTaskDatePickers);
-
-        $('#taskFormModal').on('mousedown', function (event) {
-            if ($(event.target).closest('.bootstrap-datetimepicker-widget, .js-task-date-input').length) {
-                return;
-            }
-
-            hideTaskDatePickers();
-        });
-
-        $(document).on('focus', '#taskFormModal input:not(.js-task-date-input), #taskFormModal textarea, #taskFormModal select', hideTaskDatePickers);
+        $('#taskFormModal').on('shown.bs.modal', initializeTaskDateRangePicker);
 
         $(document).on('click', '.js-task-edit', function () {
             fillTaskForm(parseTask(this));
@@ -823,6 +843,16 @@
             var form = $(this);
             var formData = new FormData(this);
             var submitButton = $('#taskFormSubmit');
+
+            if (! formData.get('start_date') || ! formData.get('due_date')) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Tanggal belum lengkap',
+                    text: 'Pilih date range task terlebih dahulu.',
+                });
+
+                return;
+            }
 
             $.ajax({
                 url: form.attr('action') || taskStoreUrl,
@@ -902,7 +932,7 @@
             });
         }
 
-        initializeTaskDatePickers();
+        initializeTaskDateRangePicker();
     });
 </script>
 

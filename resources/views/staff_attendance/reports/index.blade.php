@@ -475,6 +475,52 @@
                 }
             }
 
+            function sanitizeAttendanceBadgeTone(tone) {
+                var normalizedTone = String(tone || '').trim();
+                var allowedTones = ['success', 'danger', 'warning', 'info', 'secondary', 'light', 'primary'];
+
+                return allowedTones.indexOf(normalizedTone) !== -1 ? normalizedTone : '';
+            }
+
+            function renderAdminAttendanceBadge(value, tone) {
+                var safeTone = sanitizeAttendanceBadgeTone(tone);
+                var displayValue = value && String(value).trim() !== '' ? String(value).trim() : '-';
+
+                if (!safeTone) {
+                    return '<span class="fw-bold">' + escapeHtml(displayValue) + '</span>';
+                }
+
+                return '<span class="badge badge-sm badge-' + safeTone + ' light fw-bold">' + escapeHtml(displayValue) + '</span>';
+            }
+
+            function clockInBadgeTone(rowData) {
+                var rowType = rowData && rowData.row_type ? String(rowData.row_type) : '';
+
+                if (rowType === 'national_holiday' || rowType === 'joint_leave' || rowType === 'weekend') {
+                    return 'secondary';
+                }
+
+                if (rowType === 'leave') {
+                    return 'info';
+                }
+
+                if (rowType === 'attendance') {
+                    return rowData && rowData.is_late ? 'danger' : 'success';
+                }
+
+                return '';
+            }
+
+            function clockOutBadgeTone(rowData) {
+                var rowType = rowData && rowData.row_type ? String(rowData.row_type) : '';
+
+                if (rowType === 'attendance' || rowType === 'leave') {
+                    return 'light';
+                }
+
+                return '';
+            }
+
             var tableLogs = function(){
                 if ($('#tableLogs').length === 0) {
                     return;
@@ -508,19 +554,19 @@
                         render: function (data, type, rowData) {
                             var rowType = rowData && rowData.row_type ? String(rowData.row_type) : '';
                             if (rowType === 'national_holiday') {
-                                return '<span class="attendance-tag attendance-tag--holiday">' + (data || 'Libur Nasional') + '</span>';
+                                return renderAdminAttendanceBadge(data || 'Libur Nasional', clockInBadgeTone(rowData));
                             }
 
                             if (rowType === 'joint_leave') {
-                                return '<span class="attendance-tag attendance-tag--joint">' + (data || 'Cuti Bersama') + '</span>';
+                                return renderAdminAttendanceBadge(data || 'Cuti Bersama', clockInBadgeTone(rowData));
                             }
 
                             if (rowType === 'weekend') {
-                                return '<span class="attendance-tag attendance-tag--weekend">' + (data || 'Weekend / Day Off') + '</span>';
+                                return renderAdminAttendanceBadge(data || 'Weekend / Day Off', clockInBadgeTone(rowData));
                             }
 
                             if (rowType === 'leave') {
-                                return '<span class="attendance-tag attendance-tag--leave">' + escapeHtml(data || 'Leave') + '</span>';
+                                return renderAdminAttendanceBadge(data || 'Leave', clockInBadgeTone(rowData));
                             }
 
                             if (rowType === 'alpha' || rowType === 'pending') {
@@ -528,14 +574,10 @@
                             }
 
                             if (data) {
-                                if (rowData && rowData.is_late) {
-                                    return '<span class="text-danger fw-semibold">' + data + '</span>';
-                                }
-
-                                return '<span class="text-success fw-semibold">' + data + '</span>';
+                                return renderAdminAttendanceBadge(data, clockInBadgeTone(rowData));
                             }
 
-                            return '<span class="badge-attendance-empty">Belum Absen Masuk</span>';
+                            return renderAdminAttendanceBadge('Belum Absen Masuk', 'danger');
                         }
                     },
                     {
@@ -543,14 +585,18 @@
                         render: function (data, type, rowData) {
                             var rowType = rowData && rowData.row_type ? String(rowData.row_type) : '';
                             if (rowType === 'national_holiday' || rowType === 'joint_leave' || rowType === 'weekend' || rowType === 'leave' || rowType === 'alpha' || rowType === 'pending') {
+                                if (rowType === 'leave') {
+                                    return renderAdminAttendanceBadge('-', clockOutBadgeTone(rowData));
+                                }
+
                                 return '-';
                             }
 
                             if (data) {
-                                return data;
+                                return renderAdminAttendanceBadge(data, clockOutBadgeTone(rowData));
                             }
 
-                            return '-';
+                            return renderAdminAttendanceBadge('-', clockOutBadgeTone(rowData));
                         }
                     },
                     {
@@ -565,7 +611,7 @@
                         targets: 4,
                         render: function (data) {
                             if (data === 'Alpha') {
-                                return '<span class="attendance-tag attendance-tag--joint">Alpha</span>';
+                                return renderAdminAttendanceBadge('Alpha', 'danger');
                             }
 
                             if (data && String(data).trim() !== '') {

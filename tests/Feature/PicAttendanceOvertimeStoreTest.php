@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
+use App\Models\AttendanceOvertime;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use ReflectionMethod;
@@ -22,6 +24,11 @@ class PicAttendanceOvertimeStoreTest extends TestCase
             strpos($view, 'name="instruction"')
         );
         $this->assertStringContainsString('name="overtime_date"', $view);
+        $this->assertStringContainsString('id="pic-overtime-date-value" name="overtime_date"', $view);
+        $this->assertStringContainsString('id="pic-overtime-date" data-date-target="#pic-overtime-date-value"', $view);
+        $this->assertStringContainsString('singleDatePicker: true', $view);
+        $this->assertStringNotContainsString('bootstrap-datepicker', $view);
+        $this->assertStringNotContainsString('.datepicker(', $view);
         $this->assertStringNotContainsString('id="pic-overtime-start-date"', $view);
         $this->assertStringNotContainsString('id="pic-overtime-end-date"', $view);
         $this->assertStringContainsString('name="start_time"', $view);
@@ -56,7 +63,9 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString("'assigned_by' => \$authenticatedUser->id", $controller);
         $this->assertStringNotContainsString('$startTime >= $endTime', $controller);
         $this->assertStringNotContainsString('End time harus lebih besar dari start time.', $controller);
-        $this->assertStringNotContainsString('ProjectTask::query()->create', $controller);
+        $this->assertStringContainsString('ProjectTask::query()->create($this->initialOvertimeProjectTaskPayload', $controller);
+        $this->assertStringContainsString('initialOvertimeProjectTaskPayload', $controller);
+        $this->assertStringNotContainsString("'status' => 'todo'", $controller);
         $this->assertStringNotContainsString('$projectTaskTitle', $controller);
         $this->assertStringContainsString('createInitialOvertimeLifecycleLogs', $controller);
         $this->assertStringContainsString("'event_key' => 'task_hours_verification'", $controller);
@@ -85,6 +94,40 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString("'ends_next_day' => ['required', 'boolean']", $controller);
         $this->assertStringContainsString('overtimeEndDateTime', $controller);
         $this->assertStringContainsString('Durasi overtime tidak boleh lebih dari 24 jam.', $controller);
+    }
+
+    public function test_pic_overtime_store_builds_initial_project_task_from_assignment_payload(): void
+    {
+        $method = new ReflectionMethod(PicAttendanceOvertimeController::class, 'initialOvertimeProjectTaskPayload');
+        $method->setAccessible(true);
+        $controller = app(PicAttendanceOvertimeController::class);
+        $overtime = new AttendanceOvertime([
+            'id' => 'overtime-assignment-task-test',
+            'employee_id' => 'employee-assignment-task-test',
+        ]);
+        $assignedBy = new User([
+            'id' => 'pic-assignment-task-test',
+        ]);
+
+        $payload = $method->invoke(
+            $controller,
+            $overtime,
+            'Prepare closing recap for overtime support.',
+            Carbon::parse('2026-07-08', 'Asia/Jakarta'),
+            $assignedBy
+        );
+
+        $this->assertNull($payload['project_id']);
+        $this->assertSame('employee-assignment-task-test', $payload['employee_id']);
+        $this->assertSame('pic-assignment-task-test', $payload['assigned_by']);
+        $this->assertSame('overtime-assignment-task-test', $payload['overtime_id']);
+        $this->assertSame('Prepare closing recap for overtime support.', $payload['title']);
+        $this->assertSame('Prepare closing recap for overtime support.', $payload['description']);
+        $this->assertSame('pending', $payload['status']);
+        $this->assertSame('high', $payload['priority']);
+        $this->assertSame('2026-07-08', $payload['start_date']);
+        $this->assertSame('2026-07-08', $payload['due_date']);
+        $this->assertNull($payload['completed_at']);
     }
 
     public function test_pic_overtime_store_resolves_next_day_end_datetime(): void
@@ -130,21 +173,33 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $view = File::get(resource_path('views/pic_attendance/overtime/detail.blade.php'));
         $controller = File::get(app_path('Http/Controllers/PicAttendance/PicAttendanceOvertimeController.php'));
         $routes = File::get(base_path('routes/web.php'));
+        $approvedTimesMigration = File::get(database_path('migrations/2026_07_08_074125_add_approved_times_to_overtimes_table.php'));
 
         $this->assertStringContainsString("route('pic-attendance.overtime.verify-session'", $view);
         $this->assertStringContainsString('name="approved_start_time"', $view);
         $this->assertStringContainsString('name="approved_end_time"', $view);
         $this->assertStringContainsString('$overtimeDetail[\'verification_start_time\']', $view);
         $this->assertStringContainsString('$overtimeDetail[\'verification_end_time\']', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'approved_start_time\']', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'approved_end_time\']', $view);
+        $this->assertStringContainsString('Staff submitted', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'staff_submitted_time_range\']', $view);
         $this->assertStringContainsString('public function verifySession(Request $request, string $uid): RedirectResponse', $controller);
         $this->assertStringContainsString("validateWithBag('picOvertimeVerify'", $controller);
         $this->assertStringContainsString('isTaskDeliverablesSubmitted', $controller);
+        $this->assertStringContainsString("'staff_submitted_time_range' => \$actualTimeRange", $controller);
+        $this->assertStringContainsString("'approved_start_time' => \$approvedStartTime", $controller);
+        $this->assertStringContainsString("'approved_end_time' => \$approvedEndTime", $controller);
+        $this->assertStringContainsString("'calculated_hours' => round(\$this->durationMinutes(\$approvedStartTime, \$approvedEndTime) / 60, 2)", $controller);
         $this->assertStringContainsString("'task_hours_verification',", $controller);
         $this->assertStringContainsString("'verified',", $controller);
         $this->assertStringNotContainsString('$approvedStartTime >= $approvedEndTime', $controller);
         $this->assertStringNotContainsString('Approved end harus lebih besar dari approved start.', $controller);
         $this->assertStringContainsString("'payroll_processing',", $controller);
         $this->assertStringContainsString("'pending',", $controller);
+        $this->assertStringContainsString("\$table->time('approved_start_time')->nullable()", $approvedTimesMigration);
+        $this->assertStringContainsString("\$table->time('approved_end_time')->nullable()", $approvedTimesMigration);
+        $this->assertStringContainsString("\$table->dropColumn(['approved_start_time', 'approved_end_time']);", $approvedTimesMigration);
         $this->assertStringContainsString("Route::post('/pic-attendance/overtime/detail/{uid}/verify-session'", $routes);
         $this->assertStringContainsString("->name('pic-attendance.overtime.verify-session')", $routes);
     }
@@ -157,6 +212,13 @@ class PicAttendanceOvertimeStoreTest extends TestCase
 
         $this->assertStringContainsString('$overtimeTaskItems', $view);
         $this->assertStringContainsString('$taskItemPayload', $view);
+        $this->assertStringContainsString('class="list-group-item draggable p-3 pic-overtime-task-detail"', $view);
+        $this->assertStringContainsString('data-bs-target="#taskDetailModal"', $view);
+        $this->assertStringContainsString('id="taskDetailModal"', $view);
+        $this->assertStringContainsString('id="picTaskDetailTitle"', $view);
+        $this->assertStringContainsString('id="picTaskDetailDescription"', $view);
+        $this->assertStringContainsString('function openTaskDetailModal(event)', $view);
+        $this->assertStringContainsString("$('.pic-overtime-task-detail').on('click', openTaskDetailModal);", $view);
         $this->assertStringContainsString('class="btn btn-square btn-primary light btn-sm ms-1 pic-overtime-task-edit"', $view);
         $this->assertStringContainsString('id="updateTaskModal"', $view);
         $this->assertStringContainsString('id="picUpdateTaskForm"', $view);

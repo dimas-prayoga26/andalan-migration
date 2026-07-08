@@ -33,17 +33,20 @@ class ProjectOvertimeRelationTest extends TestCase
         $method->setAccessible(true);
         $controller = app(AttendanceOvertimeController::class);
 
-        $beforeWindow = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 07:59:00', 'Asia/Jakarta'));
-        $windowStart = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 08:00:00', 'Asia/Jakarta'));
-        $windowEnd = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 10:00:00', 'Asia/Jakarta'));
-        $afterWindow = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 10:01:00', 'Asia/Jakarta'));
+        $beforeWindow = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 07:29:00', 'Asia/Jakarta'));
+        $windowStart = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 07:30:00', 'Asia/Jakarta'));
+        $scheduledStart = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 08:00:00', 'Asia/Jakarta'));
+        $windowEnd = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 08:30:00', 'Asia/Jakarta'));
+        $afterWindow = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 08:31:00', 'Asia/Jakarta'));
 
         $this->assertFalse($beforeWindow['is_allowed']);
         $this->assertTrue($windowStart['is_allowed']);
+        $this->assertTrue($scheduledStart['is_allowed']);
         $this->assertTrue($windowEnd['is_allowed']);
         $this->assertFalse($afterWindow['is_allowed']);
         $this->assertSame('before_window', $beforeWindow['state']);
         $this->assertSame('allowed', $windowStart['state']);
+        $this->assertSame('allowed', $scheduledStart['state']);
         $this->assertSame('allowed', $windowEnd['state']);
         $this->assertSame('after_window', $afterWindow['state']);
         $this->assertSame('Waktu absen lembur sudah melewati batas yang ditetapkan PIC. Silakan hubungi PIC untuk mengubah jadwal lemburnya.', $afterWindow['message']);
@@ -60,17 +63,45 @@ class ProjectOvertimeRelationTest extends TestCase
         $method->setAccessible(true);
         $controller = app(AttendanceOvertimeController::class);
 
-        $beforeWindow = $method->invoke($controller, $overtime, Carbon::parse('2026-06-30 22:59:00', 'Asia/Jakarta'));
-        $windowStart = $method->invoke($controller, $overtime, Carbon::parse('2026-06-30 23:00:00', 'Asia/Jakarta'));
-        $afterMidnight = $method->invoke($controller, $overtime, Carbon::parse('2026-07-01 00:30:00', 'Asia/Jakarta'));
-        $windowEnd = $method->invoke($controller, $overtime, Carbon::parse('2026-07-01 01:00:00', 'Asia/Jakarta'));
-        $afterWindow = $method->invoke($controller, $overtime, Carbon::parse('2026-07-01 01:01:00', 'Asia/Jakarta'));
+        $beforeWindow = $method->invoke($controller, $overtime, Carbon::parse('2026-06-30 22:29:00', 'Asia/Jakarta'));
+        $windowStart = $method->invoke($controller, $overtime, Carbon::parse('2026-06-30 22:30:00', 'Asia/Jakarta'));
+        $scheduledStart = $method->invoke($controller, $overtime, Carbon::parse('2026-06-30 23:00:00', 'Asia/Jakarta'));
+        $windowEnd = $method->invoke($controller, $overtime, Carbon::parse('2026-06-30 23:30:00', 'Asia/Jakarta'));
+        $afterWindow = $method->invoke($controller, $overtime, Carbon::parse('2026-06-30 23:31:00', 'Asia/Jakarta'));
 
         $this->assertFalse($beforeWindow['is_allowed']);
         $this->assertTrue($windowStart['is_allowed']);
-        $this->assertTrue($afterMidnight['is_allowed']);
+        $this->assertTrue($scheduledStart['is_allowed']);
         $this->assertTrue($windowEnd['is_allowed']);
         $this->assertFalse($afterWindow['is_allowed']);
+    }
+
+    public function test_overtime_clock_out_window_uses_thirty_minutes_before_and_after_scheduled_end(): void
+    {
+        $overtime = new AttendanceOvertime([
+            'id' => 'overtime-window-test',
+            'employee_id' => 'employee-window-test',
+            'overtime_date' => '2026-06-15',
+            'planned_start_time' => '08:00:00',
+            'planned_end_time' => '10:00:00',
+        ]);
+        $method = new ReflectionMethod(AttendanceOvertimeController::class, 'resolveOvertimeClockOutWindow');
+        $method->setAccessible(true);
+        $controller = app(AttendanceOvertimeController::class);
+
+        $beforeWindow = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 09:29:00', 'Asia/Jakarta'));
+        $windowStart = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 09:30:00', 'Asia/Jakarta'));
+        $scheduledEnd = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 10:00:00', 'Asia/Jakarta'));
+        $windowEnd = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 10:30:00', 'Asia/Jakarta'));
+        $afterWindow = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 10:31:00', 'Asia/Jakarta'));
+
+        $this->assertFalse($beforeWindow['is_allowed']);
+        $this->assertSame('Clock Out Lembur Belum Tersedia', $beforeWindow['title']);
+        $this->assertTrue($windowStart['is_allowed']);
+        $this->assertTrue($scheduledEnd['is_allowed']);
+        $this->assertTrue($windowEnd['is_allowed']);
+        $this->assertFalse($afterWindow['is_allowed']);
+        $this->assertSame('Batas Clock Out Lembur Sudah Lewat', $afterWindow['title']);
     }
 
     public function test_overtime_duration_label_uses_hours_and_minutes_for_midnight_ranges(): void
@@ -83,7 +114,7 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertSame('02 Jam 00 Menit', $method->invoke($controller, '23:00:00', '01:00:00'));
     }
 
-    public function test_overtime_task_can_only_be_created_during_an_active_clocked_in_session(): void
+    public function test_overtime_task_can_be_created_after_clock_in_even_after_clock_out(): void
     {
         $method = new ReflectionMethod(AttendanceOvertimeController::class, 'canCreateOvertimeTask');
         $controller = app(AttendanceOvertimeController::class);
@@ -101,7 +132,7 @@ class ProjectOvertimeRelationTest extends TestCase
 
         $this->assertFalse($method->invoke($controller, $beforeClockIn));
         $this->assertTrue($method->invoke($controller, $duringSession));
-        $this->assertFalse($method->invoke($controller, $afterClockOut));
+        $this->assertTrue($method->invoke($controller, $afterClockOut));
     }
 
     public function test_project_task_and_overtime_relationships_are_available(): void
@@ -260,10 +291,12 @@ class ProjectOvertimeRelationTest extends TestCase
             "private const OVERTIME_STATUS_IN_PROGRESS = 'in_progress';",
             "private const OVERTIME_STATUS_COMPLETED = 'completed';",
             "private const OVERTIME_STATUS_CANCELLED = 'cancelled';",
+            'private const OVERTIME_CLOCK_TOLERANCE_MINUTES = 30;',
             "'can_create_task' => \$this->canCreateOvertimeTask(\$overtime)",
             "'status' => ['nullable', 'in:assigned,in_progress,completed,cancelled']",
             'private function resolveOvertimeStatus',
             'private function resolveOvertimeClockInWindow',
+            'private function resolveOvertimeClockOutWindow',
             'private function formatOvertimeClockInWindowLabel',
             'private function resolveOvertimeClockOutReadiness',
             'private function buildCurrentOvertimeTaskQuery',
@@ -271,6 +304,8 @@ class ProjectOvertimeRelationTest extends TestCase
             'Absen Lembur Sudah Dilakukan',
             'Absen Lembur Belum Tersedia',
             'Batas Absen Lembur Sudah Lewat',
+            'Clock Out Lembur Belum Tersedia',
+            'Batas Clock Out Lembur Sudah Lewat',
             'Task Lembur Belum Disubmit',
             'Task Lembur Belum Completed',
             'Anda belum melakukan absen kehadiran hari ini. Silakan absen masuk terlebih dahulu sebelum absen lembur.',
@@ -281,6 +316,12 @@ class ProjectOvertimeRelationTest extends TestCase
             'private function createInitialOvertimeLifecycleLogs',
             'private function syncOvertimeLifecycleLogs',
             'private function buildOvertimeDetailSummary',
+            "'log_status' => \$isPicVerified ? 'Completed'",
+            "'approved_time_range' => \$approvedTimeRange",
+            "'log_time_range' => \$logTimeRange",
+            "'approved_duration' => \$approvedDuration",
+            "'log_duration' => \$logDuration",
+            "'is_pic_verified' => \$isPicVerified",
             'private function resolveOvertimeDirectorApprover',
             'private function overtimeLifecycleLog',
             'private function formatOvertimeDetailLogDateTime',
@@ -293,7 +334,7 @@ class ProjectOvertimeRelationTest extends TestCase
             'private function completedOvertimeTaskSubmittedAt',
             'private function overtimeTaskItemValue',
             'public function storeTask',
-            'Task lembur hanya dapat ditambahkan setelah Overtime Clock In dan sebelum Overtime Clock Out.',
+            'Task lembur hanya dapat ditambahkan setelah Overtime Clock In.',
             'public function updateTask',
             'public function destroyTask',
             'private function canUpdateOvertimeTask',
@@ -306,6 +347,13 @@ class ProjectOvertimeRelationTest extends TestCase
             'private function buildOvertimeIndexCard',
             'private function buildOvertimeIndexSummary',
             '$isPendingSupervisorOvertimeApproval = function (AttendanceOvertime $overtime): bool',
+            '$isVerifiedSupervisorOvertime = function (AttendanceOvertime $overtime): bool',
+            "strtolower(trim((string) \$verificationLog->status)) === 'verified'",
+            '->filter($isVerifiedSupervisorOvertime)',
+            "->where('event_key', 'task_hours_verification')",
+            "->whereRaw('LOWER(status) = ?', ['verified'])",
+            'private function approvedOrActualDurationMinutes',
+            '->sum(fn (AttendanceOvertime $overtime): int => $this->approvedOrActualDurationMinutes($overtime))',
             'private function durationMinutesFromTimeValues',
             'private function formatOvertimeSummaryHours',
             'private function normalizeOvertimeIndexStatusFilter',
@@ -315,7 +363,6 @@ class ProjectOvertimeRelationTest extends TestCase
             "route('attendance.overtimes.detail', \$overtime)",
             "'record_number' => (string) (\$overtime->record_number ?? ''),",
             "return '#'.\$recordNumber;",
-            "->where('status', self::OVERTIME_STATUS_COMPLETED)",
             "->whereIn('status', [",
             "->orWhereNull('overtime_id')",
             "'overtime_id' => (string) \$attendanceOvertime->id,",
@@ -337,7 +384,7 @@ class ProjectOvertimeRelationTest extends TestCase
             "'overtimeSummary' => \$this->buildOvertimeIndexSummary",
             "'pending_spv_approval_hours_label' => \$this->formatOvertimeSummaryHours",
             "'pending_spv_approval_hours_progress' => min",
-            "'estimated_extra_earnings_label' => 'Rp 225.000'",
+            "'estimated_extra_earnings_label' => 'Rp 0'",
             "'disputed_hours_label' => '0 Hours'",
             "'delete_url' => route('attendance.overtimes.tasks.destroy'",
             'Task berhasil dihapus.',
@@ -362,15 +409,30 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertStringContainsString('Pending SPV Approval', $overtimeIndexView);
         $this->assertStringNotContainsString('Assigned Hours', $overtimeIndexView);
         $this->assertStringContainsString('Completed & Locked', $overtimeIndexView);
-        $this->assertStringContainsString("{{ \$overtimeSummary['total_logged_hours_label'] ?? '0 Hours' }}", $overtimeIndexView);
-        $this->assertStringContainsString("{{ \$overtimeSummary['overtime_cap_label'] ?? '0 H (0%)' }}", $overtimeIndexView);
-        $this->assertStringContainsString("{{ \$overtimeSummary['average_extra_hours_label'] ?? '0 H / Week' }}", $overtimeIndexView);
-        $this->assertStringContainsString("{{ \$overtimeSummary['tasks_finalized_label'] ?? '0 Tasks' }}", $overtimeIndexView);
-        $this->assertStringContainsString("{{ \$overtimeSummary['pending_spv_approval_hours_label'] ?? '0 Hours' }}", $overtimeIndexView);
-        $this->assertStringContainsString("{{ \$overtimeSummary['pending_spv_approval_hours_progress'] ?? 0 }}% Pending SPV Approval", $overtimeIndexView);
-        $this->assertStringContainsString("{{ \$overtimeSummary['completed_locked_hours_label'] ?? '0 Hours' }}", $overtimeIndexView);
-        $this->assertStringContainsString("{{ \$overtimeSummary['estimated_extra_earnings_label'] ?? 'Rp 225.000' }}", $overtimeIndexView);
-        $this->assertStringContainsString("{{ \$overtimeSummary['disputed_hours_label'] ?? '0 Hours' }}", $overtimeIndexView);
+        $this->assertStringContainsString('$overtimeSummaryCards = [', $overtimeIndexView);
+        $this->assertStringContainsString('@foreach ($overtimeSummaryCards as $summaryCard)', $overtimeIndexView);
+        $this->assertStringContainsString("'value' => \$overtimeSummary['total_logged_hours_label'] ?? '0 Hours'", $overtimeIndexView);
+        $this->assertStringContainsString("'value' => \$overtimeSummary['overtime_cap_label'] ?? '0 H (0%)'", $overtimeIndexView);
+        $this->assertStringContainsString("'value' => \$overtimeSummary['average_extra_hours_label'] ?? '0 H / Week'", $overtimeIndexView);
+        $this->assertStringContainsString("'value' => \$overtimeSummary['tasks_finalized_label'] ?? '0 Tasks'", $overtimeIndexView);
+        $this->assertStringContainsString("'value' => \$overtimeSummary['pending_spv_approval_hours_label'] ?? '0 Hours'", $overtimeIndexView);
+        $this->assertStringContainsString("'sr_label' => (\$overtimeSummary['pending_spv_approval_hours_progress'] ?? 0).'% Pending SPV Approval'", $overtimeIndexView);
+        $this->assertStringContainsString("'value' => \$overtimeSummary['completed_locked_hours_label'] ?? '0 Hours'", $overtimeIndexView);
+        $this->assertStringContainsString("'value' => \$overtimeSummary['estimated_extra_earnings_label'] ?? 'Rp 0'", $overtimeIndexView);
+        $this->assertStringContainsString("'value' => \$overtimeSummary['disputed_hours_label'] ?? '0 Hours'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-clock'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-gauge-high'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-chart-line'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-list-check'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-user-clock'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-lock'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-coins'", $overtimeIndexView);
+        $this->assertStringContainsString("'icon' => 'fa-solid fa-triangle-exclamation'", $overtimeIndexView);
+        $this->assertStringContainsString("'avatar_class' => 'avatar-info'", $overtimeIndexView);
+        $this->assertStringContainsString("'progress_class' => 'bg-info'", $overtimeIndexView);
+        $this->assertStringContainsString("'effect_class' => 'bg-secondary'", $overtimeIndexView);
+        $this->assertStringNotContainsString("'icon_bg' =>", $overtimeIndexView);
+        $this->assertStringNotContainsString("'accent_color' =>", $overtimeIndexView);
         $this->assertStringNotContainsString('<span class="title text-black fs-28 fw-semibold">15 Hours</span>', $overtimeIndexView);
         $this->assertStringContainsString('<option value="in_progress"', $overtimeIndexView);
         $this->assertStringContainsString('id="overtime-list"', $overtimeIndexView);
@@ -401,6 +463,11 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertStringContainsString("{{ \$overtimeDetail['staff_name'] ?? '-' }}", $overtimeDetailView);
         $this->assertStringContainsString("{{ \$overtimeDetail['supervisor_name'] ?? '-' }}", $overtimeDetailView);
         $this->assertStringContainsString("Overtime Log ({{ \$overtimeDetail['log_status'] ?? '-' }})", $overtimeDetailView);
+        $this->assertStringContainsString("\$overtimeDetail['is_pic_verified'] ?? false", $overtimeDetailView);
+        $this->assertStringContainsString("{{ \$overtimeDetail['log_time_range'] ?? (\$overtimeDetail['approved_time_range'] ?? '-') }}", $overtimeDetailView);
+        $this->assertStringContainsString("{{ \$overtimeDetail['log_duration'] ?? (\$overtimeDetail['approved_duration'] ?? '-') }}", $overtimeDetailView);
+        $this->assertStringContainsString("text-decoration-line-through\">{{ \$overtimeDetail['planned_time_range'] ?? '-' }}", $overtimeDetailView);
+        $this->assertStringContainsString("text-decoration-line-through\">{{ \$overtimeDetail['planned_duration'] ?? '-' }}", $overtimeDetailView);
         $this->assertStringContainsString("{{ \$overtimeDetail['instruction'] ?? '-' }}", $overtimeDetailView);
         $this->assertStringContainsString("{{ \$overtimeDetail['estimated_earnings'] ?? '-' }}", $overtimeDetailView);
         $this->assertStringContainsString("{{ \$overtimeDetail['payout_period'] ?? '-' }}", $overtimeDetailView);
@@ -482,8 +549,19 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertStringContainsString('name="task_category"', $overtimeDetailView);
         $this->assertStringContainsString('name="project_id"', $overtimeDetailView);
         $this->assertStringContainsString('Belum ada pilihan project tersedia', $overtimeDetailView);
-        $this->assertStringContainsString('type="date" class="form-control" name="start_date"', $overtimeDetailView);
-        $this->assertStringContainsString('type="date" class="form-control" name="due_date"', $overtimeDetailView);
+        $this->assertStringContainsString('id="createTaskStartDateValue" value="{{ $taskDefaultDate ?? now(\'Asia/Jakarta\')->toDateString() }}" required', $overtimeDetailView);
+        $this->assertStringContainsString('id="createTaskStartDatePicker" data-date-target="#createTaskStartDateValue"', $overtimeDetailView);
+        $this->assertStringContainsString('id="createTaskDueDateValue" value="{{ $taskDefaultDate ?? now(\'Asia/Jakarta\')->toDateString() }}" required', $overtimeDetailView);
+        $this->assertStringContainsString('id="createTaskDueDatePicker" data-date-target="#createTaskDueDateValue"', $overtimeDetailView);
+        $this->assertStringContainsString('id="updateTaskStartDateValue" required', $overtimeDetailView);
+        $this->assertStringContainsString('id="updateTaskStartDatePicker" data-date-target="#updateTaskStartDateValue"', $overtimeDetailView);
+        $this->assertStringContainsString('id="updateTaskDueDateValue" required', $overtimeDetailView);
+        $this->assertStringContainsString('id="updateTaskDueDatePicker" data-date-target="#updateTaskDueDateValue"', $overtimeDetailView);
+        $this->assertStringContainsString('class="form-control overtime-task-single-date-picker"', $overtimeDetailView);
+        $this->assertStringContainsString('singleDatePicker: true', $overtimeDetailView);
+        $this->assertStringContainsString('function initTaskSingleDatePickers()', $overtimeDetailView);
+        $this->assertStringNotContainsString('type="date" class="form-control" name="start_date"', $overtimeDetailView);
+        $this->assertStringNotContainsString('type="date" class="form-control" name="due_date"', $overtimeDetailView);
         $this->assertStringContainsString('function submitCreateTaskForm(event)', $overtimeDetailView);
         $this->assertStringContainsString('function updateCreateTaskProjectState()', $overtimeDetailView);
         $this->assertStringContainsString('id="updateTaskForm"', $overtimeDetailView);

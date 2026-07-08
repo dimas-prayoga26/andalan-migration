@@ -155,7 +155,7 @@
     
 <div class="row">
     <div class="col-md-6 col-sm-12">
-        <div class="card leave-summary-card mb-4">
+        <div class="card leave-summary-card mb-5">
             <div class="card-header d-sm-flex d-block pb-0 border-0">
                 <div>
                     <h4 class="card-title">Leave Summary</h4>

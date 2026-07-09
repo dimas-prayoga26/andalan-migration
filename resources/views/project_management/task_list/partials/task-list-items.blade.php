@@ -100,6 +100,8 @@
                             <a class="dropdown-item js-task-details" type="button" data-bs-toggle="modal" data-bs-target="#taskDetailsModal" data-task='@json($task)'>View More</a>
                             @if ($task['can_manage_from_task_list'] ?? true)
                                 <a class="dropdown-item js-task-edit" type="button" data-bs-toggle="modal" data-bs-target="#taskFormModal" data-task='@json($task)'>Update Task</a>
+                            @endif
+                            @if ($task['can_delete_from_task_list'] ?? true)
                                 <a class="dropdown-item js-task-delete" type="button" data-bs-toggle="modal" data-bs-target="#taskDeleteModal" data-delete-url="{{ $task['delete_url'] }}">Delete Task</a>
                             @endif
                         </div>

@@ -1597,6 +1597,7 @@ class AttendanceOvertimeController extends Controller
         return in_array(strtolower(trim((string) $attendanceOvertime->status)), [
             self::OVERTIME_STATUS_IN_PROGRESS,
             self::OVERTIME_STATUS_COMPLETED,
+            self::OVERTIME_STATUS_CANCELLED,
         ], true)
             && $this->normalizeStoreTimeValue($attendanceOvertime->actual_start_time) !== null;
     }
@@ -2055,18 +2056,6 @@ class AttendanceOvertimeController extends Controller
             $assignmentActor,
             $this->assignmentSubmittedLifecycleDateTime($overtime)
         );
-
-        if ((string) $overtime->status === self::OVERTIME_STATUS_CANCELLED) {
-            $this->updateOvertimeLifecycleLog(
-                $overtime,
-                'task_hours_verification',
-                'cancelled',
-                $actor,
-                Carbon::now('Asia/Jakarta')
-            );
-
-            return;
-        }
 
         $actualStartTime = $this->normalizeStoreTimeValue($overtime->actual_start_time);
         $actualEndTime = $this->normalizeStoreTimeValue($overtime->actual_end_time);

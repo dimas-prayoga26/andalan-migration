@@ -24,6 +24,12 @@ class OvertimeReviewTableBuilderTest extends TestCase
 
     public function test_overtime_review_views_use_dynamic_rows_and_filter_inputs(): void
     {
+        $builder = (string) file_get_contents(app_path('Support/Attendance/OvertimeReviewTableBuilder.php'));
+
+        $this->assertStringContainsString("\$this->baseQuery(trim(\$companyId), \$selectedMonth, \$selectedYear, \$context === 'pic')", $builder);
+        $this->assertStringContainsString('bool $includeCancelled = false', $builder);
+        $this->assertStringContainsString('if (! $includeCancelled) {', $builder);
+
         foreach ([
             resource_path('views/admin_attendance/overtime/index.blade.php'),
             resource_path('views/pic_attendance/overtime/index.blade.php'),

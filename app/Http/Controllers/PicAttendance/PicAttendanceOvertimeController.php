@@ -725,7 +725,6 @@ class PicAttendanceOvertimeController extends Controller
                 'status',
             ])
             ->where('assigned_by', trim($assignedByUserId))
-            ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled'])
             ->whereBetween('overtime_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
             ->whereHas('employee', function (Builder $query): void {
                 $query

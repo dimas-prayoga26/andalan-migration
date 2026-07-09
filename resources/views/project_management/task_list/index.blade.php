@@ -37,8 +37,120 @@
         max-width: 180px;
     }
 
-    .project-grid-file-card {
-        min-height: 150px;
+    .project-kanban-page .kanban-bx {
+        display: flex;
+        width: 100%;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        gap: 1.25rem;
+        padding-bottom: 0.5rem;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .project-kanban-page .kanban-bx .col {
+        width: 360px;
+        min-width: 360px;
+        flex-grow: 0;
+        flex-shrink: 0;
+        flex-basis: 360px;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .project-kanban-page .kanban-bx .col .card.draggable-handle {
+        display: flex;
+        height: 230px;
+        cursor: grab;
+        will-change: transform;
+    }
+
+    .project-kanban-page .draggable.card {
+        transition: none;
+    }
+
+    .project-kanban-page .kanban-bx .col .card.draggable-handle .card-body {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .project-kanban-page .kanban-bx .col .card.draggable-handle p.font-w600 {
+        display: -webkit-box;
+        min-height: 58px;
+        overflow: hidden;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    .project-kanban-page .kanban-bx .col .card.draggable-handle .progress {
+        flex-shrink: 0;
+    }
+
+    .project-kanban-page .kanban-bx .col .card.draggable-handle .kanban-user {
+        margin-top: auto;
+        flex-shrink: 0;
+    }
+
+    .project-kanban-page .kanban-bx .col .card.draggable-source--is-dragging {
+        cursor: grabbing;
+        opacity: 0.45;
+    }
+
+    .draggable-mirror {
+        z-index: 1060 !important;
+        pointer-events: none;
+        cursor: grabbing;
+        margin: 0 !important;
+        transition: none !important;
+        transform: none !important;
+    }
+
+    .project-kanban-page .kanban-user .users {
+        display: flex;
+        padding-left: 0;
+        margin-bottom: 0;
+        list-style: none;
+    }
+
+    .project-kanban-page .kanban-user .users li {
+        margin-right: -10px;
+    }
+
+    .project-kanban-page .kanban-user .users li img {
+        border-radius: 32px;
+        height: 32px;
+        width: 32px;
+        border: 2px solid #fff;
+        object-fit: cover;
+    }
+
+    .project-kanban-page .dropzoneContainer {
+        min-height: 96px;
+    }
+
+    .project-kanban-page .kanbanPreview-bx > .sub-card {
+        margin-bottom: 1.5rem;
+        min-height: 32px;
+    }
+
+    .project-kanban-page .kanban-empty-state {
+        min-height: 235px;
+        border: 1px dashed #d8dde8;
+        border-radius: 1rem;
+        background: rgba(245, 248, 253, 0.5);
+    }
+
+    .project-kanban-page .kanban-bx::-webkit-scrollbar {
+        background-color: #ececec;
+        width: 8px;
+        height: 8px;
+    }
+
+    .project-kanban-page .kanban-bx::-webkit-scrollbar-thumb {
+        background-color: #7e7e7e;
+        border-radius: 10px;
     }
 
     .project-task-calendar-widget .datepicker-days .day.today:not(.active) {
@@ -54,6 +166,23 @@
     @media (max-width: 575.98px) {
         .project-task-date-box {
             min-width: 72px;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .project-kanban-page .kanban-bx {
+            gap: 0.75rem;
+            padding: 0 0.75rem 0.75rem;
+            scroll-snap-type: x proximity;
+            scroll-padding-left: 0.75rem;
+            overscroll-behavior-x: contain;
+        }
+
+        .project-kanban-page .kanban-bx .col {
+            width: 82vw;
+            min-width: 82vw;
+            max-width: 82vw;
+            scroll-snap-align: start;
         }
     }
 </style>
@@ -436,6 +565,7 @@
     $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
 @endphp
 <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+<script src="{{ asset('assets-workload/vendor/draggable/draggable.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(function () {
@@ -451,6 +581,7 @@
         };
         var activeActionUrl = '';
         var isSyncingCalendar = false;
+        var kanbanSortableInstance = null;
 
         function parseTask(button) {
             var taskJson = $(button).attr('data-task') || '{}';
@@ -716,6 +847,175 @@
             activeActionUrl = '';
 
             updateCalendar(response.selected_month);
+            initializeStaticKanbanBoard();
+        }
+
+        function initializeStaticKanbanBoard() {
+            var dropzones = document.querySelectorAll('#taskListProjectGridPanel .dropzoneContainer');
+
+            if (! dropzones.length || typeof window.Sortable === 'undefined' || typeof window.Sortable.default === 'undefined') {
+                return;
+            }
+
+            if (kanbanSortableInstance && typeof kanbanSortableInstance.destroy === 'function') {
+                kanbanSortableInstance.destroy();
+            }
+
+            kanbanSortableInstance = new window.Sortable.default(dropzones, {
+                draggable: '.draggable-handle',
+                mirror: {
+                    appendTo: document.body,
+                    constrainDimensions: true,
+                },
+            });
+
+            attachStaticKanbanMirrorPositioning(kanbanSortableInstance);
+        }
+
+        function extractPointerPosition(value) {
+            if (! value) {
+                return null;
+            }
+
+            if (typeof value.clientX === 'number' && typeof value.clientY === 'number') {
+                return {
+                    x: value.clientX,
+                    y: value.clientY,
+                };
+            }
+
+            if (value.touches && value.touches.length > 0 && typeof value.touches[0].clientX === 'number' && typeof value.touches[0].clientY === 'number') {
+                return {
+                    x: value.touches[0].clientX,
+                    y: value.touches[0].clientY,
+                };
+            }
+
+            if (value.changedTouches && value.changedTouches.length > 0 && typeof value.changedTouches[0].clientX === 'number' && typeof value.changedTouches[0].clientY === 'number') {
+                return {
+                    x: value.changedTouches[0].clientX,
+                    y: value.changedTouches[0].clientY,
+                };
+            }
+
+            return null;
+        }
+
+        function getPointerPositionFromEvent(event) {
+            var candidates = [
+                event && event.sensorEvent,
+                event && event.sensorEvent && event.sensorEvent.originalEvent,
+                event && event.data && event.data.sensorEvent,
+                event && event.data && event.data.sensorEvent && event.data.sensorEvent.originalEvent,
+                event && event.originalEvent,
+                event && event.data && event.data.originalEvent,
+                event,
+            ];
+
+            for (var i = 0; i < candidates.length; i += 1) {
+                var pointerPosition = extractPointerPosition(candidates[i]);
+
+                if (pointerPosition !== null) {
+                    return pointerPosition;
+                }
+            }
+
+            return null;
+        }
+
+        function attachStaticKanbanMirrorPositioning(sortableInstance) {
+            if (! sortableInstance || typeof sortableInstance.on !== 'function') {
+                return;
+            }
+
+            var dragMirror = null;
+            var dragOffset = {
+                x: 0,
+                y: 0,
+            };
+
+            function resetMirrorState() {
+                dragMirror = null;
+                dragOffset = {
+                    x: 0,
+                    y: 0,
+                };
+            }
+
+            function positionMirror(event) {
+                if (! dragMirror) {
+                    dragMirror = document.querySelector('.draggable-mirror');
+                }
+
+                if (! dragMirror) {
+                    return;
+                }
+
+                var pointerPosition = getPointerPositionFromEvent(event);
+
+                if (! pointerPosition) {
+                    return;
+                }
+
+                dragMirror.style.position = 'fixed';
+                dragMirror.style.left = (pointerPosition.x - dragOffset.x) + 'px';
+                dragMirror.style.top = (pointerPosition.y - dragOffset.y) + 'px';
+                dragMirror.style.right = 'auto';
+                dragMirror.style.bottom = 'auto';
+                dragMirror.style.transform = 'none';
+            }
+
+            function scheduleMirrorPosition(event) {
+                positionMirror(event);
+                window.requestAnimationFrame(function () {
+                    positionMirror(event);
+                });
+            }
+
+            sortableInstance.on('drag:start', function (event) {
+                var sourceRect = event && event.source
+                    ? event.source.getBoundingClientRect()
+                    : null;
+                var pointerPosition = getPointerPositionFromEvent(event);
+
+                if (sourceRect && pointerPosition) {
+                    dragOffset = {
+                        x: pointerPosition.x - sourceRect.left,
+                        y: pointerPosition.y - sourceRect.top,
+                    };
+                } else if (sourceRect) {
+                    dragOffset = {
+                        x: sourceRect.width / 2,
+                        y: sourceRect.height / 2,
+                    };
+                }
+            });
+
+            sortableInstance.on('mirror:created', function (event) {
+                dragMirror = event && event.mirror
+                    ? event.mirror
+                    : document.querySelector('.draggable-mirror');
+
+                if (dragMirror && event && event.source) {
+                    var sourceRect = event.source.getBoundingClientRect();
+
+                    dragMirror.style.width = sourceRect.width + 'px';
+                    dragMirror.style.height = sourceRect.height + 'px';
+                    dragMirror.style.position = 'fixed';
+                    dragMirror.style.left = sourceRect.left + 'px';
+                    dragMirror.style.top = sourceRect.top + 'px';
+                    dragMirror.style.right = 'auto';
+                    dragMirror.style.bottom = 'auto';
+                    dragMirror.style.transform = 'none';
+                }
+
+                scheduleMirrorPosition(event);
+            });
+
+            sortableInstance.on('drag:move', scheduleMirrorPosition);
+            sortableInstance.on('mirror:move', scheduleMirrorPosition);
+            sortableInstance.on('drag:stop', resetMirrorState);
+            sortableInstance.on('mirror:destroy', resetMirrorState);
         }
 
         function refreshTaskList() {
@@ -933,6 +1233,7 @@
         }
 
         initializeTaskDateRangePicker();
+        initializeStaticKanbanBoard();
     });
 </script>
 

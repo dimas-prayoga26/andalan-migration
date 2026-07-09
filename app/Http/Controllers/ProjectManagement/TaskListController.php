@@ -161,7 +161,7 @@ class TaskListController extends Controller
     public function destroyTask(ProjectTask $projectTask): JsonResponse
     {
         $employeeId = $this->authenticatedEmployeeId(Auth::user());
-        if ($employeeId === null || ! $this->canManageTaskListTask($projectTask, $employeeId)) {
+        if ($employeeId === null || ! $this->canDeleteTaskListTask($projectTask, $employeeId)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk menghapus task ini.',
@@ -514,7 +514,8 @@ class TaskListController extends Controller
             'overtime_id' => $isOvertimeTask ? (string) $projectTask->overtime_id : '',
             'is_overtime_task' => $isOvertimeTask,
             'overtime_label' => 'Overtime',
-            'can_manage_from_task_list' => ! $isOvertimeTask,
+            'can_manage_from_task_list' => true,
+            'can_delete_from_task_list' => ! $isOvertimeTask,
             'title' => trim((string) $projectTask->title),
             'description' => trim((string) ($projectTask->description ?? '')),
             'blockers' => trim((string) ($projectTask->blockers ?? '')),
@@ -688,7 +689,12 @@ class TaskListController extends Controller
 
     private function canManageTaskListTask(ProjectTask $projectTask, string $employeeId): bool
     {
-        return (string) $projectTask->employee_id === $employeeId
+        return (string) $projectTask->employee_id === $employeeId;
+    }
+
+    private function canDeleteTaskListTask(ProjectTask $projectTask, string $employeeId): bool
+    {
+        return $this->canManageTaskListTask($projectTask, $employeeId)
             && ($projectTask->overtime_id === null || trim((string) $projectTask->overtime_id) === '');
     }
 

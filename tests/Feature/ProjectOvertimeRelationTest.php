@@ -129,10 +129,15 @@ class ProjectOvertimeRelationTest extends TestCase
             'actual_start_time' => '08:00:00',
             'actual_end_time' => '10:00:00',
         ]);
+        $cancelledAfterClockIn = new AttendanceOvertime([
+            'status' => 'cancelled',
+            'actual_start_time' => '08:00:00',
+        ]);
 
         $this->assertFalse($method->invoke($controller, $beforeClockIn));
         $this->assertTrue($method->invoke($controller, $duringSession));
         $this->assertTrue($method->invoke($controller, $afterClockOut));
+        $this->assertTrue($method->invoke($controller, $cancelledAfterClockIn));
     }
 
     public function test_project_task_and_overtime_relationships_are_available(): void
@@ -401,6 +406,10 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertStringNotContainsString("->with('employee.deployment.department:id,name')", $overtimeController);
         $this->assertStringNotContainsString('Waiting for Payroll Calculation', $overtimeController);
         $this->assertStringNotContainsString('private function calculateDurationHours', $overtimeController);
+        $this->assertStringNotContainsString(
+            "'task_hours_verification',\n                'cancelled',",
+            $overtimeController
+        );
 
         foreach ([
             'protected static function generateRecordNumber(mixed $overtimeDate): string',

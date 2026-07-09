@@ -74,6 +74,13 @@ class PicAttendanceOvertimeStoreTest extends TestCase
             $controller
         );
         $this->assertStringContainsString('picOvertimeCardsFor', $controller);
+        $cardsMethodStart = strpos($controller, 'private function picOvertimeCardsFor');
+        $cardsMethodEnd = strpos($controller, 'private function picOvertimeCardFor', (int) $cardsMethodStart);
+        $cardsMethod = substr($controller, (int) $cardsMethodStart, (int) $cardsMethodEnd - (int) $cardsMethodStart);
+        $this->assertStringNotContainsString(
+            "->whereRaw('LOWER(COALESCE(status, \"\")) <> ?', ['cancelled'])",
+            $cardsMethod
+        );
         $this->assertStringContainsString('if ($supervisorEmployeeId === null) {', $controller);
         $this->assertStringNotContainsString('if ($supervisorEmployeeId === null || $companyId === null) {', $controller);
         $this->assertStringContainsString("'status' => 'complete'", $controller);

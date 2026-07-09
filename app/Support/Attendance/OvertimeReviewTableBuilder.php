@@ -55,7 +55,7 @@ class OvertimeReviewTableBuilder
             ];
         }
 
-        $baseQuery = $this->baseQuery(trim($companyId), $selectedMonth, $selectedYear);
+        $baseQuery = $this->baseQuery(trim($companyId), $selectedMonth, $selectedYear, $context === 'pic');
 
         if ($context === 'pic' && is_string($assignedByUserId) && trim($assignedByUserId) !== '') {
             $baseQuery->where('assigned_by', trim($assignedByUserId));
@@ -126,13 +126,12 @@ class OvertimeReviewTableBuilder
             ->all();
     }
 
-    private function baseQuery(string $companyId, int $month, int $year): Builder
+    private function baseQuery(string $companyId, int $month, int $year, bool $includeCancelled = false): Builder
     {
         $periodStart = Carbon::create($year, $month, 1, 0, 0, 0, 'Asia/Jakarta')->startOfMonth();
         $periodEnd = $periodStart->copy()->endOfMonth();
 
-        return AttendanceOvertime::query()
-            ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled'])
+        $query = AttendanceOvertime::query()
             ->whereBetween('overtime_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
             ->whereHas('employee', function (Builder $query) use ($companyId): void {
                 $query
@@ -155,6 +154,12 @@ class OvertimeReviewTableBuilder
             ])
             ->orderBy('overtime_date')
             ->orderBy('planned_start_time');
+
+        if (! $includeCancelled) {
+            $query->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled']);
+        }
+
+        return $query;
     }
 
     /**

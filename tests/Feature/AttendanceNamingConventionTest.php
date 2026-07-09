@@ -270,7 +270,8 @@ class AttendanceNamingConventionTest extends TestCase
         $this->assertStringContainsString('function clockInBadgeTone(rowData)', $attendanceReportsView);
         $this->assertStringContainsString('function clockOutBadgeTone(rowData)', $attendanceReportsView);
         $this->assertStringContainsString("return rowData && rowData.is_late ? 'danger' : 'success';", $attendanceReportsView);
-        $this->assertStringContainsString("return renderAdminAttendanceBadge('Alpha', 'danger');", $attendanceReportsView);
+        $this->assertStringContainsString("return escapeHtml('Alpha');", $attendanceReportsView);
+        $this->assertStringNotContainsString("return renderAdminAttendanceBadge('Alpha', 'danger');", $attendanceReportsView);
         $this->assertStringNotContainsString("return '<span class=\"text-danger fw-semibold\">' + data + '</span>';", $attendanceReportsView);
         $this->assertStringNotContainsString("return '<span class=\"attendance-tag attendance-tag--weekend\">' + (data || 'Weekend / Day Off') + '</span>';", $attendanceReportsView);
         $this->assertStringContainsString('row attendance-rate-mobile-slider', $attendanceCardAnalyticsView);

@@ -10,7 +10,9 @@ use App\Http\Requests\Attendance\CurrentAttendanceIpRequest;
 use App\Http\Requests\Attendance\StoreAttendanceExceptionRequest;
 use App\Http\Requests\Attendance\StoreAttendanceRequest;
 use App\Http\Requests\Attendance\UpdateAttendanceRequest;
+use App\Services\Attendance\AttendanceCalendarEventService;
 use App\Services\Attendance\AttendanceMutationService;
+use App\Support\Attendance\AttendanceCalendarPresenter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
@@ -214,5 +216,23 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString("day: 'Day'", $fullCalendarInit);
         $this->assertStringNotContainsString('mountDateFilterInToolbar', $fullCalendarInit);
         $this->assertStringNotContainsString('bindDateFilter', $fullCalendarInit);
+    }
+
+    public function test_attendance_calendar_late_boundary_and_modal_label_use_hours_and_minutes(): void
+    {
+        $calendarEventService = app(AttendanceCalendarEventService::class);
+        $lateMinutesMethod = new \ReflectionMethod(AttendanceCalendarEventService::class, 'calculateClockInLateMinutes');
+        $lateMinutesMethod->setAccessible(true);
+
+        $this->assertSame(0, $lateMinutesMethod->invoke($calendarEventService, '2026-07-09', '08:00', '08:00'));
+        $this->assertSame(1, $lateMinutesMethod->invoke($calendarEventService, '2026-07-09', '08:01', '08:00'));
+        $this->assertSame(375, $lateMinutesMethod->invoke($calendarEventService, '2026-07-09', '14:15', '08:00'));
+
+        $presenter = app(AttendanceCalendarPresenter::class);
+
+        $this->assertSame(
+            'Late 6 Hours 15 Minutes',
+            $presenter->attendanceStatusLabel('late', 'Late 6 Hours 15 Minutes', 375)
+        );
     }
 }

@@ -315,6 +315,7 @@ class ProjectOvertimeRelationTest extends TestCase
             'Harap submit task lembur yang dikerjakan setelah clock-in, lalu pastikan statusnya Completed sebelum mengakhiri sesi.',
             'private function createInitialOvertimeLifecycleLogs',
             'private function syncOvertimeLifecycleLogs',
+            '$assignmentActor = $overtime->assignedBy instanceof User ? $overtime->assignedBy : $actor;',
             'private function buildOvertimeDetailSummary',
             "'log_status' => \$isPicVerified ? 'Completed'",
             "'approved_time_range' => \$approvedTimeRange",
@@ -333,6 +334,10 @@ class ProjectOvertimeRelationTest extends TestCase
             'private function buildOvertimeTaskQuery',
             'private function completedOvertimeTaskSubmittedAt',
             'private function overtimeTaskItemValue',
+            'private function overtimeLifecycleDisplayDateTime',
+            'private function assignmentSubmittedLifecycleDateTime',
+            "'planned_start_time' => \$this->normalizeTimeString(\$overtime->planned_start_time)",
+            "'planned_end_time' => \$this->normalizeTimeString(\$overtime->planned_end_time)",
             'public function storeTask',
             'Task lembur hanya dapat ditambahkan setelah Overtime Clock In.',
             'public function updateTask',
@@ -550,16 +555,26 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertStringContainsString('name="project_id"', $overtimeDetailView);
         $this->assertStringContainsString('Belum ada pilihan project tersedia', $overtimeDetailView);
         $this->assertStringContainsString('id="createTaskStartDateValue" value="{{ $taskDefaultDate ?? now(\'Asia/Jakarta\')->toDateString() }}" required', $overtimeDetailView);
-        $this->assertStringContainsString('id="createTaskStartDatePicker" data-date-target="#createTaskStartDateValue"', $overtimeDetailView);
         $this->assertStringContainsString('id="createTaskDueDateValue" value="{{ $taskDefaultDate ?? now(\'Asia/Jakarta\')->toDateString() }}" required', $overtimeDetailView);
-        $this->assertStringContainsString('id="createTaskDueDatePicker" data-date-target="#createTaskDueDateValue"', $overtimeDetailView);
+        $this->assertStringContainsString('id="createTaskDateRangePicker" data-start-date-target="#createTaskStartDateValue" data-due-date-target="#createTaskDueDateValue"', $overtimeDetailView);
         $this->assertStringContainsString('id="updateTaskStartDateValue" required', $overtimeDetailView);
-        $this->assertStringContainsString('id="updateTaskStartDatePicker" data-date-target="#updateTaskStartDateValue"', $overtimeDetailView);
         $this->assertStringContainsString('id="updateTaskDueDateValue" required', $overtimeDetailView);
-        $this->assertStringContainsString('id="updateTaskDueDatePicker" data-date-target="#updateTaskDueDateValue"', $overtimeDetailView);
-        $this->assertStringContainsString('class="form-control overtime-task-single-date-picker"', $overtimeDetailView);
-        $this->assertStringContainsString('singleDatePicker: true', $overtimeDetailView);
-        $this->assertStringContainsString('function initTaskSingleDatePickers()', $overtimeDetailView);
+        $this->assertStringContainsString('id="updateTaskDateRangePicker" data-start-date-target="#updateTaskStartDateValue" data-due-date-target="#updateTaskDueDateValue"', $overtimeDetailView);
+        $this->assertStringContainsString('class="form-control overtime-task-date-range-picker"', $overtimeDetailView);
+        $this->assertStringContainsString('function initTaskDateRangePickers()', $overtimeDetailView);
+        $this->assertStringContainsString('function setTaskDateRangeValue(dateRangeInput, startDateValue, dueDateValue)', $overtimeDetailView);
+        $this->assertStringContainsString('<label class="form-label">Priority <span class="required text-danger">*</span></label>', $overtimeDetailView);
+        $this->assertStringContainsString('<option value="low">Low</option>', $overtimeDetailView);
+        $this->assertStringContainsString('<option value="medium" selected>Medium</option>', $overtimeDetailView);
+        $this->assertStringContainsString('<option value="high">High</option>', $overtimeDetailView);
+        $this->assertStringNotContainsString('Volume Workload', $overtimeDetailView);
+        $this->assertStringNotContainsString('Light</option>', $overtimeDetailView);
+        $this->assertStringNotContainsString('Moderate</option>', $overtimeDetailView);
+        $this->assertStringNotContainsString('Heavy</option>', $overtimeDetailView);
+        $this->assertStringNotContainsString('Due Date <span class="required text-danger">*</span>', $overtimeDetailView);
+        $this->assertStringNotContainsString('class="form-control overtime-task-single-date-picker"', $overtimeDetailView);
+        $this->assertStringNotContainsString('singleDatePicker: true', $overtimeDetailView);
+        $this->assertStringNotContainsString('function initTaskSingleDatePickers()', $overtimeDetailView);
         $this->assertStringNotContainsString('type="date" class="form-control" name="start_date"', $overtimeDetailView);
         $this->assertStringNotContainsString('type="date" class="form-control" name="due_date"', $overtimeDetailView);
         $this->assertStringContainsString('function submitCreateTaskForm(event)', $overtimeDetailView);
@@ -604,5 +619,36 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertStringNotContainsString("<span class=\"badge badge-sm badge-warning light\">{{ \$taskItem['status'] ?? 'Pending' }}</span>", $overtimeDetailView);
         $this->assertStringNotContainsString("{{ \$taskItem['status'] ?? 'Completed' }}", $overtimeDetailView);
         $this->assertStringNotContainsString('Approved & Locked', $overtimeIndexView);
+    }
+
+    public function test_assignment_submitted_lifecycle_datetime_uses_planned_start_time(): void
+    {
+        $controller = app(AttendanceOvertimeController::class);
+        $method = new ReflectionMethod(AttendanceOvertimeController::class, 'overtimeLifecycleValueFromLog');
+        $method->setAccessible(true);
+        $assignmentDateTimeMethod = new ReflectionMethod(AttendanceOvertimeController::class, 'assignmentSubmittedLifecycleDateTime');
+        $assignmentDateTimeMethod->setAccessible(true);
+
+        $overtime = new AttendanceOvertime([
+            'id' => 'overtime-lifecycle-planned-start',
+            'overtime_date' => '2026-07-09',
+            'planned_start_time' => '14:15:00',
+            'planned_end_time' => '23:00:00',
+        ]);
+
+        $lifecycleLog = new OvertimeLifecycleLog([
+            'event_key' => 'assignment_submitted',
+            'step_order' => 1,
+            'title' => 'Overtime Assignment Submitted',
+            'status' => 'complete',
+            'happened_at' => Carbon::parse('2026-07-09 08:30:00', 'Asia/Jakarta'),
+        ]);
+
+        $lifecycleValue = $method->invoke($controller, $lifecycleLog, $overtime);
+        $assignmentDateTime = $assignmentDateTimeMethod->invoke($controller, $overtime);
+
+        $this->assertSame('2026-07-09 14:15:00', $assignmentDateTime?->format('Y-m-d H:i:s'));
+        $this->assertSame('09 July 2026, 14:15', $lifecycleValue['datetime_label']);
+        $this->assertSame('09 Jul', $lifecycleValue['date_label']);
     }
 }

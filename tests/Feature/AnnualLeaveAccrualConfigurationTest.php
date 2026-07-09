@@ -11,6 +11,7 @@ class AnnualLeaveAccrualConfigurationTest extends TestCase
     {
         $databaseSeeder = File::get(database_path('seeders/DatabaseSeeder.php'));
         $consoleRoutes = File::get(base_path('routes/console.php'));
+        $appConfig = File::get(config_path('app.php'));
 
         $this->assertStringContainsString('AttendanceHolidaySeeder::class', $databaseSeeder);
         $this->assertStringContainsString('LeaveBalanceSeeder::class', $databaseSeeder);
@@ -22,6 +23,7 @@ class AnnualLeaveAccrualConfigurationTest extends TestCase
         $this->assertStringContainsString("->monthlyOn(1, '00:10')", $consoleRoutes);
         $this->assertStringContainsString("->timezone('Asia/Jakarta')", $consoleRoutes);
         $this->assertStringContainsString('->withoutOverlapping()', $consoleRoutes);
+        $this->assertStringContainsString("'timezone' => 'Asia/Jakarta'", $appConfig);
     }
 
     public function test_annual_leave_rules_keep_joint_holiday_cap_and_request_guards(): void

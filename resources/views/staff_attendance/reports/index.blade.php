@@ -611,7 +611,7 @@
                         targets: 4,
                         render: function (data) {
                             if (data === 'Alpha') {
-                                return renderAdminAttendanceBadge('Alpha', 'danger');
+                                return escapeHtml('Alpha');
                             }
 
                             if (data && String(data).trim() !== '') {

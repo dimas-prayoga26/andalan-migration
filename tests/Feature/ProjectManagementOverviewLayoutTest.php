@@ -151,7 +151,15 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('Task berhasil diperbarui.', $taskListController);
         $this->assertStringContainsString('Task berhasil ditandai selesai.', $taskListController);
         $this->assertStringContainsString('Task berhasil dihapus.', $taskListController);
-        $this->assertStringContainsString("->whereNull('overtime_id')", $taskListController);
+        $this->assertStringNotContainsString("->whereNull('overtime_id')", $taskListController);
+        $this->assertStringContainsString("->whereNotNull('overtime_id')", $taskListController);
+        $this->assertStringContainsString("'is_overtime_task' => \$isOvertimeTask", $taskListController);
+        $this->assertStringContainsString("'can_manage_from_task_list' => ! \$isOvertimeTask", $taskListController);
+        $this->assertStringContainsString('badge badge-sm badge-danger light ms-2 align-middle', $taskListItemsPartial);
+        $this->assertStringContainsString("{{ \$task['title'] }}</a>\n                            @if (\$task['is_overtime_task'] ?? false)", $taskListItemsPartial);
+        $this->assertStringContainsString("{{ \$task['overtime_label'] ?? 'Overtime' }}", $taskListItemsPartial);
+        $this->assertStringNotContainsString('badge badge-sm badge-warning light ms-2', $taskListItemsPartial);
+        $this->assertStringContainsString("! \$task['is_completed'] && (\$task['can_manage_from_task_list'] ?? true)", $taskListItemsPartial);
         $this->assertStringContainsString('canManageTaskListTask', $taskListController);
         $this->assertStringContainsString('employeeIsProjectMember', $taskListController);
         $this->assertStringContainsString('public function index(): View', $projectController);

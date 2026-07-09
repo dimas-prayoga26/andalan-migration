@@ -1214,7 +1214,7 @@ class AttendanceOvertimeController extends Controller
                 ),
             ]);
 
-            $this->createInitialOvertimeLifecycleLogs($overtime, $assignmentActor, Carbon::now('Asia/Jakarta'));
+            $this->createInitialOvertimeLifecycleLogs($overtime, $assignmentActor);
             $this->syncOvertimeLifecycleLogs($overtime, Auth::user() instanceof User ? Auth::user() : $assignmentActor);
         });
 
@@ -2014,8 +2014,10 @@ class AttendanceOvertimeController extends Controller
         return $trimmedValue !== '' ? $trimmedValue : null;
     }
 
-    private function createInitialOvertimeLifecycleLogs(AttendanceOvertime $overtime, ?User $actor, Carbon $submittedAt): void
+    private function createInitialOvertimeLifecycleLogs(AttendanceOvertime $overtime, ?User $actor): void
     {
+        $assignmentHappenedAt = $this->assignmentSubmittedLifecycleDateTime($overtime);
+
         foreach (self::OVERTIME_LIFECYCLE_STEPS as $lifecycleStep) {
             $isAssignmentStep = $lifecycleStep['event_key'] === 'assignment_submitted';
 
@@ -2030,7 +2032,7 @@ class AttendanceOvertimeController extends Controller
                     'title' => $lifecycleStep['title'],
                     'status' => $isAssignmentStep ? 'complete' : $lifecycleStep['status'],
                     'actor_id' => $isAssignmentStep ? $actor?->id : null,
-                    'happened_at' => $isAssignmentStep ? $submittedAt : null,
+                    'happened_at' => $isAssignmentStep ? $assignmentHappenedAt : null,
                     'metadata' => [
                         'overtime_status' => $overtime->status,
                         'planned_start_time' => $this->normalizeTimeString($overtime->planned_start_time),
@@ -2044,6 +2046,15 @@ class AttendanceOvertimeController extends Controller
     private function syncOvertimeLifecycleLogs(AttendanceOvertime $overtime, ?User $actor): void
     {
         $overtime->loadMissing('employee.user', 'assignedBy');
+        $assignmentActor = $overtime->assignedBy instanceof User ? $overtime->assignedBy : $actor;
+
+        $this->updateOvertimeLifecycleLog(
+            $overtime,
+            'assignment_submitted',
+            'complete',
+            $assignmentActor,
+            $this->assignmentSubmittedLifecycleDateTime($overtime)
+        );
 
         if ((string) $overtime->status === self::OVERTIME_STATUS_CANCELLED) {
             $this->updateOvertimeLifecycleLog(
@@ -2130,6 +2141,8 @@ class AttendanceOvertimeController extends Controller
                 'happened_at' => $happenedAt,
                 'metadata' => [
                     'overtime_status' => $overtime->status,
+                    'planned_start_time' => $this->normalizeTimeString($overtime->planned_start_time),
+                    'planned_end_time' => $this->normalizeTimeString($overtime->planned_end_time),
                     'actual_start_time' => $this->normalizeTimeString($overtime->actual_start_time),
                     'actual_end_time' => $this->normalizeTimeString($overtime->actual_end_time),
                 ],
@@ -2173,9 +2186,9 @@ class AttendanceOvertimeController extends Controller
         return $overtime->lifecycleLogs
             ->sortBy('step_order')
             ->groupBy('phase')
-            ->map(function (Collection $lifecycleLogs, string $phase): array {
+            ->map(function (Collection $lifecycleLogs, string $phase) use ($overtime): array {
                 $items = $lifecycleLogs
-                    ->map(fn (OvertimeLifecycleLog $lifecycleLog): array => $this->overtimeLifecycleValueFromLog($lifecycleLog))
+                    ->map(fn (OvertimeLifecycleLog $lifecycleLog): array => $this->overtimeLifecycleValueFromLog($lifecycleLog, $overtime))
                     ->values();
                 $phaseValue = $this->overtimeLifecyclePhaseValue($items->all());
                 $phaseConfig = self::OVERTIME_LIFECYCLE_PHASES[$phase] ?? null;
@@ -2322,23 +2335,41 @@ class AttendanceOvertimeController extends Controller
         ];
     }
 
-    private function overtimeLifecycleValueFromLog(OvertimeLifecycleLog $lifecycleLog): array
+    private function overtimeLifecycleValueFromLog(OvertimeLifecycleLog $lifecycleLog, ?AttendanceOvertime $overtime = null): array
     {
         $status = trim(strtolower((string) ($lifecycleLog->status ?? ''))) ?: 'waiting';
         $state = $this->normalizeOvertimeLifecycleState($status);
+        $date = $this->overtimeLifecycleDisplayDateTime($lifecycleLog, $overtime);
 
         return [
             'event_key' => (string) $lifecycleLog->event_key,
             'step_order' => (int) $lifecycleLog->step_order,
             'title' => (string) $lifecycleLog->title,
             'state' => $state,
-            'date_label' => $this->formatOvertimeLifecycleDateLabel($lifecycleLog->happened_at, $state),
-            'datetime_label' => $this->formatOvertimeLifecycleDateTimeLabel($lifecycleLog->happened_at, $state),
+            'date_label' => $this->formatOvertimeLifecycleDateLabel($date, $state),
+            'datetime_label' => $this->formatOvertimeLifecycleDateTimeLabel($date, $state),
             'actor_label' => $this->resolveUserDisplayName($lifecycleLog->actor),
             'status_label' => $this->overtimeLifecycleStatusLabel($status),
             'marker_class' => $this->overtimeLifecycleMarkerClass($state),
             'badge_class' => $this->overtimeLifecycleBadgeClass($state),
         ];
+    }
+
+    private function overtimeLifecycleDisplayDateTime(OvertimeLifecycleLog $lifecycleLog, ?AttendanceOvertime $overtime): mixed
+    {
+        if ((string) $lifecycleLog->event_key !== 'assignment_submitted' || ! $overtime instanceof AttendanceOvertime) {
+            return $lifecycleLog->happened_at;
+        }
+
+        return $this->assignmentSubmittedLifecycleDateTime($overtime) ?? $lifecycleLog->happened_at;
+    }
+
+    private function assignmentSubmittedLifecycleDateTime(AttendanceOvertime $overtime): ?Carbon
+    {
+        return $this->overtimeDateTimeFromTime(
+            $overtime,
+            $this->normalizeStoreTimeValue($overtime->planned_start_time)
+        );
     }
 
     private function normalizeOvertimeLifecycleState(string $state): string

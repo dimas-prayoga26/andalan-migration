@@ -252,8 +252,7 @@ class TaskListController extends Controller
             return $defaultTaskListData;
         }
 
-        $taskQuery = $this->projectTaskQueryForEmployee($employeeId)
-            ->whereNull('overtime_id');
+        $taskQuery = $this->projectTaskQueryForEmployee($employeeId);
 
         $monthTaskQuery = $this->projectTaskQueryForMonth(
             $taskQuery,
@@ -507,10 +506,15 @@ class TaskListController extends Controller
         $assignedByUserId = trim((string) ($projectTask->assigned_by ?? ''));
         $authenticatedUserId = trim((string) (Auth::id() ?? ''));
         $assignedByUsername = trim((string) ($projectTask->assignedBy?->username ?? 'self'));
+        $isOvertimeTask = trim((string) ($projectTask->overtime_id ?? '')) !== '';
 
         return [
             'id' => (string) $projectTask->id,
             'employee_id' => (string) $projectTask->employee_id,
+            'overtime_id' => $isOvertimeTask ? (string) $projectTask->overtime_id : '',
+            'is_overtime_task' => $isOvertimeTask,
+            'overtime_label' => 'Overtime',
+            'can_manage_from_task_list' => ! $isOvertimeTask,
             'title' => trim((string) $projectTask->title),
             'description' => trim((string) ($projectTask->description ?? '')),
             'blockers' => trim((string) ($projectTask->blockers ?? '')),
@@ -704,7 +708,8 @@ class TaskListController extends Controller
         return ProjectTask::query()
             ->where('employee_id', $employeeId)
             ->where(function (Builder $query) use ($employeeId): void {
-                $query->whereNull('project_id')
+                $query->whereNotNull('overtime_id')
+                    ->orWhereNull('project_id')
                     ->orWhereHas('project.memberships', function (Builder $membershipQuery) use ($employeeId): void {
                         $membershipQuery
                             ->where('employee_id', $employeeId)

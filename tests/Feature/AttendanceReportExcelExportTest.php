@@ -141,7 +141,10 @@ class AttendanceReportExcelExportTest extends TestCase
         $this->assertStringContainsString("->get(['attendance_id', 'exception_date', 'type', 'note', 'from_time', 'to_time'])", $reportController);
         $this->assertStringContainsString("'late_arrival' => 'Izin Masuk Terlambat'", $reportController);
         $this->assertStringContainsString("'early_departure' => 'Izin Pulang Lebih Awal'", $reportController);
-        $this->assertStringContainsString("return 'Late '.\$lateMinutes.' Minutes';", $reportController);
+        $this->assertStringContainsString('return $this->attendanceDurationFormatter->lateLabel($lateMinutes);', $reportController);
+        $this->assertStringContainsString('$usesPersonalAttendanceReport = $isStaffUser || $isSuperUser;', $reportController);
+        $this->assertStringContainsString('$showCompanyFilter = false;', $reportController);
+        $this->assertStringContainsString('if ($usesPersonalAttendanceReport) {', $reportController);
         $this->assertStringContainsString("return 'On Time';", $reportController);
         $this->assertStringContainsString("return 'Cuti Tahunan';", $reportController);
         $this->assertStringContainsString("return asset('storage/'.ltrim(\$attachmentPath, '/'));", $reportController);
@@ -154,10 +157,10 @@ class AttendanceReportExcelExportTest extends TestCase
         $resolveAttendanceNoteLabel->setAccessible(true);
 
         $this->assertSame(
-            'Late 10 Minutes',
+            'Late 1 Hour 23 Minutes',
             $resolveAttendanceNoteLabel->invoke(
                 $controller,
-                new Attendance(['late_minutes' => 10]),
+                new Attendance(['late_minutes' => 83]),
                 null,
                 null
             )

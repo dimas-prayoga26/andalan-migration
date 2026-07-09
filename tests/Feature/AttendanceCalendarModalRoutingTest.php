@@ -139,6 +139,13 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString('clockOutCurrentDateElement.textContent = modalDateTime;', $attendanceCardsView);
         $this->assertStringContainsString("clockOutCurrentDateElement.classList.add(isWithinWorkRange ? 'text-warning' : 'text-black');", $attendanceCardsView);
         $this->assertStringNotContainsString('<p class="fs-14 mb-2">Date</p>', $attendanceCardsView);
+        $this->assertStringContainsString('id="clockInStatusText">Please wait</p>', $attendanceCardsView);
+        $this->assertStringContainsString('id="clockOutStatusText">Please wait</p>', $attendanceCardsView);
+        $this->assertStringContainsString('id="clockInSubmitBtn" disabled>Clock In</button>', $attendanceCardsView);
+        $this->assertStringContainsString('id="clockOutSubmitBtn" disabled>Clock Out</button>', $attendanceCardsView);
+        $this->assertStringContainsString("setVerificationMessage(context, 'Verification successful', 'success');", $attendanceCardsView);
+        $this->assertStringContainsString('checkOnsiteLocation(context);', $attendanceCardsView);
+        $this->assertStringNotContainsString('Mulai Verifikasi', $attendanceCardsView);
         $this->assertStringContainsString('fa-solid fa-calendar-xmark fs-24 text-secondary', $attendanceCardsView);
         $this->assertStringNotContainsString('viewBox="0 0 51 51"', $attendanceCardsView);
         $this->assertStringContainsString('window.upsertAttendanceHistoryEvent(response.calendar_event);', $attendanceCardsView);

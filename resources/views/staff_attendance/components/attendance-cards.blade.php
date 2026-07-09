@@ -162,9 +162,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Status</label>
-                    <div>
-                        <button type="button" class="btn btn-outline-primary btn-sm" id="clockInVerifyBtn">Mulai Verifikasi</button>
-                    </div>
+                    <p class="small text-muted mb-0" id="clockInStatusText">Please wait</p>
                     <p class="small d-none mt-2 mb-0" id="clockInVerifyMessage"></p>
                 </div>
                 <div class="mb-0">
@@ -173,14 +171,14 @@
                         @if (! empty($publicIp))
                             <span id="clockInIpText" class="{{ ($isIpPrefixMatch ?? false) ? 'text-success' : 'text-danger' }}">{{ $publicIp }}</span>
                         @else
-                            <span id="clockInIpText" class="text-muted">Memuat...</span>
+                            <span id="clockInIpText" class="text-muted">Please wait</span>
                         @endif
                         <span id="clockInIpBadge" class="ms-1 {{ ($isIpPrefixMatch ?? false) ? 'text-success' : 'text-danger' }}">{{ ($isIpPrefixMatch ?? false) ? 'Valid' : 'Tidak Valid' }}</span>
                     </p>
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn light btn-success btn-lg w-100" id="clockInSubmitBtn">Clock In</button>
+                <button type="button" class="btn light btn-success btn-lg w-100" id="clockInSubmitBtn" disabled>Clock In</button>
             </div>
         </div>
     </div>
@@ -209,9 +207,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Status</label>
-                    <div>
-                        <button type="button" class="btn btn-outline-primary btn-sm" id="clockOutVerifyBtn">Mulai Verifikasi</button>
-                    </div>
+                    <p class="small text-muted mb-0" id="clockOutStatusText">Please wait</p>
                     <p class="small d-none mt-2 mb-0" id="clockOutVerifyMessage"></p>
                 </div>
                 <div class="mb-0">
@@ -220,14 +216,14 @@
                         @if (! empty($publicIp))
                             <span id="clockOutIpText" class="{{ ($isIpPrefixMatch ?? false) ? 'text-success' : 'text-danger' }}">{{ $publicIp }}</span>
                         @else
-                            <span id="clockOutIpText" class="text-muted">Memuat...</span>
+                            <span id="clockOutIpText" class="text-muted">Please wait</span>
                         @endif
                         <span id="clockOutIpBadge" class="ms-1 {{ ($isIpPrefixMatch ?? false) ? 'text-success' : 'text-danger' }}">{{ ($isIpPrefixMatch ?? false) ? 'Valid' : 'Tidak Valid' }}</span>
                     </p>
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn light btn-danger btn-lg w-100" id="clockOutSubmitBtn">Clock Out</button>
+                <button type="button" class="btn light btn-danger btn-lg w-100" id="clockOutSubmitBtn" disabled>Clock Out</button>
             </div>
         </div>
     </div>
@@ -470,12 +466,26 @@
                 }
             }
 
-            function setOnsiteStatus(context, text) {
+            function setOnsiteStatus(context, text, type) {
                 if (!context || !context.statusTextElement) {
                     return;
                 }
 
                 context.statusTextElement.textContent = text;
+                context.statusTextElement.classList.remove('text-success', 'text-danger', 'text-warning', 'text-muted');
+                if (type === 'success') {
+                    context.statusTextElement.classList.add('text-success');
+                    return;
+                }
+                if (type === 'error') {
+                    context.statusTextElement.classList.add('text-danger');
+                    return;
+                }
+                if (type === 'warning') {
+                    context.statusTextElement.classList.add('text-warning');
+                    return;
+                }
+                context.statusTextElement.classList.add('text-muted');
             }
 
             function setVerificationMessage(context, text, type) {
@@ -483,21 +493,9 @@
                     return;
                 }
 
-                context.verifyMessageElement.classList.remove('d-none', 'text-success', 'text-danger', 'text-warning', 'text-muted');
-                context.verifyMessageElement.textContent = text;
-                if (type === 'success') {
-                    context.verifyMessageElement.classList.add('text-success');
-                    return;
-                }
-                if (type === 'error') {
-                    context.verifyMessageElement.classList.add('text-danger');
-                    return;
-                }
-                if (type === 'warning') {
-                    context.verifyMessageElement.classList.add('text-warning');
-                    return;
-                }
-                context.verifyMessageElement.classList.add('text-muted');
+                setOnsiteStatus(context, text, type);
+                context.verifyMessageElement.classList.add('d-none');
+                context.verifyMessageElement.textContent = '';
             }
 
             function resetVerificationUi(context) {
@@ -516,7 +514,7 @@
                     context.verifyMessageElement.classList.add('d-none');
                     context.verifyMessageElement.textContent = '';
                 }
-                setOnsiteStatus(context, 'Harap verifikasi terlebih dahulu sebelum absen');
+                setOnsiteStatus(context, 'Please wait');
             }
 
             function setOnsiteIpIndicator(context, ipAddress, isValidIpPrefix) {
@@ -549,7 +547,7 @@
                     return;
                 }
 
-                context.ipTextElement.textContent = 'Memuat...';
+                context.ipTextElement.textContent = 'Please wait';
                 context.ipTextElement.classList.remove('text-success', 'text-danger');
                 context.ipTextElement.classList.add('text-muted');
                 if (context.ipBadgeElement) {
@@ -908,8 +906,8 @@
                 if (context.verifyButtonElement) {
                     context.verifyButtonElement.classList.add('d-none');
                 }
-                setOnsiteStatus(context, 'Memverifikasi Telegram dan lokasi...');
-                setVerificationMessage(context, 'Memverifikasi Telegram dan lokasi...', 'muted');
+                setOnsiteStatus(context, 'Please wait');
+                setVerificationMessage(context, 'Please wait', 'muted');
                 renderSubmitButtons();
 
                 verifyTelegramUsernameSync().then(function () {
@@ -917,8 +915,9 @@
                     navigator.geolocation.getCurrentPosition(
                         function (position) {
                             updateUserLocationOnMap(context, position);
-                            setOnsiteStatus(context, 'Verifikasi lokasi dan Telegram berhasil.');
-                            setVerificationMessage(context, 'Verifikasi berhasil.', 'success');
+                            setOnsiteStatus(context, 'Verification successful', 'success');
+                            setVerificationMessage(context, 'Verification successful', 'success');
+                            renderSubmitButtons();
                         },
                         function (error) {
                             context.hasVerifiedOnsite = false;
@@ -1247,6 +1246,8 @@
                                 window.google.maps.event.trigger(context.mapInstance, 'resize');
                                 context.mapInstance.fitBounds(context.officeRadiusCircle.getBounds());
                             }
+
+                            checkOnsiteLocation(context);
                         })
                         .catch(function (error) {
                             setOnsiteStatus(context, error.message);

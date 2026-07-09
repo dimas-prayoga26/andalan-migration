@@ -102,7 +102,7 @@
                 <div class="d-md-flex d-none flex-wrap">
                     <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
                         <div class="avatar avatar-sm avatar-primary">
-                            <i class="las la-clipboard-check fs-4 text-primary"></i>
+                            <i class="fa-solid fa-square-check fs-4 text-primary"></i>
                         </div>
                         <div class="clearfix ms-2">
                             <h3 class="mb-0 fw-semibold lh-1">{{ $projectTasksCompletedCount }}</h3>
@@ -111,7 +111,7 @@
                     </div>
                     <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
                         <div class="avatar avatar-sm avatar-primary">
-                            <i class="las la-spinner fs-4 text-primary"></i>
+                            <i class="fa-solid fa-hourglass-half fs-4 text-primary"></i>
                         </div>
                         <div class="clearfix ms-2">
                             <h3 class="mb-0 fw-semibold lh-1">{{ $projectTasksInProgressCount }}</h3>
@@ -120,7 +120,7 @@
                     </div>
                     <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
                         <div class="avatar avatar-sm avatar-primary">
-                            <i class="las la-tasks fs-4 text-primary"></i>
+                            <i class="fa-solid fa-list-check fs-4 text-primary"></i>
                         </div>
                         <div class="clearfix ms-2">
                             <h3 class="mb-0 fw-semibold lh-1">{{ $projectTotalTasksCount }}</h3>
@@ -129,7 +129,7 @@
                     </div>
                     <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
                         <div class="avatar avatar-sm avatar-primary">
-                            <i class="las la-columns fs-4 text-primary"></i>
+                            <i class="fa-solid fa-layer-group fs-4 text-primary"></i>
                         </div>
                         <div class="clearfix ms-2">
                             <h3 class="mb-0 fw-semibold lh-1">{{ $projectDailyTasksCount }} | {{ $projectProjectTasksCount }}</h3>
@@ -138,7 +138,7 @@
                     </div>
                     <div class="border outline-dashed rounded p-2 d-flex align-items-center me-3 mt-3">
                         <div class="avatar avatar-sm avatar-primary">
-                            <i class="las la-chart-pie fs-4 text-primary"></i>
+                            <i class="fa-solid fa-chart-pie fs-4 text-primary"></i>
                         </div>
                         <div class="clearfix ms-2">
                             <h3 class="mb-0 fw-semibold lh-1">{{ $projectWorkloadPercent }}%</h3>
@@ -195,7 +195,7 @@
         <div class="d-flex flex-nowrap overflow-auto pb-1 mobile-stats-slider">
             <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
                 <div class="avatar avatar-sm avatar-primary">
-                    <i class="las la-clipboard-check fs-4 text-primary"></i>
+                    <i class="fa-solid fa-square-check fs-4 text-primary"></i>
                 </div>
                 <div class="clearfix ms-2">
                     <h3 class="mb-0 fw-semibold lh-1">{{ $projectTasksCompletedCount }}</h3>
@@ -204,7 +204,7 @@
             </div>
             <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
                 <div class="avatar avatar-sm avatar-primary">
-                    <i class="las la-spinner fs-4 text-primary"></i>
+                    <i class="fa-solid fa-hourglass-half fs-4 text-primary"></i>
                 </div>
                 <div class="clearfix ms-2">
                     <h3 class="mb-0 fw-semibold lh-1">{{ $projectTasksInProgressCount }}</h3>
@@ -213,7 +213,7 @@
             </div>
             <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
                 <div class="avatar avatar-sm avatar-primary">
-                    <i class="las la-tasks fs-4 text-primary"></i>
+                    <i class="fa-solid fa-list-check fs-4 text-primary"></i>
                 </div>
                 <div class="clearfix ms-2">
                     <h3 class="mb-0 fw-semibold lh-1">{{ $projectTotalTasksCount }}</h3>
@@ -222,7 +222,7 @@
             </div>
             <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
                 <div class="avatar avatar-sm avatar-primary">
-                    <i class="las la-columns fs-4 text-primary"></i>
+                    <i class="fa-solid fa-layer-group fs-4 text-primary"></i>
                 </div>
                 <div class="clearfix ms-2">
                     <h3 class="mb-0 fw-semibold lh-1">{{ $projectDailyTasksCount }} | {{ $projectProjectTasksCount }}</h3>
@@ -231,7 +231,7 @@
             </div>
             <div class="border outline-dashed rounded p-2 d-flex align-items-center flex-shrink-0 mobile-stats-card" style="min-width: 100%;">
                 <div class="avatar avatar-sm avatar-primary">
-                    <i class="las la-chart-pie fs-4 text-primary"></i>
+                    <i class="fa-solid fa-chart-pie fs-4 text-primary"></i>
                 </div>
                 <div class="clearfix ms-2">
                     <h3 class="mb-0 fw-semibold lh-1">{{ $projectWorkloadPercent }}%</h3>

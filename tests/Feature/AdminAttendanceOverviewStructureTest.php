@@ -54,10 +54,12 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertSame('admin-attendance/recap-attendance/{employee}/datatable', $detailDatatableRoute?->uri());
         $this->assertStringContainsString('overviewViewData', $overviewController);
         $this->assertStringContainsString('activeEmployeeIdsFor($dailyAttendanceDate)', $overviewController);
-        $this->assertDoesNotMatchRegularExpression('/\\$dailyEarlyBirds = [^;]*->limit\\(5\\)[^;]*;/', $overviewController);
-        $this->assertDoesNotMatchRegularExpression('/\\$dailyRunningLate = [^;]*->limit\\(5\\)[^;]*;/', $overviewController);
+        $this->assertStringContainsString("->where('late_minutes', '<=', 0)->orderBy('clock_in')->limit(5)", $overviewController);
+        $this->assertStringContainsString("->where('late_minutes', '>', 0)->orderByDesc('clock_in')->limit(5)", $overviewController);
         $this->assertStringContainsString("->whereDoesntHave('roles'", $overviewController);
         $this->assertStringContainsString("->where('name', 'superuser')", $overviewController);
+        $this->assertStringContainsString("->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS)", $overviewController);
+        $this->assertStringContainsString("->whereRaw('LOWER(COALESCE(workplace, \"\")) <> ?', ['rnb jakarta'])", $overviewController);
         $this->assertStringNotContainsString('currentCompanyIdFor', $overviewController);
         $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $overviewController);
         $this->assertStringNotContainsString('function recap', $overviewController);
@@ -75,6 +77,7 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('->reject(fn (Carbon $date): bool => $holidayKeys->has($date->toDateString()))', $recapController);
         $this->assertStringContainsString('employeeDetailsDatatable', $recapController);
         $this->assertStringContainsString('activeEmployeeIdsFor($now)', $recapController);
+        $this->assertStringContainsString("->whereRaw('LOWER(COALESCE(workplace, \"\")) <> ?', ['rnb jakarta'])", $recapController);
         $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $recapController);
         $this->assertStringContainsString("'recapDetailMonth' => \$detailContext['month']", $recapController);
         $this->assertStringContainsString('recapAttendanceLogRows', $recapController);
@@ -112,7 +115,11 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('return (int) $this->supervisorApprovedLeaveRequestQuery($activeEmployeeIds)', $leaveController);
         $this->assertStringContainsString('current_company_id', $leaveController);
         $this->assertStringContainsString('<span class="fs-12 text-black">Alpha</span>', $overviewView);
-        $this->assertStringContainsString('text-warning"></i>', $overviewView);
+        $this->assertStringContainsString('fa-solid fa-user-check text-success', $overviewView);
+        $this->assertStringContainsString('fa-solid fa-user-clock text-danger', $overviewView);
+        $this->assertStringContainsString('fa-solid fa-user-xmark text-warning', $overviewView);
+        $this->assertStringContainsString('fa-solid fa-calendar-minus text-info', $overviewView);
+        $this->assertStringContainsString('.admin-attendance-metric-icon svg', $overviewView);
         $this->assertStringContainsString('Alpha ({{ $dailyDeviationPercent }}%)', $overviewView);
         $this->assertStringContainsString('"fill": ["var(--bs-warning)", "var(--bs-light)"]', $overviewView);
         $this->assertStringContainsString("['#2BC155', '#F94687', '#1EA7C5', '#FFBC11']", $overviewView);
@@ -212,7 +219,7 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString("\$leaveTracker['annual_leave_taken_month_label']", $leaveDetailView);
         $this->assertStringContainsString("\$leaveTracker['pending_requests_label']", $leaveDetailView);
         $this->assertStringContainsString("\$leaveTracker['unpaid_leave_taken_label']", $leaveDetailView);
-        $this->assertStringContainsString('card leave-summary-card mb-4', $leaveDetailView);
+        $this->assertStringContainsString('card leave-summary-card mb-5', $leaveDetailView);
         $this->assertStringContainsString('leave-summary-icon--eligibility', $leaveDetailView);
         $this->assertStringContainsString('leave-summary-icon--tracker', $leaveDetailView);
         $this->assertStringContainsString('href="#Eligibility"', $leaveDetailView);

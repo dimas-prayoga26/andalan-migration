@@ -925,6 +925,7 @@ class AttendanceRecapController extends Controller
                 $query
                     ->whereNull('deleted_at')
                     ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+                    ->whereRaw('LOWER(COALESCE(workplace, "")) <> ?', ['rnb jakarta'])
                     ->where(function ($query) use ($todayDate): void {
                         $query
                             ->whereNull('join_date')

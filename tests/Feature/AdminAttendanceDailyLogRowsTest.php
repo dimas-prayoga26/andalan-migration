@@ -127,6 +127,7 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
         $this->assertStringContainsString("->whereDoesntHave('roles'", $controller);
         $this->assertStringContainsString("->where('name', 'superuser')", $controller);
         $this->assertStringContainsString("->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS)", $controller);
+        $this->assertStringContainsString("->whereRaw('LOWER(COALESCE(workplace, \"\")) <> ?', ['rnb jakarta'])", $controller);
 
         foreach ([
             'lukman@rnbmanagement.com',

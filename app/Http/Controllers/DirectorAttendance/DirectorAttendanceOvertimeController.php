@@ -128,6 +128,8 @@ class DirectorAttendanceOvertimeController extends Controller
                 'planned_end_time',
                 'actual_start_time',
                 'actual_end_time',
+                'approved_start_time',
+                'approved_end_time',
                 'instruction',
                 'status',
             ])
@@ -197,7 +199,7 @@ class DirectorAttendanceOvertimeController extends Controller
             'employee_name' => $this->employeeDisplayName($overtime),
             'instruction' => is_string($overtime->instruction) && trim($overtime->instruction) !== '' ? trim($overtime->instruction) : '-',
             'date_label' => $this->dateRangeLabel($task?->start_date ?: $overtime->overtime_date, $task?->due_date ?: $overtime->overtime_date),
-            'time_lines' => $this->timeLinesFor($overtime, $this->hasActualOvertimeTimes($overtime)),
+            'time_lines' => $this->timeLinesFor($overtime, $this->hasApprovedOvertimeTimes($overtime) || $this->hasActualOvertimeTimes($overtime)),
             'supervisor_name' => $this->supervisorDisplayName($overtime),
             'detail_url' => route('director-attendance.overtime.detail', ['uid' => $overtime->id]),
             'current_log' => [
@@ -217,11 +219,15 @@ class DirectorAttendanceOvertimeController extends Controller
         $plannedEndTime = $this->formatTime($overtime->planned_end_time);
         $actualStartTime = $this->formatTime($overtime->actual_start_time);
         $actualEndTime = $this->formatTime($overtime->actual_end_time);
+        $approvedStartTime = $this->formatTime($overtime->approved_start_time);
+        $approvedEndTime = $this->formatTime($overtime->approved_end_time);
         $hasActualTime = $this->hasActualOvertimeTimes($overtime);
+        $hasApprovedTime = $this->hasApprovedOvertimeTimes($overtime);
         $plannedTimeRange = $plannedStartTime.' - '.$plannedEndTime;
         $actualTimeRange = $hasActualTime ? $actualStartTime.' - '.$actualEndTime : '-';
         $plannedDuration = $this->durationLabel($overtime->planned_start_time, $overtime->planned_end_time);
         $actualDuration = $hasActualTime ? $this->durationLabel($overtime->actual_start_time, $overtime->actual_end_time) : '-';
+        $approvedDuration = $hasApprovedTime ? $this->durationLabel($overtime->approved_start_time, $overtime->approved_end_time) : '-';
         $taskDeliverablesSubmitted = $this->isTaskDeliverablesSubmitted($overtime);
         $verificationLog = $this->overtimeLifecycleLog($overtime, 'task_hours_verification');
         $directorApprovalLog = $this->overtimeLifecycleLog($overtime, 'director_approval');
@@ -237,15 +243,17 @@ class DirectorAttendanceOvertimeController extends Controller
             'planned_end_time' => $plannedEndTime,
             'actual_start_time' => $actualStartTime,
             'actual_end_time' => $actualEndTime,
+            'approved_start_time' => $approvedStartTime,
+            'approved_end_time' => $approvedEndTime,
             'planned_time_range' => $plannedTimeRange,
             'actual_time_range' => $actualTimeRange,
             'time_changed' => $hasActualTime && $actualTimeRange !== $plannedTimeRange,
             'planned_duration' => $plannedDuration,
             'actual_duration' => $actualDuration,
             'duration_changed' => $hasActualTime && $actualDuration !== $plannedDuration,
-            'verification_start_time' => $taskDeliverablesSubmitted ? ($actualStartTime !== '-' ? $actualStartTime : $plannedStartTime) : '-',
-            'verification_end_time' => $taskDeliverablesSubmitted ? ($actualEndTime !== '-' ? $actualEndTime : $plannedEndTime) : '-',
-            'verification_duration' => $taskDeliverablesSubmitted ? ($actualDuration !== '-' ? $actualDuration : $plannedDuration) : '-',
+            'verification_start_time' => $taskDeliverablesSubmitted ? ($approvedStartTime !== '-' ? $approvedStartTime : ($actualStartTime !== '-' ? $actualStartTime : $plannedStartTime)) : '-',
+            'verification_end_time' => $taskDeliverablesSubmitted ? ($approvedEndTime !== '-' ? $approvedEndTime : ($actualEndTime !== '-' ? $actualEndTime : $plannedEndTime)) : '-',
+            'verification_duration' => $taskDeliverablesSubmitted ? ($approvedDuration !== '-' ? $approvedDuration : ($actualDuration !== '-' ? $actualDuration : $plannedDuration)) : '-',
             'instruction' => is_string($overtime->instruction) && trim($overtime->instruction) !== '' ? trim($overtime->instruction) : '-',
             'payout_period' => 'Included in '.Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->format('F Y').' Payroll',
             'verified_note' => $hasActualTime ? 'Actual overtime hours recorded' : 'Waiting for clock-out',
@@ -395,13 +403,19 @@ class DirectorAttendanceOvertimeController extends Controller
     {
         $plannedTimeLabel = $this->timeRangeLabel($overtime->planned_start_time, $overtime->planned_end_time);
 
-        if (! $showActualTime || ! $this->hasActualOvertimeTimes($overtime)) {
+        if (! $showActualTime || (! $this->hasApprovedOvertimeTimes($overtime) && ! $this->hasActualOvertimeTimes($overtime))) {
             return [
                 ['label' => $plannedTimeLabel, 'strike' => false],
             ];
         }
 
-        $actualTimeLabel = $this->timeRangeLabel($overtime->actual_start_time, $overtime->actual_end_time);
+        $verifiedStartTime = $this->hasApprovedOvertimeTimes($overtime)
+            ? $overtime->approved_start_time
+            : $overtime->actual_start_time;
+        $verifiedEndTime = $this->hasApprovedOvertimeTimes($overtime)
+            ? $overtime->approved_end_time
+            : $overtime->actual_end_time;
+        $actualTimeLabel = $this->timeRangeLabel($verifiedStartTime, $verifiedEndTime);
 
         if ($actualTimeLabel === $plannedTimeLabel) {
             return [
@@ -468,6 +482,14 @@ class DirectorAttendanceOvertimeController extends Controller
             && trim($overtime->actual_start_time) !== ''
             && is_string($overtime->actual_end_time)
             && trim($overtime->actual_end_time) !== '';
+    }
+
+    private function hasApprovedOvertimeTimes(AttendanceOvertime $overtime): bool
+    {
+        return is_string($overtime->approved_start_time)
+            && trim($overtime->approved_start_time) !== ''
+            && is_string($overtime->approved_end_time)
+            && trim($overtime->approved_end_time) !== '';
     }
 
     private function overtimeStatusLabel(string $status): string

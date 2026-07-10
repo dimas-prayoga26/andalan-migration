@@ -87,12 +87,15 @@
                                 <span>Time</span>
                             </div>
                             <div class="col-md-6 col-12">
-                                @if (($overtimeDetail['time_changed'] ?? false) === true)
-                                    <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
-                                    <span class="text-gray">, {{ $overtimeDetail['actual_time_range'] ?? '-' }}</span>
-                                @else
-                                    <span class="text-gray">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
-                                @endif
+                                <span class="text-gray">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
+                            </div>
+                        </div>
+                        <div class="row py-2">
+                            <div class="col-md-6 col-12">
+                                <span>Staff submitted</span>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <span class="text-gray">{{ $overtimeDetail['staff_submitted_time_range'] ?? '-' }}</span>
                             </div>
                         </div>
                         <div class="row py-2">
@@ -100,12 +103,7 @@
                                 <span>Total Duration</span>
                             </div>
                             <div class="col-md-6 col-12">
-                                @if (($overtimeDetail['duration_changed'] ?? false) === true)
-                                    <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
-                                    <span class="text-gray">, {{ $overtimeDetail['actual_duration'] ?? '-' }}</span>
-                                @else
-                                    <span class="text-gray">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
-                                @endif
+                                <span class="text-gray">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
                             </div>
                         </div>
                         <div class="row py-2">
@@ -198,12 +196,16 @@
             @php
                 $verificationReady = (bool) ($overtimeDetail['verification_ready'] ?? false);
                 $isTaskHoursVerified = (bool) ($overtimeDetail['is_task_hours_verified'] ?? false);
-                $approvedStartValue = ($overtimeDetail['actual_start_time'] ?? '-') !== '-'
-                    ? $overtimeDetail['actual_start_time']
-                    : ($overtimeDetail['planned_start_time'] ?? '18:00');
-                $approvedEndValue = ($overtimeDetail['actual_end_time'] ?? '-') !== '-'
-                    ? $overtimeDetail['actual_end_time']
-                    : ($overtimeDetail['planned_end_time'] ?? '20:00');
+                $approvedStartValue = ($overtimeDetail['approved_start_time'] ?? '-') !== '-'
+                    ? $overtimeDetail['approved_start_time']
+                    : (($overtimeDetail['actual_start_time'] ?? '-') !== '-'
+                        ? $overtimeDetail['actual_start_time']
+                        : ($overtimeDetail['planned_start_time'] ?? '18:00'));
+                $approvedEndValue = ($overtimeDetail['approved_end_time'] ?? '-') !== '-'
+                    ? $overtimeDetail['approved_end_time']
+                    : (($overtimeDetail['actual_end_time'] ?? '-') !== '-'
+                        ? $overtimeDetail['actual_end_time']
+                        : ($overtimeDetail['planned_end_time'] ?? '20:00'));
             @endphp
 
             <div class="col-md-6">
@@ -301,10 +303,11 @@
                                 </div>
                             </div>
                         </div>
-                        <button type="submit" class="btn light btn-success m-3 mb-2 btn-lg" @disabled(! $verificationReady || $isTaskHoursVerified)>
-                            Approve Overtime Session
-                        </button>
-                        <div class="mb-3"></div>
+                        <div class="px-3 pb-3">
+                            <button type="submit" class="btn light btn-success btn-lg w-100" @disabled(! $verificationReady || $isTaskHoursVerified)>
+                                Approve Overtime Session
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -325,7 +328,7 @@
                     <div class="card-body p-0">
                         <div class="list-group list-group-flush dz-draggable dropzoneContainer dz-scroll height400">
                             @forelse ($displayTaskItems as $taskItem)
-                                <div class="list-group-item draggable p-3">
+                                <div class="list-group-item draggable p-3 pic-overtime-task-detail" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#taskDetailModal" data-task-id="{{ $taskItem['id'] ?? '' }}">
                                     <div class="d-flex justify-content-between flex-wrap">
                                         <div class="d-flex gap-3">
                                             <div class="draggable-handle">
@@ -363,6 +366,59 @@
                 </div>
             </div>
             <!-- End - To Do -->
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="taskDetailModalLabel">Task Detail</h5>
+                    <span class="text-muted fs-13" id="picTaskDetailDate">-</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <span class="text-muted fs-13">Task Name</span>
+                        <h5 class="mb-0" id="picTaskDetailTitle">-</h5>
+                    </div>
+                    <div class="col-12">
+                        <span class="text-muted fs-13">Description</span>
+                        <p class="mb-0 text-black" id="picTaskDetailDescription">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Start Date</span>
+                        <p class="mb-0 text-black" id="picTaskDetailStartDate">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Due Date</span>
+                        <p class="mb-0 text-black" id="picTaskDetailDueDate">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Priority</span>
+                        <p class="mb-0 text-black" id="picTaskDetailPriority">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Status</span>
+                        <p class="mb-0 text-black" id="picTaskDetailStatus">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Attachment</span>
+                        <p class="mb-0 text-black" id="picTaskDetailAttachment">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Blockers</span>
+                        <p class="mb-0 text-black" id="picTaskDetailBlockers">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary light" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
@@ -497,7 +553,74 @@
                 return fallbackMessage;
             }
 
+            function nullableTaskText(value) {
+                return value ? value : '-';
+            }
+
+            function taskStatusLabel(value, isChecked) {
+                if (isChecked) {
+                    return 'Completed';
+                }
+
+                switch ((value || '').toString().toLowerCase()) {
+                    case 'in_progress':
+                        return 'On Progress';
+                    case 'completed':
+                        return 'Completed';
+                    case 'cancelled':
+                        return 'Cancelled';
+                    default:
+                        return 'To Do';
+                }
+            }
+
+            function taskPriorityLabel(value) {
+                switch ((value || '').toString().toLowerCase()) {
+                    case 'high':
+                        return 'High';
+                    case 'low':
+                        return 'Low';
+                    default:
+                        return 'Medium';
+                }
+            }
+
+            function openTaskDetailModal(event) {
+                if ($(event.target).closest('button, a, input, label').length) {
+                    return;
+                }
+
+                var trigger = $(event.currentTarget);
+                var taskId = trigger.data('task-id');
+                var taskItem = taskItemsById[taskId];
+
+                if (!taskItem) {
+                    return;
+                }
+
+                $('#picTaskDetailTitle').text(nullableTaskText(taskItem.title));
+                $('#picTaskDetailDate').text(nullableTaskText(taskItem.date_label));
+                $('#picTaskDetailDescription').text(nullableTaskText(taskItem.description));
+                $('#picTaskDetailStartDate').text(nullableTaskText(taskItem.start_date));
+                $('#picTaskDetailDueDate').text(nullableTaskText(taskItem.due_date));
+                $('#picTaskDetailPriority').text(taskPriorityLabel(taskItem.priority));
+                $('#picTaskDetailStatus').text(taskStatusLabel(taskItem.status_value, taskItem.checked === true));
+                $('#picTaskDetailAttachment').text(nullableTaskText(taskItem.attachment_path));
+                $('#picTaskDetailBlockers').text(nullableTaskText(taskItem.blockers));
+            }
+
+            function openTaskDetailModalFromKeyboard(event) {
+                if (event.key !== 'Enter' && event.key !== ' ') {
+                    return;
+                }
+
+                event.preventDefault();
+                $(event.currentTarget).trigger('click');
+            }
+
             function openUpdateTaskModal(event) {
+                event.stopPropagation();
+
                 var trigger = $(event.currentTarget);
                 var taskId = trigger.data('task-id');
                 var taskItem = taskItemsById[taskId];
@@ -551,6 +674,8 @@
                 });
             }
 
+            $('.pic-overtime-task-detail').on('click', openTaskDetailModal);
+            $('.pic-overtime-task-detail').on('keydown', openTaskDetailModalFromKeyboard);
             $('.pic-overtime-task-edit').on('click', openUpdateTaskModal);
             $('#picUpdateTaskForm').on('submit', submitUpdateTaskForm);
             $('#picUpdateTaskForm input[name="start_date"]').on('change', function () {

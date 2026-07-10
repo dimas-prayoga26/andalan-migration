@@ -161,7 +161,7 @@ class TaskListController extends Controller
     public function destroyTask(ProjectTask $projectTask): JsonResponse
     {
         $employeeId = $this->authenticatedEmployeeId(Auth::user());
-        if ($employeeId === null || ! $this->canManageTaskListTask($projectTask, $employeeId)) {
+        if ($employeeId === null || ! $this->canDeleteTaskListTask($projectTask, $employeeId)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk menghapus task ini.',
@@ -252,8 +252,7 @@ class TaskListController extends Controller
             return $defaultTaskListData;
         }
 
-        $taskQuery = $this->projectTaskQueryForEmployee($employeeId)
-            ->whereNull('overtime_id');
+        $taskQuery = $this->projectTaskQueryForEmployee($employeeId);
 
         $monthTaskQuery = $this->projectTaskQueryForMonth(
             $taskQuery,
@@ -507,10 +506,16 @@ class TaskListController extends Controller
         $assignedByUserId = trim((string) ($projectTask->assigned_by ?? ''));
         $authenticatedUserId = trim((string) (Auth::id() ?? ''));
         $assignedByUsername = trim((string) ($projectTask->assignedBy?->username ?? 'self'));
+        $isOvertimeTask = trim((string) ($projectTask->overtime_id ?? '')) !== '';
 
         return [
             'id' => (string) $projectTask->id,
             'employee_id' => (string) $projectTask->employee_id,
+            'overtime_id' => $isOvertimeTask ? (string) $projectTask->overtime_id : '',
+            'is_overtime_task' => $isOvertimeTask,
+            'overtime_label' => 'Overtime',
+            'can_manage_from_task_list' => true,
+            'can_delete_from_task_list' => ! $isOvertimeTask,
             'title' => trim((string) $projectTask->title),
             'description' => trim((string) ($projectTask->description ?? '')),
             'blockers' => trim((string) ($projectTask->blockers ?? '')),
@@ -684,7 +689,12 @@ class TaskListController extends Controller
 
     private function canManageTaskListTask(ProjectTask $projectTask, string $employeeId): bool
     {
-        return (string) $projectTask->employee_id === $employeeId
+        return (string) $projectTask->employee_id === $employeeId;
+    }
+
+    private function canDeleteTaskListTask(ProjectTask $projectTask, string $employeeId): bool
+    {
+        return $this->canManageTaskListTask($projectTask, $employeeId)
             && ($projectTask->overtime_id === null || trim((string) $projectTask->overtime_id) === '');
     }
 
@@ -704,7 +714,8 @@ class TaskListController extends Controller
         return ProjectTask::query()
             ->where('employee_id', $employeeId)
             ->where(function (Builder $query) use ($employeeId): void {
-                $query->whereNull('project_id')
+                $query->whereNotNull('overtime_id')
+                    ->orWhereNull('project_id')
                     ->orWhereHas('project.memberships', function (Builder $membershipQuery) use ($employeeId): void {
                         $membershipQuery
                             ->where('employee_id', $employeeId)

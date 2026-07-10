@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    @php
+        $documentTitle = ($brandName ?? 'Dev').' - Siap';
+    @endphp
 
 	<!-- Title -->
 	<base href="{{ asset('assets') }}/">
-	<title>@yield('title')</title>
+	<title>{{ $documentTitle }}</title>
 
 	<!-- Meta -->
 	<meta charset="utf-8">
@@ -15,7 +18,7 @@
 	<meta name="keywords" content="admin, admin dashboard, admin template, bootstrap, bootstrap 5, bootstrap 5 admin template, fitness, fitness admin, modern, responsive admin dashboard, sales dashboard, sass, ui kit, web app">
 	<meta name="description" content="Discover Gymove, the ultimate fitness solution that is designed to help you achieve a healthier lifestyle with its cutting-edge features and personalized programs. Gymove is a fully mobile-responsive admin dashboard template that provides the perfect blend of exercise, nutrition, and motivation. Begin your fitness journey today with Gymove and visit DexignZone for more information.">
 
-	<meta property="og:title" content="Gymove  - Fitness Bootstrap Admin Dashboard Template">
+	<meta property="og:title" content="{{ $documentTitle }}">
 	<meta property="og:description" content="Discover Gymove, the ultimate fitness solution that is designed to help you achieve a healthier lifestyle with its cutting-edge features and personalized programs. Gymove is a fully mobile-responsive admin dashboard template that provides the perfect blend of exercise, nutrition, and motivation. Begin your fitness journey today with Gymove and visit DexignZone for more information.">
 	<meta property="og:image" content="https://gymove.dexignzone.com/xhtml/social-image.avif">
 	<meta name="format-detection" content="telephone=no">

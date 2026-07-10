@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -34,11 +33,6 @@ class OfficeLocation extends Model
             'longitude' => 'float',
             'is_active' => 'boolean',
         ];
-    }
-
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 
     public function attendanceRules(): HasMany

@@ -3,13 +3,13 @@
 namespace App\View\Composers;
 
 use App\Models\Attendance;
-use App\Models\AttendanceException;
 use App\Models\AttendanceHoliday;
 use App\Models\AttendanceOvertime;
 use App\Models\BusinessTrip;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\User;
+use App\Support\Attendance\AttendanceWorkDurationCalculator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
@@ -26,6 +26,12 @@ class AttendanceProfileComposer
         'super administrator',
     ];
 
+    private const MAX_DAILY_WORK_MINUTES = 480;
+
+    public function __construct(
+        private readonly AttendanceWorkDurationCalculator $attendanceWorkDurationCalculator
+    ) {}
+
     public function compose(View $view): void
     {
         $nowJakarta = now('Asia/Jakarta');
@@ -36,15 +42,16 @@ class AttendanceProfileComposer
             'profileBusinessEmail' => '-',
             'profileDisplayName' => '-',
             'profileAttendanceDaysCount' => 0,
+            'profileElapsedWorkingDaysCount' => 0,
             'profileWorkingDaysCount' => 0,
             'profileWorkingMonthLabel' => $nowJakarta->format('F'),
             'profileLateInCount' => 0,
             'profileLeavesAndSickCount' => 0,
             'profileWeeklyAttendancePercent' => 0,
             'profileWeeklyOnTimePercent' => 0,
-            'profileAttendanceRatePercent' => 0,
-            'profileOnTimeRatePercent' => 0,
-            'profileLatenessRatePercent' => 0,
+            'profileAttendanceRatePercent' => 100.0,
+            'profileOnTimeRatePercent' => 100.0,
+            'profileLatenessRatePercent' => 0.0,
             'profileOvertimeRatePercent' => 0,
             'profileAttendanceOverviewMonthLabel' => $nowJakarta->format('F'),
             'profileAttendanceOverviewSeries' => [0, 0, 0, 0],
@@ -52,7 +59,8 @@ class AttendanceProfileComposer
             'profileAttendanceOverviewLateCount' => 0,
             'profileAttendanceOverviewLeaveCount' => 0,
             'profileAttendanceOverviewDeviationCount' => 0,
-            'profileAttendanceProgressPercent' => 0,
+            'profileAttendanceProgressPercent' => 100.0,
+            'profileDaysWorkedProgressPercent' => 0,
             'profileProgressOnTimePercent' => 0,
             'profileProgressOnTimeCount' => 0,
             'profileProgressOnTimeTotal' => 0,
@@ -161,17 +169,20 @@ class AttendanceProfileComposer
                 $profileData['profileAddressSummary'] = $subdistrictName;
             }
 
+            $monthStart = $nowJakarta->copy()->startOfMonth();
+            $monthEnd = $nowJakarta->copy()->endOfMonth();
+            $effectiveMonthStart = $this->attendanceTrackingPeriodStart($monthStart, $monthEnd);
+            $workingDaysInCurrentMonth = $this->calculateWorkingDaysInPeriod($monthStart, $monthEnd);
+
             $profileData['profileAttendanceDaysCount'] = Attendance::query()
                 ->where('employee_id', $employeeId)
-                ->whereYear('date', (int) $nowJakarta->year)
-                ->whereMonth('date', (int) $nowJakarta->month)
+                ->whereBetween('date', [$effectiveMonthStart->toDateString(), $monthEnd->toDateString()])
                 ->whereNotNull('clock_in')
                 ->count();
 
             $monthlyAttendanceQuery = Attendance::query()
                 ->where('employee_id', $employeeId)
-                ->whereYear('date', (int) $nowJakarta->year)
-                ->whereMonth('date', (int) $nowJakarta->month);
+                ->whereBetween('date', [$effectiveMonthStart->toDateString(), $monthEnd->toDateString()]);
             $monthlyOnTimeCount = (clone $monthlyAttendanceQuery)
                 ->whereNotNull('clock_in')
                 ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['masuk'])
@@ -183,34 +194,28 @@ class AttendanceProfileComposer
 
             $profileData['profileLateInCount'] = Attendance::query()
                 ->where('employee_id', $employeeId)
-                ->whereYear('date', (int) $nowJakarta->year)
-                ->whereMonth('date', (int) $nowJakarta->month)
+                ->whereBetween('date', [$effectiveMonthStart->toDateString(), $monthEnd->toDateString()])
                 ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['terlambat'])
                 ->count();
 
             $profileData['profileLeavesAndSickCount'] = LeaveRequest::query()
                 ->where('employee_id', $employeeId)
-                ->whereYear('start_date', (int) $nowJakarta->year)
-                ->whereMonth('start_date', (int) $nowJakarta->month)
+                ->whereDate('start_date', '<=', $monthEnd->toDateString())
+                ->whereDate('end_date', '>=', $effectiveMonthStart->toDateString())
                 ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['approved'])
                 ->where('is_active', true)
                 ->whereNull('deleted_at')
                 ->count();
 
-            $monthStart = $nowJakarta->copy()->startOfMonth();
-            $monthEnd = $nowJakarta->copy()->endOfMonth();
-            $workingDaysInCurrentMonth = $this->calculateWorkingDaysInMonth($nowJakarta);
-            $monthlyLeaveDaysCount = $this->countApprovedLeaveDaysForPeriod($employeeId, $monthStart, $monthEnd);
-            $monthlyDeviationCount = AttendanceException::query()
-                ->where('employee_id', $employeeId)
-                ->whereBetween('exception_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
-                ->whereIn('type', ['late_arrival', 'early_departure'])
-                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['approved'])
-                ->count();
+            $monthlyLeaveDaysCount = $this->countApprovedLeaveDaysForPeriod($employeeId, $effectiveMonthStart, $monthEnd);
+            $elapsedMonthEnd = $nowJakarta->lessThan($monthEnd)
+                ? $nowJakarta->copy()->startOfDay()
+                : $monthEnd->copy();
+            $profileData['profileElapsedWorkingDaysCount'] = $this->calculateWorkingDaysInPeriod($monthStart, $elapsedMonthEnd);
+            $monthlyAlphaDaysCount = $this->countAlphaWorkDaysForPeriod($employeeId, $monthStart, $elapsedMonthEnd);
             $monthlyOvertimeMinutes = AttendanceOvertime::query()
                 ->where('employee_id', $employeeId)
-                ->whereYear('overtime_date', (int) $nowJakarta->year)
-                ->whereMonth('overtime_date', (int) $nowJakarta->month)
+                ->whereBetween('overtime_date', [$effectiveMonthStart->toDateString(), $monthEnd->toDateString()])
                 ->whereNotNull('actual_start_time')
                 ->whereNotNull('actual_end_time')
                 ->get(['actual_start_time', 'actual_end_time'])
@@ -220,33 +225,28 @@ class AttendanceProfileComposer
                 (int) $monthlyOnTimeCount,
                 (int) $monthlyLateCount,
                 (int) $monthlyLeaveDaysCount,
-                (int) $monthlyDeviationCount,
+                (int) $monthlyAlphaDaysCount,
             ];
             $profileData['profileAttendanceOverviewOnTimeCount'] = (int) $monthlyOnTimeCount;
             $profileData['profileAttendanceOverviewLateCount'] = (int) $monthlyLateCount;
             $profileData['profileAttendanceOverviewLeaveCount'] = (int) $monthlyLeaveDaysCount;
-            $profileData['profileAttendanceOverviewDeviationCount'] = (int) $monthlyDeviationCount;
-            $profileData['profileAttendanceRatePercent'] = $workingDaysInCurrentMonth > 0
-                ? max(0, min((int) round(($profileData['profileAttendanceDaysCount'] / $workingDaysInCurrentMonth) * 100), 100))
-                : 0;
-            $profileData['profileOnTimeRatePercent'] = $workingDaysInCurrentMonth > 0
-                ? max(0, min((int) round(($monthlyOnTimeCount / $workingDaysInCurrentMonth) * 100), 100))
-                : 0;
-            $profileData['profileLatenessRatePercent'] = $workingDaysInCurrentMonth > 0
-                ? max(0, min((int) round(($monthlyLateCount / $workingDaysInCurrentMonth) * 100), 100))
-                : 0;
+            $profileData['profileAttendanceOverviewDeviationCount'] = (int) $monthlyAlphaDaysCount;
+            $alphaRateImpactPercent = $this->rateImpactPercent((int) $monthlyAlphaDaysCount, $workingDaysInCurrentMonth);
+            $lateRateImpactPercent = $this->rateImpactPercent((int) $monthlyLateCount, $workingDaysInCurrentMonth);
+            $profileData['profileAttendanceRatePercent'] = max(0.0, round(100.0 - $alphaRateImpactPercent));
+            $profileData['profileOnTimeRatePercent'] = max(0.0, round(100.0 - $lateRateImpactPercent));
+            $profileData['profileLatenessRatePercent'] = $lateRateImpactPercent;
             $profileData['profileOvertimeRatePercent'] = max(0, min((int) round((($monthlyOvertimeMinutes / 60) / 72) * 100), 100));
             $profileData['profileAttendanceProgressPercent'] = $profileData['profileAttendanceRatePercent'];
+            $profileData['profileDaysWorkedProgressPercent'] = $workingDaysInCurrentMonth > 0
+                ? max(0.0, min(round(($profileData['profileElapsedWorkingDaysCount'] / $workingDaysInCurrentMonth) * 100), 100.0))
+                : 0.0;
             $profileData['profileProgressOnTimeCount'] = (int) $monthlyOnTimeCount;
-            $profileData['profileProgressOnTimeTotal'] = (int) $profileData['profileAttendanceDaysCount'];
-            $profileData['profileProgressOnTimePercent'] = $profileData['profileAttendanceDaysCount'] > 0
-                ? max(0, min((int) round(($monthlyOnTimeCount / $profileData['profileAttendanceDaysCount']) * 100), 100))
-                : 0;
+            $profileData['profileProgressOnTimeTotal'] = (int) $workingDaysInCurrentMonth;
+            $profileData['profileProgressOnTimePercent'] = $profileData['profileOnTimeRatePercent'];
             $profileData['profileProgressLateCount'] = (int) $monthlyLateCount;
-            $profileData['profileProgressLateTotal'] = (int) $profileData['profileAttendanceDaysCount'];
-            $profileData['profileProgressLatePercent'] = $profileData['profileAttendanceDaysCount'] > 0
-                ? max(0, min((int) round(($monthlyLateCount / $profileData['profileAttendanceDaysCount']) * 100), 100))
-                : 0;
+            $profileData['profileProgressLateTotal'] = (int) $workingDaysInCurrentMonth;
+            $profileData['profileProgressLatePercent'] = $profileData['profileLatenessRatePercent'];
 
             $weekStart = $nowJakarta->copy()->startOfWeek(Carbon::MONDAY);
             $weekEnd = $nowJakarta->copy()->endOfWeek(Carbon::SUNDAY);
@@ -437,10 +437,47 @@ class AttendanceProfileComposer
 
     private function calculateWorkingDaysInPeriod(Carbon $periodStart, Carbon $periodEnd): int
     {
+        return count($this->workingDayDateKeysForPeriod($periodStart, $periodEnd));
+    }
+
+    private function attendanceTrackingPeriodStart(Carbon $periodStart, Carbon $periodEnd): Carbon
+    {
+        $configuredStartDate = config('attendance.tracking_start_date');
+        if (! is_string($configuredStartDate) || trim($configuredStartDate) === '') {
+            return $periodStart->copy()->startOfDay();
+        }
+
+        try {
+            $trackingStart = Carbon::parse(trim($configuredStartDate), 'Asia/Jakarta')->startOfDay();
+        } catch (\Throwable) {
+            return $periodStart->copy()->startOfDay();
+        }
+
+        if ($trackingStart->lessThanOrEqualTo($periodStart) || $trackingStart->greaterThan($periodEnd)) {
+            return $periodStart->copy()->startOfDay();
+        }
+
+        return $trackingStart;
+    }
+
+    private function rateImpactPercent(int $eventCount, int $workingDaysCount): float
+    {
+        if ($workingDaysCount <= 0) {
+            return 0.0;
+        }
+
+        return max(0.0, min(round(($eventCount / $workingDaysCount) * 100), 100.0));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function workingDayDateKeysForPeriod(Carbon $periodStart, Carbon $periodEnd): array
+    {
         $normalizedStart = $periodStart->copy()->startOfDay();
         $normalizedEnd = $periodEnd->copy()->startOfDay();
         if ($normalizedStart->greaterThan($normalizedEnd)) {
-            return 0;
+            return [];
         }
 
         $holidayDates = AttendanceHoliday::query()
@@ -461,7 +498,7 @@ class AttendanceProfileComposer
             ->values()
             ->all();
         $holidayMap = array_fill_keys($holidayDates, true);
-        $workingDays = 0;
+        $workingDayKeys = [];
 
         for ($day = $normalizedStart->copy(); $day->lte($normalizedEnd); $day->addDay()) {
             if ($day->isWeekend()) {
@@ -472,27 +509,153 @@ class AttendanceProfileComposer
                 continue;
             }
 
-            $workingDays++;
+            $workingDayKeys[] = $day->format('Y-m-d');
         }
 
-        return $workingDays;
+        return $workingDayKeys;
+    }
+
+    private function countAlphaWorkDaysForPeriod(string $employeeId, Carbon $periodStart, Carbon $periodEnd): int
+    {
+        $workingDayKeys = $this->workingDayDateKeysForPeriod($periodStart, $periodEnd);
+        if ($workingDayKeys === []) {
+            return 0;
+        }
+
+        $attendedDateMap = array_fill_keys(
+            Attendance::query()
+                ->where('employee_id', $employeeId)
+                ->whereBetween('date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+                ->whereNotNull('clock_in')
+                ->pluck('date')
+                ->map(fn (mixed $date): ?string => $this->dateKey($date))
+                ->filter()
+                ->values()
+                ->all(),
+            true
+        );
+        $leaveDateMap = array_fill_keys($this->approvedLeaveDateKeysForPeriod($employeeId, $periodStart, $periodEnd), true);
+        $businessTripDateMap = array_fill_keys($this->approvedBusinessTripDateKeysForPeriod($employeeId, $periodStart, $periodEnd), true);
+        $alphaDays = 0;
+
+        foreach ($workingDayKeys as $workingDayKey) {
+            if (isset($attendedDateMap[$workingDayKey]) || isset($leaveDateMap[$workingDayKey]) || isset($businessTripDateMap[$workingDayKey])) {
+                continue;
+            }
+
+            $alphaDays++;
+        }
+
+        return $alphaDays;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function approvedLeaveDateKeysForPeriod(string $employeeId, Carbon $periodStart, Carbon $periodEnd): array
+    {
+        return LeaveRequest::query()
+            ->where('employee_id', $employeeId)
+            ->whereDate('start_date', '<=', $periodEnd->toDateString())
+            ->whereDate('end_date', '>=', $periodStart->toDateString())
+            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['approved'])
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->get(['start_date', 'end_date'])
+            ->flatMap(fn (LeaveRequest $leaveRequest): array => $this->dateKeysBetween(
+                $leaveRequest->start_date,
+                $leaveRequest->end_date,
+                $periodStart,
+                $periodEnd
+            ))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function approvedBusinessTripDateKeysForPeriod(string $employeeId, Carbon $periodStart, Carbon $periodEnd): array
+    {
+        return BusinessTrip::query()
+            ->where('employee_id', $employeeId)
+            ->whereDate('start_date', '<=', $periodEnd->toDateString())
+            ->whereDate('end_date', '>=', $periodStart->toDateString())
+            ->whereRaw('LOWER(COALESCE(approval_status, "")) = ?', ['approved'])
+            ->whereNull('deleted_at')
+            ->get(['start_date', 'end_date'])
+            ->flatMap(fn (BusinessTrip $businessTrip): array => $this->dateKeysBetween(
+                $businessTrip->start_date,
+                $businessTrip->end_date,
+                $periodStart,
+                $periodEnd
+            ))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function dateKeysBetween(mixed $startDate, mixed $endDate, Carbon $periodStart, Carbon $periodEnd): array
+    {
+        try {
+            $start = Carbon::parse($startDate, 'Asia/Jakarta')->startOfDay();
+            $end = Carbon::parse($endDate, 'Asia/Jakarta')->startOfDay();
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $effectiveStart = $start->greaterThan($periodStart) ? $start : $periodStart->copy()->startOfDay();
+        $effectiveEnd = $end->lessThan($periodEnd) ? $end : $periodEnd->copy()->startOfDay();
+        if ($effectiveStart->greaterThan($effectiveEnd)) {
+            return [];
+        }
+
+        $dateKeys = [];
+        for ($date = $effectiveStart->copy(); $date->lte($effectiveEnd); $date->addDay()) {
+            $dateKeys[] = $date->toDateString();
+        }
+
+        return $dateKeys;
+    }
+
+    private function dateKey(mixed $date): ?string
+    {
+        if ($date instanceof \DateTimeInterface) {
+            return Carbon::instance($date)->toDateString();
+        }
+
+        if (is_string($date) && trim($date) !== '') {
+            try {
+                return Carbon::parse($date, 'Asia/Jakarta')->toDateString();
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+
+        return null;
     }
 
     private function calculateAttendanceWorkMinutes(Attendance $attendance): int
     {
+        if ($attendance->clock_in instanceof \DateTimeInterface && $attendance->clock_out instanceof \DateTimeInterface) {
+            $minutes = $this->attendanceWorkDurationCalculator->netMinutesBetween(
+                Carbon::instance($attendance->clock_in),
+                Carbon::instance($attendance->clock_out)
+            );
+
+            return min($minutes, self::MAX_DAILY_WORK_MINUTES);
+        }
+
         $workHours = $attendance->work_hours;
         if (is_numeric($workHours)) {
-            return max(0, (int) round(((float) $workHours) * 60));
+            return min(max(0, (int) round(((float) $workHours) * 60)), self::MAX_DAILY_WORK_MINUTES);
         }
 
-        if (! $attendance->clock_in instanceof \DateTimeInterface || ! $attendance->clock_out instanceof \DateTimeInterface) {
-            return 0;
-        }
-
-        return $this->calculateOvertimeMinutes(
-            $attendance->clock_in->format('H:i:s'),
-            $attendance->clock_out->format('H:i:s')
-        );
+        return 0;
     }
 
     private function calculateOvertimeMinutes(mixed $startTimeValue, mixed $endTimeValue): int

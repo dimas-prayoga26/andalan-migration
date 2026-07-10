@@ -9,6 +9,7 @@ use App\Models\EmployeeDeployment;
 use App\Models\EmployeeIdentity;
 use App\Models\EmployeePicAssignment;
 use App\Models\EmployeeProfile;
+use App\Models\OfficeLocation;
 use App\Models\Permission;
 use App\Models\Position;
 use App\Models\User;
@@ -69,7 +70,7 @@ class AuthorizationController extends Controller
                 'phone' => $validated['phone'] ?? null,
                 'company_id' => $validated['current_company_id'] ?? null,
                 'password' => Hash::make((string) $validated['password']),
-                'is_active' => (bool) ($validated['is_active'] ?? true),
+                'is_active' => (bool) $validated['is_active'],
             ]);
 
             $employee = Employee::query()->create([
@@ -110,7 +111,7 @@ class AuthorizationController extends Controller
         return view('authorization.form', [
             'mode' => 'edit',
             'employee' => $this->loadDataEmployee($employee),
-        ] + $this->dataEmployeeFormOptions($employee));
+        ] + $this->dataEmployeeFormOptions());
     }
 
     public function update(Request $request, Employee $employee): RedirectResponse
@@ -129,7 +130,7 @@ class AuthorizationController extends Controller
                 'email' => $validated['email'],
                 'phone' => $validated['phone'] ?? null,
                 'company_id' => $validated['current_company_id'] ?? null,
-                'is_active' => (bool) ($validated['is_active'] ?? true),
+                'is_active' => (bool) $validated['is_active'],
             ]);
 
             if (filled($validated['password'] ?? null)) {
@@ -272,7 +273,7 @@ class AuthorizationController extends Controller
     {
         return [
             'view-dashboard' => ['section' => 'Main', 'label' => 'Dashboard'],
-            'view-calendar' => ['section' => 'Main', 'label' => 'Google Calendar'],
+            'view-calendar' => ['section' => 'Main', 'label' => 'Activity Calendar'],
             'view-attendance' => ['section' => 'Siap', 'label' => 'Attendance'],
             'view-timesheet-reporting' => ['section' => 'Siap', 'label' => 'Timesheet & Reporting'],
             'view-meeting' => ['section' => 'Siap', 'label' => 'Zoom Meeting'],
@@ -307,6 +308,11 @@ class AuthorizationController extends Controller
         ]);
 
         $query = User::query()
+            ->addSelect([
+                'authorization_company_name' => $this->authorizationCompanyNameSubquery(),
+                'authorization_pic_name' => $this->authorizationPicNameSubquery(),
+                'authorization_employee_name' => $this->authorizationEmployeeNameSubquery(),
+            ])
             ->with([
                 'roles:uuid,name',
                 'employee:id,user_id,employee_code,status',
@@ -320,7 +326,17 @@ class AuthorizationController extends Controller
                 'employee.picAssignment.supervisor:id',
                 'employee.picAssignment.supervisor.profile:id,employee_id,name',
             ])
-            ->whereHas('employee');
+            ->where('is_active', true)
+            ->whereDoesntHave('roles', function (Builder $roleQuery): void {
+                $roleQuery->where('name', 'superuser');
+            })
+            ->whereHas('employee', function (Builder $employeeQuery): void {
+                $employeeQuery
+                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+                    ->whereHas('deployment', function (Builder $deploymentQuery): void {
+                        $deploymentQuery->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+                    });
+            });
 
         if (! $this->canManageAuthorization($viewer)) {
             $companyId = $this->viewerCompanyId($viewer);
@@ -356,10 +372,62 @@ class AuthorizationController extends Controller
         }
 
         return $query
+            ->orderByRaw('CASE WHEN authorization_company_name IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('authorization_company_name')
+            ->orderByRaw('CASE WHEN authorization_pic_name IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('authorization_pic_name')
+            ->orderBy('authorization_employee_name')
             ->orderBy('username')
             ->paginate(10)
             ->withQueryString()
             ->through(fn (User $user): array => $this->presentAuthorizationUser($user));
+    }
+
+    private function authorizationCompanyNameSubquery(): Builder
+    {
+        return Company::query()
+            ->select('name')
+            ->where(
+                'id',
+                EmployeeDeployment::query()
+                    ->select('current_company_id')
+                    ->where('employee_id', $this->authorizationEmployeeIdSubquery())
+                    ->limit(1)
+            )
+            ->limit(1);
+    }
+
+    private function authorizationPicNameSubquery(): Builder
+    {
+        return EmployeeProfile::query()
+            ->select('name')
+            ->where(
+                'employee_id',
+                EmployeePicAssignment::query()
+                    ->select('supervisor_employee_id')
+                    ->where('staff_employee_id', $this->authorizationEmployeeIdSubquery())
+                    ->where('is_active', true)
+                    ->whereNull('deleted_at')
+                    ->latest('created_at')
+                    ->limit(1)
+            )
+            ->limit(1);
+    }
+
+    private function authorizationEmployeeNameSubquery(): Builder
+    {
+        return EmployeeProfile::query()
+            ->select('name')
+            ->where('employee_id', $this->authorizationEmployeeIdSubquery())
+            ->limit(1);
+    }
+
+    private function authorizationEmployeeIdSubquery(): Builder
+    {
+        return Employee::query()
+            ->select('id')
+            ->whereColumn('user_id', (new User)->qualifyColumn('id'))
+            ->limit(1);
     }
 
     private function viewerCompanyId(User $user): ?string
@@ -467,8 +535,9 @@ class AuthorizationController extends Controller
             'user:id,company_id,username,phone,email,is_active',
             'profile:id,employee_id,name,nickname,gender,place_of_birth,date_of_birth,marital_status',
             'identity:id,employee_id,nik,npwp,bpjs_ketenagakerjaan,bpjs_kesehatan',
-            'deployment:id,employee_id,current_company_id,current_department_id,current_position_id,join_date,resignation_date,workplace,status',
+            'deployment:id,employee_id,current_company_id,current_office_location_id,current_department_id,current_position_id,join_date,resignation_date,workplace,status',
             'deployment.company:id,name',
+            'deployment.officeLocation:id,name,address',
             'deployment.department:id,name',
             'deployment.position:id,name',
             'deployment.positions:id,name',
@@ -481,20 +550,31 @@ class AuthorizationController extends Controller
     /**
      * @return array{
      *     companies: Collection<int, Company>,
+     *     officeLocationOptions: Collection<int, array{id: string, label: string}>,
      *     departments: Collection<int, Department>,
      *     positions: Collection<int, Position>,
      *     picEmployees: Collection<int, Employee>
      * }
      */
-    private function dataEmployeeFormOptions(?Employee $employee = null): array
+    private function dataEmployeeFormOptions(): array
     {
         return [
             'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'officeLocationOptions' => OfficeLocation::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->orderBy('address')
+                ->get(['id', 'name', 'address'])
+                ->map(fn (OfficeLocation $officeLocation): array => [
+                    'id' => (string) $officeLocation->id,
+                    'label' => $officeLocation->name
+                        ?: trim((string) $officeLocation->address),
+                ])
+                ->values(),
             'departments' => Department::query()->orderBy('name')->get(['id', 'name']),
             'positions' => Position::query()->orderBy('name')->get(['id', 'name']),
             'picEmployees' => Employee::query()
                 ->with('profile:id,employee_id,name')
-                ->when($employee instanceof Employee, fn ($query) => $query->whereKeyNot($employee->id))
                 ->orderBy('employee_code')
                 ->get(['id', 'employee_code']),
         ];
@@ -511,6 +591,7 @@ class AuthorizationController extends Controller
             : ['required', 'string', 'min:6'];
 
         $request->merge([
+            'is_active' => $request->boolean('is_active'),
             'date_of_birth' => $this->normalizeDateInput($request->input('date_of_birth')),
             'employee_status' => 'Active',
             'join_date' => $this->normalizeDateInput($request->input('join_date')),
@@ -518,7 +599,7 @@ class AuthorizationController extends Controller
         ]);
 
         return $request->validate([
-            'is_active' => ['nullable', 'boolean'],
+            'is_active' => ['required', 'boolean'],
             'employee_status' => ['required', 'string', 'max:50'],
             'employee_code' => ['nullable', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
@@ -536,11 +617,18 @@ class AuthorizationController extends Controller
             'gender' => ['nullable', 'string', 'max:50'],
             'marital_status' => ['nullable', 'string', 'max:50'],
             'current_company_id' => ['nullable', 'string', 'exists:companies,id'],
+            'current_office_location_id' => [
+                'required_with:current_company_id',
+                'nullable',
+                'string',
+                Rule::exists('office_locations', 'id')->where(function ($query): void {
+                    $query->where('is_active', true);
+                }),
+            ],
             'current_department_id' => ['nullable', 'string', 'exists:departments,id'],
             'current_position_id' => ['nullable', 'string', 'exists:positions,id'],
             'current_position_ids' => ['array'],
             'current_position_ids.*' => ['string', 'exists:positions,id'],
-            'workplace' => ['nullable', 'string', 'max:255'],
             'join_date' => ['nullable', 'date'],
             'resignation_date' => ['nullable', 'date', 'after_or_equal:join_date'],
             'pic_employee_id' => ['nullable', 'string', 'exists:employees,id'],
@@ -612,15 +700,22 @@ class AuthorizationController extends Controller
             $primaryPositionId = null;
         }
 
+        $officeLocation = filled($validated['current_office_location_id'] ?? null)
+            ? OfficeLocation::query()
+                ->find($validated['current_office_location_id'])
+            : null;
+        $workplace = $officeLocation?->name;
+
         $deployment = EmployeeDeployment::query()->updateOrCreate(
             ['employee_id' => $employee->id],
             [
                 'current_company_id' => $validated['current_company_id'] ?? null,
+                'current_office_location_id' => $officeLocation?->id,
                 'current_department_id' => $validated['current_department_id'] ?? null,
                 'current_position_id' => $primaryPositionId,
                 'join_date' => $validated['join_date'] ?? null,
                 'resignation_date' => $validated['resignation_date'] ?? null,
-                'workplace' => $validated['workplace'] ?? null,
+                'workplace' => $workplace,
                 'status' => $validated['employee_status'],
             ]
         );
@@ -699,7 +794,7 @@ class AuthorizationController extends Controller
             ->update(['is_active' => false]);
 
         $picEmployeeId = is_string($picEmployeeId) ? trim($picEmployeeId) : '';
-        if ($picEmployeeId === '' || $picEmployeeId === $employee->id) {
+        if ($picEmployeeId === '') {
             return;
         }
 

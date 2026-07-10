@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             PositionPermissionSeeder::class,
             EmployeePicAssignmentSeeder::class,
             NiskalaMultiPicLeaveSeeder::class,
+            LeaveBalanceSeeder::class,
             RulesOfAttendacesSeeder::class,
         ];
 

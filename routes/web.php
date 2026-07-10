@@ -14,6 +14,7 @@ use App\Http\Controllers\PicAttendance\PicAttendanceController;
 use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
 use App\Http\Controllers\PicAttendance\PicAttendanceTaskController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectManagement\OverviewController as ProjectManagementOverviewController;
 use App\Http\Controllers\ProjectManagement\ProjectController as ProjectManagementProjectController;
 use App\Http\Controllers\ProjectManagement\TaskListController as ProjectManagementTaskListController;
@@ -35,6 +36,11 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/', [DashboardController::class, 'index'])
         ->middleware('position.permission:view-dashboard')
         ->name('dashboard');
+
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
 
     // Activity Schedule
     Route::middleware('position.permission:view-calendar')->group(function (): void {

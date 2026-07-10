@@ -19,13 +19,22 @@ class AttendanceReportExcelExportTest extends TestCase
         $this->assertStringContainsString('<i class="fa-solid fa-file-excel me-1"></i> Export Report', $reportView);
         $this->assertStringNotContainsString('Export Excel', $reportView);
         $this->assertStringNotContainsString('<th class="mw-100">Variance</th>', $reportView);
+        $this->assertStringContainsString('<th class="mw-200">Location</th>', $reportView);
         $this->assertStringContainsString('<th class="mw-150">Note</th>', $reportView);
         $this->assertStringContainsString('<th class="mw-150">Attachment</th>', $reportView);
         $this->assertSame(1, substr_count($reportView, '<th class="mw-150">Note</th>'));
         $this->assertStringNotContainsString("{ data: 'variance', defaultContent: '-' }", $reportView);
+        $this->assertStringContainsString("{ data: 'location_display', defaultContent: '-' }", $reportView);
         $this->assertStringContainsString("{ data: 'note', defaultContent: '-' }", $reportView);
         $this->assertStringContainsString("{ data: 'attachment', defaultContent: '-' }", $reportView);
         $this->assertStringContainsString('class="attendance-attachment-link">View Attachment</a>', $reportView);
+        $this->assertStringContainsString('id="attendanceReportDetailModal"', $reportView);
+        $this->assertStringContainsString('data-bs-target="#attendanceReportDetailModal"', $reportView);
+        $this->assertStringContainsString('Belum Absen Masuk', $reportView);
+        $this->assertStringNotContainsString('Belum Absen Pulang', $reportView);
+        $this->assertStringContainsString("rowType === 'alpha' || rowType === 'pending'", $reportView);
+        $this->assertStringNotContainsString('attendanceReportMap', $reportView);
+        $this->assertStringNotContainsString('<iframe', $reportView);
         $this->assertStringContainsString('function escapeHtml(value)', $reportView);
     }
 
@@ -116,6 +125,14 @@ class AttendanceReportExcelExportTest extends TestCase
 
         $this->assertStringContainsString("'note' => \$noteLabel,", $reportController);
         $this->assertStringContainsString("'attachment' => \$attachmentUrl,", $reportController);
+        $this->assertStringContainsString("'location_display' => \$locationAddress,", $reportController);
+        $this->assertStringContainsString("'note' => 'Alpha',", $reportController);
+        $this->assertStringContainsString("'row_type' => 'alpha',", $reportController);
+        $this->assertStringContainsString("'row_type' => 'leave',", $reportController);
+        $this->assertStringContainsString('$cursorDate->greaterThanOrEqualTo($todayJakarta)', $reportController);
+        $this->assertStringContainsString("'row_type' => 'pending',", $reportController);
+        $this->assertStringContainsString("whereRaw('LOWER(COALESCE(status, \"\")) = ?', ['approved'])", $reportController);
+        $this->assertStringContainsString("'data' => \$tableRows->sortByDesc('attendance_date_iso')->values(),", $reportController);
         $this->assertStringContainsString("'note' => \$isNationalHoliday ? 'Libur Nasional' : 'Cuti Bersama',", $reportController);
         $this->assertStringContainsString("'note' => 'Weekend / Day Off',", $reportController);
         $this->assertStringNotContainsString("'variance' =>", $reportController);
@@ -124,7 +141,10 @@ class AttendanceReportExcelExportTest extends TestCase
         $this->assertStringContainsString("->get(['attendance_id', 'exception_date', 'type', 'note', 'from_time', 'to_time'])", $reportController);
         $this->assertStringContainsString("'late_arrival' => 'Izin Masuk Terlambat'", $reportController);
         $this->assertStringContainsString("'early_departure' => 'Izin Pulang Lebih Awal'", $reportController);
-        $this->assertStringContainsString("return 'Late '.\$lateMinutes.' Minutes';", $reportController);
+        $this->assertStringContainsString('return $this->attendanceDurationFormatter->lateLabel($lateMinutes);', $reportController);
+        $this->assertStringContainsString('$usesPersonalAttendanceReport = $isStaffUser || $isSuperUser;', $reportController);
+        $this->assertStringContainsString('$showCompanyFilter = false;', $reportController);
+        $this->assertStringContainsString('if ($usesPersonalAttendanceReport) {', $reportController);
         $this->assertStringContainsString("return 'On Time';", $reportController);
         $this->assertStringContainsString("return 'Cuti Tahunan';", $reportController);
         $this->assertStringContainsString("return asset('storage/'.ltrim(\$attachmentPath, '/'));", $reportController);
@@ -137,10 +157,10 @@ class AttendanceReportExcelExportTest extends TestCase
         $resolveAttendanceNoteLabel->setAccessible(true);
 
         $this->assertSame(
-            'Late 10 Minutes',
+            'Late 1 Hour 23 Minutes',
             $resolveAttendanceNoteLabel->invoke(
                 $controller,
-                new Attendance(['late_minutes' => 10]),
+                new Attendance(['late_minutes' => 83]),
                 null,
                 null
             )
@@ -185,5 +205,15 @@ class AttendanceReportExcelExportTest extends TestCase
                 null
             )
         );
+    }
+
+    public function test_attendance_report_work_hours_uses_effective_hours_with_rest_deduction(): void
+    {
+        $controller = app(AttendanceReportController::class);
+        $formatWorkHoursLabel = new ReflectionMethod(AttendanceReportController::class, 'formatWorkHoursLabel');
+        $formatWorkHoursLabel->setAccessible(true);
+
+        $this->assertSame('8 hours', $formatWorkHoursLabel->invoke($controller, '08:00', '17:00', 9));
+        $this->assertSame('4 hours', $formatWorkHoursLabel->invoke($controller, '08:00', '12:00', null));
     }
 }

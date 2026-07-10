@@ -18,9 +18,13 @@ class EmployeeMultiplePositionSupportTest extends TestCase
 
         $this->assertNull($normalizeDate->invoke($seeder, '0000-00-00'));
         $this->assertSame('1970-01-01', $normalizeDate->invoke($seeder, '1970-01-01'));
-        $this->assertSame('1970-01-01', $normalizeJoinDate->invoke($seeder, [
+        $this->assertSame('2024-06-19', $normalizeJoinDate->invoke($seeder, [
             'start_date' => '1970-01-01',
             'created_at' => '2024-06-19 08:49:02',
+        ]));
+        $this->assertSame('2025-04-28', $normalizeJoinDate->invoke($seeder, [
+            'start_date' => '2023-01-01',
+            'created_at' => '2025-04-28 09:52:02',
         ]));
         $this->assertNull($normalizeResignationDate->invoke($seeder, '1970-01-01'));
         $this->assertSame('2026-12-31', $normalizeResignationDate->invoke($seeder, '2026-12-31'));
@@ -168,7 +172,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringContainsString('NiskalaMultiPicLeaveSeeder::class', $databaseSeeder);
         $this->assertStringContainsString("'halloerlin@gmail.com' => ['Administrator', 'Accounting and Taxation']", $legacySeeder);
         $this->assertStringContainsString("'diktanamira@gmail.com' => ['Administrator', 'Accounting and Taxation']", $legacySeeder);
-        $this->assertStringContainsString("'leonieputri7@gmail.com' => ['Supervisor']", $legacySeeder);
+        $this->assertStringContainsString("'leonieputri7@gmail.com' => ['Administrator', 'Supervisor']", $legacySeeder);
         $this->assertStringContainsString("'msyafiq.dev@gmail.com' => ['Supervisor']", $legacySeeder);
         $this->assertStringContainsString("'rexy@andalanbersama.com' => ['Director', 'Supervisor']", $legacySeeder);
         $this->assertStringContainsString("'fuadmfahrudin@gmail.com' => ['Director', 'Supervisor']", $legacySeeder);

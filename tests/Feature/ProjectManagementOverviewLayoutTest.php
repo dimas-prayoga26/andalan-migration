@@ -21,6 +21,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
     public function test_monthly_overview_cards_use_equal_height_layout(): void
     {
         $overview = File::get(resource_path('views/project_management/overview/index.blade.php'));
+        $profileIndex = File::get(resource_path('views/project_management/layouts/profile-index.blade.php'));
         $profileHeader = File::get(resource_path('views/project_management/layouts/profile-header.blade.php'));
         $summaryCards = File::get(resource_path('views/project_management/overview/partials/summary-cards.blade.php'));
         $profileComposer = File::get(app_path('View/Composers/ProjectManagementProfileComposer.php'));
@@ -48,6 +49,11 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertTrue(View::exists('project_management.projects.index'));
         $this->assertTrue(View::exists('project_management.projects.detail'));
         $this->assertStringContainsString("asset('assets/default_user.jpg')", $profileHeader);
+        $this->assertStringContainsString('overflow-wrap: anywhere;', $profileHeader);
+        $this->assertStringContainsString('profile-contact-email', $profileHeader);
+        $this->assertStringContainsString('word-break: break-word;', $profileHeader);
+        $this->assertStringContainsString('class="project-progress-radial-chart"', $overview);
+        $this->assertStringContainsString('parentHeightOffset: 0', $overview);
         $this->assertStringContainsString('employee.profile:id,employee_id,name,profile_picture_path', $profileComposer);
         $this->assertStringNotContainsString('userProfile', $profileComposer);
         $this->assertIsString(view('project_management.overview.index')->render());
@@ -86,9 +92,33 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("request()->routeIs('project_management.task_list')", $profileNavbar);
         $this->assertStringContainsString("route('project_management.projects')", $profileNavbar);
         $this->assertStringContainsString("request()->routeIs('project_management.projects', 'project_management.projects.detail', 'project_management.detail')", $profileNavbar);
-        $this->assertStringContainsString("asset('assets/images/files/folder.avif')", $taskListSurface);
+        $this->assertStringContainsString('project-kanban-page', $taskListProjectGridPartial);
+        $this->assertStringContainsString('kanban-bx', $taskListProjectGridPartial);
+        $this->assertStringContainsString('draggable-zone dropzoneContainer', $taskListProjectGridPartial);
+        $this->assertStringContainsString("<div class=\"kanbanPreview-bx\">\n                <div class=\"sub-card", $taskListProjectGridPartial);
+        $this->assertStringNotContainsString("<div class=\"draggable-zone dropzoneContainer\">\n                    <div class=\"sub-card", $taskListProjectGridPartial);
+        $this->assertStringContainsString('To-Do List', $taskListProjectGridPartial);
+        $this->assertStringContainsString('In Progress', $taskListProjectGridPartial);
+        $this->assertStringContainsString('Review', $taskListProjectGridPartial);
+        $this->assertStringContainsString('Done', $taskListProjectGridPartial);
+        $this->assertStringContainsString('Backlog', $taskListProjectGridPartial);
+        $this->assertStringContainsString("asset('assets-workload/images/contacts/pic11.jpg')", $taskListProjectGridPartial);
+        $this->assertStringContainsString("asset('assets-workload/vendor/draggable/draggable.js')", $taskList);
+        $this->assertStringContainsString('function initializeStaticKanbanBoard()', $taskList);
+        $this->assertStringContainsString('function shouldUseMobileKanbanScroll()', $taskList);
+        $this->assertStringContainsString("window.matchMedia('(max-width: 767.98px), (pointer: coarse)').matches", $taskList);
+        $this->assertStringContainsString('shouldUseMobileKanbanScroll() || ! dropzones.length', $taskList);
+        $this->assertStringContainsString('-webkit-overflow-scrolling: touch;', $taskList);
+        $this->assertStringContainsString('touch-action: pan-x pan-y;', $taskList);
+        $this->assertStringContainsString('new window.Sortable.default(dropzones', $taskList);
+        $this->assertStringContainsString("draggable: '.draggable-handle'", $taskList);
+        $this->assertStringContainsString('appendTo: document.body', $taskList);
+        $this->assertStringContainsString('function attachStaticKanbanMirrorPositioning(sortableInstance)', $taskList);
+        $this->assertStringContainsString("sortableInstance.on('mirror:created'", $taskList);
+        $this->assertStringContainsString("dragMirror.style.position = 'fixed'", $taskList);
+        $this->assertStringNotContainsString("asset('assets/images/files/folder.avif')", $taskListSurface);
         $this->assertStringNotContainsString('src="assets/images/files/', $taskListSurface);
-        $this->assertStringContainsString("route('project_management.projects.detail', \$projectOption['id'])", $taskListProjectGridPartial);
+        $this->assertStringNotContainsString("route('project_management.projects.detail', \$projectOption['id'])", $taskListProjectGridPartial);
         $this->assertStringContainsString('$projectCard[\'detail_url\']', $projectsIndex);
         $this->assertStringContainsString("route('project_management.projects')", $projectsDetail);
         $this->assertStringNotContainsString('report-project-details.html', $projectsIndex);
@@ -135,14 +165,29 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('id="taskDeleteModal"', $taskList);
         $this->assertStringContainsString('id="taskDetailsModal"', $taskList);
         $this->assertStringContainsString('$.ajax({', $taskList);
+        $this->assertStringContainsString("type: 'POST',", $taskList);
+        $this->assertStringContainsString("type: 'POST',", $projectsDetail);
+        $this->assertStringNotContainsString("type: formData.get('_method') || 'POST',", $taskList);
+        $this->assertStringNotContainsString("type: formData.get('_method') || 'POST',", $projectsDetail);
         $this->assertStringContainsString('text: response.message', $taskList);
         $this->assertStringContainsString("'X-Requested-With': 'XMLHttpRequest'", $taskList);
         $this->assertStringContainsString('Task berhasil ditambahkan.', $taskListController);
         $this->assertStringContainsString('Task berhasil diperbarui.', $taskListController);
         $this->assertStringContainsString('Task berhasil ditandai selesai.', $taskListController);
         $this->assertStringContainsString('Task berhasil dihapus.', $taskListController);
-        $this->assertStringContainsString("->whereNull('overtime_id')", $taskListController);
+        $this->assertStringNotContainsString("->whereNull('overtime_id')", $taskListController);
+        $this->assertStringContainsString("->whereNotNull('overtime_id')", $taskListController);
+        $this->assertStringContainsString("'is_overtime_task' => \$isOvertimeTask", $taskListController);
+        $this->assertStringContainsString("'can_manage_from_task_list' => true", $taskListController);
+        $this->assertStringContainsString("'can_delete_from_task_list' => ! \$isOvertimeTask", $taskListController);
+        $this->assertStringContainsString('badge badge-sm badge-danger light ms-2 align-middle', $taskListItemsPartial);
+        $this->assertStringContainsString("{{ \$task['title'] }}</a>\n                            @if (\$task['is_overtime_task'] ?? false)", $taskListItemsPartial);
+        $this->assertStringContainsString("{{ \$task['overtime_label'] ?? 'Overtime' }}", $taskListItemsPartial);
+        $this->assertStringNotContainsString('badge badge-sm badge-warning light ms-2', $taskListItemsPartial);
+        $this->assertStringContainsString("! \$task['is_completed'] && (\$task['can_manage_from_task_list'] ?? true)", $taskListItemsPartial);
+        $this->assertStringContainsString("\$task['can_delete_from_task_list'] ?? true", $taskListItemsPartial);
         $this->assertStringContainsString('canManageTaskListTask', $taskListController);
+        $this->assertStringContainsString('canDeleteTaskListTask', $taskListController);
         $this->assertStringContainsString('employeeIsProjectMember', $taskListController);
         $this->assertStringContainsString('public function index(): View', $projectController);
         $this->assertStringContainsString('public function detailFallback(): RedirectResponse', $projectController);
@@ -265,11 +310,20 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringNotContainsString('Routine Cardio Burn Workout', $taskListSurface);
         $this->assertStringNotContainsString('workout-statistic.html', $taskListSurface);
         $this->assertStringNotContainsString('May 2026', $taskList);
-        $this->assertStringContainsString('class="form-control js-task-date-input"', $taskList);
-        $this->assertStringContainsString('initializeTaskDatePickers', $taskList);
-        $this->assertStringContainsString('hideTaskDatePickers', $taskList);
-        $this->assertStringContainsString("format: 'YYYY-MM-DD'", $taskList);
-        $this->assertStringContainsString("vertical: 'top'", $taskList);
+        $this->assertStringContainsString('Date <span class="required text-danger">*</span>', $taskList);
+        $this->assertStringContainsString('name="start_date" id="taskStartDate"', $taskList);
+        $this->assertStringContainsString('name="due_date" id="taskDueDate"', $taskList);
+        $this->assertStringContainsString('class="form-control js-task-date-range-input"', $taskList);
+        $this->assertStringContainsString('id="taskDateRange"', $taskList);
+        $this->assertStringContainsString('initializeTaskDateRangePicker', $taskList);
+        $this->assertStringContainsString('formatTaskDateRangeDisplay', $taskList);
+        $this->assertStringContainsString('$.fn.daterangepicker', $taskList);
+        $this->assertStringContainsString("format: 'DD/MM/YYYY'", $taskList);
+        $this->assertStringContainsString("picker.startDate.format('YYYY-MM-DD')", $taskList);
+        $this->assertStringContainsString("picker.endDate.format('YYYY-MM-DD')", $taskList);
+        $this->assertStringNotContainsString('class="form-control js-task-date-input"', $taskList);
+        $this->assertStringNotContainsString('initializeTaskDatePickers', $taskList);
+        $this->assertStringNotContainsString('hideTaskDatePickers', $taskList);
         $this->assertStringNotContainsString('showPicker', $taskList);
         $this->assertStringNotContainsString('type="date" class="form-control" name="start_date" id="taskStartDate"', $taskList);
         $this->assertStringNotContainsString('type="date" class="form-control" name="due_date" id="taskDueDate"', $taskList);
@@ -290,6 +344,11 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('{{ $projectTotalTasksCount }} Task', $summaryCards);
         $this->assertStringContainsString('{{ $projectTasksCompletedCount }} Task', $summaryCards);
         $this->assertStringContainsString('{{ $projectTasksInProgressCount }} Task', $summaryCards);
+        $this->assertStringContainsString('fa-solid fa-chart-line text-secondary', $summaryCards);
+        $this->assertStringContainsString('fa-solid fa-list-check text-success', $summaryCards);
+        $this->assertStringContainsString('fa-solid fa-square-check text-danger', $summaryCards);
+        $this->assertStringContainsString('fa-solid fa-hourglass-half text-info', $summaryCards);
+        $this->assertStringContainsString('project-summary-metric-icon', $summaryCards);
         $this->assertStringContainsString('row g-4 mb-4 project-summary-mobile-slider', $summaryCards);
         $this->assertStringContainsString('project-summary-mobile-slide', $summaryCards);
         $this->assertSame(4, substr_count($summaryCards, 'col-md-3 col-sm-6 project-summary-mobile-slide'));
@@ -304,6 +363,8 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('.project-summary-mobile-slide {', $overview);
         $this->assertStringContainsString('.project-overview-chart-wrapper {', $overview);
         $this->assertStringContainsString('.project-overview-chart-wrapper canvas {', $overview);
+        $this->assertStringContainsString('.project-summary-metric-icon svg', $overview);
+        $this->assertStringContainsString('.project-progress-metric-icon svg', $overview);
         $this->assertSame(2, substr_count($overview, '<div class="project-overview-chart-wrapper">'));
         $this->assertStringContainsString('var isMobileChartViewport = function(){', $overview);
         $this->assertStringContainsString('maxTicksLimit: isMobileChartViewport() ? 6 : 12', $overview);
@@ -343,13 +404,17 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('data-progress-rate="{{ $projectTaskCompletionRate }}"', $overview);
         $this->assertStringContainsString('Tasks Completed ({{ $projectTasksCompletedCount }}/{{ $projectTotalTasksCount }} Completed)', $overview);
         $this->assertStringContainsString('Daily Tasks ({{ $projectDailyTasksRate }}%)', $overview);
+        $this->assertStringContainsString('fa-solid fa-calendar-day text-info', $overview);
         $this->assertStringContainsString('{{ $projectDailyTasksCompletedCount }} Task / {{ $projectDailyTasksCount }} Daily Tasks', $overview);
         $this->assertStringContainsString("'projectDailyTasksRate' => \$this->percentage(\$dailyTasksCompletedCount, \$dailyTasksCount)", $overviewController);
         $this->assertStringContainsString('Project Tasks ({{ $projectProjectTasksRate }}%)', $overview);
+        $this->assertStringContainsString('fa-solid fa-diagram-project text-secondary', $overview);
         $this->assertStringContainsString('{{ $projectProjectTasksCompletedCount }} Task / {{ $projectProjectTasksCount }} Project Tasks', $overview);
         $this->assertStringContainsString("'projectProjectTasksRate' => \$this->percentage(\$projectTasksCompletedCount, \$projectTasksCount)", $overviewController);
         $this->assertStringContainsString('Completed Tasks This Week ({{ $projectWeeklyTasksCompletedRate }}%)', $overview);
         $this->assertStringContainsString('Incomplete Tasks This Week ({{ $projectWeeklyTasksIncompleteRate }}%)', $overview);
+        $this->assertStringContainsString('fa-solid fa-calendar-check text-success', $overview);
+        $this->assertStringContainsString('fa-solid fa-circle-exclamation text-danger', $overview);
         $this->assertStringContainsString('projectTaskQueryForDateRange', $overviewController);
         $this->assertStringContainsString("'projectWeeklyTasksCompletedRate' => 0", $overviewController);
         $this->assertStringContainsString('projectTaskQueryForMonth', $overviewController);
@@ -363,6 +428,11 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('id="chartProfileProgressDesktop"', $profileHeader);
         $this->assertStringContainsString('id="chartProfileProgress"', $profileHeader);
         $this->assertStringContainsString("data-progress-series='@json(\$monthlyAttendanceSeries)'", $profileHeader);
+        $this->assertStringContainsString('fa-solid fa-square-check fs-4 text-primary', $profileHeader);
+        $this->assertStringContainsString('fa-solid fa-hourglass-half fs-4 text-primary', $profileHeader);
+        $this->assertStringContainsString('fa-solid fa-list-check fs-4 text-primary', $profileHeader);
+        $this->assertStringContainsString('fa-solid fa-layer-group fs-4 text-primary', $profileHeader);
+        $this->assertStringContainsString('fa-solid fa-chart-pie fs-4 text-primary', $profileHeader);
         $this->assertStringNotContainsString('$profileStatsModeValue', $profileHeader);
         $this->assertStringNotContainsString('managementTotalEmployees', $profileHeader);
         $this->assertStringNotContainsString('managementPresentToday', $profileHeader);
@@ -372,10 +442,14 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringNotContainsString('Staff Late (Today)', $profileHeader);
         $this->assertStringNotContainsString('Staff Leave (Today)', $profileHeader);
         $this->assertStringNotContainsString('profileStatsMode', $profileComposer);
-        $this->assertStringContainsString('data: progressSeries', $overview);
-        $this->assertStringContainsString('categories: progressLabels', $overview);
-        $this->assertStringContainsString('Array.from({ length: 12 }', $overview);
-        $this->assertStringContainsString("toLocaleString('en-US', { month: 'long' })", $overview);
+        $this->assertStringContainsString('assets/vendor/apexcharts/dist/apexcharts.min.js', $profileIndex);
+        $this->assertStringContainsString('function renderProfileProgressChart(chartElement)', $profileIndex);
+        $this->assertStringContainsString('typeof window.ApexCharts', $profileIndex);
+        $this->assertStringContainsString('data: progressSeries', $profileIndex);
+        $this->assertStringContainsString('categories: progressLabels', $profileIndex);
+        $this->assertStringContainsString('Array.from({ length: 12 }', $profileIndex);
+        $this->assertStringContainsString("toLocaleString('en-US', { month: 'long' })", $profileIndex);
+        $this->assertStringNotContainsString('dzProfile', $overview);
         $this->assertStringContainsString('parseChartObject', $overview);
         $this->assertStringContainsString("$('#projectMonthlyOverviewMonthFilter').off('change.projectMonthlyOverview').on('change.projectMonthlyOverview'", $overview);
         $this->assertStringContainsString('monthlyOverviewChart.update();', $overview);
@@ -383,8 +457,11 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('ticks: chartYAxisTickOptions(1)', $overview);
         $this->assertStringContainsString('precision: 0', $overview);
         $this->assertStringContainsString("return Number.isInteger(value) ? value : '';", $overview);
-        $this->assertStringContainsString('visibleChartTarget', $overview);
-        $this->assertStringContainsString("dataset.profileProgressRendered = 'true'", $overview);
+        $this->assertStringContainsString('visibleChartTarget', $profileIndex);
+        $this->assertStringContainsString("dataset.profileProgressRendered = 'true'", $profileIndex);
+        $this->assertStringNotContainsString('chartBar();', $overview);
+        $this->assertStringNotContainsString('chartBar2();', $overview);
+        $this->assertStringNotContainsString('chartBar3();', $overview);
         $this->assertStringNotContainsString('data: [18, 18, 18, 20, 20, 22, 13, 15, 16, 17, 18, 12]', $overview);
         $this->assertStringNotContainsString("'01-Monday', '02-Tuesday', '03-Wednesday', '04-Thursday', '05-Friday'", $overview);
         $this->assertStringNotContainsString("data: ['18', '17', '15', '18', '16']", $overview);
@@ -496,6 +573,60 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $projectTask->refresh();
         $this->assertSame('completed', $projectTask->status);
         $this->assertNotNull($projectTask->completed_at);
+
+        $overtimeTask = ProjectTask::query()->create([
+            'id' => (string) Str::uuid(),
+            'employee_id' => $employee->id,
+            'assigned_by' => $user->id,
+            'overtime_id' => (string) Str::uuid(),
+            'title' => 'Overtime task',
+            'status' => 'pending',
+            'priority' => 'high',
+            'start_date' => '2026-06-22',
+            'due_date' => '2026-06-23',
+        ]);
+
+        $overtimeUpdateResponse = $this
+            ->actingAs($user)
+            ->putJson(route('project_management.task_list.tasks.update', $overtimeTask), [
+                'title' => 'Overtime task update',
+                'description' => 'Updated overtime task summary.',
+                'start_date' => '2026-06-22',
+                'due_date' => '2026-06-25',
+                'priority' => 'medium',
+                'task_category' => 'daily',
+                'status' => 'pending',
+            ]);
+
+        $overtimeUpdateResponse->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Task berhasil diperbarui.',
+            ]);
+
+        $overtimeCompleteResponse = $this
+            ->actingAs($user)
+            ->patchJson(route('project_management.task_list.tasks.complete', $overtimeTask));
+
+        $overtimeCompleteResponse->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Task berhasil ditandai selesai.',
+            ]);
+
+        $overtimeTask->refresh();
+        $this->assertSame('completed', $overtimeTask->status);
+        $this->assertNotNull($overtimeTask->completed_at);
+
+        $overtimeDeleteResponse = $this
+            ->actingAs($user)
+            ->deleteJson(route('project_management.task_list.tasks.destroy', $overtimeTask));
+
+        $overtimeDeleteResponse->assertForbidden()
+            ->assertJson([
+                'success' => false,
+                'message' => 'Tidak memiliki akses untuk menghapus task ini.',
+            ]);
 
         $otherTask = ProjectTask::query()->create([
             'id' => (string) Str::uuid(),

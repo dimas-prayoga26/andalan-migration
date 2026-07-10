@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\AdminAttendance\AttendanceLeaveController;
+use App\Models\AttendanceHoliday;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\EmployeeDeployment;
@@ -131,6 +132,13 @@ class AdminAttendanceLeaveBalanceSyncTest extends TestCase
 
         [, $employee] = $this->createCompanyEmployees();
         $annualLeave = $this->createAnnualLeaveType();
+        foreach (range(1, 8) as $day) {
+            AttendanceHoliday::query()->create([
+                'date' => Carbon::create(2026, 1, $day)->toDateString(),
+                'name' => 'Cuti Bersama '.$day,
+                'type' => 2,
+            ]);
+        }
         LeaveRequest::query()->create([
             'employee_id' => $employee->id,
             'leave_type_id' => $annualLeave->id,
@@ -150,9 +158,9 @@ class AdminAttendanceLeaveBalanceSyncTest extends TestCase
             ->where('period_year', 2026)
             ->firstOrFail();
 
-        $this->assertSame('5.00', $leaveBalance->earned_quota);
+        $this->assertSame('4.00', $leaveBalance->earned_quota);
         $this->assertSame('1.00', $leaveBalance->used_quota);
-        $this->assertSame('4.00', $leaveBalance->remaining_quota);
+        $this->assertSame('3.00', $leaveBalance->remaining_quota);
     }
 
     /**

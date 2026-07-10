@@ -162,7 +162,10 @@
                                 <span>Time</span>
                             </div>
                             <div class="col-md-6 col-12">
-                                @if (($overtimeDetail['has_actual_time'] ?? false) && ($overtimeDetail['time_changed'] ?? false))
+                                @if (($overtimeDetail['is_pic_verified'] ?? false))
+                                    <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
+                                    <span class="text-gray">, {{ $overtimeDetail['log_time_range'] ?? ($overtimeDetail['approved_time_range'] ?? '-') }}</span>
+                                @elseif (($overtimeDetail['has_actual_time'] ?? false) && ($overtimeDetail['time_changed'] ?? false))
                                     <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
                                     <span class="text-gray">, {{ $overtimeDetail['actual_time_range'] ?? '-' }}</span>
                                 @else
@@ -175,7 +178,10 @@
                                 <span>Total Duration</span>
                             </div>
                             <div class="col-md-6 col-12">
-                                @if (($overtimeDetail['has_actual_time'] ?? false) && ($overtimeDetail['duration_changed'] ?? false))
+                                @if (($overtimeDetail['is_pic_verified'] ?? false))
+                                    <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
+                                    <span class="text-gray">, {{ $overtimeDetail['log_duration'] ?? ($overtimeDetail['approved_duration'] ?? '-') }}</span>
+                                @elseif (($overtimeDetail['has_actual_time'] ?? false) && ($overtimeDetail['duration_changed'] ?? false))
                                     <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
                                     <span class="text-gray">, {{ $overtimeDetail['actual_duration'] ?? '-' }}</span>
                                 @else
@@ -894,25 +900,21 @@
                                 <textarea class="form-control" name="description" rows="3" placeholder="Tambahkan detail atau konteks pekerjaan" required></textarea>
                             </div>
                         </div>
-                        <div class="col-6 col-md-3">
+                        <div class="col-12 col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Date <span class="required text-danger">*</span></label>
-                                <input type="date" class="form-control" name="start_date" value="{{ $taskDefaultDate ?? now('Asia/Jakarta')->toDateString() }}" required>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="mb-3">
-                                <label class="form-label">Due Date <span class="required text-danger">*</span></label>
-                                <input type="date" class="form-control" name="due_date" value="{{ $taskDefaultDate ?? now('Asia/Jakarta')->toDateString() }}" required>
+                                <label class="form-label" for="createTaskDateRangePicker">Date <span class="required text-danger">*</span></label>
+                                <input type="hidden" name="start_date" id="createTaskStartDateValue" value="{{ $taskDefaultDate ?? now('Asia/Jakarta')->toDateString() }}" required>
+                                <input type="hidden" name="due_date" id="createTaskDueDateValue" value="{{ $taskDefaultDate ?? now('Asia/Jakarta')->toDateString() }}" required>
+                                <input type="text" class="form-control overtime-task-date-range-picker" id="createTaskDateRangePicker" data-start-date-target="#createTaskStartDateValue" data-due-date-target="#createTaskDueDateValue" placeholder="Select date" readonly required>
                             </div>
                         </div>
                         <div class="col-12 col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Volume Workload <span class="required text-danger">*</span></label>
+                                <label class="form-label">Priority <span class="required text-danger">*</span></label>
                                 <select class="form-control default-select" name="priority" required>
-                                    <option value="low">Light</option>
-                                    <option value="medium" selected>Moderate</option>
-                                    <option value="high">Heavy</option>
+                                    <option value="low">Low</option>
+                                    <option value="medium" selected>Medium</option>
+                                    <option value="high">High</option>
                                 </select>
                             </div>
                         </div>
@@ -1004,25 +1006,21 @@
                                 <textarea class="form-control" name="description" rows="3" placeholder="Tambahkan detail atau konteks pekerjaan" required></textarea>
                             </div>
                         </div>
-                        <div class="col-6 col-md-3">
+                        <div class="col-12 col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Date <span class="required text-danger">*</span></label>
-                                <input type="date" class="form-control" name="start_date" required>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="mb-3">
-                                <label class="form-label">Due Date <span class="required text-danger">*</span></label>
-                                <input type="date" class="form-control" name="due_date" required>
+                                <label class="form-label" for="updateTaskDateRangePicker">Date <span class="required text-danger">*</span></label>
+                                <input type="hidden" name="start_date" id="updateTaskStartDateValue" required>
+                                <input type="hidden" name="due_date" id="updateTaskDueDateValue" required>
+                                <input type="text" class="form-control overtime-task-date-range-picker" id="updateTaskDateRangePicker" data-start-date-target="#updateTaskStartDateValue" data-due-date-target="#updateTaskDueDateValue" placeholder="Select date" readonly required>
                             </div>
                         </div>
                         <div class="col-12 col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Volume Workload <span class="required text-danger">*</span></label>
+                                <label class="form-label">Priority <span class="required text-danger">*</span></label>
                                 <select class="form-control default-select" name="priority" id="updateTaskPrioritySelect" required>
-                                    <option value="low">Light</option>
-                                    <option value="medium">Moderate</option>
-                                    <option value="high">Heavy</option>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
                                 </select>
                             </div>
                         </div>
@@ -1325,29 +1323,13 @@
                 }
             });
             $('#deleteTaskForm').on('submit', submitDeleteTaskForm);
-            $('#createTaskForm input[name="start_date"]').on('change', function () {
-                var startDate = $(this).val();
-                var dueDateInput = $('#createTaskForm input[name="due_date"]');
-
-                dueDateInput.attr('min', startDate);
-                if (dueDateInput.val() && startDate && dueDateInput.val() < startDate) {
-                    dueDateInput.val(startDate);
-                }
-            }).trigger('change');
-            $('#updateTaskForm input[name="start_date"]').on('change', function () {
-                var startDate = $(this).val();
-                var dueDateInput = $('#updateTaskForm input[name="due_date"]');
-
-                dueDateInput.attr('min', startDate);
-                if (dueDateInput.val() && startDate && dueDateInput.val() < startDate) {
-                    dueDateInput.val(startDate);
-                }
-            });
+            initTaskDateRangePickers();
             $('#task').on('hidden.bs.modal', function () {
                 var form = $('#createTaskForm')[0];
                 if (form) {
                     form.reset();
                 }
+                refreshTaskDateRangePickerDisplays('#createTaskForm');
                 updateCreateTaskProjectState();
             });
             $('#update').on('hidden.bs.modal', function () {
@@ -1358,6 +1340,7 @@
                 $('#updateTaskForm').attr('action', '');
                 setSelectValue($('#updateTaskPrioritySelect'), 'medium');
                 setSelectValue($('#updateTaskStatusSelect'), 'pending');
+                refreshTaskDateRangePickerDisplays('#updateTaskForm');
                 updateUpdateTaskProjectState();
             });
             $('#delete').on('hidden.bs.modal', function () {
@@ -1435,6 +1418,97 @@
                 }
             }
 
+            function formatTaskDateDisplay(dateValue) {
+                if (!dateValue || typeof moment === 'undefined') {
+                    return dateValue || '';
+                }
+
+                var date = moment(dateValue, 'YYYY-MM-DD');
+
+                return date.isValid() ? date.format('DD/MM/YYYY') : '';
+            }
+
+            function formatTaskDateRangeDisplay(startDateValue, dueDateValue) {
+                var startDate = formatTaskDateDisplay(startDateValue);
+                var dueDate = formatTaskDateDisplay(dueDateValue);
+
+                if (!startDate || !dueDate) {
+                    return '';
+                }
+
+                return startDate + ' - ' + dueDate;
+            }
+
+            function setTaskDateRangeValue(dateRangeInput, startDateValue, dueDateValue) {
+                var pickerInput = $(dateRangeInput);
+                var startDateInput = $(pickerInput.data('start-date-target'));
+                var dueDateInput = $(pickerInput.data('due-date-target'));
+                var startDate = startDateValue || '';
+                var dueDate = dueDateValue || startDate;
+
+                if (startDate && dueDate && dueDate < startDate) {
+                    dueDate = startDate;
+                }
+
+                startDateInput.val(startDate);
+                dueDateInput.val(dueDate);
+                pickerInput.val(formatTaskDateRangeDisplay(startDate, dueDate));
+
+                if ($.fn.daterangepicker && pickerInput.data('daterangepicker') && typeof moment !== 'undefined' && startDate && dueDate) {
+                    var startMoment = moment(startDate, 'YYYY-MM-DD');
+                    var dueMoment = moment(dueDate, 'YYYY-MM-DD');
+
+                    if (startMoment.isValid() && dueMoment.isValid()) {
+                        pickerInput.data('daterangepicker').setStartDate(startMoment);
+                        pickerInput.data('daterangepicker').setEndDate(dueMoment);
+                    }
+                }
+
+                startDateInput.trigger('change');
+                dueDateInput.trigger('change');
+            }
+
+            function refreshTaskDateRangePickerDisplays(scopeSelector) {
+                $(scopeSelector).find('.overtime-task-date-range-picker').each(function () {
+                    var pickerInput = $(this);
+                    var startDateInput = $(pickerInput.data('start-date-target'));
+                    var dueDateInput = $(pickerInput.data('due-date-target'));
+
+                    pickerInput.val(formatTaskDateRangeDisplay(startDateInput.val(), dueDateInput.val()));
+                });
+            }
+
+            function initTaskDateRangePickers() {
+                $('.overtime-task-date-range-picker').each(function () {
+                    var pickerInput = $(this);
+
+                    refreshTaskDateRangePickerDisplays(pickerInput.closest('form'));
+
+                    if (!$.fn.daterangepicker || pickerInput.data('daterangepicker-initialized')) {
+                        return;
+                    }
+
+                    pickerInput.daterangepicker({
+                        autoApply: true,
+                        autoUpdateInput: false,
+                        locale: {
+                            format: 'DD/MM/YYYY',
+                            cancelLabel: 'Clear'
+                        }
+                    });
+
+                    pickerInput.on('apply.daterangepicker', function (event, picker) {
+                        setTaskDateRangeValue($(this), picker.startDate.format('YYYY-MM-DD'), picker.endDate.format('YYYY-MM-DD'));
+                    });
+
+                    pickerInput.on('cancel.daterangepicker', function () {
+                        setTaskDateRangeValue($(this), '', '');
+                    });
+
+                    pickerInput.data('daterangepicker-initialized', true);
+                });
+            }
+
             function showSwalAlert(iconType, titleText, messageText) {
                 if (typeof Swal !== 'undefined' && Swal && typeof Swal.fire === 'function') {
                     Swal.fire({
@@ -1465,8 +1539,7 @@
                 form.attr('action', trigger.data('task-update-url') || taskItem.update_url || '');
                 form.find('[name="title"]').val(taskItem.title || '');
                 form.find('[name="description"]').val(taskItem.description || '');
-                form.find('[name="start_date"]').val(taskItem.start_date || '');
-                form.find('[name="due_date"]').val(taskItem.due_date || '');
+                setTaskDateRangeValue($('#updateTaskDateRangePicker'), taskItem.start_date || '', taskItem.due_date || taskItem.start_date || '');
                 form.find('[name="attachment_path"]').val(taskItem.attachment_path || '');
                 form.find('[name="blockers"]').val(taskItem.blockers || '');
 
@@ -1483,7 +1556,6 @@
                     setSelectValue($('#updateTaskProjectSelect'), '');
                 }
 
-                $('#updateTaskForm input[name="start_date"]').trigger('change');
                 updateUpdateTaskProjectState();
                 $('#updateTaskSubmit').prop('disabled', false);
             }

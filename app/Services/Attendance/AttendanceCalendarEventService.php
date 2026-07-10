@@ -9,6 +9,7 @@ use App\Models\AttendanceLog;
 use App\Models\BusinessTrip;
 use App\Models\LeaveRequest;
 use App\Support\Attendance\AttendanceCalendarPresenter;
+use App\Support\Attendance\AttendanceDurationFormatter;
 use App\Support\Attendance\AttendanceExceptionPresenter;
 use App\Support\Attendance\AttendanceLocationFormatter;
 use Illuminate\Support\Carbon;
@@ -17,6 +18,7 @@ class AttendanceCalendarEventService
 {
     public function __construct(
         private AttendanceCalendarPresenter $presenter,
+        private AttendanceDurationFormatter $durationFormatter,
         private AttendanceExceptionPresenter $exceptionPresenter,
         private AttendanceLocationFormatter $locationFormatter
     ) {}
@@ -113,7 +115,7 @@ class AttendanceCalendarEventService
         $officeScheduleLabel = $officeStartTimeLabel.' - '.$officeEndTimeLabel;
 
         return $attendanceHistoryRecords
-            ->map(function (Attendance $attendanceItem) use ($attendanceLogsByAttendanceId, $officeScheduleLabel): ?array {
+            ->map(function (Attendance $attendanceItem) use ($attendanceLogsByAttendanceId, $officeScheduleLabel, $officeStartTimeLabel): ?array {
                 $attendanceDateLabel = $attendanceItem->date?->format('Y-m-d');
                 $clockInLabel = $attendanceItem->clock_in?->format('H:i');
                 if (! is_string($attendanceDateLabel) || trim($attendanceDateLabel) === '' || ! is_string($clockInLabel) || trim($clockInLabel) === '') {
@@ -121,16 +123,13 @@ class AttendanceCalendarEventService
                 }
 
                 $clockOutLabel = $attendanceItem->clock_out?->format('H:i') ?? '-';
-                $normalizedStatus = is_string($attendanceItem->status)
-                    ? strtolower(trim($attendanceItem->status))
-                    : '';
                 $attendanceException = $attendanceItem->attendanceException;
                 $exceptionType = is_string($attendanceException?->type)
                     ? strtolower(trim($attendanceException->type))
                     : '';
                 $hasAttendanceExceptionColorOverride = in_array($exceptionType, ['early_departure', 'late_arrival'], true);
-                $lateMinutes = (int) ($attendanceItem->late_minutes ?? 0);
-                $isLate = $lateMinutes > 0 || $normalizedStatus === 'terlambat';
+                $lateMinutes = $this->calculateClockInLateMinutes($attendanceDateLabel, $clockInLabel, $officeStartTimeLabel);
+                $isLate = $lateMinutes > 0;
                 $attendanceModalId = 'onTime';
                 $attendanceEventType = 'on_time';
                 $attendanceTitle = 'On Time';
@@ -150,7 +149,7 @@ class AttendanceCalendarEventService
                 } elseif ($isLate) {
                     $attendanceModalId = 'late';
                     $attendanceEventType = 'late';
-                    $attendanceTitle = $lateMinutes > 0 ? 'Late '.$lateMinutes.' Minutes' : 'Late Arrival';
+                    $attendanceTitle = $this->durationFormatter->lateLabel($lateMinutes);
                     $eventBackgroundColor = '#fd7e14';
                     $eventBorderColor = '#d3680d';
                 }
@@ -192,6 +191,45 @@ class AttendanceCalendarEventService
             ->filter(static fn (mixed $eventItem): bool => is_array($eventItem))
             ->values()
             ->all();
+    }
+
+    private function calculateClockInLateMinutes(string $attendanceDate, string $clockInLabel, string $officeStartTimeLabel): int
+    {
+        try {
+            $clockInTime = Carbon::createFromFormat(
+                'Y-m-d H:i:s',
+                $attendanceDate.' '.$this->normalizeTimeLabel($clockInLabel),
+                'Asia/Jakarta'
+            );
+            $officeStartTime = Carbon::createFromFormat(
+                'Y-m-d H:i:s',
+                $attendanceDate.' '.$this->normalizeTimeLabel($officeStartTimeLabel),
+                'Asia/Jakarta'
+            );
+        } catch (\Throwable) {
+            return 0;
+        }
+
+        if ($clockInTime->lessThanOrEqualTo($officeStartTime)) {
+            return 0;
+        }
+
+        return max(0, (int) $officeStartTime->diffInMinutes($clockInTime, true));
+    }
+
+    private function normalizeTimeLabel(string $timeLabel): string
+    {
+        $normalizedTimeLabel = trim($timeLabel);
+
+        if (preg_match('/^\d{2}:\d{2}$/', $normalizedTimeLabel) === 1) {
+            return $normalizedTimeLabel.':00';
+        }
+
+        if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $normalizedTimeLabel) === 1) {
+            return $normalizedTimeLabel;
+        }
+
+        throw new \InvalidArgumentException('Invalid time label.');
     }
 
     /**

@@ -155,7 +155,7 @@
     
 <div class="row">
     <div class="col-md-6 col-sm-12">
-        <div class="card">
+        <div class="card leave-summary-card mb-5">
             <div class="card-header d-sm-flex d-block pb-0 border-0">
                 <div>
                     <h4 class="card-title">Leave Summary</h4>
@@ -164,30 +164,25 @@
                 <div class="card-action stat-card-tabs">
                     <ul class="nav nav-underline" role="tablist">
                         <li class="nav-item">
-                            <a class="nav-link text-black fs-16 fw-medium active" data-bs-toggle="tab" href="#Running" role="tab">
-                                <svg class="me-2" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <g clip-path="url(#clip0)">
-                                    <path d="M0.988957 17.074C0.328275 17.2006 -0.104585 17.8385 0.0219823 18.4992C0.133362 19.0814 0.644694 19.4864 1.21678 19.4864C1.29272 19.4864 1.37119 19.4788 1.44713 19.4636L6.4592 18.5017C6.74524 18.446 7.00091 18.2916 7.18316 18.0638L9.33481 15.3502L8.61593 14.9832C8.08435 14.7148 7.71475 14.2288 7.58818 13.639L5.55804 16.1982L0.988957 17.074Z" fill="#A639FA"/>
-                                    <path d="M18.84 6.493C20.3135 6.493 21.508 5.29848 21.508 3.82496C21.508 2.35144 20.3135 1.15692 18.84 1.15692C17.3665 1.15692 16.1719 2.35144 16.1719 3.82496C16.1719 5.29848 17.3665 6.493 18.84 6.493Z" fill="#A639FA"/>
-                                    <path d="M13.0179 3.15671C12.7369 2.86813 12.4762 2.75422 12.1902 2.75422C12.0864 2.75422 11.9826 2.76941 11.8712 2.79472L7.29203 3.88067C6.6592 4.03002 6.26937 4.66539 6.41872 5.29569C6.54782 5.8374 7.02877 6.20192 7.56289 6.20192C7.65404 6.20192 7.74514 6.19179 7.8363 6.16901L11.7371 5.24507C11.9902 5.52605 13.2584 6.90057 13.4888 7.14358C11.8763 8.86996 10.2639 10.5938 8.65137 12.3202C8.62605 12.3481 8.60329 12.3759 8.58049 12.4037C8.10966 13.0036 8.25397 13.9453 8.96275 14.3022L13.9064 16.826L11.3397 20.985C10.9878 21.5571 11.165 22.3063 11.7371 22.6607C11.9371 22.7848 12.1573 22.843 12.375 22.843C12.7825 22.843 13.1824 22.638 13.4128 22.2658L16.6732 16.9829C16.8529 16.6918 16.901 16.34 16.8074 16.0134C16.7137 15.6843 16.4884 15.411 16.1821 15.2565L12.8331 13.5529L16.3543 9.7863L19.0122 12.0392C19.2324 12.2265 19.5032 12.3176 19.7716 12.3176C20.0601 12.3176 20.3487 12.2113 20.574 12.0038L23.6243 9.16106C24.1002 8.71808 24.128 7.97386 23.685 7.49797C23.4521 7.24989 23.1383 7.12333 22.8244 7.12333C22.5383 7.12333 22.2497 7.22711 22.0245 7.43721L19.7412 9.56101C19.7386 9.56354 14.0178 4.1819 13.0179 3.15671Z" fill="#A639FA"/>
-                                    </g>
-                                    <defs>
-                                    <clipPath id="clip0">
-                                    <rect width="24" height="24" fill="white"/>
-                                    </clipPath>
-                                    </defs>
+                            <a class="nav-link text-black fs-16 fw-medium active" data-bs-toggle="tab" href="#Eligibility" role="tab">
+                                <svg class="me-2 leave-summary-icon leave-summary-icon--eligibility" width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="4" y="3.5" width="16" height="18" rx="3" fill="#A639FA" opacity="0.16"/>
+                                    <path d="M8.5 4H15.5C15.5 2.89543 14.6046 2 13.5 2H10.5C9.39543 2 8.5 2.89543 8.5 4Z" fill="#A639FA"/>
+                                    <path d="M7.75 8H16.25M7.75 17H16.25M8.5 12.35L10.85 14.65L16.25 9.25" stroke="#A639FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                                 Eligibility
                                 <span class="bg-secondary"></span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-black fs-16 fw-medium" data-bs-toggle="tab" href="#Cycling" role="tab">
-                                <svg class="me-2" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M10.8586 5.22599L5.87121 10.5543C5.50758 11.0846 5.64394 11.8068 6.17172 12.1679L11.1945 15.6098V18.9558C11.1945 19.5921 11.6995 20.125 12.3359 20.1376C12.9874 20.1477 13.5177 19.625 13.5177 18.976V15.0013C13.5177 14.6174 13.3283 14.2588 13.0126 14.0442L9.79041 11.8346L12.5025 8.95836L13.8914 12.1225C14.0758 12.5442 14.4949 12.817 14.9546 12.817H19.1844C19.8207 12.817 20.3536 12.3119 20.3662 11.6755C20.3763 11.024 19.8536 10.4937 19.2046 10.4937H15.7172C15.2576 9.44824 14.7677 8.41288 14.3409 7.35228C14.1237 6.81693 14.0025 6.5846 13.6036 6.21592C13.5227 6.14016 12.9596 5.62501 12.4571 5.16541C11.995 4.74619 11.2828 4.77397 10.8586 5.22599Z" fill="#FF3282"/>
-                                    <path d="M15.6162 5.80681C17.0861 5.80681 18.2778 4.61517 18.2778 3.1452C18.2778 1.67523 17.0861 0.483582 15.6162 0.483582C14.1462 0.483582 12.9545 1.67523 12.9545 3.1452C12.9545 4.61517 14.1462 5.80681 15.6162 5.80681Z" fill="#FF3282"/>
-                                    <path d="M4.89899 23.5164C7.60463 23.5164 9.79798 21.3231 9.79798 18.6174C9.79798 15.9118 7.60463 13.7184 4.89899 13.7184C2.19335 13.7184 0 15.9118 0 18.6174C0 21.3231 2.19335 23.5164 4.89899 23.5164Z" fill="#FF3282"/>
-                                    <path d="M19.101 23.5164C21.8066 23.5164 24 21.3231 24 18.6174C24 15.9118 21.8066 13.7184 19.101 13.7184C16.3954 13.7184 14.202 15.9118 14.202 18.6174C14.202 21.3231 16.3954 23.5164 19.101 23.5164Z" fill="#FF3282"/>
+                            <a class="nav-link text-black fs-16 fw-medium" data-bs-toggle="tab" href="#Tracker" role="tab">
+                                <svg class="me-2 leave-summary-icon leave-summary-icon--tracker" width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3.75 19V4.75" stroke="#FF3282" stroke-width="2.2" stroke-linecap="round"/>
+                                    <path d="M3.75 19H20.25" stroke="#FF3282" stroke-width="2.2" stroke-linecap="round"/>
+                                    <rect x="6.6" y="12.8" width="3.2" height="4.4" rx="1.3" fill="#FF3282" opacity="0.35"/>
+                                    <rect x="11" y="9.6" width="3.2" height="7.6" rx="1.3" fill="#FF3282" opacity="0.55"/>
+                                    <rect x="15.4" y="6.4" width="3.2" height="10.8" rx="1.3" fill="#FF3282"/>
+                                    <path d="M7 11.35L10.2 8.15L13.35 10.2L18.35 5.2" stroke="#FF3282" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                                 Tracker
                                 <span class="bg-danger"></span>
@@ -198,7 +193,7 @@
             </div>
             <div class="card-body pb-0">
                 <div class="tab-content">
-                    <div class="tab-pane fade show active" id="Running" role="tabpanel">
+                    <div class="tab-pane fade show active" id="Eligibility" role="tabpanel">
                         <div>
                             <h4 class="card-title">Leave Balance & Eligibility</h4>
                             <p class="fs-13 mb-0">Please ensure you have met the 1-year service requirement and your request does not exceed the maximum monthly limit.</p>
@@ -280,7 +275,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="tab-pane fade mb-3" id="Cycling" role="tabpanel">
+                    <div class="tab-pane fade mb-3" id="Tracker" role="tabpanel">
                         <div>
                             <h4 class="card-title">Time Off Tracker</h4>
                             <p class="fs-13 mb-0">Review your year-to-date usage and check the status of your recent requests.</p>
@@ -507,4 +502,3 @@
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 @endsection
-

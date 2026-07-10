@@ -68,6 +68,9 @@
                     <div>
                         <h4 class="fs-16 project-task-title">
                             <a type="button" data-bs-toggle="modal" data-bs-target="#taskDetailsModal" data-task='@json($task)' class="text-black js-task-details">{{ $task['title'] }}</a>
+                            @if ($task['is_overtime_task'] ?? false)
+                                <span class="badge badge-sm badge-danger light ms-2 align-middle">{{ $task['overtime_label'] ?? 'Overtime' }}</span>
+                            @endif
                         </h4>
                         <span class="fs-14 me-2">
                             <span class="{{ $task['status_class'] }} fw-semibold">{{ $task['status_label'] }}</span>
@@ -80,7 +83,7 @@
                     </div>
                 </div>
                 <div class="col-xl-12 col-xxl-4 col-lg-4 col-12 d-flex gap-3 align-items-center justify-content-xxl-end justify-content-xl-between justify-content-lg-end justify-content-between mt-xxl-0 mt-xl-3 mt-lg-0 mt-3">
-                    @if (! $task['is_completed'])
+                    @if (! $task['is_completed'] && ($task['can_manage_from_task_list'] ?? true))
                         <button type="button" data-bs-toggle="modal" data-bs-target="#taskCompleteModal" data-complete-url="{{ $task['complete_url'] }}" class="btn play-btn btn-lg btn-light text-primary fs-14 js-task-complete">
                             <i class="las la-caret-right text-primary fs-24"></i>Mark as Done
                         </button>
@@ -95,8 +98,12 @@
                         </a>
                         <div class="dropdown-menu dropdown-menu-end">
                             <a class="dropdown-item js-task-details" type="button" data-bs-toggle="modal" data-bs-target="#taskDetailsModal" data-task='@json($task)'>View More</a>
-                            <a class="dropdown-item js-task-edit" type="button" data-bs-toggle="modal" data-bs-target="#taskFormModal" data-task='@json($task)'>Update Task</a>
-                            <a class="dropdown-item js-task-delete" type="button" data-bs-toggle="modal" data-bs-target="#taskDeleteModal" data-delete-url="{{ $task['delete_url'] }}">Delete Task</a>
+                            @if ($task['can_manage_from_task_list'] ?? true)
+                                <a class="dropdown-item js-task-edit" type="button" data-bs-toggle="modal" data-bs-target="#taskFormModal" data-task='@json($task)'>Update Task</a>
+                            @endif
+                            @if ($task['can_delete_from_task_list'] ?? true)
+                                <a class="dropdown-item js-task-delete" type="button" data-bs-toggle="modal" data-bs-target="#taskDeleteModal" data-delete-url="{{ $task['delete_url'] }}">Delete Task</a>
+                            @endif
                         </div>
                     </div>
                 </div>

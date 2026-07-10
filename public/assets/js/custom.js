@@ -448,6 +448,7 @@ var Gymove = function(){
 			$('.bs-datepicker').datepicker({
 				format: 'mm/dd/yyyy',
 				autoclose: true,
+				weekStart: 1,
 				todayHighlight: true
 			});
 		}

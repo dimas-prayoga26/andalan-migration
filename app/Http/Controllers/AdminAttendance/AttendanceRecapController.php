@@ -11,24 +11,36 @@ use App\Models\AttendanceOvertime;
 use App\Models\BusinessTrip;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Support\Attendance\AttendanceDurationFormatter;
 use App\Support\Attendance\AttendanceExceptionPresenter;
 use App\Support\Attendance\AttendanceLocationFormatter;
+use App\Support\Attendance\AttendanceWorkDurationCalculator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class AttendanceRecapController extends Controller
 {
+    private const EXCLUDED_ATTENDANCE_DETAIL_EMAILS = [
+        'lukman@rnbmanagement.com',
+        'rully.priyatno@andalanbersama.com',
+        'hilmi.ulwan@andalanbersama.com',
+    ];
+
     public function __construct(
+        private readonly AttendanceDurationFormatter $attendanceDurationFormatter,
         private readonly AttendanceExceptionPresenter $attendanceExceptionPresenter,
         private readonly AttendanceLocationFormatter $attendanceLocationFormatter,
+        private readonly AttendanceWorkDurationCalculator $attendanceWorkDurationCalculator,
     ) {}
 
     public function index(Request $request): View
     {
-        return view('admin_attendance.recap_attendance.index', $this->recapViewData($request));
+        return view($this->attendanceIndexView(), $this->recapViewData($request));
     }
 
     public function monthlyDatatable(Request $request): JsonResponse
@@ -45,7 +57,7 @@ class AttendanceRecapController extends Controller
     {
         $detailContext = $this->recapEmployeeDetailContext($request, $employee);
 
-        return view('admin_attendance.recap_attendance.detail-employees', [
+        return view($this->attendanceDetailView(), [
             'recapDetailMonth' => $detailContext['month'],
             'recapDetailYear' => $detailContext['year'],
         ] + $this->recapEmployeeDetailData(
@@ -70,6 +82,16 @@ class AttendanceRecapController extends Controller
         ]);
     }
 
+    protected function attendanceIndexView(): string
+    {
+        return 'admin_attendance.recap_attendance.index';
+    }
+
+    protected function attendanceDetailView(): string
+    {
+        return 'admin_attendance.recap_attendance.detail-employees';
+    }
+
     /**
      * @return array{employee: Employee, month: int, year: int, period_start: Carbon, period_end: Carbon}
      */
@@ -90,7 +112,7 @@ class AttendanceRecapController extends Controller
 
         $employee = Employee::query()
             ->with([
-                'profile:id,employee_id,name',
+                'profile:id,employee_id,name,profile_picture_path',
                 'user:id,username,email,phone',
                 'deployment:id,employee_id,current_company_id,current_position_id,current_department_id,current_office_location_id',
                 'deployment.company:id,name',
@@ -165,6 +187,7 @@ class AttendanceRecapController extends Controller
             $periodStart,
             $periodStart->copy()->endOfMonth()->startOfDay(),
         )->count();
+        $monthlyExpectedWorkMinutes = $monthlyWorkingDaysCount * 8 * 60;
         $employeeRelations = [
             'profile:id,employee_id,name',
             'user:id,username,email',
@@ -239,6 +262,7 @@ class AttendanceRecapController extends Controller
                 $overtimesByEmployeeId,
                 $yearLeaveRequestsByEmployeeId,
                 $workDays,
+                $monthlyExpectedWorkMinutes,
                 $monthlyWorkingDaysCount,
                 $yearWorkDays
             ): array {
@@ -257,10 +281,10 @@ class AttendanceRecapController extends Controller
                 $leaveDays = $this->recapOverlappingWorkDayCount($leaveRequests, $employeeWorkDays);
                 $businessTripDays = $this->recapOverlappingWorkDayCount($businessTrips, $employeeWorkDays);
                 $onTimeCount = $attendances
-                    ->filter(fn (Attendance $attendance): bool => strtolower((string) $attendance->status) === 'masuk')
+                    ->reject(fn (Attendance $attendance): bool => $this->isLateAttendance($attendance))
                     ->count();
                 $lateAttendances = $attendances
-                    ->filter(fn (Attendance $attendance): bool => strtolower((string) $attendance->status) === 'terlambat' || (int) $attendance->late_minutes > 0);
+                    ->filter(fn (Attendance $attendance): bool => $this->isLateAttendance($attendance));
                 $lateMinutes = $lateAttendances->sum(fn (Attendance $attendance): int => (int) $attendance->late_minutes);
                 $deviationCount = $exceptionsByEmployeeId
                     ->get($employeeId, collect())
@@ -274,7 +298,6 @@ class AttendanceRecapController extends Controller
                     ->get($employeeId, collect())
                     ->filter(fn (AttendanceOvertime $overtime): bool => $employeeWorkDayKeys->contains($this->dateKey($overtime->overtime_date)))
                     ->sum(fn (AttendanceOvertime $overtime): int => max(0, (int) round((float) $overtime->calculated_hours * 60)));
-                $expectedWorkMinutes = $employeeWorkDays->count() * 8 * 60;
                 $alphaDays = $employeeWorkDayKeys
                     ->filter(function (string $dateKey) use ($attendedDateKeys, $leaveRequests, $businessTrips): bool {
                         $date = Carbon::parse($dateKey, 'Asia/Jakarta');
@@ -289,7 +312,7 @@ class AttendanceRecapController extends Controller
                     'employee_id' => $employeeId,
                     'name' => $this->employeeDisplayName($employee),
                     'working_days' => $attendedDateKeys->count().' / '.$monthlyWorkingDaysCount.' days',
-                    'working_hours' => $this->recapCompactMinutesLabel($workedMinutes).' / '.$this->recapCompactMinutesLabel($expectedWorkMinutes),
+                    'working_hours' => $this->recapCompactMinutesLabel($workedMinutes).' / '.$this->recapCompactMinutesLabel($monthlyExpectedWorkMinutes),
                     'on_time' => $this->recapDaysLabel($onTimeCount),
                     'late' => $this->recapLateLabel($lateAttendances->count(), $lateMinutes),
                     'leave' => $this->recapDaysLabel($leaveDays),
@@ -344,16 +367,18 @@ class AttendanceRecapController extends Controller
 
     private function recapAttendanceWorkMinutes(Attendance $attendance): int
     {
+        if ($attendance->clock_in instanceof \DateTimeInterface && $attendance->clock_out instanceof \DateTimeInterface) {
+            return $this->attendanceWorkDurationCalculator->netMinutesBetween(
+                Carbon::instance($attendance->clock_in),
+                Carbon::instance($attendance->clock_out)
+            );
+        }
+
         if (is_numeric($attendance->work_hours)) {
             return max(0, (int) round((float) $attendance->work_hours * 60));
         }
 
-        if (! $attendance->clock_in instanceof \DateTimeInterface || ! $attendance->clock_out instanceof \DateTimeInterface) {
-            return 0;
-        }
-
-        return (int) Carbon::instance($attendance->clock_in)
-            ->diffInMinutes(Carbon::instance($attendance->clock_out));
+        return 0;
     }
 
     private function recapCompactMinutesLabel(int $minutes): string
@@ -433,10 +458,10 @@ class AttendanceRecapController extends Controller
             ->map(fn (Attendance $attendance): string => $this->dateKey($attendance->date))
             ->unique();
         $onTimeCount = $attendances
-            ->filter(fn (Attendance $attendance): bool => strtolower((string) $attendance->status) === 'masuk')
+            ->reject(fn (Attendance $attendance): bool => $this->isLateAttendance($attendance))
             ->count();
         $lateAttendances = $attendances
-            ->filter(fn (Attendance $attendance): bool => strtolower((string) $attendance->status) === 'terlambat' || (int) $attendance->late_minutes > 0);
+            ->filter(fn (Attendance $attendance): bool => $this->isLateAttendance($attendance));
         $lateMinutes = $lateAttendances->sum(fn (Attendance $attendance): int => (int) $attendance->late_minutes);
         $deviationCount = $attendanceExceptionsByAttendanceId->count();
         $leaveDays = $this->recapOverlappingWorkDayCount($leaveRequests, $workDays);
@@ -455,7 +480,7 @@ class AttendanceRecapController extends Controller
         $leaveTypeDays = $this->recapLeaveTypeDays($leaveRequests, $workDays);
         $attendanceRows = $attendances->map(function (Attendance $attendance) use ($attendanceExceptionsByAttendanceId): array {
             $attendanceException = $attendanceExceptionsByAttendanceId->get($attendance->id);
-            $isLate = strtolower((string) $attendance->status) === 'terlambat' || (int) $attendance->late_minutes > 0;
+            $isLate = $this->isLateAttendance($attendance);
             $isException = $attendanceException instanceof AttendanceException;
 
             return [
@@ -465,7 +490,7 @@ class AttendanceRecapController extends Controller
                 'clock_in_badge' => $isException && $attendanceException->type === 'late_arrival' ? 'secondary' : ($isLate ? 'danger' : 'success'),
                 'clock_out' => $attendance->clock_out?->format('H:i') ?? '-',
                 'clock_out_badge' => $isException && $attendanceException->type === 'early_departure' ? 'secondary' : 'light',
-                'note' => $isException ? $this->attendanceExceptionPresenter->requestTypeLabel($attendanceException) : ($isLate ? 'Late '.$attendance->late_minutes.' Minutes' : 'On Time'),
+                'note' => $isException ? $this->attendanceExceptionPresenter->requestTypeLabel($attendanceException) : ($isLate ? $this->attendanceDurationFormatter->lateLabel((int) $attendance->late_minutes) : 'On Time'),
                 'working_hours' => $this->recapMinutesLabel($this->recapAttendanceWorkMinutes($attendance)),
             ];
         });
@@ -496,7 +521,7 @@ class AttendanceRecapController extends Controller
                 'base' => $employee->deployment?->officeLocation?->address ?: '-',
                 'phone' => $employee->user?->phone ?: '-',
                 'email' => $employee->user?->email ?: '-',
-                'avatar_url' => null,
+                'avatar_url' => $this->employeeAvatarUrl($employee->profile?->profile_picture_path),
             ],
             'recapDetailMetrics' => [
                 'on_time' => $this->recapDaysLabel($onTimeCount),
@@ -576,14 +601,15 @@ class AttendanceRecapController extends Controller
     private function recapAttendanceLogRows(Carbon $date, Collection $activeEmployeeIds): Collection
     {
         $dateKey = $date->toDateString();
-        $employeeRelations = [
-            'employee:id,user_id',
-            'employee.profile:id,employee_id,name',
-            'employee.user:id,username,email',
-        ];
+        $employees = Employee::query()
+            ->with([
+                'profile:id,employee_id,name',
+                'user:id,username,email',
+            ])
+            ->whereIn('id', $activeEmployeeIds)
+            ->get(['id', 'user_id']);
 
         $attendances = Attendance::query()
-            ->with($employeeRelations)
             ->whereIn('employee_id', $activeEmployeeIds)
             ->whereDate('date', $dateKey)
             ->whereNull('deleted_at')
@@ -632,7 +658,6 @@ class AttendanceRecapController extends Controller
 
         $leaveRequestsByEmployeeId = LeaveRequest::query()
             ->with([
-                ...$employeeRelations,
                 'leaveType:id,name,code',
             ])
             ->whereIn('employee_id', $activeEmployeeIds)
@@ -657,23 +682,33 @@ class AttendanceRecapController extends Controller
             ->keyBy('employee_id');
 
         $attendanceByEmployeeId = $attendances->keyBy('employee_id');
-        $attendanceRows = $attendances
-            ->filter(function (Attendance $attendance) use ($leaveRequestsByEmployeeId): bool {
-                return $attendance->clock_in !== null || ! $leaveRequestsByEmployeeId->has($attendance->employee_id);
+
+        return $employees
+            ->map(function (Employee $employee) use ($attendanceByEmployeeId, $attendanceLogsByAttendanceId, $attendanceExceptionsByAttendanceId, $leaveRequestsByEmployeeId): array {
+                $attendance = $attendanceByEmployeeId->get($employee->id);
+                $attendanceException = $attendance instanceof Attendance
+                    ? $attendanceExceptionsByAttendanceId->get($attendance->id)
+                    : null;
+
+                if ($attendance instanceof Attendance && ($attendance->clock_in !== null || $attendanceException instanceof AttendanceException)) {
+                    $attendance->setRelation('employee', $employee);
+
+                    return $this->recapAttendanceRow(
+                        $attendance,
+                        $attendanceLogsByAttendanceId->get($attendance->id),
+                        $attendanceException,
+                    );
+                }
+
+                $leaveRequest = $leaveRequestsByEmployeeId->get($employee->id);
+                if ($leaveRequest instanceof LeaveRequest) {
+                    $leaveRequest->setRelation('employee', $employee);
+
+                    return $this->recapLeaveRow($leaveRequest);
+                }
+
+                return $this->recapEmptyAttendanceRow($employee);
             })
-            ->map(fn (Attendance $attendance): array => $this->recapAttendanceRow(
-                $attendance,
-                $attendanceLogsByAttendanceId->get($attendance->id),
-                $attendanceExceptionsByAttendanceId->get($attendance->id)
-            ));
-
-        $leaveRows = $leaveRequestsByEmployeeId
-            ->reject(fn (LeaveRequest $leaveRequest): bool => $attendanceByEmployeeId->has($leaveRequest->employee_id)
-                && $attendanceByEmployeeId->get($leaveRequest->employee_id)?->clock_in !== null)
-            ->map(fn (LeaveRequest $leaveRequest): array => $this->recapLeaveRow($leaveRequest));
-
-        return $attendanceRows
-            ->concat($leaveRows)
             ->sortBy([
                 ['clock_in_sort', 'asc'],
                 ['name', 'asc'],
@@ -686,9 +721,8 @@ class AttendanceRecapController extends Controller
         ?AttendanceLog $attendanceLog,
         ?AttendanceException $attendanceException
     ): array {
-        $normalizedStatus = strtolower(trim((string) $attendance->status));
         $lateMinutes = (int) ($attendance->late_minutes ?? 0);
-        $isLate = $normalizedStatus === 'terlambat' || $lateMinutes > 0;
+        $isLate = $this->isLateAttendance($attendance);
         $hasDeviation = $attendanceException instanceof AttendanceException;
         $exceptionType = $hasDeviation ? strtolower(trim((string) $attendanceException->type)) : '';
         $isLateArrival = $exceptionType === 'late_arrival';
@@ -697,10 +731,11 @@ class AttendanceRecapController extends Controller
         $clockOut = $attendance->clock_out?->format('H:i') ?? '-';
         $attendanceStatus = $hasDeviation
             ? $this->attendanceExceptionPresenter->requestTypeLabel($attendanceException)
-            : ($isLate ? ($lateMinutes > 0 ? 'Late '.$lateMinutes.' Minutes' : 'Late Arrival') : 'On Time');
+            : ($isLate ? $this->attendanceDurationFormatter->lateLabel($lateMinutes) : 'On Time');
 
         return [
             'name' => $this->employeeDisplayName($attendance->employee),
+            'has_detail' => true,
             'clock_in' => $clockIn,
             'clock_in_sort' => $clockIn === '-' ? '99:99' : $clockIn,
             'clock_in_class' => $isLate ? 'text-danger' : 'text-success',
@@ -739,6 +774,7 @@ class AttendanceRecapController extends Controller
 
         return [
             'name' => $this->employeeDisplayName($leaveRequest->employee),
+            'has_detail' => true,
             'clock_in' => $leaveType,
             'clock_in_sort' => '99:99',
             'clock_in_class' => 'text-success',
@@ -770,22 +806,68 @@ class AttendanceRecapController extends Controller
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function recapEmptyAttendanceRow(Employee $employee): array
+    {
+        return [
+            'name' => $this->employeeDisplayName($employee),
+            'has_detail' => false,
+            'clock_in' => '-',
+            'clock_in_sort' => '99:99',
+            'clock_in_class' => '',
+            'clock_in_badge' => '',
+            'clock_out' => '-',
+            'clock_out_badge' => '',
+            'note' => '-',
+            'working_hours' => '-',
+            'modal_id' => '',
+            'attachment_badge' => '',
+            'location_name' => '-',
+            'location_address' => '-',
+            'map_url' => '',
+            'attendance_status' => '-',
+            'attendance_status_class' => '',
+            'deviation_title' => '-',
+            'deviation_intro' => '-',
+            'deviation_request_type' => '-',
+            'deviation_reason' => '-',
+            'deviation_time_variance' => '-',
+            'deviation_status' => '-',
+            'deviation_status_date' => '-',
+            'leave_type' => '-',
+            'leave_reason' => '-',
+            'leave_duration' => '-',
+            'leave_status' => '-',
+            'leave_status_date' => '-',
+            'leave_attachment_url' => '',
+        ];
+    }
+
     private function recapWorkingHoursLabel(Attendance $attendance): string
     {
+        if ($attendance->clock_in instanceof \DateTimeInterface && $attendance->clock_out instanceof \DateTimeInterface) {
+            $minutes = $this->attendanceWorkDurationCalculator->netMinutesBetween(
+                Carbon::instance($attendance->clock_in),
+                Carbon::instance($attendance->clock_out)
+            );
+
+            return $this->recapMinutesLabel($minutes);
+        }
+
         if (is_numeric($attendance->work_hours)) {
             $minutes = max(0, (int) round((float) $attendance->work_hours * 60));
 
             return $this->recapMinutesLabel($minutes);
         }
 
-        if ($attendance->clock_in instanceof \DateTimeInterface && $attendance->clock_out instanceof \DateTimeInterface) {
-            $minutes = (int) Carbon::instance($attendance->clock_in)
-                ->diffInMinutes(Carbon::instance($attendance->clock_out));
-
-            return $this->recapMinutesLabel($minutes);
-        }
-
         return '0 hours';
+    }
+
+    private function isLateAttendance(Attendance $attendance): bool
+    {
+        return (int) ($attendance->late_minutes ?? 0) > 0;
     }
 
     private function recapMinutesLabel(int $minutes): string
@@ -832,12 +914,18 @@ class AttendanceRecapController extends Controller
             ->whereNull('deleted_at')
             ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
             ->whereHas('user', function ($query): void {
-                $query->where('is_active', true);
+                $query
+                    ->where('is_active', true)
+                    ->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS)
+                    ->whereDoesntHave('roles', function ($roleQuery): void {
+                        $roleQuery->where('name', 'superuser');
+                    });
             })
             ->whereHas('deployment', function ($query) use ($todayDate): void {
                 $query
                     ->whereNull('deleted_at')
                     ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+                    ->whereRaw('LOWER(COALESCE(workplace, "")) <> ?', ['rnb jakarta'])
                     ->where(function ($query) use ($todayDate): void {
                         $query
                             ->whereNull('join_date')
@@ -981,5 +1069,23 @@ class AttendanceRecapController extends Controller
             ->implode('');
 
         return mb_strtoupper($initials !== '' ? $initials : 'U');
+    }
+
+    private function employeeAvatarUrl(mixed $profilePicturePath): string
+    {
+        $defaultAvatarUrl = asset('assets/default_user.jpg');
+        $profilePicturePath = trim((string) $profilePicturePath);
+
+        if ($profilePicturePath === '') {
+            return $defaultAvatarUrl;
+        }
+
+        if (Str::startsWith($profilePicturePath, ['http://', 'https://'])) {
+            return $profilePicturePath;
+        }
+
+        $publicPath = ltrim($profilePicturePath, '/');
+
+        return File::exists(public_path($publicPath)) ? asset($publicPath) : $defaultAvatarUrl;
     }
 }

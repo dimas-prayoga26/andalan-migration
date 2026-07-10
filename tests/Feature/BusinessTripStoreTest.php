@@ -35,6 +35,11 @@ class BusinessTripStoreTest extends TestCase
         $this->assertStringContainsString('name="accommodation_arrangement"', $createView);
         $this->assertStringContainsString('name="transportation_mode"', $createView);
         $this->assertStringContainsString('name="departure_time_window"', $createView);
+        $this->assertStringContainsString("Rule::requiredIf(\$request->input('transportation_arrangement') === 'booked_by_ga')", $controller);
+        $this->assertStringContainsString("Rule::requiredIf(\$request->input('accommodation_arrangement') === 'booked_by_ga')", $controller);
+        $this->assertStringNotContainsString("Rule::requiredIf(\$request->input('transportation_arrangement') === 'self_managed')", $controller);
+        $this->assertStringNotContainsString("Rule::requiredIf(\$request->input('accommodation_arrangement') === 'self_managed')", $controller);
+        $this->assertStringContainsString("'transportation_mode' => \$validated['transportation_mode'] ?? null", $controller);
         $this->assertStringContainsString('BusinessTrip::query()->create', $controller);
         $this->assertStringContainsString("'total_days' => \$totalDays", $controller);
         $this->assertStringContainsString("'approval_status' => 'pending'", $controller);

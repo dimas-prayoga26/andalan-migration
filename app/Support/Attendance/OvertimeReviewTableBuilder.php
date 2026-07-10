@@ -44,7 +44,7 @@ class OvertimeReviewTableBuilder
         $selectedMonth = $this->normalizeMonth($month);
         $selectedYear = $this->normalizeYear($year);
 
-        if (! is_string($companyId) || trim($companyId) === '') {
+        if ($context !== 'admin' && (! is_string($companyId) || trim($companyId) === '')) {
             return [
                 'selectedMonth' => $selectedMonth,
                 'selectedYear' => $selectedYear,
@@ -55,7 +55,12 @@ class OvertimeReviewTableBuilder
             ];
         }
 
-        $baseQuery = $this->baseQuery(trim($companyId), $selectedMonth, $selectedYear);
+        $baseQuery = $this->baseQuery(
+            is_string($companyId) && trim($companyId) !== '' ? trim($companyId) : null,
+            $selectedMonth,
+            $selectedYear,
+            $context === 'pic'
+        );
 
         if ($context === 'pic' && is_string($assignedByUserId) && trim($assignedByUserId) !== '') {
             $baseQuery->where('assigned_by', trim($assignedByUserId));
@@ -126,21 +131,22 @@ class OvertimeReviewTableBuilder
             ->all();
     }
 
-    private function baseQuery(string $companyId, int $month, int $year): Builder
+    private function baseQuery(?string $companyId, int $month, int $year, bool $includeCancelled = false): Builder
     {
         $periodStart = Carbon::create($year, $month, 1, 0, 0, 0, 'Asia/Jakarta')->startOfMonth();
         $periodEnd = $periodStart->copy()->endOfMonth();
 
-        return AttendanceOvertime::query()
-            ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled'])
+        $query = AttendanceOvertime::query()
             ->whereBetween('overtime_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
             ->whereHas('employee', function (Builder $query) use ($companyId): void {
                 $query
                     ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
                     ->whereHas('deployment', function (Builder $query) use ($companyId): void {
-                        $query
-                            ->where('current_company_id', $companyId)
-                            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+                        $query->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+
+                        if (is_string($companyId) && trim($companyId) !== '') {
+                            $query->where('current_company_id', trim($companyId));
+                        }
                     });
             })
             ->with([
@@ -155,6 +161,12 @@ class OvertimeReviewTableBuilder
             ])
             ->orderBy('overtime_date')
             ->orderBy('planned_start_time');
+
+        if (! $includeCancelled) {
+            $query->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled']);
+        }
+
+        return $query;
     }
 
     /**

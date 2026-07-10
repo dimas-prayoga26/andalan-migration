@@ -118,6 +118,11 @@
             color: #7f1d1d;
         }
 
+        .attendance-tag--leave {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
         .attendance-tag--empty-note {
             background: #f1f5f9;
             color: #475569;
@@ -126,6 +131,42 @@
         .attendance-attachment-link {
             color: #2563eb;
             font-weight: 600;
+        }
+
+        .attendance-detail-btn {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.5rem;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1d4ed8;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .attendance-detail-btn:hover {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .attendance-location-text {
+            display: inline-block;
+            max-width: 22rem;
+            white-space: normal;
+            color: #475569;
+            line-height: 1.35;
+        }
+
+        .attendance-detail-row {
+            display: grid;
+            grid-template-columns: minmax(7rem, 35%) 1fr;
+            gap: 0.75rem;
+            padding: 0.55rem 0;
+        }
+
+        .attendance-detail-row + .attendance-detail-row {
+            border-top: 1px solid #eef2f7;
         }
 
         #tableLogs.dataTable tbody td.dataTables_empty {
@@ -316,6 +357,7 @@
                                     <th class="mw-120">Date</th>
                                     <th class="mw-100">Clock In</th>
                                     <th class="mw-150">Clock Out</th>
+                                    <th class="mw-200">Location</th>
                                     <th class="mw-150">Note</th>
                                     <th class="mw-100">Work Hours</th>
                                     <th class="mw-150">Attachment</th>
@@ -328,6 +370,52 @@
             </div>
         </div>
         <!-- End - logs -->
+    </div>
+</div>
+<div class="modal fade" id="attendanceReportDetailModal" tabindex="-1" aria-labelledby="attendanceReportDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="attendanceReportDetailModalLabel">Attendance Details</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="attendance-detail-row">
+                    <span class="text-muted">Date</span>
+                    <span id="attendanceReportDetailDate" class="fw-semibold">-</span>
+                </div>
+                <div class="attendance-detail-row">
+                    <span class="text-muted">Location</span>
+                    <span>
+                        <span id="attendanceReportDetailLocationName" class="fw-semibold">-</span><br>
+                        <span id="attendanceReportDetailLocationAddress" class="text-muted">-</span>
+                    </span>
+                </div>
+                <div class="attendance-detail-row">
+                    <span class="text-muted">Attendance Status</span>
+                    <span id="attendanceReportDetailStatus" class="fw-semibold">-</span>
+                </div>
+                <div class="attendance-detail-row">
+                    <span class="text-muted">Clock In</span>
+                    <span id="attendanceReportDetailClockIn" class="fw-semibold">-</span>
+                </div>
+                <div class="attendance-detail-row">
+                    <span class="text-muted">Clock Out</span>
+                    <span id="attendanceReportDetailClockOut" class="fw-semibold">-</span>
+                </div>
+                <div class="attendance-detail-row">
+                    <span class="text-muted">Working Hours</span>
+                    <span id="attendanceReportDetailWorkingHours" class="fw-semibold">-</span>
+                </div>
+                <div id="attendanceReportDetailAttachmentRow" class="attendance-detail-row d-none">
+                    <span class="text-muted">Attachment</span>
+                    <a id="attendanceReportDetailAttachment" href="#" target="_blank" rel="noopener" class="attendance-attachment-link">View Attachment</a>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
     </div>
 </div>
 <!-- Login Sessions table temporarily removed -->
@@ -387,6 +475,52 @@
                 }
             }
 
+            function sanitizeAttendanceBadgeTone(tone) {
+                var normalizedTone = String(tone || '').trim();
+                var allowedTones = ['success', 'danger', 'warning', 'info', 'secondary', 'light', 'primary'];
+
+                return allowedTones.indexOf(normalizedTone) !== -1 ? normalizedTone : '';
+            }
+
+            function renderAdminAttendanceBadge(value, tone) {
+                var safeTone = sanitizeAttendanceBadgeTone(tone);
+                var displayValue = value && String(value).trim() !== '' ? String(value).trim() : '-';
+
+                if (!safeTone) {
+                    return '<span class="fw-bold">' + escapeHtml(displayValue) + '</span>';
+                }
+
+                return '<span class="badge badge-sm badge-' + safeTone + ' light fw-bold">' + escapeHtml(displayValue) + '</span>';
+            }
+
+            function clockInBadgeTone(rowData) {
+                var rowType = rowData && rowData.row_type ? String(rowData.row_type) : '';
+
+                if (rowType === 'national_holiday' || rowType === 'joint_leave' || rowType === 'weekend') {
+                    return 'secondary';
+                }
+
+                if (rowType === 'leave') {
+                    return 'info';
+                }
+
+                if (rowType === 'attendance') {
+                    return rowData && rowData.is_late ? 'danger' : 'success';
+                }
+
+                return '';
+            }
+
+            function clockOutBadgeTone(rowData) {
+                var rowType = rowData && rowData.row_type ? String(rowData.row_type) : '';
+
+                if (rowType === 'attendance' || rowType === 'leave') {
+                    return 'light';
+                }
+
+                return '';
+            }
+
             var tableLogs = function(){
                 if ($('#tableLogs').length === 0) {
                     return;
@@ -396,6 +530,7 @@
                     { data: 'attendance_date', defaultContent: '-' },
                     { data: 'check_in', defaultContent: '' },
                     { data: 'check_out', defaultContent: '' },
+                    { data: 'location_display', defaultContent: '-' },
                     { data: 'note', defaultContent: '-' },
                     { data: 'work_hours', defaultContent: '-' },
                     { data: 'attachment', defaultContent: '-' }
@@ -419,51 +554,66 @@
                         render: function (data, type, rowData) {
                             var rowType = rowData && rowData.row_type ? String(rowData.row_type) : '';
                             if (rowType === 'national_holiday') {
-                                return '<span class="attendance-tag attendance-tag--holiday">' + (data || 'Libur Nasional') + '</span>';
+                                return renderAdminAttendanceBadge(data || 'Libur Nasional', clockInBadgeTone(rowData));
                             }
 
                             if (rowType === 'joint_leave') {
-                                return '<span class="attendance-tag attendance-tag--joint">' + (data || 'Cuti Bersama') + '</span>';
+                                return renderAdminAttendanceBadge(data || 'Cuti Bersama', clockInBadgeTone(rowData));
                             }
 
                             if (rowType === 'weekend') {
-                                return '<span class="attendance-tag attendance-tag--weekend">' + (data || 'Weekend / Day Off') + '</span>';
+                                return renderAdminAttendanceBadge(data || 'Weekend / Day Off', clockInBadgeTone(rowData));
+                            }
+
+                            if (rowType === 'leave') {
+                                return renderAdminAttendanceBadge(data || 'Leave', clockInBadgeTone(rowData));
+                            }
+
+                            if (rowType === 'alpha' || rowType === 'pending') {
+                                return '-';
                             }
 
                             if (data) {
-                                var timeParts = String(data).split(':');
-                                var checkInHour = parseInt(timeParts[0], 10);
-                                var checkInMinute = parseInt(timeParts[1], 10);
-                                var checkInTotalMinutes = (checkInHour * 60) + checkInMinute;
-
-                                if (!Number.isNaN(checkInTotalMinutes) && checkInTotalMinutes > officeStartTotalMinutes) {
-                                    return '<span class="text-danger fw-semibold">' + data + '</span>';
-                                }
-
-                                return '<span class="text-success fw-semibold">' + data + '</span>';
+                                return renderAdminAttendanceBadge(data, clockInBadgeTone(rowData));
                             }
 
-                            return '<span class="badge-attendance-empty">Belum Absen Masuk</span>';
+                            return renderAdminAttendanceBadge('Belum Absen Masuk', 'danger');
                         }
                     },
                     {
                         targets: checkOutColumnIndex,
                         render: function (data, type, rowData) {
                             var rowType = rowData && rowData.row_type ? String(rowData.row_type) : '';
-                            if (rowType === 'national_holiday' || rowType === 'joint_leave' || rowType === 'weekend') {
+                            if (rowType === 'national_holiday' || rowType === 'joint_leave' || rowType === 'weekend' || rowType === 'leave' || rowType === 'alpha' || rowType === 'pending') {
+                                if (rowType === 'leave') {
+                                    return renderAdminAttendanceBadge('-', clockOutBadgeTone(rowData));
+                                }
+
                                 return '-';
                             }
 
                             if (data) {
-                                return data;
+                                return renderAdminAttendanceBadge(data, clockOutBadgeTone(rowData));
                             }
 
-                            return '<span class="badge-attendance-empty">Belum Absen Pulang</span>';
+                            return renderAdminAttendanceBadge('-', clockOutBadgeTone(rowData));
                         }
                     },
                     {
                         targets: 3,
                         render: function (data) {
+                            var locationValue = data && String(data).trim() !== '' ? String(data).trim() : '-';
+
+                            return '<span class="attendance-location-text">' + escapeHtml(locationValue) + '</span>';
+                        }
+                    },
+                    {
+                        targets: 4,
+                        render: function (data) {
+                            if (data === 'Alpha') {
+                                return escapeHtml('Alpha');
+                            }
+
                             if (data && String(data).trim() !== '') {
                                 return escapeHtml(data);
                             }
@@ -472,23 +622,40 @@
                         }
                     },
                     {
-                        targets: 4,
+                        targets: 5,
                         render: function (data) {
                             return data || '-';
                         }
                     },
                     {
-                        targets: 5,
+                        targets: 6,
                         orderable: false,
                         searchable: false,
-                        render: function (data) {
+                        render: function (data, type, rowData) {
+                            var actionHtml = '';
+
+                            if (rowData && rowData.has_detail) {
+                                actionHtml += '<button type="button" class="attendance-detail-btn me-2" data-bs-toggle="modal" data-bs-target="#attendanceReportDetailModal"'
+                                    + detailDataAttribute('detail-date', rowData.attendance_date)
+                                    + detailDataAttribute('detail-location-name', rowData.location_name)
+                                    + detailDataAttribute('detail-location-address', rowData.location_address)
+                                    + detailDataAttribute('detail-status', rowData.attendance_status)
+                                    + detailDataAttribute('detail-status-class', rowData.attendance_status_class)
+                                    + detailDataAttribute('detail-clock-in', rowData.check_in)
+                                    + detailDataAttribute('detail-clock-in-class', rowData.clock_in_class)
+                                    + detailDataAttribute('detail-clock-out', rowData.check_out)
+                                    + detailDataAttribute('detail-working-hours', rowData.work_hours)
+                                    + detailDataAttribute('detail-attachment-url', data)
+                                    + ' aria-label="View attendance details"><i class="fa-regular fa-file-lines"></i></button>';
+                            }
+
                             if (data && String(data).trim() !== '') {
                                 var attachmentUrl = escapeHtml(data);
 
-                                return '<a href="' + attachmentUrl + '" target="_blank" rel="noopener" class="attendance-attachment-link">View Attachment</a>';
+                                actionHtml += '<a href="' + attachmentUrl + '" target="_blank" rel="noopener" class="attendance-attachment-link">View Attachment</a>';
                             }
 
-                            return '-';
+                            return actionHtml !== '' ? actionHtml : '-';
                         }
                     }
                 ];
@@ -511,6 +678,7 @@
                     lengthChange: false,
                     paging: true,
                     bInfo: true,
+                    order: [[0, 'desc']],
                     columns: attendanceColumns,
                     columnDefs: attendanceColumnDefs,
                     language: {
@@ -559,6 +727,17 @@
                     .replace(/>/g, '&gt;')
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, '&#039;');
+            }
+
+            function detailDataAttribute(name, value) {
+                return ' data-' + name + '="' + escapeHtml(value || '') + '"';
+            }
+
+            function setText(id, value) {
+                var element = document.getElementById(id);
+                if (element) {
+                    element.textContent = value && String(value).trim() !== '' ? value : '-';
+                }
             }
 
             function renderAttendanceDateTime() {
@@ -670,6 +849,38 @@
                     window.location.href = exportUrl.toString();
                 });
             }
+
+            $(document).on('click', '[data-bs-target="#attendanceReportDetailModal"]', function () {
+                var button = this;
+
+                setText('attendanceReportDetailDate', button.dataset.detailDate);
+                setText('attendanceReportDetailLocationName', button.dataset.detailLocationName);
+                setText('attendanceReportDetailLocationAddress', button.dataset.detailLocationAddress);
+                setText('attendanceReportDetailStatus', button.dataset.detailStatus);
+                setText('attendanceReportDetailClockIn', button.dataset.detailClockIn);
+                setText('attendanceReportDetailClockOut', button.dataset.detailClockOut);
+                setText('attendanceReportDetailWorkingHours', button.dataset.detailWorkingHours);
+
+                var status = document.getElementById('attendanceReportDetailStatus');
+                if (status) {
+                    status.classList.remove('text-success', 'text-danger', 'text-warning');
+                    status.classList.add(button.dataset.detailStatusClass || 'text-success');
+                }
+
+                var clockIn = document.getElementById('attendanceReportDetailClockIn');
+                if (clockIn) {
+                    clockIn.classList.remove('text-success', 'text-danger');
+                    clockIn.classList.add(button.dataset.detailClockInClass || 'text-success');
+                }
+
+                var attachmentRow = document.getElementById('attendanceReportDetailAttachmentRow');
+                var attachment = document.getElementById('attendanceReportDetailAttachment');
+                var attachmentUrl = button.dataset.detailAttachmentUrl || '';
+                if (attachmentRow && attachment) {
+                    attachmentRow.classList.toggle('d-none', attachmentUrl === '');
+                    attachment.href = attachmentUrl || '#';
+                }
+            });
 
             tableLogs();
 

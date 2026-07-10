@@ -10,6 +10,10 @@ use App\Http\Requests\Attendance\CurrentAttendanceIpRequest;
 use App\Http\Requests\Attendance\StoreAttendanceExceptionRequest;
 use App\Http\Requests\Attendance\StoreAttendanceRequest;
 use App\Http\Requests\Attendance\UpdateAttendanceRequest;
+use App\Services\Attendance\AttendanceCalendarEventService;
+use App\Services\Attendance\AttendanceMutationService;
+use App\Support\Attendance\AttendanceCalendarPresenter;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
@@ -21,6 +25,10 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertInstanceOf(AttendanceController::class, app(AttendanceController::class));
         $this->assertInstanceOf(DashboardController::class, app(DashboardController::class));
         $this->assertInstanceOf(AttendanceReportController::class, app(AttendanceReportController::class));
+        $this->assertSame(8.0, app(AttendanceMutationService::class)->calculateWorkHours(
+            Carbon::parse('2026-07-07 08:00:00', 'Asia/Jakarta'),
+            Carbon::parse('2026-07-07 17:00:00', 'Asia/Jakarta')
+        ));
 
         $request = new StoreAttendanceExceptionRequest;
         $this->assertSame(
@@ -122,6 +130,26 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString('id="attendanceExceptionCardButton"', $attendanceCardsView);
         $this->assertStringContainsString('id="attendanceClockInValue"', $attendanceCardsView);
         $this->assertStringContainsString('id="attendanceClockOutValue"', $attendanceCardsView);
+        $this->assertStringContainsString('Date &amp; Time', $attendanceCardsView);
+        $this->assertStringContainsString("format('d M Y | H:i:s')", $attendanceCardsView);
+        $this->assertStringContainsString("month: 'short'", $attendanceCardsView);
+        $this->assertStringContainsString("var formattedCardMonth = String(cardDateMap.month || '').replace('.', '');", $attendanceCardsView);
+        $this->assertStringContainsString("var formattedDateTime = cardDateMap.day + ' ' + formattedCardMonth + ' ' + cardDateMap.year + ' | ' + formattedTime;", $attendanceCardsView);
+        $this->assertStringContainsString("var modalDateTime = modalDate + ' - ' + formattedTime;", $attendanceCardsView);
+        $this->assertStringContainsString('clockInCurrentDateElement.textContent = modalDateTime;', $attendanceCardsView);
+        $this->assertStringContainsString("clockInCurrentDateElement.classList.add(totalMinutes <= lateThresholdTotalMinutes ? 'text-success' : 'text-danger');", $attendanceCardsView);
+        $this->assertStringContainsString('clockOutCurrentDateElement.textContent = modalDateTime;', $attendanceCardsView);
+        $this->assertStringContainsString("clockOutCurrentDateElement.classList.add(isWithinWorkRange ? 'text-warning' : 'text-black');", $attendanceCardsView);
+        $this->assertStringNotContainsString('<p class="fs-14 mb-2">Date</p>', $attendanceCardsView);
+        $this->assertStringContainsString('id="clockInStatusText">Please wait</p>', $attendanceCardsView);
+        $this->assertStringContainsString('id="clockOutStatusText">Please wait</p>', $attendanceCardsView);
+        $this->assertStringContainsString('id="clockInSubmitBtn" disabled>Clock In</button>', $attendanceCardsView);
+        $this->assertStringContainsString('id="clockOutSubmitBtn" disabled>Clock Out</button>', $attendanceCardsView);
+        $this->assertStringContainsString("setVerificationMessage(context, 'Verification successful', 'success');", $attendanceCardsView);
+        $this->assertStringContainsString('checkOnsiteLocation(context);', $attendanceCardsView);
+        $this->assertStringNotContainsString('Mulai Verifikasi', $attendanceCardsView);
+        $this->assertStringContainsString('fa-solid fa-calendar-xmark fs-24 text-secondary', $attendanceCardsView);
+        $this->assertStringNotContainsString('viewBox="0 0 51 51"', $attendanceCardsView);
         $this->assertStringContainsString('window.upsertAttendanceHistoryEvent(response.calendar_event);', $attendanceCardsView);
 
         $profileIndexView = File::get(resource_path('views/staff_attendance/layouts/profile-index.blade.php'));
@@ -176,6 +204,9 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString('.app-fullcalendar .fc-button-primary:not(:disabled).fc-button-active', $activityScheduleView);
         $this->assertStringContainsString('.app-fullcalendar .fc-prev-button', $activityScheduleView);
         $this->assertStringContainsString('.app-fullcalendar .fc-today-button', $activityScheduleView);
+        $this->assertStringContainsString('Activity Calendar', $activityScheduleView);
+        $this->assertStringNotContainsString('Google Calendar', $activityScheduleView);
+        $this->assertStringNotContainsString('calendar-date-filter', $activityScheduleView);
         $this->assertStringContainsString("right: 'dayGridMonth,dayGridWeek,dayGridDay,listSchedule'", $fullCalendarInit);
         $this->assertStringContainsString('firstDay: 1,', $fullCalendarInit);
         $this->assertStringContainsString("dayHeaderFormat: { weekday: 'short' }", $fullCalendarInit);
@@ -183,5 +214,25 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString("month: 'Month'", $fullCalendarInit);
         $this->assertStringContainsString("week: 'Week'", $fullCalendarInit);
         $this->assertStringContainsString("day: 'Day'", $fullCalendarInit);
+        $this->assertStringNotContainsString('mountDateFilterInToolbar', $fullCalendarInit);
+        $this->assertStringNotContainsString('bindDateFilter', $fullCalendarInit);
+    }
+
+    public function test_attendance_calendar_late_boundary_and_modal_label_use_hours_and_minutes(): void
+    {
+        $calendarEventService = app(AttendanceCalendarEventService::class);
+        $lateMinutesMethod = new \ReflectionMethod(AttendanceCalendarEventService::class, 'calculateClockInLateMinutes');
+        $lateMinutesMethod->setAccessible(true);
+
+        $this->assertSame(0, $lateMinutesMethod->invoke($calendarEventService, '2026-07-09', '08:00', '08:00'));
+        $this->assertSame(1, $lateMinutesMethod->invoke($calendarEventService, '2026-07-09', '08:01', '08:00'));
+        $this->assertSame(375, $lateMinutesMethod->invoke($calendarEventService, '2026-07-09', '14:15', '08:00'));
+
+        $presenter = app(AttendanceCalendarPresenter::class);
+
+        $this->assertSame(
+            'Late 6 Hours 15 Minutes',
+            $presenter->attendanceStatusLabel('late', 'Late 6 Hours 15 Minutes', 375)
+        );
     }
 }

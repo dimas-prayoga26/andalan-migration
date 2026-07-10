@@ -356,8 +356,11 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
         $dataTablesJsPath = public_path('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js');
         $dataTablesJsVersion = file_exists($dataTablesJsPath) ? filemtime($dataTablesJsPath) : time();
+        $apexChartsPath = public_path('assets/vendor/apexcharts/dist/apexcharts.min.js');
+        $apexChartsVersion = file_exists($apexChartsPath) ? filemtime($apexChartsPath) : time();
     @endphp
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
+    <script src="{{ asset('assets/vendor/apexcharts/dist/apexcharts.min.js') }}?v={{ $apexChartsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
 		(function($) {
@@ -742,10 +745,19 @@
 				labels: [''],
 				};
 
-				var chart = new ApexCharts(document.querySelector("#radialBar"), options);
+				var radialBarElement = document.querySelector("#radialBar");
+				if (!radialBarElement || typeof ApexCharts === 'undefined') {
+					return;
+				}
+
+				var chart = new ApexCharts(radialBarElement, options);
 				chart.render();
 			}
 			var donutChart = function(){
+				if (!$.fn.peity) {
+					return;
+				}
+
 				$("span.donut").peity("donut", {
 					width: "90",
 					height: "90"

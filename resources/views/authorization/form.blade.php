@@ -34,6 +34,7 @@
                 <p class="mb-0 text-muted fs-13">Lengkapi data user, profile, identity, deployment, dan PIC.</p>
             </div>
             <div class="form-check form-switch">
+                <input type="hidden" name="is_active" value="0">
                 <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" @checked(old('is_active', $employee?->user?->is_active ?? true))>
                 <label class="form-check-label fw-semibold" for="is_active">Status Karyawan</label>
             </div>
@@ -128,12 +129,22 @@
 
                 <div class="col-md-3">
                     <label class="form-label">Perusahaan</label>
-                    <select name="current_company_id" class="default-select form-control">
+                    <select id="dataEmployeeCompany" name="current_company_id" class="default-select form-control">
                         <option value="">Open this select menu</option>
                         @foreach ($companies as $company)
                             <option value="{{ $company->id }}" @selected(old('current_company_id', $employee?->deployment?->current_company_id) === $company->id)>{{ $company->name }}</option>
                         @endforeach
                     </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Branch / Office</label>
+                    <select id="dataEmployeeOfficeLocation" name="current_office_location_id" class="form-control @error('current_office_location_id') is-invalid @enderror">
+                        <option value="">Pilih branch / office</option>
+                        @foreach ($officeLocationOptions as $officeLocation)
+                            <option value="{{ $officeLocation['id'] }}" @selected((string) old('current_office_location_id', $employee?->deployment?->current_office_location_id ?? '') === $officeLocation['id'])>{{ $officeLocation['label'] }}</option>
+                        @endforeach
+                    </select>
+                    @error('current_office_location_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Divisi</label>
@@ -162,7 +173,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-3">
                     <label class="form-label">PIC / Penanggung Jawab</label>
                     <select name="pic_employee_id" class="default-select form-control">
                         <option value="">Open this select menu</option>
@@ -181,10 +192,6 @@
                 <div class="col-md-3">
                     <label class="form-label">End Contract</label>
                     <input type="text" name="resignation_date" class="form-control js-data-employee-date" value="{{ old('resignation_date', $formatDate($employee?->deployment?->resignation_date)) }}" placeholder="dd/mm/yyyy" autocomplete="off">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Workplace / Domicile</label>
-                    <textarea name="workplace" class="form-control" rows="1">{{ old('workplace', $employee?->deployment?->workplace) }}</textarea>
                 </div>
             </div>
         </div>

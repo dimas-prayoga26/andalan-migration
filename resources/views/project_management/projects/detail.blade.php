@@ -644,6 +644,12 @@
     $(function () {
         var projectTaskDeleteUrl = '';
 
+        if (typeof moment !== 'undefined') {
+            moment.updateLocale('en', {
+                week: { dow: 1 },
+            });
+        }
+
         var parseProjectChartData = function (value) {
             try {
                 var parsedValue = JSON.parse(value || '[]');
@@ -864,7 +870,7 @@
 
             $.ajax({
                 url: form.attr('action'),
-                type: formData.get('_method') || 'POST',
+                type: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,

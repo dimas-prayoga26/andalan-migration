@@ -7,6 +7,61 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-07-09 (Kamis)
+- Menambahkan `Staff submitted` pada detail overtime PIC serta menghubungkan task overtime dengan `overtime_id`.
+- Membuat overtime PIC otomatis membuat `project_tasks` untuk staff yang di-assign dengan status `pending`, priority `high`, dan assigned by PIC.
+- Menambahkan modal detail task PIC, menjaga `+ Add Task` tetap aktif setelah clock-out/cancelled, dan membatasi delete untuk task overtime.
+- Menyesuaikan Attendance: verifikasi otomatis `Please wait`, tombol clock-in/out aktif setelah `Verification successful`, timezone `Asia/Jakarta`, late mulai `08:01`, serta format late jam-menit.
+- Merapikan Attendance Recap, Admin Attendance Overview, Timesheet & Reporting icons, dan limit `Today's Early Birds`/`Today's Running Late` maksimal 5.
+- Mengubah `#project-grid-pane` menjadi kanban statis, menyeragamkan ukuran card, mengaktifkan drag and drop, serta memperbaiki dropzone/mirror drag agar perpindahan card lebih natural.
+- Detail: `docs/dev-log/2026-07-09-1530-ringkasan-perubahan-overtime-attendance-project-task.md`.
+
+### 2026-07-08 (Rabu)
+- Menyesuaikan hitungan cuti bersama 2026 agar memakai tanggal sistem dan diterapkan pada Staff, Admin, serta PIC Leave.
+- Merapikan Leave Summary: tombol request time off, ikon Eligibility/Tracker, week start Senin, dan margin bawah kartu.
+- Mengubah field Business Trip booking agar kondisional berdasarkan opsi booking/self managed.
+- Memperbaiki Attendance Overview: `Attendance Rate`, `On Time Rate`, `Lateness Rate`, dan `Days Worked` memakai logika dinamis sesuai kalender kerja.
+- Mengubah summary card Overtime menjadi slider satu baris, memperbarui ikon/warna, dan menahan `Estimated Extra Earnings` sementara di `Rp 0`.
+- Menambahkan approved time pada overtime serta mengubah flow PIC verification agar jam final tersimpan di `approved_start_time`/`approved_end_time`.
+- Mengatur `Completed & Locked` dan filter `Completed` overtime agar berbasis lifecycle `task_hours_verification = verified`.
+- Menambahkan toleransi clock-in/clock-out overtime 30 menit dari jadwal planned.
+- Menampilkan planned time/duration sebagai strikethrough dan approved time/duration sebagai nilai normal pada detail overtime completed.
+- Detail: `docs/dev-log/2026-07-08-1515-ringkasan-perubahan-attendance-leave-business-trip-overtime.md`.
+
+### 2026-07-07 (Selasa)
+- Merombak office location menjadi global location yang tidak lagi terikat company.
+- Mengalihkan geofencing attendance agar membaca `employee_deployments.current_office_location_id`.
+- Menyesuaikan attendance rule, seeder, Data Employee, Admin Attendance, dan PIC Attendance dengan konsep lokasi kerja per employee.
+- Menyamakan Attendance Confirmation pada Dashboard dengan menu Attendance: lokasi di luar radius tidak memblokir Clock In/Clock Out setelah GPS dan Telegram valid.
+- Merapikan scope staff aktif, hide super admin, urutan company/PIC/nama, profile default, dan tampilan attendance logs harian dengan fallback `-`.
+- Detail: `docs/dev-log/2026-07-07-0930-ringkasan-perubahan-office-location-attendance-employee.md`.
+
+### 2026-07-06 (Senin)
+- Menambahkan dropdown Branch / Office pada create/update Data Employee dan menyinkronkannya dengan office location untuk geofencing.
+- Menyelaraskan 18 staff aktif hasil import legacy dengan company, branch/workplace, office location, deployment, dan position terbaru.
+- Menonaktifkan akun legacy yang tidak lagi termasuk daftar staff terbaru beserta assignment PIC aktifnya.
+- Memperbaiki cakupan PIC Overtime agar assignment supervisor dapat berlaku lintas company.
+- Merapikan email profile dan chart Attendance serta Project Management pada tampilan mobile.
+- Membuat attachment Sick Leave opsional dan menghapus konflik handler yang menyebabkan file picker diproses dua kali.
+- Mencatat bahwa branch saat ini memakai `employee_deployments.workplace`; form Branch terpisah pada create/update employee belum diimplementasikan.
+- Detail: `docs/dev-log/2026-07-06-1018-sinkronisasi-staff-pic-chart-dan-leave.md`.
+- Detail: `docs/dev-log/2026-07-06-1047-data-employee-branch-office.md`.
+- Detail: `docs/dev-log/2026-07-06-1050-fix-parse-error-branch-office.md`.
+- Detail: `docs/dev-log/2026-07-06-1053-normalisasi-label-office-ke-kota.md`.
+- Detail: `docs/dev-log/2026-07-06-1105-admin-attendance-overview-18-staff.md`.
+
+### 2026-07-02 (Kamis)
+- Menyempurnakan Data Employee dan Authorization dengan pencarian employee, pagination server-side, scope akses administrator/COO, serta assignment permission berbasis position.
+- Menambahkan menu Task pada PIC Attendance untuk melihat task staff berdasarkan assignment PIC aktif.
+- Merapikan multiple position, assignment PIC, akun RNB tambahan, import user legacy, foto profil employee, dan header profile aplikasi.
+- Menyesuaikan geofencing agar memakai office location employee serta menambahkan titik kantor RNB Jakarta beserta rules attendance-nya.
+- Menambahkan branding logo berdasarkan host/domain untuk aplikasi dan halaman login.
+- Merapikan Dashboard, Attendance Overview, Overtime, dan Project Management agar lebih responsif pada mobile.
+- Memperbaiki denominator Working Days bulanan pada Admin dan PIC Attendance Recap.
+- Menambahkan service accrual saldo cuti tahunan, pengurangan kuota berdasarkan cuti bersama, validasi masa kerja, dan scheduler sinkronisasi bulanan.
+- Mengganti README bawaan Laravel dengan dokumentasi setup project dan menambah test untuk seluruh area terkait.
+- Detail: `docs/dev-log/2026-07-02-1545-ringkasan-perubahan-harian.md`.
+
 ### 2026-07-01 (Rabu)
 - Mengubah `+ Add Overtime` PIC agar tidak otomatis membuat data `project_tasks`; staff yang di-assign wajib membuat task lemburnya sendiri.
 - Membatasi `+ Add Task` staff hanya setelah `Overtime Clock In` dan sebelum `Overtime Clock Out`, termasuk validasi backend.
@@ -218,6 +273,18 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-07-08
+- `2026-07-08-1515-ringkasan-perubahan-attendance-leave-business-trip-overtime.md`
+
+### 2026-07-07
+- `2026-07-07-0930-ringkasan-perubahan-office-location-attendance-employee.md`
+
+### 2026-07-06
+- `2026-07-06-1018-sinkronisasi-staff-pic-chart-dan-leave.md`
+
+### 2026-07-02
+- `2026-07-02-1545-ringkasan-perubahan-harian.md`
 
 ### 2026-07-01
 - `2026-07-01-0126-perbaikan-flow-overtime-task-clock-in.md`

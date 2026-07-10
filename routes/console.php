@@ -9,9 +9,8 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('leave-balances:sync')
-    ->dailyAt('00:10')
+    ->monthlyOn(1, '00:10')
     ->timezone('Asia/Jakarta')
-    ->when(static fn (): bool => now('Asia/Jakarta')->day === 1)
     ->withoutOverlapping();
 
 Schedule::command('business-trips:lifecycle:sync')

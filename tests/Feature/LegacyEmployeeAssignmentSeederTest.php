@@ -17,7 +17,7 @@ class LegacyEmployeeAssignmentSeederTest extends TestCase
         $this->assertSame(['Supervisor'], $additionalPositions->invoke($seeder, [
             'email' => 'lukman@rnbmanagement.com',
         ]));
-        $this->assertSame(['Supervisor'], $additionalPositions->invoke($seeder, [
+        $this->assertSame(['Administrator', 'Supervisor'], $additionalPositions->invoke($seeder, [
             'email' => 'leonieputri7@gmail.com',
         ]));
         $this->assertTrue($isExcludedLegacyUser->invoke($seeder, [
@@ -30,17 +30,30 @@ class LegacyEmployeeAssignmentSeederTest extends TestCase
         $this->assertIsString($legacySeeder);
         $this->assertStringContainsString('$this->seedExplicitRnbUsers();', $legacySeeder);
         $this->assertStringContainsString('$this->syncRnbJakartaOfficeAssignments();', $legacySeeder);
+        $this->assertStringContainsString('$this->syncLatestStaffDeployments();', $legacySeeder);
+        $this->assertStringContainsString('$this->deactivateRemovedLegacyStaff();', $legacySeeder);
         $this->assertStringContainsString('RNB_JAKARTA_OFFICE', $legacySeeder);
+        $this->assertStringContainsString('LATEST_STAFF_DEPLOYMENTS', $legacySeeder);
+        $this->assertStringContainsString('DEACTIVATED_LEGACY_STAFF_EMAILS', $legacySeeder);
         $this->assertStringContainsString('Jl. Bhineka Blok Bhineka No.26', $legacySeeder);
         $this->assertStringContainsString("'latitude' => -6.3636699", $legacySeeder);
         $this->assertStringContainsString("'longitude' => 106.8016359", $legacySeeder);
         $this->assertStringContainsString("'lukman@rnbmanagement.com'", $legacySeeder);
         $this->assertStringContainsString("'name' => 'Rully Priyatno'", $legacySeeder);
         $this->assertStringContainsString("'name' => 'Hilmi Ulwan'", $legacySeeder);
+        $this->assertStringContainsString("'workplace' => 'RNB Branch Jakarta'", $legacySeeder);
+        $this->assertStringContainsString("'workplace' => 'RNB Branch Jogja'", $legacySeeder);
+        $this->assertStringContainsString("'company' => 'Niskala'", $legacySeeder);
+        $this->assertStringContainsString("'company' => 'RNE'", $legacySeeder);
+        $this->assertStringContainsString("'company' => 'TMS'", $legacySeeder);
+        $this->assertStringContainsString("'airarizqi22@gmail.com'", $legacySeeder);
         $this->assertStringContainsString("'workplace' => 'RNB Jakarta'", $legacySeeder);
         $this->assertStringContainsString("->where('is_primary', false)", $legacySeeder);
         $this->assertStringContainsString("->whereNotIn('position_id', \$positionIds->all())", $legacySeeder);
         $this->assertStringContainsString("->orderBy('created_at')", $legacySeeder);
+        $this->assertStringContainsString("->with('user:id,email,company_id,is_active,created_at')", $legacySeeder);
+        $this->assertStringContainsString('$joinDate = $this->userCreatedAtJoinDate($employee)', $legacySeeder);
+        $this->assertStringContainsString('private function userCreatedAtJoinDate(Employee $employee): ?string', $legacySeeder);
     }
 
     public function test_self_and_lukman_pic_assignments_are_registered(): void

@@ -107,7 +107,7 @@
     <div class="card-header py-0">
         <ul class="nav nav-underline authorization-tabs gap-3">
             <li class="nav-item">
-                <a class="nav-link py-3 px-1" href="{{ route('authorization') }}">List Employee</a>
+                <a class="nav-link py-3 px-1" href="{{ route('authorization') }}">Employee List</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link py-3 px-1 active" href="{{ route('authorization.access-menus') }}">Assign Permission</a>
@@ -120,7 +120,7 @@
     <div class="card-header border-0 flex-wrap gap-3">
         <div>
             <h4 class="card-title mb-1">Assign Permission</h4>
-            <p class="mb-0 text-muted fs-13">Assign position yang boleh mengakses setiap menu.</p>
+            <p class="mb-0 text-muted fs-13">Assign positions that can access each menu.</p>
         </div>
         <button type="submit" form="authorizationAccessForm" class="btn btn-primary btn-sm">
             <i class="fa-solid fa-floppy-disk me-2"></i>Save Access

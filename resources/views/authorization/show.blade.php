@@ -1,11 +1,11 @@
 @extends('layouts.main')
 
-@section('title', 'Detail Data Employee')
-@section('navbarTitle', 'Detail Data Employee')
+@section('title', 'Employee Details')
+@section('navbarTitle', 'Employee Details')
 
 @section('content')
 @include('layouts.breadcrumb', [
-    'title' => 'Detail Data Employee',
+    'title' => 'Employee Details',
     'current' => $employee->profile?->name ?? 'Employee',
     'homeRoute' => 'dashboard',
 ])
@@ -34,6 +34,10 @@
         </div>
     </div>
     <div class="card-body">
+        @if (session('status'))
+            <div class="alert alert-success mb-4" role="alert">{{ session('status') }}</div>
+        @endif
+
         <div class="row g-4">
             <div class="col-lg-4">
                 <h5 class="mb-3">User</h5>
@@ -46,8 +50,8 @@
                 <h5 class="mb-3">Identity</h5>
                 <p class="mb-1"><span class="text-muted">NIK:</span> {{ $employee->identity?->nik ?? '-' }}</p>
                 <p class="mb-1"><span class="text-muted">NPWP:</span> {{ $employee->identity?->npwp ?? '-' }}</p>
-                <p class="mb-1"><span class="text-muted">BPJS Ketenagakerjaan:</span> {{ $employee->identity?->bpjs_ketenagakerjaan ?? '-' }}</p>
-                <p class="mb-1"><span class="text-muted">BPJS Kesehatan:</span> {{ $employee->identity?->bpjs_kesehatan ?? '-' }}</p>
+                <p class="mb-1"><span class="text-muted">Employment BPJS:</span> {{ $employee->identity?->bpjs_ketenagakerjaan ?? '-' }}</p>
+                <p class="mb-1"><span class="text-muted">Healthcare BPJS:</span> {{ $employee->identity?->bpjs_kesehatan ?? '-' }}</p>
             </div>
             <div class="col-lg-4">
                 <h5 class="mb-3">Deployment</h5>

@@ -1,7 +1,7 @@
 @extends('layouts.main')
 
-@section('title', $mode === 'edit' ? 'Update Data Employee' : 'Create User')
-@section('navbarTitle', $mode === 'edit' ? 'Update Data Employee' : 'Create User')
+@section('title', $mode === 'edit' ? 'Update Employee' : 'Add Employee')
+@section('navbarTitle', $mode === 'edit' ? 'Update Employee' : 'Add Employee')
 
 @section('content')
 @php
@@ -16,8 +16,8 @@
 @endphp
 
 @include('layouts.breadcrumb', [
-    'title' => $isEdit ? 'Update Data Employee' : 'Create User',
-    'current' => 'Data Employee',
+    'title' => $isEdit ? 'Update Employee' : 'Add Employee',
+    'current' => 'Employee Data',
     'homeRoute' => 'dashboard',
 ])
 
@@ -30,31 +30,37 @@
     <div class="card">
         <div class="card-header border-0">
             <div>
-                <h4 class="card-title mb-1">{{ $isEdit ? 'Update Employee' : 'Create User' }}</h4>
-                <p class="mb-0 text-muted fs-13">Lengkapi data user, profile, identity, deployment, dan PIC.</p>
+                <h4 class="card-title mb-1">{{ $isEdit ? 'Update Employee' : 'Add Employee' }}</h4>
+                <p class="mb-0 text-muted fs-13">Complete the user, profile, identity, deployment, and PIC data.</p>
             </div>
             <div class="form-check form-switch">
                 <input type="hidden" name="is_active" value="0">
                 <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" @checked(old('is_active', $employee?->user?->is_active ?? true))>
-                <label class="form-check-label fw-semibold" for="is_active">Status Karyawan</label>
+                <label class="form-check-label fw-semibold" for="is_active">Employee Status</label>
             </div>
         </div>
 
         <div class="card-body">
             @if ($errors->any())
                 <div class="alert alert-danger">
-                    <strong>Data belum valid.</strong> Cek kembali field yang wajib diisi.
+                    <strong>The data is not valid.</strong> Please check the required fields again.
+                </div>
+            @endif
+
+            @if (! $isEdit)
+                <div class="alert alert-info mb-4" role="alert">
+                    Default password for the new employee account is <strong>passwrod</strong>.
                 </div>
             @endif
 
             <div class="row g-3">
                 <div class="col-md-3">
-                    <label class="form-label">Nama Lengkap</label>
+                    <label class="form-label">Full Name</label>
                     <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $employee?->profile?->name) }}" required>
                     @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Nama Panggilan</label>
+                    <label class="form-label">Nickname</label>
                     <input type="text" name="nickname" class="form-control" value="{{ old('nickname', $employee?->profile?->nickname) }}">
                 </div>
                 <div class="col-md-3">
@@ -73,25 +79,16 @@
                     @error('username')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Password {{ $isEdit ? '(optional)' : '' }}</label>
-                    <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" @required(! $isEdit)>
-                    @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Tempat Lahir</label>
+                    <label class="form-label">Place of Birth</label>
                     <input type="text" name="place_of_birth" class="form-control" value="{{ old('place_of_birth', $employee?->profile?->place_of_birth) }}">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Tanggal Lahir</label>
+                    <label class="form-label">Date of Birth</label>
                     <input type="text" name="date_of_birth" class="form-control js-data-employee-date" value="{{ old('date_of_birth', $formatDate($employee?->profile?->date_of_birth)) }}" placeholder="dd/mm/yyyy" autocomplete="off">
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">Employee Code</label>
-                    <input type="text" name="employee_code" class="form-control" value="{{ old('employee_code', $employee?->employee_code) }}">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Nomor KTP / NIK</label>
+                    <label class="form-label">ID Number / NIK</label>
                     <input type="text" name="nik" class="form-control" value="{{ old('nik', $employee?->identity?->nik) }}">
                 </div>
                 <div class="col-md-3">
@@ -99,12 +96,12 @@
                     <input type="text" name="npwp" class="form-control" value="{{ old('npwp', $employee?->identity?->npwp) }}">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">BPJS Kesehatan</label>
+                    <label class="form-label">Healthcare BPJS</label>
                     <input type="text" name="bpjs_kesehatan" class="form-control" value="{{ old('bpjs_kesehatan', $employee?->identity?->bpjs_kesehatan) }}">
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">BPJS Ketenagakerjaan</label>
+                    <label class="form-label">Employment BPJS</label>
                     <input type="text" name="bpjs_ketenagakerjaan" class="form-control" value="{{ old('bpjs_ketenagakerjaan', $employee?->identity?->bpjs_ketenagakerjaan) }}">
                 </div>
                 <div class="col-md-3">
@@ -128,7 +125,7 @@
                 <input type="hidden" name="employee_status" value="Active">
 
                 <div class="col-md-3">
-                    <label class="form-label">Perusahaan</label>
+                    <label class="form-label">Company</label>
                     <select id="dataEmployeeCompany" name="current_company_id" class="default-select form-control">
                         <option value="">Open this select menu</option>
                         @foreach ($companies as $company)
@@ -137,9 +134,9 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Branch / Office</label>
+                    <label class="form-label">Base</label>
                     <select id="dataEmployeeOfficeLocation" name="current_office_location_id" class="form-control @error('current_office_location_id') is-invalid @enderror">
-                        <option value="">Pilih branch / office</option>
+                        <option value="">Select Base</option>
                         @foreach ($officeLocationOptions as $officeLocation)
                             <option value="{{ $officeLocation['id'] }}" @selected((string) old('current_office_location_id', $employee?->deployment?->current_office_location_id ?? '') === $officeLocation['id'])>{{ $officeLocation['label'] }}</option>
                         @endforeach
@@ -147,7 +144,7 @@
                     @error('current_office_location_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Divisi</label>
+                    <label class="form-label">Division</label>
                     <select name="current_department_id" class="default-select form-control">
                         <option value="">Open this select menu</option>
                         @foreach ($departments as $department)
@@ -156,7 +153,7 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Jabatan</label>
+                    <label class="form-label">Position</label>
                     @php
                         $selectedPositionIds = collect(old('current_position_ids', $employee?->deployment?->positions?->pluck('id')->all() ?? []))
                             ->when(
@@ -174,7 +171,7 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">PIC / Penanggung Jawab</label>
+                    <label class="form-label">PIC / Person in Charge</label>
                     <select name="pic_employee_id" class="default-select form-control">
                         <option value="">Open this select menu</option>
                         @foreach ($picEmployees as $picEmployee)
@@ -199,7 +196,7 @@
         <div class="card-footer d-flex justify-content-between">
             <a href="{{ route('authorization') }}" class="btn btn-light">Close</a>
             <button type="submit" class="btn btn-success">
-                <i class="fa-regular fa-floppy-disk me-1"></i>Save changes
+                <i class="fa-regular fa-floppy-disk me-1"></i>{{ $isEdit ? 'Update Employee' : 'Add Employee' }}
             </button>
         </div>
     </div>

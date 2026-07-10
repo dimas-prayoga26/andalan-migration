@@ -27,6 +27,8 @@ use Illuminate\Validation\Rule;
 
 class AuthorizationController extends Controller
 {
+    private const DEFAULT_EMPLOYEE_PASSWORD = 'passwrod';
+
     public function index(Request $request): View
     {
         $authenticatedUser = $request->user();
@@ -69,13 +71,13 @@ class AuthorizationController extends Controller
                 'email' => $validated['email'],
                 'phone' => $validated['phone'] ?? null,
                 'company_id' => $validated['current_company_id'] ?? null,
-                'password' => Hash::make((string) $validated['password']),
+                'password' => Hash::make(self::DEFAULT_EMPLOYEE_PASSWORD),
                 'is_active' => (bool) $validated['is_active'],
             ]);
 
             $employee = Employee::query()->create([
                 'user_id' => $user->id,
-                'employee_code' => $validated['employee_code'] ?? null,
+                'employee_code' => $this->generateEmployeeCode($user),
                 'status' => $validated['employee_status'],
             ]);
 
@@ -86,7 +88,7 @@ class AuthorizationController extends Controller
 
         return redirect()
             ->route('authorization.show', ['employee' => $employee])
-            ->with('status', 'Data employee berhasil dibuat.');
+            ->with('status', 'Employee has been added successfully.');
     }
 
     public function show(Request $request, Employee $employee): View
@@ -133,14 +135,7 @@ class AuthorizationController extends Controller
                 'is_active' => (bool) $validated['is_active'],
             ]);
 
-            if (filled($validated['password'] ?? null)) {
-                $employee->user?->update([
-                    'password' => Hash::make((string) $validated['password']),
-                ]);
-            }
-
             $employee->update([
-                'employee_code' => $validated['employee_code'] ?? null,
                 'status' => $validated['employee_status'],
             ]);
 
@@ -149,7 +144,7 @@ class AuthorizationController extends Controller
 
         return redirect()
             ->route('authorization.show', ['employee' => $employee])
-            ->with('status', 'Data employee berhasil diperbarui.');
+            ->with('status', 'Employee has been updated successfully.');
     }
 
     public function destroy(Request $request, Employee $employee): RedirectResponse
@@ -167,7 +162,7 @@ class AuthorizationController extends Controller
 
         return redirect()
             ->route('authorization')
-            ->with('status', 'Data employee berhasil dihapus.');
+            ->with('status', 'Employee has been deleted successfully.');
     }
 
     public function accessMenus(Request $request): View
@@ -281,7 +276,7 @@ class AuthorizationController extends Controller
             'view-pic-attendance' => ['section' => 'HR Management', 'label' => 'PIC'],
             'view-director-attendance' => ['section' => 'HR Management', 'label' => 'Director'],
             'view-organization' => ['section' => 'HR Management', 'label' => 'Organization'],
-            'view-authorization' => ['section' => 'HR Management', 'label' => 'Data Employee'],
+            'view-authorization' => ['section' => 'HR Management', 'label' => 'Employee Data'],
             'view-employee-database' => ['section' => 'HR Management', 'label' => 'Employee Database'],
             'view-talent-acquisition' => ['section' => 'HR Management', 'label' => 'Talent Acquisition'],
             'view-payroll' => ['section' => 'Finance Management', 'label' => 'Payroll'],
@@ -586,9 +581,6 @@ class AuthorizationController extends Controller
     private function validatedDataEmployee(Request $request, ?Employee $employee = null): array
     {
         $userId = $employee?->user_id;
-        $passwordRules = $employee instanceof Employee
-            ? ['nullable', 'string', 'min:6']
-            : ['required', 'string', 'min:6'];
 
         $request->merge([
             'is_active' => $request->boolean('is_active'),
@@ -601,13 +593,11 @@ class AuthorizationController extends Controller
         return $request->validate([
             'is_active' => ['required', 'boolean'],
             'employee_status' => ['required', 'string', 'max:50'],
-            'employee_code' => ['nullable', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
             'nickname' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'phone' => ['nullable', 'string', 'max:50'],
             'username' => ['required', 'string', 'max:255', Rule::unique('users', 'username')->ignore($userId)],
-            'password' => $passwordRules,
             'place_of_birth' => ['nullable', 'string', 'max:255'],
             'date_of_birth' => ['nullable', 'date'],
             'nik' => ['nullable', 'string', 'max:100'],
@@ -633,6 +623,28 @@ class AuthorizationController extends Controller
             'resignation_date' => ['nullable', 'date', 'after_or_equal:join_date'],
             'pic_employee_id' => ['nullable', 'string', 'exists:employees,id'],
         ]);
+    }
+
+    private function generateEmployeeCode(User $user): string
+    {
+        $baseCode = 'EMP-'.$this->shortNumericToken((string) $user->id, 'EMP');
+        $employeeCode = $baseCode;
+        $suffix = 1;
+
+        while (Employee::query()->where('employee_code', $employeeCode)->exists()) {
+            $employeeCode = $baseCode.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $employeeCode;
+    }
+
+    private function shortNumericToken(string $value, string $salt): string
+    {
+        $hexHash = substr(hash('sha256', $salt.'|'.$value), 0, 16);
+        $decimalValue = (string) hexdec(substr($hexHash, 0, 8));
+
+        return str_pad(substr($decimalValue, 0, 8), 8, '0', STR_PAD_LEFT);
     }
 
     private function normalizeDateInput(mixed $value): ?string

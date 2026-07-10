@@ -53,6 +53,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $routes = File::get(base_path('routes/web.php'));
         $authorizationView = File::get(resource_path('views/authorization/index.blade.php'));
         $authorizationFormView = File::get(resource_path('views/authorization/form.blade.php'));
+        $authorizationShowView = File::get(resource_path('views/authorization/show.blade.php'));
         $accessMenusView = File::get(resource_path('views/authorization/access-menus.blade.php'));
         $customJs = File::get(public_path('assets/js/custom.js'));
 
@@ -84,10 +85,14 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('current_company_id', $controller);
         $this->assertStringContainsString('isSuperuser', $controller);
         $this->assertStringContainsString('syncDataEmployeeRelations', $controller);
-        $this->assertStringContainsString('List Employee', $authorizationView);
+        $this->assertStringContainsString("'view-authorization' => ['section' => 'HR Management', 'label' => 'Employee Data']", $controller);
+        $this->assertStringContainsString('Employee Data', $authorizationView);
+        $this->assertStringContainsString('Employee List', $authorizationView);
         $this->assertStringContainsString("route('authorization.create')", $authorizationView);
-        $this->assertStringContainsString('Create User', $authorizationView);
-        $this->assertStringNotContainsString('Create Users', $authorizationView);
+        $this->assertStringContainsString('Add Employee', $authorizationView);
+        $this->assertStringContainsString('Employee, deployment, identity, and PIC data.', $authorizationView);
+        $this->assertStringContainsString('session(\'status\')', $authorizationView);
+        $this->assertStringNotContainsString('Create User', $authorizationView);
         $this->assertStringContainsString('class="authorization-list-actions"', $authorizationView);
         $this->assertStringContainsString('class="authorization-employee-search"', $authorizationView);
         $this->assertStringContainsString('method="GET"', $authorizationView);
@@ -131,10 +136,37 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('js-data-employee-date', $authorizationFormView);
         $this->assertStringContainsString("format: 'DD/MM/YYYY'", $authorizationFormView);
         $this->assertStringContainsString('name="employee_status" value="Active"', $authorizationFormView);
-        $this->assertStringNotContainsString('Employee Status</label>', $authorizationFormView);
+        $this->assertStringContainsString('Add Employee', $authorizationFormView);
+        $this->assertStringContainsString('Update Employee', $authorizationFormView);
+        $this->assertStringContainsString('Default password for the new employee account is <strong>passwrod</strong>.', $authorizationFormView);
+        $this->assertStringContainsString('Employee Status</label>', $authorizationFormView);
+        $this->assertStringContainsString('Full Name', $authorizationFormView);
+        $this->assertStringContainsString('Place of Birth', $authorizationFormView);
+        $this->assertStringContainsString('Date of Birth', $authorizationFormView);
+        $this->assertStringContainsString('ID Number / NIK', $authorizationFormView);
+        $this->assertStringContainsString('Company', $authorizationFormView);
+        $this->assertStringContainsString('Division', $authorizationFormView);
+        $this->assertStringContainsString('PIC / Person in Charge', $authorizationFormView);
+        $this->assertStringContainsString('The data is not valid.', $authorizationFormView);
+        $this->assertStringNotContainsString('name="password"', $authorizationFormView);
+        $this->assertStringNotContainsString('name="employee_code"', $authorizationFormView);
+        $this->assertStringNotContainsString('<label class="form-label">Password', $authorizationFormView);
+        $this->assertStringNotContainsString('<label class="form-label">Employee Code</label>', $authorizationFormView);
         $this->assertStringNotContainsString('@foreach ([\'Active\', \'Pending\', \'Inactive\'] as $status)', $authorizationFormView);
         $this->assertStringNotContainsString('type="date"', $authorizationFormView);
+        $this->assertStringContainsString('Employee Details', $authorizationShowView);
+        $this->assertStringContainsString('session(\'status\')', $authorizationShowView);
+        $this->assertStringContainsString('Employment BPJS', $authorizationShowView);
+        $this->assertStringContainsString('Healthcare BPJS', $authorizationShowView);
+        $this->assertStringContainsString("private const DEFAULT_EMPLOYEE_PASSWORD = 'passwrod';", $controller);
+        $this->assertStringContainsString('Hash::make(self::DEFAULT_EMPLOYEE_PASSWORD)', $controller);
+        $this->assertStringContainsString('private function generateEmployeeCode(User $user): string', $controller);
+        $this->assertStringContainsString("'employee_code' => \$this->generateEmployeeCode(\$user)", $controller);
+        $this->assertStringContainsString('Employee has been added successfully.', $controller);
+        $this->assertStringContainsString('Employee has been updated successfully.', $controller);
         $this->assertStringContainsString('Assign Permission', $accessMenusView);
+        $this->assertStringContainsString('Employee List', $accessMenusView);
+        $this->assertStringContainsString('Assign positions that can access each menu.', $accessMenusView);
         $this->assertStringContainsString("route('authorization')", $accessMenusView);
         $this->assertStringContainsString('<th>Menu</th>', $accessMenusView);
         $this->assertStringNotContainsString('<th>Section</th>', $accessMenusView);
@@ -174,7 +206,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString("route('authorization')", $sidebarView);
         $this->assertStringNotContainsString("route('authorization.access-menus')", $sidebarView);
         $this->assertStringNotContainsString('Assign Permission', $sidebarView);
-        $this->assertStringContainsString('Data Employee', $sidebarView);
+        $this->assertStringContainsString('Employee Data', $sidebarView);
         $this->assertStringNotContainsString('Zoom Meeting', $sidebarView);
         $this->assertStringNotContainsString('Employee Database', $sidebarView);
         $this->assertStringNotContainsString('Talent Acquisition', $sidebarView);
@@ -204,7 +236,7 @@ class AuthorizationMenuRouteTest extends TestCase
         ]);
 
         $this->assertStringContainsString('Dashboard', $sidebar);
-        $this->assertStringNotContainsString('Data Employee </span>', $sidebar);
+        $this->assertStringNotContainsString('Employee Data </span>', $sidebar);
         $this->assertStringNotContainsString('Admin Attendance </span>', $sidebar);
     }
 

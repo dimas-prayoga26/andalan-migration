@@ -51,6 +51,9 @@ class LegacyEmployeeAssignmentSeederTest extends TestCase
         $this->assertStringContainsString("->where('is_primary', false)", $legacySeeder);
         $this->assertStringContainsString("->whereNotIn('position_id', \$positionIds->all())", $legacySeeder);
         $this->assertStringContainsString("->orderBy('created_at')", $legacySeeder);
+        $this->assertStringContainsString("->with('user:id,email,company_id,is_active,created_at')", $legacySeeder);
+        $this->assertStringContainsString('$joinDate = $this->userCreatedAtJoinDate($employee)', $legacySeeder);
+        $this->assertStringContainsString('private function userCreatedAtJoinDate(Employee $employee): ?string', $legacySeeder);
     }
 
     public function test_self_and_lukman_pic_assignments_are_registered(): void

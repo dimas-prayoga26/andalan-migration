@@ -130,7 +130,7 @@
 								<div class="form-group mb-3">
 								   <div class="custom-control custom-checkbox ms-1">
 										<input type="checkbox" name="remember" value="1" class="form-check-input" id="basic_checkbox_1" {{ old('remember') ? 'checked' : '' }}>
-										<label class="form-check-label" for="basic_checkbox_1">Remember my preference</label>
+										<label class="form-check-label" for="basic_checkbox_1">Remember me</label>
 									</div>
 								</div>
 							</div>

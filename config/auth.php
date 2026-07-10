@@ -22,6 +22,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Remember Me Lifetime
+    |--------------------------------------------------------------------------
+    |
+    | This value determines how many minutes the "remember me" recaller cookie
+    | should remain valid. The default below is seven days.
+    |
+    */
+
+    'remember_me_lifetime' => (int) env('AUTH_REMEMBER_ME_LIFETIME', 10080),
+
+    /*
+    |--------------------------------------------------------------------------
     | Authentication Guards
     |--------------------------------------------------------------------------
     |

@@ -191,6 +191,10 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('$overtimeDetail[\'approved_end_time\']', $view);
         $this->assertStringContainsString('Staff submitted', $view);
         $this->assertStringContainsString('$overtimeDetail[\'staff_submitted_time_range\']', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'planned_time_range\']', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'planned_duration\']', $view);
+        $this->assertStringNotContainsString('text-decoration-line-through', $view);
+        $this->assertStringContainsString('class="btn light btn-success btn-lg w-100"', $view);
         $this->assertStringContainsString('public function verifySession(Request $request, string $uid): RedirectResponse', $controller);
         $this->assertStringContainsString("validateWithBag('picOvertimeVerify'", $controller);
         $this->assertStringContainsString('isTaskDeliverablesSubmitted', $controller);

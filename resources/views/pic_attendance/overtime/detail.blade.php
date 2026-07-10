@@ -87,12 +87,7 @@
                                 <span>Time</span>
                             </div>
                             <div class="col-md-6 col-12">
-                                @if (($overtimeDetail['time_changed'] ?? false) === true)
-                                    <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
-                                    <span class="text-gray">, {{ $overtimeDetail['actual_time_range'] ?? '-' }}</span>
-                                @else
-                                    <span class="text-gray">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
-                                @endif
+                                <span class="text-gray">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
                             </div>
                         </div>
                         <div class="row py-2">
@@ -108,12 +103,7 @@
                                 <span>Total Duration</span>
                             </div>
                             <div class="col-md-6 col-12">
-                                @if (($overtimeDetail['duration_changed'] ?? false) === true)
-                                    <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
-                                    <span class="text-gray">, {{ $overtimeDetail['actual_duration'] ?? '-' }}</span>
-                                @else
-                                    <span class="text-gray">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
-                                @endif
+                                <span class="text-gray">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
                             </div>
                         </div>
                         <div class="row py-2">
@@ -313,10 +303,11 @@
                                 </div>
                             </div>
                         </div>
-                        <button type="submit" class="btn light btn-success m-3 mb-2 btn-lg" @disabled(! $verificationReady || $isTaskHoursVerified)>
-                            Approve Overtime Session
-                        </button>
-                        <div class="mb-3"></div>
+                        <div class="px-3 pb-3">
+                            <button type="submit" class="btn light btn-success btn-lg w-100" @disabled(! $verificationReady || $isTaskHoursVerified)>
+                                Approve Overtime Session
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>

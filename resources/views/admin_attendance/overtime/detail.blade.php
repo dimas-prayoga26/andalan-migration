@@ -8,6 +8,14 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <style>
+        @media (min-width: 1200px) {
+            .admin-overtime-task-list {
+                height: 500px;
+                min-height: 500px;
+            }
+        }
+    </style>
 @endsection
 
 @section('navbarTitle', 'Overview')
@@ -271,8 +279,9 @@
                             </div>
                         </div>
                     </div>
-                    <button type="button" class="btn light btn-success m-3 mb-2 btn-lg" disabled>Approve Overtime Session</button>
-                    <div class="mb-3"></div>
+                    <div class="px-3 pb-3">
+                        <button type="button" class="btn light btn-success btn-lg w-100" disabled>Approve Overtime Session</button>
+                    </div>
                 </div>
             </div>
 
@@ -282,7 +291,7 @@
                         <h4 class="card-title">{{ $overtimeDetail['staff_name'] ?? '[Name]' }} Task Items</h4>
                     </div>
                     <div class="card-body p-0">
-                        <div class="list-group list-group-flush dz-draggable dropzoneContainer dz-scroll height400">
+                        <div class="list-group list-group-flush dz-draggable dropzoneContainer dz-scroll height400 admin-overtime-task-list">
                             @forelse ($taskItems as $index => $taskItem)
                                 <div class="list-group-item draggable p-3">
                                     <div class="d-flex justify-content-between flex-wrap">

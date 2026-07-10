@@ -31,6 +31,7 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $overviewController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceOverviewController.php'));
         $recapController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceRecapController.php'));
         $leaveController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceLeaveController.php'));
+        $overtimeController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceOvertimeController.php'));
 
         $this->assertSame(AttendanceOverviewController::class.'@index', $overviewRoute?->getActionName());
         $this->assertSame(AttendanceRecapController::class.'@index', $recapRoute?->getActionName());
@@ -114,6 +115,10 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('supervisorApprovedLeaveRequestQuery', $leaveController);
         $this->assertStringContainsString('return (int) $this->supervisorApprovedLeaveRequestQuery($activeEmployeeIds)', $leaveController);
         $this->assertStringContainsString('current_company_id', $leaveController);
+        $this->assertStringContainsString("\$tableBuilder->buildForContext('admin', null, null", $overtimeController);
+        $this->assertStringContainsString('$metricBuilder->summarizeForActiveEmployees()', $overtimeController);
+        $this->assertStringContainsString('$this->adminOvertimeCardsFor(null', $overtimeController);
+        $this->assertStringNotContainsString('$this->currentCompanyIdFor($authenticatedUser)', $overtimeController);
         $this->assertStringContainsString('<span class="fs-12 text-black">Alpha</span>', $overviewView);
         $this->assertStringContainsString('fa-solid fa-user-check text-success', $overviewView);
         $this->assertStringContainsString('fa-solid fa-user-clock text-danger', $overviewView);

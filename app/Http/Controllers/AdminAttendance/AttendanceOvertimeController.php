@@ -46,13 +46,11 @@ class AttendanceOvertimeController extends Controller
 
     public function index(Request $request, OvertimeSummaryMetricBuilder $metricBuilder, OvertimeReviewTableBuilder $tableBuilder): View
     {
-        $authenticatedUser = $request->user();
-        $companyId = $authenticatedUser instanceof User ? $this->currentCompanyIdFor($authenticatedUser) : null;
-        $tableData = $tableBuilder->buildForContext('admin', $companyId, null, $request->query('month'), $request->query('year'));
+        $tableData = $tableBuilder->buildForContext('admin', null, null, $request->query('month'), $request->query('year'));
 
         return view('admin_attendance.overtime.index', [
-            'overtimeSummary' => $metricBuilder->summarizeForCompany($companyId),
-            'overtimeCards' => $this->adminOvertimeCardsFor($companyId, $tableData['selectedMonth'], $tableData['selectedYear']),
+            'overtimeSummary' => $metricBuilder->summarizeForActiveEmployees(),
+            'overtimeCards' => $this->adminOvertimeCardsFor(null, $tableData['selectedMonth'], $tableData['selectedYear']),
             ...$tableData,
         ]);
     }
@@ -61,9 +59,6 @@ class AttendanceOvertimeController extends Controller
     {
         $authenticatedUser = $request->user();
         abort_unless($authenticatedUser instanceof User, 403);
-
-        $companyId = $this->currentCompanyIdFor($authenticatedUser);
-        abort_unless(is_string($companyId) && trim($companyId) !== '', 404);
 
         $overtime = AttendanceOvertime::query()
             ->select([
@@ -96,10 +91,12 @@ class AttendanceOvertimeController extends Controller
                 'projectTasks:id,overtime_id,employee_id,project_id,title,description,status,priority,start_date,due_date,blockers,attachment_path,completed_at,created_at',
             ])
             ->whereKey($uid)
-            ->whereHas('employee', function (Builder $query) use ($companyId): void {
-                $query->whereHas('deployment', function (Builder $query) use ($companyId): void {
-                    $query->where('current_company_id', trim($companyId));
-                });
+            ->whereHas('employee', function (Builder $query): void {
+                $query
+                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+                    ->whereHas('deployment', function (Builder $query): void {
+                        $query->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+                    });
             })
             ->firstOrFail();
 
@@ -110,23 +107,11 @@ class AttendanceOvertimeController extends Controller
         ]);
     }
 
-    private function currentCompanyIdFor(User $user): ?string
-    {
-        $user->loadMissing('employee.deployment:id,employee_id,current_company_id');
-        $companyId = $user->employee?->deployment?->current_company_id;
-
-        return is_string($companyId) && trim($companyId) !== '' ? trim($companyId) : null;
-    }
-
     /**
      * @return Collection<int, array<string, mixed>>
      */
     private function adminOvertimeCardsFor(?string $companyId, int $month, int $year): Collection
     {
-        if (! is_string($companyId) || trim($companyId) === '') {
-            return collect();
-        }
-
         $periodStart = Carbon::create($year, $month, 1, 0, 0, 0, 'Asia/Jakarta')->startOfMonth();
         $periodEnd = $periodStart->copy()->endOfMonth();
 
@@ -152,9 +137,11 @@ class AttendanceOvertimeController extends Controller
                 $query
                     ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
                     ->whereHas('deployment', function (Builder $query) use ($companyId): void {
-                        $query
-                            ->where('current_company_id', trim($companyId))
-                            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+                        $query->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+
+                        if (is_string($companyId) && trim($companyId) !== '') {
+                            $query->where('current_company_id', trim($companyId));
+                        }
                     });
             })
             ->with([

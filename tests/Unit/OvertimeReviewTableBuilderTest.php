@@ -26,8 +26,9 @@ class OvertimeReviewTableBuilderTest extends TestCase
     {
         $builder = (string) file_get_contents(app_path('Support/Attendance/OvertimeReviewTableBuilder.php'));
 
-        $this->assertStringContainsString("\$this->baseQuery(trim(\$companyId), \$selectedMonth, \$selectedYear, \$context === 'pic')", $builder);
-        $this->assertStringContainsString('bool $includeCancelled = false', $builder);
+        $this->assertStringContainsString("\$context !== 'admin' && (! is_string(\$companyId) || trim(\$companyId) === '')", $builder);
+        $this->assertStringContainsString('private function baseQuery(?string $companyId, int $month, int $year, bool $includeCancelled = false): Builder', $builder);
+        $this->assertStringContainsString("if (is_string(\$companyId) && trim(\$companyId) !== '')", $builder);
         $this->assertStringContainsString('if (! $includeCancelled) {', $builder);
 
         foreach ([
@@ -51,6 +52,7 @@ class OvertimeReviewTableBuilderTest extends TestCase
     public function test_admin_view_uses_complete_table_and_dynamic_lifecycle_cards(): void
     {
         $view = (string) file_get_contents(resource_path('views/admin_attendance/overtime/index.blade.php'));
+        $detailView = (string) file_get_contents(resource_path('views/admin_attendance/overtime/detail.blade.php'));
 
         $this->assertStringContainsString('Status : <span class="text-success">Complete</span>', $view);
         $this->assertStringContainsString('No complete overtime data available for this period.', $view);
@@ -58,6 +60,10 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('$overtimeCard[\'current_log\'][\'title\']', $view);
         $this->assertStringNotContainsString('SPV : Approved', $view);
         $this->assertStringNotContainsString('#OVT-2605-0101', $view);
+        $this->assertStringContainsString('.admin-overtime-task-list', $detailView);
+        $this->assertStringContainsString('min-height: 500px;', $detailView);
+        $this->assertStringContainsString('height400 admin-overtime-task-list', $detailView);
+        $this->assertStringContainsString('class="btn light btn-success btn-lg w-100"', $detailView);
     }
 
     public function test_admin_pending_lifecycle_range_starts_at_task_hours_verification_and_excludes_payment_complete(): void

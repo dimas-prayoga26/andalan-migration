@@ -7,6 +7,15 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-07-09 (Kamis)
+- Menambahkan `Staff submitted` pada detail overtime PIC serta menghubungkan task overtime dengan `overtime_id`.
+- Membuat overtime PIC otomatis membuat `project_tasks` untuk staff yang di-assign dengan status `pending`, priority `high`, dan assigned by PIC.
+- Menambahkan modal detail task PIC, menjaga `+ Add Task` tetap aktif setelah clock-out/cancelled, dan membatasi delete untuk task overtime.
+- Menyesuaikan Attendance: verifikasi otomatis `Please wait`, tombol clock-in/out aktif setelah `Verification successful`, timezone `Asia/Jakarta`, late mulai `08:01`, serta format late jam-menit.
+- Merapikan Attendance Recap, Admin Attendance Overview, Timesheet & Reporting icons, dan limit `Today's Early Birds`/`Today's Running Late` maksimal 5.
+- Mengubah `#project-grid-pane` menjadi kanban statis, menyeragamkan ukuran card, mengaktifkan drag and drop, serta memperbaiki dropzone/mirror drag agar perpindahan card lebih natural.
+- Detail: `docs/dev-log/2026-07-09-1530-ringkasan-perubahan-overtime-attendance-project-task.md`.
+
 ### 2026-07-08 (Rabu)
 - Menyesuaikan hitungan cuti bersama 2026 agar memakai tanggal sistem dan diterapkan pada Staff, Admin, serta PIC Leave.
 - Merapikan Leave Summary: tombol request time off, ikon Eligibility/Tracker, week start Senin, dan margin bawah kartu.

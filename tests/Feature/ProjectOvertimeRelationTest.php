@@ -76,7 +76,7 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertFalse($afterWindow['is_allowed']);
     }
 
-    public function test_overtime_clock_out_window_uses_thirty_minutes_before_and_after_scheduled_end(): void
+    public function test_overtime_clock_out_window_allows_any_time_until_thirty_minutes_after_scheduled_end(): void
     {
         $overtime = new AttendanceOvertime([
             'id' => 'overtime-window-test',
@@ -89,15 +89,14 @@ class ProjectOvertimeRelationTest extends TestCase
         $method->setAccessible(true);
         $controller = app(AttendanceOvertimeController::class);
 
-        $beforeWindow = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 09:29:00', 'Asia/Jakarta'));
-        $windowStart = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 09:30:00', 'Asia/Jakarta'));
+        $afterClockIn = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 08:01:00', 'Asia/Jakarta'));
+        $beforeScheduledEnd = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 09:29:00', 'Asia/Jakarta'));
         $scheduledEnd = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 10:00:00', 'Asia/Jakarta'));
         $windowEnd = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 10:30:00', 'Asia/Jakarta'));
         $afterWindow = $method->invoke($controller, $overtime, Carbon::parse('2026-06-15 10:31:00', 'Asia/Jakarta'));
 
-        $this->assertFalse($beforeWindow['is_allowed']);
-        $this->assertSame('Clock Out Lembur Belum Tersedia', $beforeWindow['title']);
-        $this->assertTrue($windowStart['is_allowed']);
+        $this->assertTrue($afterClockIn['is_allowed']);
+        $this->assertTrue($beforeScheduledEnd['is_allowed']);
         $this->assertTrue($scheduledEnd['is_allowed']);
         $this->assertTrue($windowEnd['is_allowed']);
         $this->assertFalse($afterWindow['is_allowed']);
@@ -309,7 +308,6 @@ class ProjectOvertimeRelationTest extends TestCase
             'Absen Lembur Sudah Dilakukan',
             'Absen Lembur Belum Tersedia',
             'Batas Absen Lembur Sudah Lewat',
-            'Clock Out Lembur Belum Tersedia',
             'Batas Clock Out Lembur Sudah Lewat',
             'Task Lembur Belum Disubmit',
             'Task Lembur Belum Completed',

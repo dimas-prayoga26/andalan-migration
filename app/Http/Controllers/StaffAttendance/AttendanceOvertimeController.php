@@ -901,26 +901,15 @@ class AttendanceOvertimeController extends Controller
             $scheduledEndAt->addDay();
         }
 
-        $windowStartAt = $scheduledEndAt->copy()->subMinutes(self::OVERTIME_CLOCK_TOLERANCE_MINUTES);
         $windowEndAt = $scheduledEndAt->copy()->addMinutes(self::OVERTIME_CLOCK_TOLERANCE_MINUTES);
         $currentTime = ($now instanceof Carbon ? $now : Carbon::now('Asia/Jakarta'))->copy()->timezone('Asia/Jakarta');
-
-        if ($currentTime->lt($windowStartAt)) {
-            return [
-                'is_allowed' => false,
-                'title' => 'Clock Out Lembur Belum Tersedia',
-                'message' => 'Clock out lembur tersedia mulai '.$this->formatOvertimeClockInWindowLabel($windowStartAt).' sampai '.$this->formatOvertimeClockInWindowLabel($windowEndAt).'.',
-                'start_label' => $this->formatOvertimeClockInWindowLabel($windowStartAt),
-                'end_label' => $this->formatOvertimeClockInWindowLabel($windowEndAt),
-            ];
-        }
 
         if ($currentTime->gt($windowEndAt)) {
             return [
                 'is_allowed' => false,
                 'title' => 'Batas Clock Out Lembur Sudah Lewat',
                 'message' => 'Waktu clock out lembur sudah melewati batas toleransi 30 menit dari jadwal selesai. Silakan hubungi PIC untuk mengubah jadwal lemburnya.',
-                'start_label' => $this->formatOvertimeClockInWindowLabel($windowStartAt),
+                'start_label' => $this->formatOvertimeClockInWindowLabel($scheduledStartAt),
                 'end_label' => $this->formatOvertimeClockInWindowLabel($windowEndAt),
             ];
         }
@@ -929,7 +918,7 @@ class AttendanceOvertimeController extends Controller
             'is_allowed' => true,
             'title' => '',
             'message' => '',
-            'start_label' => $this->formatOvertimeClockInWindowLabel($windowStartAt),
+            'start_label' => $this->formatOvertimeClockInWindowLabel($scheduledStartAt),
             'end_label' => $this->formatOvertimeClockInWindowLabel($windowEndAt),
         ];
     }

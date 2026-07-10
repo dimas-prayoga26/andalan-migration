@@ -31,9 +31,13 @@ class DataEmployeeBranchOfficeTest extends TestCase
     {
         $form = File::get(resource_path('views/authorization/form.blade.php'));
 
+        $this->assertStringContainsString('<label class="form-label">Base</label>', $form);
+        $this->assertStringContainsString('<option value="">Select Base</option>', $form);
         $this->assertStringContainsString('name="current_office_location_id"', $form);
         $this->assertStringContainsString('id="dataEmployeeCompany"', $form);
         $this->assertStringContainsString('@foreach ($officeLocationOptions as $officeLocation)', $form);
+        $this->assertStringNotContainsString('Branch / Office', $form);
+        $this->assertStringNotContainsString('Pilih branch / office', $form);
         $this->assertStringNotContainsString('function updateDataEmployeeOfficeOptions()', $form);
         $this->assertStringNotContainsString('officeLocation.company_id === companyId', $form);
         $this->assertStringNotContainsString('name="workplace"', $form);

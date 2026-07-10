@@ -2,7 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\View\Composers\AttendanceProfileComposer;
+use App\View\Composers\ProjectManagementProfileComposer;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class EmployeeProfilePictureConsolidationTest extends TestCase
@@ -23,7 +27,29 @@ class EmployeeProfilePictureConsolidationTest extends TestCase
         $this->assertStringContainsString("asset('assets/default_user.jpg')", $projectProfileHeader);
         $this->assertStringNotContainsString('fa fa-circle border border-3 border-white text-success', $attendanceProfileHeader);
         $this->assertStringNotContainsString('fa fa-circle border border-3 border-white text-success', $projectProfileHeader);
-        $this->assertStringContainsString('File::exists(public_path($publicPath)) ? $publicPath : null', $attendanceProfileComposer);
-        $this->assertStringContainsString('File::exists(public_path($publicPath)) ? $publicPath : null', $projectProfileComposer);
+        $this->assertStringContainsString("Storage::disk('public')->exists(\$storagePath)", $attendanceProfileComposer);
+        $this->assertStringContainsString("return 'storage/'.\$storagePath;", $attendanceProfileComposer);
+        $this->assertStringContainsString("Storage::disk('public')->exists(\$storagePath)", $projectProfileComposer);
+        $this->assertStringContainsString("return 'storage/'.\$storagePath;", $projectProfileComposer);
+    }
+
+    public function test_profile_picture_composers_resolve_public_disk_upload_paths(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('profile-pictures/employee/avatar.jpg', 'avatar');
+
+        $attendanceComposer = app(AttendanceProfileComposer::class);
+        $projectComposer = app(ProjectManagementProfileComposer::class);
+        $attendanceMethod = new ReflectionMethod($attendanceComposer, 'availableProfilePicturePath');
+        $projectMethod = new ReflectionMethod($projectComposer, 'availableProfilePicturePath');
+
+        $this->assertSame(
+            'storage/profile-pictures/employee/avatar.jpg',
+            $attendanceMethod->invoke($attendanceComposer, 'profile-pictures/employee/avatar.jpg')
+        );
+        $this->assertSame(
+            'storage/profile-pictures/employee/avatar.jpg',
+            $projectMethod->invoke($projectComposer, 'profile-pictures/employee/avatar.jpg')
+        );
     }
 }

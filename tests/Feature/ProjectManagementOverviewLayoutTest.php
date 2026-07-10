@@ -105,6 +105,11 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("asset('assets-workload/images/contacts/pic11.jpg')", $taskListProjectGridPartial);
         $this->assertStringContainsString("asset('assets-workload/vendor/draggable/draggable.js')", $taskList);
         $this->assertStringContainsString('function initializeStaticKanbanBoard()', $taskList);
+        $this->assertStringContainsString('function shouldUseMobileKanbanScroll()', $taskList);
+        $this->assertStringContainsString("window.matchMedia('(max-width: 767.98px), (pointer: coarse)').matches", $taskList);
+        $this->assertStringContainsString('shouldUseMobileKanbanScroll() || ! dropzones.length', $taskList);
+        $this->assertStringContainsString('-webkit-overflow-scrolling: touch;', $taskList);
+        $this->assertStringContainsString('touch-action: pan-x pan-y;', $taskList);
         $this->assertStringContainsString('new window.Sortable.default(dropzones', $taskList);
         $this->assertStringContainsString("draggable: '.draggable-handle'", $taskList);
         $this->assertStringContainsString('appendTo: document.body', $taskList);

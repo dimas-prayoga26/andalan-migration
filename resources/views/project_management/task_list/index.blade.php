@@ -37,9 +37,15 @@
         max-width: 180px;
     }
 
+    .project-kanban-page {
+        width: 100%;
+        overflow-x: hidden;
+    }
+
     .project-kanban-page .kanban-bx {
         display: flex;
         width: 100%;
+        max-width: 100%;
         overflow-x: auto;
         flex-wrap: nowrap;
         align-items: flex-start;
@@ -47,6 +53,8 @@
         padding-bottom: 0.5rem;
         margin-left: 0;
         margin-right: 0;
+        touch-action: pan-x pan-y;
+        -webkit-overflow-scrolling: touch;
     }
 
     .project-kanban-page .kanban-bx .col {
@@ -173,9 +181,11 @@
         .project-kanban-page .kanban-bx {
             gap: 0.75rem;
             padding: 0 0.75rem 0.75rem;
+            max-width: 100vw;
             scroll-snap-type: x proximity;
             scroll-padding-left: 0.75rem;
             overscroll-behavior-x: contain;
+            touch-action: pan-x pan-y;
         }
 
         .project-kanban-page .kanban-bx .col {
@@ -183,6 +193,11 @@
             min-width: 82vw;
             max-width: 82vw;
             scroll-snap-align: start;
+        }
+
+        .project-kanban-page .kanban-bx .col .card.draggable-handle {
+            cursor: default;
+            touch-action: pan-x pan-y;
         }
     }
 </style>
@@ -850,15 +865,24 @@
             initializeStaticKanbanBoard();
         }
 
+        function shouldUseMobileKanbanScroll() {
+            if (typeof window.matchMedia === 'function') {
+                return window.matchMedia('(max-width: 767.98px), (pointer: coarse)').matches;
+            }
+
+            return window.innerWidth <= 767 || navigator.maxTouchPoints > 0;
+        }
+
         function initializeStaticKanbanBoard() {
             var dropzones = document.querySelectorAll('#taskListProjectGridPanel .dropzoneContainer');
 
-            if (! dropzones.length || typeof window.Sortable === 'undefined' || typeof window.Sortable.default === 'undefined') {
-                return;
-            }
-
             if (kanbanSortableInstance && typeof kanbanSortableInstance.destroy === 'function') {
                 kanbanSortableInstance.destroy();
+                kanbanSortableInstance = null;
+            }
+
+            if (shouldUseMobileKanbanScroll() || ! dropzones.length || typeof window.Sortable === 'undefined' || typeof window.Sortable.default === 'undefined') {
+                return;
             }
 
             kanbanSortableInstance = new window.Sortable.default(dropzones, {

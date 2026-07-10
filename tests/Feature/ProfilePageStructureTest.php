@@ -190,6 +190,6 @@ class ProfilePageStructureTest extends TestCase
         $this->assertStringContainsString("'marital_status' => ['nullable', Rule::in(['Lajang', 'Menikah'])]", $request);
         $this->assertStringContainsString("'birth' => ['nullable', 'date_format:Y-m-d']", $request);
         $this->assertStringContainsString("Rule::unique('users', 'email')->ignore(\$this->user()?->id)", $request);
-        $this->assertStringContainsString("'profile_picture' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,avif', 'max:2048']", $photoRequest);
+        $this->assertStringContainsString("'profile_picture' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:1024']", $photoRequest);
     }
 }

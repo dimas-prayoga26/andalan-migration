@@ -106,7 +106,7 @@
                 <div class="text-center">
                     <div class="avatar avatar-xl avatar-preview rounded-circle">
                         <img class="imagePreview w-100 h-100" src="{{ $profilePageAvatarUrl }}" alt="{{ $profilePageDisplayName }}">
-                        <input type="file" id="profilePictureInput" class="imageUpload d-none js-profile-picture-input" accept=".avif,.webp,.jpeg,.jpg,.png" data-upload-url="{{ route('profile.photo.update') }}" data-csrf-token="{{ csrf_token() }}">
+                        <input type="file" id="profilePictureInput" class="imageUpload d-none js-profile-picture-input" accept=".jpg,.jpeg,.png" data-upload-url="{{ route('profile.photo.update') }}" data-csrf-token="{{ csrf_token() }}">
                         <a class="btn btn-square btn-primary btn-sm position-absolute bottom-0 end-0 shadow-sm upload-trigger rounded-circle border-2 border-white">
                             <i class="fa fa-camera "></i>
                         </a>
@@ -341,6 +341,25 @@
                 var previousPreviewUrl = previewImage ? previewImage.getAttribute('src') : '';
 
                 if (!file || !uploadUrl || !csrfToken) {
+                    return;
+                }
+
+                var allowedExtensions = ['jpg', 'jpeg', 'png'];
+                var fileExtension = file.name && file.name.indexOf('.') !== -1
+                    ? file.name.split('.').pop().toLowerCase()
+                    : '';
+
+                if (allowedExtensions.indexOf(fileExtension) === -1) {
+                    window.alert('Foto profile hanya boleh menggunakan file JPG, JPEG, atau PNG.');
+                    profilePictureInput.value = '';
+
+                    return;
+                }
+
+                if (file.size > 1024 * 1024) {
+                    window.alert('Ukuran foto profile maksimal 1MB.');
+                    profilePictureInput.value = '';
+
                     return;
                 }
 

@@ -43,9 +43,12 @@ class ProfileUpdateTest extends TestCase
         $this->assertStringContainsString("->route('login')", $controller);
         $this->assertStringContainsString('action="{{ route(\'profile.password.update\') }}" method="POST"', $profile);
         $this->assertStringContainsString('type="submit" class="btn btn-primary me-1">UPDATE PASSWORD</button>', $profile);
-        $this->assertStringContainsString("'profile_picture' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,avif', 'max:2048']", $photoRequest);
+        $this->assertStringContainsString("'profile_picture' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:1024']", $photoRequest);
         $this->assertStringContainsString('storeProfilePictureFile', $controller);
         $this->assertStringContainsString('deleteStoredProfilePicture', $controller);
+        $this->assertStringContainsString('accept=".jpg,.jpeg,.png"', $profile);
+        $this->assertStringContainsString("var allowedExtensions = ['jpg', 'jpeg', 'png'];", $profile);
+        $this->assertStringContainsString('file.size > 1024 * 1024', $profile);
         $this->assertStringContainsString("data-upload-url=\"{{ route('profile.photo.update') }}\"", $profile);
         $this->assertStringContainsString("formData.append('profile_picture', file)", $profile);
     }

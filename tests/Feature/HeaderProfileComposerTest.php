@@ -22,7 +22,10 @@ class HeaderProfileComposerTest extends TestCase
         $this->assertStringContainsString("return asset('storage/'.\$storagePath);", $composer);
         $this->assertStringNotContainsString('getRoleNames()', $composer);
         $this->assertStringContainsString("Route::get('/profile', [ProfileController::class, 'index'])->name('profile');", $routes);
-        $this->assertStringContainsString("href=\"{{ route('profile') }}\"", $header);
+        $this->assertStringContainsString("\Illuminate\Support\Facades\Route::has('profile')", $header);
+        $this->assertStringContainsString("? route('profile')", $header);
+        $this->assertStringContainsString(": url('/profile')", $header);
+        $this->assertStringContainsString('href="{{ $headerProfileUrl }}"', $header);
         $this->assertStringContainsString('<span class="ms-2">Edit Profile</span>', $header);
         $this->assertStringNotContainsString('<span class="ms-2">Profile</span>', $header);
         $this->assertStringNotContainsString('<span class="ms-2">Message </span>', $header);

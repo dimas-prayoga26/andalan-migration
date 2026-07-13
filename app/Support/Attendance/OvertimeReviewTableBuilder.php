@@ -44,7 +44,7 @@ class OvertimeReviewTableBuilder
         $selectedMonth = $this->normalizeMonth($month);
         $selectedYear = $this->normalizeYear($year);
 
-        if ($context !== 'admin' && (! is_string($companyId) || trim($companyId) === '')) {
+        if ($context === 'pic' && (! is_string($companyId) || trim($companyId) === '')) {
             return [
                 'selectedMonth' => $selectedMonth,
                 'selectedYear' => $selectedYear,

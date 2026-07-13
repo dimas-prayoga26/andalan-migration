@@ -105,12 +105,33 @@ class ProjectOvertimeRelationTest extends TestCase
 
     public function test_overtime_duration_label_uses_hours_and_minutes_for_midnight_ranges(): void
     {
-        $method = new ReflectionMethod(AttendanceOvertimeController::class, 'calculateDurationLabel');
-        $method->setAccessible(true);
+        $durationLabelMethod = new ReflectionMethod(AttendanceOvertimeController::class, 'calculateDurationLabel');
+        $durationLabelMethod->setAccessible(true);
+        $durationClockMethod = new ReflectionMethod(AttendanceOvertimeController::class, 'calculateDurationClockLabel');
+        $durationClockMethod->setAccessible(true);
+        $durationSummaryMethod = new ReflectionMethod(AttendanceOvertimeController::class, 'formatDurationSummaryLabel');
+        $durationSummaryMethod->setAccessible(true);
         $controller = app(AttendanceOvertimeController::class);
 
-        $this->assertSame('01 Jam 30 Menit', $method->invoke($controller, '00:00:00', '01:30:00'));
-        $this->assertSame('02 Jam 00 Menit', $method->invoke($controller, '23:00:00', '01:00:00'));
+        $this->assertSame('01 Jam 30 Menit', $durationLabelMethod->invoke($controller, '00:00:00', '01:30:00'));
+        $this->assertSame('02 Jam 00 Menit', $durationLabelMethod->invoke($controller, '23:00:00', '01:00:00'));
+        $this->assertSame('00 Jam 01 Menit', $durationLabelMethod->invoke($controller, '06:17:45', '06:18:05'));
+        $this->assertSame('00:01', $durationClockMethod->invoke($controller, '06:17:45', '06:18:05'));
+        $this->assertSame('1 Minutes', $durationSummaryMethod->invoke($controller, '06:17:45', '06:18:05'));
+    }
+
+    public function test_staff_overtime_detail_uses_planned_values_until_pic_approved_times_are_verified(): void
+    {
+        $detailView = File::get(resource_path('views/staff_attendance/overtimes/detail.blade.php'));
+
+        $this->assertStringContainsString('@if (($overtimeDetail[\'is_pic_verified\'] ?? false) && ($overtimeDetail[\'has_approved_time\'] ?? false))', $detailView);
+        $this->assertStringContainsString('<span class="text-gray">{{ $overtimeDetail[\'planned_time_range\'] ?? \'-\' }}</span>', $detailView);
+        $this->assertStringContainsString('<span class="text-gray">{{ $overtimeDetail[\'planned_duration\'] ?? \'-\' }}</span>', $detailView);
+        $this->assertStringContainsString('<span class="text-gray">, {{ $overtimeDetail[\'approved_time_range\'] ?? \'-\' }}</span>', $detailView);
+        $this->assertStringContainsString('<span class="text-gray">, {{ $overtimeDetail[\'approved_duration\'] ?? \'-\' }}</span>', $detailView);
+        $this->assertStringNotContainsString('<span class="text-gray">, {{ $overtimeDetail[\'actual_time_range\'] ?? \'-\' }}</span>', $detailView);
+        $this->assertStringNotContainsString('<span class="text-gray">, {{ $overtimeDetail[\'actual_duration\'] ?? \'-\' }}</span>', $detailView);
+        $this->assertStringNotContainsString('<span class="text-gray">, {{ $overtimeDetail[\'log_time_range\'] ?? ($overtimeDetail[\'approved_time_range\'] ?? \'-\') }}</span>', $detailView);
     }
 
     public function test_overtime_task_can_be_created_after_clock_in_even_after_clock_out(): void
@@ -329,6 +350,8 @@ class ProjectOvertimeRelationTest extends TestCase
             'private function resolveOvertimeDirectorApprover',
             'private function overtimeLifecycleLog',
             'private function formatOvertimeDetailLogDateTime',
+            'private function formatActualEndDateTime',
+            "'verified_datetime' => \$actualEndDateTime !== '-' ? \$actualEndDateTime : \$this->formatOvertimeDetailLogDateTime(\$verificationLog)",
             'private function formatOvertimeModalDateTimeLabel',
             'private function formatDurationSummaryLabel',
             'private function calculateDurationClockLabel',
@@ -476,8 +499,11 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertStringContainsString("{{ \$overtimeDetail['supervisor_name'] ?? '-' }}", $overtimeDetailView);
         $this->assertStringContainsString("Overtime Log ({{ \$overtimeDetail['log_status'] ?? '-' }})", $overtimeDetailView);
         $this->assertStringContainsString("\$overtimeDetail['is_pic_verified'] ?? false", $overtimeDetailView);
-        $this->assertStringContainsString("{{ \$overtimeDetail['log_time_range'] ?? (\$overtimeDetail['approved_time_range'] ?? '-') }}", $overtimeDetailView);
-        $this->assertStringContainsString("{{ \$overtimeDetail['log_duration'] ?? (\$overtimeDetail['approved_duration'] ?? '-') }}", $overtimeDetailView);
+        $this->assertStringContainsString("{{ \$overtimeDetail['planned_time_range'] ?? '-' }}", $overtimeDetailView);
+        $this->assertStringContainsString("{{ \$overtimeDetail['approved_time_range'] ?? '-' }}", $overtimeDetailView);
+        $this->assertStringContainsString("{{ \$overtimeDetail['planned_duration'] ?? '-' }}", $overtimeDetailView);
+        $this->assertStringContainsString("{{ \$overtimeDetail['approved_duration'] ?? '-' }}", $overtimeDetailView);
+        $this->assertStringNotContainsString("{{ \$overtimeDetail['log_time_range'] ?? (\$overtimeDetail['approved_time_range'] ?? '-') }}", $overtimeDetailView);
         $this->assertStringContainsString("text-decoration-line-through\">{{ \$overtimeDetail['planned_time_range'] ?? '-' }}", $overtimeDetailView);
         $this->assertStringContainsString("text-decoration-line-through\">{{ \$overtimeDetail['planned_duration'] ?? '-' }}", $overtimeDetailView);
         $this->assertStringContainsString("{{ \$overtimeDetail['instruction'] ?? '-' }}", $overtimeDetailView);

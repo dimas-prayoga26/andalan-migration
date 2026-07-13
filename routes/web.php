@@ -55,6 +55,7 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/project-management/task-list/filter', [ProjectManagementTaskListController::class, 'filter'])->name('project_management.task_list.filter');
         Route::post('/project-management/task-list/tasks', [ProjectManagementTaskListController::class, 'storeTask'])->name('project_management.task_list.tasks.store');
         Route::put('/project-management/task-list/tasks/{projectTask}', [ProjectManagementTaskListController::class, 'updateTask'])->name('project_management.task_list.tasks.update');
+        Route::patch('/project-management/task-list/tasks/{projectTask}/status', [ProjectManagementTaskListController::class, 'updateTaskStatus'])->name('project_management.task_list.tasks.status.update');
         Route::patch('/project-management/task-list/tasks/{projectTask}/complete', [ProjectManagementTaskListController::class, 'completeTask'])->name('project_management.task_list.tasks.complete');
         Route::delete('/project-management/task-list/tasks/{projectTask}', [ProjectManagementTaskListController::class, 'destroyTask'])->name('project_management.task_list.tasks.destroy');
         Route::get('/project-management/projects', [ProjectManagementProjectController::class, 'index'])->name('project_management.projects');
@@ -144,6 +145,9 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/admin-attendance/overtime/detail/{uid}', [AdminAttendanceOvertimeController::class, 'detail'])
         ->middleware('position.permission:view-admin-attendance')
         ->name('admin-attendance.overtime.detail');
+    Route::patch('/admin-attendance/overtime/detail/{uid}/approval', [AdminAttendanceOvertimeController::class, 'updateApproval'])
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.overtime.approval');
     Route::get('/admin-attendance/recap-attendance/datatable', [AdminAttendanceRecapController::class, 'monthlyDatatable'])
         ->middleware('position.permission:view-admin-attendance')
         ->name('admin-attendance.recap.monthly-datatable');

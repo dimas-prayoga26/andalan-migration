@@ -92,10 +92,15 @@
                         </div>
                         <div class="row py-2">
                             <div class="col-md-6 col-12">
-                                <span>Staff submitted</span>
+                                <span>Staff submitted <span class="text-muted">(Total Duration)</span></span>
                             </div>
                             <div class="col-md-6 col-12">
-                                <span class="text-gray">{{ $overtimeDetail['staff_submitted_time_range'] ?? '-' }}</span>
+                                <span class="text-gray">
+                                    {{ $overtimeDetail['staff_submitted_time_range'] ?? '-' }}
+                                    @if (($overtimeDetail['staff_submitted_duration'] ?? '-') !== '-')
+                                        ({{ $overtimeDetail['staff_submitted_duration'] }})
+                                    @endif
+                                </span>
                             </div>
                         </div>
                         <div class="row py-2">

@@ -26,7 +26,7 @@ class OvertimeReviewTableBuilderTest extends TestCase
     {
         $builder = (string) file_get_contents(app_path('Support/Attendance/OvertimeReviewTableBuilder.php'));
 
-        $this->assertStringContainsString("\$context !== 'admin' && (! is_string(\$companyId) || trim(\$companyId) === '')", $builder);
+        $this->assertStringContainsString("\$context === 'pic' && (! is_string(\$companyId) || trim(\$companyId) === '')", $builder);
         $this->assertStringContainsString('private function baseQuery(?string $companyId, int $month, int $year, bool $includeCancelled = false): Builder', $builder);
         $this->assertStringContainsString("if (is_string(\$companyId) && trim(\$companyId) !== '')", $builder);
         $this->assertStringContainsString('if (! $includeCancelled) {', $builder);

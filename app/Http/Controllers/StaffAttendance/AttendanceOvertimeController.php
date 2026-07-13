@@ -723,6 +723,7 @@ class AttendanceOvertimeController extends Controller
         $logDuration = $isPicVerified
             ? ($hasApprovedTime ? $approvedDuration : ($hasActualTime ? $actualDuration : $plannedDuration))
             : ($hasActualTime ? $actualDuration : $plannedDuration);
+        $actualEndDateTime = $this->formatActualEndDateTime($overtime);
         $directorApprovalLog = $this->overtimeLifecycleLog($overtime, 'director_approval');
         $directorApprover = $directorApprovalLog?->actor instanceof User
             ? $directorApprovalLog->actor
@@ -803,7 +804,7 @@ class AttendanceOvertimeController extends Controller
             'estimated_earnings' => '-',
             'payout_period' => 'Included in '.Carbon::parse($overtime->overtime_date)->timezone('Asia/Jakarta')->format('F Y').' Payroll',
             'verified_note' => $hasActualTime ? 'Actual overtime hours recorded' : 'Waiting for clock-out',
-            'verified_datetime' => $this->formatOvertimeDetailLogDateTime($verificationLog),
+            'verified_datetime' => $actualEndDateTime !== '-' ? $actualEndDateTime : $this->formatOvertimeDetailLogDateTime($verificationLog),
             'supervisor_approver' => $this->resolveUserDisplayName($verificationLog?->actor ?? $overtime->assignedBy),
             'supervisor_datetime' => $this->formatOvertimeDetailLogDateTime($verificationLog),
             'director_approver' => $this->resolveUserDisplayName($directorApprover),
@@ -1012,34 +1013,24 @@ class AttendanceOvertimeController extends Controller
 
     private function formatDurationSummaryLabel(mixed $startTimeValue, mixed $endTimeValue): string
     {
-        if (! is_string($startTimeValue) || ! is_string($endTimeValue)) {
+        $totalMinutes = $this->durationDisplayMinutesFromTimeValues($startTimeValue, $endTimeValue);
+
+        if ($totalMinutes === null) {
             return '-';
         }
 
-        try {
-            $startTime = Carbon::createFromFormat('H:i:s', $startTimeValue);
-            $endTime = Carbon::createFromFormat('H:i:s', $endTimeValue);
+        $hours = intdiv($totalMinutes, 60);
+        $minutes = $totalMinutes % 60;
 
-            if ($endTime->lessThan($startTime)) {
-                $endTime->addDay();
-            }
-
-            $totalMinutes = $startTime->diffInMinutes($endTime);
-            $hours = intdiv($totalMinutes, 60);
-            $minutes = $totalMinutes % 60;
-
-            if ($hours === 0) {
-                return sprintf('%d Minutes', $minutes);
-            }
-
-            if ($minutes === 0) {
-                return sprintf('%d Hours', $hours);
-            }
-
-            return sprintf('%d Hours, %d Minutes', $hours, $minutes);
-        } catch (\Throwable) {
-            return '-';
+        if ($hours === 0) {
+            return sprintf('%d Minutes', $minutes);
         }
+
+        if ($minutes === 0) {
+            return sprintf('%d Hours', $hours);
+        }
+
+        return sprintf('%d Hours, %d Minutes', $hours, $minutes);
     }
 
     private function resolveOvertimeDirectorApprover(AttendanceOvertime $overtime): ?User
@@ -1086,6 +1077,30 @@ class AttendanceOvertimeController extends Controller
         }
 
         return Carbon::parse($lifecycleLog->happened_at)->timezone('Asia/Jakarta')->format('d M Y, H:i');
+    }
+
+    private function formatActualEndDateTime(AttendanceOvertime $overtime): string
+    {
+        $actualStartTime = $this->normalizeStoreTimeValue($overtime->actual_start_time);
+        $actualEndTime = $this->normalizeStoreTimeValue($overtime->actual_end_time);
+
+        if ($actualStartTime === null || $actualEndTime === null) {
+            return '-';
+        }
+
+        try {
+            $overtimeDate = Carbon::parse($overtime->overtime_date)->timezone('Asia/Jakarta')->format('Y-m-d');
+            $actualStartAt = Carbon::createFromFormat('Y-m-d H:i:s', $overtimeDate.' '.$actualStartTime, 'Asia/Jakarta');
+            $actualEndAt = Carbon::createFromFormat('Y-m-d H:i:s', $overtimeDate.' '.$actualEndTime, 'Asia/Jakarta');
+
+            if ($actualEndAt->lessThanOrEqualTo($actualStartAt)) {
+                $actualEndAt->addDay();
+            }
+
+            return $actualEndAt->format('d M Y, H:i');
+        } catch (\Throwable) {
+            return '-';
+        }
     }
 
     private function overtimeDetailStatusLabel(string $status): string
@@ -1658,26 +1673,16 @@ class AttendanceOvertimeController extends Controller
 
     private function calculateDurationLabel(mixed $startTimeValue, mixed $endTimeValue): string
     {
-        if (! is_string($startTimeValue) || ! is_string($endTimeValue)) {
+        $totalMinutes = $this->durationDisplayMinutesFromTimeValues($startTimeValue, $endTimeValue);
+
+        if ($totalMinutes === null) {
             return '-';
         }
 
-        try {
-            $startTime = Carbon::createFromFormat('H:i:s', $startTimeValue);
-            $endTime = Carbon::createFromFormat('H:i:s', $endTimeValue);
+        $hours = intdiv($totalMinutes, 60);
+        $minutes = $totalMinutes % 60;
 
-            if ($endTime->lessThan($startTime)) {
-                $endTime->addDay();
-            }
-
-            $totalMinutes = $startTime->diffInMinutes($endTime);
-            $hours = intdiv($totalMinutes, 60);
-            $minutes = $totalMinutes % 60;
-
-            return sprintf('%02d Jam %02d Menit', $hours, $minutes);
-        } catch (\Throwable) {
-            return '-';
-        }
+        return sprintf('%02d Jam %02d Menit', $hours, $minutes);
     }
 
     private function durationMinutesFromTimeValues(mixed $startTimeValue, mixed $endTimeValue): int
@@ -1726,23 +1731,35 @@ class AttendanceOvertimeController extends Controller
 
     private function calculateDurationClockLabel(mixed $startTimeValue, mixed $endTimeValue): string
     {
-        if (! is_string($startTimeValue) || ! is_string($endTimeValue)) {
+        $totalMinutes = $this->durationDisplayMinutesFromTimeValues($startTimeValue, $endTimeValue);
+
+        if ($totalMinutes === null) {
             return '--:--';
         }
 
-        try {
-            $startTime = Carbon::createFromFormat('H:i:s', $startTimeValue);
-            $endTime = Carbon::createFromFormat('H:i:s', $endTimeValue);
+        return sprintf('%02d:%02d', intdiv($totalMinutes, 60), $totalMinutes % 60);
+    }
 
-            if ($endTime->lessThan($startTime)) {
-                $endTime->addDay();
+    private function durationDisplayMinutesFromTimeValues(mixed $startTimeValue, mixed $endTimeValue): ?int
+    {
+        $startTime = $this->normalizeStoreTimeValue($startTimeValue);
+        $endTime = $this->normalizeStoreTimeValue($endTimeValue);
+
+        if ($startTime === null || $endTime === null) {
+            return null;
+        }
+
+        try {
+            $start = Carbon::createFromFormat('H:i:s', $startTime)->seconds(0);
+            $end = Carbon::createFromFormat('H:i:s', $endTime)->seconds(0);
+
+            if ($end->lessThan($start)) {
+                $end->addDay();
             }
 
-            $totalMinutes = $startTime->diffInMinutes($endTime);
-
-            return sprintf('%02d:%02d', intdiv($totalMinutes, 60), $totalMinutes % 60);
+            return (int) $start->diffInMinutes($end);
         } catch (\Throwable) {
-            return '--:--';
+            return null;
         }
     }
 

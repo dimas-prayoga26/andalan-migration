@@ -189,8 +189,9 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('$overtimeDetail[\'verification_end_time\']', $view);
         $this->assertStringContainsString('$overtimeDetail[\'approved_start_time\']', $view);
         $this->assertStringContainsString('$overtimeDetail[\'approved_end_time\']', $view);
-        $this->assertStringContainsString('Staff submitted', $view);
+        $this->assertStringContainsString('Staff submitted <span class="text-muted">(Total Duration)</span>', $view);
         $this->assertStringContainsString('$overtimeDetail[\'staff_submitted_time_range\']', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'staff_submitted_duration\']', $view);
         $this->assertStringContainsString('$overtimeDetail[\'planned_time_range\']', $view);
         $this->assertStringContainsString('$overtimeDetail[\'planned_duration\']', $view);
         $this->assertStringNotContainsString('text-decoration-line-through', $view);
@@ -199,8 +200,12 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString("validateWithBag('picOvertimeVerify'", $controller);
         $this->assertStringContainsString('isTaskDeliverablesSubmitted', $controller);
         $this->assertStringContainsString("'staff_submitted_time_range' => \$actualTimeRange", $controller);
+        $this->assertStringContainsString("'staff_submitted_duration' => \$actualDuration", $controller);
         $this->assertStringContainsString("'approved_start_time' => \$approvedStartTime", $controller);
         $this->assertStringContainsString("'approved_end_time' => \$approvedEndTime", $controller);
+        $this->assertStringContainsString('$actualEndDateTime = $this->formatActualEndDateTime($overtime);', $controller);
+        $this->assertStringContainsString("'verified_datetime' => \$actualEndDateTime !== '-' ? \$actualEndDateTime : \$this->formatLifecycleDateTime(\$verificationLog)", $controller);
+        $this->assertStringContainsString('private function formatActualEndDateTime(AttendanceOvertime $overtime): string', $controller);
         $this->assertStringContainsString("'calculated_hours' => round(\$this->durationMinutes(\$approvedStartTime, \$approvedEndTime) / 60, 2)", $controller);
         $this->assertStringContainsString("'task_hours_verification',", $controller);
         $this->assertStringContainsString("'verified',", $controller);

@@ -158,6 +158,33 @@ class TaskListController extends Controller
         ]);
     }
 
+    public function updateTaskStatus(Request $request, ProjectTask $projectTask): JsonResponse
+    {
+        $employeeId = $this->authenticatedEmployeeId(Auth::user());
+        if ($employeeId === null || ! $this->canManageTaskListTask($projectTask, $employeeId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak memiliki akses untuk mengubah status task ini.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'status' => ['required', 'in:pending,in_progress,completed'],
+        ]);
+
+        $status = strtolower(trim((string) $validated['status']));
+
+        $projectTask->update([
+            'status' => $status,
+            'completed_at' => $status === 'completed' ? ($projectTask->completed_at ?? now('Asia/Jakarta')) : null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status task berhasil diperbarui.',
+        ]);
+    }
+
     public function destroyTask(ProjectTask $projectTask): JsonResponse
     {
         $employeeId = $this->authenticatedEmployeeId(Auth::user());
@@ -302,6 +329,7 @@ class TaskListController extends Controller
             'taskListItems' => $tasks,
             'taskListOngoingItems' => $ongoingTasks,
             'taskListDoneItems' => $doneTasks,
+            'taskListKanbanGroups' => $this->taskListKanbanGroups($tasks),
             'taskListWeekPlanItems' => $weekPlanTasks,
             'taskListPastIncompleteCount' => $pastIncompleteCount,
             'taskListProjectOptions' => $this->taskListProjectOptions($employeeId),
@@ -325,6 +353,7 @@ class TaskListController extends Controller
             'taskListItems' => collect(),
             'taskListOngoingItems' => collect(),
             'taskListDoneItems' => collect(),
+            'taskListKanbanGroups' => $this->taskListKanbanGroups(collect()),
             'taskListWeekPlanItems' => collect(),
             'taskListProjectOptions' => collect(),
             'taskListAssignableStaffOptions' => collect(),
@@ -332,6 +361,49 @@ class TaskListController extends Controller
             'taskListPastIncompleteCount' => 0,
             'taskListStoreUrl' => route('project_management.task_list.tasks.store'),
         ];
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $tasks
+     * @return Collection<int, array{id:string,label:string,status:string,dot_class:string,progress_class:string,progress:int,empty:string,items:Collection<int, array<string, mixed>>}>
+     */
+    private function taskListKanbanGroups(Collection $tasks): Collection
+    {
+        $tasksByStatus = $tasks->groupBy(fn (array $task): string => (string) ($task['status'] ?? ''));
+
+        return collect([
+            [
+                'id' => 'pending',
+                'label' => 'To-Do List',
+                'status' => 'pending',
+                'dot_class' => 'text-secondary',
+                'progress_class' => 'bg-secondary',
+                'progress' => 20,
+                'empty' => 'No pending task.',
+            ],
+            [
+                'id' => 'in_progress',
+                'label' => 'In Progress',
+                'status' => 'in_progress',
+                'dot_class' => 'text-warning',
+                'progress_class' => 'bg-warning',
+                'progress' => 65,
+                'empty' => 'No task in progress.',
+            ],
+            [
+                'id' => 'completed',
+                'label' => 'Done',
+                'status' => 'completed',
+                'dot_class' => 'text-success',
+                'progress_class' => 'bg-success',
+                'progress' => 100,
+                'empty' => 'No completed task.',
+            ],
+        ])->map(function (array $group) use ($tasksByStatus): array {
+            $group['items'] = $tasksByStatus->get($group['status'], collect())->values();
+
+            return $group;
+        });
     }
 
     private function authenticatedEmployeeId(?User $authenticatedUser): ?string
@@ -541,6 +613,7 @@ class TaskListController extends Controller
             'date_range_label' => $this->taskDateRangeLabel($startDate, $dueDate),
             'due_label' => $this->taskDueLabel($dueDate, $isCompleted),
             'update_url' => route('project_management.task_list.tasks.update', $projectTask),
+            'status_update_url' => route('project_management.task_list.tasks.status.update', $projectTask),
             'complete_url' => route('project_management.task_list.tasks.complete', $projectTask),
             'delete_url' => route('project_management.task_list.tasks.destroy', $projectTask),
         ];

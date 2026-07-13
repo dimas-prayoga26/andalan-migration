@@ -27,6 +27,7 @@
     $finishedTaskItems = collect($overtimeTaskItems['finished'] ?? []);
     $pendingTaskItems = collect($overtimeTaskItems['pending'] ?? []);
     $taskItems = $finishedTaskItems->merge($pendingTaskItems)->values();
+    $taskItemPayload = $taskItems->keyBy('id')->toArray();
     $approvedStartValue = ($overtimeDetail['approved_start_time'] ?? '-') !== '-'
         ? $overtimeDetail['approved_start_time']
         : (($overtimeDetail['actual_start_time'] ?? '-') !== '-'
@@ -37,6 +38,8 @@
         : (($overtimeDetail['actual_end_time'] ?? '-') !== '-'
             ? $overtimeDetail['actual_end_time']
             : ($overtimeDetail['planned_end_time'] ?? '20:00'));
+    $payrollProcessingApprovalStatus = $overtimeDetail['payroll_processing_approval_status'] ?? 'pending';
+    $canUpdatePayrollProcessing = ($overtimeDetail['can_update_payroll_processing'] ?? false) === true;
 @endphp
 
 <div class="col-lg-12">
@@ -102,12 +105,20 @@
                         <span>Time</span>
                     </div>
                     <div class="col-md-6 col-12">
-                        @if (($overtimeDetail['time_changed'] ?? false) === true)
-                            <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
-                            <span class="text-gray">, {{ $overtimeDetail['actual_time_range'] ?? '-' }}</span>
-                        @else
-                            <span class="text-gray">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
-                        @endif
+                        <span class="text-gray">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-6 col-12">
+                        <span>Staff submitted <span class="text-muted">(Total Duration)</span></span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <span class="text-gray">
+                            {{ $overtimeDetail['staff_submitted_time_range'] ?? '-' }}
+                            @if (($overtimeDetail['staff_submitted_duration'] ?? '-') !== '-')
+                                ({{ $overtimeDetail['staff_submitted_duration'] }})
+                            @endif
+                        </span>
                     </div>
                 </div>
                 <div class="row py-2">
@@ -115,12 +126,7 @@
                         <span>Total Duration</span>
                     </div>
                     <div class="col-md-6 col-12">
-                        @if (($overtimeDetail['duration_changed'] ?? false) === true)
-                            <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
-                            <span class="text-gray">, {{ $overtimeDetail['actual_duration'] ?? '-' }}</span>
-                        @else
-                            <span class="text-gray">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
-                        @endif
+                        <span class="text-gray">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
                     </div>
                 </div>
                 <div class="row py-2">
@@ -150,8 +156,7 @@
                         <span>Rate Multiplier</span>
                     </div>
                     <div class="col-md-6 col-12">
-                        <span class="text-gray fw-semibold">1.5x</span><br>
-                        <span class="text-gray">Standard Weekday Overtime</span>
+                        <span class="text-gray fw-semibold">-</span>
                     </div>
                 </div>
                 <div class="row py-2">
@@ -159,7 +164,7 @@
                         <span>Estimated Calculated Earnings</span>
                     </div>
                     <div class="col-md-6 col-12">
-                        <span class="text-gray fw-semibold">Rp. 100.000</span>
+                        <span class="text-gray fw-semibold">-</span>
                     </div>
                 </div>
                 <div class="row py-2">
@@ -208,7 +213,7 @@
     </div>
 
     <div class="col-xl-7">
-        <div class="row">
+        <div class="row g-4">
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header border-0 pb-3">
@@ -285,7 +290,7 @@
                 </div>
             </div>
 
-            <div class="col-xxl-12 col-xl-12 col-md-12">
+            <div class="col-md-6">
                 <div class="card overflow-hidden">
                     <div class="card-header">
                         <h4 class="card-title">{{ $overtimeDetail['staff_name'] ?? '[Name]' }} Task Items</h4>
@@ -293,7 +298,7 @@
                     <div class="card-body p-0">
                         <div class="list-group list-group-flush dz-draggable dropzoneContainer dz-scroll height400 admin-overtime-task-list">
                             @forelse ($taskItems as $index => $taskItem)
-                                <div class="list-group-item draggable p-3">
+                                <div class="list-group-item draggable p-3 admin-overtime-task-detail" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#adminTaskDetailModal" data-task-id="{{ $taskItem['id'] ?? '' }}">
                                     <div class="d-flex justify-content-between flex-wrap">
                                         <div class="d-flex gap-3">
                                             <div class="draggable-handle">
@@ -332,6 +337,120 @@
                     </div>
                 </div>
             </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <form method="POST" action="{{ route('admin-attendance.overtime.approval', ['uid' => $overtime->id]) }}">
+                        @csrf
+                        @method('PATCH')
+                        <div class="card-header border-0 pb-0">
+                            <div>
+                                <h4 class="card-title">Confirm Overtime</h4>
+                                <p class="fs-13 mb-0">Ensure overtime schedule, task details, and attachments are accurate.</p>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <label class="form-label fw-semibold">Approval Status <span class="text-danger">*</span></label>
+                            <div class="d-flex align-items-center gap-3 flex-wrap mb-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" @checked($payrollProcessingApprovalStatus === 'pending') disabled>
+                                    <label class="form-check-label text-warning fw-semibold">Pending</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="payroll_processing_status" value="approved" @checked(old('payroll_processing_status', $payrollProcessingApprovalStatus) === 'approved') @disabled(! $canUpdatePayrollProcessing)>
+                                    <label class="form-check-label text-success fw-semibold">Approve</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="payroll_processing_status" value="rejected" @checked(old('payroll_processing_status', $payrollProcessingApprovalStatus) === 'rejected') @disabled(! $canUpdatePayrollProcessing)>
+                                    <label class="form-check-label text-danger fw-semibold">Reject</label>
+                                </div>
+                            </div>
+                            @error('payroll_processing_status', 'adminOvertimeApproval')
+                                <div class="text-danger fs-12 mb-3">{{ $message }}</div>
+                            @enderror
+                            <hr>
+                            <div class="row py-2">
+                                <div class="col-md-6 col-12"><span>Overtime Type</span></div>
+                                <div class="col-md-6 col-12"><span class="text-gray">Standard Weekday Overtime</span></div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-md-6 col-12"><span>Date</span></div>
+                                <div class="col-md-6 col-12"><span class="text-gray">{{ $overtimeDetail['overtime_date'] ?? '-' }}</span></div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-md-6 col-12"><span>Scheduled Time</span></div>
+                                <div class="col-md-6 col-12"><span class="text-gray">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span></div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-md-6 col-12"><span>Approved Time</span></div>
+                                <div class="col-md-6 col-12"><span class="text-gray">{{ $overtimeDetail['actual_time_range'] ?? '-' }}</span></div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-md-6 col-12"><span>Instruction</span></div>
+                                <div class="col-md-6 col-12"><span class="text-gray">{{ $overtimeDetail['instruction'] ?? '-' }}</span></div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-md-6 col-12"><span>Attachment</span></div>
+                                <div class="col-md-6 col-12"><span class="text-gray">-</span></div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn light btn-success m-3 mt-0 btn-lg" @disabled(! $canUpdatePayrollProcessing)>Update Overtime Request</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="adminTaskDetailModal" tabindex="-1" aria-labelledby="adminTaskDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="adminTaskDetailModalLabel">Task Detail</h5>
+                    <span class="text-muted fs-13" id="adminTaskDetailDate">-</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <span class="text-muted fs-13">Task Name</span>
+                        <h5 class="mb-0" id="adminTaskDetailTitle">-</h5>
+                    </div>
+                    <div class="col-12">
+                        <span class="text-muted fs-13">Description</span>
+                        <p class="mb-0 text-black" id="adminTaskDetailDescription">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Start Date</span>
+                        <p class="mb-0 text-black" id="adminTaskDetailStartDate">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Due Date</span>
+                        <p class="mb-0 text-black" id="adminTaskDetailDueDate">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Priority</span>
+                        <p class="mb-0 text-black" id="adminTaskDetailPriority">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Status</span>
+                        <p class="mb-0 text-black" id="adminTaskDetailStatus">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Attachment</span>
+                        <p class="mb-0 text-black" id="adminTaskDetailAttachment">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Blockers</span>
+                        <p class="mb-0 text-black" id="adminTaskDetailBlockers">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary light" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
@@ -343,4 +462,76 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script>
+        (function ($) {
+            var taskItemsById = @js($taskItemPayload ?? []);
+
+            function nullableTaskText(value) {
+                return value ? value : '-';
+            }
+
+            function taskStatusLabel(value, isChecked) {
+                if (isChecked) {
+                    return 'Completed';
+                }
+
+                switch ((value || '').toString().toLowerCase()) {
+                    case 'in_progress':
+                        return 'On Progress';
+                    case 'completed':
+                        return 'Completed';
+                    case 'cancelled':
+                        return 'Cancelled';
+                    default:
+                        return 'To Do';
+                }
+            }
+
+            function taskPriorityLabel(value) {
+                switch ((value || '').toString().toLowerCase()) {
+                    case 'high':
+                        return 'High';
+                    case 'low':
+                        return 'Low';
+                    default:
+                        return 'Medium';
+                }
+            }
+
+            function openTaskDetailModal(event) {
+                if ($(event.target).closest('button, a, input, label').length) {
+                    return;
+                }
+
+                var taskId = $(event.currentTarget).data('task-id');
+                var taskItem = taskItemsById[taskId];
+
+                if (!taskItem) {
+                    return;
+                }
+
+                $('#adminTaskDetailTitle').text(nullableTaskText(taskItem.title));
+                $('#adminTaskDetailDate').text(nullableTaskText(taskItem.date_label));
+                $('#adminTaskDetailDescription').text(nullableTaskText(taskItem.description));
+                $('#adminTaskDetailStartDate').text(nullableTaskText(taskItem.start_date));
+                $('#adminTaskDetailDueDate').text(nullableTaskText(taskItem.due_date));
+                $('#adminTaskDetailPriority').text(taskPriorityLabel(taskItem.priority));
+                $('#adminTaskDetailStatus').text(taskStatusLabel(taskItem.status_value, taskItem.checked === true));
+                $('#adminTaskDetailAttachment').text(nullableTaskText(taskItem.attachment_path));
+                $('#adminTaskDetailBlockers').text(nullableTaskText(taskItem.blockers));
+            }
+
+            function openTaskDetailModalFromKeyboard(event) {
+                if (event.key !== 'Enter' && event.key !== ' ') {
+                    return;
+                }
+
+                event.preventDefault();
+                $(event.currentTarget).trigger('click');
+            }
+
+            $('.admin-overtime-task-detail').on('click', openTaskDetailModal);
+            $('.admin-overtime-task-detail').on('keydown', openTaskDetailModalFromKeyboard);
+        })(jQuery);
+    </script>
 @endsection

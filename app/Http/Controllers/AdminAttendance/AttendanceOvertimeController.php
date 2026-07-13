@@ -11,9 +11,11 @@ use App\Support\Attendance\OvertimeReviewTableBuilder;
 use App\Support\Attendance\OvertimeSummaryMetricBuilder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class AttendanceOvertimeController extends Controller
@@ -105,6 +107,67 @@ class AttendanceOvertimeController extends Controller
             'overtimeDetail' => $this->adminOvertimeDetailSummary($overtime),
             'overtimeTaskItems' => $this->buildOvertimeTaskItems($overtime),
         ]);
+    }
+
+    public function updateApproval(Request $request, string $uid): RedirectResponse
+    {
+        $validated = $request->validateWithBag('adminOvertimeApproval', [
+            'payroll_processing_status' => ['required', 'in:approved,rejected'],
+        ]);
+
+        $authenticatedUser = $request->user();
+        abort_unless($authenticatedUser instanceof User, 403);
+
+        $overtime = AttendanceOvertime::query()
+            ->select(['id'])
+            ->with([
+                'lifecycleLogs:id,overtime_id,event_key,status,actor_id,happened_at',
+            ])
+            ->whereKey($uid)
+            ->whereHas('employee', function (Builder $query): void {
+                $query
+                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+                    ->whereHas('deployment', function (Builder $query): void {
+                        $query->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+                    });
+            })
+            ->firstOrFail();
+
+        $payrollProcessingLog = $this->overtimeLifecycleLog($overtime, 'payroll_processing');
+        abort_unless($payrollProcessingLog instanceof OvertimeLifecycleLog, 404);
+
+        if (strtolower(trim((string) $payrollProcessingLog->status)) !== 'pending') {
+            return back()->withErrors([
+                'payroll_processing_status' => 'HR / Payroll Processing hanya bisa diubah ketika status masih pending.',
+            ], 'adminOvertimeApproval');
+        }
+
+        DB::transaction(function () use ($authenticatedUser, $overtime, $payrollProcessingLog, $validated): void {
+            $approvedAt = Carbon::now('Asia/Jakarta');
+            $status = strtolower((string) $validated['payroll_processing_status']);
+            $payrollStatus = $status === 'approved' ? 'calculated_locked' : 'rejected';
+
+            $payrollProcessingLog->forceFill([
+                'status' => $payrollStatus,
+                'actor_id' => $authenticatedUser->id,
+                'happened_at' => $approvedAt,
+            ])->save();
+
+            if ($status === 'approved') {
+                $this->updateOvertimeLifecycleLog(
+                    $overtime,
+                    'director_approval',
+                    'pending',
+                    null,
+                    null,
+                    true
+                );
+            }
+        });
+
+        return redirect()
+            ->route('admin-attendance.overtime.detail', ['uid' => $overtime->id])
+            ->with('success', 'HR / Payroll Processing overtime berhasil diperbarui.');
     }
 
     /**
@@ -204,10 +267,14 @@ class AttendanceOvertimeController extends Controller
         $taskDeliverablesSubmitted = $this->isTaskDeliverablesSubmitted($overtime);
         $taskHoursVerified = $this->isTaskHoursVerified($overtime);
         $verificationLog = $this->overtimeLifecycleLog($overtime, 'task_hours_verification');
+        $actualEndDateTime = $this->formatActualEndDateTime($overtime);
+        $payrollProcessingLog = $this->overtimeLifecycleLog($overtime, 'payroll_processing');
+        $payrollStatus = strtolower(trim((string) ($payrollProcessingLog?->status ?? 'pending')));
         $directorApprovalLog = $this->overtimeLifecycleLog($overtime, 'director_approval');
         $directorApprover = $directorApprovalLog?->actor instanceof User
             ? $directorApprovalLog->actor
             : $this->resolveOvertimeDirectorApprover($overtime);
+        $directorStatus = strtolower(trim((string) ($directorApprovalLog?->status ?? 'pending')));
 
         return [
             'staff_name' => $this->employeeDisplayName($overtime),
@@ -221,6 +288,8 @@ class AttendanceOvertimeController extends Controller
             'actual_end_time' => $actualEndTime,
             'approved_start_time' => $approvedStartTime,
             'approved_end_time' => $approvedEndTime,
+            'staff_submitted_time_range' => $actualTimeRange,
+            'staff_submitted_duration' => $actualDuration,
             'planned_time_range' => $plannedTimeRange,
             'actual_time_range' => $actualTimeRange,
             'time_changed' => $hasActualTime && $actualTimeRange !== $plannedTimeRange,
@@ -235,11 +304,20 @@ class AttendanceOvertimeController extends Controller
             'instruction' => is_string($overtime->instruction) && trim($overtime->instruction) !== '' ? trim($overtime->instruction) : '-',
             'payout_period' => 'Included in '.Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->format('F Y').' Payroll',
             'verified_note' => $hasActualTime ? 'Actual overtime hours recorded' : 'Waiting for clock-out',
-            'verified_datetime' => $this->formatLifecycleDateTime($verificationLog),
+            'verified_datetime' => $actualEndDateTime !== '-' ? $actualEndDateTime : $this->formatLifecycleDateTime($verificationLog),
             'supervisor_approver' => $this->supervisorDisplayName($overtime),
             'supervisor_datetime' => $this->formatLifecycleDateTime($verificationLog),
             'director_approver' => $directorApprover instanceof User ? $this->userDisplayName($directorApprover) : '-',
             'director_datetime' => $this->formatLifecycleDateTime($directorApprovalLog),
+            'director_approval_status' => in_array($directorStatus, ['pending', 'approved', 'rejected'], true) ? $directorStatus : 'pending',
+            'can_update_director_approval' => $directorStatus === 'pending',
+            'payroll_processing_status' => in_array($payrollStatus, ['pending', 'calculated_locked', 'rejected'], true) ? $payrollStatus : 'pending',
+            'payroll_processing_approval_status' => match ($payrollStatus) {
+                'calculated_locked' => 'approved',
+                'rejected' => 'rejected',
+                default => 'pending',
+            },
+            'can_update_payroll_processing' => $payrollStatus === 'pending',
         ];
     }
 
@@ -278,7 +356,14 @@ class AttendanceOvertimeController extends Controller
         return [
             'id' => (string) $projectTask->id,
             'title' => trim((string) ($projectTask->title ?? '')) !== '' ? (string) $projectTask->title : 'Untitled Task',
+            'description' => (string) ($projectTask->description ?? ''),
+            'start_date' => $this->formatDateInputValue($projectTask->start_date),
+            'due_date' => $this->formatDateInputValue($projectTask->due_date),
             'date_label' => $dateValue !== null ? Carbon::parse($dateValue)->timezone('Asia/Jakarta')->format('d M Y, H:i').' WIB' : '-',
+            'status_value' => $status !== '' ? $status : 'pending',
+            'priority' => strtolower(trim((string) ($projectTask->priority ?? 'medium'))) ?: 'medium',
+            'attachment_path' => (string) ($projectTask->attachment_path ?? ''),
+            'blockers' => (string) ($projectTask->blockers ?? ''),
             'checked' => $isFinished,
         ];
     }
@@ -322,6 +407,26 @@ class AttendanceOvertimeController extends Controller
             ->first(fn (OvertimeLifecycleLog $lifecycleLog): bool => (string) $lifecycleLog->event_key === $eventKey);
     }
 
+    private function updateOvertimeLifecycleLog(AttendanceOvertime $overtime, string $eventKey, string $status, ?User $actor, ?Carbon $happenedAt, bool $preserveActor = false): void
+    {
+        $lifecycleLog = $this->overtimeLifecycleLog($overtime, $eventKey);
+
+        if (! $lifecycleLog instanceof OvertimeLifecycleLog) {
+            return;
+        }
+
+        $payload = [
+            'status' => $status,
+            'happened_at' => $happenedAt,
+        ];
+
+        if (! $preserveActor) {
+            $payload['actor_id'] = $actor?->id;
+        }
+
+        $lifecycleLog->forceFill($payload)->save();
+    }
+
     private function isTaskDeliverablesSubmitted(AttendanceOvertime $overtime): bool
     {
         $status = strtolower(trim((string) ($this->overtimeLifecycleLog($overtime, 'task_deliverables_submitted')?->status ?? '')));
@@ -343,6 +448,36 @@ class AttendanceOvertimeController extends Controller
         }
 
         return Carbon::parse($lifecycleLog->happened_at, 'Asia/Jakarta')->format('d M Y, H:i');
+    }
+
+    private function formatActualEndDateTime(AttendanceOvertime $overtime): string
+    {
+        if (! $this->hasActualOvertimeTimes($overtime)) {
+            return '-';
+        }
+
+        try {
+            $overtimeDate = Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->format('Y-m-d');
+            $actualStartAt = Carbon::parse($overtimeDate.' '.$overtime->actual_start_time, 'Asia/Jakarta');
+            $actualEndAt = Carbon::parse($overtimeDate.' '.$overtime->actual_end_time, 'Asia/Jakarta');
+
+            if ($actualEndAt->lessThanOrEqualTo($actualStartAt)) {
+                $actualEndAt->addDay();
+            }
+
+            return $actualEndAt->format('d M Y, H:i');
+        } catch (\Throwable) {
+            return '-';
+        }
+    }
+
+    private function formatDateInputValue(mixed $dateValue): string
+    {
+        if ($dateValue === null || $dateValue === '') {
+            return '';
+        }
+
+        return Carbon::parse($dateValue, 'Asia/Jakarta')->format('Y-m-d');
     }
 
     private function userDisplayName(User $user): string

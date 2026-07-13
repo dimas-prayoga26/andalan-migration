@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\EmployeeProfile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use ReflectionMethod;
 use Tests\TestCase;
 
@@ -127,6 +128,7 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
         $this->assertStringContainsString("->whereDoesntHave('roles'", $controller);
         $this->assertStringContainsString("->where('name', 'superuser')", $controller);
         $this->assertStringContainsString("->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS)", $controller);
+        $this->assertStringContainsString("->whereRaw('LOWER(COALESCE(workplace, \"\")) <> ?', ['rnb jakarta'])", $controller);
 
         foreach ([
             'lukman@rnbmanagement.com',
@@ -139,11 +141,15 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
 
     public function test_admin_attendance_employee_avatar_uses_default_and_remote_profile_urls(): void
     {
+        Storage::fake('public');
+        Storage::disk('public')->put('profile-pictures/admin-detail/avatar.jpg', 'avatar');
+
         $controller = app(AttendanceRecapController::class);
         $method = new ReflectionMethod(AttendanceRecapController::class, 'employeeAvatarUrl');
 
         $this->assertSame(asset('assets/default_user.jpg'), $method->invoke($controller, null));
         $this->assertSame(asset('assets/default_user.jpg'), $method->invoke($controller, 'missing/profile.jpg'));
+        $this->assertSame(asset('storage/profile-pictures/admin-detail/avatar.jpg'), $method->invoke($controller, 'profile-pictures/admin-detail/avatar.jpg'));
         $this->assertSame('https://example.test/profile.jpg', $method->invoke($controller, 'https://example.test/profile.jpg'));
     }
 }

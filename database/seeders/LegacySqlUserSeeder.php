@@ -535,7 +535,7 @@ class LegacySqlUserSeeder extends Seeder
                 ->whereHas('user', function ($query) use ($email): void {
                     $query->whereRaw('LOWER(email) = ?', [strtolower($email)]);
                 })
-                ->with('user:id,email,company_id,is_active')
+                ->with('user:id,email,company_id,is_active,created_at')
                 ->first();
 
             if (! $employee instanceof Employee) {
@@ -544,7 +544,9 @@ class LegacySqlUserSeeder extends Seeder
 
             $companyId = $this->companyIdForLatestDeployment($deploymentData['company']);
             $officeLocationId = $this->officeLocationIdForLatestDeployment($deploymentData['office']);
-            $joinDate = $this->existingDeploymentJoinDate($employee) ?? $now->copy()->subMonth()->toDateString();
+            $joinDate = $this->userCreatedAtJoinDate($employee)
+                ?? $this->existingDeploymentJoinDate($employee)
+                ?? $now->copy()->subMonth()->toDateString();
 
             $employee->forceFill([
                 'status' => 'Active',
@@ -681,6 +683,17 @@ class LegacySqlUserSeeder extends Seeder
         return is_string($joinDate) && trim($joinDate) !== ''
             ? $joinDate
             : null;
+    }
+
+    private function userCreatedAtJoinDate(Employee $employee): ?string
+    {
+        $createdAt = $employee->user?->created_at;
+
+        if ($createdAt instanceof Carbon) {
+            return $createdAt->toDateString();
+        }
+
+        return $this->normalizeDate($createdAt);
     }
 
     /**

@@ -74,6 +74,13 @@ class PicAttendanceOvertimeStoreTest extends TestCase
             $controller
         );
         $this->assertStringContainsString('picOvertimeCardsFor', $controller);
+        $cardsMethodStart = strpos($controller, 'private function picOvertimeCardsFor');
+        $cardsMethodEnd = strpos($controller, 'private function picOvertimeCardFor', (int) $cardsMethodStart);
+        $cardsMethod = substr($controller, (int) $cardsMethodStart, (int) $cardsMethodEnd - (int) $cardsMethodStart);
+        $this->assertStringNotContainsString(
+            "->whereRaw('LOWER(COALESCE(status, \"\")) <> ?', ['cancelled'])",
+            $cardsMethod
+        );
         $this->assertStringContainsString('if ($supervisorEmployeeId === null) {', $controller);
         $this->assertStringNotContainsString('if ($supervisorEmployeeId === null || $companyId === null) {', $controller);
         $this->assertStringContainsString("'status' => 'complete'", $controller);
@@ -182,14 +189,23 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('$overtimeDetail[\'verification_end_time\']', $view);
         $this->assertStringContainsString('$overtimeDetail[\'approved_start_time\']', $view);
         $this->assertStringContainsString('$overtimeDetail[\'approved_end_time\']', $view);
-        $this->assertStringContainsString('Staff submitted', $view);
+        $this->assertStringContainsString('Staff submitted <span class="text-muted">(Total Duration)</span>', $view);
         $this->assertStringContainsString('$overtimeDetail[\'staff_submitted_time_range\']', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'staff_submitted_duration\']', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'planned_time_range\']', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'planned_duration\']', $view);
+        $this->assertStringNotContainsString('text-decoration-line-through', $view);
+        $this->assertStringContainsString('class="btn light btn-success btn-lg w-100"', $view);
         $this->assertStringContainsString('public function verifySession(Request $request, string $uid): RedirectResponse', $controller);
         $this->assertStringContainsString("validateWithBag('picOvertimeVerify'", $controller);
         $this->assertStringContainsString('isTaskDeliverablesSubmitted', $controller);
         $this->assertStringContainsString("'staff_submitted_time_range' => \$actualTimeRange", $controller);
+        $this->assertStringContainsString("'staff_submitted_duration' => \$actualDuration", $controller);
         $this->assertStringContainsString("'approved_start_time' => \$approvedStartTime", $controller);
         $this->assertStringContainsString("'approved_end_time' => \$approvedEndTime", $controller);
+        $this->assertStringContainsString('$actualEndDateTime = $this->formatActualEndDateTime($overtime);', $controller);
+        $this->assertStringContainsString("'verified_datetime' => \$actualEndDateTime !== '-' ? \$actualEndDateTime : \$this->formatLifecycleDateTime(\$verificationLog)", $controller);
+        $this->assertStringContainsString('private function formatActualEndDateTime(AttendanceOvertime $overtime): string', $controller);
         $this->assertStringContainsString("'calculated_hours' => round(\$this->durationMinutes(\$approvedStartTime, \$approvedEndTime) / 60, 2)", $controller);
         $this->assertStringContainsString("'task_hours_verification',", $controller);
         $this->assertStringContainsString("'verified',", $controller);

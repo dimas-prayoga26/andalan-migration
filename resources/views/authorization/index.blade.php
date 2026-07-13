@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Data Employee')
+@section('title', 'Employee Data')
 
 @section('css')
     @php
@@ -126,12 +126,12 @@
     </style>
 @endsection
 
-@section('navbarTitle', 'Data Employee')
+@section('navbarTitle', 'Employee Data')
 
 @section('content')
 @include('layouts.breadcrumb', [
-    'title' => 'Data Employee',
-    'current' => 'List Employee',
+    'title' => 'Employee Data',
+    'current' => 'Employee List',
     'homeRoute' => 'dashboard',
 ])
 
@@ -139,7 +139,7 @@
     <div class="card-header py-0">
         <ul class="nav nav-underline authorization-tabs gap-3">
             <li class="nav-item">
-                <a class="nav-link py-3 px-1 active" href="{{ route('authorization') }}">List Employee</a>
+                <a class="nav-link py-3 px-1 active" href="{{ route('authorization') }}">Employee List</a>
             </li>
             @if ($canManagePositionPermissions)
                 <li class="nav-item">
@@ -153,8 +153,8 @@
 <div class="card authorization-table-card">
     <div class="card-header border-0 flex-wrap gap-3">
         <div>
-            <h4 class="card-title mb-1">List Employee</h4>
-            <p class="mb-0 text-muted fs-13">Data karyawan, deployment, identitas, dan PIC.</p>
+            <h4 class="card-title mb-1">Employee List</h4>
+            <p class="mb-0 text-muted fs-13">Employee, deployment, identity, and PIC data.</p>
         </div>
         <div class="authorization-list-actions">
             <form method="GET" action="{{ route('authorization') }}" class="authorization-employee-search">
@@ -176,7 +176,7 @@
             </form>
             @if ($canManageDataEmployee)
                 <a href="{{ route('authorization.create') }}" class="btn btn-primary btn-sm">
-                    <i class="fa-solid fa-plus me-1"></i>Create User
+                    <i class="fa-solid fa-plus me-1"></i>Add Employee
                 </a>
             @endif
         </div>
@@ -230,7 +230,7 @@
                                     <a href="{{ route('authorization.show', ['employee' => $user['id']]) }}" class="btn btn-info light btn-sm">Detail</a>
                                     @if ($canManageDataEmployee)
                                         <a href="{{ route('authorization.edit', ['employee' => $user['id']]) }}" class="btn btn-primary light btn-sm">Update</a>
-                                        <form action="{{ route('authorization.destroy', ['employee' => $user['id']]) }}" method="POST" onsubmit="return confirm('Hapus data employee ini?')">
+                                        <form action="{{ route('authorization.destroy', ['employee' => $user['id']]) }}" method="POST" onsubmit="return confirm('Delete this employee data?')">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-danger light btn-sm">Delete</button>

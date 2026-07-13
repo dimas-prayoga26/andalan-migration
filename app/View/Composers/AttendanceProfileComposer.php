@@ -13,6 +13,7 @@ use App\Support\Attendance\AttendanceWorkDurationCalculator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -782,6 +783,13 @@ class AttendanceProfileComposer
         }
 
         $publicPath = ltrim($profilePicturePath, '/');
+        $storagePath = Str::startsWith($publicPath, 'storage/')
+            ? Str::after($publicPath, 'storage/')
+            : $publicPath;
+
+        if (Storage::disk('public')->exists($storagePath)) {
+            return 'storage/'.$storagePath;
+        }
 
         return File::exists(public_path($publicPath)) ? $publicPath : null;
     }

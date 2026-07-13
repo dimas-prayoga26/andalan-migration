@@ -199,7 +199,7 @@ class AttendanceCalendarPresenter
         }
 
         if ($attendanceEventType === 'late') {
-            return $lateMinutes > 0 ? 'Late '.$lateMinutes.' Minutes' : 'Late Arrival';
+            return $lateMinutes > 0 ? $attendanceTitle : 'Late Arrival';
         }
 
         return $attendanceTitle;

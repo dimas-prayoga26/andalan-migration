@@ -19,6 +19,7 @@
     $finishedTaskItems = collect($overtimeTaskItems['finished'] ?? []);
     $pendingTaskItems = collect($overtimeTaskItems['pending'] ?? []);
     $taskItems = $finishedTaskItems->merge($pendingTaskItems)->values();
+    $taskItemPayload = $taskItems->keyBy('id')->toArray();
     $approvedStartValue = ($overtimeDetail['approved_start_time'] ?? '-') !== '-'
         ? $overtimeDetail['approved_start_time']
         : (($overtimeDetail['actual_start_time'] ?? '-') !== '-'
@@ -110,13 +111,12 @@
                 <div class="row py-2">
                     <div class="col-md-6 col-12"><span>Rate Multiplier</span></div>
                     <div class="col-md-6 col-12">
-                        <span class="text-gray fw-semibold">1.5x</span><br>
-                        <span class="text-gray">Standard Weekday Overtime</span>
+                        <span class="text-gray fw-semibold">-</span>
                     </div>
                 </div>
                 <div class="row py-2">
                     <div class="col-md-6 col-12"><span>Estimated Calculated Earnings</span></div>
-                    <div class="col-md-6 col-12"><span class="text-gray fw-semibold">Rp. 100.000</span></div>
+                    <div class="col-md-6 col-12"><span class="text-gray fw-semibold">-</span></div>
                 </div>
                 <div class="row py-2">
                     <div class="col-md-6 col-12"><span>Payout Period</span></div>
@@ -236,7 +236,7 @@
                     <div class="card-body p-0">
                         <div class="list-group list-group-flush dz-draggable dropzoneContainer dz-scroll height400">
                             @forelse ($taskItems as $index => $taskItem)
-                                <div class="list-group-item draggable p-3">
+                                <div class="list-group-item draggable p-3 director-overtime-task-detail" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#directorTaskDetailModal" data-task-id="{{ $taskItem['id'] ?? '' }}">
                                     <div class="d-flex justify-content-between flex-wrap">
                                         <div class="d-flex gap-3">
                                             <div class="draggable-handle">
@@ -331,6 +331,59 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="directorTaskDetailModal" tabindex="-1" aria-labelledby="directorTaskDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="directorTaskDetailModalLabel">Task Detail</h5>
+                    <span class="text-muted fs-13" id="directorTaskDetailDate">-</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <span class="text-muted fs-13">Task Name</span>
+                        <h5 class="mb-0" id="directorTaskDetailTitle">-</h5>
+                    </div>
+                    <div class="col-12">
+                        <span class="text-muted fs-13">Description</span>
+                        <p class="mb-0 text-black" id="directorTaskDetailDescription">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Start Date</span>
+                        <p class="mb-0 text-black" id="directorTaskDetailStartDate">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Due Date</span>
+                        <p class="mb-0 text-black" id="directorTaskDetailDueDate">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Priority</span>
+                        <p class="mb-0 text-black" id="directorTaskDetailPriority">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Status</span>
+                        <p class="mb-0 text-black" id="directorTaskDetailStatus">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Attachment</span>
+                        <p class="mb-0 text-black" id="directorTaskDetailAttachment">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-muted fs-13">Blockers</span>
+                        <p class="mb-0 text-black" id="directorTaskDetailBlockers">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('script')
@@ -339,4 +392,76 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script>
+        (function ($) {
+            var taskItemsById = @js($taskItemPayload ?? []);
+
+            function nullableTaskText(value) {
+                return value ? value : '-';
+            }
+
+            function taskStatusLabel(value, isChecked) {
+                if (isChecked) {
+                    return 'Completed';
+                }
+
+                switch ((value || '').toString().toLowerCase()) {
+                    case 'in_progress':
+                        return 'On Progress';
+                    case 'completed':
+                        return 'Completed';
+                    case 'cancelled':
+                        return 'Cancelled';
+                    default:
+                        return 'To Do';
+                }
+            }
+
+            function taskPriorityLabel(value) {
+                switch ((value || '').toString().toLowerCase()) {
+                    case 'high':
+                        return 'High';
+                    case 'low':
+                        return 'Low';
+                    default:
+                        return 'Medium';
+                }
+            }
+
+            function openTaskDetailModal(event) {
+                if ($(event.target).closest('button, a, input, label').length) {
+                    return;
+                }
+
+                var taskId = $(event.currentTarget).data('task-id');
+                var taskItem = taskItemsById[taskId];
+
+                if (!taskItem) {
+                    return;
+                }
+
+                $('#directorTaskDetailTitle').text(nullableTaskText(taskItem.title));
+                $('#directorTaskDetailDate').text(nullableTaskText(taskItem.date_label));
+                $('#directorTaskDetailDescription').text(nullableTaskText(taskItem.description));
+                $('#directorTaskDetailStartDate').text(nullableTaskText(taskItem.start_date));
+                $('#directorTaskDetailDueDate').text(nullableTaskText(taskItem.due_date));
+                $('#directorTaskDetailPriority').text(taskPriorityLabel(taskItem.priority));
+                $('#directorTaskDetailStatus').text(taskStatusLabel(taskItem.status_value, taskItem.checked === true));
+                $('#directorTaskDetailAttachment').text(nullableTaskText(taskItem.attachment_path));
+                $('#directorTaskDetailBlockers').text(nullableTaskText(taskItem.blockers));
+            }
+
+            function openTaskDetailModalFromKeyboard(event) {
+                if (event.key !== 'Enter' && event.key !== ' ') {
+                    return;
+                }
+
+                event.preventDefault();
+                $(event.currentTarget).trigger('click');
+            }
+
+            $('.director-overtime-task-detail').on('click', openTaskDetailModal);
+            $('.director-overtime-task-detail').on('keydown', openTaskDetailModalFromKeyboard);
+        })(jQuery);
+    </script>
 @endsection

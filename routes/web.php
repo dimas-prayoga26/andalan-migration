@@ -14,6 +14,7 @@ use App\Http\Controllers\PicAttendance\PicAttendanceController;
 use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
 use App\Http\Controllers\PicAttendance\PicAttendanceTaskController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectManagement\OverviewController as ProjectManagementOverviewController;
 use App\Http\Controllers\ProjectManagement\ProjectController as ProjectManagementProjectController;
 use App\Http\Controllers\ProjectManagement\TaskListController as ProjectManagementTaskListController;
@@ -36,6 +37,11 @@ Route::middleware('auth')->group(function (): void {
         ->middleware('position.permission:view-dashboard')
         ->name('dashboard');
 
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
+
     // Activity Schedule
     Route::middleware('position.permission:view-calendar')->group(function (): void {
         Route::get('/activity-schadule', [ActivityScheduleController::class, 'index'])->name('activity-schadule');
@@ -49,6 +55,7 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/project-management/task-list/filter', [ProjectManagementTaskListController::class, 'filter'])->name('project_management.task_list.filter');
         Route::post('/project-management/task-list/tasks', [ProjectManagementTaskListController::class, 'storeTask'])->name('project_management.task_list.tasks.store');
         Route::put('/project-management/task-list/tasks/{projectTask}', [ProjectManagementTaskListController::class, 'updateTask'])->name('project_management.task_list.tasks.update');
+        Route::patch('/project-management/task-list/tasks/{projectTask}/status', [ProjectManagementTaskListController::class, 'updateTaskStatus'])->name('project_management.task_list.tasks.status.update');
         Route::patch('/project-management/task-list/tasks/{projectTask}/complete', [ProjectManagementTaskListController::class, 'completeTask'])->name('project_management.task_list.tasks.complete');
         Route::delete('/project-management/task-list/tasks/{projectTask}', [ProjectManagementTaskListController::class, 'destroyTask'])->name('project_management.task_list.tasks.destroy');
         Route::get('/project-management/projects', [ProjectManagementProjectController::class, 'index'])->name('project_management.projects');
@@ -138,6 +145,9 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/admin-attendance/overtime/detail/{uid}', [AdminAttendanceOvertimeController::class, 'detail'])
         ->middleware('position.permission:view-admin-attendance')
         ->name('admin-attendance.overtime.detail');
+    Route::patch('/admin-attendance/overtime/detail/{uid}/approval', [AdminAttendanceOvertimeController::class, 'updateApproval'])
+        ->middleware('position.permission:view-admin-attendance')
+        ->name('admin-attendance.overtime.approval');
     Route::get('/admin-attendance/recap-attendance/datatable', [AdminAttendanceRecapController::class, 'monthlyDatatable'])
         ->middleware('position.permission:view-admin-attendance')
         ->name('admin-attendance.recap.monthly-datatable');

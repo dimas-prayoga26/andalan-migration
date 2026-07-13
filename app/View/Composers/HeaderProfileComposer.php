@@ -5,6 +5,7 @@ namespace App\View\Composers;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -64,6 +65,13 @@ class HeaderProfileComposer
         }
 
         $publicPath = ltrim($profilePicturePath, '/');
+        $storagePath = Str::startsWith($publicPath, 'storage/')
+            ? Str::after($publicPath, 'storage/')
+            : $publicPath;
+
+        if (Storage::disk('public')->exists($storagePath)) {
+            return asset('storage/'.$storagePath);
+        }
 
         return File::exists(public_path($publicPath)) ? asset($publicPath) : $defaultAvatarUrl;
     }

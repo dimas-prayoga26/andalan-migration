@@ -65,6 +65,21 @@
             text-align: center;
         }
 
+        .admin-attendance-metric-icon {
+            align-items: center;
+            display: inline-flex;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .admin-attendance-metric-icon svg {
+            display: none;
+        }
+
+        .admin-attendance-metric-icon i {
+            font-size: 22px;
+        }
+
         @media (min-width: 768px) {
             .admin-attendance-overview-column {
                 display: flex;
@@ -254,7 +269,8 @@
                                             <div class="position-relative me-3">
                                                 <span class="donut" data-peity='{ "fill": ["var(--bs-success)", "var(--bs-light)"],   "innerRadius": 34, "radius": 10}'>{{ $dailyOnTimeDonutValue }}</span>
                                                 
-                                                <small class="position-absolute top-50 start-50 translate-middle">
+                                                <small class="admin-attendance-metric-icon position-absolute top-50 start-50 translate-middle">
+                                                    <i class="fa-solid fa-user-check text-success" aria-hidden="true"></i>
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <g clip-path="url(#clip3)">
                                                         <path d="M0.988957 17.0741C0.328275 17.2007 -0.104585 17.8386 0.0219821 18.4993C0.133361 19.0815 0.644693 19.4865 1.21678 19.4865C1.29272 19.4865 1.37119 19.4789 1.44713 19.4637L6.4592 18.5018C6.74524 18.4461 7.0009 18.2917 7.18316 18.0639L9.33481 15.3503L8.61593 14.9832C8.08435 14.7149 7.71474 14.2289 7.58818 13.6391L5.55804 16.1983L0.988957 17.0741Z" fill="#A02CFA"/>
@@ -279,7 +295,8 @@
                                         <div class="d-flex align-items-center mb-sm-5 mb-3">
                                             <div class="position-relative me-3">
                                                 <span class="donut" data-peity='{ "fill": ["var(--bs-danger)", "var(--bs-light)"],   "innerRadius": 34, "radius": 10}'>{{ $dailyLateDonutValue }}</span>
-                                                <small class="position-absolute top-50 start-50 translate-middle">
+                                                <small class="admin-attendance-metric-icon position-absolute top-50 start-50 translate-middle">
+                                                    <i class="fa-solid fa-user-clock text-danger" aria-hidden="true"></i>
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <g clip-path="url(#clip4)">
                                                         <path d="M11.9995 5.9999C13.6563 5.9999 14.9994 4.65677 14.9994 2.99995C14.9994 1.34312 13.6563 1.61033e-07 11.9995 1.41496e-07C10.3426 1.21959e-07 8.99953 1.34312 8.99953 2.99995C8.99953 4.65677 10.3426 5.9999 11.9995 5.9999Z" fill="#FFBC11"/>
@@ -306,7 +323,8 @@
                                         <div class="d-flex align-items-center mb-sm-5 mb-3">
                                             <div class="position-relative me-3">
                                                 <span class="donut" data-peity='{ "fill": ["var(--bs-warning)", "var(--bs-light)"],   "innerRadius": 34, "radius": 10}'>{{ $dailyDeviationDonutValue }}</span>
-                                                <small class="position-absolute top-50 start-50 translate-middle">
+                                                <small class="admin-attendance-metric-icon position-absolute top-50 start-50 translate-middle">
+                                                    <i class="fa-solid fa-user-xmark text-warning" aria-hidden="true"></i>
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <g clip-path="url(#clip5)">
                                                         <path d="M10.8586 5.22596L5.87121 10.5542C5.50758 11.0845 5.64394 11.8068 6.17172 12.1679L11.1945 15.6098L11.1945 18.9558C11.1945 19.5921 11.6995 20.125 12.3359 20.1376C12.9874 20.1477 13.5177 19.6249 13.5177 18.976L13.5177 15.0012C13.5177 14.6174 13.3283 14.2588 13.0126 14.0442L9.79041 11.8346L12.5025 8.95833L13.8914 12.1225C14.0758 12.5442 14.4949 12.8169 14.9546 12.8169L19.1844 12.8169C19.8207 12.8169 20.3536 12.3119 20.3662 11.6755C20.3763 11.024 19.8536 10.4937 19.2046 10.4937L15.7172 10.4937C15.2576 9.44821 14.7677 8.41285 14.3409 7.35225C14.1237 6.81689 14.0025 6.58457 13.6036 6.21588C13.5227 6.14013 12.9596 5.62498 12.4571 5.16538C11.995 4.74616 11.2828 4.77394 10.8586 5.22596Z" fill="#FFBC11"/>
@@ -332,7 +350,8 @@
                                         <div class="d-flex align-items-center mb-sm-5 mb-3">
                                             <div class="position-relative me-3">
                                                 <span class="donut" data-peity='{ "fill": ["var(--bs-info)", "var(--bs-light)"],   "innerRadius": 34, "radius": 10}'>{{ $dailyLeaveDonutValue }}</span>
-                                                <small class="position-absolute top-50 start-50 translate-middle">
+                                                <small class="admin-attendance-metric-icon position-absolute top-50 start-50 translate-middle">
+                                                    <i class="fa-solid fa-calendar-minus text-info" aria-hidden="true"></i>
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <g clip-path="url(#clip8)">
                                                         <path d="M22.2363 3.06982C22.0806 2.91507 21.8978 2.83724 21.6855 2.83724C21.58 2.83724 21.3576 2.92382 21.0205 3.09469C20.682 3.26601 20.3218 3.45668 19.9442 3.66945C19.5651 3.88084 19.1166 4.07243 18.5985 4.24375C18.0813 4.41461 17.6028 4.5012 17.162 4.5012C16.7544 4.5012 16.3961 4.42382 16.0862 4.26862C15.0596 3.78781 14.1662 3.42904 13.4086 3.19232C12.6505 2.95606 11.8353 2.83724 10.9626 2.83724C9.45569 2.83724 7.73923 3.32726 5.81506 4.30546C5.41807 4.5035 5.13346 4.65686 4.94924 4.76923L4.7664 3.42858C5.17951 3.06982 5.44617 2.5471 5.44617 1.95714C5.44617 0.876234 4.57021 0.000274694 3.48931 0.000274681C2.4084 0.000274669 1.53198 0.876234 1.53198 1.95714C1.53198 2.66223 1.90871 3.27522 2.46781 3.61971L5.11135 23.0041C5.1901 23.5812 5.68381 23.9998 6.25074 23.9998C6.30232 23.9998 6.35482 23.9957 6.40779 23.9901C7.03782 23.9036 7.47902 23.3237 7.3929 22.6937L6.33042 14.9031C8.25826 13.9465 9.9259 13.4644 11.3287 13.4644C11.9242 13.4644 12.505 13.5523 13.071 13.7329C13.6374 13.9129 14.109 14.1073 14.4835 14.3187C14.8574 14.531 15.3 14.7272 15.8098 14.9054C16.3197 15.085 16.823 15.1748 17.32 15.1748C18.5754 15.1748 20.0782 14.7018 21.8315 13.7563C22.0516 13.6421 22.2124 13.5297 22.3146 13.4201C22.4168 13.3101 22.4675 13.153 22.4675 12.9499L22.4675 3.62017C22.4675 3.40878 22.3906 3.22502 22.2363 3.06982Z" fill="#1EA7C5"/>

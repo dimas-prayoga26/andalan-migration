@@ -158,10 +158,37 @@ class TaskListController extends Controller
         ]);
     }
 
-    public function destroyTask(ProjectTask $projectTask): JsonResponse
+    public function updateTaskStatus(Request $request, ProjectTask $projectTask): JsonResponse
     {
         $employeeId = $this->authenticatedEmployeeId(Auth::user());
         if ($employeeId === null || ! $this->canManageTaskListTask($projectTask, $employeeId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak memiliki akses untuk mengubah status task ini.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'status' => ['required', 'in:pending,in_progress,completed'],
+        ]);
+
+        $status = strtolower(trim((string) $validated['status']));
+
+        $projectTask->update([
+            'status' => $status,
+            'completed_at' => $status === 'completed' ? ($projectTask->completed_at ?? now('Asia/Jakarta')) : null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status task berhasil diperbarui.',
+        ]);
+    }
+
+    public function destroyTask(ProjectTask $projectTask): JsonResponse
+    {
+        $employeeId = $this->authenticatedEmployeeId(Auth::user());
+        if ($employeeId === null || ! $this->canDeleteTaskListTask($projectTask, $employeeId)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk menghapus task ini.',
@@ -252,8 +279,7 @@ class TaskListController extends Controller
             return $defaultTaskListData;
         }
 
-        $taskQuery = $this->projectTaskQueryForEmployee($employeeId)
-            ->whereNull('overtime_id');
+        $taskQuery = $this->projectTaskQueryForEmployee($employeeId);
 
         $monthTaskQuery = $this->projectTaskQueryForMonth(
             $taskQuery,
@@ -303,6 +329,7 @@ class TaskListController extends Controller
             'taskListItems' => $tasks,
             'taskListOngoingItems' => $ongoingTasks,
             'taskListDoneItems' => $doneTasks,
+            'taskListKanbanGroups' => $this->taskListKanbanGroups($tasks),
             'taskListWeekPlanItems' => $weekPlanTasks,
             'taskListPastIncompleteCount' => $pastIncompleteCount,
             'taskListProjectOptions' => $this->taskListProjectOptions($employeeId),
@@ -326,6 +353,7 @@ class TaskListController extends Controller
             'taskListItems' => collect(),
             'taskListOngoingItems' => collect(),
             'taskListDoneItems' => collect(),
+            'taskListKanbanGroups' => $this->taskListKanbanGroups(collect()),
             'taskListWeekPlanItems' => collect(),
             'taskListProjectOptions' => collect(),
             'taskListAssignableStaffOptions' => collect(),
@@ -333,6 +361,49 @@ class TaskListController extends Controller
             'taskListPastIncompleteCount' => 0,
             'taskListStoreUrl' => route('project_management.task_list.tasks.store'),
         ];
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $tasks
+     * @return Collection<int, array{id:string,label:string,status:string,dot_class:string,progress_class:string,progress:int,empty:string,items:Collection<int, array<string, mixed>>}>
+     */
+    private function taskListKanbanGroups(Collection $tasks): Collection
+    {
+        $tasksByStatus = $tasks->groupBy(fn (array $task): string => (string) ($task['status'] ?? ''));
+
+        return collect([
+            [
+                'id' => 'pending',
+                'label' => 'To-Do List',
+                'status' => 'pending',
+                'dot_class' => 'text-secondary',
+                'progress_class' => 'bg-secondary',
+                'progress' => 20,
+                'empty' => 'No pending task.',
+            ],
+            [
+                'id' => 'in_progress',
+                'label' => 'In Progress',
+                'status' => 'in_progress',
+                'dot_class' => 'text-warning',
+                'progress_class' => 'bg-warning',
+                'progress' => 65,
+                'empty' => 'No task in progress.',
+            ],
+            [
+                'id' => 'completed',
+                'label' => 'Done',
+                'status' => 'completed',
+                'dot_class' => 'text-success',
+                'progress_class' => 'bg-success',
+                'progress' => 100,
+                'empty' => 'No completed task.',
+            ],
+        ])->map(function (array $group) use ($tasksByStatus): array {
+            $group['items'] = $tasksByStatus->get($group['status'], collect())->values();
+
+            return $group;
+        });
     }
 
     private function authenticatedEmployeeId(?User $authenticatedUser): ?string
@@ -507,10 +578,16 @@ class TaskListController extends Controller
         $assignedByUserId = trim((string) ($projectTask->assigned_by ?? ''));
         $authenticatedUserId = trim((string) (Auth::id() ?? ''));
         $assignedByUsername = trim((string) ($projectTask->assignedBy?->username ?? 'self'));
+        $isOvertimeTask = trim((string) ($projectTask->overtime_id ?? '')) !== '';
 
         return [
             'id' => (string) $projectTask->id,
             'employee_id' => (string) $projectTask->employee_id,
+            'overtime_id' => $isOvertimeTask ? (string) $projectTask->overtime_id : '',
+            'is_overtime_task' => $isOvertimeTask,
+            'overtime_label' => 'Overtime',
+            'can_manage_from_task_list' => true,
+            'can_delete_from_task_list' => ! $isOvertimeTask,
             'title' => trim((string) $projectTask->title),
             'description' => trim((string) ($projectTask->description ?? '')),
             'blockers' => trim((string) ($projectTask->blockers ?? '')),
@@ -536,6 +613,7 @@ class TaskListController extends Controller
             'date_range_label' => $this->taskDateRangeLabel($startDate, $dueDate),
             'due_label' => $this->taskDueLabel($dueDate, $isCompleted),
             'update_url' => route('project_management.task_list.tasks.update', $projectTask),
+            'status_update_url' => route('project_management.task_list.tasks.status.update', $projectTask),
             'complete_url' => route('project_management.task_list.tasks.complete', $projectTask),
             'delete_url' => route('project_management.task_list.tasks.destroy', $projectTask),
         ];
@@ -684,7 +762,12 @@ class TaskListController extends Controller
 
     private function canManageTaskListTask(ProjectTask $projectTask, string $employeeId): bool
     {
-        return (string) $projectTask->employee_id === $employeeId
+        return (string) $projectTask->employee_id === $employeeId;
+    }
+
+    private function canDeleteTaskListTask(ProjectTask $projectTask, string $employeeId): bool
+    {
+        return $this->canManageTaskListTask($projectTask, $employeeId)
             && ($projectTask->overtime_id === null || trim((string) $projectTask->overtime_id) === '');
     }
 
@@ -704,7 +787,8 @@ class TaskListController extends Controller
         return ProjectTask::query()
             ->where('employee_id', $employeeId)
             ->where(function (Builder $query) use ($employeeId): void {
-                $query->whereNull('project_id')
+                $query->whereNotNull('overtime_id')
+                    ->orWhereNull('project_id')
                     ->orWhereHas('project.memberships', function (Builder $membershipQuery) use ($employeeId): void {
                         $membershipQuery
                             ->where('employee_id', $employeeId)

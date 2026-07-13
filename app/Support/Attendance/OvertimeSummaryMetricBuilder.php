@@ -33,6 +33,14 @@ class OvertimeSummaryMetricBuilder
             return $this->emptySummary();
         }
 
+        return $this->summarizeForActiveEmployees(trim($companyId), $assignedByUserId);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function summarizeForActiveEmployees(?string $companyId = null, ?string $assignedByUserId = null): array
+    {
         $today = Carbon::now('Asia/Jakarta')->toDateString();
         $query = AttendanceOvertime::query()
             ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled'])
@@ -41,7 +49,6 @@ class OvertimeSummaryMetricBuilder
                     ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
                     ->whereHas('deployment', function (Builder $query) use ($companyId, $today): void {
                         $query
-                            ->where('current_company_id', trim($companyId))
                             ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
                             ->whereDate('join_date', '<=', $today)
                             ->where(function (Builder $query) use ($today): void {
@@ -49,6 +56,10 @@ class OvertimeSummaryMetricBuilder
                                     ->whereNull('resignation_date')
                                     ->orWhereDate('resignation_date', '>=', $today);
                             });
+
+                        if (is_string($companyId) && trim($companyId) !== '') {
+                            $query->where('current_company_id', trim($companyId));
+                        }
                     });
             });
 

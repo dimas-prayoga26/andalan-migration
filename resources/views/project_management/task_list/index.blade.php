@@ -37,8 +37,147 @@
         max-width: 180px;
     }
 
-    .project-grid-file-card {
-        min-height: 150px;
+    .project-kanban-page {
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    .project-kanban-page .kanban-bx {
+        display: flex;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        gap: 1.25rem;
+        padding-bottom: 0.5rem;
+        margin-left: 0;
+        margin-right: 0;
+        touch-action: pan-x pan-y;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .project-kanban-page .kanban-bx .col {
+        width: 360px;
+        min-width: 360px;
+        flex-grow: 0;
+        flex-shrink: 0;
+        flex-basis: 360px;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .project-kanban-page .kanban-bx .col .project-kanban-card {
+        display: flex;
+        height: 230px;
+        cursor: grab;
+        will-change: transform;
+    }
+
+    .project-kanban-page .draggable.card {
+        transition: none;
+    }
+
+    .project-kanban-page .kanban-bx .col .project-kanban-card .card-body {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .project-kanban-page .kanban-bx .col .project-kanban-card p.font-w600 {
+        display: -webkit-box;
+        min-height: 58px;
+        overflow: hidden;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    .project-kanban-page .kanban-bx .col .project-kanban-card .progress {
+        flex-shrink: 0;
+    }
+
+    .project-kanban-page .kanban-bx .col .project-kanban-card .kanban-user {
+        margin-top: auto;
+        flex-shrink: 0;
+    }
+
+    .project-kanban-page .project-kanban-task-title {
+        display: inline-flex;
+        align-items: center;
+        max-width: 260px;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .project-kanban-page .project-kanban-card-actions,
+    .project-kanban-page .project-kanban-card-actions * {
+        cursor: pointer;
+    }
+
+    .project-kanban-page .project-kanban-card-actions .dropdown-menu {
+        z-index: 1080;
+    }
+
+    .project-kanban-page .kanban-bx .col .card.draggable-source--is-dragging {
+        cursor: grabbing;
+        opacity: 0.45;
+    }
+
+    .draggable-mirror {
+        z-index: 1060 !important;
+        pointer-events: none;
+        cursor: grabbing;
+        margin: 0 !important;
+        transition: none !important;
+        transform: none !important;
+    }
+
+    .project-kanban-page .kanban-user .users {
+        display: flex;
+        padding-left: 0;
+        margin-bottom: 0;
+        list-style: none;
+    }
+
+    .project-kanban-page .kanban-user .users li {
+        margin-right: -10px;
+    }
+
+    .project-kanban-page .kanban-user .users li img {
+        border-radius: 32px;
+        height: 32px;
+        width: 32px;
+        border: 2px solid #fff;
+        object-fit: cover;
+    }
+
+    .project-kanban-page .dropzoneContainer {
+        min-height: 96px;
+    }
+
+    .project-kanban-page .kanbanPreview-bx > .sub-card {
+        margin-bottom: 1.5rem;
+        min-height: 32px;
+    }
+
+    .project-kanban-page .kanban-empty-state {
+        min-height: 235px;
+        border: 1px dashed #d8dde8;
+        border-radius: 1rem;
+        background: rgba(245, 248, 253, 0.5);
+    }
+
+    .project-kanban-page .kanban-bx::-webkit-scrollbar {
+        background-color: #ececec;
+        width: 8px;
+        height: 8px;
+    }
+
+    .project-kanban-page .kanban-bx::-webkit-scrollbar-thumb {
+        background-color: #7e7e7e;
+        border-radius: 10px;
     }
 
     .project-task-calendar-widget .datepicker-days .day.today:not(.active) {
@@ -54,6 +193,30 @@
     @media (max-width: 575.98px) {
         .project-task-date-box {
             min-width: 72px;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .project-kanban-page .kanban-bx {
+            gap: 0.75rem;
+            padding: 0 0.75rem 0.75rem;
+            max-width: 100vw;
+            scroll-snap-type: x proximity;
+            scroll-padding-left: 0.75rem;
+            overscroll-behavior-x: contain;
+            touch-action: pan-x pan-y;
+        }
+
+        .project-kanban-page .kanban-bx .col {
+            width: 82vw;
+            min-width: 82vw;
+            max-width: 82vw;
+            scroll-snap-align: start;
+        }
+
+        .project-kanban-page .kanban-bx .col .project-kanban-card {
+            cursor: default;
+            touch-action: pan-x pan-y;
         }
     }
 </style>
@@ -436,6 +599,7 @@
     $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
 @endphp
 <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+<script src="{{ asset('assets-workload/vendor/draggable/draggable.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(function () {
@@ -451,15 +615,58 @@
         };
         var activeActionUrl = '';
         var isSyncingCalendar = false;
+        var kanbanSortableInstance = null;
 
         function parseTask(button) {
             var taskJson = $(button).attr('data-task') || '{}';
+            var task = {};
 
             try {
-                return JSON.parse(taskJson);
+                task = JSON.parse(taskJson);
             } catch (error) {
-                return {};
+                task = {};
             }
+
+            var currentStatus = $(button).closest('.project-kanban-card').attr('data-task-status') || '';
+
+            if (currentStatus !== '') {
+                task.status = currentStatus;
+            }
+
+            return task;
+        }
+
+        function setTaskSelectValue(selector, value) {
+            var selectElement = $(selector);
+
+            if (! selectElement.length) {
+                return;
+            }
+
+            if ($.fn.selectpicker && selectElement.data('selectpicker')) {
+                selectElement.selectpicker('val', value);
+                return;
+            }
+
+            selectElement.val(value);
+        }
+
+        function refreshDefaultSelect(selector) {
+            var selectElement = $(selector);
+
+            if ($.fn.selectpicker && selectElement.length && selectElement.data('selectpicker')) {
+                selectElement.selectpicker('refresh');
+            }
+        }
+
+        function refreshTaskFormSelects() {
+            [
+                '#taskPriority',
+                '#taskStatus',
+                '#taskCategory',
+                '#taskAssigneeEmployeeId',
+                '#taskProject',
+            ].forEach(refreshDefaultSelect);
         }
 
         function nullableValue(value) {
@@ -482,8 +689,10 @@
             });
 
             if (selectedProjectId) {
-                projectSelect.val(selectedProjectId);
+                setTaskSelectValue('#taskProject', selectedProjectId);
             }
+
+            refreshDefaultSelect('#taskProject');
         }
 
         function setProjectFieldState() {
@@ -494,8 +703,10 @@
             $('#taskProject').prop('disabled', ! isProjectTask);
 
             if (! isProjectTask) {
-                $('#taskProject').val('');
+                setTaskSelectValue('#taskProject', '');
             }
+
+            refreshDefaultSelect('#taskProject');
         }
 
         function resetTaskForm() {
@@ -504,13 +715,14 @@
             $('#taskFormMethod').val('POST');
             $('#taskFormTitle').text('Create New Task');
             $('#taskFormSubmit').removeClass('btn-warning').addClass('btn-success').text('Save changes');
-            $('#taskStatus').val('pending');
-            $('#taskPriority').val('medium');
-            $('#taskCategory').val('daily');
-            $('#taskAssigneeEmployeeId').val(taskDefaultAssigneeEmployeeId);
+            setTaskSelectValue('#taskStatus', 'pending');
+            setTaskSelectValue('#taskPriority', 'medium');
+            setTaskSelectValue('#taskCategory', 'daily');
+            setTaskSelectValue('#taskAssigneeEmployeeId', taskDefaultAssigneeEmployeeId);
             $('#taskAssigneeEmployeeId').prop('disabled', false);
             setTaskDateRange('', '');
             setProjectFieldState();
+            refreshTaskFormSelects();
         }
 
         function fillTaskForm(task) {
@@ -521,15 +733,16 @@
             $('#taskTitle').val(nullableValue(task.title));
             $('#taskDescription').val(nullableValue(task.description));
             setTaskDateRange(nullableValue(task.start_date), nullableValue(task.due_date));
-            $('#taskPriority').val(nullableValue(task.priority) || 'medium');
-            $('#taskStatus').val(nullableValue(task.status) || 'pending');
+            setTaskSelectValue('#taskPriority', nullableValue(task.priority) || 'medium');
+            setTaskSelectValue('#taskStatus', nullableValue(task.status) || 'pending');
             $('#taskAttachment').val(nullableValue(task.attachment_path));
             $('#taskBlockers').val(nullableValue(task.blockers));
-            $('#taskCategory').val(nullableValue(task.task_category) || 'daily');
-            $('#taskAssigneeEmployeeId').val(nullableValue(task.employee_id) || taskDefaultAssigneeEmployeeId);
+            setTaskSelectValue('#taskCategory', nullableValue(task.task_category) || 'daily');
+            setTaskSelectValue('#taskAssigneeEmployeeId', nullableValue(task.employee_id) || taskDefaultAssigneeEmployeeId);
             $('#taskAssigneeEmployeeId').prop('disabled', true);
             setProjectFieldState();
-            $('#taskProject').val(nullableValue(task.project_id));
+            setTaskSelectValue('#taskProject', nullableValue(task.project_id));
+            refreshTaskFormSelects();
         }
 
         function fillTaskDetails(task) {
@@ -708,14 +921,304 @@
             $('#taskListWeekPlanPanel').html(response.fragments.week_plan || '');
             $('#taskListProjectGridPanel').html(response.fragments.project_grid || '');
             $('#taskFilterLabel').text(response.selected_month_label || selectedMonth);
-            $('#taskFilterMonth').val(response.selected_month_number || currentTaskFilters.month);
+            setTaskSelectValue('#taskFilterMonth', response.selected_month_number || currentTaskFilters.month);
             $('#taskFilterYear').val(response.selected_year || currentTaskFilters.year);
+            refreshDefaultSelect('#taskFilterMonth');
 
             currentTaskFilters.month = response.selected_month_number || currentTaskFilters.month;
             currentTaskFilters.year = response.selected_year || currentTaskFilters.year;
             activeActionUrl = '';
 
             updateCalendar(response.selected_month);
+            initializeStaticKanbanBoard();
+        }
+
+        function shouldUseMobileKanbanScroll() {
+            if (typeof window.matchMedia === 'function') {
+                return window.matchMedia('(max-width: 767.98px), (pointer: coarse)').matches;
+            }
+
+            return window.innerWidth <= 767 || navigator.maxTouchPoints > 0;
+        }
+
+        function initializeStaticKanbanBoard() {
+            var dropzones = document.querySelectorAll('#taskListProjectGridPanel .dropzoneContainer');
+            var draggableCards = document.querySelectorAll('#taskListProjectGridPanel .draggable-handle');
+
+            if (kanbanSortableInstance && typeof kanbanSortableInstance.destroy === 'function') {
+                kanbanSortableInstance.destroy();
+                kanbanSortableInstance = null;
+            }
+
+            if (shouldUseMobileKanbanScroll() || ! dropzones.length || ! draggableCards.length || typeof window.Sortable === 'undefined' || typeof window.Sortable.default === 'undefined') {
+                return;
+            }
+
+            kanbanSortableInstance = new window.Sortable.default(dropzones, {
+                draggable: '.draggable-handle',
+                mirror: {
+                    appendTo: document.body,
+                    constrainDimensions: true,
+                },
+            });
+
+            preventStaticKanbanActionDrag(kanbanSortableInstance);
+            attachStaticKanbanStatusSync(kanbanSortableInstance);
+            attachStaticKanbanMirrorPositioning(kanbanSortableInstance);
+        }
+
+        function eventStartedFromKanbanAction(event) {
+            var candidates = [
+                event && event.sensorEvent && event.sensorEvent.target,
+                event && event.sensorEvent && event.sensorEvent.originalEvent && event.sensorEvent.originalEvent.target,
+                event && event.data && event.data.sensorEvent && event.data.sensorEvent.target,
+                event && event.originalEvent && event.originalEvent.target,
+                event && event.target,
+            ];
+
+            for (var i = 0; i < candidates.length; i += 1) {
+                var target = candidates[i];
+
+                if (target && target.closest && target.closest('.project-kanban-card-actions, .project-kanban-card-actions *, .dropdown-menu')) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        function preventStaticKanbanActionDrag(sortableInstance) {
+            if (! sortableInstance || typeof sortableInstance.on !== 'function') {
+                return;
+            }
+
+            sortableInstance.on('drag:start', function (event) {
+                if (eventStartedFromKanbanAction(event) && event && typeof event.cancel === 'function') {
+                    event.cancel();
+                }
+            });
+        }
+
+        function syncMovedKanbanTaskStatuses() {
+            var movedCards = $('#taskListProjectGridPanel .project-kanban-card').filter(function () {
+                var card = $(this);
+                var targetStatus = card.closest('.dropzoneContainer').attr('data-kanban-status') || '';
+                var currentStatus = card.attr('data-task-status') || '';
+                var statusUpdateUrl = card.attr('data-status-update-url') || '';
+
+                return statusUpdateUrl !== '' && targetStatus !== '' && targetStatus !== currentStatus;
+            });
+
+            if (! movedCards.length) {
+                return;
+            }
+
+            var pendingRequests = movedCards.length;
+            var shouldRefresh = false;
+
+            movedCards.each(function () {
+                var card = $(this);
+                var targetStatus = card.closest('.dropzoneContainer').attr('data-kanban-status') || '';
+                var statusUpdateUrl = card.attr('data-status-update-url') || '';
+
+                card.attr('data-task-status', targetStatus);
+
+                $.ajax({
+                    url: statusUpdateUrl,
+                    type: 'PATCH',
+                    data: {
+                        _token: @json(csrf_token()),
+                        status: targetStatus,
+                    },
+                    headers: {
+                        'X-CSRF-TOKEN': @json(csrf_token()),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    success: function (response) {
+                        if (response.success === true || response.status === true) {
+                            shouldRefresh = true;
+                        } else {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Gagal',
+                                text: response.message,
+                            });
+                            shouldRefresh = true;
+                        }
+                    },
+                    error: function (xhr) {
+                        handleAjaxError(xhr);
+                        shouldRefresh = true;
+                    },
+                    complete: function () {
+                        pendingRequests -= 1;
+
+                        if (pendingRequests <= 0 && shouldRefresh) {
+                            refreshTaskList();
+                        }
+                    },
+                });
+            });
+        }
+
+        function attachStaticKanbanStatusSync(sortableInstance) {
+            if (! sortableInstance || typeof sortableInstance.on !== 'function') {
+                return;
+            }
+
+            sortableInstance.on('sortable:stop', function () {
+                window.setTimeout(syncMovedKanbanTaskStatuses, 0);
+            });
+
+            sortableInstance.on('drag:stop', function () {
+                window.setTimeout(syncMovedKanbanTaskStatuses, 0);
+            });
+        }
+
+        function extractPointerPosition(value) {
+            if (! value) {
+                return null;
+            }
+
+            if (typeof value.clientX === 'number' && typeof value.clientY === 'number') {
+                return {
+                    x: value.clientX,
+                    y: value.clientY,
+                };
+            }
+
+            if (value.touches && value.touches.length > 0 && typeof value.touches[0].clientX === 'number' && typeof value.touches[0].clientY === 'number') {
+                return {
+                    x: value.touches[0].clientX,
+                    y: value.touches[0].clientY,
+                };
+            }
+
+            if (value.changedTouches && value.changedTouches.length > 0 && typeof value.changedTouches[0].clientX === 'number' && typeof value.changedTouches[0].clientY === 'number') {
+                return {
+                    x: value.changedTouches[0].clientX,
+                    y: value.changedTouches[0].clientY,
+                };
+            }
+
+            return null;
+        }
+
+        function getPointerPositionFromEvent(event) {
+            var candidates = [
+                event && event.sensorEvent,
+                event && event.sensorEvent && event.sensorEvent.originalEvent,
+                event && event.data && event.data.sensorEvent,
+                event && event.data && event.data.sensorEvent && event.data.sensorEvent.originalEvent,
+                event && event.originalEvent,
+                event && event.data && event.data.originalEvent,
+                event,
+            ];
+
+            for (var i = 0; i < candidates.length; i += 1) {
+                var pointerPosition = extractPointerPosition(candidates[i]);
+
+                if (pointerPosition !== null) {
+                    return pointerPosition;
+                }
+            }
+
+            return null;
+        }
+
+        function attachStaticKanbanMirrorPositioning(sortableInstance) {
+            if (! sortableInstance || typeof sortableInstance.on !== 'function') {
+                return;
+            }
+
+            var dragMirror = null;
+            var dragOffset = {
+                x: 0,
+                y: 0,
+            };
+
+            function resetMirrorState() {
+                dragMirror = null;
+                dragOffset = {
+                    x: 0,
+                    y: 0,
+                };
+            }
+
+            function positionMirror(event) {
+                if (! dragMirror) {
+                    dragMirror = document.querySelector('.draggable-mirror');
+                }
+
+                if (! dragMirror) {
+                    return;
+                }
+
+                var pointerPosition = getPointerPositionFromEvent(event);
+
+                if (! pointerPosition) {
+                    return;
+                }
+
+                dragMirror.style.position = 'fixed';
+                dragMirror.style.left = (pointerPosition.x - dragOffset.x) + 'px';
+                dragMirror.style.top = (pointerPosition.y - dragOffset.y) + 'px';
+                dragMirror.style.right = 'auto';
+                dragMirror.style.bottom = 'auto';
+                dragMirror.style.transform = 'none';
+            }
+
+            function scheduleMirrorPosition(event) {
+                positionMirror(event);
+                window.requestAnimationFrame(function () {
+                    positionMirror(event);
+                });
+            }
+
+            sortableInstance.on('drag:start', function (event) {
+                var sourceRect = event && event.source
+                    ? event.source.getBoundingClientRect()
+                    : null;
+                var pointerPosition = getPointerPositionFromEvent(event);
+
+                if (sourceRect && pointerPosition) {
+                    dragOffset = {
+                        x: pointerPosition.x - sourceRect.left,
+                        y: pointerPosition.y - sourceRect.top,
+                    };
+                } else if (sourceRect) {
+                    dragOffset = {
+                        x: sourceRect.width / 2,
+                        y: sourceRect.height / 2,
+                    };
+                }
+            });
+
+            sortableInstance.on('mirror:created', function (event) {
+                dragMirror = event && event.mirror
+                    ? event.mirror
+                    : document.querySelector('.draggable-mirror');
+
+                if (dragMirror && event && event.source) {
+                    var sourceRect = event.source.getBoundingClientRect();
+
+                    dragMirror.style.width = sourceRect.width + 'px';
+                    dragMirror.style.height = sourceRect.height + 'px';
+                    dragMirror.style.position = 'fixed';
+                    dragMirror.style.left = sourceRect.left + 'px';
+                    dragMirror.style.top = sourceRect.top + 'px';
+                    dragMirror.style.right = 'auto';
+                    dragMirror.style.bottom = 'auto';
+                    dragMirror.style.transform = 'none';
+                }
+
+                scheduleMirrorPosition(event);
+            });
+
+            sortableInstance.on('drag:move', scheduleMirrorPosition);
+            sortableInstance.on('mirror:move', scheduleMirrorPosition);
+            sortableInstance.on('drag:stop', resetMirrorState);
+            sortableInstance.on('mirror:destroy', resetMirrorState);
         }
 
         function refreshTaskList() {
@@ -933,6 +1436,7 @@
         }
 
         initializeTaskDateRangePicker();
+        initializeStaticKanbanBoard();
     });
 </script>
 

@@ -76,8 +76,8 @@ class OfficeLocationGeofencingTest extends TestCase
         $this->assertStringNotContainsString('deployment?->company?->address', $employeeAddressSeeder);
 
         foreach ([$adminRecapController, $picAttendanceController] as $controller) {
-            $this->assertStringContainsString('deployment.officeLocation:id,address', $controller);
-            $this->assertStringContainsString('deployment?->officeLocation?->address', $controller);
+            $this->assertStringContainsString('deployment.officeLocation:id,name,address', $controller);
+            $this->assertStringContainsString('deployment?->officeLocation?->name', $controller);
             $this->assertStringNotContainsString('deployment?->company?->address', $controller);
         }
     }

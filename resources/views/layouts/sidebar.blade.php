@@ -96,7 +96,7 @@
 					<li class="{{ $isAuthorizationMenu ? 'mm-active' : '' }}">
 						<a class="{{ $isAuthorizationMenu ? 'active' : '' }}" href="{{ route('authorization') }}" aria-expanded="{{ $isAuthorizationMenu ? 'true' : 'false' }}">
 							<i class="fa-solid fa-id-card"></i>
-							<span class="nav-text" data-i18n="Data Employee">Data Employee </span>
+							<span class="nav-text" data-i18n="Employee Data">Employee Data </span>
 						</a>
 					</li>
 					@endif

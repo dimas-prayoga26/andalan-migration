@@ -23,11 +23,11 @@ class ProjectController extends Controller
     {
         $employeeId = $this->authenticatedEmployeeId(Auth::user());
 
-        return view('project_management.projects.index', [
+        return view('project_management.projects.index', array_merge($this->profileMetricData($employeeId), [
             'projectCards' => $employeeId !== null
                 ? $this->projectCards($employeeId)
                 : collect(),
-        ]);
+        ]));
     }
 
     public function detailFallback(): RedirectResponse
@@ -75,12 +75,12 @@ class ProjectController extends Controller
 
         $projectDepartmentGroups = $this->projectDepartmentGroups($project, $tasks, $ownDepartmentId);
 
-        return view('project_management.projects.detail', [
+        return view('project_management.projects.detail', array_merge($this->profileMetricData($employeeId), [
             'projectDetail' => $this->projectDetailValue($project),
             'projectDepartmentGroups' => $projectDepartmentGroups,
             'projectSummary' => $this->projectSummaryValue($project, $tasks),
             'projectTaskTimeline' => $this->projectTaskTimelineValue($project, $tasks),
-        ]);
+        ]));
     }
 
     public function toggleTask(Request $request, Project $project, ProjectTask $projectTask): JsonResponse
@@ -284,6 +284,145 @@ class ProjectController extends Controller
             ])
             ->orderByDesc('start_date')
             ->orderBy('name');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function profileMetricData(?string $employeeId): array
+    {
+        $currentDate = now('Asia/Jakarta');
+        $defaultData = $this->defaultProfileMetricData($currentDate);
+
+        if ($employeeId === null) {
+            return $defaultData;
+        }
+
+        $taskQuery = $this->projectTaskQueryForEmployee($employeeId);
+        $monthlyTaskQuery = $this->projectTaskQueryForMonth(
+            $taskQuery,
+            (int) $currentDate->year,
+            (int) $currentDate->month,
+        );
+
+        $totalTasksCount = (clone $monthlyTaskQuery)->count();
+        $completedTasksCount = $this->completedTaskQuery($monthlyTaskQuery)->count();
+        $inProgressTasksCount = (clone $monthlyTaskQuery)
+            ->where('status', 'in_progress')
+            ->whereNull('completed_at')
+            ->count();
+        $dailyTasksCount = (clone $monthlyTaskQuery)
+            ->whereNull('project_id')
+            ->count();
+        $projectTasksCount = (clone $monthlyTaskQuery)
+            ->whereNotNull('project_id')
+            ->count();
+        $taskCompletionRate = $this->percentage($completedTasksCount, $totalTasksCount);
+
+        return array_merge($defaultData, [
+            'profileMonthlyAttendanceSeries' => $this->monthlyCompletedTaskSeries($taskQuery, (int) $currentDate->year),
+            'profileMonthlyAttendanceDelta' => $taskCompletionRate,
+            'projectTasksCompletedCount' => $completedTasksCount,
+            'projectTasksInProgressCount' => $inProgressTasksCount,
+            'projectTotalTasksCount' => $totalTasksCount,
+            'projectDailyTasksCount' => $dailyTasksCount,
+            'projectProjectTasksCount' => $projectTasksCount,
+            'projectWorkloadPercent' => $this->percentage($completedTasksCount + $inProgressTasksCount, $totalTasksCount),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function defaultProfileMetricData(CarbonInterface $currentDate): array
+    {
+        return [
+            'profileMonthlyAttendanceLabels' => $this->monthlyProgressLabels((int) $currentDate->year),
+            'profileMonthlyAttendanceSeries' => array_fill(0, 12, 0),
+            'profileMonthlyAttendanceDelta' => 0,
+            'projectTasksCompletedCount' => 0,
+            'projectTasksInProgressCount' => 0,
+            'projectTotalTasksCount' => 0,
+            'projectDailyTasksCount' => 0,
+            'projectProjectTasksCount' => 0,
+            'projectWorkloadPercent' => 0,
+        ];
+    }
+
+    private function projectTaskQueryForEmployee(string $employeeId): Builder
+    {
+        return ProjectTask::query()
+            ->where('employee_id', $employeeId)
+            ->where(function (Builder $query) use ($employeeId): void {
+                $query->whereNotNull('overtime_id')
+                    ->orWhereNull('project_id')
+                    ->orWhereHas('project.memberships', function (Builder $membershipQuery) use ($employeeId): void {
+                        $membershipQuery
+                            ->where('employee_id', $employeeId)
+                            ->where('status', 'active')
+                            ->whereNull('left_at');
+                    });
+            });
+    }
+
+    private function projectTaskQueryForMonth(Builder $taskQuery, int $year, int $month): Builder
+    {
+        return (clone $taskQuery)
+            ->whereRaw('YEAR(COALESCE(due_date, start_date, created_at)) = ?', [$year])
+            ->whereRaw('MONTH(COALESCE(due_date, start_date, created_at)) = ?', [$month]);
+    }
+
+    private function completedTaskQuery(Builder $taskQuery): Builder
+    {
+        return (clone $taskQuery)
+            ->where(function (Builder $query): void {
+                $query->where('status', 'completed')
+                    ->orWhereNotNull('completed_at');
+            });
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function monthlyProgressLabels(int $year): array
+    {
+        return array_map(
+            static fn (int $month): string => CarbonImmutable::create($year, $month, 1, 0, 0, 0, 'Asia/Jakarta')->format('F'),
+            range(1, 12),
+        );
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function monthlyCompletedTaskSeries(Builder $taskQuery, int $year): array
+    {
+        $series = array_fill(0, 12, 0);
+
+        $this->completedTaskQuery($taskQuery)
+            ->get(['due_date', 'start_date', 'created_at', 'updated_at'])
+            ->each(function (ProjectTask $projectTask) use (&$series, $year): void {
+                $taskDate = $this->taskOverviewDate($projectTask);
+
+                if ($taskDate === null || (int) $taskDate->format('Y') !== $year) {
+                    return;
+                }
+
+                $monthIndex = (int) $taskDate->format('n') - 1;
+                if ($monthIndex >= 0 && $monthIndex <= 11) {
+                    $series[$monthIndex]++;
+                }
+            });
+
+        return $series;
+    }
+
+    private function taskOverviewDate(ProjectTask $projectTask): ?CarbonInterface
+    {
+        return $projectTask->due_date
+            ?? $projectTask->start_date
+            ?? $projectTask->created_at
+            ?? $projectTask->updated_at;
     }
 
     /**

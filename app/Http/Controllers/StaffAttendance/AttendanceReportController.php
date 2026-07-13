@@ -55,9 +55,10 @@ class AttendanceReportController extends Controller
         $employeeId = $attendanceCardsData['employeeId'];
         $isSuperUser = $this->isSuperUser($authenticatedUser);
         $isStaffUser = $this->isStaffUser($authenticatedUser);
+        $usesPersonalAttendanceReport = $isStaffUser || $isSuperUser;
         $nowJakarta = now('Asia/Jakarta');
-        $showCompanyFilter = $isSuperUser;
-        $showStaffPeriodFilter = $isStaffUser;
+        $showCompanyFilter = false;
+        $showStaffPeriodFilter = $usesPersonalAttendanceReport;
         $companies = collect();
         $staffMonthOptions = collect(range(1, 12));
         $staffYearOptions = collect();
@@ -72,7 +73,7 @@ class AttendanceReportController extends Controller
             $defaultStaffYear = (int) $nowJakarta->year;
         }
 
-        if ($isStaffUser) {
+        if ($usesPersonalAttendanceReport) {
             $employmentStartMonth = $this->resolveStaffEmploymentStartMonth(
                 is_string($employeeId) ? $employeeId : null,
                 $nowJakarta
@@ -90,19 +91,6 @@ class AttendanceReportController extends Controller
             if (! $staffMonthOptions->contains($defaultStaffMonth)) {
                 $defaultStaffMonth = (int) $staffMonthOptions->last();
             }
-        }
-
-        if ($showCompanyFilter) {
-            $companies = User::query()
-                ->with([
-                    'employee.deployment.company:id,name',
-                ])
-                ->get()
-                ->pluck('employee.deployment.company')
-                ->filter()
-                ->unique('id')
-                ->sortBy('name')
-                ->values();
         }
 
         return view('staff_attendance.reports.index', array_merge(
@@ -174,6 +162,7 @@ class AttendanceReportController extends Controller
         $isSuperUser = $this->isSuperUser($authenticatedUser);
         $isBoardOfDirectur = $this->isBoardOfDirectur($authenticatedUser);
         $isStaffUser = $this->isStaffUser($authenticatedUser);
+        $usesPersonalAttendanceReport = $isStaffUser || $isSuperUser;
         $userCompanyId = $authenticatedUser?->employee?->deployment?->current_company_id;
         $nowJakarta = now('Asia/Jakarta');
         $todayDate = $nowJakarta->toDateString();
@@ -189,7 +178,7 @@ class AttendanceReportController extends Controller
             $selectedYear = (int) $nowJakarta->year;
         }
 
-        if ($isStaffUser) {
+        if ($usesPersonalAttendanceReport) {
             $staffUser = User::query()
                 ->with(['employee.deployment.company:id,name'])
                 ->find(Auth::id());
@@ -1017,7 +1006,7 @@ class AttendanceReportController extends Controller
 
         $lateMinutes = (int) ($attendance->late_minutes ?? 0);
         if ($lateMinutes > 0) {
-            return 'Late '.$lateMinutes.' Minutes';
+            return $this->attendanceDurationFormatter->lateLabel($lateMinutes);
         }
 
         if ($attendance->clock_in !== null) {

@@ -18,6 +18,12 @@ use Illuminate\Support\Collection;
 
 class AttendanceOverviewController extends Controller
 {
+    private const EXCLUDED_ATTENDANCE_DETAIL_EMAILS = [
+        'lukman@rnbmanagement.com',
+        'rully.priyatno@andalanbersama.com',
+        'hilmi.ulwan@andalanbersama.com',
+    ];
+
     public function __construct(private readonly AttendanceExceptionPresenter $attendanceExceptionPresenter, private readonly AttendanceLocationFormatter $attendanceLocationFormatter) {}
 
     public function index(): View
@@ -58,8 +64,8 @@ class AttendanceOverviewController extends Controller
     {
         $todayDate = $date->toDateString();
         $attendanceTodayQuery = Attendance::query()->with(['employee:id,user_id',                'employee.profile:id,employee_id,name',                'employee.user:id,username,email'])->whereIn('employee_id', $activeEmployeeIds)->whereDate('date', $todayDate)->whereNotNull('clock_in')->whereNull('deleted_at');
-        $dailyEarlyBirds = (clone $attendanceTodayQuery)->where('late_minutes', '<=', 0)->orderBy('clock_in')->get(['id', 'employee_id', 'date', 'clock_in', 'status', 'late_minutes'])->values()->map(fn (Attendance $attendance, int $index): array => $this->presentAttendancePerson($attendance, $index + 1));
-        $dailyRunningLate = (clone $attendanceTodayQuery)->where('late_minutes', '>', 0)->orderBy('clock_in')->get(['id', 'employee_id', 'date', 'clock_in', 'status', 'late_minutes'])->values()->map(fn (Attendance $attendance, int $index): array => $this->presentAttendancePerson($attendance, $index + 1));
+        $dailyEarlyBirds = (clone $attendanceTodayQuery)->where('late_minutes', '<=', 0)->orderBy('clock_in')->limit(5)->get(['id', 'employee_id', 'date', 'clock_in', 'status', 'late_minutes'])->values()->map(fn (Attendance $attendance, int $index): array => $this->presentAttendancePerson($attendance, $index + 1));
+        $dailyRunningLate = (clone $attendanceTodayQuery)->where('late_minutes', '>', 0)->orderByDesc('clock_in')->limit(5)->get(['id', 'employee_id', 'date', 'clock_in', 'status', 'late_minutes'])->values()->map(fn (Attendance $attendance, int $index): array => $this->presentAttendancePerson($attendance, $index + 1));
         $dailyBusinessTrips = BusinessTrip::query()->with(['employee:id,user_id',                'employee.profile:id,employee_id,name',                'employee.user:id,username,email'])->whereIn('employee_id', $activeEmployeeIds)->whereDate('start_date', '<=', $todayDate)->whereDate('end_date', '>=', $todayDate)->whereRaw('LOWER(COALESCE(approval_status, "")) = ?', ['approved'])->orderBy('start_date')->limit(5)->get(['id', 'employee_id', 'start_date', 'end_date', 'city_destination', 'province_destination'])->map(fn (BusinessTrip $businessTrip): array => ['name' => $this->employeeDisplayName($businessTrip->employee),                'initials' => $this->initials($this->employeeDisplayName($businessTrip->employee)),                'destination' => $this->businessTripDestination($businessTrip),                'date_range' => $this->dateRangeLabel($businessTrip->start_date, $businessTrip->end_date)]);
         $dailyLeaves = LeaveRequest::query()->with(['employee:id,user_id',                'employee.profile:id,employee_id,name',                'employee.user:id,username,email',                'leaveType:id,name,code'])->whereIn('employee_id', $activeEmployeeIds)->whereDate('start_date', '<=', $todayDate)->whereDate('end_date', '>=', $todayDate)->whereRaw('LOWER(COALESCE(status, "")) = ?', ['approved'])->where('is_active', true)->whereNull('deleted_at')->orderBy('start_date')->limit(5)->get(['id',                'employee_id',                'leave_type_id',                'start_date',                'end_date',                'total_days',                'reason',                'status',                'approved_at',                'attachment_path'])->map(function (LeaveRequest $leaveRequest): array {
             $name = $this->employeeDisplayName($leaveRequest->employee);
@@ -130,11 +136,12 @@ class AttendanceOverviewController extends Controller
         return Employee::query()->whereNull('deleted_at')->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])->whereHas('user', function ($query): void {
             $query
                 ->where('is_active', true)
+                ->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS)
                 ->whereDoesntHave('roles', function ($roleQuery): void {
                     $roleQuery->where('name', 'superuser');
                 });
         })->whereHas('deployment', function ($query) use ($todayDate): void {
-            $query->whereNull('deleted_at')->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])->where(function ($query) use ($todayDate): void {
+            $query->whereNull('deleted_at')->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])->whereRaw('LOWER(COALESCE(workplace, "")) <> ?', ['rnb jakarta'])->where(function ($query) use ($todayDate): void {
                 $query->whereNull('join_date')->orWhereDate('join_date', '<=', $todayDate);
             })->where(function ($query) use ($todayDate): void {
                 $query->whereNull('resignation_date')->orWhereDate('resignation_date', '>=', $todayDate);

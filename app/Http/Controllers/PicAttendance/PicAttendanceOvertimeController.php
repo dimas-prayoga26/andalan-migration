@@ -362,6 +362,7 @@ class PicAttendanceOvertimeController extends Controller
      *     actual_start_time:string,
      *     actual_end_time:string,
      *     staff_submitted_time_range:string,
+     *     staff_submitted_duration:string,
      *     approved_start_time:string,
      *     approved_end_time:string,
      *     planned_time_range:string,
@@ -406,6 +407,7 @@ class PicAttendanceOvertimeController extends Controller
         $taskDeliverablesSubmitted = $this->isTaskDeliverablesSubmitted($overtime);
         $taskHoursVerified = $this->isTaskHoursVerified($overtime);
         $verificationLog = $this->overtimeLifecycleLog($overtime, 'task_hours_verification');
+        $actualEndDateTime = $this->formatActualEndDateTime($overtime);
         $directorApprovalLog = $this->overtimeLifecycleLog($overtime, 'director_approval');
         $directorApprover = $directorApprovalLog?->actor instanceof User
             ? $directorApprovalLog->actor
@@ -422,6 +424,7 @@ class PicAttendanceOvertimeController extends Controller
             'actual_start_time' => $actualStartTime,
             'actual_end_time' => $actualEndTime,
             'staff_submitted_time_range' => $actualTimeRange,
+            'staff_submitted_duration' => $actualDuration,
             'approved_start_time' => $approvedStartTime,
             'approved_end_time' => $approvedEndTime,
             'planned_time_range' => $plannedTimeRange,
@@ -440,7 +443,7 @@ class PicAttendanceOvertimeController extends Controller
             'instruction' => is_string($overtime->instruction) && trim($overtime->instruction) !== '' ? trim($overtime->instruction) : '-',
             'payout_period' => 'Included in '.Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->format('F Y').' Payroll',
             'verified_note' => $hasActualTime ? 'Actual overtime hours recorded' : 'Waiting for clock-out',
-            'verified_datetime' => $this->formatLifecycleDateTime($verificationLog),
+            'verified_datetime' => $actualEndDateTime !== '-' ? $actualEndDateTime : $this->formatLifecycleDateTime($verificationLog),
             'supervisor_approver' => $this->supervisorDisplayName($overtime),
             'supervisor_datetime' => $this->formatLifecycleDateTime($verificationLog),
             'director_approver' => $directorApprover instanceof User ? $this->userDisplayName($directorApprover) : '-',
@@ -660,6 +663,27 @@ class PicAttendanceOvertimeController extends Controller
         return Carbon::parse($lifecycleLog->happened_at, 'Asia/Jakarta')->format('d M Y, H:i');
     }
 
+    private function formatActualEndDateTime(AttendanceOvertime $overtime): string
+    {
+        if (! $this->hasActualOvertimeTimes($overtime)) {
+            return '-';
+        }
+
+        try {
+            $overtimeDate = Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->format('Y-m-d');
+            $actualStartAt = Carbon::parse($overtimeDate.' '.$overtime->actual_start_time, 'Asia/Jakarta');
+            $actualEndAt = Carbon::parse($overtimeDate.' '.$overtime->actual_end_time, 'Asia/Jakarta');
+
+            if ($actualEndAt->lessThanOrEqualTo($actualStartAt)) {
+                $actualEndAt->addDay();
+            }
+
+            return $actualEndAt->format('d M Y, H:i');
+        } catch (\Throwable) {
+            return '-';
+        }
+    }
+
     private function userDisplayName(User $user): string
     {
         $profileName = is_string($user->employee?->profile?->name) ? trim($user->employee->profile->name) : '';
@@ -725,7 +749,6 @@ class PicAttendanceOvertimeController extends Controller
                 'status',
             ])
             ->where('assigned_by', trim($assignedByUserId))
-            ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled'])
             ->whereBetween('overtime_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
             ->whereHas('employee', function (Builder $query): void {
                 $query

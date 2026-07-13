@@ -120,7 +120,7 @@ class PicAttendanceController extends Controller
                 'user:id,username,email,phone',
                 'deployment:id,employee_id,current_company_id,current_position_id,current_department_id,current_office_location_id',
                 'deployment.company:id,name',
-                'deployment.officeLocation:id,address',
+                'deployment.officeLocation:id,name,address',
                 'deployment.position:id,name',
                 'deployment.department:id,name',
             ])
@@ -526,7 +526,7 @@ class PicAttendanceController extends Controller
                 'position' => $employee->deployment?->position?->name ?: '-',
                 'department' => $employee->deployment?->department?->name ?: '-',
                 'company' => $employee->deployment?->company?->name ?: '-',
-                'base' => $employee->deployment?->officeLocation?->address ?: '-',
+                'base' => $employee->deployment?->officeLocation?->name ?: '-',
                 'phone' => $employee->user?->phone ?: '-',
                 'email' => $employee->user?->email ?: '-',
                 'avatar_url' => $this->employeeAvatarUrl($employee->profile?->profile_picture_path),

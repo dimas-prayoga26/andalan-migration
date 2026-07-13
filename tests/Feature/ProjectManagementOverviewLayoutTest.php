@@ -66,6 +66,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("Route::get('/project-management/task-list/filter', [ProjectManagementTaskListController::class, 'filter'])->name('project_management.task_list.filter');", $routes);
         $this->assertStringContainsString("Route::post('/project-management/task-list/tasks', [ProjectManagementTaskListController::class, 'storeTask'])->name('project_management.task_list.tasks.store');", $routes);
         $this->assertStringContainsString("Route::put('/project-management/task-list/tasks/{projectTask}', [ProjectManagementTaskListController::class, 'updateTask'])->name('project_management.task_list.tasks.update');", $routes);
+        $this->assertStringContainsString("Route::patch('/project-management/task-list/tasks/{projectTask}/status', [ProjectManagementTaskListController::class, 'updateTaskStatus'])->name('project_management.task_list.tasks.status.update');", $routes);
         $this->assertStringContainsString("Route::patch('/project-management/task-list/tasks/{projectTask}/complete', [ProjectManagementTaskListController::class, 'completeTask'])->name('project_management.task_list.tasks.complete');", $routes);
         $this->assertStringContainsString("Route::delete('/project-management/task-list/tasks/{projectTask}', [ProjectManagementTaskListController::class, 'destroyTask'])->name('project_management.task_list.tasks.destroy');", $routes);
         $this->assertStringContainsString("Route::get('/project-management/projects', [ProjectManagementProjectController::class, 'index'])->name('project_management.projects');", $routes);
@@ -84,6 +85,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('private function taskListFragments(array $taskListData): array', $taskListController);
         $this->assertStringContainsString('public function storeTask(Request $request): JsonResponse', $taskListController);
         $this->assertStringContainsString('public function updateTask(Request $request, ProjectTask $projectTask): JsonResponse', $taskListController);
+        $this->assertStringContainsString('public function updateTaskStatus(Request $request, ProjectTask $projectTask): JsonResponse', $taskListController);
         $this->assertStringContainsString('public function completeTask(ProjectTask $projectTask): JsonResponse', $taskListController);
         $this->assertStringContainsString('public function destroyTask(ProjectTask $projectTask): JsonResponse', $taskListController);
         $this->assertStringContainsString("@include('project_management.layouts.profile-index')", $taskList);
@@ -92,9 +94,76 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("request()->routeIs('project_management.task_list')", $profileNavbar);
         $this->assertStringContainsString("route('project_management.projects')", $profileNavbar);
         $this->assertStringContainsString("request()->routeIs('project_management.projects', 'project_management.projects.detail', 'project_management.detail')", $profileNavbar);
-        $this->assertStringContainsString("asset('assets/images/files/folder.avif')", $taskListSurface);
+        $this->assertStringContainsString('project-kanban-page', $taskListProjectGridPartial);
+        $this->assertStringContainsString('kanban-bx', $taskListProjectGridPartial);
+        $this->assertStringContainsString('draggable-zone dropzoneContainer', $taskListProjectGridPartial);
+        $this->assertStringContainsString('kanbanPreview-bx', $taskListProjectGridPartial);
+        $this->assertStringContainsString('sub-card align-items-center d-flex justify-content-between mb-4', $taskListProjectGridPartial);
+        $this->assertStringNotContainsString("<div class=\"draggable-zone dropzoneContainer\">\n                    <div class=\"sub-card", $taskListProjectGridPartial);
+        $this->assertStringContainsString("{{ \$kanbanGroup['label'] }}", $taskListProjectGridPartial);
+        $this->assertStringContainsString("'label' => 'To-Do List'", $taskListController);
+        $this->assertStringContainsString("'label' => 'In Progress'", $taskListController);
+        $this->assertStringContainsString("'label' => 'Done'", $taskListController);
+        $this->assertStringNotContainsString('Review', $taskListProjectGridPartial);
+        $this->assertStringNotContainsString('Backlog', $taskListProjectGridPartial);
+        $this->assertStringContainsString('$taskListKanbanGroups = collect($taskListKanbanGroups ?? []);', $taskListProjectGridPartial);
+        $this->assertStringContainsString("{{ \$task['title'] ?? '-' }}", $taskListProjectGridPartial);
+        $this->assertStringContainsString("'status' => 'pending'", $taskListController);
+        $this->assertStringContainsString("'status' => 'in_progress'", $taskListController);
+        $this->assertStringContainsString("'status' => 'completed'", $taskListController);
+        $this->assertStringContainsString("'dot_class' => 'text-secondary'", $taskListController);
+        $this->assertStringContainsString("'dot_class' => 'text-warning'", $taskListController);
+        $this->assertStringContainsString("'dot_class' => 'text-success'", $taskListController);
+        $this->assertStringContainsString('View More', $taskListProjectGridPartial);
+        $this->assertStringContainsString('Update Task', $taskListProjectGridPartial);
+        $this->assertStringContainsString('Delete Task', $taskListProjectGridPartial);
+        $this->assertStringContainsString('card project-kanban-card draggable-handle draggable', $taskListProjectGridPartial);
+        $this->assertStringContainsString('project-kanban-card-actions', $taskListProjectGridPartial);
+        $this->assertStringContainsString('project-kanban-dropdown-toggle', $taskListProjectGridPartial);
+        $this->assertStringContainsString('type="button" class="btn btn-link p-0 border-0 project-kanban-dropdown-toggle"', $taskListProjectGridPartial);
+        $this->assertStringContainsString('dropdown-menu dropdown-menu-end dropdown-menu-right', $taskListProjectGridPartial);
+        $this->assertStringContainsString('data-kanban-status="{{ $kanbanGroup[\'status\'] }}"', $taskListProjectGridPartial);
+        $this->assertStringContainsString('data-task-status="{{ $task[\'status\'] ?? \'\' }}"', $taskListProjectGridPartial);
+        $this->assertStringContainsString('data-status-update-url="{{ $task[\'status_update_url\'] ?? \'\' }}"', $taskListProjectGridPartial);
+        $this->assertStringNotContainsString('project-kanban-drag-area', $taskListProjectGridPartial);
+        $this->assertStringNotContainsString("handle: '.project-kanban-drag-area'", $taskList);
+        $this->assertStringContainsString('function eventStartedFromKanbanAction(event)', $taskList);
+        $this->assertStringContainsString('function preventStaticKanbanActionDrag(sortableInstance)', $taskList);
+        $this->assertStringContainsString("sortableInstance.on('drag:start'", $taskList);
+        $this->assertStringContainsString('event.cancel();', $taskList);
+        $this->assertStringNotContainsString('function bindStaticKanbanDropdownActions()', $taskList);
+        $this->assertStringNotContainsString('pointerdown.projectKanbanDropdown mousedown.projectKanbanDropdown touchstart.projectKanbanDropdown', $taskList);
+        $this->assertStringNotContainsString('window.bootstrap.Dropdown.getOrCreateInstance(this).toggle();', $taskList);
+        $this->assertStringContainsString('function setTaskSelectValue(selector, value)', $taskList);
+        $this->assertStringContainsString('function refreshDefaultSelect(selector)', $taskList);
+        $this->assertStringContainsString('function refreshTaskFormSelects()', $taskList);
+        $this->assertStringContainsString("var currentStatus = $(button).closest('.project-kanban-card').attr('data-task-status') || '';", $taskList);
+        $this->assertStringContainsString('task.status = currentStatus;', $taskList);
+        $this->assertStringContainsString("selectElement.selectpicker('val', value);", $taskList);
+        $this->assertStringContainsString("selectElement.selectpicker('refresh');", $taskList);
+        $this->assertStringContainsString('refreshTaskFormSelects();', $taskList);
+        $this->assertStringContainsString('function syncMovedKanbanTaskStatuses()', $taskList);
+        $this->assertStringContainsString('function attachStaticKanbanStatusSync(sortableInstance)', $taskList);
+        $this->assertStringContainsString("type: 'PATCH'", $taskList);
+        $this->assertStringContainsString('status: targetStatus', $taskList);
+        $this->assertStringNotContainsString('Designer', $taskListProjectGridPartial);
+        $this->assertStringNotContainsString("asset('assets-workload/images/contacts/pic11.jpg')", $taskListProjectGridPartial);
+        $this->assertStringContainsString("asset('assets-workload/vendor/draggable/draggable.js')", $taskList);
+        $this->assertStringContainsString('function initializeStaticKanbanBoard()', $taskList);
+        $this->assertStringContainsString('function shouldUseMobileKanbanScroll()', $taskList);
+        $this->assertStringContainsString("window.matchMedia('(max-width: 767.98px), (pointer: coarse)').matches", $taskList);
+        $this->assertStringContainsString('shouldUseMobileKanbanScroll() || ! dropzones.length || ! draggableCards.length', $taskList);
+        $this->assertStringContainsString('-webkit-overflow-scrolling: touch;', $taskList);
+        $this->assertStringContainsString('touch-action: pan-x pan-y;', $taskList);
+        $this->assertStringContainsString('new window.Sortable.default(dropzones', $taskList);
+        $this->assertStringContainsString("draggable: '.draggable-handle'", $taskList);
+        $this->assertStringContainsString('appendTo: document.body', $taskList);
+        $this->assertStringContainsString('function attachStaticKanbanMirrorPositioning(sortableInstance)', $taskList);
+        $this->assertStringContainsString("sortableInstance.on('mirror:created'", $taskList);
+        $this->assertStringContainsString("dragMirror.style.position = 'fixed'", $taskList);
+        $this->assertStringNotContainsString("asset('assets/images/files/folder.avif')", $taskListSurface);
         $this->assertStringNotContainsString('src="assets/images/files/', $taskListSurface);
-        $this->assertStringContainsString("route('project_management.projects.detail', \$projectOption['id'])", $taskListProjectGridPartial);
+        $this->assertStringNotContainsString("route('project_management.projects.detail', \$projectOption['id'])", $taskListProjectGridPartial);
         $this->assertStringContainsString('$projectCard[\'detail_url\']', $projectsIndex);
         $this->assertStringContainsString("route('project_management.projects')", $projectsDetail);
         $this->assertStringNotContainsString('report-project-details.html', $projectsIndex);
@@ -151,8 +220,19 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('Task berhasil diperbarui.', $taskListController);
         $this->assertStringContainsString('Task berhasil ditandai selesai.', $taskListController);
         $this->assertStringContainsString('Task berhasil dihapus.', $taskListController);
-        $this->assertStringContainsString("->whereNull('overtime_id')", $taskListController);
+        $this->assertStringNotContainsString("->whereNull('overtime_id')", $taskListController);
+        $this->assertStringContainsString("->whereNotNull('overtime_id')", $taskListController);
+        $this->assertStringContainsString("'is_overtime_task' => \$isOvertimeTask", $taskListController);
+        $this->assertStringContainsString("'can_manage_from_task_list' => true", $taskListController);
+        $this->assertStringContainsString("'can_delete_from_task_list' => ! \$isOvertimeTask", $taskListController);
+        $this->assertStringContainsString('badge badge-sm badge-danger light ms-2 align-middle', $taskListItemsPartial);
+        $this->assertStringContainsString("{{ \$task['title'] }}</a>\n                            @if (\$task['is_overtime_task'] ?? false)", $taskListItemsPartial);
+        $this->assertStringContainsString("{{ \$task['overtime_label'] ?? 'Overtime' }}", $taskListItemsPartial);
+        $this->assertStringNotContainsString('badge badge-sm badge-warning light ms-2', $taskListItemsPartial);
+        $this->assertStringContainsString("! \$task['is_completed'] && (\$task['can_manage_from_task_list'] ?? true)", $taskListItemsPartial);
+        $this->assertStringContainsString("\$task['can_delete_from_task_list'] ?? true", $taskListItemsPartial);
         $this->assertStringContainsString('canManageTaskListTask', $taskListController);
+        $this->assertStringContainsString('canDeleteTaskListTask', $taskListController);
         $this->assertStringContainsString('employeeIsProjectMember', $taskListController);
         $this->assertStringContainsString('public function index(): View', $projectController);
         $this->assertStringContainsString('public function detailFallback(): RedirectResponse', $projectController);
@@ -219,6 +299,17 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("route('project_management.projects.tasks.store'", $projectController);
         $this->assertStringContainsString("route('project_management.projects.tasks.update'", $projectController);
         $this->assertStringContainsString("route('project_management.projects.tasks.destroy'", $projectController);
+        $this->assertStringContainsString('array_merge($this->profileMetricData($employeeId), [', $projectController);
+        $this->assertStringContainsString('private function profileMetricData(?string $employeeId): array', $projectController);
+        $this->assertStringContainsString('private function defaultProfileMetricData(CarbonInterface $currentDate): array', $projectController);
+        $this->assertStringContainsString('private function projectTaskQueryForEmployee(string $employeeId): Builder', $projectController);
+        $this->assertStringContainsString("profileMonthlyAttendanceSeries' => \$this->monthlyCompletedTaskSeries(\$taskQuery, (int) \$currentDate->year)", $projectController);
+        $this->assertStringContainsString("'projectTasksCompletedCount' => \$completedTasksCount", $projectController);
+        $this->assertStringContainsString("'projectTasksInProgressCount' => \$inProgressTasksCount", $projectController);
+        $this->assertStringContainsString("'projectTotalTasksCount' => \$totalTasksCount", $projectController);
+        $this->assertStringContainsString("'projectDailyTasksCount' => \$dailyTasksCount", $projectController);
+        $this->assertStringContainsString("'projectProjectTasksCount' => \$projectTasksCount", $projectController);
+        $this->assertStringContainsString("'projectWorkloadPercent' => \$this->percentage(\$completedTasksCount + \$inProgressTasksCount, \$totalTasksCount)", $projectController);
         $this->assertStringContainsString('$projectCards = collect($projectCards ?? []);', $projectsIndex);
         $this->assertStringContainsString('No active project found', $projectsIndex);
         $this->assertStringContainsString('$projectDepartmentGroups = collect($projectDepartmentGroups ?? []);', $projectsDetail);
@@ -309,6 +400,11 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('{{ $projectTotalTasksCount }} Task', $summaryCards);
         $this->assertStringContainsString('{{ $projectTasksCompletedCount }} Task', $summaryCards);
         $this->assertStringContainsString('{{ $projectTasksInProgressCount }} Task', $summaryCards);
+        $this->assertStringContainsString('fa-solid fa-chart-line text-secondary', $summaryCards);
+        $this->assertStringContainsString('fa-solid fa-list-check text-success', $summaryCards);
+        $this->assertStringContainsString('fa-solid fa-square-check text-danger', $summaryCards);
+        $this->assertStringContainsString('fa-solid fa-hourglass-half text-info', $summaryCards);
+        $this->assertStringContainsString('project-summary-metric-icon', $summaryCards);
         $this->assertStringContainsString('row g-4 mb-4 project-summary-mobile-slider', $summaryCards);
         $this->assertStringContainsString('project-summary-mobile-slide', $summaryCards);
         $this->assertSame(4, substr_count($summaryCards, 'col-md-3 col-sm-6 project-summary-mobile-slide'));
@@ -323,6 +419,8 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('.project-summary-mobile-slide {', $overview);
         $this->assertStringContainsString('.project-overview-chart-wrapper {', $overview);
         $this->assertStringContainsString('.project-overview-chart-wrapper canvas {', $overview);
+        $this->assertStringContainsString('.project-summary-metric-icon svg', $overview);
+        $this->assertStringContainsString('.project-progress-metric-icon svg', $overview);
         $this->assertSame(2, substr_count($overview, '<div class="project-overview-chart-wrapper">'));
         $this->assertStringContainsString('var isMobileChartViewport = function(){', $overview);
         $this->assertStringContainsString('maxTicksLimit: isMobileChartViewport() ? 6 : 12', $overview);
@@ -362,13 +460,17 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('data-progress-rate="{{ $projectTaskCompletionRate }}"', $overview);
         $this->assertStringContainsString('Tasks Completed ({{ $projectTasksCompletedCount }}/{{ $projectTotalTasksCount }} Completed)', $overview);
         $this->assertStringContainsString('Daily Tasks ({{ $projectDailyTasksRate }}%)', $overview);
+        $this->assertStringContainsString('fa-solid fa-calendar-day text-info', $overview);
         $this->assertStringContainsString('{{ $projectDailyTasksCompletedCount }} Task / {{ $projectDailyTasksCount }} Daily Tasks', $overview);
         $this->assertStringContainsString("'projectDailyTasksRate' => \$this->percentage(\$dailyTasksCompletedCount, \$dailyTasksCount)", $overviewController);
         $this->assertStringContainsString('Project Tasks ({{ $projectProjectTasksRate }}%)', $overview);
+        $this->assertStringContainsString('fa-solid fa-diagram-project text-secondary', $overview);
         $this->assertStringContainsString('{{ $projectProjectTasksCompletedCount }} Task / {{ $projectProjectTasksCount }} Project Tasks', $overview);
         $this->assertStringContainsString("'projectProjectTasksRate' => \$this->percentage(\$projectTasksCompletedCount, \$projectTasksCount)", $overviewController);
         $this->assertStringContainsString('Completed Tasks This Week ({{ $projectWeeklyTasksCompletedRate }}%)', $overview);
         $this->assertStringContainsString('Incomplete Tasks This Week ({{ $projectWeeklyTasksIncompleteRate }}%)', $overview);
+        $this->assertStringContainsString('fa-solid fa-calendar-check text-success', $overview);
+        $this->assertStringContainsString('fa-solid fa-circle-exclamation text-danger', $overview);
         $this->assertStringContainsString('projectTaskQueryForDateRange', $overviewController);
         $this->assertStringContainsString("'projectWeeklyTasksCompletedRate' => 0", $overviewController);
         $this->assertStringContainsString('projectTaskQueryForMonth', $overviewController);
@@ -382,6 +484,11 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('id="chartProfileProgressDesktop"', $profileHeader);
         $this->assertStringContainsString('id="chartProfileProgress"', $profileHeader);
         $this->assertStringContainsString("data-progress-series='@json(\$monthlyAttendanceSeries)'", $profileHeader);
+        $this->assertStringContainsString('fa-solid fa-square-check fs-4 text-primary', $profileHeader);
+        $this->assertStringContainsString('fa-solid fa-hourglass-half fs-4 text-primary', $profileHeader);
+        $this->assertStringContainsString('fa-solid fa-list-check fs-4 text-primary', $profileHeader);
+        $this->assertStringContainsString('fa-solid fa-layer-group fs-4 text-primary', $profileHeader);
+        $this->assertStringContainsString('fa-solid fa-chart-pie fs-4 text-primary', $profileHeader);
         $this->assertStringNotContainsString('$profileStatsModeValue', $profileHeader);
         $this->assertStringNotContainsString('managementTotalEmployees', $profileHeader);
         $this->assertStringNotContainsString('managementPresentToday', $profileHeader);
@@ -523,6 +630,92 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertSame('completed', $projectTask->status);
         $this->assertNotNull($projectTask->completed_at);
 
+        $statusInProgressResponse = $this
+            ->actingAs($user)
+            ->patchJson(route('project_management.task_list.tasks.status.update', $projectTask), [
+                'status' => 'in_progress',
+            ]);
+
+        $statusInProgressResponse->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Status task berhasil diperbarui.',
+            ]);
+
+        $projectTask->refresh();
+        $this->assertSame('in_progress', $projectTask->status);
+        $this->assertNull($projectTask->completed_at);
+
+        $statusCompletedResponse = $this
+            ->actingAs($user)
+            ->patchJson(route('project_management.task_list.tasks.status.update', $projectTask), [
+                'status' => 'completed',
+            ]);
+
+        $statusCompletedResponse->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Status task berhasil diperbarui.',
+            ]);
+
+        $projectTask->refresh();
+        $this->assertSame('completed', $projectTask->status);
+        $this->assertNotNull($projectTask->completed_at);
+
+        $overtimeTask = ProjectTask::query()->create([
+            'id' => (string) Str::uuid(),
+            'employee_id' => $employee->id,
+            'assigned_by' => $user->id,
+            'overtime_id' => (string) Str::uuid(),
+            'title' => 'Overtime task',
+            'status' => 'pending',
+            'priority' => 'high',
+            'start_date' => '2026-06-22',
+            'due_date' => '2026-06-23',
+        ]);
+
+        $overtimeUpdateResponse = $this
+            ->actingAs($user)
+            ->putJson(route('project_management.task_list.tasks.update', $overtimeTask), [
+                'title' => 'Overtime task update',
+                'description' => 'Updated overtime task summary.',
+                'start_date' => '2026-06-22',
+                'due_date' => '2026-06-25',
+                'priority' => 'medium',
+                'task_category' => 'daily',
+                'status' => 'pending',
+            ]);
+
+        $overtimeUpdateResponse->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Task berhasil diperbarui.',
+            ]);
+
+        $overtimeCompleteResponse = $this
+            ->actingAs($user)
+            ->patchJson(route('project_management.task_list.tasks.complete', $overtimeTask));
+
+        $overtimeCompleteResponse->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Task berhasil ditandai selesai.',
+            ]);
+
+        $overtimeTask->refresh();
+        $this->assertSame('completed', $overtimeTask->status);
+        $this->assertNotNull($overtimeTask->completed_at);
+
+        $overtimeDeleteResponse = $this
+            ->actingAs($user)
+            ->deleteJson(route('project_management.task_list.tasks.destroy', $overtimeTask));
+
+        $overtimeDeleteResponse->assertForbidden()
+            ->assertJson([
+                'success' => false,
+                'message' => 'Tidak memiliki akses untuk menghapus task ini.',
+            ]);
+
         $otherTask = ProjectTask::query()->create([
             'id' => (string) Str::uuid(),
             'employee_id' => $otherEmployee->id,
@@ -542,6 +735,18 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk menghapus task ini.',
+            ]);
+
+        $forbiddenStatusResponse = $this
+            ->actingAs($user)
+            ->patchJson(route('project_management.task_list.tasks.status.update', $otherTask), [
+                'status' => 'in_progress',
+            ]);
+
+        $forbiddenStatusResponse->assertForbidden()
+            ->assertJson([
+                'success' => false,
+                'message' => 'Tidak memiliki akses untuk mengubah status task ini.',
             ]);
 
         $deleteResponse = $this

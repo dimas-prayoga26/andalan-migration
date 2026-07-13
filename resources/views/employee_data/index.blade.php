@@ -337,9 +337,9 @@
                 <div class="col-xxl-12 col-xl-12">
                     <div class="card-body">
                         <div class="applicant-header-bar">
-                            <div class="applicant-table-title">Data Karyawan</div>
+                            <div class="applicant-table-title">Employee Data</div>
                             <div class="employee-header-actions">
-                                <button type="button" class="btn btn-primary btn-sm">Create User</button>
+                                <button type="button" class="btn btn-primary btn-sm">Add Employee</button>
                                 <button type="button" class="btn btn-outline-secondary btn-sm">Search</button>
                             </div>
                         </div>
@@ -351,7 +351,7 @@
                                     <th class="mw-100">Pic</th>
                                     <th class="mw-140">NIK</th>
                                     <th class="mw-220">Name</th>
-                                    <th class="mw-280">Jabatan</th>
+                                    <th class="mw-280">Position</th>
                                     <th class="mw-220">Perusahaan</th>
                                     <th class="mw-160">Action</th>
                                 </tr>

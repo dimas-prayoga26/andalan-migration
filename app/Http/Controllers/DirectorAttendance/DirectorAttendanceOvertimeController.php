@@ -22,13 +22,11 @@ class DirectorAttendanceOvertimeController extends Controller
 {
     public function index(Request $request, OvertimeSummaryMetricBuilder $metricBuilder, OvertimeReviewTableBuilder $tableBuilder): View
     {
-        $authenticatedUser = $request->user();
-        $companyId = $authenticatedUser instanceof User ? $this->currentCompanyIdFor($authenticatedUser) : null;
-        $tableData = $tableBuilder->buildForContext('director', $companyId, null, $request->query('month'), $request->query('year'));
+        $tableData = $tableBuilder->buildForContext('director', null, null, $request->query('month'), $request->query('year'));
 
         return view('director_attendance.overtime.index', [
-            'overtimeSummary' => $metricBuilder->summarizeForCompany($companyId),
-            'overtimeCards' => $this->directorOvertimeCardsFor($companyId, $tableData['selectedMonth'], $tableData['selectedYear']),
+            'overtimeSummary' => $metricBuilder->summarizeForActiveEmployees(),
+            'overtimeCards' => $this->directorOvertimeCardsFor($tableData['selectedMonth'], $tableData['selectedYear']),
             ...$tableData,
         ]);
     }
@@ -38,10 +36,7 @@ class DirectorAttendanceOvertimeController extends Controller
         $authenticatedUser = $request->user();
         abort_unless($authenticatedUser instanceof User, 403);
 
-        $companyId = $this->currentCompanyIdFor($authenticatedUser);
-        abort_unless(is_string($companyId) && trim($companyId) !== '', 404);
-
-        $overtime = $this->directorOvertimeQuery($companyId)
+        $overtime = $this->directorOvertimeQuery()
             ->whereKey($uid)
             ->whereHas('lifecycleLogs', function (Builder $query): void {
                 $query->where('event_key', 'director_approval');
@@ -64,10 +59,7 @@ class DirectorAttendanceOvertimeController extends Controller
         $authenticatedUser = $request->user();
         abort_unless($authenticatedUser instanceof User, 403);
 
-        $companyId = $this->currentCompanyIdFor($authenticatedUser);
-        abort_unless(is_string($companyId) && trim($companyId) !== '', 404);
-
-        $overtime = $this->directorOvertimeQuery($companyId)
+        $overtime = $this->directorOvertimeQuery()
             ->whereKey($uid)
             ->firstOrFail();
 
@@ -93,8 +85,8 @@ class DirectorAttendanceOvertimeController extends Controller
             if ($status === 'approved') {
                 $this->updateOvertimeLifecycleLog(
                     $overtime,
-                    'payroll_processing',
-                    'waiting',
+                    'payment_disbursement',
+                    'pending',
                     null,
                     null,
                     true
@@ -107,15 +99,7 @@ class DirectorAttendanceOvertimeController extends Controller
             ->with('success', 'Director approval overtime berhasil diperbarui.');
     }
 
-    private function currentCompanyIdFor(User $user): ?string
-    {
-        $user->loadMissing('employee.deployment:id,employee_id,current_company_id');
-        $companyId = $user->employee?->deployment?->current_company_id;
-
-        return is_string($companyId) && trim($companyId) !== '' ? trim($companyId) : null;
-    }
-
-    private function directorOvertimeQuery(string $companyId): Builder
+    private function directorOvertimeQuery(): Builder
     {
         return AttendanceOvertime::query()
             ->select([
@@ -148,12 +132,11 @@ class DirectorAttendanceOvertimeController extends Controller
                 'projectTasks:id,overtime_id,employee_id,project_id,title,description,status,priority,start_date,due_date,blockers,attachment_path,completed_at,created_at',
             ])
             ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled'])
-            ->whereHas('employee', function (Builder $query) use ($companyId): void {
+            ->whereHas('employee', function (Builder $query): void {
                 $query
                     ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                    ->whereHas('deployment', function (Builder $query) use ($companyId): void {
+                    ->whereHas('deployment', function (Builder $query): void {
                         $query
-                            ->where('current_company_id', trim($companyId))
                             ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
                     });
             });
@@ -162,16 +145,12 @@ class DirectorAttendanceOvertimeController extends Controller
     /**
      * @return Collection<int, array<string, mixed>>
      */
-    private function directorOvertimeCardsFor(?string $companyId, int $month, int $year): Collection
+    private function directorOvertimeCardsFor(int $month, int $year): Collection
     {
-        if (! is_string($companyId) || trim($companyId) === '') {
-            return collect();
-        }
-
         $periodStart = Carbon::create($year, $month, 1, 0, 0, 0, 'Asia/Jakarta')->startOfMonth();
         $periodEnd = $periodStart->copy()->endOfMonth();
 
-        return $this->directorOvertimeQuery($companyId)
+        return $this->directorOvertimeQuery()
             ->whereBetween('overtime_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
             ->whereHas('lifecycleLogs', function (Builder $query): void {
                 $query
@@ -230,6 +209,7 @@ class DirectorAttendanceOvertimeController extends Controller
         $approvedDuration = $hasApprovedTime ? $this->durationLabel($overtime->approved_start_time, $overtime->approved_end_time) : '-';
         $taskDeliverablesSubmitted = $this->isTaskDeliverablesSubmitted($overtime);
         $verificationLog = $this->overtimeLifecycleLog($overtime, 'task_hours_verification');
+        $actualEndDateTime = $this->formatActualEndDateTime($overtime);
         $directorApprovalLog = $this->overtimeLifecycleLog($overtime, 'director_approval');
         $directorStatus = strtolower(trim((string) ($directorApprovalLog?->status ?? 'pending')));
 
@@ -257,7 +237,7 @@ class DirectorAttendanceOvertimeController extends Controller
             'instruction' => is_string($overtime->instruction) && trim($overtime->instruction) !== '' ? trim($overtime->instruction) : '-',
             'payout_period' => 'Included in '.Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->format('F Y').' Payroll',
             'verified_note' => $hasActualTime ? 'Actual overtime hours recorded' : 'Waiting for clock-out',
-            'verified_datetime' => $this->formatLifecycleDateTime($verificationLog),
+            'verified_datetime' => $actualEndDateTime !== '-' ? $actualEndDateTime : $this->formatLifecycleDateTime($verificationLog),
             'supervisor_approver' => $this->supervisorDisplayName($overtime),
             'supervisor_datetime' => $this->formatLifecycleDateTime($verificationLog),
             'director_approver' => $directorApprovalLog?->actor instanceof User ? $this->userDisplayName($directorApprovalLog->actor) : '-',
@@ -302,7 +282,14 @@ class DirectorAttendanceOvertimeController extends Controller
         return [
             'id' => (string) $projectTask->id,
             'title' => trim((string) ($projectTask->title ?? '')) !== '' ? (string) $projectTask->title : 'Untitled Task',
+            'description' => (string) ($projectTask->description ?? ''),
+            'start_date' => $this->formatDateInputValue($projectTask->start_date),
+            'due_date' => $this->formatDateInputValue($projectTask->due_date),
             'date_label' => $dateValue !== null ? Carbon::parse($dateValue)->timezone('Asia/Jakarta')->format('d M Y, H:i').' WIB' : '-',
+            'status_value' => $status !== '' ? $status : 'pending',
+            'priority' => strtolower(trim((string) ($projectTask->priority ?? 'medium'))) ?: 'medium',
+            'attachment_path' => (string) ($projectTask->attachment_path ?? ''),
+            'blockers' => (string) ($projectTask->blockers ?? ''),
             'checked' => $isFinished,
         ];
     }
@@ -347,6 +334,36 @@ class DirectorAttendanceOvertimeController extends Controller
         }
 
         return Carbon::parse($lifecycleLog->happened_at, 'Asia/Jakarta')->format('d M Y, H:i');
+    }
+
+    private function formatActualEndDateTime(AttendanceOvertime $overtime): string
+    {
+        if (! $this->hasActualOvertimeTimes($overtime)) {
+            return '-';
+        }
+
+        try {
+            $overtimeDate = Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->format('Y-m-d');
+            $actualStartAt = Carbon::parse($overtimeDate.' '.$overtime->actual_start_time, 'Asia/Jakarta');
+            $actualEndAt = Carbon::parse($overtimeDate.' '.$overtime->actual_end_time, 'Asia/Jakarta');
+
+            if ($actualEndAt->lessThanOrEqualTo($actualStartAt)) {
+                $actualEndAt->addDay();
+            }
+
+            return $actualEndAt->format('d M Y, H:i');
+        } catch (\Throwable) {
+            return '-';
+        }
+    }
+
+    private function formatDateInputValue(mixed $dateValue): string
+    {
+        if ($dateValue === null || $dateValue === '') {
+            return '';
+        }
+
+        return Carbon::parse($dateValue, 'Asia/Jakarta')->format('Y-m-d');
     }
 
     private function userDisplayName(User $user): string

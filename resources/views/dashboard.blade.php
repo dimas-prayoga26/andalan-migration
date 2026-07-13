@@ -400,9 +400,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Status</label>
-                        <div>
-                            <button type="button" class="btn btn-outline-primary btn-sm" id="dashboardClockInVerifyBtn">Mulai Verifikasi</button>
-                        </div>
+                        <p class="small text-muted mb-0" id="dashboardClockInStatusText">Please wait</p>
                         <p class="small d-none mt-2 mb-0" id="dashboardClockInVerifyMessage"></p>
                     </div>
                     <div class="mb-0">
@@ -411,14 +409,14 @@
                             @if (! empty($publicIp))
                                 <span id="dashboardClockInIpText" class="{{ ($isIpPrefixMatch ?? false) ? 'text-success' : 'text-danger' }}">{{ $publicIp }}</span>
                             @else
-                                <span id="dashboardClockInIpText" class="text-muted">Memuat...</span>
+                                <span id="dashboardClockInIpText" class="text-muted">Please wait</span>
                             @endif
                             <span id="dashboardClockInIpBadge" class="ms-1 {{ ($isIpPrefixMatch ?? false) ? 'text-success' : 'text-danger' }}">{{ ($isIpPrefixMatch ?? false) ? 'Valid' : 'Tidak Valid' }}</span>
                         </p>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn light btn-success btn-lg w-100" id="dashboardClockInSubmitBtn">Clock In</button>
+                    <button type="button" class="btn light btn-success btn-lg w-100" id="dashboardClockInSubmitBtn" disabled>Clock In</button>
                 </div>
             </div>
         </div>
@@ -445,9 +443,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Status</label>
-                        <div>
-                            <button type="button" class="btn btn-outline-primary btn-sm" id="dashboardClockOutVerifyBtn">Mulai Verifikasi</button>
-                        </div>
+                        <p class="small text-muted mb-0" id="dashboardClockOutStatusText">Please wait</p>
                         <p class="small d-none mt-2 mb-0" id="dashboardClockOutVerifyMessage"></p>
                     </div>
                     <div class="mb-0">
@@ -456,14 +452,14 @@
                             @if (! empty($publicIp))
                                 <span id="dashboardClockOutIpText" class="{{ ($isIpPrefixMatch ?? false) ? 'text-success' : 'text-danger' }}">{{ $publicIp }}</span>
                             @else
-                                <span id="dashboardClockOutIpText" class="text-muted">Memuat...</span>
+                                <span id="dashboardClockOutIpText" class="text-muted">Please wait</span>
                             @endif
                             <span id="dashboardClockOutIpBadge" class="ms-1 {{ ($isIpPrefixMatch ?? false) ? 'text-success' : 'text-danger' }}">{{ ($isIpPrefixMatch ?? false) ? 'Valid' : 'Tidak Valid' }}</span>
                         </p>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn light btn-danger btn-lg w-100" id="dashboardClockOutSubmitBtn">Clock Out</button>
+                    <button type="button" class="btn light btn-danger btn-lg w-100" id="dashboardClockOutSubmitBtn" disabled>Clock Out</button>
                 </div>
             </div>
         </div>
@@ -494,6 +490,8 @@
             var clockOutRunningTimeElement = document.getElementById('dashboardClockOutRunningTime');
             var clockInMapCanvasElement = document.getElementById('dashboardClockInMapCanvas');
             var clockOutMapCanvasElement = document.getElementById('dashboardClockOutMapCanvas');
+            var clockInStatusTextElement = document.getElementById('dashboardClockInStatusText');
+            var clockOutStatusTextElement = document.getElementById('dashboardClockOutStatusText');
             var clockInVerifyButton = document.getElementById('dashboardClockInVerifyBtn');
             var clockOutVerifyButton = document.getElementById('dashboardClockOutVerifyBtn');
             var clockInVerifyMessageElement = document.getElementById('dashboardClockInVerifyMessage');
@@ -522,6 +520,7 @@
                     currentDateElement: clockInCurrentDateElement,
                     runningTimeElement: clockInRunningTimeElement,
                     mapCanvasElement: clockInMapCanvasElement,
+                    statusTextElement: clockInStatusTextElement,
                     verifyButtonElement: clockInVerifyButton,
                     verifyMessageElement: clockInVerifyMessageElement,
                     ipTextElement: clockInIpTextElement,
@@ -540,6 +539,7 @@
                     currentDateElement: clockOutCurrentDateElement,
                     runningTimeElement: clockOutRunningTimeElement,
                     mapCanvasElement: clockOutMapCanvasElement,
+                    statusTextElement: clockOutStatusTextElement,
                     verifyButtonElement: clockOutVerifyButton,
                     verifyMessageElement: clockOutVerifyMessageElement,
                     ipTextElement: clockOutIpTextElement,
@@ -584,26 +584,36 @@
                 callback(modalContext.clockOut);
             }
 
+            function setOnsiteStatus(context, text, type) {
+                if (!context || !context.statusTextElement) {
+                    return;
+                }
+
+                context.statusTextElement.textContent = text;
+                context.statusTextElement.classList.remove('text-success', 'text-danger', 'text-warning', 'text-muted');
+                if (type === 'success') {
+                    context.statusTextElement.classList.add('text-success');
+                    return;
+                }
+                if (type === 'error') {
+                    context.statusTextElement.classList.add('text-danger');
+                    return;
+                }
+                if (type === 'warning') {
+                    context.statusTextElement.classList.add('text-warning');
+                    return;
+                }
+                context.statusTextElement.classList.add('text-muted');
+            }
+
             function setVerificationMessage(context, text, type) {
                 if (!context || !context.verifyMessageElement) {
                     return;
                 }
 
-                context.verifyMessageElement.classList.remove('d-none', 'text-success', 'text-danger', 'text-warning', 'text-muted');
-                context.verifyMessageElement.textContent = text;
-                if (type === 'success') {
-                    context.verifyMessageElement.classList.add('text-success');
-                    return;
-                }
-                if (type === 'error') {
-                    context.verifyMessageElement.classList.add('text-danger');
-                    return;
-                }
-                if (type === 'warning') {
-                    context.verifyMessageElement.classList.add('text-warning');
-                    return;
-                }
-                context.verifyMessageElement.classList.add('text-muted');
+                setOnsiteStatus(context, text, type);
+                context.verifyMessageElement.classList.add('d-none');
+                context.verifyMessageElement.textContent = '';
             }
 
             function resetVerificationUi(context) {
@@ -622,6 +632,7 @@
                     context.verifyMessageElement.classList.add('d-none');
                     context.verifyMessageElement.textContent = '';
                 }
+                setOnsiteStatus(context, 'Please wait');
             }
 
             function setOnsiteIpIndicator(context, ipAddress, isValidIpPrefix) {
@@ -650,7 +661,7 @@
                     return;
                 }
 
-                context.ipTextElement.textContent = 'Memuat...';
+                context.ipTextElement.textContent = 'Please wait';
                 context.ipTextElement.classList.remove('text-success', 'text-danger');
                 context.ipTextElement.classList.add('text-muted');
                 if (context.ipBadgeElement) {
@@ -957,7 +968,7 @@
                     context.verifyButtonElement.classList.add('d-none');
                 }
 
-                setVerificationMessage(context, 'Memverifikasi Telegram dan lokasi...', 'muted');
+                setVerificationMessage(context, 'Please wait', 'muted');
                 renderSubmitButtons();
 
                 verifyTelegramUsernameSync().then(function () {
@@ -965,7 +976,7 @@
                     navigator.geolocation.getCurrentPosition(
                         function (position) {
                             updateUserLocationOnMap(context, position);
-                            setVerificationMessage(context, 'Verifikasi berhasil.', 'success');
+                            setVerificationMessage(context, 'Verification successful', 'success');
                             renderSubmitButtons();
                         },
                         function () {
@@ -1190,6 +1201,8 @@
                                 window.google.maps.event.trigger(context.mapInstance, 'resize');
                                 context.mapInstance.fitBounds(context.officeRadiusCircle.getBounds());
                             }
+
+                            checkOnsiteLocation(context);
                         })
                         .catch(function (error) {
                             setVerificationMessage(context, error && error.message ? error.message : 'Gagal memuat peta.', 'error');

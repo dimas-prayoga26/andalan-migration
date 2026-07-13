@@ -69,7 +69,13 @@ class DashboardStructureTest extends TestCase
         $dashboardView = File::get(resource_path('views/dashboard.blade.php'));
 
         $this->assertStringContainsString('context.hasVerifiedOnsite = true;', $dashboardView);
-        $this->assertStringContainsString("setVerificationMessage(context, 'Verifikasi berhasil.', 'success');", $dashboardView);
+        $this->assertStringContainsString('id="dashboardClockInStatusText">Please wait</p>', $dashboardView);
+        $this->assertStringContainsString('id="dashboardClockOutStatusText">Please wait</p>', $dashboardView);
+        $this->assertStringContainsString('id="dashboardClockInSubmitBtn" disabled>Clock In</button>', $dashboardView);
+        $this->assertStringContainsString('id="dashboardClockOutSubmitBtn" disabled>Clock Out</button>', $dashboardView);
+        $this->assertStringContainsString("setVerificationMessage(context, 'Verification successful', 'success');", $dashboardView);
+        $this->assertStringContainsString('checkOnsiteLocation(context);', $dashboardView);
+        $this->assertStringNotContainsString('Mulai Verifikasi', $dashboardView);
         $this->assertStringNotContainsString('context.isWithinOfficeRadius = inRadius;', $dashboardView);
         $this->assertStringNotContainsString('if (context.isWithinOfficeRadius) {', $dashboardView);
         $this->assertStringNotContainsString("setVerificationMessage(context, 'Lokasi berada di luar radius kantor.', 'warning');", $dashboardView);

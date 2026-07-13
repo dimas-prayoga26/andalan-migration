@@ -65,6 +65,14 @@
             user-select: none;
         }
 
+        .overtime-task-detail-trigger {
+            border: 0;
+            background: transparent;
+            padding: 0;
+            max-width: 100%;
+            text-align: left;
+        }
+
         .overtime-task-checkbox {
             pointer-events: none;
         }
@@ -506,7 +514,7 @@
                                             <div class="clearfix min-w-0">
                                                 <div class="form-check overtime-task-toggle" role="checkbox" aria-checked="false" tabindex="0" data-task-toggle-url="{{ $taskItem['update_url'] ?? '#' }}" data-task-id="{{ $taskItem['id'] ?? '' }}" data-task-title="{{ $taskItem['title'] ?? '-' }}" data-task-status="{{ $taskItem['status_value'] ?? 'pending' }}">
                                                     <input class="form-check-input overtime-task-checkbox" type="checkbox" id="projectTask{{ $taskItem['id'] ?? '' }}">
-                                                    <label class="form-check-label overtime-task-checkbox-label text-black d-block text-truncate" for="projectTask{{ $taskItem['id'] ?? '' }}">{{ $taskItem['title'] ?? '-' }}</label>
+                                                    <button type="button" class="form-check-label overtime-task-checkbox-label overtime-task-detail-trigger text-black d-block text-truncate" data-bs-toggle="modal" data-bs-target="#overtimeTaskDetailModal" data-overtime-task-detail data-task-id="{{ $taskItem['id'] ?? '' }}">{{ $taskItem['title'] ?? '-' }}</button>
                                                 </div>
                                                 <span class="overtime-task-meta">
                                                     <span>{{ $taskItem['date_label'] ?? '-' }}</span>
@@ -561,7 +569,7 @@
                                             <div class="clearfix min-w-0">
                                                 <div class="form-check overtime-task-toggle" role="checkbox" aria-checked="true" tabindex="0" data-task-toggle-url="{{ $taskItem['update_url'] ?? '#' }}" data-task-id="{{ $taskItem['id'] ?? '' }}" data-task-title="{{ $taskItem['title'] ?? '-' }}" data-task-status="{{ $taskItem['status_value'] ?? 'completed' }}">
                                                     <input class="form-check-input overtime-task-checkbox" type="checkbox" id="projectTask{{ $taskItem['id'] ?? '' }}" checked>
-                                                    <label class="form-check-label overtime-task-checkbox-label text-black d-block text-truncate" for="projectTask{{ $taskItem['id'] ?? '' }}">{{ $taskItem['title'] ?? '-' }}</label>
+                                                    <button type="button" class="form-check-label overtime-task-checkbox-label overtime-task-detail-trigger text-black d-block text-truncate" data-bs-toggle="modal" data-bs-target="#overtimeTaskDetailModal" data-overtime-task-detail data-task-id="{{ $taskItem['id'] ?? '' }}">{{ $taskItem['title'] ?? '-' }}</button>
                                                 </div>
                                                 <span class="overtime-task-meta">{{ $taskItem['date_label'] ?? '-' }}</span>
                                             </div>
@@ -1082,6 +1090,57 @@
 </div>
 <!-- End - Modal Send Message -->
 
+<div class="modal fade" id="overtimeTaskDetailModal">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Task Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row py-2">
+                    <div class="col-4"><span>Task Name</span></div>
+                    <div class="col-8"><span class="text-gray fw-semibold" id="overtimeTaskDetailTitle">-</span></div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4"><span>Task Description</span></div>
+                    <div class="col-8"><span class="text-gray fw-normal" id="overtimeTaskDetailDescription">-</span></div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4"><span>Date - Due Date</span></div>
+                    <div class="col-8"><span class="text-gray fw-semibold" id="overtimeTaskDetailDate">-</span></div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4"><span>Attachment</span></div>
+                    <div class="col-8"><span class="text-gray fw-semibold" id="overtimeTaskDetailAttachment">No attachment</span></div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4"><span>Blockers</span></div>
+                    <div class="col-8"><span class="text-gray fw-normal" id="overtimeTaskDetailBlockers">-</span></div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4"><span>Task Category</span></div>
+                    <div class="col-8">
+                        <span class="text-gray fw-semibold" id="overtimeTaskDetailCategory">-</span><br>
+                        <span class="text-gray fw-normal" id="overtimeTaskDetailProject">-</span>
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4"><span>Assigned by</span></div>
+                    <div class="col-8"><span class="text-primary fw-semibold" id="overtimeTaskDetailAssignedBy">-</span></div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4"><span>Task Status</span></div>
+                    <div class="col-8"><span class="fw-semibold" id="overtimeTaskDetailStatus">-</span></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Box Start -->
 <div class="modal fade" id="delete" tabindex="-1" aria-labelledby="deleteLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -1309,6 +1368,7 @@
             $('#updateTaskForm').on('submit', submitUpdateTaskForm);
             $('[data-task-update-url]').on('click', openUpdateTaskModal);
             $('[data-task-delete-url]').on('click', openDeleteTaskModal);
+            $('[data-overtime-task-detail]').on('click', openOvertimeTaskDetailModal);
             $('.overtime-task-list').on('click', '[data-task-toggle-url]', toggleTaskStatusFromCheckbox);
             $('.overtime-task-list').on('keydown', '[data-task-toggle-url]', function (event) {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -1503,6 +1563,14 @@
                 });
             }
 
+            function nullableTaskDetailValue(value) {
+                if (value === null || typeof value === 'undefined') {
+                    return '';
+                }
+
+                return String(value).trim();
+            }
+
             function showSwalAlert(iconType, titleText, messageText) {
                 if (typeof Swal !== 'undefined' && Swal && typeof Swal.fire === 'function') {
                     Swal.fire({
@@ -1517,6 +1585,54 @@
                 if (window.console && typeof window.console.error === 'function') {
                     window.console.error(messageText);
                 }
+            }
+
+            function openOvertimeTaskDetailModal(event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                var taskItemsById = @js($taskItemPayload);
+                var taskId = $(event.currentTarget).data('task-id');
+                var taskItem = taskItemsById[taskId];
+
+                if (!taskItem) {
+                    return;
+                }
+
+                $('#overtimeTaskDetailTitle').text(nullableTaskDetailValue(taskItem.title) || '-');
+                $('#overtimeTaskDetailDescription').text(nullableTaskDetailValue(taskItem.description) || '-');
+                $('#overtimeTaskDetailDate').text(nullableTaskDetailValue(taskItem.date_range_label) || '-');
+                $('#overtimeTaskDetailBlockers').text(nullableTaskDetailValue(taskItem.blockers) || '-');
+                $('#overtimeTaskDetailCategory').text(nullableTaskDetailValue(taskItem.task_category_label) || '-');
+                $('#overtimeTaskDetailProject').text(nullableTaskDetailValue(taskItem.project_name) || '-');
+                $('#overtimeTaskDetailAssignedBy').text('@' + (nullableTaskDetailValue(taskItem.assigned_by) || 'self'));
+                $('#overtimeTaskDetailStatus')
+                    .removeClass('text-danger text-success text-warning')
+                    .addClass(taskItem.status_class || 'text-warning')
+                    .text(nullableTaskDetailValue(taskItem.status_label) || '-');
+
+                var attachmentPath = nullableTaskDetailValue(taskItem.attachment_path);
+                if (attachmentPath !== '') {
+                    $('#overtimeTaskDetailAttachment')
+                        .empty()
+                        .append($('<a>', {
+                            href: attachmentPath,
+                            class: 'text-primary',
+                            target: '_blank',
+                            rel: 'noopener noreferrer',
+                            text: 'Open attachment'
+                        }));
+                } else {
+                    $('#overtimeTaskDetailAttachment').text('No attachment');
+                }
+
+                var modalElement = document.getElementById('overtimeTaskDetailModal');
+                if (window.bootstrap && modalElement) {
+                    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+                    return;
+                }
+
+                $('#overtimeTaskDetailModal').modal('show');
             }
 
             function openUpdateTaskModal(event) {

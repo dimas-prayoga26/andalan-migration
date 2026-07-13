@@ -426,8 +426,25 @@ class AttendanceRecapController extends Controller
             ->whereNull('deleted_at')
             ->orderBy('date')
             ->get(['id', 'date', 'clock_in', 'clock_out', 'late_minutes', 'work_hours', 'status']);
+        $attendanceIds = $attendances->pluck('id')->filter()->values();
+        $attendanceLogsByAttendanceId = AttendanceLog::query()
+            ->whereIn('attendance_id', $attendanceIds)
+            ->where('type', true)
+            ->orderByDesc('created_at')
+            ->get([
+                'attendance_id',
+                'location',
+                'address_village',
+                'address_district',
+                'address_regency',
+                'address_city',
+                'address_province',
+                'address_postal_code',
+            ])
+            ->groupBy('attendance_id')
+            ->map(static fn (Collection $attendanceLogs): ?AttendanceLog => $attendanceLogs->first());
         $attendanceExceptionsByAttendanceId = AttendanceException::query()
-            ->whereIn('attendance_id', $attendances->pluck('id'))
+            ->whereIn('attendance_id', $attendanceIds)
             ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['approved'])
             ->get(['attendance_id', 'exception_date', 'type', 'note', 'from_time', 'to_time', 'status'])
             ->keyBy('attendance_id');
@@ -479,8 +496,9 @@ class AttendanceRecapController extends Controller
             })
             ->count();
         $leaveTypeDays = $this->recapLeaveTypeDays($leaveRequests, $workDays);
-        $attendanceRows = $attendances->map(function (Attendance $attendance) use ($attendanceExceptionsByAttendanceId): array {
+        $attendanceRows = $attendances->map(function (Attendance $attendance) use ($attendanceExceptionsByAttendanceId, $attendanceLogsByAttendanceId): array {
             $attendanceException = $attendanceExceptionsByAttendanceId->get($attendance->id);
+            $attendanceLog = $attendanceLogsByAttendanceId->get($attendance->id);
             $isLate = $this->isLateAttendance($attendance);
             $isException = $attendanceException instanceof AttendanceException;
 
@@ -493,6 +511,7 @@ class AttendanceRecapController extends Controller
                 'clock_out_badge' => $isException && $attendanceException->type === 'early_departure' ? 'secondary' : 'light',
                 'note' => $isException ? $this->attendanceExceptionPresenter->requestTypeLabel($attendanceException) : ($isLate ? $this->attendanceDurationFormatter->lateLabel((int) $attendance->late_minutes) : 'On Time'),
                 'working_hours' => $this->recapMinutesLabel($this->recapAttendanceWorkMinutes($attendance)),
+                'location_address' => $this->attendanceLocationFormatter->address($attendanceLog),
             ];
         });
         $leaveRows = $leaveRequests
@@ -506,6 +525,7 @@ class AttendanceRecapController extends Controller
                 'clock_out_badge' => 'light',
                 'note' => $this->leaveTypeName($leaveRequest),
                 'working_hours' => '0 hours',
+                'location_address' => '-',
             ]);
         $holidayRows = $this->recapVirtualHolidayRows($periodStart, $periodEnd, $attendedDateKeys);
 
@@ -571,6 +591,7 @@ class AttendanceRecapController extends Controller
                     'clock_out_badge' => 'light',
                     'note' => $isNationalHoliday ? 'Libur Nasional' : 'Cuti Bersama',
                     'working_hours' => '0 hours',
+                    'location_address' => '-',
                 ];
             });
     }

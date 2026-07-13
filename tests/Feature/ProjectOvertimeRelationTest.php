@@ -360,6 +360,14 @@ class ProjectOvertimeRelationTest extends TestCase
             'private function buildOvertimeTaskQuery',
             'private function completedOvertimeTaskSubmittedAt',
             'private function overtimeTaskItemValue',
+            "->with(['project:id,name', 'assignedBy:id,username'])",
+            "'date_range_label' => \$this->taskDateRangeLabel",
+            "'status_label' => \$this->projectTaskDetailStatusLabel",
+            "'task_category_label' => \$projectId !== '' ? 'Project Task' : 'Daily Task'",
+            "'project_name' => \$projectId !== '' ? trim((string) (\$projectTask->project?->name ?? '')) : 'Daily Task'",
+            "'assigned_by' => trim((string) (\$projectTask->assignedBy?->username ?? 'self')) ?: 'self'",
+            'private function projectTaskDetailStatusLabel',
+            'private function taskDateRangeLabel',
             'private function overtimeLifecycleDisplayDateTime',
             'private function assignmentSubmittedLifecycleDateTime',
             "'planned_start_time' => \$this->normalizeTimeString(\$overtime->planned_start_time)",
@@ -579,8 +587,21 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertStringContainsString('overtime-task-toggle', $overtimeDetailView);
         $this->assertStringContainsString('overtime-task-checkbox', $overtimeDetailView);
         $this->assertStringContainsString('overtime-task-checkbox-label', $overtimeDetailView);
+        $this->assertStringContainsString('overtime-task-detail-trigger', $overtimeDetailView);
+        $this->assertStringContainsString('data-bs-target="#overtimeTaskDetailModal"', $overtimeDetailView);
+        $this->assertStringContainsString('data-overtime-task-detail', $overtimeDetailView);
         $this->assertStringContainsString('user-select: none;', $overtimeDetailView);
         $this->assertStringContainsString('pointer-events: none;', $overtimeDetailView);
+        $this->assertStringContainsString('id="overtimeTaskDetailModal"', $overtimeDetailView);
+        $this->assertStringContainsString('id="overtimeTaskDetailTitle"', $overtimeDetailView);
+        $this->assertStringContainsString('id="overtimeTaskDetailDescription"', $overtimeDetailView);
+        $this->assertStringContainsString('id="overtimeTaskDetailDate"', $overtimeDetailView);
+        $this->assertStringContainsString('id="overtimeTaskDetailAttachment"', $overtimeDetailView);
+        $this->assertStringContainsString('id="overtimeTaskDetailBlockers"', $overtimeDetailView);
+        $this->assertStringContainsString('id="overtimeTaskDetailCategory"', $overtimeDetailView);
+        $this->assertStringContainsString('id="overtimeTaskDetailProject"', $overtimeDetailView);
+        $this->assertStringContainsString('id="overtimeTaskDetailAssignedBy"', $overtimeDetailView);
+        $this->assertStringContainsString('id="overtimeTaskDetailStatus"', $overtimeDetailView);
         $this->assertStringContainsString('id="createTaskForm"', $overtimeDetailView);
         $this->assertStringContainsString("\$overtimeDetail['can_create_task']", $overtimeDetailView);
         $this->assertStringContainsString('Lakukan Overtime Clock In terlebih dahulu', $overtimeDetailView);
@@ -621,9 +642,12 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertStringContainsString('function openUpdateTaskModal(event)', $overtimeDetailView);
         $this->assertStringContainsString('function submitUpdateTaskForm(event)', $overtimeDetailView);
         $this->assertStringContainsString('function toggleTaskStatusFromCheckbox(event)', $overtimeDetailView);
+        $this->assertStringContainsString('function openOvertimeTaskDetailModal(event)', $overtimeDetailView);
+        $this->assertStringContainsString('function nullableTaskDetailValue(value)', $overtimeDetailView);
         $this->assertStringContainsString('function openDeleteTaskModal(event)', $overtimeDetailView);
         $this->assertStringContainsString('function submitDeleteTaskForm(event)', $overtimeDetailView);
         $this->assertStringContainsString('function updateUpdateTaskProjectState()', $overtimeDetailView);
+        $this->assertStringContainsString("$('[data-overtime-task-detail]').on('click', openOvertimeTaskDetailModal);", $overtimeDetailView);
         $this->assertStringContainsString("$('.overtime-task-list').on('click', '[data-task-toggle-url]', toggleTaskStatusFromCheckbox);", $overtimeDetailView);
         $this->assertStringContainsString("$('.overtime-task-list').on('keydown', '[data-task-toggle-url]', function (event)", $overtimeDetailView);
         $this->assertStringContainsString('var toggleControl = $(event.currentTarget);', $overtimeDetailView);
@@ -634,6 +658,9 @@ class ProjectOvertimeRelationTest extends TestCase
         $this->assertStringContainsString('var taskItemsById = @js($taskItemPayload);', $overtimeDetailView);
         $this->assertStringContainsString("form.find('[name=\"attachment_path\"]').val(taskItem.attachment_path || '');", $overtimeDetailView);
         $this->assertStringContainsString("form.find('[name=\"blockers\"]').val(taskItem.blockers || '');", $overtimeDetailView);
+        $this->assertStringContainsString("$('#overtimeTaskDetailAssignedBy').text('@' + (nullableTaskDetailValue(taskItem.assigned_by) || 'self'));", $overtimeDetailView);
+        $this->assertStringContainsString("$('#overtimeTaskDetailAttachment')", $overtimeDetailView);
+        $this->assertStringContainsString('bootstrap.Modal.getOrCreateInstance(modalElement).show();', $overtimeDetailView);
         $this->assertStringContainsString('data-bs-target="#delete"', $overtimeDetailView);
         $this->assertStringContainsString('data-bs-target="#update"', $overtimeDetailView);
         $this->assertStringContainsString("data-task-update-url=\"{{ \$taskItem['update_url'] ?? '#' }}\"", $overtimeDetailView);

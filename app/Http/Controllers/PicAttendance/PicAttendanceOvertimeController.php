@@ -10,6 +10,7 @@ use App\Models\ProjectTask;
 use App\Models\User;
 use App\Support\Attendance\OvertimeReviewTableBuilder;
 use App\Support\Attendance\OvertimeSummaryMetricBuilder;
+use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -221,7 +222,9 @@ class PicAttendanceOvertimeController extends Controller
                 'lifecycleLogs.actor:id,username,email',
                 'lifecycleLogs.actor.employee:id,user_id',
                 'lifecycleLogs.actor.employee.profile:id,employee_id,name',
-                'projectTasks:id,overtime_id,employee_id,project_id,title,description,status,priority,start_date,due_date,blockers,attachment_path,completed_at,created_at',
+                'projectTasks:id,overtime_id,employee_id,project_id,assigned_by,title,description,status,priority,start_date,due_date,blockers,attachment_path,completed_at,created_at',
+                'projectTasks.project:id,name',
+                'projectTasks.assignedBy:id,username',
             ])
             ->whereKey($uid)
             ->where('assigned_by', $authenticatedUser->id)
@@ -547,16 +550,56 @@ class PicAttendanceOvertimeController extends Controller
             'start_date' => $this->formatDateInputValue($projectTask->start_date),
             'due_date' => $this->formatDateInputValue($projectTask->due_date),
             'date_label' => $dateValue !== null ? Carbon::parse($dateValue)->timezone('Asia/Jakarta')->format('d M Y, H:i').' WIB' : '-',
+            'date_range_label' => $this->taskDateRangeLabel($projectTask->start_date, $projectTask->due_date),
             'status_value' => $status !== '' ? $status : 'pending',
+            'status_label' => $this->projectTaskDetailStatusLabel($status, $isFinished),
+            'status_class' => $isFinished ? 'text-success' : 'text-danger',
             'priority' => strtolower(trim((string) ($projectTask->priority ?? 'medium'))) ?: 'medium',
             'attachment_path' => (string) ($projectTask->attachment_path ?? ''),
             'blockers' => (string) ($projectTask->blockers ?? ''),
+            'task_category_label' => $projectTask->project_id !== null ? 'Project Task' : 'Daily Task',
+            'project_name' => $projectTask->project_id !== null ? trim((string) ($projectTask->project?->name ?? '')) : 'Daily Task',
+            'assigned_by' => trim((string) ($projectTask->assignedBy?->username ?? 'self')) ?: 'self',
             'checked' => $isFinished,
             'update_url' => route('pic-attendance.overtime.tasks.update', [
                 'attendanceOvertime' => $overtime->id,
                 'projectTask' => $projectTask->id,
             ]),
         ];
+    }
+
+    private function projectTaskDetailStatusLabel(string $status, bool $isFinished): string
+    {
+        if ($isFinished) {
+            return 'Finished';
+        }
+
+        return match (strtolower(trim($status))) {
+            'in_progress' => 'On Progress',
+            'cancelled', 'canceled' => 'Cancelled',
+            default => 'Unfinished',
+        };
+    }
+
+    private function taskDateRangeLabel(?CarbonInterface $startDate, ?CarbonInterface $dueDate): string
+    {
+        if ($startDate === null && $dueDate === null) {
+            return 'No date';
+        }
+
+        if ($startDate === null) {
+            return $dueDate?->format('d M Y') ?? 'No date';
+        }
+
+        if ($dueDate === null || $startDate->isSameDay($dueDate)) {
+            return $startDate->format('d M Y');
+        }
+
+        if ($startDate->format('M Y') === $dueDate->format('M Y')) {
+            return $startDate->format('d').' - '.$dueDate->format('d M Y');
+        }
+
+        return $startDate->format('d M Y').' - '.$dueDate->format('d M Y');
     }
 
     private function resolveOvertimeDirectorApprover(AttendanceOvertime $overtime): ?User

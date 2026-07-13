@@ -49,6 +49,22 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertSame('pic-attendance/overtime/detail/{uid}', $overtimeDetailRoute?->uri());
     }
 
+    public function test_pic_attendance_detail_progress_icons_match_their_metrics(): void
+    {
+        $attendanceDetailView = File::get(resource_path('views/pic_attendance/attendance/detail-employees.blade.php'));
+
+        $this->assertStringContainsString('fa-solid fa-user-check fs-20 text-success', $attendanceDetailView);
+        $this->assertStringContainsString('fa-solid fa-clock fs-20 text-danger', $attendanceDetailView);
+        $this->assertStringContainsString('fa-solid fa-hourglass-half fs-20 text-secondary', $attendanceDetailView);
+        $this->assertStringContainsString('fa-solid fa-business-time fs-20 text-info', $attendanceDetailView);
+        $this->assertStringContainsString('<th class="mw-160">Address</th>', $attendanceDetailView);
+        $this->assertStringContainsString("{ data: 'location_address', render: function(data) { return escapeHtml(data); } }", $attendanceDetailView);
+        $this->assertStringNotContainsString('clip-path="url(#clip3)"', $attendanceDetailView);
+        $this->assertStringNotContainsString('clip-path="url(#clip4)"', $attendanceDetailView);
+        $this->assertStringNotContainsString('clip-path="url(#clip5)"', $attendanceDetailView);
+        $this->assertStringNotContainsString('clip-path="url(#clip8)"', $attendanceDetailView);
+    }
+
     public function test_pic_module_has_its_own_views_navigation_and_permission(): void
     {
         $sidebar = File::get(resource_path('views/layouts/sidebar.blade.php'));
@@ -134,6 +150,8 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString("asset('assets/vendor/apexcharts/dist/apexcharts.min.js')", $attendanceDetailView);
         $this->assertStringContainsString("typeof window.ApexCharts === 'undefined'", $attendanceDetailView);
         $this->assertStringContainsString("typeof \$.fn.peity !== 'function'", $attendanceDetailView);
+        $this->assertStringContainsString('<th class="mw-160">Address</th>', $attendanceDetailView);
+        $this->assertStringContainsString("{ data: 'location_address', render: function(data) { return escapeHtml(data); } }", $attendanceDetailView);
         $this->assertStringContainsString('employeeAvatarUrl', $attendanceController);
         $this->assertStringContainsString("asset('assets/default_user.jpg')", $attendanceController);
         $this->assertStringContainsString('Add Overtime', $overtimeView);

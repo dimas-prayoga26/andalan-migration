@@ -233,7 +233,12 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('id="taskDetailModal"', $view);
         $this->assertStringContainsString('id="picTaskDetailTitle"', $view);
         $this->assertStringContainsString('id="picTaskDetailDescription"', $view);
+        $this->assertStringContainsString('id="picTaskDetailCategory"', $view);
+        $this->assertStringContainsString('id="picTaskDetailProject"', $view);
+        $this->assertStringContainsString('id="picTaskDetailAssignedBy"', $view);
         $this->assertStringContainsString('function openTaskDetailModal(event)', $view);
+        $this->assertStringContainsString("$('#picTaskDetailAssignedBy').text('@' + (nullableTaskValue(taskItem.assigned_by) || 'self'));", $view);
+        $this->assertStringContainsString("renderTaskAttachment('#picTaskDetailAttachment', taskItem.attachment_path);", $view);
         $this->assertStringContainsString("$('.pic-overtime-task-detail').on('click', openTaskDetailModal);", $view);
         $this->assertStringContainsString('class="btn btn-square btn-primary light btn-sm ms-1 pic-overtime-task-edit"', $view);
         $this->assertStringContainsString('id="updateTaskModal"', $view);
@@ -243,6 +248,10 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('public function updateTask(Request $request, AttendanceOvertime $attendanceOvertime, ProjectTask $projectTask): JsonResponse', $controller);
         $this->assertStringContainsString('canUpdatePicOvertimeTask', $controller);
         $this->assertStringContainsString('buildOvertimeTaskItems', $controller);
+        $this->assertStringContainsString("'date_range_label' => \$this->taskDateRangeLabel", $controller);
+        $this->assertStringContainsString("'status_label' => \$this->projectTaskDetailStatusLabel", $controller);
+        $this->assertStringContainsString("'task_category_label' => \$projectTask->project_id !== null ? 'Project Task' : 'Daily Task'", $controller);
+        $this->assertStringContainsString("'assigned_by' => trim((string) (\$projectTask->assignedBy?->username ?? 'self')) ?: 'self'", $controller);
         $this->assertStringContainsString("route('pic-attendance.overtime.tasks.update'", $controller);
         $this->assertStringContainsString("Route::put('/pic-attendance/overtime/detail/{attendanceOvertime}/tasks/{projectTask}'", $routes);
         $this->assertStringContainsString("->name('pic-attendance.overtime.tasks.update')", $routes);

@@ -135,7 +135,7 @@
 								</div>
 							</div>
 							<div class="text-center">
-								<button type="submit" class="btn btn-primary btn-lg w-100">Sign Me In</button>
+								<button type="submit" class="btn btn-primary btn-lg w-100">Sign In</button>
 							</div>
 						</form>
 					</div>

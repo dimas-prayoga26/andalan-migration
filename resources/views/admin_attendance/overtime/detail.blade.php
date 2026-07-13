@@ -403,53 +403,51 @@
 </div>
 
 <div class="modal fade" id="adminTaskDetailModal" tabindex="-1" aria-labelledby="adminTaskDetailModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <div>
-                    <h5 class="modal-title" id="adminTaskDetailModalLabel">Task Detail</h5>
-                    <span class="text-muted fs-13" id="adminTaskDetailDate">-</span>
-                </div>
+                <h5 class="modal-title" id="adminTaskDetailModalLabel">Task Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="row g-3">
-                    <div class="col-12">
-                        <span class="text-muted fs-13">Task Name</span>
-                        <h5 class="mb-0" id="adminTaskDetailTitle">-</h5>
+                <div class="row py-2">
+                    <div class="col-4"><span>Task Name</span></div>
+                    <div class="col-8"><span class="text-gray fw-semibold" id="adminTaskDetailTitle">-</span></div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4"><span>Task Description</span></div>
+                    <div class="col-8"><span class="text-gray fw-normal" id="adminTaskDetailDescription">-</span></div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4"><span>Date - Due Date</span></div>
+                    <div class="col-8"><span class="text-gray fw-semibold" id="adminTaskDetailDate">-</span></div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4"><span>Attachment</span></div>
+                    <div class="col-8"><span class="text-gray fw-semibold" id="adminTaskDetailAttachment">No attachment</span></div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4"><span>Blockers</span></div>
+                    <div class="col-8"><span class="text-gray fw-normal" id="adminTaskDetailBlockers">-</span></div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4"><span>Task Category</span></div>
+                    <div class="col-8">
+                        <span class="text-gray fw-semibold" id="adminTaskDetailCategory">-</span><br>
+                        <span class="text-gray fw-normal" id="adminTaskDetailProject">-</span>
                     </div>
-                    <div class="col-12">
-                        <span class="text-muted fs-13">Description</span>
-                        <p class="mb-0 text-black" id="adminTaskDetailDescription">-</p>
-                    </div>
-                    <div class="col-md-6">
-                        <span class="text-muted fs-13">Start Date</span>
-                        <p class="mb-0 text-black" id="adminTaskDetailStartDate">-</p>
-                    </div>
-                    <div class="col-md-6">
-                        <span class="text-muted fs-13">Due Date</span>
-                        <p class="mb-0 text-black" id="adminTaskDetailDueDate">-</p>
-                    </div>
-                    <div class="col-md-6">
-                        <span class="text-muted fs-13">Priority</span>
-                        <p class="mb-0 text-black" id="adminTaskDetailPriority">-</p>
-                    </div>
-                    <div class="col-md-6">
-                        <span class="text-muted fs-13">Status</span>
-                        <p class="mb-0 text-black" id="adminTaskDetailStatus">-</p>
-                    </div>
-                    <div class="col-md-6">
-                        <span class="text-muted fs-13">Attachment</span>
-                        <p class="mb-0 text-black" id="adminTaskDetailAttachment">-</p>
-                    </div>
-                    <div class="col-md-6">
-                        <span class="text-muted fs-13">Blockers</span>
-                        <p class="mb-0 text-black" id="adminTaskDetailBlockers">-</p>
-                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4"><span>Assigned by</span></div>
+                    <div class="col-8"><span class="text-primary fw-semibold" id="adminTaskDetailAssignedBy">-</span></div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-4"><span>Task Status</span></div>
+                    <div class="col-8"><span class="fw-semibold" id="adminTaskDetailStatus">-</span></div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary light" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -468,6 +466,34 @@
 
             function nullableTaskText(value) {
                 return value ? value : '-';
+            }
+
+            function nullableTaskValue(value) {
+                if (value === null || typeof value === 'undefined') {
+                    return '';
+                }
+
+                return String(value).trim();
+            }
+
+            function renderTaskAttachment(selector, attachmentPath) {
+                var attachmentValue = nullableTaskValue(attachmentPath);
+                var attachmentElement = $(selector);
+
+                if (attachmentValue === '') {
+                    attachmentElement.text('No attachment');
+                    return;
+                }
+
+                attachmentElement
+                    .empty()
+                    .append($('<a>', {
+                        href: attachmentValue,
+                        class: 'text-primary',
+                        target: '_blank',
+                        rel: 'noopener noreferrer',
+                        text: 'Open attachment'
+                    }));
             }
 
             function taskStatusLabel(value, isChecked) {
@@ -499,7 +525,7 @@
             }
 
             function openTaskDetailModal(event) {
-                if ($(event.target).closest('button, a, input, label').length) {
+                if ($(event.target).closest('button, a, input').length) {
                     return;
                 }
 
@@ -511,14 +537,17 @@
                 }
 
                 $('#adminTaskDetailTitle').text(nullableTaskText(taskItem.title));
-                $('#adminTaskDetailDate').text(nullableTaskText(taskItem.date_label));
                 $('#adminTaskDetailDescription').text(nullableTaskText(taskItem.description));
-                $('#adminTaskDetailStartDate').text(nullableTaskText(taskItem.start_date));
-                $('#adminTaskDetailDueDate').text(nullableTaskText(taskItem.due_date));
-                $('#adminTaskDetailPriority').text(taskPriorityLabel(taskItem.priority));
-                $('#adminTaskDetailStatus').text(taskStatusLabel(taskItem.status_value, taskItem.checked === true));
-                $('#adminTaskDetailAttachment').text(nullableTaskText(taskItem.attachment_path));
+                $('#adminTaskDetailDate').text(nullableTaskText(taskItem.date_range_label));
                 $('#adminTaskDetailBlockers').text(nullableTaskText(taskItem.blockers));
+                $('#adminTaskDetailCategory').text(nullableTaskText(taskItem.task_category_label));
+                $('#adminTaskDetailProject').text(nullableTaskText(taskItem.project_name));
+                $('#adminTaskDetailAssignedBy').text('@' + (nullableTaskValue(taskItem.assigned_by) || 'self'));
+                $('#adminTaskDetailStatus')
+                    .removeClass('text-danger text-success text-warning')
+                    .addClass(taskItem.status_class || 'text-warning')
+                    .text(nullableTaskValue(taskItem.status_label) || taskStatusLabel(taskItem.status_value, taskItem.checked === true));
+                renderTaskAttachment('#adminTaskDetailAttachment', taskItem.attachment_path);
             }
 
             function openTaskDetailModalFromKeyboard(event) {

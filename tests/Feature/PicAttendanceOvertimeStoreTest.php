@@ -31,12 +31,12 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringNotContainsString('.datepicker(', $view);
         $this->assertStringNotContainsString('id="pic-overtime-start-date"', $view);
         $this->assertStringNotContainsString('id="pic-overtime-end-date"', $view);
-        $this->assertStringContainsString('name="start_time"', $view);
-        $this->assertStringContainsString('name="end_time"', $view);
-        $this->assertStringContainsString('name="ends_next_day" value="0"', $view);
-        $this->assertStringContainsString('id="pic-overtime-ends-next-day" name="ends_next_day" value="1"', $view);
-        $this->assertStringContainsString('Berakhir hari berikutnya', $view);
-        $this->assertStringContainsString('id="pic-overtime-schedule-preview"', $view);
+        $this->assertStringNotContainsString('name="start_time"', $view);
+        $this->assertStringNotContainsString('name="end_time"', $view);
+        $this->assertStringNotContainsString('name="ends_next_day"', $view);
+        $this->assertStringNotContainsString('id="pic-overtime-ends-next-day"', $view);
+        $this->assertStringNotContainsString('Berakhir hari berikutnya', $view);
+        $this->assertStringNotContainsString('id="pic-overtime-schedule-preview"', $view);
         $this->assertStringContainsString('name="employee_id"', $view);
         $this->assertStringContainsString('name="instruction"', $view);
         $this->assertStringContainsString('$assignableStaffOptions', $view);
@@ -52,6 +52,7 @@ class PicAttendanceOvertimeStoreTest extends TestCase
     public function test_pic_overtime_store_uses_supervisor_staff_assignment_scope(): void
     {
         $controller = File::get(app_path('Http/Controllers/PicAttendance/PicAttendanceOvertimeController.php'));
+        $plannedTimesDropMigration = File::get(database_path('migrations/2026_07_14_083855_drop_overtime_planned_times_columns.php'));
 
         $this->assertStringContainsString("validateWithBag('picOvertimeStore'", $controller);
         $this->assertStringNotContainsString("'task' => ['required'", $controller);
@@ -98,9 +99,16 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('staffGridGroupLabel', $controller);
         $this->assertStringContainsString('paidOutOvertimeMinutes', $controller);
         $this->assertStringContainsString("'overtime_date' => ['required', 'date_format:Y-m-d']", $controller);
-        $this->assertStringContainsString("'ends_next_day' => ['required', 'boolean']", $controller);
-        $this->assertStringContainsString('overtimeEndDateTime', $controller);
-        $this->assertStringContainsString('Durasi overtime tidak boleh lebih dari 24 jam.', $controller);
+        $this->assertStringNotContainsString("'start_time' => ['required', 'date_format:H:i']", $controller);
+        $this->assertStringNotContainsString("'end_time' => ['required', 'date_format:H:i']", $controller);
+        $this->assertStringNotContainsString("'ends_next_day' => ['required', 'boolean']", $controller);
+        $this->assertStringNotContainsString("'planned_start_time' => null", $controller);
+        $this->assertStringNotContainsString("'planned_end_time' => null", $controller);
+        $this->assertStringNotContainsString('overtimeEndDateTime', $controller);
+        $this->assertStringNotContainsString('Durasi overtime tidak boleh lebih dari 24 jam.', $controller);
+        $this->assertStringContainsString("\$table->dropColumn(['planned_start_time', 'planned_end_time']);", $plannedTimesDropMigration);
+        $this->assertStringContainsString("\$table->time('planned_start_time')->nullable()->after('overtime_date');", $plannedTimesDropMigration);
+        $this->assertStringContainsString("\$table->time('planned_end_time')->nullable()->after('planned_start_time');", $plannedTimesDropMigration);
     }
 
     public function test_pic_overtime_store_builds_initial_project_task_from_assignment_payload(): void
@@ -137,27 +145,12 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertNull($payload['completed_at']);
     }
 
-    public function test_pic_overtime_store_resolves_next_day_end_datetime(): void
+    public function test_pic_overtime_store_no_longer_uses_next_day_end_datetime(): void
     {
-        $method = new ReflectionMethod(PicAttendanceOvertimeController::class, 'overtimeEndDateTime');
-        $method->setAccessible(true);
-        $controller = app(PicAttendanceOvertimeController::class);
+        $controller = File::get(app_path('Http/Controllers/PicAttendance/PicAttendanceOvertimeController.php'));
 
-        $sameDayEnd = $method->invoke(
-            $controller,
-            Carbon::parse('2026-07-06', 'Asia/Jakarta')->startOfDay(),
-            '22:00:00',
-            false
-        );
-        $overnightEnd = $method->invoke(
-            $controller,
-            Carbon::parse('2026-07-06', 'Asia/Jakarta')->startOfDay(),
-            '02:00:00',
-            true
-        );
-
-        $this->assertSame('2026-07-06 22:00:00', $sameDayEnd->format('Y-m-d H:i:s'));
-        $this->assertSame('2026-07-07 02:00:00', $overnightEnd->format('Y-m-d H:i:s'));
+        $this->assertStringNotContainsString('private function overtimeEndDateTime', $controller);
+        $this->assertStringNotContainsString('private function overtimeDateTime', $controller);
     }
 
     public function test_pic_overtime_card_displays_overnight_date_range_and_badge(): void
@@ -189,12 +182,25 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('$overtimeDetail[\'verification_end_time\']', $view);
         $this->assertStringContainsString('$overtimeDetail[\'approved_start_time\']', $view);
         $this->assertStringContainsString('$overtimeDetail[\'approved_end_time\']', $view);
-        $this->assertStringContainsString('Staff submitted <span class="text-muted">(Total Duration)</span>', $view);
-        $this->assertStringContainsString('$overtimeDetail[\'staff_submitted_time_range\']', $view);
-        $this->assertStringContainsString('$overtimeDetail[\'staff_submitted_duration\']', $view);
-        $this->assertStringContainsString('$overtimeDetail[\'planned_time_range\']', $view);
-        $this->assertStringContainsString('$overtimeDetail[\'planned_duration\']', $view);
-        $this->assertStringNotContainsString('text-decoration-line-through', $view);
+        $this->assertStringContainsString('Staff Start ClockIn', $view);
+        $this->assertStringContainsString('Staff Start ClockOut', $view);
+        $this->assertStringContainsString("{{ \$overtimeDetail['actual_start_time'] ?? '-' }}", $view);
+        $this->assertStringContainsString("{{ \$overtimeDetail['actual_end_time'] ?? '-' }}", $view);
+        $this->assertStringNotContainsString('Scheduled Start', $view);
+        $this->assertStringNotContainsString('Scheduled End', $view);
+        $this->assertStringNotContainsString("{{ \$overtimeDetail['planned_start_time'] ?? '-' }}", $view);
+        $this->assertStringNotContainsString("{{ \$overtimeDetail['planned_end_time'] ?? '-' }}", $view);
+        $this->assertStringNotContainsString('Staff submitted <span class="text-muted">(Total Duration)</span>', $view);
+        $this->assertStringNotContainsString('$overtimeDetail[\'staff_submitted_time_range\']', $view);
+        $this->assertStringNotContainsString('$overtimeDetail[\'staff_submitted_duration\']', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'actual_time_range\']', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'actual_duration\']', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'approved_time_range\']', $view);
+        $this->assertStringContainsString('$overtimeDetail[\'approved_duration\']', $view);
+        $this->assertStringNotContainsString('$overtimeDetail[\'planned_time_range\']', $view);
+        $this->assertStringNotContainsString('$overtimeDetail[\'planned_duration\']', $view);
+        $this->assertStringContainsString('<span class="text-gray fw-semibold text-decoration-line-through">-</span>', $view);
+        $this->assertStringNotContainsString('<span class="text-gray text-decoration-line-through">-</span>', $view);
         $this->assertStringContainsString('class="btn light btn-success btn-lg w-100"', $view);
         $this->assertStringContainsString('public function verifySession(Request $request, string $uid): RedirectResponse', $controller);
         $this->assertStringContainsString("validateWithBag('picOvertimeVerify'", $controller);
@@ -203,9 +209,20 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString("'staff_submitted_duration' => \$actualDuration", $controller);
         $this->assertStringContainsString("'approved_start_time' => \$approvedStartTime", $controller);
         $this->assertStringContainsString("'approved_end_time' => \$approvedEndTime", $controller);
+        $this->assertStringContainsString("'duration_changed' => \$hasApprovedTime && \$actualDuration !== '-' && \$approvedDuration !== \$actualDuration", $controller);
+        $this->assertStringContainsString("'verification_duration' => \$taskDeliverablesSubmitted ? (\$approvedDuration !== '-' ? \$approvedDuration : \$actualDuration) : '-'", $controller);
+        $this->assertStringNotContainsString('$plannedDuration', $controller);
+        $this->assertStringNotContainsString('$plannedStartTime', $controller);
+        $this->assertStringNotContainsString('$plannedEndTime', $controller);
         $this->assertStringContainsString('$actualEndDateTime = $this->formatActualEndDateTime($overtime);', $controller);
         $this->assertStringContainsString("'verified_datetime' => \$actualEndDateTime !== '-' ? \$actualEndDateTime : \$this->formatLifecycleDateTime(\$verificationLog)", $controller);
         $this->assertStringContainsString('private function formatActualEndDateTime(AttendanceOvertime $overtime): string', $controller);
+        $this->assertStringContainsString('private function resolveOvertimeDirectorApprover(AttendanceOvertime $overtime): ?User', $controller);
+        $this->assertStringContainsString("->whereRaw('LOWER(email) = ?', ['lukman@rnbmanagement.com'])", $controller);
+        $this->assertStringContainsString("->orWhereHas('employee.deployment.position'", $controller);
+        $this->assertStringContainsString("->orWhereHas('employee.deployment.positions'", $controller);
+        $this->assertStringNotContainsString("['label' => \$plannedTimeLabel, 'strike' => true]", $controller);
+        $this->assertStringNotContainsString('$companyId = $overtime->employee?->deployment?->current_company_id;', $controller);
         $this->assertStringContainsString("'calculated_hours' => round(\$this->durationMinutes(\$approvedStartTime, \$approvedEndTime) / 60, 2)", $controller);
         $this->assertStringContainsString("'task_hours_verification',", $controller);
         $this->assertStringContainsString("'verified',", $controller);

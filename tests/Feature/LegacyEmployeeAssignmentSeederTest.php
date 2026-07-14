@@ -14,8 +14,17 @@ class LegacyEmployeeAssignmentSeederTest extends TestCase
         $additionalPositions = new ReflectionMethod($seeder, 'additionalPositionNamesForLegacyUser');
         $isExcludedLegacyUser = new ReflectionMethod($seeder, 'isExcludedLegacyUser');
 
-        $this->assertSame(['Supervisor'], $additionalPositions->invoke($seeder, [
+        $this->assertSame(['Director', 'Supervisor'], $additionalPositions->invoke($seeder, [
             'email' => 'lukman@rnbmanagement.com',
+        ]));
+        $this->assertSame(['Supervisor'], $additionalPositions->invoke($seeder, [
+            'email' => 'rexy@andalanbersama.com',
+        ]));
+        $this->assertSame(['Supervisor'], $additionalPositions->invoke($seeder, [
+            'email' => 'fuadmfahrudin@gmail.com',
+        ]));
+        $this->assertSame(['Supervisor'], $additionalPositions->invoke($seeder, [
+            'email' => 'fahmil@andalanbersama.com',
         ]));
         $this->assertSame(['Administrator', 'Supervisor'], $additionalPositions->invoke($seeder, [
             'email' => 'leonieputri7@gmail.com',

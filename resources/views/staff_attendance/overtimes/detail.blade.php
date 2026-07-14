@@ -171,10 +171,10 @@
                             </div>
                             <div class="col-md-6 col-12">
                                 @if (($overtimeDetail['is_pic_verified'] ?? false) && ($overtimeDetail['has_approved_time'] ?? false))
-                                    <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
+                                    <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['actual_time_range'] ?? '-' }}</span>
                                     <span class="text-gray">, {{ $overtimeDetail['approved_time_range'] ?? '-' }}</span>
                                 @else
-                                    <span class="text-gray">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
+                                    <span class="text-gray">{{ $overtimeDetail['actual_time_range'] ?? '-' }}</span>
                                 @endif
                             </div>
                         </div>
@@ -184,10 +184,10 @@
                             </div>
                             <div class="col-md-6 col-12">
                                 @if (($overtimeDetail['is_pic_verified'] ?? false) && ($overtimeDetail['has_approved_time'] ?? false))
-                                    <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
+                                    <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['actual_duration'] ?? '-' }}</span>
                                     <span class="text-gray">, {{ $overtimeDetail['approved_duration'] ?? '-' }}</span>
                                 @else
-                                    <span class="text-gray">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
+                                    <span class="text-gray">{{ $overtimeDetail['actual_duration'] ?? '-' }}</span>
                                 @endif
                             </div>
                         </div>
@@ -218,8 +218,7 @@
                                 <span>Calculated Hours</span>
                             </div>
                             <div class="col-md-6 col-12">
-                                <span class="text-gray fw-semibold">{{ $overtimeDetail['calculated_hours'] ?? '-' }}</span> <br>
-                                <span class="text-gray">Actual hours from clock-in and clock-out</span>
+                                <span class="text-gray fw-semibold">{{ $overtimeDetail['calculated_hours'] ?? '-' }}</span>
                             </div>
                         </div>
                         <div class="row py-2">
@@ -227,7 +226,7 @@
                                 <span>Estimated Calculated Earnings</span>
                             </div>
                             <div class="col-md-6 col-12">
-                                <span class="text-gray fw-semibold">{{ $overtimeDetail['estimated_earnings'] ?? '-' }}</span>
+                                <span class="text-gray fw-semibold text-decoration-line-through">{{ $overtimeDetail['estimated_earnings'] ?? '-' }}</span>
                             </div>
                         </div>
                         <div class="row py-2">
@@ -1189,28 +1188,6 @@
                             <p class="form-label text-muted mb-3">
                                 Grab your coffee and let's get things done. Start your session when you're ready to crush this extra hustle!
                             </p>
-                            <div class="row">
-                                <div class="col-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Scheduled Start Time</label>
-                                        <p class="fs-13 mb-0">{{ $overtimeDetail['scheduled_start_label'] ?? '-' }}</p>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Scheduled End Time</label>
-                                        <p class="fs-13 mb-0">{{ $overtimeDetail['scheduled_end_label'] ?? '-' }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Target Duration</label>
-                                        <p class="fs-13 mb-0">{{ $overtimeDetail['target_duration_label'] ?? '-' }}</p>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </form>
@@ -1242,20 +1219,6 @@
                             <div class="row">
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Scheduled Start Time</label>
-                                        <p class="fs-13 mb-0">{{ $overtimeDetail['scheduled_start_label'] ?? '-' }}</p>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Scheduled End Time</label>
-                                        <p class="fs-13 mb-0">{{ $overtimeDetail['scheduled_end_label'] ?? '-' }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    <div class="mb-3">
                                         <label class="form-label">Actual Start Time</label>
                                         <p class="fs-13 mb-0">{{ $overtimeDetail['actual_start_label'] ?? '-' }}</p>
                                     </div>
@@ -1268,12 +1231,6 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Target Duration</label>
-                                        <p class="fs-13 mb-0">{{ $overtimeDetail['target_duration_label'] ?? '-' }}</p>
-                                    </div>
-                                </div>
                                 <div class="col-6">
                                     <div class="mb-3">
                                         <label class="form-label">Actual Duration</label>
@@ -1307,8 +1264,6 @@
                 'employee_id' => $overtimeDetail['employee_id'] ?? null,
                 'pic_user_id' => $overtimeDetail['pic_user_id'] ?? null,
                 'overtime_date' => $overtimeDetail['overtime_date_input'] ?? null,
-                'planned_start_time' => $overtimeDetail['planned_start_time_value'] ?? null,
-                'planned_end_time' => $overtimeDetail['planned_end_time_value'] ?? null,
                 'actual_start_time' => $overtimeDetail['actual_start_time_value'] ?? null,
                 'actual_end_time' => $overtimeDetail['actual_end_time_value'] ?? null,
                 'clock_in_allowed' => (bool) ($overtimeDetail['clock_in_allowed'] ?? false),
@@ -1942,8 +1897,6 @@
                         employee_id: overtimePayload.employee_id,
                         pic_user_id: overtimePayload.pic_user_id,
                         overtime_date: overtimePayload.overtime_date,
-                        planned_start_time: overtimePayload.planned_start_time,
-                        planned_end_time: overtimePayload.planned_end_time,
                         instruction: overtimePayload.instruction,
                         actual_start_time: actualStartTime,
                         actual_end_time: actualEndTime

@@ -220,6 +220,16 @@
 
     <div class="row g-3" id="overtime-list">
         @forelse (($overtimeList ?? collect()) as $overtimeItem)
+            @php
+                $overtimeItemDateLabel = $overtimeItem['overtime_date'] ?? '-';
+                $overtimeItemTimeRange = $overtimeItem['time_range'] ?? '-';
+                $overtimeItemDuration = $overtimeItem['duration'] ?? '-';
+                $overtimeItemDateTimeLabel = $overtimeItemDateLabel;
+
+                if ($overtimeItemTimeRange !== '-' || $overtimeItemDuration !== '-') {
+                    $overtimeItemDateTimeLabel .= ', '.$overtimeItemTimeRange.' ('.$overtimeItemDuration.')';
+                }
+            @endphp
             <div class="col-xxl-3 col-xl-4 col-sm-6">
                 <div class="card h-100">
                     <div class="card-body">
@@ -233,7 +243,7 @@
                                         {{ $overtimeItem['reference'] ?? '#OVT' }}
                                     </a>
                                 </h6>
-                                <span class="small d-block text-muted">{{ $overtimeItem['overtime_date'] ?? '-' }}, {{ $overtimeItem['time_range'] ?? '-' }} ({{ $overtimeItem['duration'] ?? '-' }})</span>
+                                <span class="small d-block text-muted">{{ $overtimeItemDateTimeLabel }}</span>
                             </div>
                         </div>
                         <div class="my-3">

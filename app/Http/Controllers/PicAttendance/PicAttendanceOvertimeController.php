@@ -121,9 +121,6 @@ class PicAttendanceOvertimeController extends Controller
     {
         $validated = $request->validateWithBag('picOvertimeStore', [
             'overtime_date' => ['required', 'date_format:Y-m-d'],
-            'start_time' => ['required', 'date_format:H:i'],
-            'end_time' => ['required', 'date_format:H:i'],
-            'ends_next_day' => ['required', 'boolean'],
             'employee_id' => ['required', 'string'],
             'instruction' => ['required', 'string', 'max:5000'],
         ]);
@@ -132,20 +129,6 @@ class PicAttendanceOvertimeController extends Controller
         abort_unless($authenticatedUser instanceof User, 403);
 
         $overtimeDate = Carbon::createFromFormat('Y-m-d', $validated['overtime_date'], 'Asia/Jakarta')->startOfDay();
-        $startTime = $this->normalizeSubmittedTime($validated['start_time']);
-        $endTime = $this->normalizeSubmittedTime($validated['end_time']);
-        $endsNextDay = (bool) $validated['ends_next_day'];
-        $startDateTime = $this->overtimeDateTime($overtimeDate, $startTime);
-        $endDateTime = $this->overtimeEndDateTime($overtimeDate, $endTime, $endsNextDay);
-
-        if ($endDateTime->lessThanOrEqualTo($startDateTime)) {
-            $this->throwPicOvertimeValidationException('end_time', 'End time harus setelah start time. Aktifkan Berakhir hari berikutnya jika lembur melewati tengah malam.');
-        }
-
-        if ($startDateTime->diffInMinutes($endDateTime) > 1440) {
-            $this->throwPicOvertimeValidationException('end_time', 'Durasi overtime tidak boleh lebih dari 24 jam.');
-        }
-
         $selectedEmployeeId = trim((string) $validated['employee_id']);
         $assignableStaffIds = $this->activeSupervisedEmployeeIdsFor(
             $authenticatedUser,
@@ -157,15 +140,13 @@ class PicAttendanceOvertimeController extends Controller
             $this->throwPicOvertimeValidationException('employee_id', 'Staff yang dipilih bukan bawahan supervisor ini.');
         }
 
-        DB::transaction(function () use ($authenticatedUser, $validated, $selectedEmployeeId, $overtimeDate, $startTime, $endTime): void {
+        DB::transaction(function () use ($authenticatedUser, $validated, $selectedEmployeeId, $overtimeDate): void {
             $createdAt = Carbon::now('Asia/Jakarta');
 
             $overtime = AttendanceOvertime::query()->create([
                 'employee_id' => $selectedEmployeeId,
                 'assigned_by' => $authenticatedUser->id,
                 'overtime_date' => $overtimeDate->toDateString(),
-                'planned_start_time' => $startTime,
-                'planned_end_time' => $endTime,
                 'instruction' => $validated['instruction'],
                 'actual_start_time' => null,
                 'actual_end_time' => null,
@@ -202,8 +183,6 @@ class PicAttendanceOvertimeController extends Controller
                 'assigned_by',
                 'record_number',
                 'overtime_date',
-                'planned_start_time',
-                'planned_end_time',
                 'actual_start_time',
                 'actual_end_time',
                 'approved_start_time',
@@ -393,18 +372,14 @@ class PicAttendanceOvertimeController extends Controller
      */
     private function picOvertimeDetailSummary(AttendanceOvertime $overtime): array
     {
-        $plannedStartTime = $this->formatTime($overtime->planned_start_time);
-        $plannedEndTime = $this->formatTime($overtime->planned_end_time);
         $actualStartTime = $this->formatTime($overtime->actual_start_time);
         $actualEndTime = $this->formatTime($overtime->actual_end_time);
         $approvedStartTime = $this->formatTime($overtime->approved_start_time);
         $approvedEndTime = $this->formatTime($overtime->approved_end_time);
         $hasActualTime = $this->hasActualOvertimeTimes($overtime);
         $hasApprovedTime = $this->hasApprovedOvertimeTimes($overtime);
-        $plannedTimeRange = $plannedStartTime.' - '.$plannedEndTime;
         $actualTimeRange = $hasActualTime ? $actualStartTime.' - '.$actualEndTime : '-';
         $approvedTimeRange = $hasApprovedTime ? $approvedStartTime.' - '.$approvedEndTime : '-';
-        $plannedDuration = $this->durationLabel($overtime->planned_start_time, $overtime->planned_end_time);
         $actualDuration = $hasActualTime ? $this->durationLabel($overtime->actual_start_time, $overtime->actual_end_time) : '-';
         $approvedDuration = $hasApprovedTime ? $this->durationLabel($overtime->approved_start_time, $overtime->approved_end_time) : '-';
         $taskDeliverablesSubmitted = $this->isTaskDeliverablesSubmitted($overtime);
@@ -422,26 +397,26 @@ class PicAttendanceOvertimeController extends Controller
             'log_status' => $this->overtimeStatusLabel((string) ($overtime->status ?? 'assigned')),
             'record_number' => '#'.(is_string($overtime->record_number) && trim($overtime->record_number) !== '' ? trim($overtime->record_number) : '-'),
             'overtime_date' => Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->format('d M Y'),
-            'planned_start_time' => $plannedStartTime,
-            'planned_end_time' => $plannedEndTime,
+            'planned_start_time' => '-',
+            'planned_end_time' => '-',
             'actual_start_time' => $actualStartTime,
             'actual_end_time' => $actualEndTime,
             'staff_submitted_time_range' => $actualTimeRange,
             'staff_submitted_duration' => $actualDuration,
             'approved_start_time' => $approvedStartTime,
             'approved_end_time' => $approvedEndTime,
-            'planned_time_range' => $plannedTimeRange,
+            'planned_time_range' => '-',
             'actual_time_range' => $actualTimeRange,
             'approved_time_range' => $approvedTimeRange,
-            'time_changed' => ($hasApprovedTime ? $approvedTimeRange : $actualTimeRange) !== '-' && ($hasApprovedTime ? $approvedTimeRange : $actualTimeRange) !== $plannedTimeRange,
-            'planned_duration' => $plannedDuration,
+            'time_changed' => $hasApprovedTime && $actualTimeRange !== '-' && $approvedTimeRange !== $actualTimeRange,
+            'planned_duration' => '-',
             'actual_duration' => $actualDuration,
             'approved_duration' => $approvedDuration,
-            'duration_changed' => ($hasApprovedTime ? $approvedDuration : $actualDuration) !== '-' && ($hasApprovedTime ? $approvedDuration : $actualDuration) !== $plannedDuration,
+            'duration_changed' => $hasApprovedTime && $actualDuration !== '-' && $approvedDuration !== $actualDuration,
             'verification_ready' => $taskDeliverablesSubmitted,
-            'verification_start_time' => $taskDeliverablesSubmitted ? ($approvedStartTime !== '-' ? $approvedStartTime : ($actualStartTime !== '-' ? $actualStartTime : $plannedStartTime)) : '-',
-            'verification_end_time' => $taskDeliverablesSubmitted ? ($approvedEndTime !== '-' ? $approvedEndTime : ($actualEndTime !== '-' ? $actualEndTime : $plannedEndTime)) : '-',
-            'verification_duration' => $taskDeliverablesSubmitted ? ($approvedDuration !== '-' ? $approvedDuration : ($actualDuration !== '-' ? $actualDuration : $plannedDuration)) : '-',
+            'verification_start_time' => $taskDeliverablesSubmitted ? ($approvedStartTime !== '-' ? $approvedStartTime : $actualStartTime) : '-',
+            'verification_end_time' => $taskDeliverablesSubmitted ? ($approvedEndTime !== '-' ? $approvedEndTime : $actualEndTime) : '-',
+            'verification_duration' => $taskDeliverablesSubmitted ? ($approvedDuration !== '-' ? $approvedDuration : $actualDuration) : '-',
             'is_task_hours_verified' => $taskHoursVerified,
             'instruction' => is_string($overtime->instruction) && trim($overtime->instruction) !== '' ? trim($overtime->instruction) : '-',
             'payout_period' => 'Included in '.Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->format('F Y').' Payroll',
@@ -497,18 +472,6 @@ class PicAttendanceOvertimeController extends Controller
             'due_date' => $overtimeDate->toDateString(),
             'completed_at' => null,
         ];
-    }
-
-    private function overtimeDateTime(Carbon $overtimeDate, string $time): Carbon
-    {
-        return Carbon::parse($overtimeDate->toDateString().' '.$time, 'Asia/Jakarta');
-    }
-
-    private function overtimeEndDateTime(Carbon $overtimeDate, string $endTime, bool $endsNextDay): Carbon
-    {
-        $endDateTime = $this->overtimeDateTime($overtimeDate, $endTime);
-
-        return $endsNextDay ? $endDateTime->addDay() : $endDateTime;
     }
 
     /**
@@ -604,33 +567,43 @@ class PicAttendanceOvertimeController extends Controller
 
     private function resolveOvertimeDirectorApprover(AttendanceOvertime $overtime): ?User
     {
-        $overtime->loadMissing('employee.deployment');
-        $companyId = $overtime->employee?->deployment?->current_company_id;
-
-        $directorQuery = User::query()
+        $preferredDirector = User::query()
             ->select(['id', 'username', 'email'])
             ->with('employee.profile')
-            ->whereHas('roles', function (Builder $query): void {
-                $query->whereIn('name', [
-                    'Board of Directors',
-                    'board of directors',
-                    'board_of_directors',
-                    'board_of_director',
-                    'board_of_rector',
-                    'board of directur',
-                    'board_of_directur',
-                    'Director',
-                    'director',
-                ]);
-            });
+            ->whereRaw('LOWER(email) = ?', ['lukman@rnbmanagement.com'])
+            ->first();
 
-        if (is_string($companyId) && trim($companyId) !== '') {
-            $directorQuery->whereHas('employee.deployment', function (Builder $query) use ($companyId): void {
-                $query->where('current_company_id', trim($companyId));
-            });
+        if ($preferredDirector instanceof User) {
+            return $preferredDirector;
         }
 
-        return $directorQuery
+        $directorNames = [
+            'Board of Directors',
+            'board of directors',
+            'board_of_directors',
+            'board_of_director',
+            'board_of_rector',
+            'board of directur',
+            'board_of_directur',
+            'Director',
+            'director',
+        ];
+
+        return User::query()
+            ->select(['id', 'username', 'email'])
+            ->with('employee.profile')
+            ->where(function (Builder $query) use ($directorNames): void {
+                $query
+                    ->whereHas('roles', function (Builder $query) use ($directorNames): void {
+                        $query->whereIn('name', $directorNames);
+                    })
+                    ->orWhereHas('employee.deployment.position', function (Builder $query) use ($directorNames): void {
+                        $query->whereIn('name', $directorNames);
+                    })
+                    ->orWhereHas('employee.deployment.positions', function (Builder $query) use ($directorNames): void {
+                        $query->whereIn('positions.name', $directorNames);
+                    });
+            })
             ->orderBy('username')
             ->first();
     }
@@ -782,8 +755,6 @@ class PicAttendanceOvertimeController extends Controller
                 'assigned_by',
                 'record_number',
                 'overtime_date',
-                'planned_start_time',
-                'planned_end_time',
                 'actual_start_time',
                 'actual_end_time',
                 'approved_start_time',
@@ -810,7 +781,7 @@ class PicAttendanceOvertimeController extends Controller
                 'lifecycleLogs:id,overtime_id,event_key,title,status,step_order',
             ])
             ->orderByDesc('overtime_date')
-            ->orderByDesc('planned_start_time')
+            ->orderByDesc('created_at')
             ->get()
             ->map(fn (AttendanceOvertime $overtime): array => $this->picOvertimeCardFor($overtime))
             ->values();
@@ -835,7 +806,7 @@ class PicAttendanceOvertimeController extends Controller
         $lifecycleLogsByEvent = $overtime->lifecycleLogs->keyBy('event_key');
         $verificationStatus = strtolower(trim((string) ($lifecycleLogsByEvent->get('task_hours_verification')?->status ?? '')));
         $isVerified = $verificationStatus === 'verified';
-        $isOvernight = $this->isOvernightTimeRange($overtime->planned_start_time, $overtime->planned_end_time);
+        $isOvernight = false;
 
         return [
             'uid' => (string) $overtime->id,
@@ -928,7 +899,7 @@ class PicAttendanceOvertimeController extends Controller
      */
     private function timeLinesFor(AttendanceOvertime $overtime, bool $isVerified): array
     {
-        $plannedTimeLabel = $this->timeRangeLabel($overtime->planned_start_time, $overtime->planned_end_time);
+        $plannedTimeLabel = '-';
 
         if (! $isVerified || (! $this->hasApprovedOvertimeTimes($overtime) && ! $this->hasActualOvertimeTimes($overtime))) {
             return [
@@ -944,7 +915,6 @@ class PicAttendanceOvertimeController extends Controller
             : $overtime->actual_end_time;
 
         return [
-            ['label' => $plannedTimeLabel, 'strike' => true],
             ['label' => $this->timeRangeLabel($verifiedStartTime, $verifiedEndTime), 'strike' => false],
         ];
     }
@@ -1125,8 +1095,6 @@ class PicAttendanceOvertimeController extends Controller
                 'employee_id',
                 'assigned_by',
                 'overtime_date',
-                'planned_start_time',
-                'planned_end_time',
                 'actual_start_time',
                 'actual_end_time',
                 'approved_start_time',
@@ -1234,8 +1202,8 @@ class PicAttendanceOvertimeController extends Controller
 
     private function overtimeDurationMinutes(AttendanceOvertime $overtime): int
     {
-        $startTime = $this->nullableStringValue($overtime->actual_start_time) ?? $this->nullableStringValue($overtime->planned_start_time);
-        $endTime = $this->nullableStringValue($overtime->actual_end_time) ?? $this->nullableStringValue($overtime->planned_end_time);
+        $startTime = $this->nullableStringValue($overtime->actual_start_time);
+        $endTime = $this->nullableStringValue($overtime->actual_end_time);
 
         return $this->durationMinutes($startTime, $endTime);
     }

@@ -19,8 +19,8 @@ class OvertimeDeadlineTaskSeederTest extends TestCase
         $this->assertStringContainsString('private const OVERTIME_SCENARIOS = [', $overtimeSeeder);
         $this->assertStringContainsString('$overtimeDate = $today->copy()->addDays((int) $scenario[\'date_offset_days\']);', $overtimeSeeder);
         $this->assertStringContainsString("'overtime_date' => \$overtimeDate->toDateString()", $overtimeSeeder);
-        $this->assertStringContainsString("'planned_start_time' => \$scenario['planned_start_time']", $overtimeSeeder);
-        $this->assertStringContainsString("'planned_end_time' => \$scenario['planned_end_time']", $overtimeSeeder);
+        $this->assertStringNotContainsString("'planned_start_time' =>", $overtimeSeeder);
+        $this->assertStringNotContainsString("'planned_end_time' =>", $overtimeSeeder);
         $this->assertStringContainsString("'actual_start_time' => \$scenario['actual_start_time']", $overtimeSeeder);
         $this->assertStringContainsString("'actual_end_time' => \$scenario['actual_end_time']", $overtimeSeeder);
         $this->assertStringContainsString("'calculated_hours' => \$scenario['calculated_hours']", $overtimeSeeder);

@@ -160,7 +160,7 @@ class OvertimeReviewTableBuilder
                 'lifecycleLogs:id,overtime_id,event_key,status',
             ])
             ->orderBy('overtime_date')
-            ->orderBy('planned_start_time');
+            ->orderBy('created_at');
 
         if (! $includeCancelled) {
             $query->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled']);
@@ -193,8 +193,6 @@ class OvertimeReviewTableBuilder
             'assigned_by',
             'record_number',
             'overtime_date',
-            'planned_start_time',
-            'planned_end_time',
             'actual_start_time',
             'actual_end_time',
             'status',
@@ -218,8 +216,6 @@ class OvertimeReviewTableBuilder
             'assigned_by',
             'record_number',
             'overtime_date',
-            'planned_start_time',
-            'planned_end_time',
             'actual_start_time',
             'actual_end_time',
             'status',
@@ -276,9 +272,9 @@ class OvertimeReviewTableBuilder
     private function datetimeLabel(AttendanceOvertime $overtime): string
     {
         $dateLabel = Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->format('d M Y');
-        $startTime = $this->formatTime($overtime->actual_start_time ?: $overtime->planned_start_time);
-        $endTime = $this->formatTime($overtime->actual_end_time ?: $overtime->planned_end_time);
-        $duration = $this->durationLabel($overtime->actual_start_time ?: $overtime->planned_start_time, $overtime->actual_end_time ?: $overtime->planned_end_time);
+        $startTime = $this->formatTime($overtime->actual_start_time);
+        $endTime = $this->formatTime($overtime->actual_end_time);
+        $duration = $this->durationLabel($overtime->actual_start_time, $overtime->actual_end_time);
 
         return "{$dateLabel}, {$startTime} - {$endTime} ({$duration})";
     }

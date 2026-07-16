@@ -110,8 +110,6 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
                 AttendanceOvertime::query()->create([
                     'employee_id' => $employee->id,
                     'overtime_date' => '2026-05-29',
-                    'planned_start_time' => '18:00:00',
-                    'planned_end_time' => '06:00:00',
                     'actual_start_time' => $actualStartTime,
                     'actual_end_time' => $actualEndTime,
                     'instruction' => 'Monthly overtime rate test',

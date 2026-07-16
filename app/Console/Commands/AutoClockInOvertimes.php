@@ -45,7 +45,7 @@ class AutoClockInOvertimes extends Command
                 $now->toDateString(),
             ])
             ->orderBy('overtime_date')
-            ->orderBy('planned_start_time')
+            ->orderBy('created_at')
             ->get()
             ->each(function (AttendanceOvertime $overtime) use ($now, $dryRun, &$candidateCount, &$autoClockedInCount, &$skippedWithoutAttendanceCount): void {
                 $scheduledStartAt = $this->scheduledStartAt($overtime);
@@ -80,21 +80,7 @@ class AutoClockInOvertimes extends Command
 
     private function scheduledStartAt(AttendanceOvertime $overtime): ?Carbon
     {
-        $plannedStartTime = $this->normalizeTimeValue($overtime->planned_start_time);
-
-        if ($plannedStartTime === null) {
-            return null;
-        }
-
-        try {
-            $overtimeDate = $overtime->overtime_date instanceof DateTimeInterface
-                ? Carbon::instance($overtime->overtime_date)->timezone('Asia/Jakarta')->toDateString()
-                : Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->toDateString();
-
-            return Carbon::createFromFormat('Y-m-d H:i:s', $overtimeDate.' '.$plannedStartTime, 'Asia/Jakarta');
-        } catch (\Throwable) {
-            return null;
-        }
+        return null;
     }
 
     private function hasAttendanceCheckIn(AttendanceOvertime $overtime): bool
@@ -145,14 +131,8 @@ class AutoClockInOvertimes extends Command
                 return false;
             }
 
-            $actualStartTime = $this->normalizeTimeValue($lockedOvertime->planned_start_time);
-
-            if ($actualStartTime === null) {
-                return false;
-            }
-
             $lockedOvertime->update([
-                'actual_start_time' => $actualStartTime,
+                'actual_start_time' => $scheduledStartAt->format('H:i:s'),
                 'status' => self::STATUS_IN_PROGRESS,
             ]);
 

@@ -32,12 +32,12 @@
         ? $overtimeDetail['approved_start_time']
         : (($overtimeDetail['actual_start_time'] ?? '-') !== '-'
             ? $overtimeDetail['actual_start_time']
-            : ($overtimeDetail['planned_start_time'] ?? '18:00'));
+            : '');
     $approvedEndValue = ($overtimeDetail['approved_end_time'] ?? '-') !== '-'
         ? $overtimeDetail['approved_end_time']
         : (($overtimeDetail['actual_end_time'] ?? '-') !== '-'
             ? $overtimeDetail['actual_end_time']
-            : ($overtimeDetail['planned_end_time'] ?? '20:00'));
+            : '');
     $payrollProcessingApprovalStatus = $overtimeDetail['payroll_processing_approval_status'] ?? 'pending';
     $canUpdatePayrollProcessing = ($overtimeDetail['can_update_payroll_processing'] ?? false) === true;
 @endphp
@@ -105,20 +105,12 @@
                         <span>Time</span>
                     </div>
                     <div class="col-md-6 col-12">
-                        <span class="text-gray">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span>
-                    </div>
-                </div>
-                <div class="row py-2">
-                    <div class="col-md-6 col-12">
-                        <span>Staff submitted <span class="text-muted">(Total Duration)</span></span>
-                    </div>
-                    <div class="col-md-6 col-12">
-                        <span class="text-gray">
-                            {{ $overtimeDetail['staff_submitted_time_range'] ?? '-' }}
-                            @if (($overtimeDetail['staff_submitted_duration'] ?? '-') !== '-')
-                                ({{ $overtimeDetail['staff_submitted_duration'] }})
-                            @endif
-                        </span>
+                        @if (($overtimeDetail['is_task_hours_verified'] ?? false) && ($overtimeDetail['approved_time_range'] ?? '-') !== '-')
+                            <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['actual_time_range'] ?? '-' }}</span>
+                            <span class="text-gray">, {{ $overtimeDetail['approved_time_range'] ?? '-' }}</span>
+                        @else
+                            <span class="text-gray">{{ $overtimeDetail['actual_time_range'] ?? '-' }}</span>
+                        @endif
                     </div>
                 </div>
                 <div class="row py-2">
@@ -126,7 +118,12 @@
                         <span>Total Duration</span>
                     </div>
                     <div class="col-md-6 col-12">
-                        <span class="text-gray">{{ $overtimeDetail['planned_duration'] ?? '-' }}</span>
+                        @if (($overtimeDetail['is_task_hours_verified'] ?? false) && ($overtimeDetail['approved_duration'] ?? '-') !== '-')
+                            <span class="text-gray text-decoration-line-through">{{ $overtimeDetail['actual_duration'] ?? '-' }}</span>
+                            <span class="text-gray">, {{ $overtimeDetail['approved_duration'] ?? '-' }}</span>
+                        @else
+                            <span class="text-gray">{{ $overtimeDetail['actual_duration'] ?? '-' }}</span>
+                        @endif
                     </div>
                 </div>
                 <div class="row py-2">
@@ -156,7 +153,7 @@
                         <span>Rate Multiplier</span>
                     </div>
                     <div class="col-md-6 col-12">
-                        <span class="text-gray fw-semibold">-</span>
+                        <span class="text-gray fw-semibold text-decoration-line-through">-</span>
                     </div>
                 </div>
                 <div class="row py-2">
@@ -164,7 +161,7 @@
                         <span>Estimated Calculated Earnings</span>
                     </div>
                     <div class="col-md-6 col-12">
-                        <span class="text-gray fw-semibold">-</span>
+                        <span class="text-gray fw-semibold text-decoration-line-through">-</span>
                     </div>
                 </div>
                 <div class="row py-2">
@@ -261,12 +258,12 @@
                     <div class="card-body p-0">
                         <div class="row ps-4 pe-4">
                             <div class="col-md-6">
-                                <label class="form-label">Scheduled Start</label>
-                                <p class="fs-14 mb-0">{{ $overtimeDetail['planned_start_time'] ?? '-' }}</p>
+                                <label class="form-label">Staff Start ClockIn</label>
+                                <p class="fs-14 mb-0">{{ $overtimeDetail['actual_start_time'] ?? '-' }}</p>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Scheduled End</label>
-                                <p class="fs-14 mb-0">{{ $overtimeDetail['planned_end_time'] ?? '-' }}</p>
+                                <label class="form-label">Staff Start ClockOut</label>
+                                <p class="fs-14 mb-0">{{ $overtimeDetail['actual_end_time'] ?? '-' }}</p>
                             </div>
                         </div>
                         <div class="row p-4 pb-2">
@@ -378,12 +375,12 @@
                                 <div class="col-md-6 col-12"><span class="text-gray">{{ $overtimeDetail['overtime_date'] ?? '-' }}</span></div>
                             </div>
                             <div class="row py-2">
-                                <div class="col-md-6 col-12"><span>Scheduled Time</span></div>
-                                <div class="col-md-6 col-12"><span class="text-gray">{{ $overtimeDetail['planned_time_range'] ?? '-' }}</span></div>
+                                <div class="col-md-6 col-12"><span>Staff Time</span></div>
+                                <div class="col-md-6 col-12"><span class="text-gray">{{ $overtimeDetail['actual_time_range'] ?? '-' }}</span></div>
                             </div>
                             <div class="row py-2">
                                 <div class="col-md-6 col-12"><span>Approved Time</span></div>
-                                <div class="col-md-6 col-12"><span class="text-gray">{{ $overtimeDetail['actual_time_range'] ?? '-' }}</span></div>
+                                <div class="col-md-6 col-12"><span class="text-gray">{{ $overtimeDetail['approved_time_range'] ?? '-' }}</span></div>
                             </div>
                             <div class="row py-2">
                                 <div class="col-md-6 col-12"><span>Instruction</span></div>

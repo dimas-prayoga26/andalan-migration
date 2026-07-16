@@ -96,8 +96,6 @@ class OvertimeDeadlineTaskSeeder extends Seeder
         [
             'key' => 'payment_distribution_complete',
             'date_offset_days' => -3,
-            'planned_start_time' => '18:00:00',
-            'planned_end_time' => '21:00:00',
             'actual_start_time' => '18:00:00',
             'actual_end_time' => '21:30:00',
             'calculated_hours' => 3.5,
@@ -117,8 +115,6 @@ class OvertimeDeadlineTaskSeeder extends Seeder
         [
             'key' => 'task_hours_verification_pending',
             'date_offset_days' => -2,
-            'planned_start_time' => '18:30:00',
-            'planned_end_time' => '21:30:00',
             'actual_start_time' => '18:35:00',
             'actual_end_time' => '21:05:00',
             'calculated_hours' => 2.5,
@@ -138,8 +134,6 @@ class OvertimeDeadlineTaskSeeder extends Seeder
         [
             'key' => 'clock_in_in_progress',
             'date_offset_days' => -1,
-            'planned_start_time' => '19:00:00',
-            'planned_end_time' => '22:00:00',
             'actual_start_time' => '19:03:00',
             'actual_end_time' => null,
             'calculated_hours' => null,
@@ -159,8 +153,6 @@ class OvertimeDeadlineTaskSeeder extends Seeder
         [
             'key' => 'payment_distribution_upcoming',
             'date_offset_days' => -4,
-            'planned_start_time' => '18:00:00',
-            'planned_end_time' => '20:00:00',
             'actual_start_time' => '18:05:00',
             'actual_end_time' => '20:10:00',
             'calculated_hours' => 2.08,
@@ -234,8 +226,6 @@ class OvertimeDeadlineTaskSeeder extends Seeder
                         'employee_id' => $employeeId,
                         'assigned_by' => $supervisorUserId,
                         'overtime_date' => $overtimeDate->toDateString(),
-                        'planned_start_time' => $scenario['planned_start_time'],
-                        'planned_end_time' => $scenario['planned_end_time'],
                         'instruction' => "Seed overtime deadline task for {$username} ({$scenario['key']}).",
                         'actual_start_time' => $scenario['actual_start_time'],
                         'actual_end_time' => $scenario['actual_end_time'],
@@ -407,8 +397,6 @@ class OvertimeDeadlineTaskSeeder extends Seeder
                 'happened_at' => $this->resolveLifecycleHappenedAt($eventKey, $status, $overtimeDate, $scenario),
                 'metadata' => [
                     'overtime_status' => $overtime->status,
-                    'planned_start_time' => $scenario['planned_start_time'],
-                    'planned_end_time' => $scenario['planned_end_time'],
                     'actual_start_time' => $scenario['actual_start_time'],
                     'actual_end_time' => $scenario['actual_end_time'],
                     'calculated_hours' => $scenario['calculated_hours'],
@@ -442,10 +430,10 @@ class OvertimeDeadlineTaskSeeder extends Seeder
 
         return match ($eventKey) {
             'assignment_submitted' => $overtimeDate->copy()->subDay()->setTime(9, 0),
-            'session_started' => $this->timeOnDate($overtimeDate, $scenario['actual_start_time'] ?: $scenario['planned_start_time']),
-            'task_deliverables_submitted' => $this->timeOnDate($overtimeDate, $scenario['actual_start_time'] ?: $scenario['planned_start_time'])->addMinutes(45),
-            'session_ended' => $this->timeOnDate($overtimeDate, $scenario['actual_end_time'] ?: $scenario['planned_end_time']),
-            'task_hours_verification' => $this->timeOnDate($overtimeDate, $scenario['actual_end_time'] ?: $scenario['planned_end_time'])->addMinutes(30),
+            'session_started' => $this->timeOnDate($overtimeDate, $scenario['actual_start_time']),
+            'task_deliverables_submitted' => $this->timeOnDate($overtimeDate, $scenario['actual_start_time'])->addMinutes(45),
+            'session_ended' => $this->timeOnDate($overtimeDate, $scenario['actual_end_time']),
+            'task_hours_verification' => $this->timeOnDate($overtimeDate, $scenario['actual_end_time'])->addMinutes(30),
             'payroll_processing' => $overtimeDate->copy()->addDay()->setTime(10, 0),
             'director_approval' => $overtimeDate->copy()->addDay()->setTime(14, 0),
             'payment_disbursement' => $overtimeDate->copy()->addDays(2)->setTime(10, 0),

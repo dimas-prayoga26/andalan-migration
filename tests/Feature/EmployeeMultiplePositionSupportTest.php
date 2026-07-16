@@ -174,10 +174,10 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringContainsString("'diktanamira@gmail.com' => ['Administrator', 'Accounting and Taxation']", $legacySeeder);
         $this->assertStringContainsString("'leonieputri7@gmail.com' => ['Administrator', 'Supervisor']", $legacySeeder);
         $this->assertStringContainsString("'msyafiq.dev@gmail.com' => ['Supervisor']", $legacySeeder);
-        $this->assertStringContainsString("'rexy@andalanbersama.com' => ['Director', 'Supervisor']", $legacySeeder);
-        $this->assertStringContainsString("'fuadmfahrudin@gmail.com' => ['Director', 'Supervisor']", $legacySeeder);
-        $this->assertStringContainsString("'fahmil@andalanbersama.com' => ['Director', 'Supervisor']", $legacySeeder);
-        $this->assertStringContainsString("'lukman@rnbmanagement.com' => ['Supervisor']", $legacySeeder);
+        $this->assertStringContainsString("'rexy@andalanbersama.com' => ['Supervisor']", $legacySeeder);
+        $this->assertStringContainsString("'fuadmfahrudin@gmail.com' => ['Supervisor']", $legacySeeder);
+        $this->assertStringContainsString("'fahmil@andalanbersama.com' => ['Supervisor']", $legacySeeder);
+        $this->assertStringContainsString("'lukman@rnbmanagement.com' => ['Director', 'Supervisor']", $legacySeeder);
         $this->assertStringContainsString("'rully.priyatno@andalanbersama.com'", $legacySeeder);
         $this->assertStringContainsString("'hilmi.ulwan@andalanbersama.com'", $legacySeeder);
         $this->assertStringContainsString("'adik@andalanbersama.com'", $legacySeeder);

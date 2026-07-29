@@ -1,44 +1,43 @@
 <?php
 
-namespace App\Http\Controllers\PicAttendance;
+namespace App\Http\Controllers\DirectorAttendance;
 
 use App\Http\Controllers\Controller;
+use App\Models\Company;
 use App\Models\Employee;
-use App\Models\EmployeePicAssignment;
 use App\Models\ProjectTask;
-use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
-class PicAttendanceTaskController extends Controller
+class DirectorAttendanceTaskController extends Controller
 {
+    private const EXCLUDED_TASK_EMPLOYEE_EMAILS = [
+        'lukman@rnbmanagement.com',
+        'rully.priyatno@andalanbersama.com',
+        'hilmi.ulwan@andalanbersama.com',
+    ];
+
     public function index(Request $request): View
     {
-        return view('pic_attendance.task.index', [
-            'picTaskStaffOptions' => $this->staffOptionsFor($request->user()),
+        return view('director_attendance.task.index', [
+            'directorTaskCompanyOptions' => $this->companyOptions(),
+            'directorTaskStaffOptions' => $this->staffOptions(),
         ]);
     }
 
     public function datatable(Request $request): JsonResponse
     {
-        $authenticatedUser = $request->user();
-        $supervisorEmployeeId = $this->authenticatedEmployeeId($authenticatedUser);
-        if ($supervisorEmployeeId === null) {
-            return response()->json(['data' => []]);
-        }
-
-        $staffEmployeeIds = $this->supervisedStaffEmployeeIds($supervisorEmployeeId);
-        $selectedStaffId = $this->selectedStaffEmployeeId($request, $staffEmployeeIds);
-        if ($selectedStaffId === false || $selectedStaffId === null) {
-            return response()->json(['data' => []]);
-        }
-
-        $visibleEmployeeIds = collect([$selectedStaffId]);
-
-        if ($visibleEmployeeIds->isEmpty()) {
+        $companyId = $request->string('company_id')->trim()->toString();
+        $staffEmployeeIds = $this->activeStaffEmployeeIds(
+            now('Asia/Jakarta')->startOfDay(),
+            $companyId !== '' ? $companyId : null,
+        );
+        $selectedStaffIds = $this->selectedStaffEmployeeIds($request, $staffEmployeeIds);
+        if ($selectedStaffIds === false || $selectedStaffIds->isEmpty()) {
             return response()->json(['data' => []]);
         }
 
@@ -47,10 +46,12 @@ class PicAttendanceTaskController extends Controller
                 'employee:id,user_id',
                 'employee.profile:id,employee_id,name',
                 'employee.user:id,username,email',
+                'employee.deployment:id,employee_id,current_company_id',
+                'employee.deployment.company:id,name',
                 'project:id,name',
                 'assignedBy:id,username,email',
             ])
-            ->whereIn('employee_id', $visibleEmployeeIds->all())
+            ->whereIn('employee_id', $selectedStaffIds->all())
             ->whereNull('overtime_id')
             ->orderByRaw('COALESCE(due_date, start_date, created_at) ASC')
             ->get([
@@ -78,26 +79,61 @@ class PicAttendanceTaskController extends Controller
     /**
      * @return Collection<int, array{id:string,name:string}>
      */
-    private function staffOptionsFor(?User $authenticatedUser): Collection
+    private function companyOptions(): Collection
     {
-        $supervisorEmployeeId = $this->authenticatedEmployeeId($authenticatedUser);
-        if ($supervisorEmployeeId === null) {
+        $companyIds = Employee::query()
+            ->whereIn('id', $this->activeStaffEmployeeIds(now('Asia/Jakarta')->startOfDay())->all())
+            ->whereHas('deployment', function ($query): void {
+                $query->whereNotNull('current_company_id');
+            })
+            ->with('deployment:id,employee_id,current_company_id')
+            ->get(['id'])
+            ->pluck('deployment.current_company_id')
+            ->filter(fn (mixed $companyId): bool => is_string($companyId) && trim($companyId) !== '')
+            ->map(fn (string $companyId): string => trim($companyId))
+            ->unique()
+            ->values();
+
+        if ($companyIds->isEmpty()) {
             return collect();
         }
 
-        $staffEmployeeIds = $this->supervisedStaffEmployeeIds($supervisorEmployeeId);
+        return Company::query()
+            ->whereIn('id', $companyIds->all())
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Company $company): array => [
+                'id' => (string) $company->id,
+                'name' => trim((string) $company->name),
+            ])
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, array{id:string,name:string,company_id:string,company_name:string}>
+     */
+    private function staffOptions(): Collection
+    {
+        $staffEmployeeIds = $this->activeStaffEmployeeIds(now('Asia/Jakarta')->startOfDay());
         if ($staffEmployeeIds->isEmpty()) {
             return collect();
         }
 
         return Employee::query()
-            ->with(['profile:id,employee_id,name', 'user:id,username,email'])
+            ->with([
+                'profile:id,employee_id,name',
+                'user:id,username,email',
+                'deployment:id,employee_id,current_company_id',
+                'deployment.company:id,name',
+            ])
             ->whereIn('id', $staffEmployeeIds->all())
             ->get(['id', 'user_id'])
             ->sortBy(fn (Employee $employee): int|false => $staffEmployeeIds->search((string) $employee->id))
             ->map(fn (Employee $employee): array => [
                 'id' => (string) $employee->id,
                 'name' => $this->employeeDisplayName($employee),
+                'company_id' => trim((string) ($employee->deployment?->current_company_id ?? '')),
+                'company_name' => trim((string) ($employee->deployment?->company?->name ?? '-')),
             ])
             ->values();
     }
@@ -105,43 +141,62 @@ class PicAttendanceTaskController extends Controller
     /**
      * @return Collection<int, string>
      */
-    private function supervisedStaffEmployeeIds(string $supervisorEmployeeId): Collection
+    private function activeStaffEmployeeIds(Carbon $date, ?string $companyId = null): Collection
     {
-        return EmployeePicAssignment::query()
-            ->where('supervisor_employee_id', $supervisorEmployeeId)
-            ->where('is_active', true)
+        $todayDate = $date->toDateString();
+        $companyId = is_string($companyId) ? trim($companyId) : '';
+
+        return Employee::query()
             ->whereNull('deleted_at')
-            ->pluck('staff_employee_id')
+            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+            ->whereHas('user', function ($query): void {
+                $query
+                    ->where('is_active', true)
+                    ->whereNotIn('email', self::EXCLUDED_TASK_EMPLOYEE_EMAILS)
+                    ->whereDoesntHave('roles', function ($roleQuery): void {
+                        $roleQuery->where('name', 'superuser');
+                    });
+            })
+            ->whereHas('deployment', function ($query) use ($todayDate, $companyId): void {
+                $query
+                    ->whereNull('deleted_at')
+                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+                    ->whereRaw('LOWER(COALESCE(workplace, "")) <> ?', ['rnb jakarta'])
+                    ->where(function ($query) use ($todayDate): void {
+                        $query
+                            ->whereNull('join_date')
+                            ->orWhereDate('join_date', '<=', $todayDate);
+                    })
+                    ->where(function ($query) use ($todayDate): void {
+                        $query
+                            ->whereNull('resignation_date')
+                            ->orWhereDate('resignation_date', '>=', $todayDate);
+                    });
+
+                if ($companyId !== '') {
+                    $query->where('current_company_id', $companyId);
+                }
+            })
+            ->pluck('id')
             ->filter(fn (mixed $employeeId): bool => is_string($employeeId) && trim($employeeId) !== '')
             ->map(fn (string $employeeId): string => trim($employeeId))
-            ->unique()
             ->values();
     }
 
-    private function selectedStaffEmployeeId(Request $request, Collection $staffEmployeeIds): string|false|null
+    private function selectedStaffEmployeeIds(Request $request, Collection $staffEmployeeIds): Collection|false
     {
         if ($staffEmployeeIds->isEmpty()) {
-            return null;
+            return collect();
         }
 
         $selectedStaffId = $request->string('staff')->trim()->toString();
         if ($selectedStaffId === '') {
-            return null;
+            return $staffEmployeeIds;
         }
 
-        return $staffEmployeeIds->contains($selectedStaffId) ? $selectedStaffId : false;
-    }
-
-    private function authenticatedEmployeeId(?User $authenticatedUser): ?string
-    {
-        if (! $authenticatedUser instanceof User) {
-            return null;
-        }
-
-        $authenticatedUser->loadMissing('employee:id,user_id');
-        $employeeId = trim((string) ($authenticatedUser->employee?->id ?? ''));
-
-        return $employeeId !== '' ? $employeeId : null;
+        return $staffEmployeeIds->contains($selectedStaffId)
+            ? collect([$selectedStaffId])
+            : false;
     }
 
     /**
@@ -155,6 +210,7 @@ class PicAttendanceTaskController extends Controller
         return [
             'id' => (string) $projectTask->id,
             'staff' => $this->employeeDisplayName($projectTask->employee),
+            'company' => trim((string) ($projectTask->employee?->deployment?->company?->name ?? '-')),
             'task' => trim((string) $projectTask->title),
             'description' => trim((string) ($projectTask->description ?? '')),
             'blockers' => trim((string) ($projectTask->blockers ?? '')),

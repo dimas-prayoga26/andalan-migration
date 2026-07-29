@@ -129,7 +129,7 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('$query = $this->applySupervisorApprovedReviewFilter($query);', $leaveController);
         $this->assertStringContainsString('pic-attendance.leave.supervisor-review.update', $leaveView);
         $this->assertStringContainsString('w-100 btn-lg', $leaveView);
-        $this->assertStringContainsString('card leave-summary-card mb-4', $leaveView);
+        $this->assertStringContainsString('card leave-summary-card mb-5', $leaveView);
         $this->assertStringContainsString('leave-summary-icon--eligibility', $leaveView);
         $this->assertStringContainsString('leave-summary-icon--tracker', $leaveView);
         $this->assertStringContainsString('href="#Eligibility"', $leaveView);
@@ -171,6 +171,13 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('<th>Due Date</th>', $taskView);
         $this->assertStringNotContainsString('<th>Priority</th>', $taskView);
         $this->assertStringContainsString('<th>Status</th>', $taskView);
+        $this->assertStringContainsString('<th>Action</th>', $taskView);
+        $this->assertStringContainsString('picTaskDetailModal', $taskView);
+        $this->assertStringContainsString('Task Details', $taskView);
+        $this->assertStringContainsString('pic-task-detail-button', $taskView);
+        $this->assertStringContainsString('renderAttachment', $taskView);
+        $this->assertStringContainsString('row.description', $taskView);
+        $this->assertStringContainsString('row.priority', $taskView);
         $this->assertStringContainsString('row.status_class', $taskView);
         $this->assertStringContainsString('row.status', $taskView);
         $this->assertStringContainsString("route('pic-attendance.task.datatable')", $taskView);
@@ -185,7 +192,11 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringNotContainsString('return $staffEmployeeIds->first();', $taskController);
         $this->assertStringContainsString("->whereNull('overtime_id')", $taskController);
         $this->assertStringContainsString("'due_date' => \$this->dateRangeLabel(\$projectTask->start_date, \$projectTask->due_date)", $taskController);
-        $this->assertStringNotContainsString("'priority' =>", $taskController);
+        $this->assertStringContainsString("'description' => trim((string) (\$projectTask->description ?? ''))", $taskController);
+        $this->assertStringContainsString("'blockers' => trim((string) (\$projectTask->blockers ?? ''))", $taskController);
+        $this->assertStringContainsString("'attachment_path' => trim((string) (\$projectTask->attachment_path ?? ''))", $taskController);
+        $this->assertStringContainsString("'task_category' => \$projectTask->project_id !== null ? 'Project Task' : 'Daily Task'", $taskController);
+        $this->assertStringContainsString("'priority' => \$this->priorityLabel((string) \$projectTask->priority)", $taskController);
         $this->assertStringContainsString("'status' => \$this->statusLabel(", $taskController);
         $this->assertStringContainsString("'status_class' => \$isCompleted ? 'success' : 'warning'", $taskController);
         $this->assertStringNotContainsString('Staff Task List', $taskView);

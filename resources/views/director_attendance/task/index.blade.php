@@ -1,0 +1,305 @@
+@extends('layouts.main')
+
+@section('title', 'Director Task')
+
+@section('navbarTitle', 'Task')
+
+@section('content')
+    @php
+        $directorTaskCompanyOptions = collect($directorTaskCompanyOptions ?? []);
+        $directorTaskStaffOptions = collect($directorTaskStaffOptions ?? []);
+    @endphp
+
+    @include('director_attendance.layout.navbar')
+
+    <div class="card">
+        <div class="card-header border-0 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <h4 class="card-title mb-0">Task Monitoring</h4>
+            <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <label for="directorTaskCompanyFilter" class="mb-0 text-muted fs-13">Company</label>
+                    <select id="directorTaskCompanyFilter" name="company_filter" class="form-select form-select-sm w-auto">
+                        <option value="" selected>Semua Company</option>
+                        @forelse ($directorTaskCompanyOptions as $companyOption)
+                            <option value="{{ $companyOption['id'] }}">{{ $companyOption['name'] }}</option>
+                        @empty
+                            <option value="" disabled>Tidak ada company</option>
+                        @endforelse
+                    </select>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <label for="directorTaskStaffFilter" class="mb-0 text-muted fs-13">Staff</label>
+                    <select id="directorTaskStaffFilter" name="staff_filter" class="form-select form-select-sm w-auto">
+                        <option value="" selected>Semua Staff</option>
+                        @forelse ($directorTaskStaffOptions as $staffOption)
+                            <option value="{{ $staffOption['id'] }}" data-company-id="{{ $staffOption['company_id'] }}">{{ $staffOption['name'] }}</option>
+                        @empty
+                            <option value="" disabled>Tidak ada staff</option>
+                        @endforelse
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="directorTaskTable" class="table table-sm align-middle mb-0">
+                    <colgroup>
+                        <col style="width: 18%;">
+                        <col style="width: 34%;">
+                        <col style="width: 16%;">
+                        <col style="width: 14%;">
+                        <col style="width: 10%;">
+                        <col style="width: 8%;">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>Staff</th>
+                            <th>Task</th>
+                            <th>Company</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="directorTaskDetailModal" tabindex="-1" aria-labelledby="directorTaskDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="directorTaskDetailModalLabel">Task Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row gy-3">
+                        <div class="col-md-4 text-muted">Task</div>
+                        <div class="col-md-8 fw-semibold text-black" id="directorTaskDetailTitle">-</div>
+
+                        <div class="col-md-4 text-muted">Description</div>
+                        <div class="col-md-8" id="directorTaskDetailDescription">-</div>
+
+                        <div class="col-md-4 text-muted">Staff</div>
+                        <div class="col-md-8 fw-semibold" id="directorTaskDetailStaff">-</div>
+
+                        <div class="col-md-4 text-muted">Company</div>
+                        <div class="col-md-8" id="directorTaskDetailCompany">-</div>
+
+                        <div class="col-md-4 text-muted">Category</div>
+                        <div class="col-md-8">
+                            <span id="directorTaskDetailCategory">-</span>
+                            <div class="text-muted fs-13" id="directorTaskDetailProject">-</div>
+                        </div>
+
+                        <div class="col-md-4 text-muted">Assigned By</div>
+                        <div class="col-md-8" id="directorTaskDetailAssignedBy">-</div>
+
+                        <div class="col-md-4 text-muted">Due Date</div>
+                        <div class="col-md-8" id="directorTaskDetailDueDate">-</div>
+
+                        <div class="col-md-4 text-muted">Priority</div>
+                        <div class="col-md-8" id="directorTaskDetailPriority">-</div>
+
+                        <div class="col-md-4 text-muted">Status</div>
+                        <div class="col-md-8" id="directorTaskDetailStatus">-</div>
+
+                        <div class="col-md-4 text-muted">Blockers</div>
+                        <div class="col-md-8" id="directorTaskDetailBlockers">-</div>
+
+                        <div class="col-md-4 text-muted">Attachment</div>
+                        <div class="col-md-8" id="directorTaskDetailAttachment">No attachment</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+
+@section('script')
+    @php
+        $dataTablesJsPath = public_path('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js');
+        $dataTablesJsVersion = file_exists($dataTablesJsPath) ? filemtime($dataTablesJsPath) : time();
+    @endphp
+    <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
+    <script>
+        function initDirectorTaskTable() {
+            if (!window.jQuery || !window.jQuery.fn.DataTable) {
+                return;
+            }
+
+            jQuery(function ($) {
+                var companyFilter = document.getElementById('directorTaskCompanyFilter');
+                var staffFilter = document.getElementById('directorTaskStaffFilter');
+                var allStaffOptions = @js($directorTaskStaffOptions->values()->all());
+
+                function escapeHtml(value) {
+                    return String(value || '')
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#039;');
+                }
+
+                function nullableText(value, fallback) {
+                    var normalizedValue = String(value || '').trim();
+
+                    return normalizedValue !== '' ? normalizedValue : (fallback || '-');
+                }
+
+                function renderAttachment(value) {
+                    var normalizedValue = String(value || '').trim();
+                    if (normalizedValue === '') {
+                        return 'No attachment';
+                    }
+
+                    return '<a href="' + escapeHtml(normalizedValue) + '" target="_blank" rel="noopener" class="text-primary fw-semibold">Open attachment</a>';
+                }
+
+                function refreshSelectPlugin(selectElement) {
+                    var select = $(selectElement);
+
+                    if ($.fn.selectpicker && select.data('selectpicker')) {
+                        select.selectpicker('refresh');
+                    }
+                }
+
+                function refreshStaffOptions() {
+                    if (!companyFilter || !staffFilter) {
+                        return;
+                    }
+
+                    var selectedCompanyId = companyFilter.value || '';
+                    var selectedStaffId = staffFilter.value || '';
+                    var visibleStaffOptions = allStaffOptions.filter(function (staffOption) {
+                        return selectedCompanyId === '' || String(staffOption.company_id || '') === selectedCompanyId;
+                    });
+
+                    staffFilter.innerHTML = '';
+
+                    var allStaffOption = document.createElement('option');
+                    allStaffOption.value = '';
+                    allStaffOption.textContent = 'Semua Staff';
+                    staffFilter.appendChild(allStaffOption);
+
+                    visibleStaffOptions.forEach(function (staffOption) {
+                        var option = document.createElement('option');
+                        option.value = String(staffOption.id || '');
+                        option.textContent = String(staffOption.name || 'Unknown Staff');
+                        option.setAttribute('data-company-id', String(staffOption.company_id || ''));
+                        staffFilter.appendChild(option);
+                    });
+
+                    var selectedStaffIsVisible = visibleStaffOptions.some(function (staffOption) {
+                        return String(staffOption.id || '') === selectedStaffId;
+                    });
+
+                    staffFilter.value = selectedStaffIsVisible ? selectedStaffId : '';
+                    refreshSelectPlugin(staffFilter);
+                }
+
+                var taskTable = $('#directorTaskTable').DataTable({
+                    ajax: {
+                        url: @json(route('director-attendance.task.datatable')),
+                        data: function (requestData) {
+                            requestData.company_id = companyFilter ? companyFilter.value : '';
+                            requestData.staff = staffFilter ? staffFilter.value : '';
+                        },
+                        dataSrc: 'data'
+                    },
+                    autoWidth: false,
+                    searching: false,
+                    pageLength: 10,
+                    lengthChange: false,
+                    paging: true,
+                    bInfo: true,
+                    columns: [
+                        {
+                            data: 'staff',
+                            render: function (data) {
+                                return '<span class="fw-semibold">' + escapeHtml(data) + '</span>';
+                            }
+                        },
+                        {
+                            data: null,
+                            render: function (row) {
+                                return '<span class="fw-semibold text-black">' + escapeHtml(row.task) + '</span>'
+                                    + '<div class="text-muted fs-13">' + escapeHtml(row.project) + '</div>'
+                                    + '<div class="text-muted fs-13">Assign by : <span class="fw-semibold">' + escapeHtml(row.assigned_by) + '</span></div>';
+                            }
+                        },
+                        {
+                            data: 'company',
+                            defaultContent: '-'
+                        },
+                        {
+                            data: 'due_date',
+                            defaultContent: '-'
+                        },
+                        {
+                            data: null,
+                            render: function (row) {
+                                return '<span class="badge badge-' + escapeHtml(row.status_class) + ' light">' + escapeHtml(row.status) + '</span>';
+                            }
+                        },
+                        {
+                            data: null,
+                            searchable: false,
+                            orderable: false,
+                            render: function () {
+                                return '<button type="button" class="btn btn-xs btn-primary light director-task-detail-button" data-bs-toggle="modal" data-bs-target="#directorTaskDetailModal">Detail</button>';
+                            }
+                        }
+                    ],
+                    language: {
+                        emptyTable: 'No task data available.',
+                        paginate: {
+                            next: '<i class="fa-solid fa-angle-right"></i>',
+                            previous: '<i class="fa-solid fa-angle-left"></i>'
+                        }
+                    },
+                    drawCallback: function () {
+                        $('#directorTaskTable tbody td.dataTables_empty')
+                            .addClass('text-center py-4 text-muted');
+                    }
+                });
+
+                $('#directorTaskTable tbody').on('click', '.director-task-detail-button', function () {
+                    var row = taskTable.row($(this).closest('tr')).data() || {};
+                    $('#directorTaskDetailTitle').text(nullableText(row.task));
+                    $('#directorTaskDetailDescription').text(nullableText(row.description));
+                    $('#directorTaskDetailStaff').text(nullableText(row.staff));
+                    $('#directorTaskDetailCompany').text(nullableText(row.company));
+                    $('#directorTaskDetailCategory').text(nullableText(row.task_category));
+                    $('#directorTaskDetailProject').text(nullableText(row.project));
+                    $('#directorTaskDetailAssignedBy').text(nullableText(row.assigned_by));
+                    $('#directorTaskDetailDueDate').text(nullableText(row.due_date));
+                    $('#directorTaskDetailPriority').text(nullableText(row.priority));
+                    $('#directorTaskDetailBlockers').text(nullableText(row.blockers));
+                    $('#directorTaskDetailStatus').html('<span class="badge badge-' + escapeHtml(row.status_class) + ' light">' + escapeHtml(nullableText(row.status)) + '</span>');
+                    $('#directorTaskDetailAttachment').html(renderAttachment(row.attachment_path));
+                });
+
+                if (companyFilter) {
+                    companyFilter.addEventListener('change', function () {
+                        refreshStaffOptions();
+                        taskTable.ajax.reload();
+                    });
+                }
+
+                if (staffFilter) {
+                    staffFilter.addEventListener('change', function () {
+                        taskTable.ajax.reload();
+                    });
+                }
+
+                refreshStaffOptions();
+            });
+        }
+
+        initDirectorTaskTable();
+    </script>
+@endsection

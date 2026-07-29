@@ -10,6 +10,7 @@ use App\Http\Controllers\AuthorizationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceOvertimeController;
+use App\Http\Controllers\DirectorAttendance\DirectorAttendanceTaskController;
 use App\Http\Controllers\PicAttendance\PicAttendanceController;
 use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
@@ -213,6 +214,10 @@ Route::middleware('auth')->group(function (): void {
             ->name('director-attendance.overtime.detail');
         Route::patch('/director-attendance/overtime/detail/{uid}/approval', [DirectorAttendanceOvertimeController::class, 'updateApproval'])
             ->name('director-attendance.overtime.approval');
+        Route::get('/director-attendance/task', [DirectorAttendanceTaskController::class, 'index'])
+            ->name('director-attendance.task');
+        Route::get('/director-attendance/task/datatable', [DirectorAttendanceTaskController::class, 'datatable'])
+            ->name('director-attendance.task.datatable');
     });
 
     // Attendance check-in and check-out

@@ -30,10 +30,11 @@
             <div class="table-responsive">
                 <table id="picTaskTable" class="table table-sm align-middle mb-0">
                     <colgroup>
-                        <col style="width: 22%;">
-                        <col style="width: 44%;">
                         <col style="width: 20%;">
-                        <col style="width: 14%;">
+                        <col style="width: 42%;">
+                        <col style="width: 18%;">
+                        <col style="width: 12%;">
+                        <col style="width: 8%;">
                     </colgroup>
                     <thead>
                         <tr>
@@ -41,10 +42,58 @@
                             <th>Task</th>
                             <th>Due Date</th>
                             <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="picTaskDetailModal" tabindex="-1" aria-labelledby="picTaskDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="picTaskDetailModalLabel">Task Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row gy-3">
+                        <div class="col-md-4 text-muted">Task</div>
+                        <div class="col-md-8 fw-semibold text-black" id="picTaskDetailTitle">-</div>
+
+                        <div class="col-md-4 text-muted">Description</div>
+                        <div class="col-md-8" id="picTaskDetailDescription">-</div>
+
+                        <div class="col-md-4 text-muted">Staff</div>
+                        <div class="col-md-8 fw-semibold" id="picTaskDetailStaff">-</div>
+
+                        <div class="col-md-4 text-muted">Category</div>
+                        <div class="col-md-8">
+                            <span id="picTaskDetailCategory">-</span>
+                            <div class="text-muted fs-13" id="picTaskDetailProject">-</div>
+                        </div>
+
+                        <div class="col-md-4 text-muted">Assigned By</div>
+                        <div class="col-md-8" id="picTaskDetailAssignedBy">-</div>
+
+                        <div class="col-md-4 text-muted">Due Date</div>
+                        <div class="col-md-8" id="picTaskDetailDueDate">-</div>
+
+                        <div class="col-md-4 text-muted">Priority</div>
+                        <div class="col-md-8" id="picTaskDetailPriority">-</div>
+
+                        <div class="col-md-4 text-muted">Status</div>
+                        <div class="col-md-8" id="picTaskDetailStatus">-</div>
+
+                        <div class="col-md-4 text-muted">Blockers</div>
+                        <div class="col-md-8" id="picTaskDetailBlockers">-</div>
+
+                        <div class="col-md-4 text-muted">Attachment</div>
+                        <div class="col-md-8" id="picTaskDetailAttachment">No attachment</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -71,6 +120,19 @@
                         .replace(/>/g, '&gt;')
                         .replace(/"/g, '&quot;')
                         .replace(/'/g, '&#039;');
+                };
+                var nullableText = function (value, fallback) {
+                    var normalizedValue = String(value || '').trim();
+
+                    return normalizedValue !== '' ? normalizedValue : (fallback || '-');
+                };
+                var renderAttachment = function (value) {
+                    var normalizedValue = String(value || '').trim();
+                    if (normalizedValue === '') {
+                        return 'No attachment';
+                    }
+
+                    return '<a href="' + escapeHtml(normalizedValue) + '" target="_blank" rel="noopener" class="text-primary fw-semibold">Open attachment</a>';
                 };
 
                 var taskTable = $('#picTaskTable').DataTable({
@@ -111,6 +173,14 @@
                             render: function (row) {
                                 return '<span class="badge badge-' + escapeHtml(row.status_class) + ' light">' + escapeHtml(row.status) + '</span>';
                             }
+                        },
+                        {
+                            data: null,
+                            searchable: false,
+                            orderable: false,
+                            render: function () {
+                                return '<button type="button" class="btn btn-xs btn-primary light pic-task-detail-button" data-bs-toggle="modal" data-bs-target="#picTaskDetailModal">Detail</button>';
+                            }
                         }
                     ],
                     language: {
@@ -124,6 +194,21 @@
                         $('#picTaskTable tbody td.dataTables_empty')
                             .addClass('text-center py-4 text-muted');
                     }
+                });
+
+                $('#picTaskTable tbody').on('click', '.pic-task-detail-button', function () {
+                    var row = taskTable.row($(this).closest('tr')).data() || {};
+                    $('#picTaskDetailTitle').text(nullableText(row.task));
+                    $('#picTaskDetailDescription').text(nullableText(row.description));
+                    $('#picTaskDetailStaff').text(nullableText(row.staff));
+                    $('#picTaskDetailCategory').text(nullableText(row.task_category));
+                    $('#picTaskDetailProject').text(nullableText(row.project));
+                    $('#picTaskDetailAssignedBy').text(nullableText(row.assigned_by));
+                    $('#picTaskDetailDueDate').text(nullableText(row.due_date));
+                    $('#picTaskDetailPriority').text(nullableText(row.priority));
+                    $('#picTaskDetailBlockers').text(nullableText(row.blockers));
+                    $('#picTaskDetailStatus').html('<span class="badge badge-' + escapeHtml(row.status_class) + ' light">' + escapeHtml(nullableText(row.status)) + '</span>');
+                    $('#picTaskDetailAttachment').html(renderAttachment(row.attachment_path));
                 });
 
                 if (staffFilter) {

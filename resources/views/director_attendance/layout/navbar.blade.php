@@ -7,6 +7,9 @@
             <li class="nav-item" role="presentation">
                 <a href="{{ route('director-attendance.overtime') }}" class="nav-link py-3 px-1 border-3 {{ request()->routeIs('director-attendance.overtime*') ? 'active' : '' }}">Overtime</a>
             </li>
+            <li class="nav-item" role="presentation">
+                <a href="{{ route('director-attendance.task') }}" class="nav-link py-3 px-1 border-3 {{ request()->routeIs('director-attendance.task*') ? 'active' : '' }}">Task</a>
+            </li>
         </ul>
     </div>
 </div>

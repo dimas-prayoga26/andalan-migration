@@ -61,7 +61,7 @@
     @endphp
     <div class="tab-pane {{ $taskGroup['active'] ? 'active show' : '' }} fade" id="{{ $taskGroup['id'] }}" data-task-list-page-size="{{ $taskListPageSize }}" data-task-current-page="1">
         @forelse ($taskGroup['items'] as $task)
-            <div class="d-flex border-bottom flex-wrap py-3 align-items-center px-3 list-row js-task-list-row" @if ($loop->iteration > $taskListPageSize) style="display: none;" @endif>
+            <div class="d-flex border-bottom flex-wrap py-3 align-items-center px-3 list-row js-task-list-row {{ $loop->iteration > $taskListPageSize ? 'is-task-list-hidden' : '' }}">
                 <div class="col-xl-8 col-xxl-8 col-lg-8 col-sm-8 d-flex gap-3 align-items-center">
                     <div class="avatar avatar-lg {{ $task['is_completed'] ? 'bg-light' : 'bg-primary-subtle' }} d-grid border-0 rounded project-task-date-box">
                         <div class="d-grid">
@@ -122,23 +122,37 @@
         @endforelse
 
         @if ($taskGroupPageCount > 1)
-            <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 px-3 py-3">
-                <span class="fs-13 text-muted js-task-list-page-summary">Showing 1 - {{ min($taskListPageSize, $taskGroup['items']->count()) }} of {{ $taskGroup['items']->count() }} tasks</span>
-                <nav aria-label="{{ $taskGroup['label'] }} task list pagination">
-                    <ul class="pagination pagination-sm mb-0 js-task-list-pagination">
-                        <li class="page-item disabled" data-task-page-item="previous">
-                            <button type="button" class="page-link js-task-list-page-button" data-task-page-action="previous">Previous</button>
-                        </li>
+            <div class="project-task-list-footer dataTables_wrapper no-footer">
+                <div class="dataTables_info js-task-list-page-summary">
+                    Showing 1 to {{ min($taskListPageSize, $taskGroup['items']->count()) }} of {{ $taskGroup['items']->count() }} entries
+                </div>
+                <div class="dataTables_paginate paging_simple_numbers js-task-list-pagination">
+                    <a
+                        href="javascript:void(0)"
+                        class="paginate_button previous disabled js-task-list-page-button"
+                        data-task-page-action="previous"
+                        data-task-page-item="previous"
+                        aria-label="Previous page"
+                    ><i class="fa-solid fa-angle-left"></i></a>
+                    <span>
                         @for ($page = 1; $page <= $taskGroupPageCount; $page++)
-                            <li class="page-item {{ $page === 1 ? 'active' : '' }}" data-task-page-item="{{ $page }}">
-                                <button type="button" class="page-link js-task-list-page-button" data-task-page="{{ $page }}">{{ $page }}</button>
-                            </li>
+                            <a
+                                href="javascript:void(0)"
+                                class="paginate_button {{ $page === 1 ? 'current' : '' }} js-task-list-page-button"
+                                data-task-page="{{ $page }}"
+                                data-task-page-item="{{ $page }}"
+                                @if ($page === 1) aria-current="page" @endif
+                            >{{ $page }}</a>
                         @endfor
-                        <li class="page-item" data-task-page-item="next">
-                            <button type="button" class="page-link js-task-list-page-button" data-task-page-action="next">Next</button>
-                        </li>
-                    </ul>
-                </nav>
+                    </span>
+                    <a
+                        href="javascript:void(0)"
+                        class="paginate_button next js-task-list-page-button"
+                        data-task-page-action="next"
+                        data-task-page-item="next"
+                        aria-label="Next page"
+                    ><i class="fa-solid fa-angle-right"></i></a>
+                </div>
             </div>
         @endif
     </div>

@@ -19,6 +19,43 @@
         border-bottom: 0 !important;
     }
 
+    .project-task-list-card .js-task-list-row.is-task-list-hidden {
+        display: none !important;
+    }
+
+    .project-task-list-footer.dataTables_wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 30px;
+        border-top: 1px solid var(--bs-border-color);
+    }
+
+    .project-task-list-footer.dataTables_wrapper .dataTables_info,
+    .project-task-list-footer.dataTables_wrapper .dataTables_paginate {
+        float: none;
+        padding: 0;
+    }
+
+    .project-task-list-footer .paginate_button.disabled {
+        pointer-events: none;
+        opacity: .35;
+    }
+
+    @media (max-width: 767.98px) {
+        .project-task-list-footer.dataTables_wrapper {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 12px 16px;
+        }
+
+        .project-task-list-footer.dataTables_wrapper .dataTables_info,
+        .project-task-list-footer.dataTables_wrapper .dataTables_paginate {
+            text-align: center;
+        }
+    }
+
     .project-task-title {
         max-width: 680px;
         line-height: 1.45;
@@ -682,9 +719,12 @@
             var start = totalRows === 0 ? 0 : ((currentPage - 1) * taskListPageSize(pane)) + 1;
             var end = Math.min(currentPage * taskListPageSize(pane), totalRows);
 
-            pane.find('.js-task-list-page-summary').text('Showing ' + start + ' - ' + end + ' of ' + totalRows + ' tasks');
-            pane.find('[data-task-page-item]').removeClass('active disabled');
-            pane.find('[data-task-page-item="' + currentPage + '"]').addClass('active');
+            pane.find('.js-task-list-page-summary').text('Showing ' + start + ' to ' + end + ' of ' + totalRows + ' entries');
+            pane.find('[data-task-page-item]').removeClass('current disabled');
+            pane.find('[data-task-page]').removeAttr('aria-current');
+            pane.find('[data-task-page-item="' + currentPage + '"]')
+                .addClass('current')
+                .attr('aria-current', 'page');
 
             if (currentPage <= 1) {
                 pane.find('[data-task-page-item="previous"]').addClass('disabled');
@@ -706,7 +746,7 @@
             var endIndex = startIndex + pageSize;
 
             rows.each(function (index) {
-                $(this).toggle(index >= startIndex && index < endIndex);
+                $(this).toggleClass('is-task-list-hidden', index < startIndex || index >= endIndex);
             });
 
             pane.attr('data-task-current-page', currentPage);
@@ -1344,13 +1384,12 @@
 
         $('#taskListItemsPanel').on('click', '.js-task-list-page-button', function () {
             var button = $(this);
-            var pageItem = button.closest('.page-item');
             var pane = button.closest('.tab-pane');
             var currentPage = parseInt(pane.attr('data-task-current-page'), 10) || 1;
             var action = button.attr('data-task-page-action') || '';
             var nextPage = parseInt(button.attr('data-task-page'), 10) || currentPage;
 
-            if (pageItem.hasClass('disabled') || pageItem.hasClass('active')) {
+            if (button.hasClass('disabled') || button.hasClass('current')) {
                 return;
             }
 

@@ -168,9 +168,12 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('id="directorTaskDetailModal"', $directorTaskView);
         $this->assertStringContainsString('Task Details', $directorTaskView);
         $this->assertStringContainsString('id="directorTaskDetailTitle"', $directorTaskView);
-        $this->assertStringContainsString('id="directorTaskDetailCompany"', $directorTaskView);
-        $this->assertStringContainsString('id="directorTaskDetailPriority"', $directorTaskView);
+        $this->assertStringContainsString('Task Name', $directorTaskView);
+        $this->assertStringContainsString('Task Description', $directorTaskView);
+        $this->assertStringContainsString('Date - Due Date', $directorTaskView);
+        $this->assertStringContainsString('Assigned by', $directorTaskView);
         $this->assertStringContainsString('id="directorTaskDetailAttachment"', $directorTaskView);
+        $this->assertStringContainsString('btn btn-danger light', $directorTaskView);
         $this->assertStringContainsString("route('director-attendance.task.datatable')", $directorTaskView);
         $this->assertStringContainsString('function initDirectorTaskTable()', $directorTaskView);
         $this->assertStringContainsString('function refreshStaffOptions()', $directorTaskView);
@@ -181,6 +184,8 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringContainsString("option.setAttribute('data-company-id'", $directorTaskView);
         $this->assertStringContainsString('refreshSelectPlugin(staffFilter);', $directorTaskView);
         $this->assertStringContainsString('function renderAttachment(value)', $directorTaskView);
+        $this->assertStringContainsString('function statusTextClass(value)', $directorTaskView);
+        $this->assertStringContainsString('function assignedByText(value)', $directorTaskView);
         $this->assertStringContainsString('DataTable', $directorTaskView);
         $this->assertStringContainsString('requestData.company_id = companyFilter ? companyFilter.value :', $directorTaskView);
         $this->assertStringContainsString('taskTable.ajax.reload();', $directorTaskView);

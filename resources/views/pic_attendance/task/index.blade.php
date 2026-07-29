@@ -51,48 +51,52 @@
         </div>
     </div>
 
-    <div class="modal fade" id="picTaskDetailModal" tabindex="-1" aria-labelledby="picTaskDetailModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal fade" id="picTaskDetailModal">
+        <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="picTaskDetailModalLabel">Task Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">Task Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row gy-3">
-                        <div class="col-md-4 text-muted">Task</div>
-                        <div class="col-md-8 fw-semibold text-black" id="picTaskDetailTitle">-</div>
-
-                        <div class="col-md-4 text-muted">Description</div>
-                        <div class="col-md-8" id="picTaskDetailDescription">-</div>
-
-                        <div class="col-md-4 text-muted">Staff</div>
-                        <div class="col-md-8 fw-semibold" id="picTaskDetailStaff">-</div>
-
-                        <div class="col-md-4 text-muted">Category</div>
-                        <div class="col-md-8">
-                            <span id="picTaskDetailCategory">-</span>
-                            <div class="text-muted fs-13" id="picTaskDetailProject">-</div>
-                        </div>
-
-                        <div class="col-md-4 text-muted">Assigned By</div>
-                        <div class="col-md-8" id="picTaskDetailAssignedBy">-</div>
-
-                        <div class="col-md-4 text-muted">Due Date</div>
-                        <div class="col-md-8" id="picTaskDetailDueDate">-</div>
-
-                        <div class="col-md-4 text-muted">Priority</div>
-                        <div class="col-md-8" id="picTaskDetailPriority">-</div>
-
-                        <div class="col-md-4 text-muted">Status</div>
-                        <div class="col-md-8" id="picTaskDetailStatus">-</div>
-
-                        <div class="col-md-4 text-muted">Blockers</div>
-                        <div class="col-md-8" id="picTaskDetailBlockers">-</div>
-
-                        <div class="col-md-4 text-muted">Attachment</div>
-                        <div class="col-md-8" id="picTaskDetailAttachment">No attachment</div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Task Name</span></div>
+                        <div class="col-8"><span class="text-gray fw-semibold" id="picTaskDetailTitle">-</span></div>
                     </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Task Description</span></div>
+                        <div class="col-8"><span class="text-gray fw-normal" id="picTaskDetailDescription">-</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Date - Due Date</span></div>
+                        <div class="col-8"><span class="text-gray fw-semibold" id="picTaskDetailDueDate">-</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Attachment</span></div>
+                        <div class="col-8"><span class="text-gray fw-semibold" id="picTaskDetailAttachment">No attachment</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Blockers</span></div>
+                        <div class="col-8"><span class="text-gray fw-normal" id="picTaskDetailBlockers">-</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Task Category</span></div>
+                        <div class="col-8">
+                            <span class="text-gray fw-semibold" id="picTaskDetailCategory">-</span><br>
+                            <span class="text-gray fw-normal" id="picTaskDetailProject">-</span>
+                        </div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Assigned by</span></div>
+                        <div class="col-8"><span class="text-primary fw-semibold" id="picTaskDetailAssignedBy">-</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Task Status</span></div>
+                        <div class="col-8"><span class="fw-semibold" id="picTaskDetailStatus">-</span></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -132,7 +136,15 @@
                         return 'No attachment';
                     }
 
-                    return '<a href="' + escapeHtml(normalizedValue) + '" target="_blank" rel="noopener" class="text-primary fw-semibold">Open attachment</a>';
+                    return '<a href="' + escapeHtml(normalizedValue) + '" class="text-primary" target="_blank" rel="noopener noreferrer">Open attachment</a>';
+                };
+                var statusTextClass = function (value) {
+                    return value === 'success' ? 'text-success' : 'text-warning';
+                };
+                var assignedByText = function (value) {
+                    var normalizedValue = nullableText(value, 'self');
+
+                    return normalizedValue.charAt(0) === '@' ? normalizedValue : '@' + normalizedValue;
                 };
 
                 var taskTable = $('#picTaskTable').DataTable({
@@ -200,14 +212,15 @@
                     var row = taskTable.row($(this).closest('tr')).data() || {};
                     $('#picTaskDetailTitle').text(nullableText(row.task));
                     $('#picTaskDetailDescription').text(nullableText(row.description));
-                    $('#picTaskDetailStaff').text(nullableText(row.staff));
                     $('#picTaskDetailCategory').text(nullableText(row.task_category));
                     $('#picTaskDetailProject').text(nullableText(row.project));
-                    $('#picTaskDetailAssignedBy').text(nullableText(row.assigned_by));
+                    $('#picTaskDetailAssignedBy').text(assignedByText(row.assigned_by));
                     $('#picTaskDetailDueDate').text(nullableText(row.due_date));
-                    $('#picTaskDetailPriority').text(nullableText(row.priority));
                     $('#picTaskDetailBlockers').text(nullableText(row.blockers));
-                    $('#picTaskDetailStatus').html('<span class="badge badge-' + escapeHtml(row.status_class) + ' light">' + escapeHtml(nullableText(row.status)) + '</span>');
+                    $('#picTaskDetailStatus')
+                        .removeClass('text-danger text-success text-warning')
+                        .addClass(statusTextClass(row.status_class))
+                        .text(nullableText(row.status));
                     $('#picTaskDetailAttachment').html(renderAttachment(row.attachment_path));
                 });
 

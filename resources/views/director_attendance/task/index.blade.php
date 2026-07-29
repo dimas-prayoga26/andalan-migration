@@ -67,51 +67,52 @@
         </div>
     </div>
 
-    <div class="modal fade" id="directorTaskDetailModal" tabindex="-1" aria-labelledby="directorTaskDetailModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal fade" id="directorTaskDetailModal">
+        <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="directorTaskDetailModalLabel">Task Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">Task Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row gy-3">
-                        <div class="col-md-4 text-muted">Task</div>
-                        <div class="col-md-8 fw-semibold text-black" id="directorTaskDetailTitle">-</div>
-
-                        <div class="col-md-4 text-muted">Description</div>
-                        <div class="col-md-8" id="directorTaskDetailDescription">-</div>
-
-                        <div class="col-md-4 text-muted">Staff</div>
-                        <div class="col-md-8 fw-semibold" id="directorTaskDetailStaff">-</div>
-
-                        <div class="col-md-4 text-muted">Company</div>
-                        <div class="col-md-8" id="directorTaskDetailCompany">-</div>
-
-                        <div class="col-md-4 text-muted">Category</div>
-                        <div class="col-md-8">
-                            <span id="directorTaskDetailCategory">-</span>
-                            <div class="text-muted fs-13" id="directorTaskDetailProject">-</div>
-                        </div>
-
-                        <div class="col-md-4 text-muted">Assigned By</div>
-                        <div class="col-md-8" id="directorTaskDetailAssignedBy">-</div>
-
-                        <div class="col-md-4 text-muted">Due Date</div>
-                        <div class="col-md-8" id="directorTaskDetailDueDate">-</div>
-
-                        <div class="col-md-4 text-muted">Priority</div>
-                        <div class="col-md-8" id="directorTaskDetailPriority">-</div>
-
-                        <div class="col-md-4 text-muted">Status</div>
-                        <div class="col-md-8" id="directorTaskDetailStatus">-</div>
-
-                        <div class="col-md-4 text-muted">Blockers</div>
-                        <div class="col-md-8" id="directorTaskDetailBlockers">-</div>
-
-                        <div class="col-md-4 text-muted">Attachment</div>
-                        <div class="col-md-8" id="directorTaskDetailAttachment">No attachment</div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Task Name</span></div>
+                        <div class="col-8"><span class="text-gray fw-semibold" id="directorTaskDetailTitle">-</span></div>
                     </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Task Description</span></div>
+                        <div class="col-8"><span class="text-gray fw-normal" id="directorTaskDetailDescription">-</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Date - Due Date</span></div>
+                        <div class="col-8"><span class="text-gray fw-semibold" id="directorTaskDetailDueDate">-</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Attachment</span></div>
+                        <div class="col-8"><span class="text-gray fw-semibold" id="directorTaskDetailAttachment">No attachment</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Blockers</span></div>
+                        <div class="col-8"><span class="text-gray fw-normal" id="directorTaskDetailBlockers">-</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Task Category</span></div>
+                        <div class="col-8">
+                            <span class="text-gray fw-semibold" id="directorTaskDetailCategory">-</span><br>
+                            <span class="text-gray fw-normal" id="directorTaskDetailProject">-</span>
+                        </div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Assigned by</span></div>
+                        <div class="col-8"><span class="text-primary fw-semibold" id="directorTaskDetailAssignedBy">-</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Task Status</span></div>
+                        <div class="col-8"><span class="fw-semibold" id="directorTaskDetailStatus">-</span></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -156,7 +157,17 @@
                         return 'No attachment';
                     }
 
-                    return '<a href="' + escapeHtml(normalizedValue) + '" target="_blank" rel="noopener" class="text-primary fw-semibold">Open attachment</a>';
+                    return '<a href="' + escapeHtml(normalizedValue) + '" class="text-primary" target="_blank" rel="noopener noreferrer">Open attachment</a>';
+                }
+
+                function statusTextClass(value) {
+                    return value === 'success' ? 'text-success' : 'text-warning';
+                }
+
+                function assignedByText(value) {
+                    var normalizedValue = nullableText(value, 'self');
+
+                    return normalizedValue.charAt(0) === '@' ? normalizedValue : '@' + normalizedValue;
                 }
 
                 function refreshSelectPlugin(selectElement) {
@@ -271,15 +282,15 @@
                     var row = taskTable.row($(this).closest('tr')).data() || {};
                     $('#directorTaskDetailTitle').text(nullableText(row.task));
                     $('#directorTaskDetailDescription').text(nullableText(row.description));
-                    $('#directorTaskDetailStaff').text(nullableText(row.staff));
-                    $('#directorTaskDetailCompany').text(nullableText(row.company));
                     $('#directorTaskDetailCategory').text(nullableText(row.task_category));
                     $('#directorTaskDetailProject').text(nullableText(row.project));
-                    $('#directorTaskDetailAssignedBy').text(nullableText(row.assigned_by));
+                    $('#directorTaskDetailAssignedBy').text(assignedByText(row.assigned_by));
                     $('#directorTaskDetailDueDate').text(nullableText(row.due_date));
-                    $('#directorTaskDetailPriority').text(nullableText(row.priority));
                     $('#directorTaskDetailBlockers').text(nullableText(row.blockers));
-                    $('#directorTaskDetailStatus').html('<span class="badge badge-' + escapeHtml(row.status_class) + ' light">' + escapeHtml(nullableText(row.status)) + '</span>');
+                    $('#directorTaskDetailStatus')
+                        .removeClass('text-danger text-success text-warning')
+                        .addClass(statusTextClass(row.status_class))
+                        .text(nullableText(row.status));
                     $('#directorTaskDetailAttachment').html(renderAttachment(row.attachment_path));
                 });
 

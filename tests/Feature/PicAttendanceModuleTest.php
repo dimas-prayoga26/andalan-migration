@@ -174,10 +174,16 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('<th>Action</th>', $taskView);
         $this->assertStringContainsString('picTaskDetailModal', $taskView);
         $this->assertStringContainsString('Task Details', $taskView);
+        $this->assertStringContainsString('Task Name', $taskView);
+        $this->assertStringContainsString('Task Description', $taskView);
+        $this->assertStringContainsString('Date - Due Date', $taskView);
+        $this->assertStringContainsString('Assigned by', $taskView);
+        $this->assertStringContainsString('btn btn-danger light', $taskView);
         $this->assertStringContainsString('pic-task-detail-button', $taskView);
         $this->assertStringContainsString('renderAttachment', $taskView);
+        $this->assertStringContainsString('statusTextClass', $taskView);
+        $this->assertStringContainsString('assignedByText', $taskView);
         $this->assertStringContainsString('row.description', $taskView);
-        $this->assertStringContainsString('row.priority', $taskView);
         $this->assertStringContainsString('row.status_class', $taskView);
         $this->assertStringContainsString('row.status', $taskView);
         $this->assertStringContainsString("route('pic-attendance.task.datatable')", $taskView);

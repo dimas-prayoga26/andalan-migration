@@ -3,6 +3,7 @@
     $taskListOngoingItems = collect($taskListOngoingItems ?? []);
     $taskListDoneItems = collect($taskListDoneItems ?? []);
     $taskListPastIncompleteCount = (int) ($taskListPastIncompleteCount ?? 0);
+    $taskListPageSize = 5;
     $taskGroups = [
         [
             'id' => 'All',
@@ -55,9 +56,12 @@
 </div>
 
 @foreach ($taskGroups as $taskGroup)
-    <div class="tab-pane {{ $taskGroup['active'] ? 'active show' : '' }} fade" id="{{ $taskGroup['id'] }}">
+    @php
+        $taskGroupPageCount = (int) ceil($taskGroup['items']->count() / $taskListPageSize);
+    @endphp
+    <div class="tab-pane {{ $taskGroup['active'] ? 'active show' : '' }} fade" id="{{ $taskGroup['id'] }}" data-task-list-page-size="{{ $taskListPageSize }}" data-task-current-page="1">
         @forelse ($taskGroup['items'] as $task)
-            <div class="d-flex border-bottom flex-wrap py-3 align-items-center px-3 list-row">
+            <div class="d-flex border-bottom flex-wrap py-3 align-items-center px-3 list-row js-task-list-row" @if ($loop->iteration > $taskListPageSize) style="display: none;" @endif>
                 <div class="col-xl-8 col-xxl-8 col-lg-8 col-sm-8 d-flex gap-3 align-items-center">
                     <div class="avatar avatar-lg {{ $task['is_completed'] ? 'bg-light' : 'bg-primary-subtle' }} d-grid border-0 rounded project-task-date-box">
                         <div class="d-grid">
@@ -116,5 +120,26 @@
                 </div>
             </div>
         @endforelse
+
+        @if ($taskGroupPageCount > 1)
+            <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 px-3 py-3">
+                <span class="fs-13 text-muted js-task-list-page-summary">Showing 1 - {{ min($taskListPageSize, $taskGroup['items']->count()) }} of {{ $taskGroup['items']->count() }} tasks</span>
+                <nav aria-label="{{ $taskGroup['label'] }} task list pagination">
+                    <ul class="pagination pagination-sm mb-0 js-task-list-pagination">
+                        <li class="page-item disabled" data-task-page-item="previous">
+                            <button type="button" class="page-link js-task-list-page-button" data-task-page-action="previous">Previous</button>
+                        </li>
+                        @for ($page = 1; $page <= $taskGroupPageCount; $page++)
+                            <li class="page-item {{ $page === 1 ? 'active' : '' }}" data-task-page-item="{{ $page }}">
+                                <button type="button" class="page-link js-task-list-page-button" data-task-page="{{ $page }}">{{ $page }}</button>
+                            </li>
+                        @endfor
+                        <li class="page-item" data-task-page-item="next">
+                            <button type="button" class="page-link js-task-list-page-button" data-task-page-action="next">Next</button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        @endif
     </div>
 @endforeach

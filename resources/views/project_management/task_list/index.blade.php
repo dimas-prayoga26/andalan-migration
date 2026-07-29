@@ -673,6 +673,52 @@
             return value || '';
         }
 
+        function taskListPageSize(tabPane) {
+            return parseInt($(tabPane).attr('data-task-list-page-size'), 10) || 5;
+        }
+
+        function updateTaskListPagination(tabPane, currentPage, totalPages, totalRows) {
+            var pane = $(tabPane);
+            var start = totalRows === 0 ? 0 : ((currentPage - 1) * taskListPageSize(pane)) + 1;
+            var end = Math.min(currentPage * taskListPageSize(pane), totalRows);
+
+            pane.find('.js-task-list-page-summary').text('Showing ' + start + ' - ' + end + ' of ' + totalRows + ' tasks');
+            pane.find('[data-task-page-item]').removeClass('active disabled');
+            pane.find('[data-task-page-item="' + currentPage + '"]').addClass('active');
+
+            if (currentPage <= 1) {
+                pane.find('[data-task-page-item="previous"]').addClass('disabled');
+            }
+
+            if (currentPage >= totalPages) {
+                pane.find('[data-task-page-item="next"]').addClass('disabled');
+            }
+        }
+
+        function showTaskListPage(tabPane, pageNumber) {
+            var pane = $(tabPane);
+            var rows = pane.find('.js-task-list-row');
+            var pageSize = taskListPageSize(pane);
+            var totalRows = rows.length;
+            var totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+            var currentPage = Math.min(Math.max(parseInt(pageNumber, 10) || 1, 1), totalPages);
+            var startIndex = (currentPage - 1) * pageSize;
+            var endIndex = startIndex + pageSize;
+
+            rows.each(function (index) {
+                $(this).toggle(index >= startIndex && index < endIndex);
+            });
+
+            pane.attr('data-task-current-page', currentPage);
+            updateTaskListPagination(pane, currentPage, totalPages, totalRows);
+        }
+
+        function initializeTaskListPagination() {
+            $('#taskListItemsPanel .tab-pane').each(function () {
+                showTaskListPage(this, $(this).attr('data-task-current-page') || 1);
+            });
+        }
+
         function selectedTaskAssigneeEmployeeId() {
             return $('#taskAssigneeEmployeeId').val() || taskDefaultAssigneeEmployeeId;
         }
@@ -930,6 +976,7 @@
             activeActionUrl = '';
 
             updateCalendar(response.selected_month);
+            initializeTaskListPagination();
             initializeStaticKanbanBoard();
         }
 
@@ -1295,6 +1342,27 @@
             fillTaskDetails(parseTask(this));
         });
 
+        $('#taskListItemsPanel').on('click', '.js-task-list-page-button', function () {
+            var button = $(this);
+            var pageItem = button.closest('.page-item');
+            var pane = button.closest('.tab-pane');
+            var currentPage = parseInt(pane.attr('data-task-current-page'), 10) || 1;
+            var action = button.attr('data-task-page-action') || '';
+            var nextPage = parseInt(button.attr('data-task-page'), 10) || currentPage;
+
+            if (pageItem.hasClass('disabled') || pageItem.hasClass('active')) {
+                return;
+            }
+
+            if (action === 'previous') {
+                nextPage = currentPage - 1;
+            } else if (action === 'next') {
+                nextPage = currentPage + 1;
+            }
+
+            showTaskListPage(pane, nextPage);
+        });
+
         $(document).on('click', '.js-task-complete', function () {
             activeActionUrl = $(this).attr('data-complete-url') || '';
         });
@@ -1436,6 +1504,7 @@
         }
 
         initializeTaskDateRangePicker();
+        initializeTaskListPagination();
         initializeStaticKanbanBoard();
     });
 </script>

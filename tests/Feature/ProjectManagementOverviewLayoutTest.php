@@ -190,6 +190,16 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("'is_assigned_by_other_user' =>", $taskListController);
         $this->assertStringContainsString('Assign by : <span class="fw-semibold">{{ $task[\'assigned_by_label\'] }}</span>', $taskListItemsPartial);
         $this->assertStringContainsString('Assign by : <span class="fw-semibold">{{ $task[\'assigned_by_label\'] }}</span>', $taskListWeekPlanPartial);
+        $this->assertStringContainsString('$taskListPageSize = 5;', $taskListItemsPartial);
+        $this->assertStringContainsString('class="d-flex border-bottom flex-wrap py-3 align-items-center px-3 list-row js-task-list-row"', $taskListItemsPartial);
+        $this->assertStringContainsString('style="display: none;"', $taskListItemsPartial);
+        $this->assertStringContainsString('js-task-list-pagination', $taskListItemsPartial);
+        $this->assertStringContainsString('Showing 1 - {{ min($taskListPageSize, $taskGroup[\'items\']->count()) }} of {{ $taskGroup[\'items\']->count() }} tasks', $taskListItemsPartial);
+        $this->assertStringContainsString('data-task-page-action="previous"', $taskListItemsPartial);
+        $this->assertStringContainsString('data-task-page-action="next"', $taskListItemsPartial);
+        $this->assertStringContainsString('function initializeTaskListPagination()', $taskList);
+        $this->assertStringContainsString('showTaskListPage(pane, nextPage);', $taskList);
+        $this->assertStringContainsString('initializeTaskListPagination();', $taskList);
         $this->assertStringContainsString('data-task-form-mode="create"', $taskListSurface);
         $this->assertStringContainsString('id="taskFilterForm"', $taskList);
         $this->assertStringContainsString('id="taskFilterMonth"', $taskList);

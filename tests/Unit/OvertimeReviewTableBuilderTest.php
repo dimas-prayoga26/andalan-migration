@@ -89,7 +89,11 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('overflow-x: auto;', $picView);
         $this->assertStringContainsString('overflow-y: hidden;', $picView);
         $this->assertStringContainsString('-webkit-overflow-scrolling: touch;', $picView);
-        $this->assertStringContainsString('min-width: 760px;', $picView);
+        $this->assertStringContainsString('scrollbar-width: thin;', $picView);
+        $this->assertStringContainsString('scrollbar-color: #c6ccd6 #f1f3f7;', $picView);
+        $this->assertStringContainsString('.pic-overtime-review-table::-webkit-scrollbar', $picView);
+        $this->assertStringContainsString('height: 7px;', $picView);
+        $this->assertStringContainsString('min-width: 900px;', $picView);
         $this->assertStringNotContainsString('table-layout: fixed;', $picView);
         $this->assertStringNotContainsString('text-overflow: ellipsis;', $picView);
         $this->assertStringNotContainsString('.overtime-review-table tbody tr', $picView);
@@ -155,7 +159,11 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('overflow-x: auto;', $directorView);
         $this->assertStringContainsString('overflow-y: hidden;', $directorView);
         $this->assertStringContainsString('-webkit-overflow-scrolling: touch;', $directorView);
-        $this->assertStringContainsString('min-width: 760px;', $directorView);
+        $this->assertStringContainsString('scrollbar-width: thin;', $directorView);
+        $this->assertStringContainsString('scrollbar-color: #c6ccd6 #f1f3f7;', $directorView);
+        $this->assertStringContainsString('.director-overtime-review-table::-webkit-scrollbar', $directorView);
+        $this->assertStringContainsString('height: 7px;', $directorView);
+        $this->assertStringContainsString('min-width: 900px;', $directorView);
         $this->assertStringNotContainsString('table-layout: fixed;', $directorView);
         $this->assertStringNotContainsString('text-overflow: ellipsis;', $directorView);
         $this->assertStringNotContainsString('.overtime-review-table tbody tr', $directorView);
@@ -219,7 +227,11 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('overflow-x: auto;', $view);
         $this->assertStringContainsString('overflow-y: hidden;', $view);
         $this->assertStringContainsString('-webkit-overflow-scrolling: touch;', $view);
-        $this->assertStringContainsString('min-width: 760px;', $view);
+        $this->assertStringContainsString('scrollbar-width: thin;', $view);
+        $this->assertStringContainsString('scrollbar-color: #c6ccd6 #f1f3f7;', $view);
+        $this->assertStringContainsString('.admin-overtime-review-table::-webkit-scrollbar', $view);
+        $this->assertStringContainsString('height: 7px;', $view);
+        $this->assertStringContainsString('min-width: 900px;', $view);
         $this->assertStringNotContainsString('table-layout: fixed;', $view);
         $this->assertStringNotContainsString('text-overflow: ellipsis;', $view);
         $this->assertStringNotContainsString('.overtime-review-table tbody tr', $view);

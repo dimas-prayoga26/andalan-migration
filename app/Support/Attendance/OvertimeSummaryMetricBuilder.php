@@ -41,6 +41,25 @@ class OvertimeSummaryMetricBuilder
      */
     public function summarizeForActiveEmployees(?string $companyId = null, ?string $assignedByUserId = null): array
     {
+        return $this->summarize($this->activeOvertimeQuery($companyId, $assignedByUserId));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function summarizeForPeriod(?string $companyId, ?string $assignedByUserId, int $month, int $year): array
+    {
+        $periodStart = Carbon::create($year, $month, 1, 0, 0, 0, 'Asia/Jakarta')->startOfMonth();
+        $periodEnd = $periodStart->copy()->endOfMonth();
+
+        return $this->summarize(
+            $this->activeOvertimeQuery($companyId, $assignedByUserId)
+                ->whereBetween('overtime_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+        );
+    }
+
+    private function activeOvertimeQuery(?string $companyId = null, ?string $assignedByUserId = null): Builder
+    {
         $today = Carbon::now('Asia/Jakarta')->toDateString();
         $query = AttendanceOvertime::query()
             ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled'])
@@ -67,7 +86,7 @@ class OvertimeSummaryMetricBuilder
             $query->where('assigned_by', trim($assignedByUserId));
         }
 
-        return $this->summarize($query);
+        return $query;
     }
 
     /**
@@ -79,7 +98,6 @@ class OvertimeSummaryMetricBuilder
         $overtimes = (clone $query)
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
                 'employee.user:id,username',
                 'lifecycleLogs:id,overtime_id,event_key,status',
             ])
@@ -276,7 +294,7 @@ class OvertimeSummaryMetricBuilder
             ->first(fn (array $row): bool => (string) $row['overtime']->employee_id === (string) $topEmployeeId);
 
         $employee = $topOvertime['overtime']->employee ?? null;
-        $name = $employee?->profile?->name ?: $employee?->user?->username;
+        $name = $employee?->user?->username;
 
         return is_string($name) && trim($name) !== '' ? trim($name) : '-';
     }

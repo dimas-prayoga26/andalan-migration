@@ -12,6 +12,7 @@ use App\Models\EmployeeProfile;
 use App\Models\OfficeLocation;
 use App\Models\Permission;
 use App\Models\Position;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -74,6 +75,7 @@ class AuthorizationController extends Controller
                 'password' => Hash::make(self::DEFAULT_EMPLOYEE_PASSWORD),
                 'is_active' => (bool) $validated['is_active'],
             ]);
+            $user->assignRole($this->defaultStaffRole());
 
             $employee = Employee::query()->create([
                 'user_id' => $user->id,
@@ -637,6 +639,14 @@ class AuthorizationController extends Controller
         }
 
         return $employeeCode;
+    }
+
+    private function defaultStaffRole(): Role
+    {
+        return Role::query()->firstOrCreate([
+            'name' => 'Staff',
+            'guard_name' => 'web',
+        ]);
     }
 
     private function shortNumericToken(string $value, string $salt): string

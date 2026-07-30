@@ -77,8 +77,16 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringNotContainsString("['label' => \$plannedTimeLabel, 'strike' => true]", $directorOvertimeController);
         $this->assertStringContainsString("'director_approver' => \$directorApprover instanceof User ? \$this->userDisplayName(\$directorApprover) : '-'", $directorOvertimeController);
         $this->assertStringContainsString("'director_datetime' => \$this->formatLifecycleDateTime(\$directorApprovalLog)", $directorOvertimeController);
-        $this->assertStringContainsString("\$tableBuilder->buildForContext('director', null, null", $directorOvertimeController);
-        $this->assertStringContainsString("'overtimeSummary' => \$metricBuilder->summarizeForActiveEmployees()", $directorOvertimeController);
+        $this->assertStringContainsString('$pendingTableData = $tableBuilder->buildForContext(', $directorOvertimeController);
+        $this->assertStringContainsString('$approvedTableData = $tableBuilder->buildForContext(', $directorOvertimeController);
+        $this->assertStringContainsString("'director',", $directorOvertimeController);
+        $this->assertStringContainsString("\$request->query('card_month', \$legacyMonth)", $directorOvertimeController);
+        $this->assertStringContainsString("\$request->query('pending_month', \$legacyMonth)", $directorOvertimeController);
+        $this->assertStringContainsString("\$request->query('approved_month', \$legacyMonth)", $directorOvertimeController);
+        $this->assertStringContainsString("'overtimeSummary' => \$metricBuilder->summarizeForPeriod(null, null, \$cardMonth, \$cardYear)", $directorOvertimeController);
+        $this->assertStringContainsString("'selectedCardMonth' => \$cardMonth", $directorOvertimeController);
+        $this->assertStringContainsString("'selectedPendingMonth' => \$pendingTableData['selectedMonth']", $directorOvertimeController);
+        $this->assertStringContainsString("'selectedApprovedMonth' => \$approvedTableData['selectedMonth']", $directorOvertimeController);
         $this->assertStringContainsString('private function directorOvertimeQuery(): Builder', $directorOvertimeController);
         $this->assertStringContainsString("'payment_disbursement',", $directorOvertimeController);
         $this->assertStringContainsString("'description' => (string) (\$projectTask->description ?? '')", $directorOvertimeController);

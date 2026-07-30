@@ -8,6 +8,48 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <style>
+        .pic-overtime-table-footer.dataTables_wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 8px 30px;
+            border-top: 1px solid var(--bs-border-color);
+        }
+
+        .pic-overtime-table-footer.dataTables_wrapper .dataTables_info,
+        .pic-overtime-table-footer.dataTables_wrapper .dataTables_paginate {
+            float: none;
+            margin-bottom: 0;
+            padding: 0;
+        }
+
+        .pic-overtime-table-footer .paginate_button.disabled {
+            pointer-events: none;
+            opacity: .35;
+        }
+
+        .pic-overtime-review-table {
+            height: 286px;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        @media (max-width: 767.98px) {
+            .pic-overtime-table-footer.dataTables_wrapper {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 18px 20px 24px;
+            }
+
+            .pic-overtime-table-footer.dataTables_wrapper .dataTables_info,
+            .pic-overtime-table-footer.dataTables_wrapper .dataTables_paginate {
+                justify-content: center;
+                text-align: center;
+            }
+        }
+    </style>
 
 @endsection
 
@@ -16,6 +58,20 @@
 @section('content')
 
 @include('pic_attendance.layout.navbar')
+
+@php
+    $picOvertimeTablePageSize = 5;
+    $pendingTableRows = $pendingRows ?? collect();
+    $approvedTableRows = $approvedRows ?? collect();
+    $selectedCardMonth = $selectedCardMonth ?? ($selectedMonth ?? now('Asia/Jakarta')->month);
+    $selectedCardYear = $selectedCardYear ?? ($selectedYear ?? now('Asia/Jakarta')->year);
+    $selectedPendingMonth = $selectedPendingMonth ?? ($selectedMonth ?? now('Asia/Jakarta')->month);
+    $selectedPendingYear = $selectedPendingYear ?? ($selectedYear ?? now('Asia/Jakarta')->year);
+    $selectedApprovedMonth = $selectedApprovedMonth ?? ($selectedMonth ?? now('Asia/Jakarta')->month);
+    $selectedApprovedYear = $selectedApprovedYear ?? ($selectedYear ?? now('Asia/Jakarta')->year);
+    $pendingTablePageCount = max(1, (int) ceil($pendingTableRows->count() / $picOvertimeTablePageSize));
+    $approvedTablePageCount = max(1, (int) ceil($approvedTableRows->count() / $picOvertimeTablePageSize));
+@endphp
 
 <!-- Start - Attendance -->
 <div class="col-lg-12">
@@ -127,17 +183,21 @@
                     <div class="card-header border-0 align-items-center gap-2 flex-wrap">
                         <h4 class="card-title m-0">Pending</h4>
                         <form class="clearfix d-flex align-items-center" method="GET" action="{{ url()->current() }}">
+                            <input type="hidden" name="card_month" value="{{ $selectedCardMonth }}">
+                            <input type="hidden" name="card_year" value="{{ $selectedCardYear }}">
+                            <input type="hidden" name="approved_month" value="{{ $selectedApprovedMonth }}">
+                            <input type="hidden" name="approved_year" value="{{ $selectedApprovedYear }}">
                             <div class="clearfix me-1">
-                                <select name="month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                                <select name="pending_month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
                                     @foreach (($monthOptions ?? []) as $monthOption)
-                                        <option value="{{ $monthOption['value'] }}" @selected(($selectedMonth ?? now('Asia/Jakarta')->month) === $monthOption['value'])>{{ $monthOption['label'] }}</option>
+                                        <option value="{{ $monthOption['value'] }}" @selected($selectedPendingMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="clearfix">
-                                <select name="year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                                <select name="pending_year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
                                     @foreach (($yearOptions ?? []) as $yearOption)
-                                        <option value="{{ $yearOption }}" @selected(($selectedYear ?? now('Asia/Jakarta')->year) === $yearOption)>{{ $yearOption }}</option>
+                                        <option value="{{ $yearOption }}" @selected($selectedPendingYear === $yearOption)>{{ $yearOption }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -146,8 +206,8 @@
                             </div>
                         </form>
                     </div>
-                    <div class="card-body table-card-body px-0 pt-0 pb-2">
-                        <div class="table-responsive">
+                    <div class="card-body table-card-body px-0 pt-0 pb-0" data-pic-overtime-table data-pic-overtime-page-size="{{ $picOvertimeTablePageSize }}">
+                        <div class="table-responsive pic-overtime-review-table">
                             <table class="table table-sm table-sm-responsive text-nowrap" id="tableLicenseUsage">
                                 <thead>
                                     <tr>
@@ -155,16 +215,25 @@
                                         <th class="mw-50">Datetime</th>
                                         <th class="mw-50">Name</th>
                                         <th class="mw-80">SPV</th>
+                                        <th class="mw-80">Status</th>
                                         <th class="mw-10">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse (($pendingRows ?? collect()) as $row)
-                                        <tr>
+                                    @forelse ($pendingTableRows as $row)
+                                        <tr @class(['js-pic-overtime-table-row', 'd-none' => $loop->iteration > $picOvertimeTablePageSize])>
                                             <td>{{ $loop->iteration }}</td>
                                             <td>{{ $row['datetime'] }}</td>
                                             <td>{{ $row['name'] }}</td>
                                             <td>{{ $row['supervisor'] }}</td>
+                                            <td>
+                                                <span class="{{ $row['status_class'] ?? 'text-muted' }}">
+                                                    {{ $row['status'] ?? '-' }}
+                                                    <i class="fa fa-info-circle ms-1"
+                                                        title="Status: {{ $row['status_info'] ?? '-' }}"
+                                                        aria-label="Status: {{ $row['status_info'] ?? '-' }}"></i>
+                                                </span>
+                                            </td>
                                             <td>
                                                 <div class="dropdown dropdown-xs">
                                                     <button class="btn btn-xs btn-light btn-square" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -179,11 +248,25 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted">No pending overtime data available for this period.</td>
+                                            <td colspan="6" class="text-center text-muted">No pending overtime data available for this period.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="pic-overtime-table-footer dataTables_wrapper no-footer">
+                            <div class="dataTables_info js-pic-overtime-page-summary">
+                                Showing {{ $pendingTableRows->isEmpty() ? 0 : 1 }} to {{ min($picOvertimeTablePageSize, $pendingTableRows->count()) }} of {{ $pendingTableRows->count() }} entries
+                            </div>
+                            <div class="dataTables_paginate paging_simple_numbers js-pic-overtime-pagination">
+                                <a href="javascript:void(0)" class="paginate_button previous disabled js-pic-overtime-page-button" data-pic-overtime-page-action="previous" data-pic-overtime-page-item="previous" aria-label="Previous page"><i class="fa-solid fa-angle-left"></i></a>
+                                <span>
+                                    @for ($page = 1; $page <= $pendingTablePageCount; $page++)
+                                        <a href="javascript:void(0)" class="paginate_button {{ $page === 1 ? 'current' : '' }} js-pic-overtime-page-button" data-pic-overtime-page="{{ $page }}" data-pic-overtime-page-item="{{ $page }}" @if ($page === 1) aria-current="page" @endif>{{ $page }}</a>
+                                    @endfor
+                                </span>
+                                <a href="javascript:void(0)" class="paginate_button next {{ $pendingTablePageCount <= 1 ? 'disabled' : '' }} js-pic-overtime-page-button" data-pic-overtime-page-action="next" data-pic-overtime-page-item="next" aria-label="Next page"><i class="fa-solid fa-angle-right"></i></a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -193,17 +276,21 @@
                     <div class="card-header border-0 align-items-center">
                         <h4 class="card-title">Status : <span class="text-success">Approved</span> </h4>
                         <form class="clearfix d-flex align-items-center" method="GET" action="{{ url()->current() }}">
+                            <input type="hidden" name="card_month" value="{{ $selectedCardMonth }}">
+                            <input type="hidden" name="card_year" value="{{ $selectedCardYear }}">
+                            <input type="hidden" name="pending_month" value="{{ $selectedPendingMonth }}">
+                            <input type="hidden" name="pending_year" value="{{ $selectedPendingYear }}">
                             <div class="clearfix me-1">
-                                <select name="month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                                <select name="approved_month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
                                     @foreach (($monthOptions ?? []) as $monthOption)
-                                        <option value="{{ $monthOption['value'] }}" @selected(($selectedMonth ?? now('Asia/Jakarta')->month) === $monthOption['value'])>{{ $monthOption['label'] }}</option>
+                                        <option value="{{ $monthOption['value'] }}" @selected($selectedApprovedMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="clearfix">
-                                <select name="year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                                <select name="approved_year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
                                     @foreach (($yearOptions ?? []) as $yearOption)
-                                        <option value="{{ $yearOption }}" @selected(($selectedYear ?? now('Asia/Jakarta')->year) === $yearOption)>{{ $yearOption }}</option>
+                                        <option value="{{ $yearOption }}" @selected($selectedApprovedYear === $yearOption)>{{ $yearOption }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -212,36 +299,83 @@
                             </div>
                         </form>
                     </div>
-                    <div class="card-body table-card-body px-0 pt-0 pb-2">
-                        <div class="table-responsive">
+                    <div class="card-body table-card-body px-0 pt-0 pb-0" data-pic-overtime-table data-pic-overtime-page-size="{{ $picOvertimeTablePageSize }}">
+                        <div class="table-responsive pic-overtime-review-table">
                             <table id="tableLogs" class="table table-sm table-sm-responsive text-nowrap">
                                 <thead>
                                     <tr>
                                         <th class="mw-10">No</th>
                                         <th class="mw-50">Datetime</th>
                                         <th class="mw-50">Name</th>
+                                        <th class="mw-80">Status</th>
                                         <th class="mw-80">Task</th>
                                         <th class="mw-80">Payout</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse (($approvedRows ?? collect()) as $row)
-                                        <tr>
+                                    @forelse ($approvedTableRows as $row)
+                                        <tr @class(['js-pic-overtime-table-row', 'd-none' => $loop->iteration > $picOvertimeTablePageSize])>
                                             <td>{{ $loop->iteration }}</td>
                                             <td>{{ $row['datetime'] }}</td>
                                             <td>{{ $row['name'] }}</td>
+                                            <td>
+                                                <span class="{{ $row['status_class'] ?? 'text-muted' }}">
+                                                    {{ $row['status'] ?? '-' }}
+                                                    <i class="fa fa-info-circle ms-1"
+                                                        title="Status: {{ $row['status_info'] ?? '-' }}"
+                                                        aria-label="Status: {{ $row['status_info'] ?? '-' }}"></i>
+                                                </span>
+                                            </td>
                                             <td>{{ $row['task'] }}</td>
                                             <td>{{ $row['payout'] }}</td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted">No approved overtime data available for this period.</td>
+                                            <td colspan="6" class="text-center text-muted">No approved overtime data available for this period.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
                             </table>
                         </div>
+                        <div class="pic-overtime-table-footer dataTables_wrapper no-footer">
+                            <div class="dataTables_info js-pic-overtime-page-summary">
+                                Showing {{ $approvedTableRows->isEmpty() ? 0 : 1 }} to {{ min($picOvertimeTablePageSize, $approvedTableRows->count()) }} of {{ $approvedTableRows->count() }} entries
+                            </div>
+                            <div class="dataTables_paginate paging_simple_numbers js-pic-overtime-pagination">
+                                <a href="javascript:void(0)" class="paginate_button previous disabled js-pic-overtime-page-button" data-pic-overtime-page-action="previous" data-pic-overtime-page-item="previous" aria-label="Previous page"><i class="fa-solid fa-angle-left"></i></a>
+                                <span>
+                                    @for ($page = 1; $page <= $approvedTablePageCount; $page++)
+                                        <a href="javascript:void(0)" class="paginate_button {{ $page === 1 ? 'current' : '' }} js-pic-overtime-page-button" data-pic-overtime-page="{{ $page }}" data-pic-overtime-page-item="{{ $page }}" @if ($page === 1) aria-current="page" @endif>{{ $page }}</a>
+                                    @endfor
+                                </span>
+                                <a href="javascript:void(0)" class="paginate_button next {{ $approvedTablePageCount <= 1 ? 'disabled' : '' }} js-pic-overtime-page-button" data-pic-overtime-page-action="next" data-pic-overtime-page-item="next" aria-label="Next page"><i class="fa-solid fa-angle-right"></i></a>
+                            </div>
+                        </div>
                     </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="d-flex justify-content-end mb-3 pic-overtime-card-filter">
+                    <form class="clearfix d-flex align-items-center" method="GET" action="{{ url()->current() }}">
+                        <input type="hidden" name="pending_month" value="{{ $selectedPendingMonth }}">
+                        <input type="hidden" name="pending_year" value="{{ $selectedPendingYear }}">
+                        <input type="hidden" name="approved_month" value="{{ $selectedApprovedMonth }}">
+                        <input type="hidden" name="approved_year" value="{{ $selectedApprovedYear }}">
+                        <div class="clearfix me-1">
+                            <select name="card_month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                                @foreach (($monthOptions ?? []) as $monthOption)
+                                    <option value="{{ $monthOption['value'] }}" @selected($selectedCardMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="clearfix">
+                            <select name="card_year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                                @foreach (($yearOptions ?? []) as $yearOption)
+                                    <option value="{{ $yearOption }}" @selected($selectedCardYear === $yearOption)>{{ $yearOption }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </form>
                 </div>
             </div>
             @forelse (($overtimeCards ?? collect()) as $overtimeCard)
@@ -472,8 +606,53 @@
             var $overtimeDate = jQuery('#pic-overtime-date');
             var $overtimeDateValue = jQuery('#pic-overtime-date-value');
 
-            if (!$modal.length || !$overtimeDate.length) {
-                return;
+            function picOvertimeTablePageSize($tableContainer) {
+                return parseInt($tableContainer.attr('data-pic-overtime-page-size'), 10) || 5;
+            }
+
+            function updatePicOvertimeTablePagination($tableContainer, currentPage, totalPages, totalRows) {
+                var pageSize = picOvertimeTablePageSize($tableContainer);
+                var start = totalRows === 0 ? 0 : ((currentPage - 1) * pageSize) + 1;
+                var end = Math.min(currentPage * pageSize, totalRows);
+
+                $tableContainer.find('.js-pic-overtime-page-summary').text('Showing ' + start + ' to ' + end + ' of ' + totalRows + ' entries');
+                $tableContainer.find('[data-pic-overtime-page-item]').removeClass('current disabled');
+                $tableContainer.find('[data-pic-overtime-page]').removeAttr('aria-current');
+                $tableContainer.find('[data-pic-overtime-page-item="' + currentPage + '"]')
+                    .addClass('current')
+                    .attr('aria-current', 'page');
+
+                if (currentPage <= 1) {
+                    $tableContainer.find('[data-pic-overtime-page-item="previous"]').addClass('disabled');
+                }
+
+                if (currentPage >= totalPages) {
+                    $tableContainer.find('[data-pic-overtime-page-item="next"]').addClass('disabled');
+                }
+            }
+
+            function showPicOvertimeTablePage(tableContainer, pageNumber) {
+                var $tableContainer = jQuery(tableContainer);
+                var $rows = $tableContainer.find('.js-pic-overtime-table-row');
+                var pageSize = picOvertimeTablePageSize($tableContainer);
+                var totalRows = $rows.length;
+                var totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+                var currentPage = Math.min(Math.max(parseInt(pageNumber, 10) || 1, 1), totalPages);
+                var startIndex = (currentPage - 1) * pageSize;
+                var endIndex = startIndex + pageSize;
+
+                $rows.each(function (index) {
+                    jQuery(this).toggleClass('d-none', index < startIndex || index >= endIndex);
+                });
+
+                $tableContainer.attr('data-pic-overtime-current-page', currentPage);
+                updatePicOvertimeTablePagination($tableContainer, currentPage, totalPages, totalRows);
+            }
+
+            function initPicOvertimeTablePagination() {
+                jQuery('[data-pic-overtime-table]').each(function () {
+                    showPicOvertimeTablePage(this, jQuery(this).attr('data-pic-overtime-current-page') || 1);
+                });
             }
 
             function formatOvertimeDateDisplay(dateValue) {
@@ -530,8 +709,34 @@
                 });
             }
 
+            jQuery(document).on('click', '.js-pic-overtime-page-button', function () {
+                var $button = jQuery(this);
 
-            initOvertimeDatePicker();
+                if ($button.hasClass('disabled')) {
+                    return;
+                }
+
+                var $tableContainer = $button.closest('[data-pic-overtime-table]');
+                var currentPage = parseInt($tableContainer.attr('data-pic-overtime-current-page'), 10) || 1;
+                var pageAction = $button.attr('data-pic-overtime-page-action');
+                var targetPage = parseInt($button.attr('data-pic-overtime-page'), 10) || currentPage;
+
+                if (pageAction === 'previous') {
+                    targetPage = currentPage - 1;
+                }
+
+                if (pageAction === 'next') {
+                    targetPage = currentPage + 1;
+                }
+
+                showPicOvertimeTablePage($tableContainer, targetPage);
+            });
+
+            initPicOvertimeTablePagination();
+
+            if ($modal.length && $overtimeDate.length) {
+                initOvertimeDatePicker();
+            }
         });
     </script>
     @if ($picOvertimeErrors->any())

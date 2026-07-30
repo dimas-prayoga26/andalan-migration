@@ -160,6 +160,9 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('Healthcare BPJS', $authorizationShowView);
         $this->assertStringContainsString("private const DEFAULT_EMPLOYEE_PASSWORD = 'passwrod';", $controller);
         $this->assertStringContainsString('Hash::make(self::DEFAULT_EMPLOYEE_PASSWORD)', $controller);
+        $this->assertStringContainsString('$user->assignRole($this->defaultStaffRole());', $controller);
+        $this->assertStringContainsString('private function defaultStaffRole(): Role', $controller);
+        $this->assertStringContainsString('Role::query()->firstOrCreate', $controller);
         $this->assertStringContainsString('private function generateEmployeeCode(User $user): string', $controller);
         $this->assertStringContainsString("'employee_code' => \$this->generateEmployeeCode(\$user)", $controller);
         $this->assertStringContainsString('Employee has been added successfully.', $controller);

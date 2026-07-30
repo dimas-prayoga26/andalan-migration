@@ -151,13 +151,10 @@ class OvertimeReviewTableBuilder
             })
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
                 'employee.user:id,username',
                 'assignedBy:id,username',
-                'assignedBy.employee:id,user_id',
-                'assignedBy.employee.profile:id,employee_id,name',
                 'projectTasks:id,overtime_id',
-                'lifecycleLogs:id,overtime_id,event_key,status',
+                'lifecycleLogs:id,overtime_id,event_key,title,status,step_order',
             ])
             ->orderBy('overtime_date')
             ->orderBy('created_at');
@@ -195,6 +192,8 @@ class OvertimeReviewTableBuilder
             'overtime_date',
             'actual_start_time',
             'actual_end_time',
+            'approved_start_time',
+            'approved_end_time',
             'status',
         ]);
 
@@ -218,6 +217,8 @@ class OvertimeReviewTableBuilder
             'overtime_date',
             'actual_start_time',
             'actual_end_time',
+            'approved_start_time',
+            'approved_end_time',
             'status',
         ]);
 
@@ -259,24 +260,114 @@ class OvertimeReviewTableBuilder
      */
     private function rowFor(AttendanceOvertime $overtime, string $context): array
     {
+        $currentLifecycle = $this->currentLifecycleValue($overtime);
+
         return [
             'datetime' => $this->datetimeLabel($overtime),
             'name' => $this->employeeName($overtime),
             'supervisor' => $this->supervisorName($overtime),
             'task' => $overtime->projectTasks->count().' task',
+            'status' => $currentLifecycle['title'],
+            'status_info' => $currentLifecycle['status'],
+            'status_class' => $currentLifecycle['text_class'],
             'payout' => '-',
             'detail_url' => $this->detailUrlFor($context, $overtime),
         ];
     }
 
+    private function currentLifecycleTitle(AttendanceOvertime $overtime): string
+    {
+        return $this->currentLifecycleValue($overtime)['title'];
+    }
+
+    /**
+     * @return array{title:string,status:string,text_class:string}
+     */
+    private function currentLifecycleValue(AttendanceOvertime $overtime): array
+    {
+        $currentLifecycleLog = $overtime->lifecycleLogs
+            ->sortBy('step_order')
+            ->first(fn (OvertimeLifecycleLog $lifecycleLog): bool => ! $this->isCompletedLifecycleStatus((string) $lifecycleLog->status));
+
+        $selectedLifecycleLog = $currentLifecycleLog
+            ?: $overtime->lifecycleLogs->sortByDesc('step_order')->first();
+
+        $title = $selectedLifecycleLog?->title;
+        $status = $selectedLifecycleLog?->status;
+
+        return [
+            'title' => is_string($title) && trim($title) !== '' ? trim($title) : '-',
+            'status' => is_string($status) && trim($status) !== '' ? trim($status) : '-',
+            'text_class' => $this->lifecycleTextClass((string) ($selectedLifecycleLog?->status ?? '')),
+        ];
+    }
+
+    private function lifecycleTextClass(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            'approved',
+            'calculated_locked',
+            'clock_in',
+            'clock_out',
+            'complete',
+            'completed',
+            'verified' => 'text-success',
+            'rejected',
+            'cancelled',
+            'canceled',
+            'failed' => 'text-danger',
+            'in_progress',
+            'progress',
+            'review' => 'text-info',
+            'pending',
+            'upcoming',
+            'waiting' => 'text-warning',
+            default => 'text-muted',
+        };
+    }
+
+    private function isCompletedLifecycleStatus(string $status): bool
+    {
+        return in_array(strtolower(trim($status)), [
+            'approved',
+            'calculated_locked',
+            'clock_in',
+            'clock_out',
+            'complete',
+            'completed',
+            'verified',
+        ], true);
+    }
+
     private function datetimeLabel(AttendanceOvertime $overtime): string
     {
         $dateLabel = Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->format('d M Y');
-        $startTime = $this->formatTime($overtime->actual_start_time);
-        $endTime = $this->formatTime($overtime->actual_end_time);
-        $duration = $this->durationLabel($overtime->actual_start_time, $overtime->actual_end_time);
+        [$startTimeValue, $endTimeValue] = $this->reviewTimeValues($overtime);
+        $startTime = $this->formatTime($startTimeValue);
+        $endTime = $this->formatTime($endTimeValue);
+        $duration = $this->durationLabel($startTimeValue, $endTimeValue);
 
         return "{$dateLabel}, {$startTime} - {$endTime} ({$duration})";
+    }
+
+    /**
+     * @return array{0:mixed,1:mixed}
+     */
+    private function reviewTimeValues(AttendanceOvertime $overtime): array
+    {
+        if ($this->hasTimeRange($overtime->approved_start_time, $overtime->approved_end_time)) {
+            return [$overtime->approved_start_time, $overtime->approved_end_time];
+        }
+
+        return [$overtime->actual_start_time, $overtime->actual_end_time];
+    }
+
+    private function hasTimeRange(mixed $startTimeValue, mixed $endTimeValue): bool
+    {
+        return is_string($startTimeValue)
+            && trim($startTimeValue) !== ''
+            && is_string($endTimeValue)
+            && trim($endTimeValue) !== '';
     }
 
     private function formatTime(mixed $time): string
@@ -319,14 +410,14 @@ class OvertimeReviewTableBuilder
 
     private function employeeName(AttendanceOvertime $overtime): string
     {
-        $name = $overtime->employee?->profile?->name ?: $overtime->employee?->user?->username;
+        $name = $overtime->employee?->user?->username;
 
         return is_string($name) && trim($name) !== '' ? trim($name) : '-';
     }
 
     private function supervisorName(AttendanceOvertime $overtime): string
     {
-        $name = $overtime->assignedBy?->employee?->profile?->name ?: $overtime->assignedBy?->username;
+        $name = $overtime->assignedBy?->username;
 
         return is_string($name) && trim($name) !== '' ? trim($name) : '-';
     }

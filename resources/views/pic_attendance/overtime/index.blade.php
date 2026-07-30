@@ -30,10 +30,124 @@
             opacity: .35;
         }
 
+        .overtime-summary-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 18px 32px;
+        }
+
+        .overtime-summary-card {
+            min-height: 82px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            padding: 10px 12px;
+            text-align: center;
+        }
+
+        .overtime-summary-label {
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.15;
+        }
+
+        .overtime-summary-value {
+            max-width: 100%;
+            margin: 4px 0 0;
+            font-size: 18px;
+            font-weight: 600;
+            line-height: 1.2;
+            overflow-wrap: anywhere;
+        }
+
         .pic-overtime-review-table {
             height: 286px;
-            overflow-x: auto;
+            overflow-x: hidden;
             overflow-y: hidden;
+        }
+
+        .overtime-review-table .table {
+            width: 100%;
+            table-layout: fixed;
+            margin-bottom: 0;
+        }
+
+        .overtime-review-table th,
+        .overtime-review-table td {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .overtime-review-table .overtime-status-cell {
+            max-width: 100%;
+        }
+
+        .overtime-pending-table th:nth-child(1),
+        .overtime-pending-table td:nth-child(1),
+        .overtime-approved-table th:nth-child(1),
+        .overtime-approved-table td:nth-child(1) {
+            width: 7%;
+        }
+
+        .overtime-pending-table th:nth-child(2),
+        .overtime-pending-table td:nth-child(2) {
+            width: 34%;
+        }
+
+        .overtime-approved-table th:nth-child(2),
+        .overtime-approved-table td:nth-child(2) {
+            width: 32%;
+        }
+
+        .overtime-pending-table th:nth-child(3),
+        .overtime-pending-table td:nth-child(3),
+        .overtime-approved-table th:nth-child(3),
+        .overtime-approved-table td:nth-child(3) {
+            width: 14%;
+        }
+
+        .overtime-pending-table th:nth-child(4),
+        .overtime-pending-table td:nth-child(4) {
+            width: 13%;
+        }
+
+        .overtime-approved-table th:nth-child(4),
+        .overtime-approved-table td:nth-child(4) {
+            width: 26%;
+        }
+
+        .overtime-pending-table th:nth-child(5),
+        .overtime-pending-table td:nth-child(5) {
+            width: 22%;
+        }
+
+        .overtime-approved-table th:nth-child(5),
+        .overtime-approved-table td:nth-child(5) {
+            width: 12%;
+        }
+
+        .overtime-pending-table th:nth-child(6),
+        .overtime-pending-table td:nth-child(6) {
+            width: 10%;
+        }
+
+        .overtime-approved-table th:nth-child(6),
+        .overtime-approved-table td:nth-child(6) {
+            width: 9%;
+        }
+
+        @media (min-width: 1200px) {
+            .overtime-summary-metrics {
+                grid-template-columns: repeat(9, minmax(0, 1fr));
+            }
         }
 
         @media (max-width: 767.98px) {
@@ -109,69 +223,13 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="row">
-            <div class="col-md-4 col-4 mb-3">
-                <div class="bg-dark-subtle rounded px-3 py-2 text-center">
-                    <span class="fs-14 text-black fw-semibold fw-semibold">Pending</span>
-                    <h5 class="mb-0 fw-semibold">{{ $overtimeSummary['pending_label'] ?? '0 request' }}</h5>
-                </div>
-            </div>
-            <div class="col-md-4 col-4 mb-3">
-                <div class="bg-success-subtle rounded px-3 py-2 text-center">
-                    <span class="fs-14 text-success fw-semibold">SPV ACC</span>
-                    <h5 class="mb-0 fw-semibold">{{ $overtimeSummary['supervisor_approved_label'] ?? '0 request' }}</h5>
-                </div>
-            </div>
-            <div class="col-md-4 col-4 mb-3">
-                <div class="bg-success-subtle rounded px-3 py-2 text-center">
-                    <span class="fs-14 text-success fw-semibold">Director ACC</span>
-                    <h5 class="mb-0 fw-semibold">{{ $overtimeSummary['director_approved_label'] ?? '0 request' }}</h5>
-                </div>
-            </div>
+<div class="overtime-summary-metrics mb-3">
+    @foreach (($overtimeMetricCards ?? []) as $summaryCard)
+        <div class="overtime-summary-card {{ $summaryCard['background_class'] ?? 'bg-light-subtle' }}">
+            <span class="overtime-summary-label {{ $summaryCard['text_class'] ?? 'text-black' }}">{{ $summaryCard['label'] ?? '-' }}</span>
+            <h5 class="overtime-summary-value text-black">{{ $summaryCard['value'] ?? '-' }}</h5>
         </div>
-    </div>
-    <div class="col-md-8">
-        <div class="row">
-            <div class="col-md-2 col-4 mb-3">
-                <div class="bg-danger-subtle rounded px-3 py-2 text-center">
-                    <span class="fs-14 text-danger fw-semibold">Total Hours</span>
-                    <h5 class="mb-0 fw-semibold">{{ $overtimeSummary['total_hours_label'] ?? '0 hours' }}</h5>
-                </div>
-            </div>
-            <div class="col-md-2 col-4 mb-3">
-                <div class="bg-info-subtle rounded px-3 py-2 text-center">
-                    <span class="fs-14 text-info fw-semibold fw-semibold">Est. Cost</span>
-                    <h5 class="mb-0 fw-semibold">Rp. 12 Jt</h5>
-                </div>
-            </div>
-            <div class="col-md-2 col-4 mb-3">
-                <div class="bg-primary-subtle rounded px-3 py-2 text-center">
-                    <span class="fs-14 text-primary fw-semibold">Median Hours</span>
-                    <h5 class="mb-0 fw-semibold">{{ $overtimeSummary['median_hours_label'] ?? '0 hours' }}</h5>
-                </div>
-            </div>
-            <div class="col-md-2 col-4 mb-3">
-                <div class="bg-warning-subtle rounded px-3 py-2 text-center">
-                    <span class="fs-14 text-warning fw-semibold fw-semibold">Avg. Hours</span>
-                    <h5 class="mb-0 fw-semibold">{{ $overtimeSummary['average_hours_label'] ?? '0 hours' }}</h5>
-                </div>
-            </div>
-            <div class="col-md-2 col-4 mb-3">
-                <div class="bg-secondary-subtle rounded px-3 py-2 text-center">
-                    <span class="fs-14 text-secondary fw-semibold">Top Overtime</span>
-                    <h5 class="mb-0 fw-semibold">{{ $overtimeSummary['top_overtime_label'] ?? '-' }}</h5>
-                </div>
-            </div>
-            <div class="col-md-2 col-4 mb-3">
-                <div class="bg-light-subtle rounded px-3 py-2 text-center">
-                    <span class="fs-14 text-black fw-semibold">W-end|W-day</span>
-                    <h5 class="mb-0 fw-semibold">{{ $overtimeSummary['weekend_weekday_label'] ?? '0h | 0h' }}</h5>
-                </div>
-            </div>
-        </div>
-    </div>
+    @endforeach
 </div>
 
 <!-- Start - Billing Statement -->
@@ -207,8 +265,8 @@
                         </form>
                     </div>
                     <div class="card-body table-card-body px-0 pt-0 pb-0" data-pic-overtime-table data-pic-overtime-page-size="{{ $picOvertimeTablePageSize }}">
-                        <div class="table-responsive pic-overtime-review-table">
-                            <table class="table table-sm table-sm-responsive text-nowrap" id="tableLicenseUsage">
+                        <div class="table-responsive pic-overtime-review-table overtime-review-table">
+                            <table class="table table-sm table-sm-responsive text-nowrap overtime-pending-table" id="tableLicenseUsage">
                                 <thead>
                                     <tr>
                                         <th class="mw-10">No</th>
@@ -226,7 +284,7 @@
                                             <td>{{ $row['datetime'] }}</td>
                                             <td>{{ $row['name'] }}</td>
                                             <td>{{ $row['supervisor'] }}</td>
-                                            <td>
+                                            <td class="overtime-status-cell">
                                                 <span class="{{ $row['status_class'] ?? 'text-muted' }}">
                                                     {{ $row['status'] ?? '-' }}
                                                     <i class="fa fa-info-circle ms-1"
@@ -300,8 +358,8 @@
                         </form>
                     </div>
                     <div class="card-body table-card-body px-0 pt-0 pb-0" data-pic-overtime-table data-pic-overtime-page-size="{{ $picOvertimeTablePageSize }}">
-                        <div class="table-responsive pic-overtime-review-table">
-                            <table id="tableLogs" class="table table-sm table-sm-responsive text-nowrap">
+                        <div class="table-responsive pic-overtime-review-table overtime-review-table">
+                            <table id="tableLogs" class="table table-sm table-sm-responsive text-nowrap overtime-approved-table">
                                 <thead>
                                     <tr>
                                         <th class="mw-10">No</th>
@@ -318,7 +376,7 @@
                                             <td>{{ $loop->iteration }}</td>
                                             <td>{{ $row['datetime'] }}</td>
                                             <td>{{ $row['name'] }}</td>
-                                            <td>
+                                            <td class="overtime-status-cell">
                                                 <span class="{{ $row['status_class'] ?? 'text-muted' }}">
                                                     {{ $row['status'] ?? '-' }}
                                                     <i class="fa fa-info-circle ms-1"

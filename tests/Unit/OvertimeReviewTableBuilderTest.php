@@ -62,6 +62,12 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('$selectedPendingMonth', $picView);
         $this->assertStringContainsString('$selectedApprovedMonth', $picView);
         $this->assertStringContainsString('pic-overtime-card-filter', $picView);
+        $this->assertStringContainsString('overtime-summary-metrics mb-3', $picView);
+        $this->assertStringContainsString('@foreach (($overtimeMetricCards ?? []) as $summaryCard)', $picView);
+        $this->assertStringContainsString('overtime-summary-card {{ $summaryCard[\'background_class\'] ?? \'bg-light-subtle\' }}', $picView);
+        $this->assertStringContainsString('min-height: 82px;', $picView);
+        $this->assertStringContainsString('grid-template-columns: repeat(9, minmax(0, 1fr));', $picView);
+        $this->assertStringNotContainsString('$overtimeSummary[\'pending_label\']', $picView);
         $this->assertLessThan(
             strpos($picView, '@forelse (($overtimeCards ?? collect()) as $overtimeCard)'),
             strpos($picView, 'pic-overtime-card-filter'),
@@ -80,7 +86,12 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('table-responsive pic-overtime-review-table', $picView);
         $this->assertStringContainsString('.pic-overtime-review-table', $picView);
         $this->assertStringContainsString('height: 286px;', $picView);
+        $this->assertStringContainsString('overflow-x: hidden;', $picView);
         $this->assertStringContainsString('overflow-y: hidden;', $picView);
+        $this->assertStringContainsString('table-layout: fixed;', $picView);
+        $this->assertStringContainsString('overtime-pending-table', $picView);
+        $this->assertStringContainsString('overtime-approved-table', $picView);
+        $this->assertStringContainsString('td class="overtime-status-cell"', $picView);
         $this->assertStringNotContainsString('.pic-overtime-review-table.is-empty', $picView);
         $this->assertStringNotContainsString("'is-empty' => \$pendingTableRows->isEmpty()", $picView);
         $this->assertStringNotContainsString("'is-empty' => \$approvedTableRows->isEmpty()", $picView);
@@ -112,6 +123,12 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('$selectedPendingMonth', $directorView);
         $this->assertStringContainsString('$selectedApprovedMonth', $directorView);
         $this->assertStringContainsString('director-overtime-card-filter', $directorView);
+        $this->assertStringContainsString('overtime-summary-metrics mb-3', $directorView);
+        $this->assertStringContainsString('@foreach (($overtimeMetricCards ?? []) as $summaryCard)', $directorView);
+        $this->assertStringContainsString('overtime-summary-card {{ $summaryCard[\'background_class\'] ?? \'bg-light-subtle\' }}', $directorView);
+        $this->assertStringContainsString('min-height: 82px;', $directorView);
+        $this->assertStringContainsString('grid-template-columns: repeat(9, minmax(0, 1fr));', $directorView);
+        $this->assertStringNotContainsString('$overtimeSummary[\'pending_label\']', $directorView);
         $this->assertLessThan(
             strpos($directorView, '@forelse (($overtimeCards ?? collect()) as $overtimeCard)'),
             strpos($directorView, 'director-overtime-card-filter'),
@@ -130,7 +147,12 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('table-responsive director-overtime-review-table', $directorView);
         $this->assertStringContainsString('.director-overtime-review-table', $directorView);
         $this->assertStringContainsString('height: 286px;', $directorView);
+        $this->assertStringContainsString('overflow-x: hidden;', $directorView);
         $this->assertStringContainsString('overflow-y: hidden;', $directorView);
+        $this->assertStringContainsString('table-layout: fixed;', $directorView);
+        $this->assertStringContainsString('overtime-pending-table', $directorView);
+        $this->assertStringContainsString('overtime-approved-table', $directorView);
+        $this->assertStringContainsString('td class="overtime-status-cell"', $directorView);
         $this->assertStringNotContainsString('.director-overtime-review-table.is-empty', $directorView);
         $this->assertStringNotContainsString("'is-empty' => \$pendingTableRows->isEmpty()", $directorView);
         $this->assertStringNotContainsString("'is-empty' => \$approvedTableRows->isEmpty()", $directorView);
@@ -160,6 +182,12 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('$selectedPendingMonth', $view);
         $this->assertStringContainsString('$selectedCompleteMonth', $view);
         $this->assertStringContainsString('admin-overtime-card-filter', $view);
+        $this->assertStringContainsString('overtime-summary-metrics mb-3', $view);
+        $this->assertStringContainsString('@foreach (($overtimeMetricCards ?? []) as $summaryCard)', $view);
+        $this->assertStringContainsString('overtime-summary-card {{ $summaryCard[\'background_class\'] ?? \'bg-light-subtle\' }}', $view);
+        $this->assertStringContainsString('min-height: 82px;', $view);
+        $this->assertStringContainsString('grid-template-columns: repeat(9, minmax(0, 1fr));', $view);
+        $this->assertStringNotContainsString('$overtimeSummary[\'pending_label\']', $view);
         $this->assertLessThan(
             strpos($view, '@forelse (($overtimeCards ?? collect()) as $overtimeCard)'),
             strpos($view, 'admin-overtime-card-filter'),
@@ -178,7 +206,12 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('table-responsive admin-overtime-review-table', $view);
         $this->assertStringContainsString('.admin-overtime-review-table', $view);
         $this->assertStringContainsString('height: 286px;', $view);
+        $this->assertStringContainsString('overflow-x: hidden;', $view);
         $this->assertStringContainsString('overflow-y: hidden;', $view);
+        $this->assertStringContainsString('table-layout: fixed;', $view);
+        $this->assertStringContainsString('overtime-pending-table', $view);
+        $this->assertStringContainsString('overtime-approved-table', $view);
+        $this->assertStringContainsString('td class="overtime-status-cell"', $view);
         $this->assertStringNotContainsString('.admin-overtime-review-table.is-empty', $view);
         $this->assertStringNotContainsString("'is-empty' => \$pendingTableRows->isEmpty()", $view);
         $this->assertStringNotContainsString("'is-empty' => \$completeTableRows->isEmpty()", $view);

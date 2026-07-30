@@ -159,7 +159,9 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('picAddOvertimeModal', $overtimeView);
         $this->assertStringContainsString("route('pic-attendance.overtime.store')", $overtimeView);
         $this->assertStringContainsString('$legacyMonth = $request->query(\'month\');', $overtimeController);
+        $this->assertStringContainsString('$picOvertimeCompanyId = is_string($assignedByUserId) && trim($assignedByUserId) !== \'\' ? null : $companyId;', $overtimeController);
         $this->assertStringContainsString('$cardMonth = $this->normalizeMonth($request->query(\'card_month\', $legacyMonth));', $overtimeController);
+        $this->assertStringContainsString('$picOvertimeCompanyId,', $overtimeController);
         $this->assertStringContainsString('$request->query(\'pending_month\', $legacyMonth)', $overtimeController);
         $this->assertStringContainsString('$request->query(\'approved_month\', $legacyMonth)', $overtimeController);
         $this->assertStringContainsString('$metricBuilder->summarizeForPeriod(', $overtimeController);

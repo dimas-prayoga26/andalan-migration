@@ -1468,6 +1468,7 @@ class LegacySqlUserSeeder extends Seeder
             'view-authorization',
             'view-employee-database',
             'view-talent-acquisition',
+            'view-settings',
             'view-meeting',
         ];
     }
@@ -1518,6 +1519,7 @@ class LegacySqlUserSeeder extends Seeder
                 'view-authorization',
                 'view-employee-database',
                 'view-talent-acquisition',
+                'view-settings',
                 'view-meeting',
             ]);
 
@@ -1533,6 +1535,7 @@ class LegacySqlUserSeeder extends Seeder
                 'view-authorization',
                 'view-employee-database',
                 'view-talent-acquisition',
+                'view-settings',
                 'view-meeting',
             ]);
 

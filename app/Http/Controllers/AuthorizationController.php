@@ -281,6 +281,7 @@ class AuthorizationController extends Controller
             'view-authorization' => ['section' => 'HR Management', 'label' => 'Employee Data'],
             'view-employee-database' => ['section' => 'HR Management', 'label' => 'Employee Database'],
             'view-talent-acquisition' => ['section' => 'HR Management', 'label' => 'Talent Acquisition'],
+            'view-settings' => ['section' => 'Setting', 'label' => 'Setting'],
             'view-payroll' => ['section' => 'Finance Management', 'label' => 'Payroll'],
             'view-employee-services' => ['section' => 'Finance Management', 'label' => 'Employee Services'],
         ];

@@ -58,6 +58,7 @@ class PositionPermissionSeeder extends Seeder
             ['section' => 'HR Management', 'label' => 'Authorization', 'permission' => 'view-authorization'],
             ['section' => 'HR Management', 'label' => 'Employee Database', 'permission' => 'view-employee-database'],
             ['section' => 'HR Management', 'label' => 'Talent Acquisition', 'permission' => 'view-talent-acquisition'],
+            ['section' => 'Setting', 'label' => 'Setting', 'permission' => 'view-settings'],
             ['section' => 'Finance Management', 'label' => 'Payroll', 'permission' => 'view-payroll'],
             ['section' => 'Finance Management', 'label' => 'Employee Services', 'permission' => 'view-employee-services'],
         ];
@@ -87,6 +88,7 @@ class PositionPermissionSeeder extends Seeder
                 'view-authorization',
                 'view-employee-database',
                 'view-talent-acquisition',
+                'view-settings',
             ]);
 
         Role::query()
@@ -130,6 +132,7 @@ class PositionPermissionSeeder extends Seeder
             'view-authorization',
             'view-employee-database',
             'view-talent-acquisition',
+            'view-settings',
             'view-director-attendance',
         ];
 

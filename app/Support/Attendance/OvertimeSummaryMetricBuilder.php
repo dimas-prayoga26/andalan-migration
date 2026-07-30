@@ -25,6 +25,16 @@ class OvertimeSummaryMetricBuilder
     private const CALCULATED_LOCKED = 'calculated_locked';
 
     /**
+     * @var array<int, string>
+     */
+    private const COMPLETED_TASK_HOURS_STATUSES = [
+        'approved',
+        'complete',
+        'completed',
+        self::VERIFIED,
+    ];
+
+    /**
      * @return array<string, string>
      */
     public function summarizeForCompany(?string $companyId, ?string $assignedByUserId = null): array
@@ -286,7 +296,11 @@ class OvertimeSummaryMetricBuilder
 
     private function isTaskHoursVerified(AttendanceOvertime $overtime): bool
     {
-        return $this->lifecycleStatus($overtime, self::TASK_HOURS_VERIFICATION) === self::VERIFIED;
+        return in_array(
+            $this->lifecycleStatus($overtime, self::TASK_HOURS_VERIFICATION),
+            self::COMPLETED_TASK_HOURS_STATUSES,
+            true
+        );
     }
 
     private function lifecycleStatus(AttendanceOvertime $overtime, string $eventKey): string

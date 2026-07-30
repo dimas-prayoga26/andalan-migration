@@ -159,6 +159,31 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
         $this->assertSame('0h | 0h', $summary['weekend_weekday_label']);
     }
 
+    public function test_it_keeps_completed_pic_verification_in_supervisor_approved_summary(): void
+    {
+        $summary = (new OvertimeSummaryMetricBuilder)->summarizeCollection(collect([
+            $this->overtime(
+                employeeId: 'employee-a',
+                employeeUsername: 'mevia',
+                overtimeDate: '2026-07-25',
+                actualStartTime: '14:00:00',
+                actualEndTime: '21:00:00',
+                lifecycleStatuses: [
+                    'session_ended' => 'clock_out',
+                    'task_hours_verification' => 'complete',
+                    'director_approval' => 'approved',
+                    'payment_disbursement' => 'complete',
+                ],
+                approvedStartTime: '14:00:00',
+                approvedEndTime: '21:00:00',
+            ),
+        ]));
+
+        $this->assertSame('1 request', $summary['supervisor_approved_label']);
+        $this->assertSame('7 hours', $summary['total_hours_label']);
+        $this->assertSame('mevia', $summary['top_overtime_label']);
+    }
+
     /**
      * @param  array<string, string>  $lifecycleStatuses
      */

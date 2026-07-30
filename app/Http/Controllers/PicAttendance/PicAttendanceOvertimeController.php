@@ -106,14 +106,14 @@ class PicAttendanceOvertimeController extends Controller
             $request->query('approved_month', $legacyMonth),
             $request->query('approved_year', $legacyYear)
         );
-        $overtimeSummary = is_string($companyId) && trim($companyId) !== ''
+        $overtimeSummary = is_string($assignedByUserId) && trim($assignedByUserId) !== ''
             ? $metricBuilder->summarizeForPeriod(
                 $companyId,
                 $assignedByUserId,
                 $cardMonth,
                 $cardYear
             )
-            : $metricBuilder->summarizeForCompany($companyId, $assignedByUserId);
+            : $metricBuilder->summarizeForActiveEmployees($companyId, $assignedByUserId);
 
         return view('pic_attendance.overtime.index', [
             'overtimeSummary' => $overtimeSummary,

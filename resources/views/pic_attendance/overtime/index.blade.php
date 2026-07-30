@@ -94,8 +94,7 @@
         }
 
         .overtime-review-table .table {
-            min-width: 760px;
-            width: 100%;
+            min-width: 900px;
             margin-bottom: 0;
         }
 

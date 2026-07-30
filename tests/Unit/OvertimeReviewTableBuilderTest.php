@@ -29,7 +29,7 @@ class OvertimeReviewTableBuilderTest extends TestCase
     {
         $builder = (string) file_get_contents(app_path('Support/Attendance/OvertimeReviewTableBuilder.php'));
 
-        $this->assertStringContainsString("\$context === 'pic' && (! is_string(\$companyId) || trim(\$companyId) === '')", $builder);
+        $this->assertStringContainsString("&& (! is_string(\$assignedByUserId) || trim(\$assignedByUserId) === '')", $builder);
         $this->assertStringContainsString('private function baseQuery(?string $companyId, int $month, int $year, bool $includeCancelled = false): Builder', $builder);
         $this->assertStringContainsString("if (is_string(\$companyId) && trim(\$companyId) !== '')", $builder);
         $this->assertStringContainsString('if (! $includeCancelled) {', $builder);
@@ -288,6 +288,33 @@ class OvertimeReviewTableBuilderTest extends TestCase
             'payroll_processing' => 'calculated_locked',
             'director_approval' => 'approved',
             'payment_disbursement' => 'complete',
+        ])));
+    }
+
+    public function test_pic_approved_lifecycle_keeps_rows_after_director_and_payment_steps(): void
+    {
+        $reflection = new ReflectionClass(OvertimeReviewTableBuilder::class);
+        $method = $reflection->getMethod('isPicApprovedLifecycle');
+        $method->setAccessible(true);
+
+        $builder = new OvertimeReviewTableBuilder;
+
+        $this->assertTrue($method->invoke($builder, $this->overtimeWithLifecycle([
+            'task_hours_verification' => 'verified',
+            'director_approval' => 'approved',
+        ])));
+        $this->assertTrue($method->invoke($builder, $this->overtimeWithLifecycle([
+            'task_hours_verification' => 'verified',
+            'director_approval' => 'approved',
+            'payment_disbursement' => 'complete',
+        ])));
+        $this->assertTrue($method->invoke($builder, $this->overtimeWithLifecycle([
+            'task_hours_verification' => 'complete',
+            'payment_disbursement' => 'complete',
+        ])));
+        $this->assertFalse($method->invoke($builder, $this->overtimeWithLifecycle([
+            'task_hours_verification' => 'pending',
+            'director_approval' => 'waiting',
         ])));
     }
 

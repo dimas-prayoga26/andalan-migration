@@ -22,6 +22,19 @@ class OvertimeReviewTableBuilder
     /**
      * @var array<int, string>
      */
+    private const COMPLETED_LIFECYCLE_STATUSES = [
+        'approved',
+        'calculated_locked',
+        'clock_in',
+        'clock_out',
+        self::COMPLETE,
+        'completed',
+        'verified',
+    ];
+
+    /**
+     * @var array<int, string>
+     */
     private const ADMIN_LIFECYCLE_RANGE = [
         self::TASK_HOURS_VERIFICATION,
         'payroll_processing',
@@ -44,7 +57,11 @@ class OvertimeReviewTableBuilder
         $selectedMonth = $this->normalizeMonth($month);
         $selectedYear = $this->normalizeYear($year);
 
-        if ($context === 'pic' && (! is_string($companyId) || trim($companyId) === '')) {
+        if (
+            $context === 'pic'
+            && (! is_string($companyId) || trim($companyId) === '')
+            && (! is_string($assignedByUserId) || trim($assignedByUserId) === '')
+        ) {
             return [
                 'selectedMonth' => $selectedMonth,
                 'selectedYear' => $selectedYear,
@@ -85,7 +102,9 @@ class OvertimeReviewTableBuilder
             'monthOptions' => $this->monthOptions(),
             'yearOptions' => $this->yearOptions($selectedYear),
             'pendingRows' => $this->rowsForLifecycleStatus(clone $baseQuery, $pendingEventKey, $pendingStatus, $context),
-            'approvedRows' => $this->rowsForLifecycleStatus(clone $baseQuery, $approvedEventKey, $approvedStatus, $context),
+            'approvedRows' => $context === 'pic'
+                ? $this->rowsForPicApprovedLifecycle(clone $baseQuery, $context)
+                : $this->rowsForLifecycleStatus(clone $baseQuery, $approvedEventKey, $approvedStatus, $context),
         ];
     }
 
@@ -228,10 +247,63 @@ class OvertimeReviewTableBuilder
             ->map(fn (AttendanceOvertime $overtime): array => $this->rowFor($overtime, $context));
     }
 
+    /**
+     * @return Collection<int, array<string, string>>
+     */
+    private function rowsForPicApprovedLifecycle(Builder $query, string $context): Collection
+    {
+        /** @var Collection<int, AttendanceOvertime> $overtimes */
+        $overtimes = $query->get([
+            'id',
+            'employee_id',
+            'assigned_by',
+            'record_number',
+            'overtime_date',
+            'actual_start_time',
+            'actual_end_time',
+            'approved_start_time',
+            'approved_end_time',
+            'status',
+        ]);
+
+        return $overtimes
+            ->filter(fn (AttendanceOvertime $overtime): bool => $this->isPicApprovedLifecycle($overtime))
+            ->values()
+            ->map(fn (AttendanceOvertime $overtime): array => $this->rowFor($overtime, $context));
+    }
+
     private function isAdminPendingLifecycleRange(AttendanceOvertime $overtime): bool
     {
         return $this->hasStartedAdminLifecycleRange($overtime)
             && $this->lifecycleStatus($overtime, self::PAYMENT_DISTRIBUTION) !== self::COMPLETE;
+    }
+
+    private function isPicApprovedLifecycle(AttendanceOvertime $overtime): bool
+    {
+        $verificationStatus = $this->lifecycleStatus($overtime, self::TASK_HOURS_VERIFICATION);
+
+        if ($this->isCompletedLifecycleStatus($verificationStatus)) {
+            return true;
+        }
+
+        if (in_array($verificationStatus, ['', 'pending', 'waiting', 'rejected', 'cancelled', 'canceled'], true)) {
+            return false;
+        }
+
+        return $this->hasStartedLaterLifecycle($overtime);
+    }
+
+    private function hasStartedLaterLifecycle(AttendanceOvertime $overtime): bool
+    {
+        foreach (['payroll_processing', self::DIRECTOR_APPROVAL, self::PAYMENT_DISTRIBUTION] as $eventKey) {
+            $status = $this->lifecycleStatus($overtime, $eventKey);
+
+            if ($status !== '' && $status !== 'waiting') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function hasStartedAdminLifecycleRange(AttendanceOvertime $overtime): bool
@@ -328,15 +400,7 @@ class OvertimeReviewTableBuilder
 
     private function isCompletedLifecycleStatus(string $status): bool
     {
-        return in_array(strtolower(trim($status)), [
-            'approved',
-            'calculated_locked',
-            'clock_in',
-            'clock_out',
-            'complete',
-            'completed',
-            'verified',
-        ], true);
+        return in_array(strtolower(trim($status)), self::COMPLETED_LIFECYCLE_STATUSES, true);
     }
 
     private function datetimeLabel(AttendanceOvertime $overtime): string

@@ -88,13 +88,34 @@ class PicAttendanceOvertimeController extends Controller
         $authenticatedUser = $request->user();
         $companyId = $authenticatedUser instanceof User ? $this->currentCompanyIdFor($authenticatedUser) : null;
         $assignedByUserId = $authenticatedUser instanceof User ? (string) $authenticatedUser->id : null;
-        $tableData = $tableBuilder->buildForContext('pic', $companyId, $assignedByUserId, $request->query('month'), $request->query('year'));
+        $legacyMonth = $request->query('month');
+        $legacyYear = $request->query('year');
+        $cardMonth = $this->normalizeMonth($request->query('card_month', $legacyMonth));
+        $cardYear = $this->normalizeYear($request->query('card_year', $legacyYear));
+        $pendingTableData = $tableBuilder->buildForContext(
+            'pic',
+            $companyId,
+            $assignedByUserId,
+            $request->query('pending_month', $legacyMonth),
+            $request->query('pending_year', $legacyYear)
+        );
+        $approvedTableData = $tableBuilder->buildForContext(
+            'pic',
+            $companyId,
+            $assignedByUserId,
+            $request->query('approved_month', $legacyMonth),
+            $request->query('approved_year', $legacyYear)
+        );
 
         return view('pic_attendance.overtime.index', [
-            'overtimeSummary' => $metricBuilder->summarizeForCompany(
-                $companyId,
-                $assignedByUserId
-            ),
+            'overtimeSummary' => is_string($companyId) && trim($companyId) !== ''
+                ? $metricBuilder->summarizeForPeriod(
+                    $companyId,
+                    $assignedByUserId,
+                    $cardMonth,
+                    $cardYear
+                )
+                : $metricBuilder->summarizeForCompany($companyId, $assignedByUserId),
             'assignableStaffOptions' => $authenticatedUser instanceof User
                 ? $this->assignableStaffOptionsFor($authenticatedUser, $companyId)
                 : collect(),
@@ -103,18 +124,68 @@ class PicAttendanceOvertimeController extends Controller
                     $authenticatedUser,
                     $companyId,
                     $assignedByUserId,
-                    (int) $tableData['selectedMonth'],
-                    (int) $tableData['selectedYear']
+                    $cardMonth,
+                    $cardYear
                 )
                 : collect(),
             'overtimeCards' => $this->picOvertimeCardsFor(
                 $companyId,
                 $assignedByUserId,
-                (int) $tableData['selectedMonth'],
-                (int) $tableData['selectedYear']
+                $cardMonth,
+                $cardYear
             ),
-            ...$tableData,
+            'monthOptions' => $pendingTableData['monthOptions'],
+            'yearOptions' => $this->yearOptionsForFilters(
+                $cardYear,
+                (int) $pendingTableData['selectedYear'],
+                (int) $approvedTableData['selectedYear'],
+                $pendingTableData['yearOptions'],
+                $approvedTableData['yearOptions']
+            ),
+            'selectedMonth' => $pendingTableData['selectedMonth'],
+            'selectedYear' => $pendingTableData['selectedYear'],
+            'selectedCardMonth' => $cardMonth,
+            'selectedCardYear' => $cardYear,
+            'selectedPendingMonth' => $pendingTableData['selectedMonth'],
+            'selectedPendingYear' => $pendingTableData['selectedYear'],
+            'selectedApprovedMonth' => $approvedTableData['selectedMonth'],
+            'selectedApprovedYear' => $approvedTableData['selectedYear'],
+            'pendingRows' => $pendingTableData['pendingRows'],
+            'approvedRows' => $approvedTableData['approvedRows'],
         ]);
+    }
+
+    private function normalizeMonth(mixed $month): int
+    {
+        $monthNumber = (int) $month;
+
+        return $monthNumber >= 1 && $monthNumber <= 12
+            ? $monthNumber
+            : (int) Carbon::now('Asia/Jakarta')->format('n');
+    }
+
+    private function normalizeYear(mixed $year): int
+    {
+        $yearNumber = (int) $year;
+
+        return $yearNumber >= 2020 && $yearNumber <= 2100
+            ? $yearNumber
+            : (int) Carbon::now('Asia/Jakarta')->format('Y');
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function yearOptionsForFilters(mixed ...$selectedYearsAndOptions): array
+    {
+        return collect($selectedYearsAndOptions)
+            ->flatten()
+            ->filter(fn (mixed $year): bool => is_numeric($year) && (int) $year >= 2020)
+            ->map(fn (mixed $year): int => (int) $year)
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->all();
     }
 
     public function store(Request $request): RedirectResponse
@@ -300,6 +371,10 @@ class PicAttendanceOvertimeController extends Controller
             $this->throwPicOvertimeValidationException('approved_start_time', 'Task & Deliverables Submitted harus complete sebelum session diverifikasi.', 'picOvertimeVerify');
         }
 
+        if (! $this->canUpdateOvertimeSessionReview($overtime)) {
+            $this->throwPicOvertimeValidationException('approved_start_time', 'Review overtime session tidak bisa diubah karena HR / Payroll Processing sudah dikunci.', 'picOvertimeVerify');
+        }
+
         DB::transaction(function () use ($authenticatedUser, $approvedStartTime, $approvedEndTime, $overtime): void {
             $approvedAt = Carbon::now('Asia/Jakarta');
 
@@ -360,6 +435,7 @@ class PicAttendanceOvertimeController extends Controller
      *     verification_end_time:string,
      *     verification_duration:string,
      *     is_task_hours_verified:bool,
+     *     can_update_overtime_session_review:bool,
      *     instruction:string,
      *     payout_period:string,
      *     verified_note:string,
@@ -384,6 +460,7 @@ class PicAttendanceOvertimeController extends Controller
         $approvedDuration = $hasApprovedTime ? $this->durationLabel($overtime->approved_start_time, $overtime->approved_end_time) : '-';
         $taskDeliverablesSubmitted = $this->isTaskDeliverablesSubmitted($overtime);
         $taskHoursVerified = $this->isTaskHoursVerified($overtime);
+        $canUpdateOvertimeSessionReview = $taskDeliverablesSubmitted && $this->canUpdateOvertimeSessionReview($overtime);
         $verificationLog = $this->overtimeLifecycleLog($overtime, 'task_hours_verification');
         $actualEndDateTime = $this->formatActualEndDateTime($overtime);
         $directorApprovalLog = $this->overtimeLifecycleLog($overtime, 'director_approval');
@@ -418,6 +495,7 @@ class PicAttendanceOvertimeController extends Controller
             'verification_end_time' => $taskDeliverablesSubmitted ? ($approvedEndTime !== '-' ? $approvedEndTime : $actualEndTime) : '-',
             'verification_duration' => $taskDeliverablesSubmitted ? ($approvedDuration !== '-' ? $approvedDuration : $actualDuration) : '-',
             'is_task_hours_verified' => $taskHoursVerified,
+            'can_update_overtime_session_review' => $canUpdateOvertimeSessionReview,
             'instruction' => is_string($overtime->instruction) && trim($overtime->instruction) !== '' ? trim($overtime->instruction) : '-',
             'payout_period' => 'Included in '.Carbon::parse($overtime->overtime_date, 'Asia/Jakarta')->format('F Y').' Payroll',
             'verified_note' => $hasActualTime ? 'Actual overtime hours recorded' : 'Waiting for clock-out',
@@ -628,6 +706,13 @@ class PicAttendanceOvertimeController extends Controller
         return $status === 'verified';
     }
 
+    private function canUpdateOvertimeSessionReview(AttendanceOvertime $overtime): bool
+    {
+        $status = strtolower(trim((string) ($this->overtimeLifecycleLog($overtime, 'payroll_processing')?->status ?? 'waiting')));
+
+        return in_array($status, ['waiting', 'pending'], true);
+    }
+
     private function updateOvertimeLifecycleLog(
         AttendanceOvertime $overtime,
         string $eventKey,
@@ -773,7 +858,6 @@ class PicAttendanceOvertimeController extends Controller
             })
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
                 'employee.user:id,username,email',
                 'assignedBy:id,username,email',
                 'assignedBy.employee:id,user_id',
@@ -811,7 +895,7 @@ class PicAttendanceOvertimeController extends Controller
         return [
             'uid' => (string) $overtime->id,
             'record_number' => '#'.(is_string($overtime->record_number) && trim($overtime->record_number) !== '' ? trim($overtime->record_number) : '-'),
-            'employee_name' => $this->employeeDisplayName($overtime->employee),
+            'employee_name' => $this->employeeUsernameLabel($overtime->employee),
             'instruction' => is_string($overtime->instruction) && trim($overtime->instruction) !== '' ? trim($overtime->instruction) : '-',
             'date_label' => $this->overtimeDateLabel($overtime->overtime_date, $isOvernight),
             'is_overnight' => $isOvernight,
@@ -1336,6 +1420,18 @@ class PicAttendanceOvertimeController extends Controller
 
         $emailValue = $employee?->user?->email;
         $email = is_string($emailValue) ? trim($emailValue) : '';
+
+        return $email !== '' ? $email : '-';
+    }
+
+    private function employeeUsernameLabel(?Employee $employee): string
+    {
+        $username = is_string($employee?->user?->username) ? trim($employee->user->username) : '';
+        if ($username !== '') {
+            return $username;
+        }
+
+        $email = is_string($employee?->user?->email) ? trim($employee->user->email) : '';
 
         return $email !== '' ? $email : '-';
     }

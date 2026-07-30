@@ -49,13 +49,80 @@ class AttendanceOvertimeController extends Controller
 
     public function index(Request $request, OvertimeSummaryMetricBuilder $metricBuilder, OvertimeReviewTableBuilder $tableBuilder): View
     {
-        $tableData = $tableBuilder->buildForContext('admin', null, null, $request->query('month'), $request->query('year'));
+        $legacyMonth = $request->query('month');
+        $legacyYear = $request->query('year');
+        $cardMonth = $this->normalizeMonth($request->query('card_month', $legacyMonth));
+        $cardYear = $this->normalizeYear($request->query('card_year', $legacyYear));
+        $pendingTableData = $tableBuilder->buildForContext(
+            'admin',
+            null,
+            null,
+            $request->query('pending_month', $legacyMonth),
+            $request->query('pending_year', $legacyYear)
+        );
+        $completeTableData = $tableBuilder->buildForContext(
+            'admin',
+            null,
+            null,
+            $request->query('complete_month', $legacyMonth),
+            $request->query('complete_year', $legacyYear)
+        );
 
         return view('admin_attendance.overtime.index', [
-            'overtimeSummary' => $metricBuilder->summarizeForActiveEmployees(),
-            'overtimeCards' => $this->adminOvertimeCardsFor(null, $tableData['selectedMonth'], $tableData['selectedYear']),
-            ...$tableData,
+            'overtimeSummary' => $metricBuilder->summarizeForPeriod(null, null, $cardMonth, $cardYear),
+            'overtimeCards' => $this->adminOvertimeCardsFor(null, $cardMonth, $cardYear),
+            'monthOptions' => $pendingTableData['monthOptions'],
+            'yearOptions' => $this->yearOptionsForFilters(
+                $cardYear,
+                (int) $pendingTableData['selectedYear'],
+                (int) $completeTableData['selectedYear'],
+                $pendingTableData['yearOptions'],
+                $completeTableData['yearOptions']
+            ),
+            'selectedMonth' => $pendingTableData['selectedMonth'],
+            'selectedYear' => $pendingTableData['selectedYear'],
+            'selectedCardMonth' => $cardMonth,
+            'selectedCardYear' => $cardYear,
+            'selectedPendingMonth' => $pendingTableData['selectedMonth'],
+            'selectedPendingYear' => $pendingTableData['selectedYear'],
+            'selectedCompleteMonth' => $completeTableData['selectedMonth'],
+            'selectedCompleteYear' => $completeTableData['selectedYear'],
+            'pendingRows' => $pendingTableData['pendingRows'],
+            'approvedRows' => $completeTableData['approvedRows'],
         ]);
+    }
+
+    private function normalizeMonth(mixed $month): int
+    {
+        $monthNumber = (int) $month;
+
+        return $monthNumber >= 1 && $monthNumber <= 12
+            ? $monthNumber
+            : (int) Carbon::now('Asia/Jakarta')->format('n');
+    }
+
+    private function normalizeYear(mixed $year): int
+    {
+        $yearNumber = (int) $year;
+
+        return $yearNumber >= 2020 && $yearNumber <= 2100
+            ? $yearNumber
+            : (int) Carbon::now('Asia/Jakarta')->format('Y');
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function yearOptionsForFilters(mixed ...$selectedYearsAndOptions): array
+    {
+        return collect($selectedYearsAndOptions)
+            ->flatten()
+            ->filter(fn (mixed $year): bool => is_numeric($year) && (int) $year >= 2020)
+            ->map(fn (mixed $year): int => (int) $year)
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->all();
     }
 
     public function detail(Request $request, string $uid): View

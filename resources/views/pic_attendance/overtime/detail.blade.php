@@ -195,8 +195,8 @@
     <div class="col-xl-7">
         <div class="row sticky-top z-0">
             @php
-                $verificationReady = (bool) ($overtimeDetail['verification_ready'] ?? false);
                 $isTaskHoursVerified = (bool) ($overtimeDetail['is_task_hours_verified'] ?? false);
+                $canUpdateOvertimeSessionReview = (bool) ($overtimeDetail['can_update_overtime_session_review'] ?? false);
                 $approvedStartValue = ($overtimeDetail['approved_start_time'] ?? '-') !== '-'
                     ? $overtimeDetail['approved_start_time']
                     : (($overtimeDetail['actual_start_time'] ?? '-') !== '-'
@@ -287,7 +287,7 @@
                                 <div class="col-md-6">
                                     <div class=" mb-3">
                                         <label class="form-label">Approved Start <span class="text-danger">*</span></label>
-                                        <input type="time" name="approved_start_time" class="form-control" value="{{ old('approved_start_time', $approvedStartValue) }}" @disabled(! $verificationReady || $isTaskHoursVerified)>
+                                        <input type="time" name="approved_start_time" class="form-control" value="{{ old('approved_start_time', $approvedStartValue) }}" @disabled(! $canUpdateOvertimeSessionReview)>
                                         @error('approved_start_time', 'picOvertimeVerify')
                                             <span class="text-danger fs-12">{{ $message }}</span>
                                         @enderror
@@ -296,7 +296,7 @@
                                 <div class="col-md-6">
                                     <div class=" mb-3">
                                         <label class="form-label">Approved End <span class="text-danger">*</span></label>
-                                        <input type="time" name="approved_end_time" class="form-control" value="{{ old('approved_end_time', $approvedEndValue) }}" @disabled(! $verificationReady || $isTaskHoursVerified)>
+                                        <input type="time" name="approved_end_time" class="form-control" value="{{ old('approved_end_time', $approvedEndValue) }}" @disabled(! $canUpdateOvertimeSessionReview)>
                                         @error('approved_end_time', 'picOvertimeVerify')
                                             <span class="text-danger fs-12">{{ $message }}</span>
                                         @enderror
@@ -305,8 +305,8 @@
                             </div>
                         </div>
                         <div class="px-3 pb-3">
-                            <button type="submit" class="btn light btn-success btn-lg w-100" @disabled(! $verificationReady || $isTaskHoursVerified)>
-                                Approve Overtime Session
+                            <button type="submit" class="btn light btn-success btn-lg w-100" @disabled(! $canUpdateOvertimeSessionReview)>
+                                {{ $isTaskHoursVerified ? 'Update Overtime Session' : 'Approve Overtime Session' }}
                             </button>
                         </div>
                     </form>

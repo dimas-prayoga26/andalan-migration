@@ -8,6 +8,48 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <style>
+        .admin-overtime-table-footer.dataTables_wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 8px 30px;
+            border-top: 1px solid var(--bs-border-color);
+        }
+
+        .admin-overtime-review-table {
+            height: 286px;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .admin-overtime-table-footer.dataTables_wrapper .dataTables_info,
+        .admin-overtime-table-footer.dataTables_wrapper .dataTables_paginate {
+            float: none;
+            margin-bottom: 0;
+            padding: 0;
+        }
+
+        .admin-overtime-table-footer .paginate_button.disabled {
+            pointer-events: none;
+            opacity: .35;
+        }
+
+        @media (max-width: 767.98px) {
+            .admin-overtime-table-footer.dataTables_wrapper {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 18px 20px 24px;
+            }
+
+            .admin-overtime-table-footer.dataTables_wrapper .dataTables_info,
+            .admin-overtime-table-footer.dataTables_wrapper .dataTables_paginate {
+                justify-content: center;
+                text-align: center;
+            }
+        }
+    </style>
 
 @endsection
 
@@ -16,6 +58,20 @@
 @section('content')
 
 @include('admin_attendance.layout.navbar')
+
+@php
+    $adminOvertimeTablePageSize = 5;
+    $pendingTableRows = $pendingRows ?? collect();
+    $completeTableRows = $approvedRows ?? collect();
+    $selectedCardMonth = $selectedCardMonth ?? ($selectedMonth ?? now('Asia/Jakarta')->month);
+    $selectedCardYear = $selectedCardYear ?? ($selectedYear ?? now('Asia/Jakarta')->year);
+    $selectedPendingMonth = $selectedPendingMonth ?? ($selectedMonth ?? now('Asia/Jakarta')->month);
+    $selectedPendingYear = $selectedPendingYear ?? ($selectedYear ?? now('Asia/Jakarta')->year);
+    $selectedCompleteMonth = $selectedCompleteMonth ?? ($selectedMonth ?? now('Asia/Jakarta')->month);
+    $selectedCompleteYear = $selectedCompleteYear ?? ($selectedYear ?? now('Asia/Jakarta')->year);
+    $pendingTablePageCount = max(1, (int) ceil($pendingTableRows->count() / $adminOvertimeTablePageSize));
+    $completeTablePageCount = max(1, (int) ceil($completeTableRows->count() / $adminOvertimeTablePageSize));
+@endphp
 
 <!-- Start - Attendance -->
 <div class="col-lg-12">
@@ -124,17 +180,21 @@
                     <div class="card-header border-0 align-items-center gap-2 flex-wrap">
                         <h4 class="card-title m-0">Pending</h4>
                         <form class="clearfix d-flex align-items-center" method="GET" action="{{ url()->current() }}">
+                            <input type="hidden" name="card_month" value="{{ $selectedCardMonth }}">
+                            <input type="hidden" name="card_year" value="{{ $selectedCardYear }}">
+                            <input type="hidden" name="complete_month" value="{{ $selectedCompleteMonth }}">
+                            <input type="hidden" name="complete_year" value="{{ $selectedCompleteYear }}">
                             <div class="clearfix me-1">
-                                <select name="month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                                <select name="pending_month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
                                     @foreach (($monthOptions ?? []) as $monthOption)
-                                        <option value="{{ $monthOption['value'] }}" @selected(($selectedMonth ?? now('Asia/Jakarta')->month) === $monthOption['value'])>{{ $monthOption['label'] }}</option>
+                                        <option value="{{ $monthOption['value'] }}" @selected($selectedPendingMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="clearfix">
-                                <select name="year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                                <select name="pending_year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
                                     @foreach (($yearOptions ?? []) as $yearOption)
-                                        <option value="{{ $yearOption }}" @selected(($selectedYear ?? now('Asia/Jakarta')->year) === $yearOption)>{{ $yearOption }}</option>
+                                        <option value="{{ $yearOption }}" @selected($selectedPendingYear === $yearOption)>{{ $yearOption }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -143,8 +203,8 @@
                             </div>
                         </form>
                     </div>
-                    <div class="card-body table-card-body px-0 pt-0 pb-2">
-                        <div class="table-responsive">
+                    <div class="card-body table-card-body px-0 pt-0 pb-0" data-admin-overtime-table data-admin-overtime-page-size="{{ $adminOvertimeTablePageSize }}">
+                        <div class="table-responsive admin-overtime-review-table">
                             <table class="table table-sm table-sm-responsive text-nowrap" id="tableLicenseUsage">
                                 <thead>
                                     <tr>
@@ -152,16 +212,25 @@
                                         <th class="mw-50">Datetime</th>
                                         <th class="mw-50">Name</th>
                                         <th class="mw-80">SPV</th>
+                                        <th class="mw-80">Status</th>
                                         <th class="mw-10">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse (($pendingRows ?? collect()) as $row)
-                                        <tr>
+                                    @forelse ($pendingTableRows as $row)
+                                        <tr @class(['js-admin-overtime-table-row', 'd-none' => $loop->iteration > $adminOvertimeTablePageSize])>
                                             <td>{{ $loop->iteration }}</td>
                                             <td>{{ $row['datetime'] }}</td>
                                             <td>{{ $row['name'] }}</td>
                                             <td>{{ $row['supervisor'] }}</td>
+                                            <td>
+                                                <span class="{{ $row['status_class'] ?? 'text-muted' }}">
+                                                    {{ $row['status'] ?? '-' }}
+                                                    <i class="fa fa-info-circle ms-1"
+                                                        title="Status: {{ $row['status_info'] ?? '-' }}"
+                                                        aria-label="Status: {{ $row['status_info'] ?? '-' }}"></i>
+                                                </span>
+                                            </td>
                                             <td>
                                                 <div class="dropdown dropdown-xs">
                                                     <button class="btn btn-xs btn-light btn-square" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -176,11 +245,25 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted">No pending overtime data available for this period.</td>
+                                            <td colspan="6" class="text-center text-muted">No pending overtime data available for this period.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="admin-overtime-table-footer dataTables_wrapper no-footer">
+                            <div class="dataTables_info js-admin-overtime-page-summary">
+                                Showing {{ $pendingTableRows->isEmpty() ? 0 : 1 }} to {{ min($adminOvertimeTablePageSize, $pendingTableRows->count()) }} of {{ $pendingTableRows->count() }} entries
+                            </div>
+                            <div class="dataTables_paginate paging_simple_numbers js-admin-overtime-pagination">
+                                <a href="javascript:void(0)" class="paginate_button previous disabled js-admin-overtime-page-button" data-admin-overtime-page-action="previous" data-admin-overtime-page-item="previous" aria-label="Previous page"><i class="fa-solid fa-angle-left"></i></a>
+                                <span>
+                                    @for ($page = 1; $page <= $pendingTablePageCount; $page++)
+                                        <a href="javascript:void(0)" class="paginate_button {{ $page === 1 ? 'current' : '' }} js-admin-overtime-page-button" data-admin-overtime-page="{{ $page }}" data-admin-overtime-page-item="{{ $page }}" @if ($page === 1) aria-current="page" @endif>{{ $page }}</a>
+                                    @endfor
+                                </span>
+                                <a href="javascript:void(0)" class="paginate_button next {{ $pendingTablePageCount <= 1 ? 'disabled' : '' }} js-admin-overtime-page-button" data-admin-overtime-page-action="next" data-admin-overtime-page-item="next" aria-label="Next page"><i class="fa-solid fa-angle-right"></i></a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -190,17 +273,21 @@
                     <div class="card-header border-0 align-items-center">
                         <h4 class="card-title">Status : <span class="text-success">Complete</span> </h4>
                         <form class="clearfix d-flex align-items-center" method="GET" action="{{ url()->current() }}">
+                            <input type="hidden" name="card_month" value="{{ $selectedCardMonth }}">
+                            <input type="hidden" name="card_year" value="{{ $selectedCardYear }}">
+                            <input type="hidden" name="pending_month" value="{{ $selectedPendingMonth }}">
+                            <input type="hidden" name="pending_year" value="{{ $selectedPendingYear }}">
                             <div class="clearfix me-1">
-                                <select name="month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                                <select name="complete_month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
                                     @foreach (($monthOptions ?? []) as $monthOption)
-                                        <option value="{{ $monthOption['value'] }}" @selected(($selectedMonth ?? now('Asia/Jakarta')->month) === $monthOption['value'])>{{ $monthOption['label'] }}</option>
+                                        <option value="{{ $monthOption['value'] }}" @selected($selectedCompleteMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="clearfix">
-                                <select name="year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                                <select name="complete_year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
                                     @foreach (($yearOptions ?? []) as $yearOption)
-                                        <option value="{{ $yearOption }}" @selected(($selectedYear ?? now('Asia/Jakarta')->year) === $yearOption)>{{ $yearOption }}</option>
+                                        <option value="{{ $yearOption }}" @selected($selectedCompleteYear === $yearOption)>{{ $yearOption }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -209,36 +296,83 @@
                             </div>
                         </form>
                     </div>
-                    <div class="card-body table-card-body px-0 pt-0 pb-2">
-                        <div class="table-responsive">
+                    <div class="card-body table-card-body px-0 pt-0 pb-0" data-admin-overtime-table data-admin-overtime-page-size="{{ $adminOvertimeTablePageSize }}">
+                        <div class="table-responsive admin-overtime-review-table">
                             <table id="tableLogs" class="table table-sm table-sm-responsive text-nowrap">
                                 <thead>
                                     <tr>
                                         <th class="mw-10">No</th>
                                         <th class="mw-50">Datetime</th>
                                         <th class="mw-50">Name</th>
+                                        <th class="mw-80">Status</th>
                                         <th class="mw-80">Task</th>
                                         <th class="mw-80">Payout</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse (($approvedRows ?? collect()) as $row)
-                                        <tr>
+                                    @forelse ($completeTableRows as $row)
+                                        <tr @class(['js-admin-overtime-table-row', 'd-none' => $loop->iteration > $adminOvertimeTablePageSize])>
                                             <td>{{ $loop->iteration }}</td>
                                             <td>{{ $row['datetime'] }}</td>
                                             <td>{{ $row['name'] }}</td>
+                                            <td>
+                                                <span class="{{ $row['status_class'] ?? 'text-muted' }}">
+                                                    {{ $row['status'] ?? '-' }}
+                                                    <i class="fa fa-info-circle ms-1"
+                                                        title="Status: {{ $row['status_info'] ?? '-' }}"
+                                                        aria-label="Status: {{ $row['status_info'] ?? '-' }}"></i>
+                                                </span>
+                                            </td>
                                             <td>{{ $row['task'] }}</td>
                                             <td>{{ $row['payout'] }}</td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted">No complete overtime data available for this period.</td>
+                                            <td colspan="6" class="text-center text-muted">No complete overtime data available for this period.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
                             </table>
                         </div>
+                        <div class="admin-overtime-table-footer dataTables_wrapper no-footer">
+                            <div class="dataTables_info js-admin-overtime-page-summary">
+                                Showing {{ $completeTableRows->isEmpty() ? 0 : 1 }} to {{ min($adminOvertimeTablePageSize, $completeTableRows->count()) }} of {{ $completeTableRows->count() }} entries
+                            </div>
+                            <div class="dataTables_paginate paging_simple_numbers js-admin-overtime-pagination">
+                                <a href="javascript:void(0)" class="paginate_button previous disabled js-admin-overtime-page-button" data-admin-overtime-page-action="previous" data-admin-overtime-page-item="previous" aria-label="Previous page"><i class="fa-solid fa-angle-left"></i></a>
+                                <span>
+                                    @for ($page = 1; $page <= $completeTablePageCount; $page++)
+                                        <a href="javascript:void(0)" class="paginate_button {{ $page === 1 ? 'current' : '' }} js-admin-overtime-page-button" data-admin-overtime-page="{{ $page }}" data-admin-overtime-page-item="{{ $page }}" @if ($page === 1) aria-current="page" @endif>{{ $page }}</a>
+                                    @endfor
+                                </span>
+                                <a href="javascript:void(0)" class="paginate_button next {{ $completeTablePageCount <= 1 ? 'disabled' : '' }} js-admin-overtime-page-button" data-admin-overtime-page-action="next" data-admin-overtime-page-item="next" aria-label="Next page"><i class="fa-solid fa-angle-right"></i></a>
+                            </div>
+                        </div>
                     </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="d-flex justify-content-end mb-3 admin-overtime-card-filter">
+                    <form class="clearfix d-flex align-items-center" method="GET" action="{{ url()->current() }}">
+                        <input type="hidden" name="pending_month" value="{{ $selectedPendingMonth }}">
+                        <input type="hidden" name="pending_year" value="{{ $selectedPendingYear }}">
+                        <input type="hidden" name="complete_month" value="{{ $selectedCompleteMonth }}">
+                        <input type="hidden" name="complete_year" value="{{ $selectedCompleteYear }}">
+                        <div class="clearfix me-1">
+                            <select name="card_month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                                @foreach (($monthOptions ?? []) as $monthOption)
+                                    <option value="{{ $monthOption['value'] }}" @selected($selectedCardMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="clearfix">
+                            <select name="card_year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                                @foreach (($yearOptions ?? []) as $yearOption)
+                                    <option value="{{ $yearOption }}" @selected($selectedCardYear === $yearOption)>{{ $yearOption }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </form>
                 </div>
             </div>
             @forelse (($overtimeCards ?? collect()) as $overtimeCard)
@@ -409,4 +543,85 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!window.jQuery) {
+                return;
+            }
+
+            function adminOvertimeTablePageSize($tableContainer) {
+                return parseInt($tableContainer.attr('data-admin-overtime-page-size'), 10) || 5;
+            }
+
+            function updateAdminOvertimeTablePagination($tableContainer, currentPage, totalPages, totalRows) {
+                var pageSize = adminOvertimeTablePageSize($tableContainer);
+                var start = totalRows === 0 ? 0 : ((currentPage - 1) * pageSize) + 1;
+                var end = Math.min(currentPage * pageSize, totalRows);
+
+                $tableContainer.find('.js-admin-overtime-page-summary').text('Showing ' + start + ' to ' + end + ' of ' + totalRows + ' entries');
+                $tableContainer.find('[data-admin-overtime-page-item]').removeClass('current disabled');
+                $tableContainer.find('[data-admin-overtime-page]').removeAttr('aria-current');
+                $tableContainer.find('[data-admin-overtime-page-item="' + currentPage + '"]')
+                    .addClass('current')
+                    .attr('aria-current', 'page');
+
+                if (currentPage <= 1) {
+                    $tableContainer.find('[data-admin-overtime-page-item="previous"]').addClass('disabled');
+                }
+
+                if (currentPage >= totalPages) {
+                    $tableContainer.find('[data-admin-overtime-page-item="next"]').addClass('disabled');
+                }
+            }
+
+            function showAdminOvertimeTablePage(tableContainer, pageNumber) {
+                var $tableContainer = jQuery(tableContainer);
+                var $rows = $tableContainer.find('.js-admin-overtime-table-row');
+                var pageSize = adminOvertimeTablePageSize($tableContainer);
+                var totalRows = $rows.length;
+                var totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+                var currentPage = Math.min(Math.max(parseInt(pageNumber, 10) || 1, 1), totalPages);
+                var startIndex = (currentPage - 1) * pageSize;
+                var endIndex = startIndex + pageSize;
+
+                $rows.each(function (index) {
+                    jQuery(this).toggleClass('d-none', index < startIndex || index >= endIndex);
+                });
+
+                $tableContainer.attr('data-admin-overtime-current-page', currentPage);
+                updateAdminOvertimeTablePagination($tableContainer, currentPage, totalPages, totalRows);
+            }
+
+            function initAdminOvertimeTablePagination() {
+                jQuery('[data-admin-overtime-table]').each(function () {
+                    showAdminOvertimeTablePage(this, jQuery(this).attr('data-admin-overtime-current-page') || 1);
+                });
+            }
+
+            jQuery(document).on('click', '.js-admin-overtime-page-button', function () {
+                var $button = jQuery(this);
+
+                if ($button.hasClass('disabled')) {
+                    return;
+                }
+
+                var $tableContainer = $button.closest('[data-admin-overtime-table]');
+                var currentPage = parseInt($tableContainer.attr('data-admin-overtime-current-page'), 10) || 1;
+                var pageAction = $button.attr('data-admin-overtime-page-action');
+                var targetPage = parseInt($button.attr('data-admin-overtime-page'), 10) || currentPage;
+
+                if (pageAction === 'previous') {
+                    targetPage = currentPage - 1;
+                }
+
+                if (pageAction === 'next') {
+                    targetPage = currentPage + 1;
+                }
+
+                showAdminOvertimeTablePage($tableContainer, targetPage);
+            });
+
+            initAdminOvertimeTablePagination();
+        });
+    </script>
 @endsection

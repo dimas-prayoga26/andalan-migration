@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
 use App\Models\AttendanceOvertime;
+use App\Models\OvertimeLifecycleLog;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
@@ -182,6 +183,10 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('$overtimeDetail[\'verification_end_time\']', $view);
         $this->assertStringContainsString('$overtimeDetail[\'approved_start_time\']', $view);
         $this->assertStringContainsString('$overtimeDetail[\'approved_end_time\']', $view);
+        $this->assertStringContainsString('$canUpdateOvertimeSessionReview = (bool) ($overtimeDetail[\'can_update_overtime_session_review\'] ?? false);', $view);
+        $this->assertStringContainsString('@disabled(! $canUpdateOvertimeSessionReview)', $view);
+        $this->assertStringContainsString("{{ \$isTaskHoursVerified ? 'Update Overtime Session' : 'Approve Overtime Session' }}", $view);
+        $this->assertStringNotContainsString('@disabled(! $verificationReady || $isTaskHoursVerified)', $view);
         $this->assertStringContainsString('Staff Start ClockIn', $view);
         $this->assertStringContainsString('Staff Start ClockOut', $view);
         $this->assertStringContainsString("{{ \$overtimeDetail['actual_start_time'] ?? '-' }}", $view);
@@ -205,6 +210,10 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('public function verifySession(Request $request, string $uid): RedirectResponse', $controller);
         $this->assertStringContainsString("validateWithBag('picOvertimeVerify'", $controller);
         $this->assertStringContainsString('isTaskDeliverablesSubmitted', $controller);
+        $this->assertStringContainsString('canUpdateOvertimeSessionReview', $controller);
+        $this->assertStringContainsString('Review overtime session tidak bisa diubah karena HR / Payroll Processing sudah dikunci.', $controller);
+        $this->assertStringContainsString("'can_update_overtime_session_review' => \$canUpdateOvertimeSessionReview", $controller);
+        $this->assertStringContainsString("return in_array(\$status, ['waiting', 'pending'], true);", $controller);
         $this->assertStringContainsString("'staff_submitted_time_range' => \$actualTimeRange", $controller);
         $this->assertStringContainsString("'staff_submitted_duration' => \$actualDuration", $controller);
         $this->assertStringContainsString("'approved_start_time' => \$approvedStartTime", $controller);
@@ -235,6 +244,17 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString("\$table->dropColumn(['approved_start_time', 'approved_end_time']);", $approvedTimesMigration);
         $this->assertStringContainsString("Route::post('/pic-attendance/overtime/detail/{uid}/verify-session'", $routes);
         $this->assertStringContainsString("->name('pic-attendance.overtime.verify-session')", $routes);
+    }
+
+    public function test_pic_overtime_session_review_can_only_update_before_payroll_is_locked(): void
+    {
+        $controller = app(PicAttendanceOvertimeController::class);
+        $method = new ReflectionMethod(PicAttendanceOvertimeController::class, 'canUpdateOvertimeSessionReview');
+        $method->setAccessible(true);
+
+        $this->assertTrue($method->invoke($controller, $this->overtimeWithPayrollProcessingStatus('waiting')));
+        $this->assertTrue($method->invoke($controller, $this->overtimeWithPayrollProcessingStatus('pending')));
+        $this->assertFalse($method->invoke($controller, $this->overtimeWithPayrollProcessingStatus('calculated_locked')));
     }
 
     public function test_pic_overtime_detail_can_edit_staff_task_items(): void
@@ -272,5 +292,19 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString("route('pic-attendance.overtime.tasks.update'", $controller);
         $this->assertStringContainsString("Route::put('/pic-attendance/overtime/detail/{attendanceOvertime}/tasks/{projectTask}'", $routes);
         $this->assertStringContainsString("->name('pic-attendance.overtime.tasks.update')", $routes);
+    }
+
+    private function overtimeWithPayrollProcessingStatus(string $status): AttendanceOvertime
+    {
+        $overtime = new AttendanceOvertime(['id' => 'overtime-test']);
+        $overtime->setRelation('lifecycleLogs', collect([
+            new OvertimeLifecycleLog([
+                'overtime_id' => 'overtime-test',
+                'event_key' => 'payroll_processing',
+                'status' => $status,
+            ]),
+        ]));
+
+        return $overtime;
     }
 }

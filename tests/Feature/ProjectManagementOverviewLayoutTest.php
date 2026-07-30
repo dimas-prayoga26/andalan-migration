@@ -211,7 +211,11 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('function initializeTaskListPagination()', $taskList);
         $this->assertStringContainsString("pane.find('[data-task-page]').removeAttr('aria-current');", $taskList);
         $this->assertStringContainsString('showTaskListPage(pane, nextPage);', $taskList);
+        $this->assertStringContainsString('function currentTaskListTabId()', $taskList);
+        $this->assertStringContainsString('function activateTaskListTab(tabId)', $taskList);
+        $this->assertStringContainsString('var activeTabId = currentTaskListTabId();', $taskList);
         $this->assertStringContainsString('initializeTaskListPagination();', $taskList);
+        $this->assertStringContainsString('activateTaskListTab(activeTabId);', $taskList);
         $this->assertStringContainsString('data-task-form-mode="create"', $taskListSurface);
         $this->assertStringContainsString('id="taskFilterForm"', $taskList);
         $this->assertStringContainsString('id="taskFilterMonth"', $taskList);

@@ -86,6 +86,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('isSuperuser', $controller);
         $this->assertStringContainsString('syncDataEmployeeRelations', $controller);
         $this->assertStringContainsString("'view-authorization' => ['section' => 'HR Management', 'label' => 'Employee Data']", $controller);
+        $this->assertStringContainsString("'view-settings' => ['section' => 'Setting', 'label' => 'Setting']", $controller);
         $this->assertStringContainsString('Employee Data', $authorizationView);
         $this->assertStringContainsString('Employee List', $authorizationView);
         $this->assertStringContainsString("route('authorization.create')", $authorizationView);
@@ -205,6 +206,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('$isAuthorizationMenu', $sidebarView);
         $this->assertStringContainsString('$canViewAuthorizationMenu', $sidebarView);
         $this->assertStringContainsString("canViewSidebarMenu('view-authorization')", $sidebarView);
+        $this->assertStringContainsString("canViewSidebarMenu('view-settings')", $sidebarView);
         $this->assertStringContainsString('@if ($canViewAuthorizationMenu)', $sidebarView);
         $this->assertStringContainsString("route('authorization')", $sidebarView);
         $this->assertStringNotContainsString("route('authorization.access-menus')", $sidebarView);
@@ -270,6 +272,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString("constrained('permissions', 'uuid')", $positionPermissionMigration);
         $this->assertStringContainsString('PositionPermissionSeeder::class', $databaseSeeder);
         $this->assertStringContainsString('view-authorization', $positionPermissionSeeder);
+        $this->assertStringContainsString('view-settings', $positionPermissionSeeder);
         $this->assertStringContainsString('syncPositionPermissions', $positionPermissionSeeder);
         $this->assertStringContainsString('menuPermissionData', $positionPermissionSeeder);
         $this->assertStringContainsString("'label' => 'Activity Calendar'", $positionPermissionSeeder);

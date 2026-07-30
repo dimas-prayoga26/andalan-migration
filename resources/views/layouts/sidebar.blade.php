@@ -11,6 +11,7 @@
 						$isDirectorAttendanceMenu = request()->routeIs('director-attendance*') || request()->is('director-attendance*');
 						$isReportingMenu = request()->routeIs('project_management', 'project_management.detail') || request()->is('project-management*');
 						$isAuthorizationMenu = request()->routeIs('authorization*') || request()->is('authorization*');
+						$isSettingsMenu = request()->routeIs('settings*') || request()->is('settings*');
 						$canViewSidebarMenu = $canViewSidebarMenu ?? static fn (string $permissionName): bool => true;
 						$canViewDashboardMenu = $canViewSidebarMenu('view-dashboard');
 						$canViewCalendarMenu = $canViewSidebarMenu('view-calendar');
@@ -20,6 +21,7 @@
 						$canViewPicAttendanceMenu = $canViewSidebarMenu('view-pic-attendance');
 						$canViewDirectorAttendanceMenu = $canViewSidebarMenu('view-director-attendance');
 						$canViewAuthorizationMenu = $canViewSidebarMenu('view-authorization');
+						$canViewSettingsMenu = $canViewSidebarMenu('view-settings');
 					@endphp
 					@if ($canViewDashboardMenu || $canViewCalendarMenu)
 					<div class="copyright mt-1">
@@ -98,6 +100,25 @@
 							<i class="fa-solid fa-id-card"></i>
 							<span class="nav-text" data-i18n="Employee Data">Employee Data </span>
 						</a>
+					</li>
+					@endif
+					@if ($canViewSettingsMenu)
+					<div class="copyright mt-1">
+						<p class="mb-1"><strong>Setting</strong> </p>
+					</div>
+					<li class="{{ $isSettingsMenu ? 'mm-active' : '' }}">
+						<a class="has-arrow {{ $isSettingsMenu ? 'active' : '' }}" href="javascript:void(0);" aria-expanded="{{ $isSettingsMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-gear"></i>
+							<span class="nav-text" data-i18n="Setting">Setting</span>
+						</a>
+						<ul aria-expanded="{{ $isSettingsMenu ? 'true' : 'false' }}" class="{{ $isSettingsMenu ? 'mm-show' : '' }}">
+							<li>
+								<a class="{{ request()->routeIs('settings.divisions*') ? 'active' : '' }}" href="{{ route('settings.divisions.index') }}">Division</a>
+							</li>
+							<li>
+								<a class="{{ request()->routeIs('settings.positions*') ? 'active' : '' }}" href="{{ route('settings.positions.index') }}">Position</a>
+							</li>
+						</ul>
 					</li>
 					@endif
                 </ul>

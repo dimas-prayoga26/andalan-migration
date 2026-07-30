@@ -19,6 +19,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectManagement\OverviewController as ProjectManagementOverviewController;
 use App\Http\Controllers\ProjectManagement\ProjectController as ProjectManagementProjectController;
 use App\Http\Controllers\ProjectManagement\TaskListController as ProjectManagementTaskListController;
+use App\Http\Controllers\Settings\DivisionController as SettingsDivisionController;
+use App\Http\Controllers\Settings\PositionController as SettingsPositionController;
 use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripCashAdvanceController;
 use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripController;
 use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripReimbursementController;
@@ -100,6 +102,14 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/authorization/{employee}/edit', [AuthorizationController::class, 'edit'])->name('authorization.edit');
         Route::put('/authorization/{employee}', [AuthorizationController::class, 'update'])->name('authorization.update');
         Route::delete('/authorization/{employee}', [AuthorizationController::class, 'destroy'])->name('authorization.destroy');
+
+    });
+
+    // Settings
+    Route::middleware('position.permission:view-settings')->prefix('settings')->name('settings.')->group(function (): void {
+        Route::get('/', fn () => redirect()->route('settings.divisions.index'))->name('index');
+        Route::resource('divisions', SettingsDivisionController::class)->except(['show']);
+        Route::resource('positions', SettingsPositionController::class)->except(['show']);
     });
 
     // Agenda

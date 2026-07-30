@@ -759,6 +759,34 @@
             });
         }
 
+        function normalizeTaskListTabId(tabId) {
+            var normalizedTabId = String(tabId || '').replace(/^#/, '');
+            var allowedTabIds = ['All', 'Unfinished', 'Finished'];
+
+            return allowedTabIds.indexOf(normalizedTabId) !== -1 ? normalizedTabId : 'Unfinished';
+        }
+
+        function currentTaskListTabId() {
+            var activeTabHref = $('.project-task-list-card .card-tabs .nav-link.active').attr('href') || '';
+            var activePaneId = $('#taskListItemsPanel .tab-pane.active').attr('id') || '';
+
+            return normalizeTaskListTabId(activeTabHref || activePaneId);
+        }
+
+        function activateTaskListTab(tabId) {
+            var activeTabId = normalizeTaskListTabId(tabId);
+            var tabLinks = $('.project-task-list-card .card-tabs .nav-link');
+            var targetTabLink = tabLinks.filter('[href="#' + activeTabId + '"]');
+            var taskPanes = $('#taskListItemsPanel .tab-pane');
+            var targetPane = taskPanes.filter('#' + activeTabId);
+
+            tabLinks.removeClass('active').attr('aria-selected', 'false');
+            targetTabLink.addClass('active').attr('aria-selected', 'true');
+
+            taskPanes.removeClass('active show');
+            targetPane.addClass('active show');
+        }
+
         function selectedTaskAssigneeEmployeeId() {
             return $('#taskAssigneeEmployeeId').val() || taskDefaultAssigneeEmployeeId;
         }
@@ -1003,6 +1031,8 @@
                 return;
             }
 
+            var activeTabId = currentTaskListTabId();
+
             $('#taskListItemsPanel').html(response.fragments.task_list || '');
             $('#taskListWeekPlanPanel').html(response.fragments.week_plan || '');
             $('#taskListProjectGridPanel').html(response.fragments.project_grid || '');
@@ -1017,6 +1047,7 @@
 
             updateCalendar(response.selected_month);
             initializeTaskListPagination();
+            activateTaskListTab(activeTabId);
             initializeStaticKanbanBoard();
         }
 

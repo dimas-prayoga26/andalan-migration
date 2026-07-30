@@ -64,6 +64,34 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
         $this->assertSame('4h | 2h', $summary['weekend_weekday_label']);
     }
 
+    public function test_it_builds_conditional_metric_card_styles(): void
+    {
+        $metricCards = (new OvertimeSummaryMetricBuilder)->metricCards([
+            'pending_label' => '0 request',
+            'supervisor_approved_label' => '3 request',
+            'director_approved_label' => '2 request',
+            'total_hours_label' => '0h 21m',
+            'estimated_cost_label' => '',
+            'median_hours_label' => '0h 21m',
+            'average_hours_label' => '0h 21m',
+            'top_overtime_label' => 'Dimas',
+            'weekend_weekday_label' => '0h | 0h 21m',
+        ]);
+
+        $this->assertCount(9, $metricCards);
+        $this->assertSame([
+            'label' => 'Pending',
+            'value' => '0 request',
+            'background_class' => 'bg-dark-subtle',
+            'text_class' => 'text-black',
+        ], $metricCards[0]);
+        $this->assertSame('bg-success-subtle', $metricCards[1]['background_class']);
+        $this->assertSame('bg-danger-subtle', $metricCards[3]['background_class']);
+        $this->assertSame('Rp. 12 Jt', $metricCards[4]['value']);
+        $this->assertSame('bg-secondary-subtle', $metricCards[7]['background_class']);
+        $this->assertSame('bg-light-subtle', $metricCards[8]['background_class']);
+    }
+
     /**
      * @param  array<string, string>  $lifecycleStatuses
      */

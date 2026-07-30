@@ -167,6 +167,80 @@ class OvertimeSummaryMetricBuilder
     }
 
     /**
+     * @param  array<string, string>  $summary
+     * @return array<int, array{label: string, value: string, background_class: string, text_class: string}>
+     */
+    public function metricCards(array $summary): array
+    {
+        $pendingLabel = $this->summaryValue($summary, 'pending_label', '0 request');
+        $supervisorApprovedLabel = $this->summaryValue($summary, 'supervisor_approved_label', '0 request');
+        $directorApprovedLabel = $this->summaryValue($summary, 'director_approved_label', '0 request');
+        $totalHoursLabel = $this->summaryValue($summary, 'total_hours_label', '0 hours');
+        $estimatedCostLabel = $this->summaryValue($summary, 'estimated_cost_label', 'Rp. 12 Jt');
+        $medianHoursLabel = $this->summaryValue($summary, 'median_hours_label', '0 hours');
+        $averageHoursLabel = $this->summaryValue($summary, 'average_hours_label', '0 hours');
+        $topOvertimeLabel = $this->summaryValue($summary, 'top_overtime_label', '-');
+        $weekendWeekdayLabel = $this->summaryValue($summary, 'weekend_weekday_label', '0h | 0h');
+
+        return [
+            [
+                'label' => 'Pending',
+                'value' => $pendingLabel,
+                'background_class' => $this->hasPositiveCount($pendingLabel) ? 'bg-warning-subtle' : 'bg-dark-subtle',
+                'text_class' => $this->hasPositiveCount($pendingLabel) ? 'text-warning' : 'text-black',
+            ],
+            [
+                'label' => 'SPV ACC',
+                'value' => $supervisorApprovedLabel,
+                'background_class' => $this->hasPositiveCount($supervisorApprovedLabel) ? 'bg-success-subtle' : 'bg-dark-subtle',
+                'text_class' => $this->hasPositiveCount($supervisorApprovedLabel) ? 'text-success' : 'text-black',
+            ],
+            [
+                'label' => 'Director ACC',
+                'value' => $directorApprovedLabel,
+                'background_class' => $this->hasPositiveCount($directorApprovedLabel) ? 'bg-success-subtle' : 'bg-dark-subtle',
+                'text_class' => $this->hasPositiveCount($directorApprovedLabel) ? 'text-success' : 'text-black',
+            ],
+            [
+                'label' => 'Total Hours',
+                'value' => $totalHoursLabel,
+                'background_class' => $this->hasNonZeroDuration($totalHoursLabel) ? 'bg-danger-subtle' : 'bg-dark-subtle',
+                'text_class' => $this->hasNonZeroDuration($totalHoursLabel) ? 'text-danger' : 'text-black',
+            ],
+            [
+                'label' => 'Est. Cost',
+                'value' => $estimatedCostLabel,
+                'background_class' => $estimatedCostLabel === '-' ? 'bg-dark-subtle' : 'bg-info-subtle',
+                'text_class' => $estimatedCostLabel === '-' ? 'text-black' : 'text-info',
+            ],
+            [
+                'label' => 'Median Hours',
+                'value' => $medianHoursLabel,
+                'background_class' => $this->hasNonZeroDuration($medianHoursLabel) ? 'bg-primary-subtle' : 'bg-dark-subtle',
+                'text_class' => $this->hasNonZeroDuration($medianHoursLabel) ? 'text-primary' : 'text-black',
+            ],
+            [
+                'label' => 'Avg. Hours',
+                'value' => $averageHoursLabel,
+                'background_class' => $this->hasNonZeroDuration($averageHoursLabel) ? 'bg-warning-subtle' : 'bg-dark-subtle',
+                'text_class' => $this->hasNonZeroDuration($averageHoursLabel) ? 'text-warning' : 'text-black',
+            ],
+            [
+                'label' => 'Top Overtime',
+                'value' => $topOvertimeLabel,
+                'background_class' => $topOvertimeLabel === '-' ? 'bg-dark-subtle' : 'bg-secondary-subtle',
+                'text_class' => $topOvertimeLabel === '-' ? 'text-black' : 'text-secondary',
+            ],
+            [
+                'label' => 'W-end|W-day',
+                'value' => $weekendWeekdayLabel,
+                'background_class' => $this->hasNonZeroDuration($weekendWeekdayLabel) ? 'bg-light-subtle' : 'bg-dark-subtle',
+                'text_class' => 'text-black',
+            ],
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
     private function emptySummary(): array
@@ -182,6 +256,26 @@ class OvertimeSummaryMetricBuilder
             'top_overtime_label' => '-',
             'weekend_weekday_label' => '0h | 0h',
         ];
+    }
+
+    /**
+     * @param  array<string, string>  $summary
+     */
+    private function summaryValue(array $summary, string $key, string $fallback): string
+    {
+        $value = trim((string) ($summary[$key] ?? ''));
+
+        return $value !== '' ? $value : $fallback;
+    }
+
+    private function hasPositiveCount(string $label): bool
+    {
+        return preg_match('/^\s*([1-9]\d*)\b/', $label) === 1;
+    }
+
+    private function hasNonZeroDuration(string $label): bool
+    {
+        return preg_match('/\b[1-9]\d*\s*(?:h|hour|hours|m)\b/i', $label) === 1;
     }
 
     private function isPendingTaskHoursVerification(AttendanceOvertime $overtime): bool

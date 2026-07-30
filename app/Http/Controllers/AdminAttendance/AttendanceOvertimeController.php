@@ -67,9 +67,11 @@ class AttendanceOvertimeController extends Controller
             $request->query('complete_month', $legacyMonth),
             $request->query('complete_year', $legacyYear)
         );
+        $overtimeSummary = $metricBuilder->summarizeForPeriod(null, null, $cardMonth, $cardYear);
 
         return view('admin_attendance.overtime.index', [
-            'overtimeSummary' => $metricBuilder->summarizeForPeriod(null, null, $cardMonth, $cardYear),
+            'overtimeSummary' => $overtimeSummary,
+            'overtimeMetricCards' => $metricBuilder->metricCards($overtimeSummary),
             'overtimeCards' => $this->adminOvertimeCardsFor(null, $cardMonth, $cardYear),
             'monthOptions' => $pendingTableData['monthOptions'],
             'yearOptions' => $this->yearOptionsForFilters(

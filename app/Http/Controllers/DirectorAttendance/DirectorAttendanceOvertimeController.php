@@ -41,9 +41,11 @@ class DirectorAttendanceOvertimeController extends Controller
             $request->query('approved_month', $legacyMonth),
             $request->query('approved_year', $legacyYear)
         );
+        $overtimeSummary = $metricBuilder->summarizeForPeriod(null, null, $cardMonth, $cardYear);
 
         return view('director_attendance.overtime.index', [
-            'overtimeSummary' => $metricBuilder->summarizeForPeriod(null, null, $cardMonth, $cardYear),
+            'overtimeSummary' => $overtimeSummary,
+            'overtimeMetricCards' => $metricBuilder->metricCards($overtimeSummary),
             'overtimeCards' => $this->directorOvertimeCardsFor($cardMonth, $cardYear),
             'monthOptions' => $pendingTableData['monthOptions'],
             'yearOptions' => $this->yearOptionsForFilters(

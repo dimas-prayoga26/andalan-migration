@@ -114,6 +114,14 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('$monthlyExpectedWorkMinutes = $monthlyWorkingDaysCount * 8 * 60;', $attendanceController);
         $this->assertStringContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$monthlyWorkingDaysCount.' days',", $attendanceController);
         $this->assertStringContainsString('recapCompactMinutesLabel($monthlyExpectedWorkMinutes)', $attendanceController);
+        $this->assertStringContainsString("private const TASK_HOURS_VERIFICATION = 'task_hours_verification';", $attendanceController);
+        $this->assertStringContainsString("->whereNotNull('approved_start_time')", $attendanceController);
+        $this->assertStringContainsString("->whereNotNull('approved_end_time')", $attendanceController);
+        $this->assertStringContainsString("->where('event_key', self::TASK_HOURS_VERIFICATION)", $attendanceController);
+        $this->assertStringContainsString('recapApprovedOvertimeMinutes', $attendanceController);
+        $this->assertStringContainsString('$end->addDay();', $attendanceController);
+        $this->assertStringNotContainsString("->get(['employee_id', 'overtime_date', 'calculated_hours'])", $attendanceController);
+        $this->assertStringNotContainsString("->get(['calculated_hours'])", $attendanceController);
         $this->assertStringNotContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$employeeWorkDays->count().' days'", $attendanceController);
         $this->assertStringContainsString('private function currentCompanyIdFor(User $user): ?string', $attendanceController);
         $this->assertStringContainsString('protected function activeEmployeeIdsFor(Carbon $date, ?string $companyId): Collection', $attendanceController);

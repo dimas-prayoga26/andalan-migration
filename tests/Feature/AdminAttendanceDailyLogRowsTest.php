@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\AdminAttendance\AttendanceRecapController;
 use App\Models\Attendance;
+use App\Models\AttendanceOvertime;
 use App\Models\Employee;
 use App\Models\EmployeeProfile;
 use Illuminate\Support\Carbon;
@@ -119,6 +120,21 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
         $row = $method->invoke($controller, $attendance, null, null);
 
         $this->assertSame('8 hours', $row['working_hours']);
+    }
+
+    public function test_approved_overtime_minutes_are_calculated_from_approved_times_across_midnight(): void
+    {
+        $controller = app(AttendanceRecapController::class);
+        $method = new ReflectionMethod(AttendanceRecapController::class, 'recapApprovedOvertimeMinutes');
+        $overtime = new AttendanceOvertime;
+        $overtime->forceFill([
+            'overtime_date' => '2026-07-21',
+            'approved_start_time' => '17:08:00',
+            'approved_end_time' => '02:58:00',
+            'calculated_hours' => 1,
+        ]);
+
+        $this->assertSame(590, $method->invoke($controller, $overtime));
     }
 
     public function test_admin_attendance_details_exclude_administrator_accounts(): void

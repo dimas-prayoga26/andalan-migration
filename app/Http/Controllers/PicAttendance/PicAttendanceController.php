@@ -27,6 +27,15 @@ use Illuminate\Support\Str;
 
 class PicAttendanceController extends Controller
 {
+    private const TASK_HOURS_VERIFICATION = 'task_hours_verification';
+
+    private const COMPLETED_TASK_HOURS_STATUSES = [
+        'approved',
+        'complete',
+        'completed',
+        'verified',
+    ];
+
     private ?string $supervisorEmployeeId = null;
 
     public function __construct(
@@ -244,8 +253,15 @@ class PicAttendanceController extends Controller
             ->whereIn('employee_id', $activeEmployeeIds)
             ->whereBetween('overtime_date', $dateRange)
             ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled'])
+            ->whereNotNull('approved_start_time')
+            ->whereNotNull('approved_end_time')
+            ->whereHas('lifecycleLogs', function ($query): void {
+                $query
+                    ->where('event_key', self::TASK_HOURS_VERIFICATION)
+                    ->whereIn('status', self::COMPLETED_TASK_HOURS_STATUSES);
+            })
             ->whereNull('deleted_at')
-            ->get(['employee_id', 'overtime_date', 'calculated_hours'])
+            ->get(['employee_id', 'overtime_date', 'approved_start_time', 'approved_end_time'])
             ->groupBy('employee_id');
 
         $yearStart = $periodStart->copy()->startOfYear();
@@ -304,8 +320,7 @@ class PicAttendanceController extends Controller
                     ->sum(fn (Attendance $attendance): int => $this->recapAttendanceWorkMinutes($attendance));
                 $overtimeMinutes = $overtimesByEmployeeId
                     ->get($employeeId, collect())
-                    ->filter(fn (AttendanceOvertime $overtime): bool => $employeeWorkDayKeys->contains($this->dateKey($overtime->overtime_date)))
-                    ->sum(fn (AttendanceOvertime $overtime): int => max(0, (int) round((float) $overtime->calculated_hours * 60)));
+                    ->sum(fn (AttendanceOvertime $overtime): int => $this->recapApprovedOvertimeMinutes($overtime));
                 $alphaDays = $employeeWorkDayKeys
                     ->filter(function (string $dateKey) use ($attendedDateKeys, $leaveRequests, $businessTrips): bool {
                         $date = Carbon::parse($dateKey, 'Asia/Jakarta');
@@ -387,6 +402,31 @@ class PicAttendanceController extends Controller
         }
 
         return 0;
+    }
+
+    private function recapApprovedOvertimeMinutes(AttendanceOvertime $overtime): int
+    {
+        if (! $this->hasApprovedOvertimeTimeRange($overtime)) {
+            return 0;
+        }
+
+        $date = $this->dateKey($overtime->overtime_date);
+        $start = Carbon::parse($date.' '.$overtime->approved_start_time, 'Asia/Jakarta');
+        $end = Carbon::parse($date.' '.$overtime->approved_end_time, 'Asia/Jakarta');
+
+        if ($end->lessThanOrEqualTo($start)) {
+            $end->addDay();
+        }
+
+        return max(0, (int) $start->diffInMinutes($end));
+    }
+
+    private function hasApprovedOvertimeTimeRange(AttendanceOvertime $overtime): bool
+    {
+        return is_string($overtime->approved_start_time)
+            && trim($overtime->approved_start_time) !== ''
+            && is_string($overtime->approved_end_time)
+            && trim($overtime->approved_end_time) !== '';
     }
 
     private function recapCompactMinutesLabel(int $minutes): string
@@ -475,9 +515,16 @@ class PicAttendanceController extends Controller
             ->where('employee_id', $employee->id)
             ->whereBetween('overtime_date', $dateRange)
             ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled'])
+            ->whereNotNull('approved_start_time')
+            ->whereNotNull('approved_end_time')
+            ->whereHas('lifecycleLogs', function ($query): void {
+                $query
+                    ->where('event_key', self::TASK_HOURS_VERIFICATION)
+                    ->whereIn('status', self::COMPLETED_TASK_HOURS_STATUSES);
+            })
             ->whereNull('deleted_at')
-            ->get(['calculated_hours'])
-            ->sum(fn (AttendanceOvertime $overtime): int => max(0, (int) round((float) $overtime->calculated_hours * 60)));
+            ->get(['overtime_date', 'approved_start_time', 'approved_end_time'])
+            ->sum(fn (AttendanceOvertime $overtime): int => $this->recapApprovedOvertimeMinutes($overtime));
 
         $attendedDateKeys = $attendances
             ->map(fn (Attendance $attendance): string => $this->dateKey($attendance->date))

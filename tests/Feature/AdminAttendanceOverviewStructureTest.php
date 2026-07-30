@@ -92,6 +92,14 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('$monthlyExpectedWorkMinutes = $monthlyWorkingDaysCount * 8 * 60;', $recapController);
         $this->assertStringContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$monthlyWorkingDaysCount.' days',", $recapController);
         $this->assertStringContainsString('recapCompactMinutesLabel($monthlyExpectedWorkMinutes)', $recapController);
+        $this->assertStringContainsString("private const TASK_HOURS_VERIFICATION = 'task_hours_verification';", $recapController);
+        $this->assertStringContainsString("->whereNotNull('approved_start_time')", $recapController);
+        $this->assertStringContainsString("->whereNotNull('approved_end_time')", $recapController);
+        $this->assertStringContainsString("->where('event_key', self::TASK_HOURS_VERIFICATION)", $recapController);
+        $this->assertStringContainsString('recapApprovedOvertimeMinutes', $recapController);
+        $this->assertStringContainsString('$end->addDay();', $recapController);
+        $this->assertStringNotContainsString("->get(['employee_id', 'overtime_date', 'calculated_hours'])", $recapController);
+        $this->assertStringNotContainsString("->get(['calculated_hours'])", $recapController);
         $this->assertStringNotContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$employeeWorkDays->count().' days'", $recapController);
         $this->assertStringContainsString("'leaveOverviewStats' => \$this->leaveOverviewStatsFor(\$request)", $leaveController);
         $this->assertStringContainsString("'leavePendingCards' => \$this->pendingLeaveCardsFor(\$request, \$selectedPeriod)", $leaveController);

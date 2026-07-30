@@ -255,6 +255,12 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("\$task['can_delete_from_task_list'] ?? true", $taskListItemsPartial);
         $this->assertStringContainsString('canManageTaskListTask', $taskListController);
         $this->assertStringContainsString('canDeleteTaskListTask', $taskListController);
+        $this->assertStringContainsString('subordinateTaskEmployeeIdsForPic', $taskListController);
+        $this->assertStringContainsString("->whereIn('employee_id', \$subordinateEmployeeIds->all())", $taskListController);
+        $this->assertStringContainsString("->where('assigned_by', \$authenticatedUserId)", $taskListController);
+        $this->assertStringContainsString("'is_assigned_to_other_employee' =>", $taskListController);
+        $this->assertStringContainsString('Staff : <span class="fw-semibold">{{ $task[\'assignee_label\'] }}</span>', $taskListItemsPartial);
+        $this->assertStringContainsString('Staff : <span class="fw-semibold">{{ $task[\'assignee_label\'] }}</span>', $taskListWeekPlanPartial);
         $this->assertStringContainsString('employeeIsProjectMember', $taskListController);
         $this->assertStringContainsString('public function index(): View', $projectController);
         $this->assertStringContainsString('public function detailFallback(): RedirectResponse', $projectController);

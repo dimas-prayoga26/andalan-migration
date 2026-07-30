@@ -10,6 +10,7 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\EmployeeDeployment;
 use App\Models\LeaveRequest;
+use App\Models\OvertimeLifecycleLog;
 use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
@@ -88,7 +89,7 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
                 'clock_out' => null,
                 'late_minutes' => 0,
                 'work_hours' => null,
-                'status' => 'Masuk',
+                'status' => 'Terlambat',
             ]);
 
             AttendanceException::query()->create([
@@ -106,16 +107,44 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
                 ['18:00:00', '06:00:00'],
                 ['18:00:00', '06:00:00'],
                 ['18:00:00', '06:00:00'],
-            ] as [$actualStartTime, $actualEndTime]) {
-                AttendanceOvertime::query()->create([
+            ] as [$approvedStartTime, $approvedEndTime]) {
+                $overtime = AttendanceOvertime::query()->create([
                     'employee_id' => $employee->id,
                     'overtime_date' => '2026-05-29',
-                    'actual_start_time' => $actualStartTime,
-                    'actual_end_time' => $actualEndTime,
+                    'actual_start_time' => '19:00:00',
+                    'actual_end_time' => '20:00:00',
+                    'approved_start_time' => $approvedStartTime,
+                    'approved_end_time' => $approvedEndTime,
                     'instruction' => 'Monthly overtime rate test',
                     'status' => 'completed',
                 ]);
+
+                $this->createOvertimeLifecycleLog($overtime, 'verified');
             }
+
+            $unverifiedOvertime = AttendanceOvertime::query()->create([
+                'employee_id' => $employee->id,
+                'overtime_date' => '2026-05-29',
+                'actual_start_time' => '18:00:00',
+                'actual_end_time' => '06:00:00',
+                'approved_start_time' => '18:00:00',
+                'approved_end_time' => '06:00:00',
+                'instruction' => 'Unverified overtime must be ignored',
+                'status' => 'completed',
+            ]);
+            $this->createOvertimeLifecycleLog($unverifiedOvertime, 'pending');
+
+            $actualOnlyOvertime = AttendanceOvertime::query()->create([
+                'employee_id' => $employee->id,
+                'overtime_date' => '2026-05-29',
+                'actual_start_time' => '18:00:00',
+                'actual_end_time' => '06:00:00',
+                'approved_start_time' => null,
+                'approved_end_time' => null,
+                'instruction' => 'Actual-only overtime must be ignored',
+                'status' => 'completed',
+            ]);
+            $this->createOvertimeLifecycleLog($actualOnlyOvertime, 'verified');
 
             LeaveRequest::query()->create([
                 'employee_id' => $employee->id,
@@ -408,5 +437,18 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
         ]);
 
         return $employee;
+    }
+
+    private function createOvertimeLifecycleLog(AttendanceOvertime $overtime, string $status): void
+    {
+        OvertimeLifecycleLog::query()->create([
+            'overtime_id' => $overtime->id,
+            'phase' => 'pic',
+            'event_key' => 'task_hours_verification',
+            'step_order' => 1,
+            'title' => 'Task & Hours Verification',
+            'status' => $status,
+            'happened_at' => Carbon::parse('2026-05-29 20:00:00', 'Asia/Jakarta'),
+        ]);
     }
 }

@@ -484,8 +484,6 @@ class AttendanceOvertimeController extends Controller
 
         $activeOvertimes = $monthlyOvertimes
             ->reject(fn (AttendanceOvertime $overtime): bool => strtolower(trim((string) $overtime->status)) === self::OVERTIME_STATUS_CANCELLED);
-        $loggedMinutes = $activeOvertimes
-            ->sum(fn (AttendanceOvertime $overtime): int => $this->durationMinutesFromTimeValues($overtime->actual_start_time, $overtime->actual_end_time));
         $isPendingSupervisorOvertimeApproval = function (AttendanceOvertime $overtime): bool {
             if ($this->durationMinutesFromTimeValues($overtime->actual_start_time, $overtime->actual_end_time) === 0) {
                 return false;
@@ -504,12 +502,15 @@ class AttendanceOvertimeController extends Controller
             return $verificationLog instanceof OvertimeLifecycleLog
                 && strtolower(trim((string) $verificationLog->status)) === 'verified';
         };
+        $verifiedSupervisorOvertimes = $activeOvertimes
+            ->filter($isVerifiedSupervisorOvertime);
+        $loggedMinutes = $verifiedSupervisorOvertimes
+            ->sum(fn (AttendanceOvertime $overtime): int => $this->approvedDurationMinutes($overtime));
         $pendingSupervisorApprovalMinutes = $activeOvertimes
             ->filter($isPendingSupervisorOvertimeApproval)
             ->sum(fn (AttendanceOvertime $overtime): int => $this->durationMinutesFromTimeValues($overtime->actual_start_time, $overtime->actual_end_time));
-        $completedMinutes = $activeOvertimes
-            ->filter($isVerifiedSupervisorOvertime)
-            ->sum(fn (AttendanceOvertime $overtime): int => $this->approvedOrActualDurationMinutes($overtime));
+        $completedMinutes = $verifiedSupervisorOvertimes
+            ->sum(fn (AttendanceOvertime $overtime): int => $this->approvedDurationMinutes($overtime));
         $tasksFinalized = $activeOvertimes
             ->flatMap(fn (AttendanceOvertime $overtime): Collection => $overtime->projectTasks)
             ->filter(fn (ProjectTask $projectTask): bool => strtolower(trim((string) $projectTask->status)) === 'completed' || $projectTask->completed_at !== null)
@@ -1612,7 +1613,7 @@ class AttendanceOvertimeController extends Controller
         }
     }
 
-    private function approvedOrActualDurationMinutes(AttendanceOvertime $overtime): int
+    private function approvedDurationMinutes(AttendanceOvertime $overtime): int
     {
         if (
             is_string($overtime->approved_start_time)
@@ -1623,7 +1624,7 @@ class AttendanceOvertimeController extends Controller
             return $this->durationMinutesFromTimeValues($overtime->approved_start_time, $overtime->approved_end_time);
         }
 
-        return $this->durationMinutesFromTimeValues($overtime->actual_start_time, $overtime->actual_end_time);
+        return 0;
     }
 
     private function formatOvertimeSummaryHours(float $hours, string $suffix = 'Hours'): string
@@ -2134,11 +2135,7 @@ class AttendanceOvertimeController extends Controller
         return ProjectTask::query()
             ->with(['project:id,name', 'assignedBy:id,username'])
             ->where('employee_id', $employeeId)
-            ->where(function ($query) use ($overtime): void {
-                $query
-                    ->where('overtime_id', (string) $overtime->id)
-                    ->orWhereNull('overtime_id');
-            })
+            ->where('overtime_id', (string) $overtime->id)
             ->orderBy('due_date')
             ->orderBy('created_at');
     }

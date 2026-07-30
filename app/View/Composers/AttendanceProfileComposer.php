@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\User;
 use App\Support\Attendance\AttendanceWorkDurationCalculator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
@@ -28,6 +29,10 @@ class AttendanceProfileComposer
     ];
 
     private const MAX_DAILY_WORK_MINUTES = 480;
+
+    private const TASK_HOURS_VERIFICATION = 'task_hours_verification';
+
+    private const VERIFIED_STATUS = 'verified';
 
     public function __construct(
         private readonly AttendanceWorkDurationCalculator $attendanceWorkDurationCalculator
@@ -186,17 +191,18 @@ class AttendanceProfileComposer
                 ->whereBetween('date', [$effectiveMonthStart->toDateString(), $monthEnd->toDateString()]);
             $monthlyOnTimeCount = (clone $monthlyAttendanceQuery)
                 ->whereNotNull('clock_in')
-                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['masuk'])
+                ->where('late_minutes', '<=', 0)
                 ->count();
             $monthlyLateCount = (clone $monthlyAttendanceQuery)
                 ->whereNotNull('clock_in')
-                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['terlambat'])
+                ->where('late_minutes', '>', 0)
                 ->count();
 
             $profileData['profileLateInCount'] = Attendance::query()
                 ->where('employee_id', $employeeId)
                 ->whereBetween('date', [$effectiveMonthStart->toDateString(), $monthEnd->toDateString()])
-                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['terlambat'])
+                ->whereNotNull('clock_in')
+                ->where('late_minutes', '>', 0)
                 ->count();
 
             $profileData['profileLeavesAndSickCount'] = LeaveRequest::query()
@@ -214,13 +220,9 @@ class AttendanceProfileComposer
                 : $monthEnd->copy();
             $profileData['profileElapsedWorkingDaysCount'] = $this->calculateWorkingDaysInPeriod($monthStart, $elapsedMonthEnd);
             $monthlyAlphaDaysCount = $this->countAlphaWorkDaysForPeriod($employeeId, $monthStart, $elapsedMonthEnd);
-            $monthlyOvertimeMinutes = AttendanceOvertime::query()
-                ->where('employee_id', $employeeId)
-                ->whereBetween('overtime_date', [$effectiveMonthStart->toDateString(), $monthEnd->toDateString()])
-                ->whereNotNull('actual_start_time')
-                ->whereNotNull('actual_end_time')
-                ->get(['actual_start_time', 'actual_end_time'])
-                ->sum(fn (AttendanceOvertime $overtime): int => $this->calculateOvertimeMinutes($overtime->actual_start_time, $overtime->actual_end_time));
+            $monthlyOvertimeMinutes = $this->approvedOvertimeQueryForPeriod($employeeId, $effectiveMonthStart, $monthEnd)
+                ->get(['approved_start_time', 'approved_end_time'])
+                ->sum(fn (AttendanceOvertime $overtime): int => $this->calculateOvertimeMinutes($overtime->approved_start_time, $overtime->approved_end_time));
 
             $profileData['profileAttendanceOverviewSeries'] = [
                 (int) $monthlyOnTimeCount,
@@ -262,19 +264,15 @@ class AttendanceProfileComposer
                 ->count();
             $weeklyOnTimeCount = (clone $weeklyAttendanceQuery)
                 ->whereNotNull('clock_in')
-                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['masuk'])
+                ->where('late_minutes', '<=', 0)
                 ->count();
             $weeklyWorkedMinutes = (clone $weeklyAttendanceQuery)
                 ->whereNotNull('clock_in')
                 ->get(['clock_in', 'clock_out', 'work_hours'])
                 ->sum(fn (Attendance $attendance): int => $this->calculateAttendanceWorkMinutes($attendance));
-            $weeklyOvertimeMinutes = AttendanceOvertime::query()
-                ->where('employee_id', $employeeId)
-                ->whereBetween('overtime_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
-                ->whereNotNull('actual_start_time')
-                ->whereNotNull('actual_end_time')
-                ->get(['actual_start_time', 'actual_end_time'])
-                ->sum(fn (AttendanceOvertime $overtime): int => $this->calculateOvertimeMinutes($overtime->actual_start_time, $overtime->actual_end_time));
+            $weeklyOvertimeMinutes = $this->approvedOvertimeQueryForPeriod($employeeId, $weekStart, $weekEnd)
+                ->get(['approved_start_time', 'approved_end_time'])
+                ->sum(fn (AttendanceOvertime $overtime): int => $this->calculateOvertimeMinutes($overtime->approved_start_time, $overtime->approved_end_time));
 
             $profileData['profileWeeklyAttendancePercent'] = $weeklyWorkingDaysCount > 0
                 ? max(0, min((int) round(($weeklyCheckedInCount / $weeklyWorkingDaysCount) * 100), 100))
@@ -298,7 +296,7 @@ class AttendanceProfileComposer
                 ->where('employee_id', $employeeId)
                 ->whereYear('date', (int) $nowJakarta->year)
                 ->whereNotNull('clock_in')
-                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['masuk'])
+                ->where('late_minutes', '<=', 0)
                 ->selectRaw('MONTH(date) as month_number, COUNT(*) as total_count')
                 ->groupBy('month_number')
                 ->pluck('total_count', 'month_number');
@@ -306,7 +304,7 @@ class AttendanceProfileComposer
                 ->where('employee_id', $employeeId)
                 ->whereYear('date', (int) $nowJakarta->year)
                 ->whereNotNull('clock_in')
-                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['terlambat'])
+                ->where('late_minutes', '>', 0)
                 ->selectRaw('MONTH(date) as month_number, COUNT(*) as total_count')
                 ->groupBy('month_number')
                 ->pluck('total_count', 'month_number');
@@ -317,14 +315,10 @@ class AttendanceProfileComposer
                 ->selectRaw('MONTH(start_date) as month_number, COUNT(*) as total_count')
                 ->groupBy('month_number')
                 ->pluck('total_count', 'month_number');
-            $yearOvertimeHoursByMonth = AttendanceOvertime::query()
-                ->where('employee_id', $employeeId)
-                ->whereYear('overtime_date', (int) $nowJakarta->year)
-                ->whereNotNull('actual_start_time')
-                ->whereNotNull('actual_end_time')
-                ->get(['overtime_date', 'actual_start_time', 'actual_end_time'])
+            $yearOvertimeHoursByMonth = $this->approvedOvertimeQueryForYear($employeeId, (int) $nowJakarta->year)
+                ->get(['overtime_date', 'approved_start_time', 'approved_end_time'])
                 ->groupBy(static fn (AttendanceOvertime $overtime): int => (int) Carbon::parse($overtime->overtime_date)->month)
-                ->map(fn ($monthOvertimes): float => round($monthOvertimes->sum(fn (AttendanceOvertime $overtime): int => $this->calculateOvertimeMinutes($overtime->actual_start_time, $overtime->actual_end_time)) / 60, 2));
+                ->map(fn ($monthOvertimes): float => round($monthOvertimes->sum(fn (AttendanceOvertime $overtime): int => $this->calculateOvertimeMinutes($overtime->approved_start_time, $overtime->approved_end_time)) / 60, 2));
 
             $monthlyAttendanceLabels = [];
             $monthlyAttendanceSeries = [];
@@ -411,7 +405,8 @@ class AttendanceProfileComposer
                     ->count();
 
                 $profileData['managementLateTodayCount'] = (clone $attendanceTodayQuery)
-                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['terlambat'])
+                    ->whereNotNull('clock_in')
+                    ->where('late_minutes', '>', 0)
                     ->count();
 
                 $profileData['managementLeaveTodayCount'] = LeaveRequest::query()
@@ -657,6 +652,31 @@ class AttendanceProfileComposer
         }
 
         return 0;
+    }
+
+    private function approvedOvertimeQueryForPeriod(string $employeeId, Carbon $periodStart, Carbon $periodEnd): Builder
+    {
+        return $this->approvedOvertimeQuery($employeeId)
+            ->whereBetween('overtime_date', [$periodStart->toDateString(), $periodEnd->toDateString()]);
+    }
+
+    private function approvedOvertimeQueryForYear(string $employeeId, int $year): Builder
+    {
+        return $this->approvedOvertimeQuery($employeeId)
+            ->whereYear('overtime_date', $year);
+    }
+
+    private function approvedOvertimeQuery(string $employeeId): Builder
+    {
+        return AttendanceOvertime::query()
+            ->where('employee_id', $employeeId)
+            ->whereNotNull('approved_start_time')
+            ->whereNotNull('approved_end_time')
+            ->whereHas('lifecycleLogs', function (Builder $query): void {
+                $query
+                    ->where('event_key', self::TASK_HOURS_VERIFICATION)
+                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', [self::VERIFIED_STATUS]);
+            });
     }
 
     private function calculateOvertimeMinutes(mixed $startTimeValue, mixed $endTimeValue): int

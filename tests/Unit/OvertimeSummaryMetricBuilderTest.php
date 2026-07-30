@@ -26,6 +26,8 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
                     'task_hours_verification' => 'verified',
                     'payroll_processing' => 'waiting',
                 ],
+                approvedStartTime: '18:00:00',
+                approvedEndTime: '20:00:00',
             ),
             $this->overtime(
                 employeeId: 'employee-a',
@@ -38,6 +40,8 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
                     'task_hours_verification' => 'verified',
                     'payroll_processing' => 'calculated_locked',
                 ],
+                approvedStartTime: '10:00:00',
+                approvedEndTime: '14:00:00',
             ),
             $this->overtime(
                 employeeId: 'employee-b',
@@ -92,6 +96,69 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
         $this->assertSame('bg-light-subtle', $metricCards[8]['background_class']);
     }
 
+    public function test_it_uses_only_approved_times_for_summary_duration_metrics(): void
+    {
+        $summary = (new OvertimeSummaryMetricBuilder)->summarizeCollection(collect([
+            $this->overtime(
+                employeeId: 'employee-a',
+                employeeUsername: 'dimas',
+                overtimeDate: '2026-07-30',
+                actualStartTime: '11:00:00',
+                actualEndTime: '13:00:00',
+                lifecycleStatuses: [
+                    'session_ended' => 'clock_out',
+                    'task_hours_verification' => 'verified',
+                    'payroll_processing' => 'waiting',
+                ],
+                approvedStartTime: '11:30:00',
+                approvedEndTime: '12:00:00',
+            ),
+            $this->overtime(
+                employeeId: 'employee-b',
+                employeeUsername: 'syafiq',
+                overtimeDate: '2026-07-31',
+                actualStartTime: '18:00:00',
+                actualEndTime: '19:00:00',
+                lifecycleStatuses: [
+                    'session_ended' => 'clock_out',
+                    'task_hours_verification' => 'verified',
+                    'payroll_processing' => 'waiting',
+                ],
+                approvedStartTime: '18:00:00',
+                approvedEndTime: '19:00:00',
+            ),
+        ]));
+
+        $this->assertSame('1h 30m', $summary['total_hours_label']);
+        $this->assertSame('0h 45m', $summary['median_hours_label']);
+        $this->assertSame('0h 45m', $summary['average_hours_label']);
+        $this->assertSame('syafiq', $summary['top_overtime_label']);
+    }
+
+    public function test_it_does_not_fallback_to_actual_times_for_summary_duration_metrics(): void
+    {
+        $summary = (new OvertimeSummaryMetricBuilder)->summarizeCollection(collect([
+            $this->overtime(
+                employeeId: 'employee-a',
+                employeeUsername: 'dimas',
+                overtimeDate: '2026-07-30',
+                actualStartTime: '11:00:00',
+                actualEndTime: '13:00:00',
+                lifecycleStatuses: [
+                    'session_ended' => 'clock_out',
+                    'task_hours_verification' => 'verified',
+                    'payroll_processing' => 'waiting',
+                ],
+            ),
+        ]));
+
+        $this->assertSame('0 hours', $summary['total_hours_label']);
+        $this->assertSame('0 hours', $summary['median_hours_label']);
+        $this->assertSame('0 hours', $summary['average_hours_label']);
+        $this->assertSame('-', $summary['top_overtime_label']);
+        $this->assertSame('0h | 0h', $summary['weekend_weekday_label']);
+    }
+
     /**
      * @param  array<string, string>  $lifecycleStatuses
      */
@@ -101,7 +168,9 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
         string $overtimeDate,
         string $actualStartTime,
         string $actualEndTime,
-        array $lifecycleStatuses
+        array $lifecycleStatuses,
+        ?string $approvedStartTime = null,
+        ?string $approvedEndTime = null,
     ): AttendanceOvertime {
         $employee = new Employee([
             'id' => $employeeId,
@@ -116,6 +185,8 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
             'overtime_date' => $overtimeDate,
             'actual_start_time' => $actualStartTime,
             'actual_end_time' => $actualEndTime,
+            'approved_start_time' => $approvedStartTime,
+            'approved_end_time' => $approvedEndTime,
             'status' => 'completed',
         ]);
         $overtime->setRelation('employee', $employee);

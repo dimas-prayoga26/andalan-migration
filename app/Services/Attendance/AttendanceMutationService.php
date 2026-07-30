@@ -1054,22 +1054,9 @@ class AttendanceMutationService
      */
     private function resolveAttendanceStatus(Carbon $attendanceTime, ?array $officeContext): string
     {
-        $officeStartTime = is_array($officeContext) && isset($officeContext['office_start_time']) && is_string($officeContext['office_start_time'])
-            ? $officeContext['office_start_time']
-            : '08:00:00';
-
-        $officeStartDateTime = $attendanceTime->copy();
-        try {
-            $officeStartDateTime->setTimeFromTimeString($officeStartTime);
-        } catch (\Throwable) {
-            $officeStartDateTime->setTime(8, 0, 0);
-        }
-
-        if ($attendanceTime->greaterThan($officeStartDateTime)) {
-            return 'Terlambat';
-        }
-
-        return 'Masuk';
+        return $this->calculateLateMinutes($attendanceTime, $officeContext) > 0
+            ? 'Terlambat'
+            : 'Masuk';
     }
 
     /**

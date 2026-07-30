@@ -14,6 +14,9 @@
             @if ($task['is_assigned_by_other_user'] ?? false)
                 <p class="fs-13 text-muted mb-0">Assign by : <span class="fw-semibold">{{ $task['assigned_by_label'] }}</span></p>
             @endif
+            @if ($task['is_assigned_to_other_employee'] ?? false)
+                <p class="fs-13 text-muted mb-0">Staff : <span class="fw-semibold">{{ $task['assignee_label'] }}</span></p>
+            @endif
         </div>
     </div>
 @empty

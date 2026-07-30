@@ -106,8 +106,8 @@ class OvertimeSummaryMetricBuilder
                 'employee_id',
                 'assigned_by',
                 'overtime_date',
-                'actual_start_time',
-                'actual_end_time',
+                'approved_start_time',
+                'approved_end_time',
                 'status',
             ]);
 
@@ -299,19 +299,27 @@ class OvertimeSummaryMetricBuilder
 
     private function durationMinutes(AttendanceOvertime $overtime): int
     {
-        if ($overtime->actual_start_time === null || $overtime->actual_end_time === null) {
+        if (! $this->hasTimeRange($overtime->approved_start_time, $overtime->approved_end_time)) {
             return 0;
         }
 
         $date = Carbon::parse($overtime->overtime_date ?: now('Asia/Jakarta'), 'Asia/Jakarta')->toDateString();
-        $start = Carbon::parse($date.' '.$overtime->actual_start_time, 'Asia/Jakarta');
-        $end = Carbon::parse($date.' '.$overtime->actual_end_time, 'Asia/Jakarta');
+        $start = Carbon::parse($date.' '.$overtime->approved_start_time, 'Asia/Jakarta');
+        $end = Carbon::parse($date.' '.$overtime->approved_end_time, 'Asia/Jakarta');
 
         if ($end->lessThanOrEqualTo($start)) {
             $end->addDay();
         }
 
         return max(0, (int) $start->diffInMinutes($end));
+    }
+
+    private function hasTimeRange(mixed $startTime, mixed $endTime): bool
+    {
+        return is_string($startTime)
+            && trim($startTime) !== ''
+            && is_string($endTime)
+            && trim($endTime) !== '';
     }
 
     /**

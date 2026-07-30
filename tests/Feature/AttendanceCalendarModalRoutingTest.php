@@ -235,4 +235,35 @@ class AttendanceCalendarModalRoutingTest extends TestCase
             $presenter->attendanceStatusLabel('late', 'Late 6 Hours 15 Minutes', 375)
         );
     }
+
+    public function test_clock_in_late_status_starts_after_one_full_minute(): void
+    {
+        $attendanceMutationService = app(AttendanceMutationService::class);
+        $calculateLateMinutes = new \ReflectionMethod(AttendanceMutationService::class, 'calculateLateMinutes');
+        $calculateLateMinutes->setAccessible(true);
+        $resolveAttendanceStatus = new \ReflectionMethod(AttendanceMutationService::class, 'resolveAttendanceStatus');
+        $resolveAttendanceStatus->setAccessible(true);
+        $officeContext = ['office_start_time' => '08:00:00'];
+
+        $this->assertSame(0, $calculateLateMinutes->invoke(
+            $attendanceMutationService,
+            Carbon::parse('2026-07-09 08:00:00', 'Asia/Jakarta'),
+            $officeContext
+        ));
+        $this->assertSame('Masuk', $resolveAttendanceStatus->invoke(
+            $attendanceMutationService,
+            Carbon::parse('2026-07-09 08:00:59', 'Asia/Jakarta'),
+            $officeContext
+        ));
+        $this->assertSame(1, $calculateLateMinutes->invoke(
+            $attendanceMutationService,
+            Carbon::parse('2026-07-09 08:01:00', 'Asia/Jakarta'),
+            $officeContext
+        ));
+        $this->assertSame('Terlambat', $resolveAttendanceStatus->invoke(
+            $attendanceMutationService,
+            Carbon::parse('2026-07-09 08:01:00', 'Asia/Jakarta'),
+            $officeContext
+        ));
+    }
 }

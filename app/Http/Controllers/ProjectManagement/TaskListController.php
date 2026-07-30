@@ -108,7 +108,8 @@ class TaskListController extends Controller
         }
 
         $validated = $this->validateTaskPayload($request);
-        $projectId = $this->validatedProjectId($employeeId, $validated);
+        $taskEmployeeId = trim((string) $projectTask->employee_id);
+        $projectId = $this->validatedProjectId($taskEmployeeId !== '' ? $taskEmployeeId : $employeeId, $validated);
         if ($projectId === false) {
             return response()->json([
                 'success' => false,
@@ -288,7 +289,13 @@ class TaskListController extends Controller
         );
 
         $tasks = (clone $monthTaskQuery)
-            ->with(['project:id,name', 'assignedBy:id,username'])
+            ->with([
+                'project:id,name',
+                'assignedBy:id,username',
+                'employee:id,user_id',
+                'employee.profile:id,employee_id,name',
+                'employee.user:id,username,email',
+            ])
             ->orderByRaw('COALESCE(due_date, start_date, created_at) ASC')
             ->get()
             ->map(fn (ProjectTask $projectTask): array => $this->taskListItemValue($projectTask));
@@ -303,7 +310,13 @@ class TaskListController extends Controller
         $weekStart = now('Asia/Jakarta')->startOfWeek();
         $weekEnd = now('Asia/Jakarta')->endOfWeek();
         $weekPlanTasks = (clone $taskQuery)
-            ->with(['project:id,name'])
+            ->with([
+                'project:id,name',
+                'assignedBy:id,username',
+                'employee:id,user_id',
+                'employee.profile:id,employee_id,name',
+                'employee.user:id,username,email',
+            ])
             ->whereRaw('DATE(COALESCE(due_date, start_date, created_at)) >= ?', [$weekStart->toDateString()])
             ->whereRaw('DATE(COALESCE(due_date, start_date, created_at)) <= ?', [$weekEnd->toDateString()])
             ->orderByRaw('COALESCE(due_date, start_date, created_at) ASC')
@@ -521,16 +534,8 @@ class TaskListController extends Controller
      */
     private function taskListAssignableStaffOptions(string $employeeId): Collection
     {
-        $staffEmployeeIds = EmployeePicAssignment::query()
-            ->where('supervisor_employee_id', $employeeId)
-            ->where('is_active', true)
-            ->whereNull('deleted_at')
-            ->pluck('staff_employee_id')
-            ->filter(fn (mixed $staffEmployeeId): bool => is_string($staffEmployeeId) && trim($staffEmployeeId) !== '')
-            ->map(fn (string $staffEmployeeId): string => trim($staffEmployeeId));
-
         $assignableEmployeeIds = collect([$employeeId])
-            ->merge($staffEmployeeIds)
+            ->merge($this->subordinateTaskEmployeeIdsForPic($employeeId))
             ->unique()
             ->values();
 
@@ -577,12 +582,17 @@ class TaskListController extends Controller
         $isCompleted = $this->isCompletedTask($projectTask);
         $assignedByUserId = trim((string) ($projectTask->assigned_by ?? ''));
         $authenticatedUserId = trim((string) (Auth::id() ?? ''));
+        $authenticatedEmployeeId = $this->authenticatedEmployeeId(Auth::user());
+        $taskEmployeeId = (string) $projectTask->employee_id;
         $assignedByUsername = trim((string) ($projectTask->assignedBy?->username ?? 'self'));
         $isOvertimeTask = trim((string) ($projectTask->overtime_id ?? '')) !== '';
+        $assigneeLabel = $projectTask->employee instanceof Employee
+            ? $this->employeeOptionName($projectTask->employee)
+            : trim($taskEmployeeId);
 
         return [
             'id' => (string) $projectTask->id,
-            'employee_id' => (string) $projectTask->employee_id,
+            'employee_id' => $taskEmployeeId,
             'overtime_id' => $isOvertimeTask ? (string) $projectTask->overtime_id : '',
             'is_overtime_task' => $isOvertimeTask,
             'overtime_label' => 'Overtime',
@@ -603,6 +613,8 @@ class TaskListController extends Controller
             'project_name' => trim((string) ($projectTask->project?->name ?? 'Daily Task')),
             'task_category' => $projectTask->project_id === null ? 'daily' : 'project',
             'task_category_label' => $projectTask->project_id === null ? 'Daily Task' : 'Project Task',
+            'assignee_label' => $assigneeLabel,
+            'is_assigned_to_other_employee' => is_string($authenticatedEmployeeId) && $authenticatedEmployeeId !== '' && $taskEmployeeId !== $authenticatedEmployeeId,
             'assigned_by' => $assignedByUsername,
             'assigned_by_label' => $assignedByUsername,
             'is_assigned_by_other_user' => $assignedByUserId !== '' && $authenticatedUserId !== '' && $assignedByUserId !== $authenticatedUserId,
@@ -762,7 +774,17 @@ class TaskListController extends Controller
 
     private function canManageTaskListTask(ProjectTask $projectTask, string $employeeId): bool
     {
-        return (string) $projectTask->employee_id === $employeeId;
+        $taskEmployeeId = trim((string) $projectTask->employee_id);
+        if ($taskEmployeeId === $employeeId) {
+            return true;
+        }
+
+        $authenticatedUserId = trim((string) (Auth::id() ?? ''));
+        if ($authenticatedUserId === '' || trim((string) $projectTask->assigned_by) !== $authenticatedUserId) {
+            return false;
+        }
+
+        return $this->subordinateTaskEmployeeIdsForPic($employeeId)->contains($taskEmployeeId);
     }
 
     private function canDeleteTaskListTask(ProjectTask $projectTask, string $employeeId): bool
@@ -784,18 +806,51 @@ class TaskListController extends Controller
 
     private function projectTaskQueryForEmployee(string $employeeId): Builder
     {
+        $authenticatedUserId = trim((string) (Auth::id() ?? ''));
+        $subordinateEmployeeIds = $this->subordinateTaskEmployeeIdsForPic($employeeId);
+        $visibleMembershipEmployeeIds = collect([$employeeId])
+            ->merge($subordinateEmployeeIds)
+            ->unique()
+            ->values();
+
         return ProjectTask::query()
-            ->where('employee_id', $employeeId)
-            ->where(function (Builder $query) use ($employeeId): void {
+            ->where(function (Builder $query) use ($authenticatedUserId, $employeeId, $subordinateEmployeeIds): void {
+                $query->where('employee_id', $employeeId);
+
+                if ($authenticatedUserId !== '' && $subordinateEmployeeIds->isNotEmpty()) {
+                    $query->orWhere(function (Builder $staffTaskQuery) use ($authenticatedUserId, $subordinateEmployeeIds): void {
+                        $staffTaskQuery
+                            ->whereIn('employee_id', $subordinateEmployeeIds->all())
+                            ->where('assigned_by', $authenticatedUserId);
+                    });
+                }
+            })
+            ->where(function (Builder $query) use ($visibleMembershipEmployeeIds): void {
                 $query->whereNotNull('overtime_id')
                     ->orWhereNull('project_id')
-                    ->orWhereHas('project.memberships', function (Builder $membershipQuery) use ($employeeId): void {
+                    ->orWhereHas('project.memberships', function (Builder $membershipQuery) use ($visibleMembershipEmployeeIds): void {
                         $membershipQuery
-                            ->where('employee_id', $employeeId)
+                            ->whereIn('employee_id', $visibleMembershipEmployeeIds->all())
                             ->where('status', 'active')
                             ->whereNull('left_at');
                     });
             });
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function subordinateTaskEmployeeIdsForPic(string $employeeId): Collection
+    {
+        return EmployeePicAssignment::query()
+            ->where('supervisor_employee_id', $employeeId)
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->pluck('staff_employee_id')
+            ->filter(fn (mixed $staffEmployeeId): bool => is_string($staffEmployeeId) && trim($staffEmployeeId) !== '')
+            ->map(fn (string $staffEmployeeId): string => trim($staffEmployeeId))
+            ->unique()
+            ->values();
     }
 
     private function projectTaskQueryForMonth(Builder $taskQuery, int $year, int $month): Builder

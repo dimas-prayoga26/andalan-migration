@@ -68,80 +68,19 @@
 
         .pic-overtime-review-table {
             height: 286px;
-            overflow-x: hidden;
+            overflow-x: auto;
             overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
         }
 
         .overtime-review-table .table {
-            width: 100%;
-            table-layout: fixed;
+            min-width: 760px;
             margin-bottom: 0;
         }
 
         .overtime-review-table th,
         .overtime-review-table td {
-            overflow: hidden;
-            text-overflow: ellipsis;
             vertical-align: middle;
-            white-space: nowrap;
-        }
-
-        .overtime-review-table .overtime-status-cell {
-            max-width: 100%;
-        }
-
-        .overtime-pending-table th:nth-child(1),
-        .overtime-pending-table td:nth-child(1),
-        .overtime-approved-table th:nth-child(1),
-        .overtime-approved-table td:nth-child(1) {
-            width: 7%;
-        }
-
-        .overtime-pending-table th:nth-child(2),
-        .overtime-pending-table td:nth-child(2) {
-            width: 34%;
-        }
-
-        .overtime-approved-table th:nth-child(2),
-        .overtime-approved-table td:nth-child(2) {
-            width: 32%;
-        }
-
-        .overtime-pending-table th:nth-child(3),
-        .overtime-pending-table td:nth-child(3),
-        .overtime-approved-table th:nth-child(3),
-        .overtime-approved-table td:nth-child(3) {
-            width: 14%;
-        }
-
-        .overtime-pending-table th:nth-child(4),
-        .overtime-pending-table td:nth-child(4) {
-            width: 13%;
-        }
-
-        .overtime-approved-table th:nth-child(4),
-        .overtime-approved-table td:nth-child(4) {
-            width: 26%;
-        }
-
-        .overtime-pending-table th:nth-child(5),
-        .overtime-pending-table td:nth-child(5) {
-            width: 22%;
-        }
-
-        .overtime-approved-table th:nth-child(5),
-        .overtime-approved-table td:nth-child(5) {
-            width: 12%;
-        }
-
-        .overtime-pending-table th:nth-child(6),
-        .overtime-pending-table td:nth-child(6) {
-            width: 10%;
-        }
-
-        .overtime-approved-table th:nth-child(6),
-        .overtime-approved-table td:nth-child(6) {
-            width: 9%;
         }
 
         @media (min-width: 1200px) {

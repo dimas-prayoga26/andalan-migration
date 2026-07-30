@@ -93,7 +93,8 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('scrollbar-color: #d7dce5 transparent;', $picView);
         $this->assertStringContainsString('.pic-overtime-review-table::-webkit-scrollbar', $picView);
         $this->assertStringContainsString('height: 6px;', $picView);
-        $this->assertStringContainsString('min-width: 900px;', $picView);
+        $this->assertStringContainsString('min-width: 760px;', $picView);
+        $this->assertStringContainsString('width: 100%;', $picView);
         $this->assertStringNotContainsString('table-layout: fixed;', $picView);
         $this->assertStringNotContainsString('text-overflow: ellipsis;', $picView);
         $this->assertStringNotContainsString('.overtime-review-table tbody tr', $picView);
@@ -163,7 +164,8 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('scrollbar-color: #d7dce5 transparent;', $directorView);
         $this->assertStringContainsString('.director-overtime-review-table::-webkit-scrollbar', $directorView);
         $this->assertStringContainsString('height: 6px;', $directorView);
-        $this->assertStringContainsString('min-width: 900px;', $directorView);
+        $this->assertStringContainsString('min-width: 760px;', $directorView);
+        $this->assertStringContainsString('width: 100%;', $directorView);
         $this->assertStringNotContainsString('table-layout: fixed;', $directorView);
         $this->assertStringNotContainsString('text-overflow: ellipsis;', $directorView);
         $this->assertStringNotContainsString('.overtime-review-table tbody tr', $directorView);
@@ -231,7 +233,8 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('scrollbar-color: #d7dce5 transparent;', $view);
         $this->assertStringContainsString('.admin-overtime-review-table::-webkit-scrollbar', $view);
         $this->assertStringContainsString('height: 6px;', $view);
-        $this->assertStringContainsString('min-width: 900px;', $view);
+        $this->assertStringContainsString('min-width: 760px;', $view);
+        $this->assertStringContainsString('width: 100%;', $view);
         $this->assertStringNotContainsString('table-layout: fixed;', $view);
         $this->assertStringNotContainsString('text-overflow: ellipsis;', $view);
         $this->assertStringNotContainsString('.overtime-review-table tbody tr', $view);

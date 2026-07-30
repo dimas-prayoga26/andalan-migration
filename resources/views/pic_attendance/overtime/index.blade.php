@@ -71,10 +71,30 @@
             overflow-x: auto;
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
+            scrollbar-color: #c6ccd6 #f1f3f7;
+            scrollbar-width: thin;
+        }
+
+        .pic-overtime-review-table::-webkit-scrollbar {
+            height: 7px;
+        }
+
+        .pic-overtime-review-table::-webkit-scrollbar-track {
+            background: #f1f3f7;
+            border-radius: 999px;
+        }
+
+        .pic-overtime-review-table::-webkit-scrollbar-thumb {
+            background: #c6ccd6;
+            border-radius: 999px;
+        }
+
+        .pic-overtime-review-table::-webkit-scrollbar-thumb:hover {
+            background: #aab2c0;
         }
 
         .overtime-review-table .table {
-            min-width: 760px;
+            min-width: 900px;
             margin-bottom: 0;
         }
 

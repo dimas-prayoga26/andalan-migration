@@ -19,30 +19,30 @@
         }
 
         .director-overtime-review-table {
-            height: 286px;
+            height: 304px;
             overflow-x: auto;
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
-            scrollbar-color: #c6ccd6 #f1f3f7;
+            scrollbar-color: #d7dce5 transparent;
             scrollbar-width: thin;
         }
 
         .director-overtime-review-table::-webkit-scrollbar {
-            height: 7px;
+            height: 6px;
         }
 
         .director-overtime-review-table::-webkit-scrollbar-track {
-            background: #f1f3f7;
+            background: transparent;
             border-radius: 999px;
         }
 
         .director-overtime-review-table::-webkit-scrollbar-thumb {
-            background: #c6ccd6;
+            background: #d7dce5;
             border-radius: 999px;
         }
 
         .director-overtime-review-table::-webkit-scrollbar-thumb:hover {
-            background: #aab2c0;
+            background: #b8c0cc;
         }
 
         .overtime-review-table .table {

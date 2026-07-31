@@ -21,7 +21,6 @@ class AttendanceOverviewController extends Controller
     private const EXCLUDED_ATTENDANCE_DETAIL_EMAILS = [
         'lukman@rnbmanagement.com',
         'rully.priyatno@andalanbersama.com',
-        'hilmi.ulwan@andalanbersama.com',
     ];
 
     public function __construct(private readonly AttendanceExceptionPresenter $attendanceExceptionPresenter, private readonly AttendanceLocationFormatter $attendanceLocationFormatter) {}

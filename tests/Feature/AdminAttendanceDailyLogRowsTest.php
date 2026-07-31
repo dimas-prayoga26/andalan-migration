@@ -149,10 +149,11 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
         foreach ([
             'lukman@rnbmanagement.com',
             'rully.priyatno@andalanbersama.com',
-            'hilmi.ulwan@andalanbersama.com',
         ] as $email) {
             $this->assertStringContainsString("'{$email}'", $controller);
         }
+
+        $this->assertStringNotContainsString("'hilmi.ulwan@andalanbersama.com'", $controller);
     }
 
     public function test_admin_attendance_employee_avatar_uses_default_and_remote_profile_urls(): void

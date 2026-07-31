@@ -18,6 +18,14 @@ class RulesOfAttendace extends Model
 
     public $incrementing = false;
 
+    protected function casts(): array
+    {
+        return [
+            'radius' => 'integer',
+            'is_active' => 'boolean',
+        ];
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $rule): void {

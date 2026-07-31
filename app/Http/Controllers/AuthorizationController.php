@@ -28,7 +28,7 @@ use Illuminate\Validation\Rule;
 
 class AuthorizationController extends Controller
 {
-    private const DEFAULT_EMPLOYEE_PASSWORD = 'passwrod';
+    private const DEFAULT_EMPLOYEE_PASSWORD = 'password';
 
     public function index(Request $request): View
     {

@@ -139,7 +139,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('name="employee_status" value="Active"', $authorizationFormView);
         $this->assertStringContainsString('Add Employee', $authorizationFormView);
         $this->assertStringContainsString('Update Employee', $authorizationFormView);
-        $this->assertStringContainsString('Default password for the new employee account is <strong>passwrod</strong>.', $authorizationFormView);
+        $this->assertStringContainsString('Default password for the new employee account is <strong>password</strong>.', $authorizationFormView);
         $this->assertStringContainsString('Employee Status</label>', $authorizationFormView);
         $this->assertStringContainsString('Full Name', $authorizationFormView);
         $this->assertStringContainsString('Place of Birth', $authorizationFormView);
@@ -159,7 +159,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('session(\'status\')', $authorizationShowView);
         $this->assertStringContainsString('Employment BPJS', $authorizationShowView);
         $this->assertStringContainsString('Healthcare BPJS', $authorizationShowView);
-        $this->assertStringContainsString("private const DEFAULT_EMPLOYEE_PASSWORD = 'passwrod';", $controller);
+        $this->assertStringContainsString("private const DEFAULT_EMPLOYEE_PASSWORD = 'password';", $controller);
         $this->assertStringContainsString('Hash::make(self::DEFAULT_EMPLOYEE_PASSWORD)', $controller);
         $this->assertStringContainsString('$user->assignRole($this->defaultStaffRole());', $controller);
         $this->assertStringContainsString('private function defaultStaffRole(): Role', $controller);

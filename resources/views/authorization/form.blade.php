@@ -49,7 +49,7 @@
 
             @if (! $isEdit)
                 <div class="alert alert-info mb-4" role="alert">
-                    Default password for the new employee account is <strong>passwrod</strong>.
+                    Default password for the new employee account is <strong>password</strong>.
                 </div>
             @endif
 

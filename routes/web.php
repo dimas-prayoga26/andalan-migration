@@ -19,7 +19,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectManagement\OverviewController as ProjectManagementOverviewController;
 use App\Http\Controllers\ProjectManagement\ProjectController as ProjectManagementProjectController;
 use App\Http\Controllers\ProjectManagement\TaskListController as ProjectManagementTaskListController;
+use App\Http\Controllers\Settings\AttendanceRuleController as SettingsAttendanceRuleController;
 use App\Http\Controllers\Settings\DivisionController as SettingsDivisionController;
+use App\Http\Controllers\Settings\OfficeLocationController as SettingsOfficeLocationController;
 use App\Http\Controllers\Settings\PositionController as SettingsPositionController;
 use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripCashAdvanceController;
 use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripController;
@@ -108,6 +110,12 @@ Route::middleware('auth')->group(function (): void {
     // Settings
     Route::middleware('position.permission:view-settings')->prefix('settings')->name('settings.')->group(function (): void {
         Route::get('/', fn () => redirect()->route('settings.divisions.index'))->name('index');
+        Route::resource('office-locations', SettingsOfficeLocationController::class)
+            ->except(['show'])
+            ->parameters(['office-locations' => 'officeLocation']);
+        Route::resource('attendance-rules', SettingsAttendanceRuleController::class)
+            ->except(['show'])
+            ->parameters(['attendance-rules' => 'attendanceRule']);
         Route::resource('divisions', SettingsDivisionController::class)->except(['show']);
         Route::resource('positions', SettingsPositionController::class)->except(['show']);
     });

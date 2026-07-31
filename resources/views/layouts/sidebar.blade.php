@@ -118,6 +118,12 @@
 							<li>
 								<a class="{{ request()->routeIs('settings.positions*') ? 'active' : '' }}" href="{{ route('settings.positions.index') }}">Position</a>
 							</li>
+							<li>
+								<a class="{{ request()->routeIs('settings.office-locations*') ? 'active' : '' }}" href="{{ route('settings.office-locations.index') }}">Office Locations</a>
+							</li>
+							<li>
+								<a class="{{ request()->routeIs('settings.attendance-rules*') ? 'active' : '' }}" href="{{ route('settings.attendance-rules.index') }}">Attendance Rules</a>
+							</li>
 						</ul>
 					</li>
 					@endif

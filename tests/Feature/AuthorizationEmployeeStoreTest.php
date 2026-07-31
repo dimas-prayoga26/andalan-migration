@@ -44,6 +44,7 @@ class AuthorizationEmployeeStoreTest extends TestCase
             ->firstOrFail();
 
         $response->assertRedirect(route('authorization.show', ['employee' => $createdUser->employee]));
+        $this->assertTrue(Hash::check('password', $createdUser->password));
         $this->assertTrue($createdUser->hasRole('Staff'));
         $this->assertDatabaseHas('model_has_roles', [
             'role_id' => $staffRole->uuid,

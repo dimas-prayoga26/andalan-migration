@@ -48,6 +48,12 @@
 
         return substr((string) $value, 0, 5);
     };
+    $selectedPositionIds = collect(old(
+        'position_ids',
+        $attendanceRule?->positions?->pluck('id')->map(fn ($id) => (string) $id)->all() ?? []
+    ))
+        ->map(fn ($id) => (string) $id)
+        ->all();
 @endphp
 
 @include('layouts.breadcrumb', [
@@ -88,6 +94,25 @@
                         @endforeach
                     </select>
                     @error('office_location_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Attendance Type</label>
+                    <select name="attendance_type" class="default-select form-control @error('attendance_type') is-invalid @enderror" required>
+                        <option value="fixed" @selected(old('attendance_type', $attendanceRule?->attendance_type ?? 'fixed') === 'fixed')>Fixed</option>
+                        <option value="flexible" @selected(old('attendance_type', $attendanceRule?->attendance_type ?? 'fixed') === 'flexible')>Flexible</option>
+                    </select>
+                    @error('attendance_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Positions</label>
+                    <select name="position_ids[]" class="default-select form-control @error('position_ids') is-invalid @enderror @error('position_ids.*') is-invalid @enderror" multiple>
+                        @foreach ($positionOptions as $position)
+                            <option value="{{ $position['id'] }}" @selected(in_array($position['id'], $selectedPositionIds, true))>{{ $position['label'] }}</option>
+                        @endforeach
+                    </select>
+                    <small class="text-muted">Leave empty as fallback rule for this office.</small>
+                    @error('position_ids')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                    @error('position_ids.*')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">IP Range</label>

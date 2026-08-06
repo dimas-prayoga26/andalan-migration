@@ -52,18 +52,27 @@ class AttendanceMutationService
 
         $nowJakarta = now('Asia/Jakarta');
         $officeContext = $this->resolveOfficeContext($authenticatedUserId);
-        $todayDate = $this->attendanceContextService->attendanceDateFor($nowJakarta, $officeContext);
+        $isFlexibleAttendance = $this->attendanceContextService->isFlexibleAttendance($officeContext);
+        $todayDate = $isFlexibleAttendance
+            ? $nowJakarta->toDateString()
+            : $this->attendanceContextService->attendanceDateFor($nowJakarta, $officeContext);
         $currentTime = $nowJakarta->format('H:i:s');
-        $attendanceStatus = $this->resolveAttendanceStatus($nowJakarta, $officeContext);
-        $lateMinutes = $this->calculateLateMinutes($nowJakarta, $officeContext);
+        $attendanceStatus = $isFlexibleAttendance ? 'Flexible' : $this->resolveAttendanceStatus($nowJakarta, $officeContext);
+        $lateMinutes = $isFlexibleAttendance ? 0 : $this->calculateLateMinutes($nowJakarta, $officeContext);
         $trackingContext = $this->buildTrackingContext($trackingInput, $requestIpAddress, $userAgent, $officeContext);
 
         try {
-            $attendance = DB::transaction(function () use ($employeeId, $todayDate, $currentTime, $lateMinutes, $attendanceStatus, $trackingContext): Attendance {
-                $attendanceAlreadyExists = Attendance::query()
-                    ->where('employee_id', $employeeId)
-                    ->whereDate('date', $todayDate)
-                    ->exists();
+            $attendance = DB::transaction(function () use ($employeeId, $todayDate, $currentTime, $lateMinutes, $attendanceStatus, $trackingContext, $isFlexibleAttendance): Attendance {
+                $attendanceAlreadyExists = $isFlexibleAttendance
+                    ? Attendance::query()
+                        ->where('employee_id', $employeeId)
+                        ->whereNotNull('clock_in')
+                        ->whereNull('clock_out')
+                        ->exists()
+                    : Attendance::query()
+                        ->where('employee_id', $employeeId)
+                        ->whereDate('date', $todayDate)
+                        ->exists();
                 if ($attendanceAlreadyExists) {
                     throw new \RuntimeException('already_checked_in');
                 }
@@ -88,7 +97,9 @@ class AttendanceMutationService
                     'status' => 422,
                     'payload' => [
                         'success' => false,
-                        'message' => 'Kamu sudah absen hari ini',
+                        'message' => $isFlexibleAttendance
+                            ? 'Kamu masih memiliki sesi absen yang belum clock out'
+                            : 'Kamu sudah absen hari ini',
                     ],
                 ];
             }
@@ -100,7 +111,9 @@ class AttendanceMutationService
                     'status' => 422,
                     'payload' => [
                         'success' => false,
-                        'message' => 'Kamu sudah absen hari ini',
+                        'message' => $isFlexibleAttendance
+                            ? 'Kamu masih memiliki sesi absen yang belum clock out'
+                            : 'Kamu sudah absen hari ini',
                     ],
                 ];
             }
@@ -151,8 +164,9 @@ class AttendanceMutationService
 
         $clockOutTime = now('Asia/Jakarta');
         $officeContext = $this->resolveOfficeContext($authenticatedUserId);
+        $isFlexibleAttendance = $this->attendanceContextService->isFlexibleAttendance($officeContext);
         $todayDate = $this->attendanceContextService->attendanceDateFor($clockOutTime, $officeContext);
-        if ($attendance->date?->format('Y-m-d') !== $todayDate) {
+        if (! $isFlexibleAttendance && $attendance->date?->format('Y-m-d') !== $todayDate) {
             return [
                 'status' => 422,
                 'payload' => [
@@ -207,7 +221,7 @@ class AttendanceMutationService
         $trackingContext = $this->buildTrackingContext($trackingInput, $requestIpAddress, $userAgent, $officeContext);
 
         try {
-            $updatedAttendance = DB::transaction(function () use ($attendance, $todayDate, $clockOutTimeString, $workHours, $trackingContext): Attendance {
+            $updatedAttendance = DB::transaction(function () use ($attendance, $todayDate, $clockOutTimeString, $workHours, $trackingContext, $isFlexibleAttendance): Attendance {
                 $lockedAttendance = Attendance::query()
                     ->whereKey($attendance->id)
                     ->lockForUpdate()
@@ -217,7 +231,7 @@ class AttendanceMutationService
                     throw new \RuntimeException('attendance_not_found');
                 }
 
-                if ($lockedAttendance->date?->format('Y-m-d') !== $todayDate) {
+                if (! $isFlexibleAttendance && $lockedAttendance->date?->format('Y-m-d') !== $todayDate) {
                     throw new \RuntimeException('invalid_attendance_date');
                 }
 
@@ -465,63 +479,14 @@ class AttendanceMutationService
      *     ip_range:string|null,
      *     office_start_time:string,
      *     office_end_time:string,
-     *     office_reset_time:string
+     *     office_reset_time:string,
+     *     attendance_type:string,
+     *     is_flexible:bool
      * }|null
      */
     public function resolveOfficeContext(int|string|null $userId): ?array
     {
-        if (! is_string($userId) && ! is_int($userId)) {
-            return null;
-        }
-
-        $currentUser = User::query()
-            ->with([
-                'employee.deployment.officeLocation:id,name,address,latitude,longitude,is_active',
-                'employee.deployment.officeLocation.activeAttendanceRule' => static function ($query): void {
-                    $query->select([
-                        'rules_of_attendaces.id',
-                        'rules_of_attendaces.office_location_id',
-                        'rules_of_attendaces.radius',
-                        'rules_of_attendaces.ip_range',
-                        'rules_of_attendaces.office_start_time',
-                        'rules_of_attendaces.office_end_time',
-                        'rules_of_attendaces.office_reset_time',
-                    ]);
-                },
-            ])
-            ->find($userId);
-
-        $deployment = $currentUser?->employee?->deployment;
-        $officeLocation = $deployment?->officeLocation;
-        $hasOfficeLocationCoordinates = $officeLocation
-            && $officeLocation->is_active !== false
-            && $officeLocation->latitude !== null
-            && $officeLocation->longitude !== null;
-
-        if (! $hasOfficeLocationCoordinates) {
-            return null;
-        }
-
-        $attendanceRule = $officeLocation->activeAttendanceRule;
-
-        return [
-            'id' => $officeLocation->id,
-            'name' => $officeLocation->name,
-            'address' => $officeLocation->address,
-            'latitude' => (float) $officeLocation->latitude,
-            'longitude' => (float) $officeLocation->longitude,
-            'radius_meters' => (int) ($attendanceRule->radius ?? 10),
-            'ip_range' => isset($attendanceRule?->ip_range) ? (string) $attendanceRule->ip_range : null,
-            'office_start_time' => isset($attendanceRule?->office_start_time) && is_string($attendanceRule->office_start_time)
-                ? $attendanceRule->office_start_time
-                : '08:00:00',
-            'office_end_time' => isset($attendanceRule?->office_end_time) && is_string($attendanceRule->office_end_time)
-                ? $attendanceRule->office_end_time
-                : '17:00:00',
-            'office_reset_time' => isset($attendanceRule?->office_reset_time) && is_string($attendanceRule->office_reset_time)
-                ? $attendanceRule->office_reset_time
-                : '00:00:00',
-        ];
+        return $this->attendanceContextService->resolveOfficeContext($userId);
     }
 
     public function resolveClientIpAddress(mixed $preferredIpAddress = null, mixed $requestIpAddress = null): ?string
@@ -1070,6 +1035,10 @@ class AttendanceMutationService
      */
     private function resolveAttendanceStatus(Carbon $attendanceTime, ?array $officeContext): string
     {
+        if ($this->attendanceContextService->isFlexibleAttendance($officeContext)) {
+            return 'Flexible';
+        }
+
         return $this->calculateLateMinutes($attendanceTime, $officeContext) > 0
             ? 'Terlambat'
             : 'Masuk';
@@ -1080,6 +1049,10 @@ class AttendanceMutationService
      */
     private function calculateLateMinutes(Carbon $attendanceTime, ?array $officeContext): int
     {
+        if ($this->attendanceContextService->isFlexibleAttendance($officeContext)) {
+            return 0;
+        }
+
         $officeStartTime = is_array($officeContext) && isset($officeContext['office_start_time']) && is_string($officeContext['office_start_time'])
             ? $officeContext['office_start_time']
             : '08:00:00';

@@ -99,12 +99,18 @@ class SettingsManagementTest extends TestCase
 
         $this->assertStringContainsString('RulesOfAttendace::query()', $attendanceRuleController);
         $this->assertStringContainsString('OfficeLocation::query()', $attendanceRuleController);
-        $this->assertStringContainsString("Rule::unique('rules_of_attendaces', 'office_location_id')", $attendanceRuleController);
+        $this->assertStringContainsString('Position::query()', $attendanceRuleController);
+        $this->assertStringContainsString("'attendance_type' => ['required', 'string', 'in:fixed,flexible']", $attendanceRuleController);
+        $this->assertStringContainsString("'position_ids.*' => ['string', 'distinct', 'exists:positions,id']", $attendanceRuleController);
+        $this->assertStringContainsString('$attendanceRule->positions()->sync($positionIds);', $attendanceRuleController);
+        $this->assertStringNotContainsString("Rule::unique('rules_of_attendaces', 'office_location_id')", $attendanceRuleController);
         $this->assertStringContainsString("'office_start_time' => ['required', 'date_format:H:i']", $attendanceRuleController);
         $this->assertStringContainsString("'office_end_time' => ['required', 'date_format:H:i']", $attendanceRuleController);
         $this->assertStringContainsString('settings.attendance-rules.index', $attendanceRuleController);
         $this->assertStringContainsString('Manage attendance time, IP, and location radius rules.', $attendanceRuleIndexView);
         $this->assertStringContainsString('name="office_location_id"', $attendanceRuleFormView);
+        $this->assertStringContainsString('name="attendance_type"', $attendanceRuleFormView);
+        $this->assertStringContainsString('name="position_ids[]"', $attendanceRuleFormView);
         $this->assertStringContainsString('name="office_start_time"', $attendanceRuleFormView);
         $this->assertStringContainsString('name="office_end_time"', $attendanceRuleFormView);
         $this->assertStringContainsString('name="radius"', $attendanceRuleFormView);

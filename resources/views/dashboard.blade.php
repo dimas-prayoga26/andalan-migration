@@ -535,6 +535,7 @@
                 hasCheckedInToday: @json($hasCheckedInToday ?? false),
                 hasCheckedOutToday: @json($hasCheckedOutToday ?? false),
                 hasEarlyDepartureExceptionToday: @json($hasEarlyDepartureExceptionToday ?? false),
+                isFlexibleAttendance: @json((bool) ($officeLocation['is_flexible'] ?? false)),
                 canClockOutNow: @json($canClockOutNow ?? true),
                 clockOutUnavailableMessage: @json($clockOutUnavailableMessage ?? 'Clock out belum tersedia.')
             };
@@ -1154,7 +1155,13 @@
                                 attendanceState.todayAttendanceId = response.attendance_id;
                             }
                         } else {
-                            attendanceState.hasCheckedOutToday = true;
+                            if (attendanceState.isFlexibleAttendance) {
+                                attendanceState.hasCheckedInToday = false;
+                                attendanceState.hasCheckedOutToday = false;
+                                attendanceState.todayAttendanceId = null;
+                            } else {
+                                attendanceState.hasCheckedOutToday = true;
+                            }
                         }
 
                         renderSubmitButtons();

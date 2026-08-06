@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\EmployeeDeployment;
 use App\Models\OfficeLocation;
+use App\Models\Position;
 use App\Models\RulesOfAttendace;
 use Illuminate\Database\Seeder;
 use RuntimeException;
@@ -42,12 +43,16 @@ class RulesOfAttendacesSeeder extends Seeder
                 );
 
                 RulesOfAttendace::query()->updateOrCreate(
-                    ['office_location_id' => $officeLocation->id],
+                    [
+                        'office_location_id' => $officeLocation->id,
+                        'attendance_type' => RulesOfAttendace::TYPE_FIXED,
+                    ],
                     [
                         'ip_range' => '182.8',
                         'radius' => 75,
                         'office_start_time' => '08:00:00',
                         'office_end_time' => '17:00:00',
+                        'attendance_type' => RulesOfAttendace::TYPE_FIXED,
                         'is_active' => true,
                     ],
                 );
@@ -64,6 +69,27 @@ class RulesOfAttendacesSeeder extends Seeder
                         'current_office_location_id' => $yogyakartaOfficeLocationId,
                         'workplace' => 'Yogyakarta',
                     ]);
+            }
+
+            $jakartaOfficeLocation = OfficeLocation::query()->where('name', 'Jakarta')->first(['id']);
+            $driverPosition = Position::query()->where('name', 'Driver')->first(['id']);
+            if ($jakartaOfficeLocation instanceof OfficeLocation && $driverPosition instanceof Position) {
+                $driverAttendanceRule = RulesOfAttendace::query()->updateOrCreate(
+                    [
+                        'office_location_id' => $jakartaOfficeLocation->id,
+                        'attendance_type' => RulesOfAttendace::TYPE_FLEXIBLE,
+                    ],
+                    [
+                        'ip_range' => '182.8',
+                        'radius' => 75,
+                        'office_start_time' => '00:00:00',
+                        'office_end_time' => '23:59:00',
+                        'office_reset_time' => '00:00:00',
+                        'attendance_type' => RulesOfAttendace::TYPE_FLEXIBLE,
+                        'is_active' => true,
+                    ],
+                );
+                $driverAttendanceRule->positions()->syncWithoutDetaching([$driverPosition->id]);
             }
         } catch (Throwable $throwable) {
             throw new RuntimeException('RulesOfAttendacesSeeder gagal dijalankan.', 0, $throwable);

@@ -35,6 +35,7 @@ class AttendanceTodayStateService
             ? trim($authenticatedUser->employee->id)
             : '';
         $todayJakartaDate = $this->attendanceContextService->attendanceDateFor(now('Asia/Jakarta'), $officeContext);
+        $isFlexibleAttendance = $this->attendanceContextService->isFlexibleAttendance($officeContext);
         $todayAttendance = null;
         $todayAttendanceDistanceKm = null;
         $todayAttendanceDistanceOutKm = null;
@@ -42,10 +43,18 @@ class AttendanceTodayStateService
         $hasEarlyDepartureExceptionToday = false;
 
         if ($employeeId !== '') {
-            $todayAttendance = Attendance::query()
-                ->where('date', $todayJakartaDate)
-                ->where('employee_id', $employeeId)
-                ->first();
+            $todayAttendance = $isFlexibleAttendance
+                ? Attendance::query()
+                    ->where('employee_id', $employeeId)
+                    ->whereNotNull('clock_in')
+                    ->whereNull('clock_out')
+                    ->latest('date')
+                    ->latest('created_at')
+                    ->first()
+                : Attendance::query()
+                    ->where('date', $todayJakartaDate)
+                    ->where('employee_id', $employeeId)
+                    ->first();
         }
 
         $todayAttendanceId = is_string($todayAttendance?->id) ? trim($todayAttendance->id) : null;

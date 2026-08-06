@@ -35,6 +35,7 @@ class PositionSeeder extends Seeder
                 'Documentation Event and Editor Video',
                 'Graphic Design',
                 'Branding Designer',
+                'Driver',
             ];
 
             foreach ($positions as $name) {

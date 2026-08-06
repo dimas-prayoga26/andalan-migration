@@ -52,25 +52,29 @@ class OfficeLocationGeofencingTest extends TestCase
         $adminRecapController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceRecapController.php'));
         $picAttendanceController = File::get(app_path('Http/Controllers/PicAttendance/PicAttendanceController.php'));
 
-        foreach ([$contextService, $mutationService] as $service) {
-            $this->assertStringContainsString('employee.deployment.officeLocation:id,name,address,latitude,longitude,is_active', $service);
-            $this->assertStringContainsString('employee.deployment.officeLocation.activeAttendanceRule', $service);
-            $this->assertStringContainsString('$officeLocation = $deployment?->officeLocation;', $service);
-            $this->assertStringContainsString("'id' => \$officeLocation->id", $service);
-            $this->assertStringContainsString("'name' => \$officeLocation->name", $service);
-            $this->assertStringContainsString("'latitude' => (float) \$officeLocation->latitude", $service);
-            $this->assertStringContainsString("'longitude' => (float) \$officeLocation->longitude", $service);
-            $this->assertStringContainsString("'radius_meters' => (int) (\$attendanceRule->radius ?? 10)", $service);
-            $this->assertStringContainsString('rules_of_attendaces.office_reset_time', $service);
-            $this->assertStringContainsString("'office_reset_time' => isset(\$attendanceRule?->office_reset_time)", $service);
-            $this->assertStringNotContainsString('$fallbackCompany = $deployment?->company;', $service);
-            $this->assertStringNotContainsString('employee.deployment.company:id,name,address,latitude,longitude', $service);
-        }
+        $this->assertStringContainsString('employee.deployment.officeLocation:id,name,address,latitude,longitude,is_active', $contextService);
+        $this->assertStringContainsString('employee.deployment.officeLocation.attendanceRules', $contextService);
+        $this->assertStringContainsString('employee.deployment.officeLocation.attendanceRules.positions:id,name', $contextService);
+        $this->assertStringContainsString('$officeLocation = $deployment?->officeLocation;', $contextService);
+        $this->assertStringContainsString("'id' => \$officeLocation->id", $contextService);
+        $this->assertStringContainsString("'name' => \$officeLocation->name", $contextService);
+        $this->assertStringContainsString("'latitude' => (float) \$officeLocation->latitude", $contextService);
+        $this->assertStringContainsString("'longitude' => (float) \$officeLocation->longitude", $contextService);
+        $this->assertStringContainsString("'radius_meters' => (int) (\$attendanceRule->radius ?? 10)", $contextService);
+        $this->assertStringContainsString('rules_of_attendaces.office_reset_time', $contextService);
+        $this->assertStringContainsString('rules_of_attendaces.attendance_type', $contextService);
+        $this->assertStringContainsString("'office_reset_time' => isset(\$attendanceRule?->office_reset_time)", $contextService);
+        $this->assertStringContainsString("'is_flexible' => \$attendanceType === 'flexible'", $contextService);
+        $this->assertStringContainsString('return $this->attendanceContextService->resolveOfficeContext($userId);', $mutationService);
+        $this->assertStringNotContainsString('$fallbackCompany = $deployment?->company;', $contextService.$mutationService);
+        $this->assertStringNotContainsString('employee.deployment.company:id,name,address,latitude,longitude', $contextService.$mutationService);
 
         $this->assertStringContainsString('private const OFFICE_LOCATIONS', $rulesSeeder);
         $this->assertStringContainsString("'Jakarta' => [", $rulesSeeder);
         $this->assertStringContainsString("'Yogyakarta' => [", $rulesSeeder);
-        $this->assertStringContainsString("['office_location_id' => \$officeLocation->id]", $rulesSeeder);
+        $this->assertStringContainsString("'attendance_type' => RulesOfAttendace::TYPE_FIXED", $rulesSeeder);
+        $this->assertStringContainsString('RulesOfAttendace::TYPE_FLEXIBLE', $rulesSeeder);
+        $this->assertStringContainsString('$driverAttendanceRule->positions()->syncWithoutDetaching([$driverPosition->id]);', $rulesSeeder);
         $this->assertStringNotContainsString('companies_id', $rulesSeeder);
         $this->assertStringNotContainsString('Company::query()', $rulesSeeder);
         $this->assertStringContainsString("\$deploymentData['current_office_location_id'] = \$officeLocationId;", $userSeeder);

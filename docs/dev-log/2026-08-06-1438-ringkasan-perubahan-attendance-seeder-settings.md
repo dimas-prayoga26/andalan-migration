@@ -10,6 +10,12 @@ Tanggal: 2026-08-06 14:38 WIB
 - Mengubah validasi clock-out agar mengikuti `office_end_time`; staff tidak bisa clock-out sebelum jam selesai kantor pada attendance rule lokasi aktifnya.
 - Menyamakan logika reset attendance dan validasi clock-out pada menu Dashboard serta menu Attendance.
 - Menambahkan notifikasi `Swal.fire` saat tombol Clock Out diklik sebelum waktunya, dengan fallback browser alert jika SweetAlert2 belum tersedia.
+- Menambahkan `attendance_type` pada `rules_of_attendaces` dengan tipe `fixed` dan `flexible`.
+- Menambahkan pivot `attendance_rule_positions` agar satu rule attendance bisa dipakai banyak position, dan satu office seperti Jakarta bisa punya rule berbeda untuk staff biasa dan Driver.
+- Menambahkan position `Driver`, permission staff dasar untuk Driver, serta rule flexible Jakarta yang otomatis dipasang ke Driver.
+- Mengubah flexible attendance menjadi open-session based: sistem mencari attendance terakhir yang `clock_in` sudah terisi dan `clock_out` masih kosong.
+- Flexible attendance tidak memakai late/on-time dan tidak dibatasi `office_end_time`, sehingga Driver bisa clock-out setelah jam 12 malam.
+- Clock In flexible akan tetap terkunci selama masih ada sesi open yang belum clock-out.
 - Memperbaiki urutan dependency seeder agar company dan position tersedia sebelum `LegacySqlUserSeeder` berjalan.
 - Memperbaiki parser `LegacySqlUserSeeder` agar bisa membaca SQL dump `INSERT` yang tidak mencantumkan daftar kolom secara eksplisit.
 - Mengganti reusable delete confirmation settings dari Bootstrap modal partial menjadi `Swal.fire`.
@@ -26,6 +32,8 @@ Tanggal: 2026-08-06 14:38 WIB
 - `AttendanceMutationService` memakai tanggal attendance yang sama saat clock-in dan clock-out.
 - Clock-out ditolak sebelum `office_end_time` pada rules lokasi aktif. Contoh: jika `office_end_time = 17:00:00`, maka sebelum pukul 17:00 staff belum bisa clock-out.
 - Pesan validasi clock-out disiapkan dari service agar UI dan backend tetap konsisten.
+- Untuk rules `attendance_type = flexible`, validasi late dan batas jam clock-out dilewati. Status attendance disimpan sebagai `Flexible` dengan `late_minutes = 0`.
+- Untuk flexible, state hari ini mengambil sesi open terakhir lintas tanggal, bukan hanya attendance tanggal kalender berjalan.
 
 ## Dashboard dan Menu Attendance
 
@@ -65,8 +73,12 @@ Tanggal: 2026-08-06 14:38 WIB
 - `app/Services/Attendance/AttendanceMutationService.php`
 - `app/Services/Attendance/AttendanceTodayStateService.php`
 - `database/migrations/2026_08_06_135554_add_office_reset_time_to_rules_of_attendaces_table.php`
+- `database/migrations/2026_08_06_154257_add_attendance_type_and_positions_to_rules_of_attendaces_table.php`
 - `database/seeders/DatabaseSeeder.php`
 - `database/seeders/LegacySqlUserSeeder.php`
+- `database/seeders/PositionPermissionSeeder.php`
+- `database/seeders/PositionSeeder.php`
+- `database/seeders/RulesOfAttendacesSeeder.php`
 - `resources/views/dashboard.blade.php`
 - `resources/views/settings/attendance-rules/index.blade.php`
 - `resources/views/settings/index.blade.php`
@@ -89,6 +101,11 @@ Tanggal: 2026-08-06 14:38 WIB
 - `php artisan test --compact tests/Feature/AttendanceCalendarModalRoutingTest.php tests/Feature/OfficeLocationGeofencingTest.php tests/Feature/DashboardStructureTest.php tests/Unit/AttendanceRuleResetTimeTest.php`
 - `php artisan test --compact tests/Feature/SettingsManagementTest.php`
 - `php artisan test --compact tests/Feature/DashboardStructureTest.php tests/Feature/AttendanceCalendarModalRoutingTest.php`
+- `php artisan migrate --no-interaction`
+- `php artisan db:seed --class=PositionSeeder --no-interaction`
+- `php artisan db:seed --class=PositionPermissionSeeder --no-interaction`
+- `php artisan db:seed --class=RulesOfAttendacesSeeder --no-interaction`
+- `php artisan test --compact tests/Feature/AttendanceCalendarModalRoutingTest.php tests/Feature/OfficeLocationGeofencingTest.php tests/Feature/SettingsManagementTest.php tests/Feature/DashboardStructureTest.php tests/Unit/AttendanceRuleResetTimeTest.php`
 
 ## Catatan Lanjutan
 

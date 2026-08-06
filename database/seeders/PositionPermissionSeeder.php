@@ -164,6 +164,7 @@ class PositionPermissionSeeder extends Seeder
             'Documentation Event and Editor Video' => $baseStaffPermissions,
             'Graphic Design' => array_merge($baseStaffPermissions, ['view-talent-acquisition']),
             'Branding Designer' => array_merge($baseStaffPermissions, ['view-talent-acquisition']),
+            'Driver' => $baseStaffPermissions,
         ];
 
         Position::query()

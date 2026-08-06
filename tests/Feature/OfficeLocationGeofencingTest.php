@@ -61,6 +61,8 @@ class OfficeLocationGeofencingTest extends TestCase
             $this->assertStringContainsString("'latitude' => (float) \$officeLocation->latitude", $service);
             $this->assertStringContainsString("'longitude' => (float) \$officeLocation->longitude", $service);
             $this->assertStringContainsString("'radius_meters' => (int) (\$attendanceRule->radius ?? 10)", $service);
+            $this->assertStringContainsString('rules_of_attendaces.office_reset_time', $service);
+            $this->assertStringContainsString("'office_reset_time' => isset(\$attendanceRule?->office_reset_time)", $service);
             $this->assertStringNotContainsString('$fallbackCompany = $deployment?->company;', $service);
             $this->assertStringNotContainsString('employee.deployment.company:id,name,address,latitude,longitude', $service);
         }

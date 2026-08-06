@@ -18,6 +18,10 @@ class RulesOfAttendace extends Model
 
     public $incrementing = false;
 
+    protected $attributes = [
+        'office_reset_time' => '00:00:00',
+    ];
+
     protected function casts(): array
     {
         return [

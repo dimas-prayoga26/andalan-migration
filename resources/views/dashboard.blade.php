@@ -6,8 +6,11 @@
     @php
         $dashboardCssPath = public_path('assets/css/dashboard.css');
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
+        $sweetAlertCssPath = public_path('assets/vendor/sweetalert2/sweetalert2.min.css');
+        $sweetAlertCssVersion = file_exists($sweetAlertCssPath) ? filemtime($sweetAlertCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}?v={{ $sweetAlertCssVersion }}">
     <style>
         .onsite-running-time {
             font-size: 1.05rem;
@@ -19,6 +22,11 @@
             height: 250px;
             border: 1px solid #e6eaf2;
             background: #f8fafc;
+        }
+
+        .attendance-clock-out-too-early.disabled {
+            cursor: not-allowed;
+            pointer-events: auto;
         }
     </style>
 @endsection
@@ -32,6 +40,10 @@
         $showDashboardInactiveShortcuts = false;
         $dashboardUser = auth()->user();
         $canViewDashboardEmployeeShortcut = false;
+        $isClockOutBlocked = ($hasCheckedOutToday ?? false)
+            || ($hasEarlyDepartureExceptionToday ?? false)
+            || !($canClockOutNow ?? true);
+        $isClockOutTooEarly = !($canClockOutNow ?? true);
 
         if ($dashboardUser instanceof \App\Models\User) {
             $canViewDashboardEmployeeShortcut = $dashboardUser->hasAnyPositionPermission([
@@ -268,14 +280,19 @@
                                 </div>
                                 <a
                                     id="dashboardClockOutCardButton"
-                                    class="btn light btn-danger m-3 mb-2 btn-lg {{ (($hasCheckedOutToday ?? false) || ($hasEarlyDepartureExceptionToday ?? false)) ? 'disabled' : '' }}"
-                                    @if (!(($hasCheckedOutToday ?? false) || ($hasEarlyDepartureExceptionToday ?? false)))
+                                    class="btn light btn-danger m-3 mb-2 btn-lg {{ $isClockOutBlocked ? 'disabled' : '' }} {{ $isClockOutTooEarly ? 'attendance-clock-out-too-early' : '' }}"
+                                    @if (! $isClockOutBlocked)
                                         data-bs-toggle="modal"
                                         data-bs-target="#dashboardClockOut"
                                     @endif
-                                    @if ((($hasCheckedOutToday ?? false) || ($hasEarlyDepartureExceptionToday ?? false)))
+                                    @if ($isClockOutTooEarly)
+                                        data-clock-out-too-early="true"
+                                        data-clock-out-unavailable-message="{{ $clockOutUnavailableMessage ?? 'Clock out belum tersedia.' }}"
+                                    @endif
+                                    @if ($isClockOutBlocked)
                                         aria-disabled="true"
                                         tabindex="-1"
+                                        title="{{ $clockOutUnavailableMessage ?? 'Clock out belum tersedia.' }}"
                                     @endif
                                 >Clock Out</a>
                                 <div class="mb-3"></div>
@@ -468,7 +485,12 @@
 @endsection
 
 @section('script')
+    @php
+        $sweetAlertJsPath = public_path('assets/vendor/sweetalert2/sweetalert2.min.js');
+        $sweetAlertJsVersion = file_exists($sweetAlertJsPath) ? filemtime($sweetAlertJsPath) : time();
+    @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ file_exists(public_path('assets/js/dashboard.js')) ? filemtime(public_path('assets/js/dashboard.js')) : time() }}"></script>
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}?v={{ $sweetAlertJsVersion }}"></script>
     <script>
         (function () {
             if (typeof window.jQuery === 'undefined') {
@@ -512,7 +534,9 @@
                 todayAttendanceId: @json($todayAttendanceId ?? null),
                 hasCheckedInToday: @json($hasCheckedInToday ?? false),
                 hasCheckedOutToday: @json($hasCheckedOutToday ?? false),
-                hasEarlyDepartureExceptionToday: @json($hasEarlyDepartureExceptionToday ?? false)
+                hasEarlyDepartureExceptionToday: @json($hasEarlyDepartureExceptionToday ?? false),
+                canClockOutNow: @json($canClockOutNow ?? true),
+                clockOutUnavailableMessage: @json($clockOutUnavailableMessage ?? 'Clock out belum tersedia.')
             };
             var modalContext = {
                 clockIn: {
@@ -582,6 +606,27 @@
             function eachModalContext(callback) {
                 callback(modalContext.clockIn);
                 callback(modalContext.clockOut);
+            }
+
+            function showSwalAlert(iconType, titleText, messageText) {
+                if (typeof Swal !== 'undefined' && Swal && typeof Swal.fire === 'function') {
+                    Swal.fire({
+                        icon: iconType,
+                        title: titleText,
+                        text: messageText
+                    });
+                    return;
+                }
+
+                if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                    window.alert(titleText + ': ' + messageText);
+                }
+            }
+
+            function showClockOutUnavailableNotification() {
+                var message = attendanceState.clockOutUnavailableMessage || 'Clock out belum tersedia.';
+
+                showSwalAlert('warning', 'Clock Out Belum Tersedia', message);
             }
 
             function setOnsiteStatus(context, text, type) {
@@ -722,7 +767,8 @@
                         || !modalContext.clockOut.hasVerifiedTelegram
                         || !attendanceState.hasCheckedInToday
                         || attendanceState.hasCheckedOutToday
-                        || attendanceState.hasEarlyDepartureExceptionToday;
+                        || attendanceState.hasEarlyDepartureExceptionToday
+                        || !attendanceState.canClockOutNow;
                 }
 
                 if (clockInCardButtonElement) {
@@ -741,18 +787,32 @@
                 }
 
                 if (clockOutCardButtonElement) {
-                    var isClockOutDisabled = attendanceState.hasCheckedOutToday || attendanceState.hasEarlyDepartureExceptionToday;
+                    var isClockOutDisabled = attendanceState.hasCheckedOutToday
+                        || attendanceState.hasEarlyDepartureExceptionToday
+                        || !attendanceState.canClockOutNow;
                     clockOutCardButtonElement.classList.toggle('disabled', isClockOutDisabled);
+                    clockOutCardButtonElement.classList.toggle('attendance-clock-out-too-early', !attendanceState.canClockOutNow);
                     if (isClockOutDisabled) {
                         clockOutCardButtonElement.removeAttribute('data-bs-toggle');
                         clockOutCardButtonElement.removeAttribute('data-bs-target');
                         clockOutCardButtonElement.setAttribute('aria-disabled', 'true');
                         clockOutCardButtonElement.setAttribute('tabindex', '-1');
+                        clockOutCardButtonElement.setAttribute('title', attendanceState.clockOutUnavailableMessage || 'Clock out belum tersedia.');
+                        if (!attendanceState.canClockOutNow) {
+                            clockOutCardButtonElement.setAttribute('data-clock-out-too-early', 'true');
+                            clockOutCardButtonElement.setAttribute('data-clock-out-unavailable-message', attendanceState.clockOutUnavailableMessage || 'Clock out belum tersedia.');
+                        } else {
+                            clockOutCardButtonElement.removeAttribute('data-clock-out-too-early');
+                            clockOutCardButtonElement.removeAttribute('data-clock-out-unavailable-message');
+                        }
                     } else {
                         clockOutCardButtonElement.setAttribute('data-bs-toggle', 'modal');
                         clockOutCardButtonElement.setAttribute('data-bs-target', '#dashboardClockOut');
                         clockOutCardButtonElement.removeAttribute('aria-disabled');
                         clockOutCardButtonElement.removeAttribute('tabindex');
+                        clockOutCardButtonElement.removeAttribute('title');
+                        clockOutCardButtonElement.removeAttribute('data-clock-out-too-early');
+                        clockOutCardButtonElement.removeAttribute('data-clock-out-unavailable-message');
                     }
                 }
             }
@@ -1050,6 +1110,11 @@
                     return;
                 }
 
+                if (actionType === 'clock_out' && !attendanceState.canClockOutNow) {
+                    setVerificationMessage(context, attendanceState.clockOutUnavailableMessage || 'Clock out belum tersedia.', 'warning');
+                    return;
+                }
+
                 if (!(context.hasVerifiedOnsite && context.hasVerifiedTelegram)) {
                     setVerificationMessage(context, 'Harap verifikasi terlebih dahulu sebelum absen.', 'warning');
                     renderSubmitButtons();
@@ -1152,6 +1217,10 @@
                 var minute = parseInt(timeMap.minute, 10);
                 var totalMinutes = (hour * 60) + minute;
                 var isWithinWorkRange = totalMinutes >= officeStartTotalMinutes && totalMinutes < officeEndTotalMinutes;
+                if (!attendanceState.canClockOutNow && totalMinutes >= officeEndTotalMinutes) {
+                    attendanceState.canClockOutNow = true;
+                    renderSubmitButtons();
+                }
 
                 if (attendanceSummaryTimeElement) {
                     attendanceSummaryTimeElement.textContent = formattedDateTime;
@@ -1232,6 +1301,18 @@
             if (clockOutSubmitButton) {
                 clockOutSubmitButton.addEventListener('click', function () {
                     submitOnsiteAttendance('clock_out', modalContext.clockOut);
+                });
+            }
+
+            if (clockOutCardButtonElement) {
+                clockOutCardButtonElement.addEventListener('click', function (event) {
+                    if (attendanceState.canClockOutNow) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    event.stopPropagation();
+                    showClockOutUnavailableNotification();
                 });
             }
 

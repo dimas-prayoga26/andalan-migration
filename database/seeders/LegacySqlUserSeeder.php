@@ -1077,17 +1077,53 @@ class LegacySqlUserSeeder extends Seeder
     {
         $pattern = '/INSERT INTO `'.preg_quote($table, '/').'` \((.*?)\) VALUES\s*(.*?);/s';
 
-        if (preg_match($pattern, $dump, $matches) !== 1) {
+        if (preg_match($pattern, $dump, $matches) === 1) {
+            preg_match_all('/`([^`]+)`/', $matches[1], $columnMatches);
+            $columns = $columnMatches[1] ?? [];
+            $valuesSql = $matches[2];
+        } else {
+            $pattern = '/INSERT INTO `'.preg_quote($table, '/').'` VALUES\s*(.*?);/s';
+
+            if (preg_match($pattern, $dump, $matches) !== 1) {
+                return collect();
+            }
+
+            $columns = $this->createTableColumns($dump, $table);
+            $valuesSql = $matches[1];
+        }
+
+        if ($columns === []) {
             return collect();
         }
 
-        preg_match_all('/`([^`]+)`/', $matches[1], $columnMatches);
-        $columns = $columnMatches[1] ?? [];
+        return collect($this->splitSqlTuples($valuesSql))
+            ->map(function (string $tuple) use ($columns): array {
+                $values = $this->parseSqlTuple($tuple);
 
-        return collect($this->splitSqlTuples($matches[2]))
-            ->map(fn (string $tuple): array => array_combine($columns, $this->parseSqlTuple($tuple)) ?: [])
+                if (count($columns) !== count($values)) {
+                    return [];
+                }
+
+                return array_combine($columns, $values) ?: [];
+            })
             ->filter(static fn (array $row): bool => $row !== [])
             ->values();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function createTableColumns(string $dump, string $table): array
+    {
+        $pattern = '/CREATE TABLE `'.preg_quote($table, '/').'` \((.*?)\)\s*ENGINE=/s';
+
+        if (preg_match($pattern, $dump, $matches) !== 1) {
+            return [];
+        }
+
+        preg_match_all('/^\s*`([^`]+)`/m', $matches[1], $columnMatches);
+
+        return $columnMatches[1] ?? [];
     }
 
     /**

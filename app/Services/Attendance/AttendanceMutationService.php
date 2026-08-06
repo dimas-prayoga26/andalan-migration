@@ -21,7 +21,8 @@ class AttendanceMutationService
     public function __construct(
         private TelegramAttendanceNotifier $telegramAttendanceNotifier,
         private AttendanceExceptionPresenter $attendanceExceptionPresenter,
-        private AttendanceWorkDurationCalculator $attendanceWorkDurationCalculator
+        private AttendanceWorkDurationCalculator $attendanceWorkDurationCalculator,
+        private AttendanceContextService $attendanceContextService
     ) {}
 
     /**
@@ -50,9 +51,9 @@ class AttendanceMutationService
         }
 
         $nowJakarta = now('Asia/Jakarta');
-        $todayDate = $nowJakarta->toDateString();
-        $currentTime = $nowJakarta->format('H:i:s');
         $officeContext = $this->resolveOfficeContext($authenticatedUserId);
+        $todayDate = $this->attendanceContextService->attendanceDateFor($nowJakarta, $officeContext);
+        $currentTime = $nowJakarta->format('H:i:s');
         $attendanceStatus = $this->resolveAttendanceStatus($nowJakarta, $officeContext);
         $lateMinutes = $this->calculateLateMinutes($nowJakarta, $officeContext);
         $trackingContext = $this->buildTrackingContext($trackingInput, $requestIpAddress, $userAgent, $officeContext);
@@ -148,7 +149,9 @@ class AttendanceMutationService
             ];
         }
 
-        $todayDate = now('Asia/Jakarta')->toDateString();
+        $clockOutTime = now('Asia/Jakarta');
+        $officeContext = $this->resolveOfficeContext($authenticatedUserId);
+        $todayDate = $this->attendanceContextService->attendanceDateFor($clockOutTime, $officeContext);
         if ($attendance->date?->format('Y-m-d') !== $todayDate) {
             return [
                 'status' => 422,
@@ -179,7 +182,16 @@ class AttendanceMutationService
             ];
         }
 
-        $clockOutTime = now('Asia/Jakarta');
+        if (! $this->attendanceContextService->isClockOutAllowedAt($clockOutTime, $todayDate, $officeContext)) {
+            return [
+                'status' => 422,
+                'payload' => [
+                    'success' => false,
+                    'message' => 'Clock out baru bisa dilakukan mulai pukul '.$this->attendanceContextService->clockOutAvailableAt($todayDate, $officeContext)->format('H:i').'.',
+                ],
+            ];
+        }
+
         $clockOutTimeString = $clockOutTime->format('H:i:s');
         $attendanceDate = $attendance->date?->format('Y-m-d') ?? $todayDate;
         $clockInRaw = $attendance->getRawOriginal('clock_in');
@@ -192,7 +204,6 @@ class AttendanceMutationService
             $clockInTime = Carbon::parse($attendanceDate.' '.$clockInTimeString, 'Asia/Jakarta');
         }
         $workHours = $this->calculateWorkHours($clockInTime, $clockOutTime);
-        $officeContext = $this->resolveOfficeContext($authenticatedUserId);
         $trackingContext = $this->buildTrackingContext($trackingInput, $requestIpAddress, $userAgent, $officeContext);
 
         try {
@@ -290,10 +301,10 @@ class AttendanceMutationService
     public function storeException(array $validatedData, string $employeeId, int|string|null $authenticatedUserId): JsonResponse
     {
         return DB::transaction(function () use ($validatedData, $employeeId, $authenticatedUserId): JsonResponse {
+            $officeContext = $this->resolveOfficeContext($authenticatedUserId);
             $exceptionDate = isset($validatedData['exception_date']) && is_string($validatedData['exception_date']) && trim($validatedData['exception_date']) !== ''
                 ? Carbon::parse($validatedData['exception_date'], 'Asia/Jakarta')->toDateString()
-                : now('Asia/Jakarta')->toDateString();
-            $officeContext = $this->resolveOfficeContext($authenticatedUserId);
+                : $this->attendanceContextService->attendanceDateFor(now('Asia/Jakarta'), $officeContext);
             $officeStartTime = is_array($officeContext) && isset($officeContext['office_start_time']) && is_string($officeContext['office_start_time'])
                 ? $officeContext['office_start_time']
                 : '08:00:00';
@@ -453,7 +464,8 @@ class AttendanceMutationService
      *     radius_meters:int,
      *     ip_range:string|null,
      *     office_start_time:string,
-     *     office_end_time:string
+     *     office_end_time:string,
+     *     office_reset_time:string
      * }|null
      */
     public function resolveOfficeContext(int|string|null $userId): ?array
@@ -473,6 +485,7 @@ class AttendanceMutationService
                         'rules_of_attendaces.ip_range',
                         'rules_of_attendaces.office_start_time',
                         'rules_of_attendaces.office_end_time',
+                        'rules_of_attendaces.office_reset_time',
                     ]);
                 },
             ])
@@ -505,6 +518,9 @@ class AttendanceMutationService
             'office_end_time' => isset($attendanceRule?->office_end_time) && is_string($attendanceRule->office_end_time)
                 ? $attendanceRule->office_end_time
                 : '17:00:00',
+            'office_reset_time' => isset($attendanceRule?->office_reset_time) && is_string($attendanceRule->office_reset_time)
+                ? $attendanceRule->office_reset_time
+                : '00:00:00',
         ];
     }
 

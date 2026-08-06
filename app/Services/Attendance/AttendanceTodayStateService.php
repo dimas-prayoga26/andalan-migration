@@ -9,6 +9,8 @@ use App\Models\User;
 
 class AttendanceTodayStateService
 {
+    public function __construct(private AttendanceContextService $attendanceContextService) {}
+
     /**
      * @return array{
      *   employeeId:?string,
@@ -23,7 +25,7 @@ class AttendanceTodayStateService
      *   hasCheckedOutToday:bool
      * }
      */
-    public function getTodayStateForUser(?User $authenticatedUser): array
+    public function getTodayStateForUser(?User $authenticatedUser, ?array $officeContext = null): array
     {
         if ($authenticatedUser instanceof User) {
             $authenticatedUser->loadMissing('employee');
@@ -32,7 +34,7 @@ class AttendanceTodayStateService
         $employeeId = is_string($authenticatedUser?->employee?->id)
             ? trim($authenticatedUser->employee->id)
             : '';
-        $todayJakartaDate = now('Asia/Jakarta')->toDateString();
+        $todayJakartaDate = $this->attendanceContextService->attendanceDateFor(now('Asia/Jakarta'), $officeContext);
         $todayAttendance = null;
         $todayAttendanceDistanceKm = null;
         $todayAttendanceDistanceOutKm = null;

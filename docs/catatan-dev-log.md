@@ -7,6 +7,16 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-08-06 (Kamis)
+- Menambahkan `office_reset_time` pada `rules_of_attendaces` dengan default `00:00:00`, serta set awal `04:00:00` untuk rules yang mulai jam `09:00:00`.
+- Mengubah reset attendance agar mengikuti alur lokasi aktif employee: `current_office_location_id` ke `office_locations`, lalu ke `rules_of_attendaces.office_reset_time`.
+- Mengubah validasi clock-out agar mengikuti `office_end_time`, sehingga staff tidak bisa clock-out sebelum jam selesai kerja lokasi aktifnya.
+- Menyamakan logic reset attendance dan clock-out guard pada menu Dashboard serta menu Attendance.
+- Menambahkan notifikasi `Swal.fire` saat tombol Clock Out diklik sebelum waktunya, dengan fallback browser alert.
+- Memperbaiki dependency dan parsing `LegacySqlUserSeeder` agar data company, position, employee, dan assignment dari SQL legacy terbaca lengkap.
+- Mengganti delete confirmation settings dari partial Bootstrap modal menjadi `Swal.fire` dengan fallback `window.confirm`.
+- Detail: `docs/dev-log/2026-08-06-1438-ringkasan-perubahan-attendance-seeder-settings.md`.
+
 ### 2026-07-09 (Kamis)
 - Menambahkan `Staff submitted` pada detail overtime PIC serta menghubungkan task overtime dengan `overtime_id`.
 - Membuat overtime PIC otomatis membuat `project_tasks` untuk staff yang di-assign dengan status `pending`, priority `high`, dan assigned by PIC.

@@ -3,6 +3,7 @@
 namespace App\Services\Attendance;
 
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 
 class AttendanceContextService
@@ -51,7 +52,8 @@ class AttendanceContextService
      *     radius_meters:int,
      *     ip_range:string|null,
      *     office_start_time:string,
-     *     office_end_time:string
+     *     office_end_time:string,
+     *     office_reset_time:string
      * }|null
      */
     public function resolveOfficeContext(int|string|null $userId): ?array
@@ -71,6 +73,7 @@ class AttendanceContextService
                         'rules_of_attendaces.ip_range',
                         'rules_of_attendaces.office_start_time',
                         'rules_of_attendaces.office_end_time',
+                        'rules_of_attendaces.office_reset_time',
                     ]);
                 },
             ])
@@ -103,7 +106,69 @@ class AttendanceContextService
             'office_end_time' => isset($attendanceRule?->office_end_time) && is_string($attendanceRule->office_end_time)
                 ? $attendanceRule->office_end_time
                 : '17:00:00',
+            'office_reset_time' => isset($attendanceRule?->office_reset_time) && is_string($attendanceRule->office_reset_time)
+                ? $attendanceRule->office_reset_time
+                : '00:00:00',
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $officeContext
+     */
+    public function attendanceDateFor(Carbon $dateTime, ?array $officeContext): string
+    {
+        $officeResetTime = $this->officeContextTime($officeContext, 'office_reset_time', '00:00:00');
+        $resetDateTime = $dateTime->copy();
+
+        try {
+            $resetDateTime->setTimeFromTimeString($officeResetTime);
+        } catch (\Throwable) {
+            $resetDateTime->setTime(0, 0, 0);
+        }
+
+        if ($dateTime->lessThan($resetDateTime)) {
+            return $dateTime->copy()->subDay()->toDateString();
+        }
+
+        return $dateTime->toDateString();
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $officeContext
+     */
+    public function isClockOutAllowedAt(Carbon $dateTime, string $attendanceDate, ?array $officeContext): bool
+    {
+        return $dateTime->greaterThanOrEqualTo($this->clockOutAvailableAt($attendanceDate, $officeContext));
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $officeContext
+     */
+    public function clockOutAvailableAt(string $attendanceDate, ?array $officeContext): Carbon
+    {
+        $officeEndTime = $this->officeContextTime($officeContext, 'office_end_time', '17:00:00');
+
+        try {
+            return Carbon::createFromFormat('Y-m-d H:i:s', $attendanceDate.' '.$officeEndTime, 'Asia/Jakarta');
+        } catch (\Throwable) {
+            return Carbon::parse($attendanceDate.' 17:00:00', 'Asia/Jakarta');
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $officeContext
+     */
+    private function officeContextTime(?array $officeContext, string $key, string $fallback): string
+    {
+        if (is_array($officeContext) && isset($officeContext[$key]) && is_string($officeContext[$key])) {
+            $timeValue = trim($officeContext[$key]);
+
+            if (preg_match('/^\d{2}:\d{2}(?::\d{2})?$/', $timeValue) === 1) {
+                return strlen($timeValue) === 5 ? $timeValue.':00' : $timeValue;
+            }
+        }
+
+        return $fallback;
     }
 
     public function resolveClientIpAddress(mixed $preferredIpAddress = null, mixed $requestIpAddress = null): ?string

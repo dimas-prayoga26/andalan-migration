@@ -55,6 +55,8 @@ class SettingsManagementTest extends TestCase
         $this->assertFileExists(resource_path('views/settings/index.blade.php'));
         $this->assertFileExists(resource_path('views/settings/form.blade.php'));
         $this->assertFileExists(resource_path('views/settings/partials/nav.blade.php'));
+        $this->assertFileExists(resource_path('views/settings/partials/delete-confirmation-swal.blade.php'));
+        $this->assertFileDoesNotExist(resource_path('views/settings/partials/delete-confirmation-modal.blade.php'));
         $this->assertFileExists(resource_path('views/settings/office-locations/index.blade.php'));
         $this->assertFileExists(resource_path('views/settings/office-locations/form.blade.php'));
         $this->assertFileExists(resource_path('views/settings/attendance-rules/index.blade.php'));
@@ -72,6 +74,7 @@ class SettingsManagementTest extends TestCase
         $officeLocationFormView = file_get_contents(resource_path('views/settings/office-locations/form.blade.php'));
         $attendanceRuleIndexView = file_get_contents(resource_path('views/settings/attendance-rules/index.blade.php'));
         $attendanceRuleFormView = file_get_contents(resource_path('views/settings/attendance-rules/form.blade.php'));
+        $deleteConfirmationSwal = file_get_contents(resource_path('views/settings/partials/delete-confirmation-swal.blade.php'));
 
         $this->assertStringContainsString('Department::query()', $divisionController);
         $this->assertStringContainsString('Str::uuid()', $divisionController);
@@ -110,5 +113,19 @@ class SettingsManagementTest extends TestCase
         $this->assertStringContainsString('settings-table-footer', $settingsIndexView);
         $this->assertStringContainsString('Add {{ $resourceLabel }}', $settingsIndexView);
         $this->assertStringContainsString('Manage {{ strtolower($resourceLabel) }} master data.', $settingsIndexView);
+        $this->assertStringContainsString('data-settings-delete-form', $settingsIndexView);
+        $this->assertStringContainsString('data-settings-delete-form', $officeLocationIndexView);
+        $this->assertStringContainsString('data-settings-delete-form', $attendanceRuleIndexView);
+        $this->assertStringNotContainsString('onsubmit="return confirm', $settingsIndexView.$officeLocationIndexView.$attendanceRuleIndexView);
+        $this->assertStringContainsString("{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}", $settingsIndexView);
+        $this->assertStringContainsString("{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}", $officeLocationIndexView);
+        $this->assertStringContainsString("{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}", $attendanceRuleIndexView);
+        $this->assertStringContainsString('delete-confirmation-swal', $settingsIndexView);
+        $this->assertStringContainsString('delete-confirmation-swal', $officeLocationIndexView);
+        $this->assertStringContainsString('delete-confirmation-swal', $attendanceRuleIndexView);
+        $this->assertStringContainsString("{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}", $deleteConfirmationSwal);
+        $this->assertStringContainsString('Swal.fire({', $deleteConfirmationSwal);
+        $this->assertStringContainsString("confirmButtonText: 'Delete'", $deleteConfirmationSwal);
+        $this->assertStringNotContainsString('window.bootstrap.Modal', $deleteConfirmationSwal);
     }
 }

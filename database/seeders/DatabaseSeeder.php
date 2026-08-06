@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             LeaveTypeSeeder::class,
             AttendanceHolidaySeeder::class,
             LeaveSubTypeSeeder::class,
+            CompanySeeder::class,
             PositionSeeder::class,
             LegacySqlUserSeeder::class,
             PositionPermissionSeeder::class,

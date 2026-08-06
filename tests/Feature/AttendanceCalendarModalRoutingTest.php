@@ -11,6 +11,7 @@ use App\Http\Requests\Attendance\StoreAttendanceExceptionRequest;
 use App\Http\Requests\Attendance\StoreAttendanceRequest;
 use App\Http\Requests\Attendance\UpdateAttendanceRequest;
 use App\Services\Attendance\AttendanceCalendarEventService;
+use App\Services\Attendance\AttendanceContextService;
 use App\Services\Attendance\AttendanceMutationService;
 use App\Support\Attendance\AttendanceCalendarPresenter;
 use Illuminate\Support\Carbon;
@@ -145,6 +146,9 @@ class AttendanceCalendarModalRoutingTest extends TestCase
         $this->assertStringContainsString('id="clockOutStatusText">Please wait</p>', $attendanceCardsView);
         $this->assertStringContainsString('id="clockInSubmitBtn" disabled>Clock In</button>', $attendanceCardsView);
         $this->assertStringContainsString('id="clockOutSubmitBtn" disabled>Clock Out</button>', $attendanceCardsView);
+        $this->assertStringContainsString('data-clock-out-too-early="true"', $attendanceCardsView);
+        $this->assertStringContainsString("showSwalAlert('warning', 'Clock Out Belum Tersedia', message);", $attendanceCardsView);
+        $this->assertStringContainsString("clockOutCardButtonElement.addEventListener('click', function (event)", $attendanceCardsView);
         $this->assertStringContainsString("setVerificationMessage(context, 'Verification successful', 'success');", $attendanceCardsView);
         $this->assertStringContainsString('checkOnsiteLocation(context);', $attendanceCardsView);
         $this->assertStringNotContainsString('Mulai Verifikasi', $attendanceCardsView);
@@ -264,6 +268,42 @@ class AttendanceCalendarModalRoutingTest extends TestCase
             $attendanceMutationService,
             Carbon::parse('2026-07-09 08:01:00', 'Asia/Jakarta'),
             $officeContext
+        ));
+    }
+
+    public function test_attendance_date_uses_office_reset_time_boundary(): void
+    {
+        $attendanceContextService = app(AttendanceContextService::class);
+        $officeContext = ['office_reset_time' => '04:00:00'];
+
+        $this->assertSame('2026-08-05', $attendanceContextService->attendanceDateFor(
+            Carbon::parse('2026-08-06 03:59:59', 'Asia/Jakarta'),
+            $officeContext,
+        ));
+        $this->assertSame('2026-08-06', $attendanceContextService->attendanceDateFor(
+            Carbon::parse('2026-08-06 04:00:00', 'Asia/Jakarta'),
+            $officeContext,
+        ));
+        $this->assertSame('2026-08-06', $attendanceContextService->attendanceDateFor(
+            Carbon::parse('2026-08-06 00:00:00', 'Asia/Jakarta'),
+            ['office_reset_time' => '00:00:00'],
+        ));
+    }
+
+    public function test_clock_out_is_available_only_after_office_end_time(): void
+    {
+        $attendanceContextService = app(AttendanceContextService::class);
+        $officeContext = ['office_end_time' => '17:00:00'];
+
+        $this->assertFalse($attendanceContextService->isClockOutAllowedAt(
+            Carbon::parse('2026-08-06 16:59:59', 'Asia/Jakarta'),
+            '2026-08-06',
+            $officeContext,
+        ));
+        $this->assertTrue($attendanceContextService->isClockOutAllowedAt(
+            Carbon::parse('2026-08-06 17:00:00', 'Asia/Jakarta'),
+            '2026-08-06',
+            $officeContext,
         ));
     }
 }

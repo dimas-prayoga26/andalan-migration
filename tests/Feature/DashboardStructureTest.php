@@ -73,6 +73,10 @@ class DashboardStructureTest extends TestCase
         $this->assertStringContainsString('id="dashboardClockOutStatusText">Please wait</p>', $dashboardView);
         $this->assertStringContainsString('id="dashboardClockInSubmitBtn" disabled>Clock In</button>', $dashboardView);
         $this->assertStringContainsString('id="dashboardClockOutSubmitBtn" disabled>Clock Out</button>', $dashboardView);
+        $this->assertStringContainsString('assets/vendor/sweetalert2/sweetalert2.min.js', $dashboardView);
+        $this->assertStringContainsString('data-clock-out-too-early="true"', $dashboardView);
+        $this->assertStringContainsString("showSwalAlert('warning', 'Clock Out Belum Tersedia', message);", $dashboardView);
+        $this->assertStringContainsString("clockOutCardButtonElement.addEventListener('click', function (event)", $dashboardView);
         $this->assertStringContainsString("setVerificationMessage(context, 'Verification successful', 'success');", $dashboardView);
         $this->assertStringContainsString('checkOnsiteLocation(context);', $dashboardView);
         $this->assertStringNotContainsString('Mulai Verifikasi', $dashboardView);

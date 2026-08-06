@@ -120,7 +120,7 @@ class AttendanceRuleController extends Controller
                     ->whereDoesntHave('attendanceRules');
 
                 if (is_string($selectedOfficeLocationId) && trim($selectedOfficeLocationId) !== '') {
-                    $query->orWhereKey($selectedOfficeLocationId);
+                    $query->orWhere((new OfficeLocation)->getKeyName(), $selectedOfficeLocationId);
                 }
             })
             ->orderBy('name')

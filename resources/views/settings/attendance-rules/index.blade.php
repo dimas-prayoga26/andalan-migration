@@ -9,6 +9,7 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}">
     <style>
         .settings-nav-card,
         .settings-table-card {
@@ -186,7 +187,13 @@
                             <td class="text-end">
                                 <div class="d-inline-flex gap-1">
                                     <a href="{{ route('settings.attendance-rules.edit', ['attendanceRule' => $attendanceRule]) }}" class="btn btn-primary light btn-sm">Update</a>
-                                    <form action="{{ route('settings.attendance-rules.destroy', ['attendanceRule' => $attendanceRule]) }}" method="POST" onsubmit="return confirm('Delete this attendance rule?')">
+                                    <form
+                                        action="{{ route('settings.attendance-rules.destroy', ['attendanceRule' => $attendanceRule]) }}"
+                                        method="POST"
+                                        data-settings-delete-form
+                                        data-delete-title="Delete Attendance Rule"
+                                        data-delete-message="Delete the attendance rule for {{ $attendanceRule->officeLocation?->name ?? 'this office location' }}?"
+                                    >
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-danger light btn-sm">Delete</button>
@@ -208,6 +215,8 @@
         @include('settings.partials.pagination', ['items' => $attendanceRules])
     </div>
 </div>
+
+@include('settings.partials.delete-confirmation-swal')
 @endsection
 
 @section('script')
@@ -216,4 +225,5 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    @stack('scripts')
 @endsection

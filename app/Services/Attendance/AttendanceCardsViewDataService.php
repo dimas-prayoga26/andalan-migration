@@ -31,7 +31,10 @@ class AttendanceCardsViewDataService
      *   publicIp:string,
      *   publicIpPrefix:?string,
      *   allowedIpPrefix:?string,
-     *   isIpPrefixMatch:bool
+     *   isIpPrefixMatch:bool,
+     *   canClockOutNow:bool,
+     *   clockOutAvailableAt:string,
+     *   clockOutUnavailableMessage:string
      * }
      */
     public function build(
@@ -44,7 +47,8 @@ class AttendanceCardsViewDataService
             $authenticatedUser->loadMissing('employee.deployment');
         }
 
-        $todayAttendanceState = $this->attendanceTodayStateService->getTodayStateForUser($authenticatedUser);
+        $officeLocation = $this->attendanceContextService->resolveOfficeContext($authenticatedUserId);
+        $todayAttendanceState = $this->attendanceTodayStateService->getTodayStateForUser($authenticatedUser, $officeLocation);
         $employeeId = $todayAttendanceState['employeeId'];
         $todayJakartaDate = $todayAttendanceState['todayJakartaDate'];
 
@@ -100,7 +104,10 @@ class AttendanceCardsViewDataService
             }
         }
 
-        $officeLocation = $this->attendanceContextService->resolveOfficeContext($authenticatedUserId);
+        $nowJakarta = now('Asia/Jakarta');
+        $clockOutAvailableAt = $this->attendanceContextService->clockOutAvailableAt($todayJakartaDate, $officeLocation);
+        $canClockOutNow = $this->attendanceContextService->isClockOutAllowedAt($nowJakarta, $todayJakartaDate, $officeLocation);
+        $clockOutAvailableTimeLabel = $clockOutAvailableAt->format('H:i');
         $publicIp = '-';
         $clientIpAddress = $this->attendanceContextService->resolveClientIpAddress($preferredIpAddress, $requestIpAddress);
         $ipdataData = $this->attendanceContextService->fetchIpdata($clientIpAddress);
@@ -133,6 +140,9 @@ class AttendanceCardsViewDataService
             'publicIpPrefix' => $publicIpPrefix,
             'allowedIpPrefix' => $allowedIpPrefix,
             'isIpPrefixMatch' => $isIpPrefixMatch,
+            'canClockOutNow' => $canClockOutNow,
+            'clockOutAvailableAt' => $clockOutAvailableTimeLabel,
+            'clockOutUnavailableMessage' => 'Clock out baru bisa dilakukan mulai pukul '.$clockOutAvailableTimeLabel.'.',
         ];
     }
 }

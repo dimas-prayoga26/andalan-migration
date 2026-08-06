@@ -65,6 +65,41 @@ class LegacyEmployeeAssignmentSeederTest extends TestCase
         $this->assertStringContainsString('private function userCreatedAtJoinDate(Employee $employee): ?string', $legacySeeder);
     }
 
+    public function test_legacy_dump_parser_supports_insert_rows_without_column_lists(): void
+    {
+        $seeder = new LegacySqlUserSeeder;
+        $parseInsertRows = new ReflectionMethod($seeder, 'parseInsertRows');
+        $dump = <<<'SQL'
+CREATE TABLE `users` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+INSERT INTO `users` VALUES (4,'Lukman Prabowo','lukman@rnbmanagement.com');
+SQL;
+
+        $rows = $parseInsertRows->invoke($seeder, $dump, 'users');
+
+        $this->assertSame(1, $rows->count());
+        $this->assertSame('lukman@rnbmanagement.com', $rows->first()['email']);
+    }
+
+    public function test_legacy_dump_parser_finds_lukman_from_project_dump(): void
+    {
+        $seeder = new LegacySqlUserSeeder;
+        $readDump = new ReflectionMethod($seeder, 'readDump');
+        $parseInsertRows = new ReflectionMethod($seeder, 'parseInsertRows');
+
+        $rows = $parseInsertRows->invoke($seeder, $readDump->invoke($seeder), 'users');
+        $lukman = $rows->first(
+            static fn (array $row): bool => strtolower(trim((string) $row['email'])) === 'lukman@rnbmanagement.com',
+        );
+
+        $this->assertIsArray($lukman);
+        $this->assertSame('Lukman Prabowo', $lukman['name']);
+    }
+
     public function test_self_and_lukman_pic_assignments_are_registered(): void
     {
         $picSeeder = file_get_contents(database_path('seeders/EmployeePicAssignmentSeeder.php'));

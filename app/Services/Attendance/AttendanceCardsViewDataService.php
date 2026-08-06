@@ -107,7 +107,8 @@ class AttendanceCardsViewDataService
         $nowJakarta = now('Asia/Jakarta');
         $clockOutAvailableAt = $this->attendanceContextService->clockOutAvailableAt($todayJakartaDate, $officeLocation);
         $canClockOutNow = $this->attendanceContextService->isClockOutAllowedAt($nowJakarta, $todayJakartaDate, $officeLocation);
-        $clockOutAvailableTimeLabel = $clockOutAvailableAt->format('H:i');
+        $isFlexibleAttendance = $this->attendanceContextService->isFlexibleAttendance($officeLocation);
+        $clockOutAvailableTimeLabel = $isFlexibleAttendance ? '--:--' : $clockOutAvailableAt->format('H:i');
         $publicIp = '-';
         $clientIpAddress = $this->attendanceContextService->resolveClientIpAddress($preferredIpAddress, $requestIpAddress);
         $ipdataData = $this->attendanceContextService->fetchIpdata($clientIpAddress);
@@ -142,7 +143,9 @@ class AttendanceCardsViewDataService
             'isIpPrefixMatch' => $isIpPrefixMatch,
             'canClockOutNow' => $canClockOutNow,
             'clockOutAvailableAt' => $clockOutAvailableTimeLabel,
-            'clockOutUnavailableMessage' => 'Clock out baru bisa dilakukan mulai pukul '.$clockOutAvailableTimeLabel.'.',
+            'clockOutUnavailableMessage' => $isFlexibleAttendance
+                ? 'Clock out tersedia setelah kamu melakukan clock in.'
+                : 'Clock out baru bisa dilakukan mulai pukul '.$clockOutAvailableTimeLabel.'.',
         ];
     }
 }

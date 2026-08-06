@@ -13,6 +13,8 @@ Aturan log:
 - Mengubah validasi clock-out agar mengikuti `office_end_time`, sehingga staff tidak bisa clock-out sebelum jam selesai kerja lokasi aktifnya.
 - Menyamakan logic reset attendance dan clock-out guard pada menu Dashboard serta menu Attendance.
 - Menambahkan notifikasi `Swal.fire` saat tombol Clock Out diklik sebelum waktunya, dengan fallback browser alert.
+- Menambahkan `attendance_type` dan pivot rule-position agar satu office dapat memiliki rule fixed untuk staff biasa dan flexible untuk Driver.
+- Mengubah Driver/flexible attendance menjadi open-session based: Clock In bebas, Clock Out bebas termasuk setelah tengah malam, dan Clock In terkunci selama sesi belum clock-out.
 - Memperbaiki dependency dan parsing `LegacySqlUserSeeder` agar data company, position, employee, dan assignment dari SQL legacy terbaca lengkap.
 - Mengganti delete confirmation settings dari partial Bootstrap modal menjadi `Swal.fire` dengan fallback `window.confirm`.
 - Detail: `docs/dev-log/2026-08-06-1438-ringkasan-perubahan-attendance-seeder-settings.md`.

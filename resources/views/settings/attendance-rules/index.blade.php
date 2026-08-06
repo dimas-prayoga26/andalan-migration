@@ -160,6 +160,8 @@
                         <th>Office Location</th>
                         <th>IP Range</th>
                         <th>Radius</th>
+                        <th>Type</th>
+                        <th>Positions</th>
                         <th>Clock In</th>
                         <th>Clock Out</th>
                         <th>Status</th>
@@ -177,6 +179,18 @@
                             </td>
                             <td>{{ $attendanceRule->ip_range }}</td>
                             <td>{{ number_format((int) $attendanceRule->radius) }} m</td>
+                            <td>
+                                <span class="badge badge-sm light {{ $attendanceRule->attendance_type === 'flexible' ? 'badge-info' : 'badge-primary' }}">
+                                    {{ ucfirst((string) ($attendanceRule->attendance_type ?? 'fixed')) }}
+                                </span>
+                            </td>
+                            <td>
+                                @if ($attendanceRule->positions->isNotEmpty())
+                                    <span class="text-black">{{ $attendanceRule->positions->pluck('name')->join(', ') }}</span>
+                                @else
+                                    <span class="text-muted">Fallback office rule</span>
+                                @endif
+                            </td>
                             <td>{{ $formatTimeLabel($attendanceRule->office_start_time) }}</td>
                             <td>{{ $formatTimeLabel($attendanceRule->office_end_time) }}</td>
                             <td>
@@ -203,7 +217,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="9" class="text-center text-muted py-4">
                                 {{ $search !== '' ? 'No matching attendance rule found.' : 'No attendance rule data available.' }}
                             </td>
                         </tr>

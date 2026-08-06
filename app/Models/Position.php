@@ -40,4 +40,10 @@ class Position extends Model
             ->withTimestamps()
             ->wherePivot('status', 'active');
     }
+
+    public function attendanceRules(): BelongsToMany
+    {
+        return $this->belongsToMany(RulesOfAttendace::class, 'attendance_rule_positions', 'position_id', 'attendance_rule_id', 'id', 'id')
+            ->withTimestamps();
+    }
 }

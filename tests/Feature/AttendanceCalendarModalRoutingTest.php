@@ -306,4 +306,42 @@ class AttendanceCalendarModalRoutingTest extends TestCase
             $officeContext,
         ));
     }
+
+    public function test_flexible_attendance_skips_late_and_clock_out_time_rules(): void
+    {
+        $attendanceContextService = app(AttendanceContextService::class);
+        $attendanceMutationService = app(AttendanceMutationService::class);
+        $officeContext = [
+            'attendance_type' => 'flexible',
+            'is_flexible' => true,
+            'office_start_time' => '08:00:00',
+            'office_end_time' => '17:00:00',
+        ];
+
+        $calculateLateMinutes = new \ReflectionMethod(AttendanceMutationService::class, 'calculateLateMinutes');
+        $calculateLateMinutes->setAccessible(true);
+        $resolveAttendanceStatus = new \ReflectionMethod(AttendanceMutationService::class, 'resolveAttendanceStatus');
+        $resolveAttendanceStatus->setAccessible(true);
+
+        $this->assertTrue($attendanceContextService->isFlexibleAttendance($officeContext));
+        $this->assertTrue($attendanceContextService->isClockOutAllowedAt(
+            Carbon::parse('2026-08-07 01:00:00', 'Asia/Jakarta'),
+            '2026-08-06',
+            $officeContext,
+        ));
+        $this->assertSame(0, $calculateLateMinutes->invoke(
+            $attendanceMutationService,
+            Carbon::parse('2026-08-06 23:30:00', 'Asia/Jakarta'),
+            $officeContext,
+        ));
+        $this->assertSame('Flexible', $resolveAttendanceStatus->invoke(
+            $attendanceMutationService,
+            Carbon::parse('2026-08-06 23:30:00', 'Asia/Jakarta'),
+            $officeContext,
+        ));
+
+        $todayStateService = File::get(app_path('Services/Attendance/AttendanceTodayStateService.php'));
+        $this->assertStringContainsString("->whereNotNull('clock_in')", $todayStateService);
+        $this->assertStringContainsString("->whereNull('clock_out')", $todayStateService);
+    }
 }

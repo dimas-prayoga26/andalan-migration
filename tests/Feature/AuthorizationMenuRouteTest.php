@@ -214,7 +214,9 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('Employee Data', $sidebarView);
         $this->assertStringNotContainsString('Zoom Meeting', $sidebarView);
         $this->assertStringNotContainsString('Employee Database', $sidebarView);
-        $this->assertStringNotContainsString('Talent Acquisition', $sidebarView);
+        $this->assertStringContainsString('Talent Acquisition', $sidebarView);
+        $this->assertStringContainsString('Applicants', $sidebarView);
+        $this->assertStringContainsString('Job Vacancies', $sidebarView);
         $this->assertStringNotContainsString('Payroll', $sidebarView);
         $this->assertStringContainsString("View::composer('layouts.sidebar', SidebarPermissionComposer::class)", $appServiceProvider);
         $this->assertStringContainsString('hasAnyPositionPermission([$permissionName])', $sidebarPermissionComposer);

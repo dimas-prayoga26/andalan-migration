@@ -30,6 +30,7 @@ use App\Http\Controllers\StaffAttendance\AttendanceController;
 use App\Http\Controllers\StaffAttendance\AttendanceLeaveRequestController;
 use App\Http\Controllers\StaffAttendance\AttendanceOvertimeController;
 use App\Http\Controllers\StaffAttendance\AttendanceReportController;
+use App\Http\Controllers\TalentAcquisitionController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -75,12 +76,12 @@ Route::middleware('auth')->group(function (): void {
 
     // Applicant
     Route::middleware('position.permission:view-talent-acquisition')->group(function (): void {
-        Route::get('/applicant', function () {
-            return view('applicant_data.index');
-        })->name('applicant');
-        Route::get('/applicant/job-vacancies', function () {
-            return view('applicant_data.job_vancancies');
-        })->name('applicant.job_vacancies');
+        Route::get('/applicant', [TalentAcquisitionController::class, 'applicants'])->name('applicant');
+        Route::get('/applicant/job-vacancies', [TalentAcquisitionController::class, 'jobVacancies'])->name('applicant.job_vacancies');
+        Route::patch('/applicant/job-vacancies/{jobVacancy}/status', [TalentAcquisitionController::class, 'updateJobVacancyStatus'])->name('applicant.job_vacancies.status.update');
+        Route::patch('/applicant/{applicant}/status', [TalentAcquisitionController::class, 'updateApplicantStatus'])->name('applicant.status.update');
+        Route::get('/applicant/{applicant}', [TalentAcquisitionController::class, 'showApplicant'])->name('applicant.show');
+        Route::delete('/applicant/{applicant}', [TalentAcquisitionController::class, 'destroyApplicant'])->name('applicant.destroy');
     });
 
     // Employee

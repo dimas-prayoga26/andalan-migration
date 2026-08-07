@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Dashboard Andalan')
+@section('title', 'Applicants')
 
 @section('css')
     @php
@@ -8,116 +8,64 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
-    <link rel="stylesheet" href="https://unpkg.com/antd@6.2.3/dist/antd.css">
-    <!-- Start - All Required Plugins -->
     <style>
-        .absensi-tabs {
+        .talent-tabs {
             flex-wrap: nowrap;
             overflow-x: auto;
             overflow-y: hidden;
             scrollbar-width: thin;
-            -webkit-overflow-scrolling: touch;
-            white-space: nowrap;
             gap: 0.25rem;
-        }
-
-        .absensi-tabs .nav-item {
-            flex: 0 0 auto;
-        }
-
-        .absensi-tabs .nav-link {
             white-space: nowrap;
         }
 
-        .absensi-tabs .absensi-tab-btn {
+        .talent-tabs .nav-link {
             border: 0;
             background: transparent;
+            white-space: nowrap;
         }
 
-        .absensi-tabs .absensi-tab-btn:focus {
-            box-shadow: none;
+        .talent-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.85rem;
+            border-bottom: 1px solid #eef0f4;
         }
 
-        #myTable thead th {
-            font-size: 1.1rem;
-            font-weight: 600;
-            padding: 1rem 0.75rem;
-        }
-
-        #myTable tbody td {
-            font-size: 1rem;
-            padding: 0.9rem 0.75rem;
-            vertical-align: middle;
-        }
-
-        #myTable thead th:first-child,
-        #myTable tbody td:first-child {
-            text-align: center !important;
-        }
-
-        .badge-attendance-empty {
-            background: #fff1f2;
-            color: #be123c;
-            border: 1px solid #fecdd3;
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.35rem 0.6rem;
-            border-radius: 999px;
-            display: inline-block;
-        }
-
-        .applicant-table-title {
+        .talent-table-title {
+            color: #25314c;
             font-size: 1rem;
             font-weight: 700;
-            color: #25314c;
-            margin-bottom: 0;
-            text-align: left;
         }
 
-        .applicant-header-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 0.85rem;
-        }
-
-        .applicant-filter-bar {
+        .talent-filter-bar {
             display: inline-flex;
             align-items: center;
-            justify-content: flex-end;
             gap: 0.5rem;
-            margin-bottom: 0;
-            margin-left: 0;
-            width: auto;
         }
 
-        .applicant-filter-bar label {
+        .talent-filter-bar label {
             margin: 0;
             color: #5f6b7a;
             font-weight: 600;
+            line-height: 1.2;
+            white-space: nowrap;
         }
 
-        .applicant-filter-bar select {
+        .talent-filter-bar select {
             min-height: 38px;
-            width: 190px;
-            max-width: 190px;
-            border-radius: 0.6rem;
+            width: 220px;
+            max-width: 220px;
             border: 1px solid #d9dce5;
-            padding: 0.35rem 0.75rem;
+            border-radius: 0.5rem;
             background: #fff;
             color: #27334a;
-            font-size: 0.95rem;
-            text-overflow: ellipsis;
+            padding: 0.35rem 0.75rem;
         }
 
-        .applicant-filter-bar select:focus {
-            border-color: #cfd5df;
-            box-shadow: 0 0 0 0.15rem rgba(15, 23, 42, 0.08);
-            outline: 0;
-        }
-
-        .applicant-photo {
+        .talent-photo {
             width: 34px;
             height: 34px;
             border-radius: 0.45rem;
@@ -126,16 +74,49 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.95rem;
         }
 
-        .applicant-action-group {
-            display: flex;
+        .talent-status-form {
+            display: inline-flex;
+            vertical-align: middle;
+        }
+
+        .talent-status-select {
+            min-height: 28px;
+            border: 1px solid #d9dce5;
+            border-radius: 0.35rem;
+            background: #fff;
+            color: #27334a;
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.15rem 1.75rem 0.15rem 0.5rem;
+        }
+
+        .talent-status-select.status-value-0 {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+            color: #4b5563;
+        }
+
+        .talent-status-select.status-value-1 {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #2448c7;
+        }
+
+        .talent-status-select.status-value-2 {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+            color: #047857;
+        }
+
+        .talent-action-group {
+            display: inline-flex;
             align-items: center;
             gap: 0.35rem;
         }
 
-        .applicant-action-btn {
+        .talent-action-btn {
             width: 34px;
             height: 34px;
             border: 0;
@@ -146,246 +127,270 @@
             font-size: 1rem;
         }
 
-        .applicant-action-btn.edit {
-            background: #f8e8b7;
-            color: #f2ad00;
-        }
-
-        .applicant-action-btn.view {
+        .talent-action-btn.view {
             background: #d9f2f4;
-            color: #4aa3ad;
+            color: #287b84;
         }
 
-        .applicant-action-btn.delete {
-            background: #f8d6e2;
-            color: #ff4f7b;
+        .talent-action-btn.file {
+            background: #f8e8b7;
+            color: #b77900;
         }
 
-        #myTable_wrapper .dt-length label,
-        #myTable_wrapper .dt-search label,
-        #myTable_wrapper .dt-info,
-        #myTable_wrapper .dt-paging {
+        .talent-action-btn.delete {
+            background: #ffe1e6;
+            color: #c0263d;
+        }
+
+        #applicantsTable thead th {
             font-size: 1rem;
+            font-weight: 600;
+            padding: 1rem 0.75rem;
         }
 
-        #myTable_wrapper .dt-layout-row:first-child {
+        #applicantsTable tbody td {
+            font-size: 0.95rem;
+            padding: 0.9rem 0.75rem;
+            vertical-align: top;
+        }
+
+        #applicantsTable thead th:first-child,
+        #applicantsTable tbody td:first-child {
+            text-align: center !important;
+        }
+
+        #applicantsTable_wrapper .dt-layout-row:first-child {
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: center;
             gap: 1rem;
-            padding: 0.75rem 1rem;
-            margin-bottom: 0.85rem;
-            background: #fff;
-            border: 1px solid #e6eaf2;
-            border-radius: 0.75rem;
+            margin: 0 0 1rem;
         }
 
-        #myTable_wrapper .dt-length,
-        #myTable_wrapper .dt-search {
+        #applicantsTable_wrapper .dataTables_length,
+        #applicantsTable_wrapper .dataTables_filter {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            margin-bottom: 1rem;
+        }
+
+        #applicantsTable_wrapper .dataTables_filter {
+            float: right;
+        }
+
+        #applicantsTable_wrapper .dt-layout-row:first-child .dt-layout-cell {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            width: auto;
+        }
+
+        #applicantsTable_wrapper .dt-layout-row:first-child .dt-layout-cell:first-child {
+            justify-content: flex-start;
+        }
+
+        #applicantsTable_wrapper .dt-layout-row:first-child .dt-layout-cell:last-child {
+            justify-content: flex-end;
+        }
+
+        #applicantsTable_wrapper .dt-length,
+        #applicantsTable_wrapper .dt-search,
+        #applicantsTable_wrapper .dataTables_length label,
+        #applicantsTable_wrapper .dataTables_filter label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
             margin: 0;
         }
 
-        #myTable_wrapper .dt-search label,
-        #myTable_wrapper .dt-length label {
+        #applicantsTable_wrapper .dt-length label,
+        #applicantsTable_wrapper .dt-search label,
+        #applicantsTable_wrapper .dataTables_length label,
+        #applicantsTable_wrapper .dataTables_filter label {
             margin: 0;
             color: #5f6b7a;
-            font-weight: 500;
+            font-weight: 600;
         }
 
-        #myTable_wrapper .dt-search input,
-        #myTable_wrapper .dt-length select {
-            min-height: 40px;
-            font-size: 1rem;
-            border-radius: 0.6rem;
+        #applicantsTable_wrapper .dt-length select,
+        #applicantsTable_wrapper .dt-search input,
+        #applicantsTable_wrapper .dataTables_length select,
+        #applicantsTable_wrapper .dataTables_filter input {
+            min-height: 38px;
             border: 1px solid #d9dce5;
-            padding: 0.35rem 0.75rem;
+            border-radius: 0.5rem;
             background: #fff;
             color: #27334a;
+            box-shadow: none;
         }
 
-        #myTable_wrapper .dt-search input {
-            min-width: 220px;
+        #applicantsTable_wrapper .dt-search input,
+        #applicantsTable_wrapper .dataTables_filter input {
+            width: 220px;
+            max-width: 100%;
+            padding: 0.35rem 0.75rem;
         }
 
-        #myTable_wrapper .dt-search input:focus,
-        #myTable_wrapper .dt-length select:focus {
-            border-color: #cfd5df;
-            box-shadow: 0 0 0 0.15rem rgba(15, 23, 42, 0.08);
-            outline: 0;
+        #applicantsTable_wrapper .dt-length select,
+        #applicantsTable_wrapper .dataTables_length select {
+            padding: 0.35rem 2rem 0.35rem 0.75rem;
         }
 
         @media only screen and (max-width: 767.98px) {
-            .applicant-header-bar {
-                flex-direction: column;
+            .talent-header-bar {
                 align-items: stretch;
+                flex-direction: column;
             }
 
-            .applicant-filter-bar {
-                display: flex;
-                width: 100%;
-                margin-left: 0;
+            .talent-filter-bar {
                 justify-content: space-between;
+                width: 100%;
             }
 
-            .applicant-filter-bar select {
+            .talent-filter-bar select {
                 width: 100%;
                 max-width: 100%;
             }
 
-            #myTable_wrapper .dt-layout-row:first-child {
-                flex-direction: column;
+            #applicantsTable_wrapper .dt-layout-row:first-child {
                 align-items: stretch;
+                flex-direction: column;
             }
 
-            #myTable_wrapper .dt-search,
-            #myTable_wrapper .dt-length {
+            #applicantsTable_wrapper .dt-layout-row:first-child .dt-layout-cell,
+            #applicantsTable_wrapper .dt-length,
+            #applicantsTable_wrapper .dt-search,
+            #applicantsTable_wrapper .dataTables_length,
+            #applicantsTable_wrapper .dataTables_filter,
+            #applicantsTable_wrapper .dataTables_length label,
+            #applicantsTable_wrapper .dataTables_filter label {
                 justify-content: space-between;
                 width: 100%;
             }
 
-            #myTable_wrapper .dt-search input {
-                min-width: 0;
+            #applicantsTable_wrapper .dataTables_filter {
+                float: none;
+            }
+
+            #applicantsTable_wrapper .dt-search input,
+            #applicantsTable_wrapper .dataTables_filter input {
                 width: 100%;
             }
         }
-
-        #myTable_wrapper .dt-paging .dt-paging-button {
-            background: #fff !important;
-            border: 1px solid #d9dce5 !important;
-            color: #5f6b7a !important;
-        }
-
-        #myTable_wrapper .dt-paging .dt-paging-button:hover {
-            background: #f3f6ff !important;
-            color: var(--bs-primary) !important;
-        }
-
-        #myTable_wrapper .dt-paging .dt-paging-button.current {
-            background: var(--bs-danger) !important;
-            border-color: var(--bs-danger) !important;
-            color: #fff !important;
-        }
     </style>
-
 @endsection
 
 @section('navbarTitle', 'Applicants')
 
 @section('content')
-<!-- Start - Page Title & Breadcrumb -->
 <div class="page-title">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
             <li><h1>Applicants</h1></li>
-            <li class="breadcrumb-item">
-                <a href="{{ route('dashboard') }}">
-                    <svg width="18" height="18" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2.125 6.375L8.5 1.41667L14.875 6.375V14.1667C14.875 14.5424 14.7257 14.9027 14.4601 15.1684C14.1944 15.4341 13.8341 15.5833 13.4583 15.5833H3.54167C3.16594 15.5833 2.80561 15.4341 2.53993 15.1684C2.27426 14.9027 2.125 14.5424 2.125 14.1667V6.375Z" stroke="var(--bs-body-color)" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M6.375 15.5833V8.5H10.625V15.5833" stroke="var(--bs-body-color)" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    Main
-                </a>
-            </li>
-            <li class="breadcrumb-item active" aria-current="page">applicants</li>
+            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Main</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Applicants</li>
         </ol>
     </nav>
 </div>
-<!-- End - Page Title & Breadcrumb -->
+
 <div class="row">
-    <div class="col-xl-12 col-xxl-12">
+    <div class="col-xl-12">
         <div class="card h-auto">
             <div class="card-header">
-                <ul class="nav nav-underline card-header-tabs absensi-tabs" id="nav-tab" role="tablist">
+                <ul class="nav nav-underline card-header-tabs talent-tabs" role="tablist">
                     <li class="nav-item">
-                        <button type="button" data-href="{{ route('applicant') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('applicant') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('applicant') ? 'true' : 'false' }}">Applicants</button>
+                        <a href="{{ route('applicant') }}" class="nav-link {{ request()->routeIs('applicant') ? 'active' : '' }}">Applicants</a>
                     </li>
                     <li class="nav-item">
-                        <button type="button" data-href="{{ route('applicant.job_vacancies') }}" class="nav-link absensi-tab-btn {{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}" aria-selected="{{ request()->routeIs('applicant.job_vacancies') ? 'true' : 'false' }}">Job Vacancies</button>
+                        <a href="{{ route('applicant.job_vacancies') }}" class="nav-link {{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}">Job Vacancies</a>
                     </li>
                 </ul>
             </div>
-            <div class="row">
-                <div class="col-xxl-12 col-xl-12">
-                    <div class="card-body">
-                        <div class="applicant-header-bar">
-                            <div class="applicant-table-title">Data Pelamar</div>
-                            <div class="applicant-filter-bar">
-                                <label for="positionFilter">Filter Posisi:</label>
-                                <select id="positionFilter">
-                                    <option value="">Semua Posisi</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table id="myTable" class="display table">
-                                <thead>
-                                <tr>
-                                    <th class="mw-80">No</th>
-                                    <th class="mw-100">Photo</th>
-                                    <th class="mw-260">Nama Lengkap</th>
-                                    <th class="mw-250">Posisi Dilamar</th>
-                                    <th class="mw-160">Keterangan</th>
-                                    <th class="mw-160">Action</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr>
-                                    <td>1.</td>
-                                    <td><span class="applicant-photo"><i class="bi bi-person-fill"></i></span></td>
-                                    <td>Mijil Haryo Siswantoro</td>
-                                    <td>Social Media Specialist</td>
-                                    <td></td>
-                                    <td>
-                                        <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
-                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>2.</td>
-                                    <td><span class="applicant-photo"><i class="bi bi-person-fill"></i></span></td>
-                                    <td>Edward Halomoan Simanjuntak</td>
-                                    <td>Social Media Specialist</td>
-                                    <td></td>
-                                    <td>
-                                        <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
-                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>3.</td>
-                                    <td><span class="applicant-photo"><i class="bi bi-person-fill"></i></span></td>
-                                    <td>Muhamad Rezki Nugraha</td>
-                                    <td>Social Media Specialist</td>
-                                    <td></td>
-                                    <td>
-                                        <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
-                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                            </div>
-
+            <div class="card-body">
+                @if (! ($syncResult['available'] ?? true))
+                    <div class="alert alert-warning mb-3" role="alert">
+                        {{ $syncResult['message'] ?? 'Koneksi database legacy belum tersedia.' }}
                     </div>
+                @endif
+                @if (session('status'))
+                    <div class="alert alert-success mb-3" role="alert">{{ session('status') }}</div>
+                @endif
+                @if ($errors->any())
+                    <div class="alert alert-danger mb-3" role="alert">{{ $errors->first() }}</div>
+                @endif
+
+                <div class="talent-header-bar">
+                    <div class="talent-table-title">Data Pelamar</div>
+                    <div class="talent-filter-bar">
+                        <label for="positionFilter">Filter Posisi:</label>
+                        <select id="positionFilter">
+                            <option value="">Semua Posisi</option>
+                            @foreach ($jobVacancies as $jobVacancy)
+                                <option value="{{ $jobVacancy->name }}">{{ $jobVacancy->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="applicantsTable" class="display table">
+                        <thead>
+                        <tr>
+                            <th class="mw-80">No</th>
+                            <th class="mw-100">Photo</th>
+                            <th class="mw-220">Nama Lengkap</th>
+                            <th class="mw-220">Posisi Dilamar</th>
+                            <th class="mw-420">Keterangan</th>
+                            <th class="mw-120">Action</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @forelse ($applicants as $applicant)
+                            <tr>
+                                <td>{{ $loop->iteration }}.</td>
+                                <td><span class="talent-photo" title="{{ $applicant->photo ?: 'No photo' }}"><i class="bi bi-person-fill"></i></span></td>
+                                <td>{{ $applicant->full_name }}</td>
+                                <td>{{ $applicant->jobVacancy?->name ?? '-' }}</td>
+                                <td>
+                                    <form method="POST" action="{{ route('applicant.status.update', ['applicant' => $applicant->id]) }}" class="talent-status-form">
+                                        @csrf
+                                        @method('PATCH')
+                                        <select name="applicant_status_id" class="talent-status-select status-value-{{ $applicantStatuses->firstWhere('id', $applicant->applicant_status_id)?->value ?? 0 }}" onchange="updateApplicantStatusColor(this); this.form.submit()" aria-label="Update status {{ $applicant->full_name }}">
+                                            @foreach ($applicantStatuses as $applicantStatus)
+                                                <option value="{{ $applicantStatus->id }}" data-status-value="{{ $applicantStatus->value }}" @selected($applicant->applicant_status_id === $applicantStatus->id)>
+                                                    {{ $applicantStatus->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </form>
+                                </td>
+                                <td>
+                                    <div class="talent-action-group">
+                                        <a href="{{ route('applicant.show', ['applicant' => $applicant->id]) }}" class="talent-action-btn view" title="Detail">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <form method="POST" action="{{ route('applicant.destroy', ['applicant' => $applicant->id]) }}" onsubmit="return confirm('Hapus data pelamar ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="talent-action-btn delete" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">Belum ada data pelamar.</td>
+                            </tr>
+                        @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 </div>
-<!-- End - Content Body -->
-
 @endsection
 
 @section('script')
@@ -398,48 +403,36 @@
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
+        function updateApplicantStatusColor(selectElement) {
+            var selectedOption = selectElement.options[selectElement.selectedIndex];
+            var statusValue = selectedOption ? selectedOption.dataset.statusValue : '0';
+
+            selectElement.classList.remove('status-value-0', 'status-value-1', 'status-value-2');
+            selectElement.classList.add('status-value-' + statusValue);
+        }
+
         $(function () {
-            $('.absensi-tab-btn').on('click', function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-                var targetUrl = $(this).data('href');
-                if (targetUrl) {
-                    window.location.href = targetUrl;
-                }
-            });
-
-            var applicantsTable = $('#myTable').DataTable({
+            var applicantsTable = $('#applicantsTable').DataTable({
+                order: [],
                 columnDefs: [
-                    {
-                        targets: [1, 5],
-                        orderable: false
-                    },
-                    {
-                        targets: 0,
-                        type: 'string'
-                    }
-                ]
-            });
-            var positionFilter = $('#positionFilter');
-            var positionColumnIndex = 3;
-            var uniquePositions = {};
+                    { targets: [0, 1, 5], orderable: false }
+                ],
+                drawCallback: function () {
+                    var tableApi = this.api();
+                    var pageInfo = tableApi.page.info();
 
-            applicantsTable.column(positionColumnIndex).data().each(function (value) {
-                var positionName = String(value || '').trim();
-                if (positionName.length > 0) {
-                    uniquePositions[positionName] = true;
+                    tableApi.column(0, { page: 'current' }).nodes().each(function (cell, index) {
+                        cell.innerHTML = (pageInfo.start + index + 1) + '.';
+                    });
                 }
             });
 
-            Object.keys(uniquePositions).sort().forEach(function (positionName) {
-                positionFilter.append('<option value="' + positionName + '">' + positionName + '</option>');
-            });
-
-            positionFilter.on('change', function () {
+            $('#positionFilter').on('change', function () {
                 var selectedPosition = $(this).val();
                 var escapedPosition = $.fn.dataTable.util.escapeRegex(selectedPosition);
+
                 applicantsTable
-                    .column(positionColumnIndex)
+                    .column(3)
                     .search(selectedPosition ? '^' + escapedPosition + '$' : '', true, false)
                     .draw();
             });

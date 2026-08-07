@@ -11,6 +11,7 @@
 						$isDirectorAttendanceMenu = request()->routeIs('director-attendance*') || request()->is('director-attendance*');
 						$isReportingMenu = request()->routeIs('project_management', 'project_management.detail') || request()->is('project-management*');
 						$isAuthorizationMenu = request()->routeIs('authorization*') || request()->is('authorization*');
+						$isApplicantMenu = request()->routeIs('applicant*') || request()->is('applicant*');
 						$isSettingsMenu = request()->routeIs('settings*') || request()->is('settings*');
 						$canViewSidebarMenu = $canViewSidebarMenu ?? static fn (string $permissionName): bool => true;
 						$canViewDashboardMenu = $canViewSidebarMenu('view-dashboard');
@@ -21,6 +22,7 @@
 						$canViewPicAttendanceMenu = $canViewSidebarMenu('view-pic-attendance');
 						$canViewDirectorAttendanceMenu = $canViewSidebarMenu('view-director-attendance');
 						$canViewAuthorizationMenu = $canViewSidebarMenu('view-authorization');
+						$canViewTalentAcquisitionMenu = $canViewSidebarMenu('view-talent-acquisition');
 						$canViewSettingsMenu = $canViewSidebarMenu('view-settings');
 					@endphp
 					@if ($canViewDashboardMenu || $canViewCalendarMenu)
@@ -65,7 +67,7 @@
 						</a>
 					</li>
 					@endif
-					@if ($canViewAdminAttendanceMenu || $canViewPicAttendanceMenu || $canViewDirectorAttendanceMenu || $canViewAuthorizationMenu)
+					@if ($canViewAdminAttendanceMenu || $canViewPicAttendanceMenu || $canViewDirectorAttendanceMenu || $canViewAuthorizationMenu || $canViewTalentAcquisitionMenu)
 					<div class="copyright mt-1">
 						<p class="mb-1"><strong>HR Management</strong> </p>
 					</div>
@@ -100,6 +102,22 @@
 							<i class="fa-solid fa-id-card"></i>
 							<span class="nav-text" data-i18n="Employee Data">Employee Data </span>
 						</a>
+					</li>
+					@endif
+					@if ($canViewTalentAcquisitionMenu)
+					<li class="{{ $isApplicantMenu ? 'mm-active' : '' }}">
+						<a class="has-arrow {{ $isApplicantMenu ? 'active' : '' }}" href="javascript:void(0);" aria-expanded="{{ $isApplicantMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-user-plus"></i>
+							<span class="nav-text" data-i18n="Talent Acquisition">Talent Acquisition</span>
+						</a>
+						<ul aria-expanded="{{ $isApplicantMenu ? 'true' : 'false' }}" class="{{ $isApplicantMenu ? 'mm-show' : '' }}">
+							<li>
+								<a class="{{ request()->routeIs('applicant') ? 'active' : '' }}" href="{{ route('applicant') }}">Applicants</a>
+							</li>
+							<li>
+								<a class="{{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}" href="{{ route('applicant.job_vacancies') }}">Job Vacancies</a>
+							</li>
+						</ul>
 					</li>
 					@endif
 					@if ($canViewSettingsMenu)

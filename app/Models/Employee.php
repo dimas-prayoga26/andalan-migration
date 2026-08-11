@@ -16,6 +16,11 @@ class Employee extends Model
     use GeneratesCustomSequenceUuid;
     use SoftDeletes;
 
+    private const ATTENDANCE_REST_DEDUCTION_EXEMPT_POSITION_NAMES = [
+        'Driver',
+        'Executive Assistant',
+    ];
+
     protected $table = 'employees';
 
     protected $guarded = [];
@@ -104,8 +109,20 @@ class Employee extends Model
 
     public function hasPositionName(string $positionName): bool
     {
-        $normalizedPositionName = strtolower(trim($positionName));
-        if ($normalizedPositionName === '') {
+        return $this->hasAnyPositionName([$positionName]);
+    }
+
+    /**
+     * @param  iterable<string>  $positionNames
+     */
+    public function hasAnyPositionName(iterable $positionNames): bool
+    {
+        $normalizedPositionNames = (new Collection($positionNames))
+            ->map(fn (mixed $positionName): string => strtolower(trim((string) $positionName)))
+            ->filter()
+            ->values();
+
+        if ($normalizedPositionNames->isEmpty()) {
             return false;
         }
 
@@ -133,6 +150,11 @@ class Employee extends Model
 
         return $positionNames
             ->filter()
-            ->contains(fn (mixed $name): bool => strtolower(trim((string) $name)) === $normalizedPositionName);
+            ->contains(fn (mixed $name): bool => $normalizedPositionNames->contains(strtolower(trim((string) $name))));
+    }
+
+    public function isExemptFromAttendanceRestDeduction(): bool
+    {
+        return $this->hasAnyPositionName(self::ATTENDANCE_REST_DEDUCTION_EXEMPT_POSITION_NAMES);
     }
 }

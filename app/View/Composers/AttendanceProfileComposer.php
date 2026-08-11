@@ -30,7 +30,7 @@ class AttendanceProfileComposer
 
     private const MAX_DAILY_WORK_MINUTES = 480;
 
-    private const DRIVER_MAX_DAILY_WORK_MINUTES = 540;
+    private const REST_DEDUCTION_EXEMPT_MAX_DAILY_WORK_MINUTES = 540;
 
     private const TASK_HOURS_VERIFICATION = 'task_hours_verification';
 
@@ -661,12 +661,12 @@ class AttendanceProfileComposer
     {
         return $this->shouldDeductRestTime($employee)
             ? self::MAX_DAILY_WORK_MINUTES
-            : self::DRIVER_MAX_DAILY_WORK_MINUTES;
+            : self::REST_DEDUCTION_EXEMPT_MAX_DAILY_WORK_MINUTES;
     }
 
     private function shouldDeductRestTime(?Employee $employee): bool
     {
-        return ! ($employee instanceof Employee && $employee->hasPositionName('Driver'));
+        return ! ($employee instanceof Employee && $employee->isExemptFromAttendanceRestDeduction());
     }
 
     private function approvedOvertimeQueryForPeriod(string $employeeId, Carbon $periodStart, Carbon $periodEnd): Builder

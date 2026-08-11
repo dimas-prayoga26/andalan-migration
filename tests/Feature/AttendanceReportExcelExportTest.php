@@ -5,6 +5,10 @@ namespace Tests\Feature;
 use App\Http\Controllers\StaffAttendance\AttendanceReportController;
 use App\Models\Attendance;
 use App\Models\AttendanceException;
+use App\Models\Employee;
+use App\Models\EmployeeDeployment;
+use App\Models\Position;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\File;
 use ReflectionMethod;
 use Tests\TestCase;
@@ -215,5 +219,14 @@ class AttendanceReportExcelExportTest extends TestCase
 
         $this->assertSame('8 hours', $formatWorkHoursLabel->invoke($controller, '08:00', '17:00', 9));
         $this->assertSame('4 hours', $formatWorkHoursLabel->invoke($controller, '08:00', '12:00', null));
+
+        $employee = new Employee;
+        $driverPosition = new Position(['name' => 'Driver']);
+        $deployment = new EmployeeDeployment;
+        $deployment->setRelation('position', $driverPosition);
+        $deployment->setRelation('positions', new EloquentCollection([$driverPosition]));
+        $employee->setRelation('deployment', $deployment);
+
+        $this->assertSame('9 hours', $formatWorkHoursLabel->invoke($controller, '08:00', '17:00', 9, $employee));
     }
 }

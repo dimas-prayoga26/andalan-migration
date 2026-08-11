@@ -7,6 +7,12 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-08-11 (Selasa)
+- Mengubah perhitungan attendance agar posisi `Driver` tidak terkena pengurangan rest 1 jam.
+- Pengecualian ini berdasarkan posisi `Driver`, bukan berdasarkan `attendance_type = flexible`.
+- Menyamakan hasil perhitungan pada clock-out, attendance exception, recap Admin, recap PIC, Staff Attendance Report, dan profile weekly worked hours.
+- Detail: `docs/dev-log/2026-08-11-0909-driver-tanpa-pengurangan-rest-attendance.md`.
+
 ### 2026-08-06 (Kamis)
 - Menambahkan `office_reset_time` pada `rules_of_attendaces` dengan default `00:00:00`, serta set awal `04:00:00` untuk rules yang mulai jam `09:00:00`.
 - Mengubah reset attendance agar mengikuti alur lokasi aktif employee: `current_office_location_id` ke `office_locations`, lalu ke `rules_of_attendaces.office_reset_time`.

@@ -6,6 +6,7 @@ use App\Http\Controllers\Support\TelegramAttendanceNotifier;
 use App\Models\Attendance;
 use App\Models\AttendanceException;
 use App\Models\AttendanceLog;
+use App\Models\Employee;
 use App\Models\TelegramUser;
 use App\Models\User;
 use App\Support\Attendance\AttendanceExceptionPresenter;
@@ -151,7 +152,7 @@ class AttendanceMutationService
         ?User $authenticatedUser,
         int|string|null $authenticatedUserId
     ): array {
-        $attendance->loadMissing('employee');
+        $attendance->loadMissing('employee.deployment.position', 'employee.deployment.positions');
         if ($attendance->employee?->user_id !== $authenticatedUserId) {
             return [
                 'status' => 403,
@@ -217,7 +218,11 @@ class AttendanceMutationService
         } catch (\Throwable) {
             $clockInTime = Carbon::parse($attendanceDate.' '.$clockInTimeString, 'Asia/Jakarta');
         }
-        $workHours = $this->calculateWorkHours($clockInTime, $clockOutTime);
+        $workHours = $this->calculateWorkHours(
+            $clockInTime,
+            $clockOutTime,
+            $this->shouldDeductRestTime($attendance->employee)
+        );
         $trackingContext = $this->buildTrackingContext($trackingInput, $requestIpAddress, $userAgent, $officeContext);
 
         try {
@@ -366,7 +371,12 @@ class AttendanceMutationService
                     try {
                         $clockInTime = Carbon::createFromFormat('Y-m-d H:i:s', $exceptionDate.' '.$toTime, 'Asia/Jakarta');
                         $clockOutTime = Carbon::createFromFormat('Y-m-d H:i:s', $exceptionDate.' '.(string) $todayAttendance->clock_out, 'Asia/Jakarta');
-                        $workHours = $this->calculateWorkHours($clockInTime, $clockOutTime);
+                        $todayAttendance->loadMissing('employee.deployment.position', 'employee.deployment.positions');
+                        $workHours = $this->calculateWorkHours(
+                            $clockInTime,
+                            $clockOutTime,
+                            $this->shouldDeductRestTime($todayAttendance->employee)
+                        );
                     } catch (\Throwable) {
                         $workHours = null;
                     }
@@ -386,7 +396,11 @@ class AttendanceMutationService
                     : $officeStartTime;
                 $lateMinutes = $this->calculateMinutesBetweenTimes($exceptionDate, $officeStartTime, $clockInTime);
                 $workedMinutes = $this->calculateMinutesBetweenTimes($exceptionDate, $clockInTime, $fromTime);
-                $workHours = round($this->attendanceWorkDurationCalculator->netMinutesFromGrossMinutes($workedMinutes) / 60, 2);
+                $todayAttendance->loadMissing('employee.deployment.position', 'employee.deployment.positions');
+                $workHours = round($this->attendanceWorkDurationCalculator->netMinutesFromGrossMinutes(
+                    $workedMinutes,
+                    $this->shouldDeductRestTime($todayAttendance->employee)
+                ) / 60, 2);
                 $attendanceStatus = $lateMinutes > 0 ? 'Terlambat' : 'Masuk';
             }
 
@@ -502,9 +516,14 @@ class AttendanceMutationService
         return null;
     }
 
-    public function calculateWorkHours(Carbon $clockInTime, Carbon $clockOutTime): float
+    public function calculateWorkHours(Carbon $clockInTime, Carbon $clockOutTime, bool $deductRestTime = true): float
     {
-        return $this->attendanceWorkDurationCalculator->netHoursBetween($clockInTime, $clockOutTime);
+        return $this->attendanceWorkDurationCalculator->netHoursBetween($clockInTime, $clockOutTime, $deductRestTime);
+    }
+
+    private function shouldDeductRestTime(?Employee $employee): bool
+    {
+        return ! ($employee instanceof Employee && $employee->hasPositionName('Driver'));
     }
 
     public function normalizeTimeToSeconds(string $timeValue): string

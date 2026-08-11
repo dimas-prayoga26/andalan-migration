@@ -10,6 +10,7 @@ use App\Models\Attendance;
 use App\Models\AttendanceException;
 use App\Models\AttendanceHoliday;
 use App\Models\AttendanceLog;
+use App\Models\Employee;
 use App\Models\EmployeeProfile;
 use App\Models\LeaveRequest;
 use App\Models\User;
@@ -44,7 +45,7 @@ class AttendanceReportController extends Controller
     {
         $authenticatedUser = Auth::user();
         if ($authenticatedUser instanceof User) {
-            $authenticatedUser->loadMissing('employee.deployment');
+            $authenticatedUser->loadMissing('employee.deployment.position', 'employee.deployment.positions');
         }
         $attendanceCardsData = $this->attendanceCardsViewDataService->build(
             $authenticatedUser instanceof User ? $authenticatedUser : null,
@@ -180,7 +181,13 @@ class AttendanceReportController extends Controller
 
         if ($usesPersonalAttendanceReport) {
             $staffUser = User::query()
-                ->with(['employee.deployment.company:id,name'])
+                ->with([
+                    'employee.deployment:id,employee_id,current_company_id,current_position_id',
+                    'employee.deployment.company:id,name',
+                    'employee.deployment.position:id,name',
+                    'employee.deployment.positions:id,name',
+                    'employee:id,user_id',
+                ])
                 ->find(Auth::id());
 
             if (! $staffUser) {
@@ -307,7 +314,7 @@ class AttendanceReportController extends Controller
                         'company_name' => $staffUser->employee?->deployment?->company?->name,
                         'check_in' => $checkInValue,
                         'check_out' => $checkOutValue,
-                        'work_hours' => $this->formatWorkHoursLabel($checkInValue, $checkOutValue, $attendanceItem->work_hours),
+                        'work_hours' => $this->formatWorkHoursLabel($checkInValue, $checkOutValue, $attendanceItem->work_hours, $staffUser->employee),
                         'note' => $noteLabel,
                         'attachment' => $attachmentUrl,
                         'has_detail' => true,
@@ -542,7 +549,10 @@ class AttendanceReportController extends Controller
 
         $tableUsersQuery = User::query()
             ->with([
+                'employee.deployment:id,employee_id,current_company_id,current_position_id',
                 'employee.deployment.company:id,name',
+                'employee.deployment.position:id,name',
+                'employee.deployment.positions:id,name',
                 'employee:id,user_id',
             ]);
 
@@ -624,7 +634,7 @@ class AttendanceReportController extends Controller
                 : null;
             $checkInValue = $attendanceToday?->clock_in?->format('H:i') ?? $leaveTypeLabel;
             $checkOutValue = $attendanceToday?->clock_out?->format('H:i');
-            $workHours = $this->formatWorkHoursLabel($checkInValue, $checkOutValue, $attendanceToday?->work_hours);
+            $workHours = $this->formatWorkHoursLabel($checkInValue, $checkOutValue, $attendanceToday?->work_hours, $user->employee);
             $isLate = $attendanceToday instanceof Attendance && $this->isLateAttendance($attendanceToday);
             $locationName = $attendanceToday instanceof Attendance ? $this->attendanceLocationFormatter->name($attendanceLog) : '-';
             $locationAddress = $attendanceToday instanceof Attendance ? $this->attendanceLocationFormatter->address($attendanceLog) : '-';
@@ -1177,10 +1187,14 @@ class AttendanceReportController extends Controller
         return $holidayMapByDate;
     }
 
-    private function formatWorkHoursLabel(?string $clockInValue, ?string $clockOutValue, mixed $storedWorkHours): string
+    private function formatWorkHoursLabel(?string $clockInValue, ?string $clockOutValue, mixed $storedWorkHours, ?Employee $employee = null): string
     {
         if (is_string($clockInValue) && is_string($clockOutValue)) {
-            $minutes = $this->attendanceWorkDurationCalculator->netMinutesBetweenTimeLabels($clockInValue, $clockOutValue);
+            $minutes = $this->attendanceWorkDurationCalculator->netMinutesBetweenTimeLabels(
+                $clockInValue,
+                $clockOutValue,
+                $this->shouldDeductRestTime($employee)
+            );
             if ($minutes !== null) {
                 return $this->formatMinutesToHoursLabel($minutes);
             }
@@ -1193,6 +1207,11 @@ class AttendanceReportController extends Controller
         }
 
         return '0 hours';
+    }
+
+    private function shouldDeductRestTime(?Employee $employee): bool
+    {
+        return ! ($employee instanceof Employee && $employee->hasPositionName('Driver'));
     }
 
     private function formatMinutesToHoursLabel(int $minutes): string

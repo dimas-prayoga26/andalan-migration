@@ -131,6 +131,7 @@ class PicAttendanceController extends Controller
                 'deployment.company:id,name',
                 'deployment.officeLocation:id,name,address',
                 'deployment.position:id,name',
+                'deployment.positions:id,name',
                 'deployment.department:id,name',
             ])
             ->findOrFail($employeeId, ['id', 'user_id', 'employee_code']);
@@ -208,7 +209,9 @@ class PicAttendanceController extends Controller
         $employeeRelations = [
             'profile:id,employee_id,name',
             'user:id,username,email',
-            'deployment:id,employee_id,join_date',
+            'deployment:id,employee_id,current_position_id,join_date',
+            'deployment.position:id,name',
+            'deployment.positions:id,name',
         ];
         $employees = Employee::query()
             ->with($employeeRelations)
@@ -317,7 +320,7 @@ class PicAttendanceController extends Controller
                     ->unique()
                     ->count();
                 $workedMinutes = $attendances
-                    ->sum(fn (Attendance $attendance): int => $this->recapAttendanceWorkMinutes($attendance));
+                    ->sum(fn (Attendance $attendance): int => $this->recapAttendanceWorkMinutes($attendance, $employee));
                 $overtimeMinutes = $overtimesByEmployeeId
                     ->get($employeeId, collect())
                     ->sum(fn (AttendanceOvertime $overtime): int => $this->recapApprovedOvertimeMinutes($overtime));
@@ -388,12 +391,13 @@ class PicAttendanceController extends Controller
             ->count();
     }
 
-    private function recapAttendanceWorkMinutes(Attendance $attendance): int
+    private function recapAttendanceWorkMinutes(Attendance $attendance, ?Employee $employee = null): int
     {
         if ($attendance->clock_in instanceof \DateTimeInterface && $attendance->clock_out instanceof \DateTimeInterface) {
             return $this->attendanceWorkDurationCalculator->netMinutesBetween(
                 Carbon::instance($attendance->clock_in),
-                Carbon::instance($attendance->clock_out)
+                Carbon::instance($attendance->clock_out),
+                $this->shouldDeductRestTime($employee ?? $attendance->employee)
             );
         }
 
@@ -538,7 +542,7 @@ class PicAttendanceController extends Controller
         $deviationCount = $attendanceExceptionsByAttendanceId->count();
         $leaveDays = $this->recapOverlappingWorkDayCount($leaveRequests, $workDays);
         $businessTripDays = $this->recapOverlappingWorkDayCount($businessTrips, $workDays);
-        $workedMinutes = $attendances->sum(fn (Attendance $attendance): int => $this->recapAttendanceWorkMinutes($attendance));
+        $workedMinutes = $attendances->sum(fn (Attendance $attendance): int => $this->recapAttendanceWorkMinutes($attendance, $employee));
         $expectedWorkMinutes = $workDays->count() * 8 * 60;
         $alphaDays = $elapsedWorkDayKeys
             ->filter(function (string $dateKey) use ($attendedDateKeys, $leaveRequests, $businessTrips): bool {
@@ -564,7 +568,7 @@ class PicAttendanceController extends Controller
                 'clock_out' => $attendance->clock_out?->format('H:i') ?? '-',
                 'clock_out_badge' => $isException && $attendanceException->type === 'early_departure' ? 'secondary' : 'light',
                 'note' => $isException ? $this->attendanceExceptionPresenter->requestTypeLabel($attendanceException) : ($isLate ? $this->attendanceDurationFormatter->lateLabel((int) $attendance->late_minutes) : 'On Time'),
-                'working_hours' => $this->recapMinutesLabel($this->recapAttendanceWorkMinutes($attendance)),
+                'working_hours' => $this->recapMinutesLabel($this->recapAttendanceWorkMinutes($attendance, $employee)),
                 'location_address' => $this->attendanceLocationFormatter->address($attendanceLog),
             ];
         });
@@ -681,6 +685,9 @@ class PicAttendanceController extends Controller
             ->with([
                 'profile:id,employee_id,name',
                 'user:id,username,email',
+                'deployment:id,employee_id,current_position_id',
+                'deployment.position:id,name',
+                'deployment.positions:id,name',
             ])
             ->whereIn('id', $activeEmployeeIds)
             ->get(['id', 'user_id']);
@@ -926,7 +933,8 @@ class PicAttendanceController extends Controller
         if ($attendance->clock_in instanceof \DateTimeInterface && $attendance->clock_out instanceof \DateTimeInterface) {
             $minutes = $this->attendanceWorkDurationCalculator->netMinutesBetween(
                 Carbon::instance($attendance->clock_in),
-                Carbon::instance($attendance->clock_out)
+                Carbon::instance($attendance->clock_out),
+                $this->shouldDeductRestTime($attendance->employee)
             );
 
             return $this->recapMinutesLabel($minutes);
@@ -939,6 +947,11 @@ class PicAttendanceController extends Controller
         }
 
         return '0 hours';
+    }
+
+    private function shouldDeductRestTime(?Employee $employee): bool
+    {
+        return ! ($employee instanceof Employee && $employee->hasPositionName('Driver'));
     }
 
     private function isLateAttendance(Attendance $attendance): bool

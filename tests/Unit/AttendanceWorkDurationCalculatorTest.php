@@ -30,6 +30,18 @@ class AttendanceWorkDurationCalculatorTest extends TestCase
         $this->assertSame(240, $calculator->netMinutesBetweenTimeLabels('08:00', '12:00'));
     }
 
+    public function test_rest_time_can_be_skipped_for_driver_position(): void
+    {
+        $calculator = new AttendanceWorkDurationCalculator;
+
+        $this->assertSame(9.0, $calculator->netHoursBetween(
+            Carbon::parse('2026-07-07 08:00:00', 'Asia/Jakarta'),
+            Carbon::parse('2026-07-07 17:00:00', 'Asia/Jakarta'),
+            false
+        ));
+        $this->assertSame(540, $calculator->netMinutesBetweenTimeLabels('08:00', '17:00', false));
+    }
+
     public function test_negative_duration_returns_zero(): void
     {
         $calculator = new AttendanceWorkDurationCalculator;

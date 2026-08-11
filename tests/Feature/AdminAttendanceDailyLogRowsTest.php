@@ -6,7 +6,10 @@ use App\Http\Controllers\AdminAttendance\AttendanceRecapController;
 use App\Models\Attendance;
 use App\Models\AttendanceOvertime;
 use App\Models\Employee;
+use App\Models\EmployeeDeployment;
 use App\Models\EmployeeProfile;
+use App\Models\Position;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -120,6 +123,36 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
         $row = $method->invoke($controller, $attendance, null, null);
 
         $this->assertSame('8 hours', $row['working_hours']);
+    }
+
+    public function test_driver_full_day_attendance_is_presented_without_rest_deduction(): void
+    {
+        $controller = app(AttendanceRecapController::class);
+        $method = new ReflectionMethod(AttendanceRecapController::class, 'recapAttendanceRow');
+        $employee = new Employee;
+        $employee->forceFill(['id' => 'admin-driver-effective-work-hours']);
+        $employee->setRelation('profile', new EmployeeProfile(['name' => 'Driver Jam Efektif']));
+
+        $driverPosition = new Position(['name' => 'Driver']);
+        $deployment = new EmployeeDeployment;
+        $deployment->setRelation('position', $driverPosition);
+        $deployment->setRelation('positions', new EloquentCollection([$driverPosition]));
+        $employee->setRelation('deployment', $deployment);
+
+        $attendance = new Attendance;
+        $attendance->forceFill([
+            'id' => 'admin-driver-attendance-effective-work-hours',
+            'clock_in' => Carbon::create(2026, 7, 7, 8, 0, 0, 'Asia/Jakarta'),
+            'clock_out' => Carbon::create(2026, 7, 7, 17, 0, 0, 'Asia/Jakarta'),
+            'late_minutes' => 0,
+            'work_hours' => 9,
+            'status' => 'Masuk',
+        ]);
+        $attendance->setRelation('employee', $employee);
+
+        $row = $method->invoke($controller, $attendance, null, null);
+
+        $this->assertSame('9 hours', $row['working_hours']);
     }
 
     public function test_approved_overtime_minutes_are_calculated_from_approved_times_across_midnight(): void

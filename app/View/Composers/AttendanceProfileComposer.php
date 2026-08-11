@@ -30,6 +30,8 @@ class AttendanceProfileComposer
 
     private const MAX_DAILY_WORK_MINUTES = 480;
 
+    private const DRIVER_MAX_DAILY_WORK_MINUTES = 540;
+
     private const TASK_HOURS_VERIFICATION = 'task_hours_verification';
 
     private const VERIFIED_STATUS = 'verified';
@@ -269,7 +271,7 @@ class AttendanceProfileComposer
             $weeklyWorkedMinutes = (clone $weeklyAttendanceQuery)
                 ->whereNotNull('clock_in')
                 ->get(['clock_in', 'clock_out', 'work_hours'])
-                ->sum(fn (Attendance $attendance): int => $this->calculateAttendanceWorkMinutes($attendance));
+                ->sum(fn (Attendance $attendance): int => $this->calculateAttendanceWorkMinutes($attendance, $authenticatedUser->employee));
             $weeklyOvertimeMinutes = $this->approvedOvertimeQueryForPeriod($employeeId, $weekStart, $weekEnd)
                 ->get(['approved_start_time', 'approved_end_time'])
                 ->sum(fn (AttendanceOvertime $overtime): int => $this->calculateOvertimeMinutes($overtime->approved_start_time, $overtime->approved_end_time));
@@ -635,23 +637,36 @@ class AttendanceProfileComposer
         return null;
     }
 
-    private function calculateAttendanceWorkMinutes(Attendance $attendance): int
+    private function calculateAttendanceWorkMinutes(Attendance $attendance, ?Employee $employee = null): int
     {
         if ($attendance->clock_in instanceof \DateTimeInterface && $attendance->clock_out instanceof \DateTimeInterface) {
             $minutes = $this->attendanceWorkDurationCalculator->netMinutesBetween(
                 Carbon::instance($attendance->clock_in),
-                Carbon::instance($attendance->clock_out)
+                Carbon::instance($attendance->clock_out),
+                $this->shouldDeductRestTime($employee)
             );
 
-            return min($minutes, self::MAX_DAILY_WORK_MINUTES);
+            return min($minutes, $this->maxDailyWorkMinutes($employee));
         }
 
         $workHours = $attendance->work_hours;
         if (is_numeric($workHours)) {
-            return min(max(0, (int) round(((float) $workHours) * 60)), self::MAX_DAILY_WORK_MINUTES);
+            return min(max(0, (int) round(((float) $workHours) * 60)), $this->maxDailyWorkMinutes($employee));
         }
 
         return 0;
+    }
+
+    private function maxDailyWorkMinutes(?Employee $employee): int
+    {
+        return $this->shouldDeductRestTime($employee)
+            ? self::MAX_DAILY_WORK_MINUTES
+            : self::DRIVER_MAX_DAILY_WORK_MINUTES;
+    }
+
+    private function shouldDeductRestTime(?Employee $employee): bool
+    {
+        return ! ($employee instanceof Employee && $employee->hasPositionName('Driver'));
     }
 
     private function approvedOvertimeQueryForPeriod(string $employeeId, Carbon $periodStart, Carbon $periodEnd): Builder

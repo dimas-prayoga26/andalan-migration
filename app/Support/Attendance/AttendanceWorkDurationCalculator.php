@@ -10,19 +10,19 @@ class AttendanceWorkDurationCalculator
 
     private const REST_DEDUCTION_THRESHOLD_MINUTES = 360;
 
-    public function netHoursBetween(Carbon $clockInTime, Carbon $clockOutTime): float
+    public function netHoursBetween(Carbon $clockInTime, Carbon $clockOutTime, bool $deductRestTime = true): float
     {
-        return round($this->netMinutesBetween($clockInTime, $clockOutTime) / 60, 2);
+        return round($this->netMinutesBetween($clockInTime, $clockOutTime, $deductRestTime) / 60, 2);
     }
 
-    public function netMinutesBetween(Carbon $clockInTime, Carbon $clockOutTime): int
+    public function netMinutesBetween(Carbon $clockInTime, Carbon $clockOutTime, bool $deductRestTime = true): int
     {
         $grossMinutes = (int) $clockInTime->diffInMinutes($clockOutTime, false);
 
-        return $this->netMinutesFromGrossMinutes($grossMinutes);
+        return $this->netMinutesFromGrossMinutes($grossMinutes, $deductRestTime);
     }
 
-    public function netMinutesBetweenTimeLabels(string $clockInValue, string $clockOutValue): ?int
+    public function netMinutesBetweenTimeLabels(string $clockInValue, string $clockOutValue, bool $deductRestTime = true): ?int
     {
         $clockInTime = $this->parseTimeLabel($clockInValue);
         $clockOutTime = $this->parseTimeLabel($clockOutValue);
@@ -34,16 +34,16 @@ class AttendanceWorkDurationCalculator
             $clockOutTime->addDay();
         }
 
-        return $this->netMinutesBetween($clockInTime, $clockOutTime);
+        return $this->netMinutesBetween($clockInTime, $clockOutTime, $deductRestTime);
     }
 
-    public function netMinutesFromGrossMinutes(int $grossMinutes): int
+    public function netMinutesFromGrossMinutes(int $grossMinutes, bool $deductRestTime = true): int
     {
         if ($grossMinutes <= 0) {
             return 0;
         }
 
-        if ($grossMinutes >= self::REST_DEDUCTION_THRESHOLD_MINUTES) {
+        if ($deductRestTime && $grossMinutes >= self::REST_DEDUCTION_THRESHOLD_MINUTES) {
             return max(0, $grossMinutes - self::REST_DEDUCTION_MINUTES);
         }
 

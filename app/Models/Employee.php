@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 class Employee extends Model
 {
@@ -99,5 +100,39 @@ class Employee extends Model
     public function telegramUser(): HasOne
     {
         return $this->hasOne(TelegramUser::class, 'employee_id', 'id');
+    }
+
+    public function hasPositionName(string $positionName): bool
+    {
+        $normalizedPositionName = strtolower(trim($positionName));
+        if ($normalizedPositionName === '') {
+            return false;
+        }
+
+        if (! $this->exists && ! $this->relationLoaded('deployment')) {
+            return false;
+        }
+
+        if (! $this->relationLoaded('deployment')) {
+            $this->loadMissing('deployment.position', 'deployment.positions');
+        } elseif ($this->deployment !== null) {
+            $this->deployment->loadMissing('position', 'positions');
+        }
+
+        $positionNames = new Collection;
+
+        if ($this->deployment?->position !== null) {
+            $positionNames->push((string) $this->deployment->position->name);
+        }
+
+        if ($this->deployment?->positions !== null) {
+            $positionNames = $positionNames->merge(
+                $this->deployment->positions->pluck('name')
+            );
+        }
+
+        return $positionNames
+            ->filter()
+            ->contains(fn (mixed $name): bool => strtolower(trim((string) $name)) === $normalizedPositionName);
     }
 }

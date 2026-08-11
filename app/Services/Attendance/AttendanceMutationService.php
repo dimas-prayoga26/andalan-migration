@@ -523,7 +523,7 @@ class AttendanceMutationService
 
     private function shouldDeductRestTime(?Employee $employee): bool
     {
-        return ! ($employee instanceof Employee && $employee->hasPositionName('Driver'));
+        return ! ($employee instanceof Employee && $employee->isExemptFromAttendanceRestDeduction());
     }
 
     public function normalizeTimeToSeconds(string $timeValue): string

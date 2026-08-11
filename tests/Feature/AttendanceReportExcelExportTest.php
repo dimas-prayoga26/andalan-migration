@@ -228,5 +228,14 @@ class AttendanceReportExcelExportTest extends TestCase
         $employee->setRelation('deployment', $deployment);
 
         $this->assertSame('9 hours', $formatWorkHoursLabel->invoke($controller, '08:00', '17:00', 9, $employee));
+
+        $employee = new Employee;
+        $executiveAssistantPosition = new Position(['name' => 'Executive Assistant']);
+        $deployment = new EmployeeDeployment;
+        $deployment->setRelation('position', $executiveAssistantPosition);
+        $deployment->setRelation('positions', new EloquentCollection([$executiveAssistantPosition]));
+        $employee->setRelation('deployment', $deployment);
+
+        $this->assertSame('9 hours', $formatWorkHoursLabel->invoke($controller, '08:00', '17:00', 9, $employee));
     }
 }

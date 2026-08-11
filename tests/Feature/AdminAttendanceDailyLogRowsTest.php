@@ -155,6 +155,36 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
         $this->assertSame('9 hours', $row['working_hours']);
     }
 
+    public function test_executive_assistant_full_day_attendance_is_presented_without_rest_deduction(): void
+    {
+        $controller = app(AttendanceRecapController::class);
+        $method = new ReflectionMethod(AttendanceRecapController::class, 'recapAttendanceRow');
+        $employee = new Employee;
+        $employee->forceFill(['id' => 'admin-executive-assistant-effective-work-hours']);
+        $employee->setRelation('profile', new EmployeeProfile(['name' => 'Executive Assistant Jam Efektif']));
+
+        $executiveAssistantPosition = new Position(['name' => 'Executive Assistant']);
+        $deployment = new EmployeeDeployment;
+        $deployment->setRelation('position', $executiveAssistantPosition);
+        $deployment->setRelation('positions', new EloquentCollection([$executiveAssistantPosition]));
+        $employee->setRelation('deployment', $deployment);
+
+        $attendance = new Attendance;
+        $attendance->forceFill([
+            'id' => 'admin-executive-assistant-attendance-effective-work-hours',
+            'clock_in' => Carbon::create(2026, 7, 7, 8, 0, 0, 'Asia/Jakarta'),
+            'clock_out' => Carbon::create(2026, 7, 7, 17, 0, 0, 'Asia/Jakarta'),
+            'late_minutes' => 0,
+            'work_hours' => 9,
+            'status' => 'Masuk',
+        ]);
+        $attendance->setRelation('employee', $employee);
+
+        $row = $method->invoke($controller, $attendance, null, null);
+
+        $this->assertSame('9 hours', $row['working_hours']);
+    }
+
     public function test_approved_overtime_minutes_are_calculated_from_approved_times_across_midnight(): void
     {
         $controller = app(AttendanceRecapController::class);

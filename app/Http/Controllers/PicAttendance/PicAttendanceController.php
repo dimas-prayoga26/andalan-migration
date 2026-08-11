@@ -951,7 +951,7 @@ class PicAttendanceController extends Controller
 
     private function shouldDeductRestTime(?Employee $employee): bool
     {
-        return ! ($employee instanceof Employee && $employee->hasPositionName('Driver'));
+        return ! ($employee instanceof Employee && $employee->isExemptFromAttendanceRestDeduction());
     }
 
     private function isLateAttendance(Attendance $attendance): bool

@@ -8,8 +8,8 @@ Aturan log:
 ## Ringkasan Harian
 
 ### 2026-08-11 (Selasa)
-- Mengubah perhitungan attendance agar posisi `Driver` tidak terkena pengurangan rest 1 jam.
-- Pengecualian ini berdasarkan posisi `Driver`, bukan berdasarkan `attendance_type = flexible`.
+- Mengubah perhitungan attendance agar posisi `Driver` dan `Executive Assistant` tidak terkena pengurangan rest 1 jam.
+- Pengecualian ini berdasarkan posisi employee, bukan berdasarkan `attendance_type = flexible`.
 - Menyamakan hasil perhitungan pada clock-out, attendance exception, recap Admin, recap PIC, Staff Attendance Report, dan profile weekly worked hours.
 - Detail: `docs/dev-log/2026-08-11-0909-driver-tanpa-pengurangan-rest-attendance.md`.
 

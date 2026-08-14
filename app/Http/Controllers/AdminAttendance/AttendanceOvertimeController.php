@@ -43,7 +43,7 @@ class AttendanceOvertimeController extends Controller
         [
             'event_key' => 'payment_disbursement',
             'title' => 'Payment Distribution',
-            'completed_statuses' => ['complete'],
+            'completed_statuses' => ['complete', 'completed', 'approved'],
         ],
     ];
 

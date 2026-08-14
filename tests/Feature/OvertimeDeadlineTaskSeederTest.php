@@ -7,12 +7,12 @@ use Tests\TestCase;
 
 class OvertimeDeadlineTaskSeederTest extends TestCase
 {
-    public function test_overtime_deadline_task_seeder_is_registered_and_creates_pending_and_completed_overtime_tasks(): void
+    public function test_overtime_deadline_task_seeder_is_available_but_not_registered_in_database_seed_flow(): void
     {
         $databaseSeeder = File::get(database_path('seeders/DatabaseSeeder.php'));
         $overtimeSeeder = File::get(database_path('seeders/OvertimeDeadlineTaskSeeder.php'));
 
-        $this->assertStringContainsString('OvertimeDeadlineTaskSeeder::class', $databaseSeeder);
+        $this->assertStringNotContainsString('OvertimeDeadlineTaskSeeder::class', $databaseSeeder);
         $this->assertStringContainsString("private const PROJECT_CODE = 'RNB-EVENT-2026';", $overtimeSeeder);
         $this->assertStringContainsString("\$now = Carbon::now('Asia/Jakarta');", $overtimeSeeder);
         $this->assertStringContainsString('$today = $now->copy()->startOfDay();', $overtimeSeeder);

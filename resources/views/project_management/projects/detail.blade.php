@@ -22,21 +22,24 @@
 
     .project-detail-card {
         border: 0;
-        border-radius: 16px;
-        box-shadow: 0 8px 24px rgba(20, 24, 40, .06);
+        border-radius: var(--bs-border-radius-xl, 1rem);
+        box-shadow: 0 5px 18px rgba(20, 24, 40, .05);
         overflow: hidden;
     }
 
     .project-detail-card .card-header {
+        align-items: flex-start;
         padding: 24px 24px 0;
     }
 
     .project-detail-card .card-body {
-        padding: 22px 24px 24px;
+        padding: 20px 16px 24px;
     }
 
     .project-detail-folder {
-        width: 34px;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
     }
 
     .project-folder-avatar {
@@ -46,14 +49,20 @@
         background: #fff;
     }
 
+    .project-card-command {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+    }
+
     .project-meta-list {
-        margin-top: 22px;
+        margin-top: 24px;
     }
 
     .project-meta-item {
-        display: grid;
-        grid-template-columns: 44% 1fr;
-        gap: 14px;
         margin-bottom: 14px;
         font-size: 13px;
     }
@@ -68,41 +77,18 @@
     }
 
     .project-summary-content {
-        display: grid;
-        grid-template-columns: 190px 1fr;
         align-items: center;
-        gap: 24px;
     }
 
-    .project-summary-ring {
-        width: 150px;
-        height: 150px;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        position: relative;
-        background: var(--project-summary-gradient);
+    .project-summary-chart {
+        min-height: 250px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .project-summary-chart .apexcharts-canvas {
         margin: 0 auto;
-    }
-
-    .project-summary-ring::before {
-        content: "";
-        position: absolute;
-        inset: 14px;
-        border-radius: 50%;
-        background: #fff;
-    }
-
-    .project-summary-ring-content {
-        position: relative;
-        text-align: center;
-    }
-
-    .project-summary-ring-content strong {
-        display: block;
-        color: #111827;
-        font-size: 28px;
-        line-height: 1;
     }
 
     .project-summary-legend {
@@ -110,10 +96,6 @@
     }
 
     .project-summary-legend-item {
-        display: grid;
-        grid-template-columns: 12px 1fr auto;
-        align-items: center;
-        gap: 10px;
         margin-bottom: 16px;
         color: #111827;
     }
@@ -166,17 +148,35 @@
     }
 
     .project-tasks-over-time-chart {
-        min-height: 260px;
+        min-height: 280px;
         position: relative;
     }
 
-    .project-tasks-over-time-chart canvas {
-        width: 100% !important;
-        height: 260px !important;
+    .project-tasks-over-time-chart .apexcharts-canvas {
+        margin: 0 auto;
+    }
+
+    .project-tasks-over-time-card .card-title {
+        white-space: nowrap;
+    }
+
+    .project-chart-series {
+        display: inline-flex;
+        align-items: center;
+        color: #7d8490;
+        font-size: 13px;
+        gap: 4px;
+    }
+
+    .project-chart-series + .project-chart-series {
+        margin-left: 14px;
     }
 
     .project-chart-filter {
-        min-width: 132px;
+        width: 142px !important;
+        min-width: 142px;
+        max-width: 142px;
+        flex: 0 0 142px;
         border-color: #e8ecf4;
         border-radius: 12px;
         color: #6b7280;
@@ -185,14 +185,14 @@
 
     .project-department-card {
         border: 0;
-        border-radius: 16px;
-        box-shadow: 0 8px 24px rgba(20, 24, 40, .06);
+        border-radius: var(--bs-border-radius-xl, 1rem);
+        box-shadow: 0 5px 18px rgba(20, 24, 40, .05);
         overflow: hidden;
     }
 
     .project-department-card .card-header {
         align-items: flex-start;
-        padding: 22px 24px 0;
+        padding: 24px 24px 0;
     }
 
     .project-department-card .card-body {
@@ -202,7 +202,7 @@
     }
 
     .project-department-task-title {
-        max-width: 245px;
+        max-width: min(245px, 46vw);
     }
 
     .project-department-progress {
@@ -210,6 +210,24 @@
         font-size: 13px;
         font-weight: 600;
         margin-bottom: 16px;
+    }
+
+    .project-department-add-task {
+        appearance: none;
+        background: transparent;
+        border: 0;
+        color: #2bc155;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.4;
+        padding: 0;
+        white-space: nowrap;
+    }
+
+    .project-department-add-task:hover,
+    .project-department-add-task:focus {
+        color: #22a447;
+        text-decoration: none;
     }
 
     .project-department-task {
@@ -228,7 +246,8 @@
         flex: 0 0 22px;
     }
 
-    .project-task-action {
+    .project-task-action,
+    .project-department-view-all {
         width: 34px;
         height: 34px;
         display: inline-flex;
@@ -237,41 +256,41 @@
         border-radius: 10px;
     }
 
+    .project-department-view-all {
+        width: auto;
+        min-width: 86px;
+        padding-inline: 16px;
+        color: #000;
+        font-weight: 600;
+    }
+
+    .project-department-view-all:disabled {
+        cursor: not-allowed;
+        opacity: .55;
+        pointer-events: none;
+    }
+
     .project-task-toggle:disabled {
         opacity: .35;
-    }
-
-    .project-department-add-task {
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 600;
-        padding: 7px 13px;
-    }
-
-    .project-department-drive {
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 600;
-        padding: 7px 16px;
     }
 
     .project-task-menu .dropdown-menu {
         min-width: 140px;
     }
 
+    .project-department-actions {
+        gap: 8px;
+    }
+
     @media (max-width: 575.98px) {
-        .project-summary-content {
-            grid-template-columns: 1fr;
-            gap: 18px;
-        }
-
-        .project-meta-item {
-            grid-template-columns: 1fr;
-            gap: 3px;
-        }
-
         .project-department-task-title {
             max-width: 170px;
+        }
+
+        .project-chart-filter {
+            width: 100% !important;
+            max-width: 180px;
+            flex-basis: 180px;
         }
     }
 </style>
@@ -295,24 +314,12 @@
     $projectDepartmentGroups = collect($projectDepartmentGroups ?? []);
     $projectTeamMembers = collect($projectDetail['team_members'] ?? []);
     $departmentPalette = ['#2445c7', '#ff8a00', '#2bc155', '#ff5b8a', '#ffb800', '#8b5cf6'];
-    $summaryTotalTasks = max(1, (int) ($projectSummary['total_tasks'] ?? 0));
-    $summaryGradientSegments = [];
-    $summaryGradientCursor = 0;
-
-    foreach ($projectDepartmentGroups as $departmentIndex => $departmentGroup) {
-        $departmentTotal = (int) ($departmentGroup['total_tasks'] ?? 0);
-        if ($departmentTotal <= 0) {
-            continue;
-        }
-
-        $summaryGradientNext = min(100, $summaryGradientCursor + (($departmentTotal / $summaryTotalTasks) * 100));
-        $summaryGradientSegments[] = $departmentPalette[$departmentIndex % count($departmentPalette)].' '.$summaryGradientCursor.'% '.$summaryGradientNext.'%';
-        $summaryGradientCursor = $summaryGradientNext;
-    }
-
-    $summaryGradient = count($summaryGradientSegments) > 0
-        ? 'conic-gradient('.implode(', ', $summaryGradientSegments).', #eef1f7 '.$summaryGradientCursor.'% 100%)'
-        : 'conic-gradient(#eef1f7 0 100%)';
+    $summaryChartLabels = $projectDepartmentGroups
+        ->map(fn ($departmentGroup): string => (string) ($departmentGroup['name'] ?? '-'))
+        ->values();
+    $summaryChartSeries = $projectDepartmentGroups
+        ->map(fn ($departmentGroup): int => (int) ($departmentGroup['total_tasks'] ?? 0))
+        ->values();
 @endphp
 
 <div class="tab-content" id="tabContentMyProfileBottom">
@@ -323,46 +330,73 @@
 
     <div class="row project-detail-overview-row mb-4">
         <div class="col-xxl-4 col-lg-6">
-            <div class="card project-detail-card h-100">
+            <div class="card project-detail-card">
                 <div class="card-header pb-0 border-0">
                     <div class="clearfix d-flex">
-                        <div class="project-folder-avatar rounded me-3 d-flex align-items-center justify-content-center">
-                            <img src="{{ asset('assets/images/files/folder.avif') }}" class="project-detail-folder" alt="">
+                        <div class="avatar avatar-sm project-folder-avatar rounded me-3 p-2 d-flex align-items-center justify-content-center">
+                            <img src="{{ $projectDetail['image_url'] ?? asset('assets/images/files/folder.avif') }}" class="project-detail-folder" alt="">
                         </div>
                         <div class="clearfix">
-                            <h4 class="mb-1 fw-semibold">{{ $projectDetail['name'] ?? '-' }}</h4>
+                            <h4 class="mb-0 fw-semibold">{{ $projectDetail['name'] ?? '-' }}</h4>
                             <span class="small">{{ $projectDetail['subtitle'] ?? '-' }}</span>
                         </div>
                     </div>
+                    <div class="clearfix ms-auto">
+                        <button type="button" class="btn btn-sm btn-light project-card-command" aria-label="Project actions"><i class="bi bi-grid"></i></button>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body px-3">
                     <div class="project-meta-list">
-                        <div class="project-meta-item">
-                            <span class="project-meta-label">Status Badge</span>
-                            <span class="project-meta-value">{{ $projectDetail['status_label'] ?? '-' }}</span>
+                        <div class="row ps-3 project-meta-item">
+                            <div class="col-md-6 col-12">
+                                <span class="d-block project-meta-label">Status Badge</span>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <span class="d-block project-meta-value text-{{ $projectDetail['status_class'] ?? 'primary' }}">{{ $projectDetail['status_label'] ?? '-' }}</span>
+                            </div>
                         </div>
-                        <div class="project-meta-item">
-                            <span class="project-meta-label">Client Name</span>
-                            <span class="project-meta-value">{{ $projectDetail['client_name'] ?? '-' }}</span>
+                        <div class="row ps-3 project-meta-item">
+                            <div class="col-md-6 col-12">
+                                <span class="d-block project-meta-label">Client Name</span>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <span class="d-block project-meta-value">{{ $projectDetail['client_name'] ?? '-' }}</span>
+                            </div>
                         </div>
-                        <div class="project-meta-item">
-                            <span class="project-meta-label">Live Event Dates</span>
-                            <span class="project-meta-value">{{ $projectDetail['live_event_date_label'] ?? '-' }} ({{ $projectDetail['live_event_duration_label'] ?? '-' }})</span>
+                        <div class="row ps-3 project-meta-item">
+                            <div class="col-md-6 col-12">
+                                <span class="d-block project-meta-label">Live Event Dates</span>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <span class="d-block project-meta-value">{{ $projectDetail['live_event_date_label'] ?? '-' }} ({{ $projectDetail['live_event_duration_label'] ?? '-' }})</span>
+                            </div>
                         </div>
-                        <div class="project-meta-item">
-                            <span class="project-meta-label">Project Lifecycle</span>
-                            <span class="project-meta-value">{{ $projectDetail['date_label'] ?? '-' }} ({{ $projectDetail['duration_label'] ?? '-' }})</span>
+                        <div class="row ps-3 project-meta-item">
+                            <div class="col-md-6 col-12">
+                                <span class="d-block project-meta-label">Project Lifecycle</span>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <span class="d-block project-meta-value">{{ $projectDetail['date_label'] ?? '-' }} ({{ $projectDetail['duration_label'] ?? '-' }})</span>
+                            </div>
                         </div>
-                        <div class="project-meta-item">
-                            <span class="project-meta-label">Event Lead / PIC</span>
-                            <span class="project-meta-value">{{ $projectDetail['pic_label'] ?? '-' }}</span>
+                        <div class="row ps-3 project-meta-item">
+                            <div class="col-md-6 col-12">
+                                <span class="d-block project-meta-label">Event Lead / PIC</span>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <span class="d-block project-meta-value">{{ $projectDetail['pic_label'] ?? '-' }}</span>
+                            </div>
                         </div>
-                        <div class="project-meta-item">
-                            <span class="project-meta-label">Core Team</span>
-                            <span class="project-meta-value">{{ $projectDetail['team_count'] ?? 0 }} Staff</span>
+                        <div class="row ps-3 project-meta-item">
+                            <div class="col-md-6 col-12">
+                                <span class="d-block project-meta-label">Core Team</span>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <span class="d-block project-meta-value">{{ $projectDetail['team_count'] ?? 0 }} Staff</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="clearfix mt-3">
+                    <div class="clearfix mt-3 ms-3">
                         <h6 class="mb-1 fw-semibold">Team</h6>
                         <div class="project-team-stack">
                             @forelse ($projectTeamMembers->take(6) as $teamMember)
@@ -387,27 +421,31 @@
         </div>
 
         <div class="col-xxl-4 col-xl-6">
-            <div class="card project-detail-card h-100">
+            <div class="card project-detail-card">
                 <div class="card-header pb-0 border-0">
                     <div class="clearfix">
                         <h4 class="card-title mb-0">Tasks Summary</h4>
                         <small class="d-block">{{ $projectSummary['overdue_tasks'] ?? 0 }} Overdue Tasks</small>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="project-summary-content">
-                        <div class="project-summary-ring" style="--project-summary-gradient: {{ $summaryGradient }};">
-                            <div class="project-summary-ring-content">
-                                <strong>{{ $projectSummary['total_tasks'] ?? 0 }}</strong>
-                                <span class="fs-13">Total</span>
-                            </div>
+                <div class="card-body pb-0">
+                    <div class="row project-summary-content">
+                        <div class="col-sm-6 mb-3">
+                            <div
+                                id="projectTasksSummaryChart"
+                                class="project-summary-chart"
+                                data-chart-labels='@json($summaryChartLabels)'
+                                data-chart-series='@json($summaryChartSeries)'
+                                data-chart-total="{{ (int) ($projectSummary['total_tasks'] ?? 0) }}"></div>
                         </div>
 
-                        <div class="project-summary-legend">
+                        <div class="col-sm-6 mb-3 project-summary-legend">
                             @forelse ($projectDepartmentGroups as $departmentGroup)
-                                <div class="project-summary-legend-item">
-                                    <span class="project-summary-legend-color" style="background: {{ $departmentPalette[$loop->index % count($departmentPalette)] }};"></span>
-                                    <span>{{ $departmentGroup['name'] }}</span>
+                                <div class="d-flex justify-content-between project-summary-legend-item">
+                                    <div class="text-black">
+                                        <span class="project-summary-legend-color d-inline-block me-1" style="background: {{ $departmentPalette[$loop->index % count($departmentPalette)] }};"></span>
+                                        {{ $departmentGroup['name'] }}
+                                    </div>
                                     <span>{{ $departmentGroup['total_tasks'] }}</span>
                                 </div>
                             @empty
@@ -425,26 +463,36 @@
         </div>
 
         <div class="col-xxl-4 col-xl-6">
-            <div class="card project-detail-card h-100">
+            <div class="card project-detail-card project-tasks-over-time-card" id="user-activity">
                 <div class="card-header pb-0 border-0 d-flex justify-content-between align-items-start">
                     <div class="clearfix">
                         <h4 class="card-title mb-0">Tasks Over Time</h4>
-                        <div class="d-flex align-items-center gap-3 fs-13">
-                            <span><i class="fa fa-minus text-danger me-1"></i>Incomplete</span>
-                            <span><i class="fa fa-minus text-primary me-1"></i>Complete</span>
+                        <div class="clearfix d-flex">
+                            <span class="project-chart-series">
+                                <svg width="8" height="3" viewBox="0 0 8 3" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                    <rect width="8" height="3" rx="1.5" fill="#ff5b8a"></rect>
+                                </svg>
+                                Incomplete
+                            </span>
+                            <span class="project-chart-series">
+                                <svg width="8" height="3" viewBox="0 0 8 3" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                    <rect width="8" height="3" rx="1.5" fill="#2445c7"></rect>
+                                </svg>
+                                Complete
+                            </span>
                         </div>
                     </div>
                     <select class="form-select project-chart-filter" aria-label="Tasks over time period">
                         <option selected>{{ $projectTaskTimeline['month_label'] ?? '-' }}</option>
                     </select>
                 </div>
-                <div class="card-body">
+                <div class="card-body ps-0 pt-2 pe-1 pb-1">
                     <div class="project-tasks-over-time-chart">
-                        <canvas
+                        <div
                             id="projectTasksOverTimeChart"
                             data-chart-labels='@json($projectTaskTimeline['labels'] ?? [])'
                             data-completed-series='@json($projectTaskTimeline['completed'] ?? [])'
-                            data-incomplete-series='@json($projectTaskTimeline['incomplete'] ?? [])'></canvas>
+                            data-incomplete-series='@json($projectTaskTimeline['incomplete'] ?? [])'></div>
                     </div>
                 </div>
             </div>
@@ -460,28 +508,22 @@
                             <h4 class="card-title mb-0">{{ $departmentGroup['name'] }}</h4>
                             <small class="d-block">{{ $departmentGroup['total_tasks'] }} task from this project</small>
                         </div>
-                        <div class="clearfix text-end">
-                            @if ($departmentGroup['is_own_department'])
-                                <div class="d-flex align-items-center justify-content-end gap-2 flex-wrap">
-                                    <button type="button" class="btn btn-light project-department-drive">Drive</button>
-                                    <button
-                                        type="button"
-                                        class="btn btn-success light project-department-add-task js-project-task-create"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#projectTaskFormModal"
-                                        data-store-url="{{ $departmentGroup['store_url'] }}"
-                                        data-department-name="{{ $departmentGroup['name'] }}">
-                                        + Add Task
-                                    </button>
-                                </div>
+                        <div class="clearfix text-end d-flex align-items-center justify-content-end project-department-actions">
+                            @if ($departmentGroup['can_manage_drive'] ?? false)
+                                <button type="button" class="btn btn-sm btn-light project-department-view-all js-project-department-drive" data-bs-toggle="modal" data-bs-target="#projectDepartmentDriveModal" data-update-url="{{ $departmentGroup['drive_update_url'] }}" data-department-name="{{ $departmentGroup['name'] }}" data-google-drive-url="{{ $departmentGroup['google_drive_url'] }}">{{ empty($departmentGroup['google_drive_url']) ? 'Add Drive' : 'Drive' }}</button>
+                            @elseif (! empty($departmentGroup['google_drive_url']))
+                                <a href="{{ $departmentGroup['google_drive_url'] }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-light project-department-view-all">Drive</a>
                             @else
-                                <span class="badge badge-sm badge-light">View Only</span>
+                                <button type="button" class="btn btn-sm btn-light project-department-view-all" disabled>Add Drive</button>
                             @endif
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="project-department-progress">
+                        <div class="project-department-progress d-flex align-items-center justify-content-between">
                             <span class="text-gray fw-semibold">{{ $departmentGroup['completed_tasks'] }} / {{ $departmentGroup['total_tasks'] }} Completed <span class="text-success">({{ $departmentGroup['completion_rate'] }}%)</span></span>
+                            @if ($departmentGroup['can_create_task'] ?? false)
+                                <button type="button" class="project-department-add-task js-project-task-create" data-bs-toggle="modal" data-bs-target="#projectTaskFormModal" data-store-url="{{ $departmentGroup['store_url'] }}" data-department-id="{{ $departmentGroup['id'] }}" data-department-name="{{ $departmentGroup['name'] }}" data-assignee-options='@json($departmentGroup['task_assignee_options'] ?? [])'>+ Add Task</button>
+                            @endif
                         </div>
                         @forelse ($departmentGroup['tasks'] as $task)
                             <div class="d-flex align-items-center project-department-task py-2" data-project-task-row="{{ $task['id'] }}">
@@ -539,6 +581,7 @@
             <form id="projectTaskForm" method="POST">
                 @csrf
                 <input type="hidden" name="_method" id="projectTaskFormMethod" value="POST">
+                <input type="hidden" name="department_id" id="projectTaskDepartmentId">
                 <div class="modal-header">
                     <div>
                         <h5 class="modal-title mb-0" id="projectTaskFormTitle">Create New Task</h5>
@@ -598,6 +641,10 @@
                             <label for="projectTaskProjectName" class="form-label">Project Name</label>
                             <input type="text" class="form-control" id="projectTaskProjectName" value="{{ $projectDetail['name'] ?? '-' }}" disabled>
                         </div>
+                        <div class="col-12">
+                            <label for="projectTaskAssignee" class="form-label">Assignee <span class="required text-danger">*</span></label>
+                            <select class="form-control default-select" id="projectTaskAssignee" name="assigned_employee_id" required></select>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -627,6 +674,29 @@
     </div>
 </div>
 
+<div class="modal fade" id="projectDepartmentDriveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="projectDepartmentDriveForm" method="POST">
+                @csrf
+                <input type="hidden" name="_method" value="PATCH">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="projectDepartmentDriveTitle">Google Drive Department</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="projectDepartmentDriveUrl" class="form-label">Google Drive URL</label>
+                    <input type="url" class="form-control" id="projectDepartmentDriveUrl" name="google_drive_url" maxlength="2048" placeholder="https://drive.google.com/drive/folders/...">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="projectDepartmentDriveSubmit">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('script')
@@ -634,10 +704,10 @@
 @php
     $dashboardJsPath = public_path('assets/js/dashboard.js');
     $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
-    $chartJsPath = public_path('assets/vendor/chart-js/chart.bundle.min.js');
-    $chartJsVersion = file_exists($chartJsPath) ? filemtime($chartJsPath) : time();
+    $apexChartsPath = public_path('assets/vendor/apexcharts/dist/apexcharts.min.js');
+    $apexChartsVersion = file_exists($apexChartsPath) ? filemtime($apexChartsPath) : time();
 @endphp
-<script src="{{ asset('assets/vendor/chart-js/chart.bundle.min.js') }}?v={{ $chartJsVersion }}"></script>
+<script src="{{ asset('assets/vendor/apexcharts/dist/apexcharts.min.js') }}?v={{ $apexChartsVersion }}"></script>
 <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
@@ -722,10 +792,16 @@
         };
         var resetProjectTaskForm = function (button) {
             var currentDate = todayDate();
+            var assigneeOptions = parseJsonAttribute($(button).attr('data-assignee-options'), []);
 
             $('#projectTaskFormTitle').text('Create New Task');
             $('#projectTaskForm').attr('action', $(button).attr('data-store-url') || '');
             $('#projectTaskFormMethod').val('POST');
+            $('#projectTaskDepartmentId').val($(button).attr('data-department-id') || '');
+            $('#projectTaskAssignee').empty();
+            assigneeOptions.forEach(function (assignee) {
+                $('#projectTaskAssignee').append(new Option(assignee.name || assignee.id || 'Staff', assignee.id || ''));
+            });
             $('#projectTaskTitle').val('');
             $('#projectTaskDescription').val('');
             $('#projectTaskBlockers').val('');
@@ -734,6 +810,7 @@
             $('#projectTaskStatus').val('pending');
             $('#projectTaskStartDate').val(currentDate);
             $('#projectTaskDueDate').val(currentDate);
+            refreshProjectTaskFormSelects();
         };
         var fillProjectTaskForm = function (button) {
             var task = parseJsonAttribute($(button).attr('data-task'), {});
@@ -741,6 +818,8 @@
             $('#projectTaskFormTitle').text('Update Task');
             $('#projectTaskForm').attr('action', task.update_url || '');
             $('#projectTaskFormMethod').val('PUT');
+            $('#projectTaskDepartmentId').val('');
+            $('#projectTaskAssignee').empty().append(new Option(task.assignee_label || 'Staff', task.employee_id || ''));
             $('#projectTaskTitle').val(task.title || '');
             $('#projectTaskDescription').val(task.description || '');
             $('#projectTaskBlockers').val(task.blockers || '');
@@ -749,6 +828,14 @@
             $('#projectTaskStatus').val(task.status || 'pending');
             $('#projectTaskStartDate').val(task.start_date || todayDate());
             $('#projectTaskDueDate').val(task.due_date || todayDate());
+            refreshProjectTaskFormSelects();
+        };
+        var refreshProjectTaskFormSelects = function () {
+            if (! $.fn.selectpicker) {
+                return;
+            }
+
+            $('#projectTaskPriority, #projectTaskStatus, #projectTaskAssignee').selectpicker('refresh');
         };
         var handleProjectTaskAjaxError = function (xhr) {
             var errors = xhr.responseJSON?.errors || {};
@@ -760,82 +847,233 @@
                 text: firstError || xhr.responseJSON?.message || 'Gagal memproses task project.',
             });
         };
-        var tasksOverTimeCanvas = document.getElementById('projectTasksOverTimeChart');
+        var renderProjectTasksSummaryChart = function () {
+            var summaryChartElement = document.getElementById('projectTasksSummaryChart');
 
-        if (tasksOverTimeCanvas && typeof Chart !== 'undefined') {
-            var tasksOverTimeContext = tasksOverTimeCanvas.getContext('2d');
-            var completedGradient = tasksOverTimeContext.createLinearGradient(0, 0, 0, 260);
-            completedGradient.addColorStop(0, 'rgba(36, 69, 199, .24)');
-            completedGradient.addColorStop(1, 'rgba(36, 69, 199, 0)');
-            var incompleteGradient = tasksOverTimeContext.createLinearGradient(0, 0, 0, 260);
-            incompleteGradient.addColorStop(0, 'rgba(255, 91, 138, .26)');
-            incompleteGradient.addColorStop(1, 'rgba(255, 91, 138, 0)');
+            if (! summaryChartElement || typeof ApexCharts === 'undefined') {
+                return;
+            }
 
-            new Chart(tasksOverTimeContext, {
-                type: 'line',
-                data: {
-                    labels: parseProjectChartData(tasksOverTimeCanvas.getAttribute('data-chart-labels')),
-                    datasets: [
-                        {
-                            label: 'Incomplete',
-                            data: parseProjectChartData(tasksOverTimeCanvas.getAttribute('data-incomplete-series')),
-                            borderColor: '#ff5b8a',
-                            backgroundColor: incompleteGradient,
-                            borderWidth: 3,
-                            fill: true,
-                            pointRadius: 0,
-                            tension: .45,
-                        },
-                        {
-                            label: 'Complete',
-                            data: parseProjectChartData(tasksOverTimeCanvas.getAttribute('data-completed-series')),
-                            borderColor: '#2445c7',
-                            backgroundColor: completedGradient,
-                            borderWidth: 3,
-                            fill: true,
-                            pointRadius: 0,
-                            tension: .45,
-                        },
-                    ],
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false,
-                        },
+            var summarySeries = parseProjectChartData(summaryChartElement.getAttribute('data-chart-series'));
+            var summaryLabels = parseProjectChartData(summaryChartElement.getAttribute('data-chart-labels'));
+            var summaryTotal = Number(summaryChartElement.getAttribute('data-chart-total') || 0);
+
+            new ApexCharts(summaryChartElement, {
+                series: summarySeries,
+                chart: {
+                    type: 'donut',
+                    width: 250,
+                    toolbar: {
+                        show: false,
                     },
-                    scales: {
-                        x: {
-                            grid: {
-                                display: false,
-                            },
-                            ticks: {
-                                color: '#6b7280',
-                                font: {
-                                    size: 11,
+                },
+                labels: summaryLabels,
+                colors: ['#2445c7', '#ff8a00', '#2bc155', '#ff5b8a', '#ffb800', '#8b5cf6'],
+                dataLabels: {
+                    enabled: false,
+                },
+                legend: {
+                    show: false,
+                },
+                stroke: {
+                    width: 3,
+                    colors: ['#fff'],
+                },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '90%',
+                            labels: {
+                                show: true,
+                                name: {
+                                    show: true,
+                                    offsetY: 20,
                                 },
-                            },
-                        },
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(148, 163, 184, .18)',
-                                borderDash: [4, 4],
-                            },
-                            ticks: {
-                                precision: 0,
-                                color: '#6b7280',
-                                font: {
-                                    size: 11,
+                                value: {
+                                    show: true,
+                                    color: '#111827',
+                                    fontSize: '24px',
+                                    fontWeight: 600,
+                                    offsetY: -16,
+                                    formatter: function () {
+                                        return summaryTotal;
+                                    },
+                                },
+                                total: {
+                                    show: true,
+                                    showAlways: true,
+                                    label: 'Total',
+                                    color: '#6b7280',
+                                    fontSize: '13px',
+                                    fontWeight: 500,
+                                    formatter: function () {
+                                        return summaryTotal;
+                                    },
                                 },
                             },
                         },
                     },
                 },
-            });
-        }
+            }).render();
+        };
+        var renderProjectTasksOverTimeChart = function () {
+            var tasksOverTimeElement = document.getElementById('projectTasksOverTimeChart');
+
+            if (! tasksOverTimeElement || typeof ApexCharts === 'undefined') {
+                return;
+            }
+
+            var chartLabels = parseProjectChartData(tasksOverTimeElement.getAttribute('data-chart-labels'));
+            var incompleteSeries = parseProjectChartData(tasksOverTimeElement.getAttribute('data-incomplete-series'));
+            var completedSeries = parseProjectChartData(tasksOverTimeElement.getAttribute('data-completed-series'));
+            var highestValue = Math.max(0, ...incompleteSeries, ...completedSeries);
+            var shouldUseTemplateScale = highestValue > 0 && highestValue < 30;
+            var normalizeSeriesForTemplateScale = function (series, minValue, maxValue) {
+                var seriesMax = Math.max(0, ...series);
+
+                if (! shouldUseTemplateScale || seriesMax <= 0) {
+                    return series;
+                }
+
+                return series.map(function (value) {
+                    return Math.round(minValue + ((value / seriesMax) * (maxValue - minValue)));
+                });
+            };
+            var displayedIncompleteSeries = normalizeSeriesForTemplateScale(incompleteSeries, 90, 120);
+            var displayedCompletedSeries = normalizeSeriesForTemplateScale(completedSeries, 50, 75);
+            var yAxisMax = shouldUseTemplateScale ? 120 : Math.max(4, Math.ceil(highestValue / 4) * 4);
+            var tooltipSource = {
+                Incomplete: incompleteSeries,
+                Complete: completedSeries,
+            };
+
+            new ApexCharts(tasksOverTimeElement, {
+                series: [
+                    {
+                        name: 'Incomplete',
+                        data: displayedIncompleteSeries,
+                    },
+                    {
+                        name: 'Complete',
+                        data: displayedCompletedSeries,
+                    },
+                ],
+                chart: {
+                    height: 280,
+                    type: 'area',
+                    toolbar: {
+                        show: false,
+                    },
+                    zoom: {
+                        enabled: false,
+                    },
+                },
+                colors: ['#ff5b8a', '#2445c7'],
+                dataLabels: {
+                    enabled: false,
+                },
+                stroke: {
+                    curve: 'smooth',
+                    width: 3,
+                },
+                legend: {
+                    show: false,
+                },
+                grid: {
+                    show: true,
+                    strokeDashArray: 3,
+                    borderColor: 'rgba(148, 163, 184, .28)',
+                },
+                yaxis: {
+                    min: 0,
+                    max: yAxisMax,
+                    tickAmount: 4,
+                    labels: {
+                        style: {
+                            colors: '#6b7280',
+                            fontSize: '12px',
+                        },
+                        formatter: function (value) {
+                            return Math.round(value);
+                        },
+                    },
+                },
+                xaxis: {
+                    categories: chartLabels,
+                    labels: {
+                        style: {
+                            colors: '#6b7280',
+                            fontSize: '12px',
+                        },
+                    },
+                    axisTicks: {
+                        show: false,
+                    },
+                    axisBorder: {
+                        show: false,
+                    },
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 0,
+                        inverseColors: false,
+                        colorStops: [
+                            [
+                                {
+                                    offset: 0,
+                                    color: '#ff5b8a',
+                                    opacity: .24,
+                                },
+                                {
+                                    offset: 55,
+                                    color: '#ff5b8a',
+                                    opacity: .14,
+                                },
+                                {
+                                    offset: 100,
+                                    color: '#ff5b8a',
+                                    opacity: .04,
+                                },
+                            ],
+                            [
+                                {
+                                    offset: 0,
+                                    color: '#2445c7',
+                                    opacity: .24,
+                                },
+                                {
+                                    offset: 55,
+                                    color: '#2445c7',
+                                    opacity: .14,
+                                },
+                                {
+                                    offset: 100,
+                                    color: '#2445c7',
+                                    opacity: .04,
+                                },
+                            ],
+                        ],
+                    },
+                },
+                markers: {
+                    size: 0,
+                },
+                tooltip: {
+                    y: {
+                        formatter: function (value, options) {
+                            var seriesName = options.w.config.series[options.seriesIndex].name;
+                            var originalValue = tooltipSource[seriesName]?.[options.dataPointIndex] ?? value;
+
+                            return originalValue + ' Tasks';
+                        },
+                    },
+                },
+            }).render();
+        };
+
+        renderProjectTasksSummaryChart();
+        renderProjectTasksOverTimeChart();
 
         $(document).on('click', '.js-project-task-create', function () {
             resetProjectTaskForm(this);
@@ -859,6 +1097,58 @@
 
         $(document).on('click', '.js-project-task-delete', function () {
             projectTaskDeleteUrl = $(this).attr('data-delete-url') || '';
+        });
+
+        $(document).on('click', '.js-project-department-drive', function () {
+            var currentDriveUrl = $(this).attr('data-google-drive-url') || '';
+
+            $('#projectDepartmentDriveTitle').text((currentDriveUrl ? 'Update ' : 'Add ') + ($(this).attr('data-department-name') || 'Google Drive Department') + ' Drive');
+            $('#projectDepartmentDriveForm').attr('action', $(this).attr('data-update-url') || '');
+            $('#projectDepartmentDriveUrl').val(currentDriveUrl);
+        });
+
+        $('#projectDepartmentDriveForm').on('submit', function (event) {
+            event.preventDefault();
+
+            var form = $(this);
+            var submitButton = $('#projectDepartmentDriveSubmit');
+
+            $.ajax({
+                url: form.attr('action'),
+                type: 'POST',
+                data: form.serialize(),
+                headers: {
+                    'X-CSRF-TOKEN': @json(csrf_token()),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                beforeSend: function () {
+                    submitButton.prop('disabled', true).text('Menyimpan...');
+                },
+                success: function (response) {
+                    if (response.success === true || response.status === true) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.message,
+                            timer: 1100,
+                            showConfirmButton: false,
+                        }).then(function () {
+                            hideModal('#projectDepartmentDriveModal');
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Gagal',
+                            text: response.message,
+                        });
+                    }
+                },
+                error: handleProjectTaskAjaxError,
+                complete: function () {
+                    submitButton.prop('disabled', false).text('Save changes');
+                },
+            });
         });
 
         $('#projectTaskForm').on('submit', function (event) {

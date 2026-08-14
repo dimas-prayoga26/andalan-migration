@@ -22,6 +22,15 @@ class OvertimeReviewTableBuilder
     /**
      * @var array<int, string>
      */
+    private const COMPLETED_PAYMENT_DISTRIBUTION_STATUSES = [
+        self::COMPLETE,
+        'completed',
+        'approved',
+    ];
+
+    /**
+     * @var array<int, string>
+     */
     private const COMPLETED_LIFECYCLE_STATUSES = [
         'approved',
         'calculated_locked',
@@ -90,7 +99,7 @@ class OvertimeReviewTableBuilder
                 'monthOptions' => $this->monthOptions(),
                 'yearOptions' => $this->yearOptions($selectedYear),
                 'pendingRows' => $this->rowsForAdminPendingLifecycleRange(clone $baseQuery, $context),
-                'approvedRows' => $this->rowsForLifecycleStatus(clone $baseQuery, self::PAYMENT_DISTRIBUTION, self::COMPLETE, $context),
+                'approvedRows' => $this->rowsForAdminCompletedPaymentDisbursement(clone $baseQuery, $context),
             ];
         }
 
@@ -202,6 +211,15 @@ class OvertimeReviewTableBuilder
      */
     private function rowsForLifecycleStatus(Builder $query, string $eventKey, string $status, string $context): Collection
     {
+        return $this->rowsForLifecycleStatuses($query, $eventKey, [$status], $context);
+    }
+
+    /**
+     * @param  array<int, string>  $statuses
+     * @return Collection<int, array<string, string>>
+     */
+    private function rowsForLifecycleStatuses(Builder $query, string $eventKey, array $statuses, string $context): Collection
+    {
         /** @var Collection<int, AttendanceOvertime> $overtimes */
         $overtimes = $query->get([
             'id',
@@ -216,8 +234,14 @@ class OvertimeReviewTableBuilder
             'status',
         ]);
 
+        $normalizedStatuses = collect($statuses)
+            ->map(fn (string $status): string => strtolower(trim($status)))
+            ->filter()
+            ->values()
+            ->all();
+
         return $overtimes
-            ->filter(fn (AttendanceOvertime $overtime): bool => $this->lifecycleStatus($overtime, $eventKey) === $status)
+            ->filter(fn (AttendanceOvertime $overtime): bool => in_array($this->lifecycleStatus($overtime, $eventKey), $normalizedStatuses, true))
             ->values()
             ->map(fn (AttendanceOvertime $overtime): array => $this->rowFor($overtime, $context));
     }
@@ -250,6 +274,31 @@ class OvertimeReviewTableBuilder
     /**
      * @return Collection<int, array<string, string>>
      */
+    private function rowsForAdminCompletedPaymentDisbursement(Builder $query, string $context): Collection
+    {
+        /** @var Collection<int, AttendanceOvertime> $overtimes */
+        $overtimes = $query->get([
+            'id',
+            'employee_id',
+            'assigned_by',
+            'record_number',
+            'overtime_date',
+            'actual_start_time',
+            'actual_end_time',
+            'approved_start_time',
+            'approved_end_time',
+            'status',
+        ]);
+
+        return $overtimes
+            ->filter(fn (AttendanceOvertime $overtime): bool => $this->isAdminCompletedPaymentDisbursement($overtime))
+            ->values()
+            ->map(fn (AttendanceOvertime $overtime): array => $this->rowFor($overtime, $context));
+    }
+
+    /**
+     * @return Collection<int, array<string, string>>
+     */
     private function rowsForPicApprovedLifecycle(Builder $query, string $context): Collection
     {
         /** @var Collection<int, AttendanceOvertime> $overtimes */
@@ -275,7 +324,12 @@ class OvertimeReviewTableBuilder
     private function isAdminPendingLifecycleRange(AttendanceOvertime $overtime): bool
     {
         return $this->hasStartedAdminLifecycleRange($overtime)
-            && $this->lifecycleStatus($overtime, self::PAYMENT_DISTRIBUTION) !== self::COMPLETE;
+            && ! in_array($this->lifecycleStatus($overtime, self::PAYMENT_DISTRIBUTION), self::COMPLETED_PAYMENT_DISTRIBUTION_STATUSES, true);
+    }
+
+    private function isAdminCompletedPaymentDisbursement(AttendanceOvertime $overtime): bool
+    {
+        return in_array($this->lifecycleStatus($overtime, self::PAYMENT_DISTRIBUTION), self::COMPLETED_PAYMENT_DISTRIBUTION_STATUSES, true);
     }
 
     private function isPicApprovedLifecycle(AttendanceOvertime $overtime): bool

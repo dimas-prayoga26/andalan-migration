@@ -33,10 +33,17 @@
                 <h4 class="card-title mb-1">{{ $isEdit ? 'Update Employee' : 'Add Employee' }}</h4>
                 <p class="mb-0 text-muted fs-13">Complete the user, profile, identity, deployment, and PIC data.</p>
             </div>
-            <div class="form-check form-switch">
-                <input type="hidden" name="is_active" value="0">
-                <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" @checked(old('is_active', $employee?->user?->is_active ?? true))>
-                <label class="form-check-label fw-semibold" for="is_active">Employee Status</label>
+            <div class="d-flex align-items-center gap-4 flex-wrap">
+                <div class="form-check form-switch mb-0">
+                    <input type="hidden" name="is_active" value="0">
+                    <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" @checked(old('is_active', $employee?->user?->is_active ?? true))>
+                    <label class="form-check-label fw-semibold" for="is_active">Employee Status</label>
+                </div>
+                <div class="form-check form-switch mb-0">
+                    <input type="hidden" name="is_event_project_admin" value="0">
+                    <input class="form-check-input" type="checkbox" role="switch" id="is_event_project_admin" name="is_event_project_admin" value="1" @checked(old('is_event_project_admin', $employee?->is_event_project_admin ?? false))>
+                    <label class="form-check-label fw-semibold" for="is_event_project_admin">Event Project Admin</label>
+                </div>
             </div>
         </div>
 

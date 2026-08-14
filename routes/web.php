@@ -11,6 +11,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceOvertimeController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceTaskController;
+use App\Http\Controllers\EmployeeDataController;
 use App\Http\Controllers\PicAttendance\PicAttendanceController;
 use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
@@ -65,8 +66,12 @@ Route::middleware('auth')->group(function (): void {
         Route::patch('/project-management/task-list/tasks/{projectTask}/complete', [ProjectManagementTaskListController::class, 'completeTask'])->name('project_management.task_list.tasks.complete');
         Route::delete('/project-management/task-list/tasks/{projectTask}', [ProjectManagementTaskListController::class, 'destroyTask'])->name('project_management.task_list.tasks.destroy');
         Route::get('/project-management/projects', [ProjectManagementProjectController::class, 'index'])->name('project_management.projects');
+        Route::post('/project-management/projects', [ProjectManagementProjectController::class, 'storeProject'])->name('project_management.projects.store');
+        Route::put('/project-management/projects/{project}', [ProjectManagementProjectController::class, 'updateProject'])->name('project_management.projects.update');
+        Route::delete('/project-management/projects/{project}', [ProjectManagementProjectController::class, 'destroyProject'])->name('project_management.projects.destroy');
         Route::get('/project-management/projects/detail', [ProjectManagementProjectController::class, 'detailFallback'])->name('project_management.projects.detail.fallback');
         Route::get('/project-management/projects/{project}', [ProjectManagementProjectController::class, 'detail'])->name('project_management.projects.detail');
+        Route::patch('/project-management/projects/{project}/departments/{department}/google-drive', [ProjectManagementProjectController::class, 'updateDepartmentGoogleDrive'])->name('project_management.projects.departments.google-drive.update');
         Route::post('/project-management/projects/{project}/tasks', [ProjectManagementProjectController::class, 'storeTask'])->name('project_management.projects.tasks.store');
         Route::put('/project-management/projects/{project}/tasks/{projectTask}', [ProjectManagementProjectController::class, 'updateTask'])->name('project_management.projects.tasks.update');
         Route::patch('/project-management/projects/{project}/tasks/{projectTask}/toggle', [ProjectManagementProjectController::class, 'toggleTask'])->name('project_management.projects.tasks.toggle');
@@ -86,9 +91,8 @@ Route::middleware('auth')->group(function (): void {
 
     // Employee
     Route::middleware('position.permission:view-organization,view-employee-database')->group(function (): void {
-        Route::get('/employee-data', function () {
-            return view('employee_data.index');
-        })->name('employee_data');
+        Route::get('/employee-data', [EmployeeDataController::class, 'index'])->name('employee_data');
+        Route::patch('/employee-data/{employee}/event-project-admin', [EmployeeDataController::class, 'updateEventProjectAdmin'])->name('employee_data.event-project-admin.update');
         Route::get('/employee-data/authorize', function () {
             return view('employee_data.authorization');
         })->name('employee_data.authorization');

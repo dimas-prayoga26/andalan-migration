@@ -466,7 +466,7 @@
             <div class="card project-detail-card project-tasks-over-time-card" id="user-activity">
                 <div class="card-header pb-0 border-0 d-flex justify-content-between align-items-start">
                     <div class="clearfix">
-                        <h4 class="card-title mb-0">Tasks Over Time</h4>
+                        <h4 class="card-title mb-0">Tasks</h4>
                         <div class="clearfix d-flex">
                             <span class="project-chart-series">
                                 <svg width="8" height="3" viewBox="0 0 8 3" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

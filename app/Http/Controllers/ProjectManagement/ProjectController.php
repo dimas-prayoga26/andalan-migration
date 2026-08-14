@@ -64,11 +64,10 @@ class ProjectController extends Controller
         }
 
         $validated = $this->validateProjectPayload($request);
-        $staffEmployeeIds = collect($validated['staff_employee_ids'])
-            ->map(fn (mixed $employeeId): string => trim((string) $employeeId))
-            ->filter()
-            ->unique()
-            ->values();
+        $staffEmployeeIds = $this->projectStaffEmployeeIdsWithPic(
+            collect($validated['staff_employee_ids']),
+            $employeeId,
+        );
         $projectImagePath = $this->storeProjectImageFile($request);
 
         try {
@@ -126,11 +125,10 @@ class ProjectController extends Controller
         }
 
         $validated = $this->validateProjectPayload($request);
-        $staffEmployeeIds = collect($validated['staff_employee_ids'])
-            ->map(fn (mixed $employeeId): string => trim((string) $employeeId))
-            ->filter()
-            ->unique()
-            ->values();
+        $staffEmployeeIds = $this->projectStaffEmployeeIdsWithPic(
+            collect($validated['staff_employee_ids']),
+            $this->projectCreatorEmployeeId($project),
+        );
         $projectImagePath = $this->storeProjectImageFile($request);
         $previousProjectImagePath = $this->nullableStringValue($project->image_path);
 
@@ -649,6 +647,37 @@ class ProjectController extends Controller
                     ],
                 );
             });
+    }
+
+    /**
+     * @param  Collection<int, mixed>  $staffEmployeeIds
+     * @return Collection<int, string>
+     */
+    private function projectStaffEmployeeIdsWithPic(Collection $staffEmployeeIds, ?string $picEmployeeId): Collection
+    {
+        $normalizedPicEmployeeId = $this->nullableStringValue($picEmployeeId);
+
+        return $staffEmployeeIds
+            ->when($normalizedPicEmployeeId !== null, fn (Collection $employeeIds): Collection => $employeeIds->push($normalizedPicEmployeeId))
+            ->map(fn (mixed $employeeId): string => trim((string) $employeeId))
+            ->filter()
+            ->unique()
+            ->values();
+    }
+
+    private function projectCreatorEmployeeId(Project $project): ?string
+    {
+        $creatorUserId = $this->nullableStringValue($project->created_by);
+
+        if ($creatorUserId === null) {
+            return null;
+        }
+
+        $creatorEmployeeId = Employee::query()
+            ->where('user_id', $creatorUserId)
+            ->value('id');
+
+        return $this->nullableStringValue($creatorEmployeeId);
     }
 
     /**

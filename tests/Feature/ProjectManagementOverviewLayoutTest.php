@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\ProjectManagement\ProjectController;
+use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmployeeDeployment;
 use App\Models\EmployeePicAssignment;
+use App\Models\Position;
 use App\Models\Project;
 use App\Models\ProjectMember;
 use App\Models\ProjectTask;
@@ -457,7 +460,8 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('$projectTaskTimeline = $projectTaskTimeline ?? [];', $projectsDetail);
         $this->assertStringContainsString('project-summary-legend', $projectsDetail);
         $this->assertStringContainsString('projectTasksOverTimeChart', $projectsDetail);
-        $this->assertStringContainsString('Tasks Over Time', $projectsDetail);
+        $this->assertStringContainsString('<h4 class="card-title mb-0">Tasks</h4>', $projectsDetail);
+        $this->assertStringNotContainsString('Tasks Over Time', $projectsDetail);
         $this->assertStringContainsString('width: 142px !important;', $projectsDetail);
         $this->assertStringContainsString('flex: 0 0 142px;', $projectsDetail);
         $this->assertStringContainsString("data-chart-labels='@json(\$projectTaskTimeline['labels'] ?? [])'", $projectsDetail);
@@ -922,6 +926,105 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         ]);
     }
 
+    public function test_project_staff_employee_ids_include_pic_without_duplicates(): void
+    {
+        $staffEmployeeId = (string) Str::uuid();
+        $picEmployeeId = (string) Str::uuid();
+        $method = new \ReflectionMethod(
+            ProjectController::class,
+            'projectStaffEmployeeIdsWithPic',
+        );
+
+        $employeeIds = $method->invoke(
+            new ProjectController,
+            collect([$staffEmployeeId, $picEmployeeId, $staffEmployeeId, ' ']),
+            $picEmployeeId,
+        );
+
+        $this->assertSame([$staffEmployeeId, $picEmployeeId], $employeeIds->all());
+
+        $employeeIds = $method->invoke(
+            new ProjectController,
+            collect([$staffEmployeeId]),
+            $picEmployeeId,
+        );
+
+        $this->assertSame([$staffEmployeeId, $picEmployeeId], $employeeIds->all());
+    }
+
+    public function test_project_creator_is_added_as_active_project_member(): void
+    {
+        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
+            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
+        }
+
+        $this->createProjectTaskListTestSchema();
+
+        [$picUser, $picEmployee] = $this->createProjectTaskListUser('project_creator_pic');
+        [, $staffEmployee] = $this->createProjectTaskListUser('project_creator_staff');
+        $company = Company::query()->create([
+            'id' => (string) Str::uuid(),
+            'name' => 'RNB Test Company',
+        ]);
+        $supervisorPosition = Position::query()->create([
+            'id' => (string) Str::uuid(),
+            'name' => 'Supervisor',
+        ]);
+        $picDepartment = $this->createProjectTaskListDepartment('PIC Department');
+        $staffDepartment = $this->createProjectTaskListDepartment('Staff Department');
+
+        EmployeeDeployment::query()->create([
+            'id' => (string) Str::uuid(),
+            'employee_id' => $picEmployee->id,
+            'current_department_id' => $picDepartment->id,
+            'current_position_id' => $supervisorPosition->id,
+        ]);
+        $this->assignEmployeeToDepartment($staffEmployee, $staffDepartment);
+
+        $this->withoutMiddleware();
+
+        $response = $this
+            ->actingAs($picUser)
+            ->postJson(route('project_management.projects.store'), [
+                'company_id' => $company->id,
+                'staff_employee_ids' => [$staffEmployee->id],
+                'name' => 'Creator Member Project',
+                'description' => 'Project creator should become PIC and active team member.',
+                'client_name' => 'RNB',
+                'start_date' => '2026-08-18',
+                'end_date' => '2026-08-20',
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Project berhasil ditambahkan.',
+            ]);
+
+        $project = Project::query()
+            ->where('name', 'Creator Member Project')
+            ->firstOrFail();
+
+        $this->assertSame((string) $picUser->id, (string) $project->created_by);
+
+        foreach ([$picEmployee, $staffEmployee] as $employee) {
+            $this->assertDatabaseHas('project_members', [
+                'project_id' => $project->id,
+                'employee_id' => $employee->id,
+                'left_at' => null,
+                'status' => 'active',
+            ]);
+        }
+
+        foreach ([$picDepartment, $staffDepartment] as $department) {
+            $this->assertDatabaseHas('project_departments', [
+                'project_id' => $project->id,
+                'department_id' => $department->id,
+                'status' => 'active',
+            ]);
+        }
+    }
+
     public function test_pic_can_assign_task_list_task_to_active_staff_only(): void
     {
         if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
@@ -1166,9 +1269,12 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'projects',
             'employee_pic_assignments',
             'employee_profiles',
+            'employee_deployment_positions',
             'employee_deployments',
             'employees',
+            'positions',
             'departments',
+            'companies',
             'users',
         ] as $table) {
             Schema::dropIfExists($table);
@@ -1188,6 +1294,18 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             $table->uuid('id')->primary();
             $table->string('name');
             $table->string('status')->default('active');
+            $table->timestamps();
+        });
+
+        Schema::create('companies', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->string('name');
+            $table->timestamps();
+        });
+
+        Schema::create('positions', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->string('name');
             $table->timestamps();
         });
 
@@ -1211,7 +1329,19 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             $table->uuid('id')->primary();
             $table->foreignUuid('employee_id')->unique()->constrained('employees', 'id')->cascadeOnDelete();
             $table->foreignUuid('current_department_id')->nullable()->constrained('departments', 'id')->nullOnDelete();
+            $table->foreignUuid('current_position_id')->nullable()->constrained('positions', 'id')->nullOnDelete();
             $table->timestamps();
+        });
+
+        Schema::create('employee_deployment_positions', function (Blueprint $table): void {
+            $table->foreignUuid('employee_deployment_id')->constrained('employee_deployments', 'id')->cascadeOnDelete();
+            $table->foreignUuid('position_id')->constrained('positions', 'id')->cascadeOnDelete();
+            $table->boolean('is_primary')->default(false);
+            $table->string('status')->default('active');
+            $table->date('started_at')->nullable();
+            $table->date('ended_at')->nullable();
+            $table->timestamps();
+            $table->primary(['employee_deployment_id', 'position_id']);
         });
 
         Schema::create('employee_pic_assignments', function (Blueprint $table): void {
@@ -1225,6 +1355,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
 
         Schema::create('projects', function (Blueprint $table): void {
             $table->uuid('id')->primary();
+            $table->foreignUuid('company_id')->nullable()->constrained('companies', 'id')->nullOnDelete();
             $table->string('code')->nullable();
             $table->string('name');
             $table->text('description')->nullable();

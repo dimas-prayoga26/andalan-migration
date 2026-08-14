@@ -29,6 +29,17 @@ class Employee extends Model
 
     public $incrementing = false;
 
+    protected $attributes = [
+        'is_event_project_admin' => false,
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_event_project_admin' => 'boolean',
+        ];
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $employee): void {
@@ -154,6 +165,11 @@ class Employee extends Model
     }
 
     public function isExemptFromAttendanceRestDeduction(): bool
+    {
+        return $this->hasAnyPositionName(self::ATTENDANCE_REST_DEDUCTION_EXEMPT_POSITION_NAMES);
+    }
+
+    public function isEligibleForTwelveHourAutoOvertime(): bool
     {
         return $this->hasAnyPositionName(self::ATTENDANCE_REST_DEDUCTION_EXEMPT_POSITION_NAMES);
     }

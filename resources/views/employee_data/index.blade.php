@@ -343,6 +343,9 @@
                                 <button type="button" class="btn btn-outline-secondary btn-sm">Search</button>
                             </div>
                         </div>
+                        @if (session('status'))
+                            <div class="alert alert-success mb-3">{{ session('status') }}</div>
+                        @endif
                         <div class="table-responsive">
                             <table id="myTable" class="display table">
                                 <thead>
@@ -353,10 +356,44 @@
                                     <th class="mw-220">Name</th>
                                     <th class="mw-280">Position</th>
                                     <th class="mw-220">Perusahaan</th>
+                                    <th class="mw-180">Event Admin</th>
                                     <th class="mw-160">Action</th>
                                 </tr>
                                 </thead>
                                 <tbody>
+                                @isset($employees)
+                                    @forelse ($employees as $employee)
+                                        <tr>
+                                            <td>{{ $loop->iteration }}.</td>
+                                            <td><span class="employee-photo">{{ $employee['initials'] }}</span></td>
+                                            <td>{{ $employee['nik'] }}</td>
+                                            <td>{{ $employee['name'] }}</td>
+                                            <td>{{ $employee['position'] }}</td>
+                                            <td>{{ $employee['company'] }}</td>
+                                            <td>
+                                                <form method="POST" action="{{ route('employee_data.event-project-admin.update', ['employee' => $employee['id']]) }}" class="m-0 js-event-project-admin-form">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <input type="hidden" name="is_event_project_admin" value="0">
+                                                    <div class="form-check form-switch mb-0">
+                                                        <input class="form-check-input js-event-project-admin-switch" type="checkbox" role="switch" name="is_event_project_admin" value="1" @checked($employee['is_event_project_admin']) aria-label="Set {{ $employee['name'] }} as Event Project Admin">
+                                                    </div>
+                                                </form>
+                                            </td>
+                                            <td>
+                                                <div class="applicant-action-group">
+                                                    <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
+                                                    <a href="{{ route('authorization.edit', ['employee' => $employee['id']]) }}" class="applicant-action-btn edit" aria-label="Update {{ $employee['name'] }}"><i class="bi bi-pencil"></i></a>
+                                                    <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted py-4">No employee data available.</td>
+                                        </tr>
+                                    @endforelse
+                                @else
                                 <tr>
                                     <td>1.</td>
                                     <td><span class="employee-photo"><i class="bi bi-person-fill"></i></span></td>
@@ -507,6 +544,7 @@
                                         </div>
                                     </td>
                                 </tr>
+                                @endisset
                                 </tbody>
                             </table>
                             </div>
@@ -544,10 +582,14 @@
             var applicantsTable = $('#myTable').DataTable({
                 columnDefs: [
                     {
-                        targets: [0, 1, 6],
+                        targets: [0, 1, 6, 7],
                         orderable: false
                     }
                 ]
+            });
+
+            $(document).on('change', '.js-event-project-admin-switch', function () {
+                $(this).closest('form').trigger('submit');
             });
 
             applicantsTable.on('order.dt search.dt draw.dt', function () {

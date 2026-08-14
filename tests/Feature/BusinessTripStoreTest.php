@@ -165,6 +165,7 @@ class BusinessTripStoreTest extends TestCase
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->unique()->constrained('users', 'id')->cascadeOnDelete();
             $table->string('status')->default('Active');
+            $table->boolean('is_event_project_admin')->default(false);
             $table->timestamps();
         });
 

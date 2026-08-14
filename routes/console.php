@@ -18,7 +18,7 @@ Schedule::command('business-trips:lifecycle:sync')
     ->timezone('Asia/Jakarta')
     ->withoutOverlapping();
 
-Schedule::command('overtimes:auto-clock-in')
-    ->everyMinute()
+Schedule::command('overtimes:complete-monthly-payment-disbursements')
+    ->monthlyOn(1, '00:15')
     ->timezone('Asia/Jakarta')
     ->withoutOverlapping();

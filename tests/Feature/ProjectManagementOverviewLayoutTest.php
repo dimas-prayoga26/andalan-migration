@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
 use App\Models\Employee;
+use App\Models\EmployeeDeployment;
 use App\Models\EmployeePicAssignment;
 use App\Models\Project;
 use App\Models\ProjectMember;
@@ -39,8 +41,12 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $taskListWeekPlanPartial = File::get(resource_path('views/project_management/task_list/partials/week-plan.blade.php'));
         $taskListProjectGridPartial = File::get(resource_path('views/project_management/task_list/partials/project-grid.blade.php'));
         $projectModel = File::get(app_path('Models/Project.php'));
-        $projectTaskSeeder = File::get(database_path('seeders/ProjectTaskSeeder.php'));
+        $projectDepartmentModel = File::get(app_path('Models/ProjectDepartment.php'));
+        $projectDepartmentsMigration = File::get(database_path('migrations/2026_08_12_154047_create_project_departments_table.php'));
         $liveEventDatesMigration = File::get(database_path('migrations/2026_06_28_234546_add_live_event_dates_to_projects_table.php'));
+        $projectImagePathMigration = collect(File::glob(database_path('migrations/*_add_image_path_to_projects_table.php')))
+            ->map(fn (string $path): string => File::get($path))
+            ->implode("\n");
         $taskListSurface = $taskList.$taskListItemsPartial.$taskListWeekPlanPartial.$taskListProjectGridPartial;
 
         $this->assertTrue(View::exists('project_management.overview.index'));
@@ -70,13 +76,30 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("Route::patch('/project-management/task-list/tasks/{projectTask}/complete', [ProjectManagementTaskListController::class, 'completeTask'])->name('project_management.task_list.tasks.complete');", $routes);
         $this->assertStringContainsString("Route::delete('/project-management/task-list/tasks/{projectTask}', [ProjectManagementTaskListController::class, 'destroyTask'])->name('project_management.task_list.tasks.destroy');", $routes);
         $this->assertStringContainsString("Route::get('/project-management/projects', [ProjectManagementProjectController::class, 'index'])->name('project_management.projects');", $routes);
+        $this->assertStringContainsString("Route::post('/project-management/projects', [ProjectManagementProjectController::class, 'storeProject'])->name('project_management.projects.store');", $routes);
+        $this->assertStringContainsString("Route::put('/project-management/projects/{project}', [ProjectManagementProjectController::class, 'updateProject'])->name('project_management.projects.update');", $routes);
+        $this->assertStringContainsString("Route::delete('/project-management/projects/{project}', [ProjectManagementProjectController::class, 'destroyProject'])->name('project_management.projects.destroy');", $routes);
         $this->assertStringContainsString("Route::get('/project-management/projects/detail', [ProjectManagementProjectController::class, 'detailFallback'])->name('project_management.projects.detail.fallback');", $routes);
         $this->assertStringContainsString("Route::get('/project-management/projects/{project}', [ProjectManagementProjectController::class, 'detail'])->name('project_management.projects.detail');", $routes);
+        $this->assertStringContainsString("Route::patch('/project-management/projects/{project}/departments/{department}/google-drive', [ProjectManagementProjectController::class, 'updateDepartmentGoogleDrive'])->name('project_management.projects.departments.google-drive.update');", $routes);
         $this->assertStringContainsString("Route::post('/project-management/projects/{project}/tasks', [ProjectManagementProjectController::class, 'storeTask'])->name('project_management.projects.tasks.store');", $routes);
         $this->assertStringContainsString("Route::put('/project-management/projects/{project}/tasks/{projectTask}', [ProjectManagementProjectController::class, 'updateTask'])->name('project_management.projects.tasks.update');", $routes);
         $this->assertStringContainsString("Route::patch('/project-management/projects/{project}/tasks/{projectTask}/toggle', [ProjectManagementProjectController::class, 'toggleTask'])->name('project_management.projects.tasks.toggle');", $routes);
         $this->assertStringContainsString("Route::delete('/project-management/projects/{project}/tasks/{projectTask}', [ProjectManagementProjectController::class, 'destroyTask'])->name('project_management.projects.tasks.destroy');", $routes);
         $this->assertStringContainsString("Route::get('/project-management/detail', [ProjectManagementProjectController::class, 'detailFallback'])->name('project_management.detail');", $routes);
+        $this->assertStringContainsString("Schema::create('project_departments'", $projectDepartmentsMigration);
+        $this->assertStringContainsString("\$table->foreignUuid('project_id')->constrained('projects', 'id')->cascadeOnDelete();", $projectDepartmentsMigration);
+        $this->assertStringContainsString("\$table->foreignUuid('department_id')->constrained('departments', 'id')->cascadeOnDelete();", $projectDepartmentsMigration);
+        $this->assertStringContainsString("\$table->string('google_drive_url', 2048)->nullable();", $projectDepartmentsMigration);
+        $this->assertStringContainsString('project_departments_project_department_unique', $projectDepartmentsMigration);
+        $this->assertStringContainsString('public function projectDepartments(): HasMany', $projectModel);
+        $this->assertStringContainsString('class ProjectDepartment extends Model', $projectDepartmentModel);
+        $this->assertStringContainsString('return $this->belongsTo(Project::class', $projectDepartmentModel);
+        $this->assertStringContainsString('return $this->belongsTo(Department::class', $projectDepartmentModel);
+        $this->assertStringContainsString("'projectDepartments:id,project_id,department_id,google_drive_url,status'", $projectController);
+        $this->assertStringContainsString("'google_drive_url' => trim((string) (\$projectDepartment->google_drive_url ?? ''))", $projectController);
+        $this->assertStringContainsString("href=\"{{ \$departmentGroup['google_drive_url'] }}\"", $projectsDetail);
+        $this->assertStringContainsString('target="_blank"', $projectsDetail);
         $this->assertStringNotContainsString('public function taskList(Request $request): View', $overviewController);
         $this->assertStringNotContainsString('public function storeTask(Request $request): JsonResponse', $overviewController);
         $this->assertStringContainsString('public function index(Request $request): View', $taskListController);
@@ -267,11 +290,42 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('Staff : <span class="fw-semibold">{{ $task[\'assignee_label\'] }}</span>', $taskListWeekPlanPartial);
         $this->assertStringContainsString('employeeIsProjectMember', $taskListController);
         $this->assertStringContainsString('public function index(): View', $projectController);
+        $this->assertStringContainsString('public function storeProject(Request $request): JsonResponse', $projectController);
+        $this->assertStringContainsString('private function validateProjectPayload(Request $request): array', $projectController);
+        $this->assertStringContainsString('private function projectCompanyOptions(): Collection', $projectController);
+        $this->assertStringContainsString('private function projectStaffOptions(): Collection', $projectController);
+        $this->assertStringContainsString('private function employeeProjectOptionLabel(Employee $employee): string', $projectController);
+        $this->assertStringContainsString('private function authenticatedEmployeeIsSupervisor(?User $authenticatedUser): bool', $projectController);
+        $this->assertStringContainsString("hasPositionName('Supervisor')", $projectController);
+        $this->assertStringContainsString("'projectStoreUrl' => route('project_management.projects.store')", $projectController);
+        $this->assertStringContainsString('public function updateProject(Request $request, Project $project): JsonResponse', $projectController);
+        $this->assertStringContainsString('public function destroyProject(Project $project): JsonResponse', $projectController);
+        $this->assertStringContainsString("route('project_management.projects.update', \$project)", $projectController);
+        $this->assertStringContainsString("route('project_management.projects.destroy', \$project)", $projectController);
+        $this->assertStringContainsString("'staff_employee_ids' => ['required', 'array', 'min:1']", $projectController);
+        $this->assertStringContainsString("'code' => \$this->generateProjectCodeFromName((string) \$validated['name'], (string) \$validated['company_id'])", $projectController);
+        $this->assertStringContainsString('private function generateProjectCodeFromName(string $projectName, string $companyId, ?string $exceptProjectId = null): string', $projectController);
+        $this->assertStringContainsString("'status' => strtolower(trim((string) (\$validated['status'] ?? 'active')))", $projectController);
+        $this->assertStringContainsString("'status' => ['nullable', 'in:active,pending,completed,cancelled']", $projectController);
+        $this->assertStringContainsString('ProjectMember::query()->create', $projectController);
+        $this->assertStringContainsString('ProjectDepartment::query()->firstOrCreate', $projectController);
+        $this->assertStringContainsString("'image_path' => \$projectImagePath", $projectController);
+        $this->assertStringContainsString('private function storeProjectImageFile(Request $request): ?string', $projectController);
+        $this->assertStringContainsString("'project_image' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048']", $projectController);
+        $this->assertStringContainsString("\$storedPath = \$projectImageFile->storeAs('project-images', \$storedFileName, 'public');", $projectController);
+        $this->assertStringContainsString("Storage::disk('public')->delete(\$projectImagePath);", $projectController);
+        $this->assertStringContainsString('private function projectImageUrl(mixed $imagePath): string', $projectController);
         $this->assertStringContainsString('public function detailFallback(): RedirectResponse', $projectController);
         $this->assertStringContainsString('public function detail(Project $project): View', $projectController);
         $this->assertStringContainsString('public function toggleTask(Request $request, Project $project, ProjectTask $projectTask): JsonResponse', $projectController);
-        $this->assertStringContainsString('private function employeeCanViewProject(Project $project, string $employeeId): bool', $projectController);
-        $this->assertStringContainsString('private function projectDepartmentGroups(Project $project, Collection $tasks, ?string $ownDepartmentId): Collection', $projectController);
+        $this->assertStringContainsString('private function authenticatedUserId(?User $authenticatedUser): ?string', $projectController);
+        $this->assertStringContainsString('private function authenticatedEmployeeIsEventProjectAdmin(?User $authenticatedUser): bool', $projectController);
+        $this->assertStringContainsString('private function employeeCanViewProject(Project $project, string $employeeId, ?string $userId = null, bool $canManageEventProjects = false): bool', $projectController);
+        $this->assertStringContainsString('if ($canManageEventProjects || $this->userIsProjectCreator($project, $userId))', $projectController);
+        $this->assertStringContainsString('private function projectsForEmployee(string $employeeId, ?string $userId = null, bool $canManageEventProjects = false): Builder', $projectController);
+        $this->assertStringContainsString("->orWhere('created_by', \$userId)", $projectController);
+        $this->assertStringContainsString('private function projectDepartmentGroups(Project $project, Collection $tasks, ?string $ownDepartmentId, bool $canManageProject, bool $canManageGoogleDrive): Collection', $projectController);
+        $this->assertStringContainsString("'can_create_task' => \$canManageGoogleDrive && \$taskAssigneeOptions->isNotEmpty(),", $projectController);
         $this->assertStringContainsString("->where('project_id', \$project->id)", $projectController);
         $this->assertStringContainsString('current_department_id', $projectController);
         $this->assertStringContainsString('live_event_start_date', $projectController);
@@ -279,13 +333,16 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("'subtitle' => trim((string) (\$project->description ?? \$project->client_name ?? '-'))", $projectController);
         $this->assertStringContainsString('live_event_date_label', $projectController);
         $this->assertStringContainsString('live_event_duration_label', $projectController);
+        $this->assertStringContainsString("return \$durationInDays.'-Day Duration';", $projectController);
         $this->assertStringContainsString('projectTaskTimeline', $projectController);
         $this->assertStringContainsString('private function projectTaskTimelineValue(Project $project, Collection $tasks): array', $projectController);
         $this->assertStringContainsString('betweenIncluded($weekStart, $weekEnd)', $projectController);
         $this->assertStringContainsString('memberships.employee.profile:id,employee_id,name,profile_picture_path', $projectController);
         $this->assertStringContainsString('team_members', $projectController);
         $this->assertStringContainsString('private function teamMemberValue(?Employee $employee): array', $projectController);
-        $this->assertStringContainsString('private function profilePictureUrl(mixed $profilePicturePath): ?string', $projectController);
+        $this->assertStringContainsString('private function profilePictureUrl(mixed $profilePicturePath): string', $projectController);
+        $this->assertStringContainsString("\$defaultAvatarUrl = asset('assets/default_user.jpg');", $projectController);
+        $this->assertStringContainsString('return File::exists(public_path($publicPath)) ? asset($publicPath) : $defaultAvatarUrl;', $projectController);
         $this->assertStringContainsString('private function teamAvatarFallbackLabel(string $displayName): string', $projectController);
         $this->assertStringContainsString("preg_match('/\d+/'", $projectController);
         $this->assertStringContainsString("'live_event_start_date' => 'date'", $projectModel);
@@ -293,37 +350,8 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("\$table->date('live_event_start_date')->nullable()", $liveEventDatesMigration);
         $this->assertStringContainsString("\$table->date('live_event_end_date')->nullable()", $liveEventDatesMigration);
         $this->assertStringContainsString('projects_live_event_dates_index', $liveEventDatesMigration);
-        $this->assertStringContainsString("'live_event_start_date' => Carbon::create(2026, 6, 18", $projectTaskSeeder);
-        $this->assertStringContainsString("'live_event_end_date' => Carbon::create(2026, 6, 20", $projectTaskSeeder);
-        $this->assertStringContainsString("private const CROSS_COMPANY_PROJECT_CODE = 'GROUP-COLLAB-2026';", $projectTaskSeeder);
-        $this->assertStringContainsString('private const CROSS_COMPANY_STAFF_USERNAMES = [', $projectTaskSeeder);
-        $this->assertStringContainsString("'staff11'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff12'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff13'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff21'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff22'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff23'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff31'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff33'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff14'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff45'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff44'", $projectTaskSeeder);
-        $this->assertStringContainsString('private const CROSS_COMPANY_DEPARTMENT_ASSIGNMENTS = [', $projectTaskSeeder);
-        $this->assertStringContainsString("'staff11' => 'Marketing and Promotion'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff12' => 'Marketing and Promotion'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff13' => 'Marketing and Promotion'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff21' => 'Information and Communications Technology'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff22' => 'Information and Communications Technology'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff23' => 'Information and Communications Technology'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff31' => 'Administration, Finance and Legal'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff33' => 'Project Planning and Development'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff14' => 'Project Planning and Development'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff45' => 'Project Planning and Development'", $projectTaskSeeder);
-        $this->assertStringContainsString("'staff44' => 'Operations'", $projectTaskSeeder);
-        $this->assertStringContainsString('Muktamar ke VI PKB 2024', $projectTaskSeeder);
-        $this->assertStringContainsString('Bali Nusa Dua Convention Center, Badung, Bali', $projectTaskSeeder);
-        $this->assertStringContainsString('$this->ensureCrossCompanyDepartmentAssignments($crossCompanyStaffUsers);', $projectTaskSeeder);
-        $this->assertStringContainsString('$crossCompanyProject = $this->seedCrossCompanyProject($groupOwnerCompanyId, $crossCompanyCreatorUserId);', $projectTaskSeeder);
+        $this->assertStringContainsString("\$table->string('image_path', 2048)->nullable()->after('description');", $projectImagePathMigration);
+        $this->assertStringContainsString("\$table->dropColumn('image_path');", $projectImagePathMigration);
         $this->assertStringContainsString("route('project_management.projects.tasks.toggle'", $projectController);
         $this->assertStringContainsString('public function storeTask(Request $request, Project $project): JsonResponse', $projectController);
         $this->assertStringContainsString('public function updateTask(Request $request, Project $project, ProjectTask $projectTask): JsonResponse', $projectController);
@@ -335,6 +363,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('private function profileMetricData(?string $employeeId): array', $projectController);
         $this->assertStringContainsString('private function defaultProfileMetricData(CarbonInterface $currentDate): array', $projectController);
         $this->assertStringContainsString('private function projectTaskQueryForEmployee(string $employeeId): Builder', $projectController);
+        $this->assertStringContainsString("'team_members' => \$project->memberships", $projectController);
         $this->assertStringContainsString("profileMonthlyAttendanceSeries' => \$this->monthlyCompletedTaskSeries(\$taskQuery, (int) \$currentDate->year)", $projectController);
         $this->assertStringContainsString("'projectTasksCompletedCount' => \$completedTasksCount", $projectController);
         $this->assertStringContainsString("'projectTasksInProgressCount' => \$inProgressTasksCount", $projectController);
@@ -343,28 +372,122 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("'projectProjectTasksCount' => \$projectTasksCount", $projectController);
         $this->assertStringContainsString("'projectWorkloadPercent' => \$this->percentage(\$completedTasksCount + \$inProgressTasksCount, \$totalTasksCount)", $projectController);
         $this->assertStringContainsString('$projectCards = collect($projectCards ?? []);', $projectsIndex);
+        $this->assertStringContainsString('$projectCompanyOptions = collect($projectCompanyOptions ?? []);', $projectsIndex);
+        $this->assertStringContainsString('$projectStaffOptions = collect($projectStaffOptions ?? []);', $projectsIndex);
+        $this->assertStringContainsString('btn btn-primary btn-sm project-add-button', $projectsIndex);
+        $this->assertStringContainsString('fa-solid fa-plus', $projectsIndex);
+        $this->assertStringContainsString('<span>Add Project</span>', $projectsIndex);
+        $this->assertStringContainsString('project-card-actions', $projectsIndex);
+        $this->assertStringContainsString('project-card-action-button', $projectsIndex);
+        $this->assertStringContainsString('js-project-edit', $projectsIndex);
+        $this->assertStringContainsString('js-project-delete', $projectsIndex);
+        $this->assertStringContainsString('fa-solid fa-pen-to-square', $projectsIndex);
+        $this->assertStringContainsString('fa-solid fa-trash-can', $projectsIndex);
+        $this->assertStringContainsString('id="projectCreateModal"', $projectsIndex);
+        $this->assertStringContainsString('id="projectCreateModalTitle"', $projectsIndex);
+        $this->assertStringContainsString('name="company_id" data-live-search="true"', $projectsIndex);
+        $this->assertStringNotContainsString('Project Code', $projectsIndex);
+        $this->assertStringNotContainsString('name="code"', $projectsIndex);
+        $this->assertStringContainsString("asset('assets/vendor/select2/css/select2.min.css')", $projectsIndex);
+        $this->assertStringContainsString("asset('assets/vendor/select2/js/select2.full.min.js')", $projectsIndex);
+        $this->assertStringContainsString("asset('assets/vendor/sweetalert2/sweetalert2.min.css')", $projectsIndex);
+        $this->assertStringContainsString("asset('assets/vendor/sweetalert2/sweetalert2.min.js')", $projectsIndex);
+        $this->assertStringContainsString('showProjectCreateAlert', $projectsIndex);
+        $this->assertStringContainsString('window.Swal && typeof window.Swal.fire === \'function\'', $projectsIndex);
+        $this->assertStringContainsString('projectEditPayloads', $projectsIndex);
+        $this->assertStringContainsString('fillProjectCreateForm', $projectsIndex);
+        $this->assertStringContainsString('Update Project', $projectsIndex);
+        $this->assertStringContainsString('_method: \'DELETE\'', $projectsIndex);
+        $this->assertStringContainsString("asset('assets/vendor/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css')", $projectsIndex);
+        $this->assertStringContainsString('class="form-control project-staff-select2 js-skip-selectpicker"', $projectsIndex);
+        $this->assertStringContainsString('name="staff_employee_ids[]" multiple data-placeholder="Select staff"', $projectsIndex);
+        $this->assertStringContainsString('selectElement.select2({', $projectsIndex);
+        $this->assertStringContainsString("dropdownParent: $('#projectCreateModal')", $projectsIndex);
+        $this->assertStringContainsString('select2-selection__choice__remove', $projectsIndex);
+        $this->assertStringContainsString('.project-create-select2-dropdown .select2-results__option[aria-selected="true"]::after', $projectsIndex);
+        $this->assertStringContainsString('content: "\f00c";', $projectsIndex);
+        $this->assertStringNotContainsString('data-actions-box="true"', $projectsIndex);
+        $this->assertStringContainsString('class="form-control project-create-date-input js-project-create-date-input"', $projectsIndex);
+        $this->assertStringContainsString('initializeProjectCreateDatePickers', $projectsIndex);
+        $this->assertStringContainsString('hideProjectCreateDatePickers', $projectsIndex);
+        $this->assertStringContainsString('bindProjectLifecycleDateDefaults', $projectsIndex);
+        $this->assertStringContainsString("syncProjectLifecycleDate('#projectLiveEventStartDate', '#projectStartDate');", $projectsIndex);
+        $this->assertStringContainsString("syncProjectLifecycleDate('#projectLiveEventEndDate', '#projectEndDate');", $projectsIndex);
+        $this->assertStringContainsString("format: 'YYYY-MM-DD'", $projectsIndex);
+        $this->assertStringContainsString("widgetParent: $('#projectCreateModal .modal-body')", $projectsIndex);
+        $this->assertStringContainsString("$(document).on('select2:opening', '#projectStaffEmployeeIds', hideProjectCreateDatePickers);", $projectsIndex);
+        $this->assertStringNotContainsString('type="date" class="form-control" id="projectLiveEventStartDate"', $projectsIndex);
+        $this->assertStringNotContainsString('type="date" class="form-control" id="projectStartDate"', $projectsIndex);
+        $this->assertStringContainsString('enctype="multipart/form-data"', $projectsIndex);
+        $this->assertStringContainsString('Project Image', $projectsIndex);
+        $this->assertStringContainsString('type="file" class="form-control" id="projectImageFile" name="project_image"', $projectsIndex);
+        $this->assertStringContainsString('accept="image/jpeg,image/png,image/webp"', $projectsIndex);
+        $this->assertStringNotContainsString('id="projectImagePath"', $projectsIndex);
+        $this->assertStringNotContainsString('name="image_path"', $projectsIndex);
+        $this->assertStringNotContainsString('Image Path', $projectsIndex);
+        $this->assertStringNotContainsString('id="projectStatus"', $projectsIndex);
+        $this->assertStringNotContainsString('name="status" required', $projectsIndex);
+        $this->assertStringNotContainsString('Status <span class="required text-danger">*</span>', $projectsIndex);
+        $this->assertStringContainsString("\$projectCard['image_url']", $projectsIndex);
+        $this->assertStringContainsString('projectCreateForm', $projectsIndex);
         $this->assertStringContainsString('No active project found', $projectsIndex);
+        $this->assertStringContainsString('card project-card h-100', $projectsIndex);
+        $this->assertStringContainsString('project-card-avatar', $projectsIndex);
+        $this->assertStringContainsString('collect($projectCard[\'team_members\'] ?? [])->take(4)', $projectsIndex);
         $this->assertStringContainsString('$projectDepartmentGroups = collect($projectDepartmentGroups ?? []);', $projectsDetail);
-        $this->assertStringContainsString('<span class="project-meta-value">{{ $projectDetail[\'status_label\'] ?? \'-\' }}</span>', $projectsDetail);
+        $this->assertStringContainsString("text-{{ \$projectDetail['status_class'] ?? 'primary' }}", $projectsDetail);
+        $this->assertStringContainsString('project-card-command', $projectsDetail);
         $this->assertStringNotContainsString('badge badge-sm badge-{{ $projectDetail[\'status_class\'] ?? \'primary\' }} light', $projectsDetail);
         $this->assertStringContainsString('project-detail-overview-row', $projectsDetail);
-        $this->assertStringContainsString('project-summary-ring', $projectsDetail);
+        $this->assertStringNotContainsString('card project-detail-card h-100', $projectsDetail);
+        $this->assertStringNotContainsString('project-tasks-over-time-card h-100', $projectsDetail);
+        $this->assertStringContainsString('$summaryChartLabels = $projectDepartmentGroups', $projectsDetail);
+        $this->assertStringContainsString('$summaryChartSeries = $projectDepartmentGroups', $projectsDetail);
+        $this->assertStringContainsString('projectTasksSummaryChart', $projectsDetail);
+        $this->assertStringContainsString('project-summary-chart', $projectsDetail);
+        $this->assertStringContainsString('renderProjectTasksSummaryChart', $projectsDetail);
+        $this->assertStringContainsString('width: 250', $projectsDetail);
+        $this->assertStringContainsString("size: '90%'", $projectsDetail);
+        $this->assertStringNotContainsString('project-summary-ring', $projectsDetail);
         $this->assertStringContainsString('project-team-stack', $projectsDetail);
         $this->assertStringContainsString('project-team-avatar', $projectsDetail);
         $this->assertStringContainsString('$projectTeamMembers = collect($projectDetail[\'team_members\'] ?? []);', $projectsDetail);
+        $this->assertStringContainsString("\$projectDetail['image_url']", $projectsDetail);
         $this->assertStringContainsString('@forelse ($projectTeamMembers->take(6) as $teamMember)', $projectsDetail);
         $this->assertStringContainsString('$projectTaskTimeline = $projectTaskTimeline ?? [];', $projectsDetail);
         $this->assertStringContainsString('project-summary-legend', $projectsDetail);
         $this->assertStringContainsString('projectTasksOverTimeChart', $projectsDetail);
         $this->assertStringContainsString('Tasks Over Time', $projectsDetail);
+        $this->assertStringContainsString('width: 142px !important;', $projectsDetail);
+        $this->assertStringContainsString('flex: 0 0 142px;', $projectsDetail);
         $this->assertStringContainsString("data-chart-labels='@json(\$projectTaskTimeline['labels'] ?? [])'", $projectsDetail);
         $this->assertStringContainsString("data-completed-series='@json(\$projectTaskTimeline['completed'] ?? [])'", $projectsDetail);
         $this->assertStringContainsString("data-incomplete-series='@json(\$projectTaskTimeline['incomplete'] ?? [])'", $projectsDetail);
+        $this->assertStringContainsString("asset('assets/vendor/apexcharts/dist/apexcharts.min.js')", $projectsDetail);
+        $this->assertStringContainsString('new ApexCharts(tasksOverTimeElement', $projectsDetail);
+        $this->assertStringContainsString("type: 'area'", $projectsDetail);
+        $this->assertStringContainsString('shouldUseTemplateScale = highestValue > 0 && highestValue < 30', $projectsDetail);
+        $this->assertStringContainsString('normalizeSeriesForTemplateScale(incompleteSeries, 90, 120)', $projectsDetail);
+        $this->assertStringContainsString('normalizeSeriesForTemplateScale(completedSeries, 50, 75)', $projectsDetail);
+        $this->assertStringContainsString('yAxisMax = shouldUseTemplateScale ? 120', $projectsDetail);
+        $this->assertStringContainsString('colorStops: [', $projectsDetail);
+        $this->assertStringContainsString("color: '#ff5b8a'", $projectsDetail);
+        $this->assertStringContainsString("color: '#2445c7'", $projectsDetail);
+        $this->assertStringContainsString("return originalValue + ' Tasks';", $projectsDetail);
+        $this->assertStringNotContainsString("asset('assets/vendor/chart-js/chart.bundle.min.js')", $projectsDetail);
         $this->assertStringNotContainsString('Department Scope', $projectsDetail);
         $this->assertStringContainsString('project-department-row', $projectsDetail);
         $this->assertStringContainsString("asset('assets/vendor/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css')", $projectsDetail);
+        $this->assertStringContainsString('project-department-view-all', $projectsDetail);
+        $this->assertStringContainsString('>Drive</a>', $projectsDetail);
+        $this->assertStringContainsString('>Add Drive</button>', $projectsDetail);
+        $this->assertStringContainsString("{{ empty(\$departmentGroup['google_drive_url']) ? 'Add Drive' : 'Drive' }}</button>", $projectsDetail);
+        $this->assertStringContainsString('<button type="button" class="btn btn-sm btn-light project-department-view-all" disabled>Add Drive</button>', $projectsDetail);
+        $this->assertStringContainsString('.project-department-view-all:disabled', $projectsDetail);
+        $this->assertStringNotContainsString('View All', $projectsDetail);
         $this->assertStringContainsString('project-department-add-task', $projectsDetail);
-        $this->assertStringContainsString('+ Add Task', $projectsDetail);
+        $this->assertStringContainsString('js-project-task-create', $projectsDetail);
+        $this->assertStringContainsString('+ Add Task</button>', $projectsDetail);
         $this->assertStringContainsString('id="projectTaskFormModal"', $projectsDetail);
         $this->assertStringContainsString('Create New Task', $projectsDetail);
         $this->assertStringContainsString('Task Name <span class="required text-danger">*</span>', $projectsDetail);
@@ -372,7 +495,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('Task Category <span class="required text-danger">*</span>', $projectsDetail);
         $this->assertStringContainsString('Project Report', $projectsDetail);
         $this->assertStringContainsString('Project Name', $projectsDetail);
-        $this->assertStringNotContainsString('Assignee <span class="text-danger">*</span>', $projectsDetail);
+        $this->assertStringContainsString('Assignee <span class="required text-danger">*</span>', $projectsDetail);
         $this->assertStringContainsString('class="form-control js-project-task-date-input"', $projectsDetail);
         $this->assertStringContainsString('initializeProjectTaskDatePickers', $projectsDetail);
         $this->assertStringContainsString('hideProjectTaskDatePickers', $projectsDetail);
@@ -381,7 +504,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringNotContainsString('type="date" class="form-control" id="projectTaskStartDate"', $projectsDetail);
         $this->assertStringNotContainsString('type="date" class="form-control" id="projectTaskDueDate"', $projectsDetail);
         $this->assertStringContainsString('id="projectTaskDeleteModal"', $projectsDetail);
-        $this->assertStringContainsString('js-project-task-create', $projectsDetail);
         $this->assertStringContainsString('js-project-task-edit', $projectsDetail);
         $this->assertStringContainsString('js-project-task-delete', $projectsDetail);
         $this->assertStringContainsString('projectTaskDeleteButton', $projectsDetail);
@@ -391,10 +513,10 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('Live Event Dates', $projectsDetail);
         $this->assertStringContainsString("{{ \$projectDetail['live_event_date_label'] ?? '-' }}", $projectsDetail);
         $this->assertStringContainsString("{{ \$projectDetail['live_event_duration_label'] ?? '-' }}", $projectsDetail);
-        $this->assertStringContainsString('project-department-drive', $projectsDetail);
-        $this->assertStringContainsString('Drive</button>', $projectsDetail);
+        $this->assertStringContainsString('id="projectDepartmentDriveModal"', $projectsDetail);
+        $this->assertStringContainsString("currentDriveUrl ? 'Update ' : 'Add '", $projectsDetail);
         $this->assertStringNotContainsString('Your Department', $projectsDetail);
-        $this->assertStringContainsString('View Only', $projectsDetail);
+        $this->assertStringNotContainsString('View Only', $projectsDetail);
         $this->assertStringNotContainsString('Routine Cardio Burn Workout', $taskListSurface);
         $this->assertStringNotContainsString('workout-statistic.html', $taskListSurface);
         $this->assertStringNotContainsString('May 2026', $taskList);
@@ -884,15 +1006,169 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             ]);
     }
 
+    public function test_event_project_admin_can_update_project_department_google_drive(): void
+    {
+        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
+            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
+        }
+
+        $this->createProjectTaskListTestSchema();
+
+        [$adminUser, $adminEmployee] = $this->createProjectTaskListUser('event_admin_drive');
+        [$staffUser, $staffEmployee] = $this->createProjectTaskListUser('staff_drive');
+        $department = $this->createProjectTaskListDepartment('Operations');
+        $this->assignEmployeeToDepartment($adminEmployee, $department);
+        $this->assignEmployeeToDepartment($staffEmployee, $department);
+
+        $adminEmployee->update(['is_event_project_admin' => true]);
+
+        $project = Project::query()->create([
+            'id' => (string) Str::uuid(),
+            'name' => 'Google Drive Event',
+            'code' => 'DRIVE-EVENT',
+            'status' => 'active',
+            'created_by' => $staffUser->id,
+        ]);
+
+        ProjectMember::query()->create([
+            'id' => (string) Str::uuid(),
+            'project_id' => $project->id,
+            'employee_id' => $staffEmployee->id,
+            'joined_at' => '2026-08-01',
+            'status' => 'active',
+        ]);
+
+        $this->withoutMiddleware();
+
+        $response = $this
+            ->actingAs($adminUser)
+            ->patchJson(route('project_management.projects.departments.google-drive.update', [$project, $department]), [
+                'google_drive_url' => 'https://drive.google.com/drive/folders/event-admin-drive',
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Google Drive department berhasil diperbarui.',
+                'google_drive_url' => 'https://drive.google.com/drive/folders/event-admin-drive',
+            ]);
+
+        $this->assertDatabaseHas('project_departments', [
+            'project_id' => $project->id,
+            'department_id' => $department->id,
+            'google_drive_url' => 'https://drive.google.com/drive/folders/event-admin-drive',
+            'status' => 'active',
+        ]);
+
+        $forbiddenResponse = $this
+            ->actingAs($staffUser)
+            ->patchJson(route('project_management.projects.departments.google-drive.update', [$project, $department]), [
+                'google_drive_url' => 'https://drive.google.com/drive/folders/staff-drive',
+            ]);
+
+        $forbiddenResponse->assertForbidden()
+            ->assertJson([
+                'success' => false,
+                'message' => 'Tidak memiliki akses untuk memperbarui Google Drive department project ini.',
+            ]);
+    }
+
+    public function test_event_project_admin_can_assign_detail_project_task_to_event_member_department(): void
+    {
+        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
+            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
+        }
+
+        $this->createProjectTaskListTestSchema();
+
+        [$picUser, $picEmployee] = $this->createProjectTaskListUser('event_pic_task');
+        [, $staffEmployee] = $this->createProjectTaskListUser('event_member_task');
+        $picDepartment = $this->createProjectTaskListDepartment('Project Planning and Development');
+        $staffDepartment = $this->createProjectTaskListDepartment('Information and Communications Technology');
+        $this->assignEmployeeToDepartment($picEmployee, $picDepartment);
+        $this->assignEmployeeToDepartment($staffEmployee, $staffDepartment);
+        $picEmployee->update(['is_event_project_admin' => true]);
+
+        $project = Project::query()->create([
+            'id' => (string) Str::uuid(),
+            'name' => 'PIC Detail Project',
+            'code' => 'PIC-DETAIL',
+            'status' => 'active',
+            'created_by' => $picUser->id,
+        ]);
+
+        foreach ([$picEmployee, $staffEmployee] as $employee) {
+            ProjectMember::query()->create([
+                'id' => (string) Str::uuid(),
+                'project_id' => $project->id,
+                'employee_id' => $employee->id,
+                'joined_at' => '2026-08-01',
+                'status' => 'active',
+            ]);
+        }
+
+        $this->withoutMiddleware();
+
+        $response = $this
+            ->actingAs($picUser)
+            ->postJson(route('project_management.projects.tasks.store', $project), [
+                'title' => 'Prepare event dashboard access',
+                'description' => 'Grant dashboard access for live event operators.',
+                'start_date' => '2026-08-10',
+                'due_date' => '2026-08-12',
+                'priority' => 'high',
+                'status' => 'pending',
+                'department_id' => $staffDepartment->id,
+                'assigned_employee_id' => $staffEmployee->id,
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Task project berhasil ditambahkan.',
+            ]);
+
+        $this->assertDatabaseHas('project_tasks', [
+            'project_id' => $project->id,
+            'employee_id' => $staffEmployee->id,
+            'assigned_by' => $picUser->id,
+            'title' => 'Prepare event dashboard access',
+            'status' => 'pending',
+        ]);
+
+        $picEmployee->update(['is_event_project_admin' => false]);
+
+        $forbiddenResponse = $this
+            ->actingAs($picUser)
+            ->postJson(route('project_management.projects.tasks.store', $project), [
+                'title' => 'Invalid non admin event task',
+                'start_date' => '2026-08-10',
+                'due_date' => '2026-08-12',
+                'priority' => 'high',
+                'status' => 'pending',
+                'department_id' => $staffDepartment->id,
+                'assigned_employee_id' => $staffEmployee->id,
+            ]);
+
+        $forbiddenResponse->assertForbidden()
+            ->assertJson([
+                'success' => false,
+                'message' => 'Tidak memiliki akses untuk menambahkan task project ini.',
+            ]);
+    }
+
     private function createProjectTaskListTestSchema(): void
     {
         foreach ([
             'project_tasks',
+            'project_departments',
             'project_members',
             'projects',
             'employee_pic_assignments',
             'employee_profiles',
+            'employee_deployments',
             'employees',
+            'departments',
             'users',
         ] as $table) {
             Schema::dropIfExists($table);
@@ -908,10 +1184,18 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             $table->timestamps();
         });
 
+        Schema::create('departments', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->string('name');
+            $table->string('status')->default('active');
+            $table->timestamps();
+        });
+
         Schema::create('employees', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->unique()->constrained('users', 'id')->cascadeOnDelete();
             $table->string('status')->default('Active');
+            $table->boolean('is_event_project_admin')->default(false);
             $table->timestamps();
         });
 
@@ -920,6 +1204,13 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             $table->foreignUuid('employee_id')->constrained('employees', 'id')->cascadeOnDelete();
             $table->string('name')->nullable();
             $table->string('profile_picture_path')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('employee_deployments', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('employee_id')->unique()->constrained('employees', 'id')->cascadeOnDelete();
+            $table->foreignUuid('current_department_id')->nullable()->constrained('departments', 'id')->nullOnDelete();
             $table->timestamps();
         });
 
@@ -954,6 +1245,15 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             $table->foreignUuid('employee_id')->constrained('employees', 'id')->cascadeOnDelete();
             $table->date('joined_at')->nullable();
             $table->date('left_at')->nullable();
+            $table->string('status')->default('active');
+            $table->timestamps();
+        });
+
+        Schema::create('project_departments', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('project_id')->constrained('projects', 'id')->cascadeOnDelete();
+            $table->foreignUuid('department_id')->constrained('departments', 'id')->cascadeOnDelete();
+            $table->string('google_drive_url', 2048)->nullable();
             $table->string('status')->default('active');
             $table->timestamps();
         });
@@ -998,5 +1298,23 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         ]);
 
         return [$user, $employee];
+    }
+
+    private function createProjectTaskListDepartment(string $name): Department
+    {
+        return Department::query()->create([
+            'id' => (string) Str::uuid(),
+            'name' => $name,
+            'status' => 'active',
+        ]);
+    }
+
+    private function assignEmployeeToDepartment(Employee $employee, Department $department): EmployeeDeployment
+    {
+        return EmployeeDeployment::query()->create([
+            'id' => (string) Str::uuid(),
+            'employee_id' => $employee->id,
+            'current_department_id' => $department->id,
+        ]);
     }
 }

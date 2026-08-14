@@ -188,7 +188,7 @@ class OvertimeDeadlineTaskSeeder extends Seeder
                 ->first();
 
             if (! $project instanceof Project) {
-                throw new RuntimeException('Project RNB-EVENT-2026 tidak ditemukan. Jalankan ProjectTaskSeeder terlebih dahulu.');
+                throw new RuntimeException('Project RNB-EVENT-2026 tidak ditemukan. Buat project terlebih dahulu sebelum menjalankan seeder overtime deadline task.');
             }
 
             $staffUsers = $this->resolveStaffUsers($rnbCompanyId);

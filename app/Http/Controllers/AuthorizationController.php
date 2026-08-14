@@ -81,6 +81,7 @@ class AuthorizationController extends Controller
                 'user_id' => $user->id,
                 'employee_code' => $this->generateEmployeeCode($user),
                 'status' => $validated['employee_status'],
+                'is_event_project_admin' => (bool) $validated['is_event_project_admin'],
             ]);
 
             $this->syncDataEmployeeRelations($employee, $validated);
@@ -139,6 +140,7 @@ class AuthorizationController extends Controller
 
             $employee->update([
                 'status' => $validated['employee_status'],
+                'is_event_project_admin' => (bool) $validated['is_event_project_admin'],
             ]);
 
             $this->syncDataEmployeeRelations($employee, $validated);
@@ -313,7 +315,7 @@ class AuthorizationController extends Controller
             ])
             ->with([
                 'roles:uuid,name',
-                'employee:id,user_id,employee_code,status',
+                'employee:id,user_id,employee_code,status,is_event_project_admin',
                 'employee.profile:id,employee_id,name',
                 'employee.identity:id,employee_id,nik',
                 'employee.deployment:id,employee_id,current_company_id,current_position_id,status',
@@ -511,6 +513,7 @@ class AuthorizationController extends Controller
             'nik' => (string) ($user->employee?->identity?->nik ?? '-'),
             'pic' => (string) ($user->employee?->picAssignment?->supervisor?->profile?->name ?? '-'),
             'status' => $status,
+            'is_event_project_admin' => (bool) ($user->employee?->is_event_project_admin ?? false),
             'initials' => $this->initials($name),
         ];
     }
@@ -587,6 +590,7 @@ class AuthorizationController extends Controller
 
         $request->merge([
             'is_active' => $request->boolean('is_active'),
+            'is_event_project_admin' => $request->boolean('is_event_project_admin'),
             'date_of_birth' => $this->normalizeDateInput($request->input('date_of_birth')),
             'employee_status' => 'Active',
             'join_date' => $this->normalizeDateInput($request->input('join_date')),
@@ -595,6 +599,7 @@ class AuthorizationController extends Controller
 
         return $request->validate([
             'is_active' => ['required', 'boolean'],
+            'is_event_project_admin' => ['required', 'boolean'],
             'employee_status' => ['required', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
             'nickname' => ['nullable', 'string', 'max:255'],

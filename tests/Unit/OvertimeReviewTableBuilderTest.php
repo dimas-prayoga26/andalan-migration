@@ -33,6 +33,8 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('private function baseQuery(?string $companyId, int $month, int $year, bool $includeCancelled = false): Builder', $builder);
         $this->assertStringContainsString("if (is_string(\$companyId) && trim(\$companyId) !== '')", $builder);
         $this->assertStringContainsString('if (! $includeCancelled) {', $builder);
+        $this->assertStringContainsString("'approvedRows' => \$this->rowsForAdminCompletedPaymentDisbursement(clone \$baseQuery, \$context)", $builder);
+        $this->assertStringContainsString('private function isAdminCompletedPaymentDisbursement(AttendanceOvertime $overtime): bool', $builder);
 
         foreach ([
             resource_path('views/admin_attendance/overtime/index.blade.php'),
@@ -288,6 +290,47 @@ class OvertimeReviewTableBuilderTest extends TestCase
             'payroll_processing' => 'calculated_locked',
             'director_approval' => 'approved',
             'payment_disbursement' => 'complete',
+        ])));
+
+        $this->assertFalse($method->invoke($builder, $this->overtimeWithLifecycle([
+            'task_hours_verification' => 'verified',
+            'payroll_processing' => 'calculated_locked',
+            'director_approval' => 'approved',
+            'payment_disbursement' => 'completed',
+        ])));
+    }
+
+    public function test_admin_complete_lifecycle_requires_payment_disbursement_completed(): void
+    {
+        $reflection = new ReflectionClass(OvertimeReviewTableBuilder::class);
+        $method = $reflection->getMethod('isAdminCompletedPaymentDisbursement');
+        $method->setAccessible(true);
+
+        $builder = new OvertimeReviewTableBuilder;
+
+        $this->assertTrue($method->invoke($builder, $this->overtimeWithLifecycle([
+            'task_hours_verification' => 'verified',
+            'payroll_processing' => 'calculated_locked',
+            'director_approval' => 'approved',
+            'payment_disbursement' => 'completed',
+        ])));
+
+        $this->assertTrue($method->invoke($builder, $this->overtimeWithLifecycle([
+            'payment_disbursement' => 'complete',
+        ])));
+
+        $this->assertFalse($method->invoke($builder, $this->overtimeWithLifecycle([
+            'task_hours_verification' => 'verified',
+            'payroll_processing' => 'calculated_locked',
+            'director_approval' => 'approved',
+            'payment_disbursement' => 'pending',
+        ])));
+
+        $this->assertFalse($method->invoke($builder, $this->overtimeWithLifecycle([
+            'task_hours_verification' => 'verified',
+            'payroll_processing' => 'calculated_locked',
+            'director_approval' => 'approved',
+            'payment_disbursement' => 'upcoming',
         ])));
     }
 

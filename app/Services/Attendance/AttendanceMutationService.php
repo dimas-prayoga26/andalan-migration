@@ -23,7 +23,8 @@ class AttendanceMutationService
         private TelegramAttendanceNotifier $telegramAttendanceNotifier,
         private AttendanceExceptionPresenter $attendanceExceptionPresenter,
         private AttendanceWorkDurationCalculator $attendanceWorkDurationCalculator,
-        private AttendanceContextService $attendanceContextService
+        private AttendanceContextService $attendanceContextService,
+        private TwelveHourAutoOvertimeService $twelveHourAutoOvertimeService
     ) {}
 
     /**
@@ -226,7 +227,7 @@ class AttendanceMutationService
         $trackingContext = $this->buildTrackingContext($trackingInput, $requestIpAddress, $userAgent, $officeContext);
 
         try {
-            $updatedAttendance = DB::transaction(function () use ($attendance, $todayDate, $clockOutTimeString, $workHours, $trackingContext, $isFlexibleAttendance): Attendance {
+            $updatedAttendance = DB::transaction(function () use ($attendance, $authenticatedUser, $clockInTime, $clockOutTime, $clockOutTimeString, $todayDate, $workHours, $trackingContext, $isFlexibleAttendance): Attendance {
                 $lockedAttendance = Attendance::query()
                     ->whereKey($attendance->id)
                     ->lockForUpdate()
@@ -254,6 +255,12 @@ class AttendanceMutationService
                 ]);
 
                 $this->createAttendanceLog($lockedAttendance->id, false, $trackingContext);
+                $this->twelveHourAutoOvertimeService->createFromClockOut(
+                    $lockedAttendance,
+                    $clockInTime,
+                    $clockOutTime,
+                    $authenticatedUser instanceof User ? $authenticatedUser : null
+                );
 
                 return $lockedAttendance;
             });

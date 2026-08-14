@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\AuthorizationController;
+use App\Http\Controllers\EmployeeDataController;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +23,8 @@ class AuthorizationMenuRouteTest extends TestCase
         $editRoute = Route::getRoutes()->getByName('authorization.edit');
         $dataEmployeeUpdateRoute = Route::getRoutes()->getByName('authorization.update');
         $destroyRoute = Route::getRoutes()->getByName('authorization.destroy');
+        $employeeDataRoute = Route::getRoutes()->getByName('employee_data');
+        $employeeDataEventAdminRoute = Route::getRoutes()->getByName('employee_data.event-project-admin.update');
 
         $this->assertNotNull($route);
         $this->assertSame('authorization', $route?->uri());
@@ -42,6 +45,11 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertSame('authorization/{employee}', $dataEmployeeUpdateRoute?->uri());
         $this->assertSame('authorization/{employee}', $destroyRoute?->uri());
         $this->assertContains('DELETE', $destroyRoute?->methods() ?? []);
+        $this->assertSame('employee-data', $employeeDataRoute?->uri());
+        $this->assertSame(EmployeeDataController::class.'@index', $employeeDataRoute?->getActionName());
+        $this->assertSame('employee-data/{employee}/event-project-admin', $employeeDataEventAdminRoute?->uri());
+        $this->assertContains('PATCH', $employeeDataEventAdminRoute?->methods() ?? []);
+        $this->assertSame(EmployeeDataController::class.'@updateEventProjectAdmin', $employeeDataEventAdminRoute?->getActionName());
     }
 
     public function test_authorization_page_view_is_registered(): void
@@ -53,6 +61,10 @@ class AuthorizationMenuRouteTest extends TestCase
         $routes = File::get(base_path('routes/web.php'));
         $authorizationView = File::get(resource_path('views/authorization/index.blade.php'));
         $authorizationFormView = File::get(resource_path('views/authorization/form.blade.php'));
+        $employeeDataView = File::get(resource_path('views/employee_data/index.blade.php'));
+        $employeeDataController = File::get(app_path('Http/Controllers/EmployeeDataController.php'));
+        $eventAdminMigration = File::get(database_path('migrations/2026_08_12_155553_add_is_event_project_admin_to_employees_table.php'));
+        $employeeModel = File::get(app_path('Models/Employee.php'));
         $authorizationShowView = File::get(resource_path('views/authorization/show.blade.php'));
         $accessMenusView = File::get(resource_path('views/authorization/access-menus.blade.php'));
         $customJs = File::get(public_path('assets/js/custom.js'));
@@ -62,6 +74,12 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertTrue(View::exists('authorization.show'));
         $this->assertTrue(View::exists('authorization.access-menus'));
         $this->assertStringContainsString("view('authorization.index'", $controller);
+        $this->assertStringContainsString("view('employee_data.index'", $employeeDataController);
+        $this->assertStringContainsString('updateEventProjectAdmin', $employeeDataController);
+        $this->assertStringContainsString("'is_event_project_admin' => ['required', 'boolean']", $employeeDataController);
+        $this->assertStringContainsString("'is_event_project_admin' => (bool) \$validated['is_event_project_admin']", $employeeDataController);
+        $this->assertStringContainsString("\$table->boolean('is_event_project_admin')", $eventAdminMigration);
+        $this->assertStringContainsString("'is_event_project_admin' => 'boolean'", $employeeModel);
         $this->assertStringContainsString("view('authorization.access-menus'", $controller);
         $this->assertStringContainsString('accessMenus', $controller);
         $this->assertStringContainsString('authorizationUsersFor', $controller);
@@ -88,6 +106,20 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString("'view-authorization' => ['section' => 'HR Management', 'label' => 'Employee Data']", $controller);
         $this->assertStringContainsString("'view-settings' => ['section' => 'Setting', 'label' => 'Setting']", $controller);
         $this->assertStringContainsString('Employee Data', $authorizationView);
+        $this->assertStringContainsString('Event Admin', $authorizationView);
+        $this->assertStringContainsString('<option value="0" @selected(! $user[\'is_event_project_admin\'])>Off</option>', $authorizationView);
+        $this->assertStringContainsString('<option value="1" @selected($user[\'is_event_project_admin\'])>On</option>', $authorizationView);
+        $this->assertStringContainsString("route('employee_data.event-project-admin.update'", $authorizationView);
+        $this->assertStringContainsString('js-authorization-event-admin-form', $authorizationView);
+        $this->assertStringContainsString('js-authorization-event-admin-select', $authorizationView);
+        $this->assertStringContainsString("event.target.closest('form')?.submit();", $authorizationView);
+        $this->assertStringNotContainsString('>Staff</span>', $authorizationView);
+        $this->assertStringNotContainsString('Bukan Event Admin', $authorizationView);
+        $this->assertStringContainsString("'is_event_project_admin' => (bool) (\$user->employee?->is_event_project_admin ?? false)", $controller);
+        $this->assertStringContainsString('Event Admin', $employeeDataView);
+        $this->assertStringContainsString("route('employee_data.event-project-admin.update'", $employeeDataView);
+        $this->assertStringContainsString('js-event-project-admin-switch', $employeeDataView);
+        $this->assertStringContainsString('js-event-project-admin-form', $employeeDataView);
         $this->assertStringContainsString('Employee List', $authorizationView);
         $this->assertStringContainsString("route('authorization.create')", $authorizationView);
         $this->assertStringContainsString('Add Employee', $authorizationView);

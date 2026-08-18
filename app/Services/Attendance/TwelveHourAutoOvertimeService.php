@@ -78,7 +78,12 @@ class TwelveHourAutoOvertimeService
 
     public function createFromClockOut(Attendance $attendance, Carbon $clockInTime, Carbon $clockOutTime, ?User $actor): ?AttendanceOvertime
     {
-        $attendance->loadMissing('employee.user', 'employee.deployment.position', 'employee.deployment.positions');
+        $attendance->loadMissing(
+            'employee.user',
+            'employee.picAssignment.supervisor.user',
+            'employee.deployment.position',
+            'employee.deployment.positions'
+        );
         $employee = $attendance->employee;
 
         if (! $employee instanceof Employee || ! $employee->isEligibleForTwelveHourAutoOvertime()) {
@@ -93,7 +98,7 @@ class TwelveHourAutoOvertimeService
         $actualStartTime = $overtimeWindow['actual_start_at']->format('H:i:s');
         $actualEndTime = $overtimeWindow['actual_end_at']->format('H:i:s');
         $overtimeDate = $overtimeWindow['actual_start_at']->toDateString();
-        $actorUser = $actor instanceof User ? $actor : $employee->user;
+        $actorUser = $this->resolveSupervisorUser($employee) ?? ($actor instanceof User ? $actor : $employee->user);
 
         $existingOvertime = AttendanceOvertime::query()
             ->where('employee_id', $employee->id)
@@ -121,6 +126,20 @@ class TwelveHourAutoOvertimeService
         $this->createLifecycleLogs($overtime, $overtimeWindow['actual_start_at'], $overtimeWindow['actual_end_at'], $actorUser);
 
         return $overtime;
+    }
+
+    private function resolveSupervisorUser(Employee $employee): ?User
+    {
+        $employee->loadMissing('picAssignment.supervisor.user');
+
+        $supervisorUser = $employee->picAssignment?->supervisor?->user;
+        if (! $supervisorUser instanceof User) {
+            return null;
+        }
+
+        return is_string($supervisorUser->id) && trim($supervisorUser->id) !== ''
+            ? $supervisorUser
+            : null;
     }
 
     /**

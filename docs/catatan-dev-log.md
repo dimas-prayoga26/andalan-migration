@@ -7,6 +7,11 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-08-18 (Selasa)
+- Memperbaiki auto overtime 12 jam agar `assigned_by` memakai PIC/supervisor aktif dari `employee_pic_assignments`, bukan staff yang melakukan clock-out.
+- Perubahan ini mencegah halaman detail overtime menampilkan staff sebagai `Supervisor` / fallback `Approved by Supervisor`.
+- Detail: `docs/dev-log/2026-08-18-1012-fix-auto-overtime-supervisor-pic.md`.
+
 ### 2026-08-11 (Selasa)
 - Mengubah perhitungan attendance agar posisi `Driver` dan `Executive Assistant` tidak terkena pengurangan rest 1 jam.
 - Pengecualian ini berdasarkan posisi employee, bukan berdasarkan `attendance_type = flexible`.
@@ -291,6 +296,9 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-08-18
+- `2026-08-18-1012-fix-auto-overtime-supervisor-pic.md`
 
 ### 2026-07-08
 - `2026-07-08-1515-ringkasan-perubahan-attendance-leave-business-trip-overtime.md`

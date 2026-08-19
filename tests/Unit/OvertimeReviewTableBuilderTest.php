@@ -261,7 +261,7 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('class="btn light btn-success btn-lg w-100"', $detailView);
     }
 
-    public function test_admin_pending_lifecycle_range_starts_at_task_hours_verification_and_excludes_payment_complete(): void
+    public function test_admin_pending_lifecycle_range_starts_at_payroll_processing_and_excludes_payment_complete(): void
     {
         $reflection = new ReflectionClass(OvertimeReviewTableBuilder::class);
         $method = $reflection->getMethod('isAdminPendingLifecycleRange');
@@ -273,8 +273,16 @@ class OvertimeReviewTableBuilderTest extends TestCase
             'task_hours_verification' => 'waiting',
         ])));
 
-        $this->assertTrue($method->invoke($builder, $this->overtimeWithLifecycle([
+        $this->assertFalse($method->invoke($builder, $this->overtimeWithLifecycle([
             'task_hours_verification' => 'pending',
+            'payroll_processing' => 'waiting',
+            'payment_disbursement' => 'waiting',
+        ])));
+
+        $this->assertTrue($method->invoke($builder, $this->overtimeWithLifecycle([
+            'task_hours_verification' => 'verified',
+            'payroll_processing' => 'pending',
+            'director_approval' => 'waiting',
             'payment_disbursement' => 'waiting',
         ])));
 

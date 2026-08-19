@@ -42,6 +42,9 @@ class PicAttendanceTaskController extends Controller
             return response()->json(['data' => []]);
         }
 
+        $currentMonthStart = now('Asia/Jakarta')->startOfMonth()->toDateString();
+        $currentMonthEnd = now('Asia/Jakarta')->endOfMonth()->toDateString();
+
         $tasks = ProjectTask::query()
             ->with([
                 'employee:id,user_id',
@@ -52,7 +55,8 @@ class PicAttendanceTaskController extends Controller
             ])
             ->whereIn('employee_id', $visibleEmployeeIds->all())
             ->whereNull('overtime_id')
-            ->orderByRaw('COALESCE(due_date, start_date, created_at) ASC')
+            ->whereRaw('DATE(COALESCE(due_date, start_date, created_at)) BETWEEN ? AND ?', [$currentMonthStart, $currentMonthEnd])
+            ->orderByRaw('COALESCE(due_date, start_date, created_at) DESC')
             ->get([
                 'id',
                 'project_id',

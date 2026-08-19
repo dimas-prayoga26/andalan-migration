@@ -21,6 +21,12 @@ Aturan log:
 ### 2026-08-19 (Rabu)
 - Mengganti style select Provinsi dan Kabupaten/Kota pada modal Add/Update Project dari Select2 menjadi `selectpicker`, menyamakan tampilan dengan field Company.
 - Detail: `docs/dev-log/2026-08-19-1015-select-provinsi-kota-selectpicker.md`.
+- Memperbaiki auto overtime 12 jam agar actor lifecycle log `Overtime Session Started`, `Task & Deliverables Submitted`, dan `Overtime Session Ended` memakai staff yang bersangkutan, bukan PIC/Supervisor.
+- Detail: `docs/dev-log/2026-08-19-1530-fix-actor-execution-auto-overtime.md`.
+- Memperbaiki tabel Pending pada Admin Attendance > Overtime agar baru tampil setelah masuk Phase 4: Payroll & Payment, bukan sejak `Task & Hours Verification` masih pending.
+- Detail: `docs/dev-log/2026-08-19-1600-admin-overtime-pending-mulai-phase4.md`.
+- Membatasi tabel Task Monitoring pada PIC dan Director Attendance > Task agar hanya bulan berjalan, serta mengubah urutan Due Date jadi dari yang terbaru.
+- Detail: `docs/dev-log/2026-08-19-1630-task-monitoring-bulan-berjalan.md`.
 
 ### 2026-08-11 (Selasa)
 - Mengubah perhitungan attendance agar posisi `Driver` dan `Executive Assistant` tidak terkena pengurangan rest 1 jam.
@@ -309,6 +315,9 @@ Aturan log:
 
 ### 2026-08-19
 - `2026-08-19-1015-select-provinsi-kota-selectpicker.md`
+- `2026-08-19-1530-fix-actor-execution-auto-overtime.md`
+- `2026-08-19-1600-admin-overtime-pending-mulai-phase4.md`
+- `2026-08-19-1630-task-monitoring-bulan-berjalan.md`
 
 ### 2026-08-18
 - `2026-08-18-1012-fix-auto-overtime-supervisor-pic.md`

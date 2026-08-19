@@ -227,6 +227,7 @@
                     lengthChange: false,
                     paging: true,
                     bInfo: true,
+                    order: [],
                     columns: [
                         {
                             data: 'staff',

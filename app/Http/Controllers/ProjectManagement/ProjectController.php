@@ -27,6 +27,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Laravolt\Indonesia\Models\City;
+use Laravolt\Indonesia\Models\Province;
 use Throwable;
 
 class ProjectController extends Controller
@@ -42,9 +44,11 @@ class ProjectController extends Controller
         return view('project_management.projects.index', array_merge($this->profileMetricData($employeeId), [
             'canManageProjects' => $canCreateProjects,
             'projectCompanyOptions' => $canCreateProjects ? $this->projectCompanyOptions() : collect(),
+            'projectCityOptions' => $canCreateProjects ? $this->projectCityOptions() : collect(),
             'projectCards' => $employeeId !== null
                 ? $this->projectCards($employeeId, $authenticatedUserId, $canManageEventProjects)
                 : collect(),
+            'projectProvinceOptions' => $canCreateProjects ? $this->projectProvinceOptions() : collect(),
             'projectStaffOptions' => $canCreateProjects ? $this->projectStaffOptions() : collect(),
             'projectStoreUrl' => route('project_management.projects.store'),
         ]));
@@ -79,6 +83,9 @@ class ProjectController extends Controller
                     'description' => $this->nullableStringValue($validated['description'] ?? null),
                     'image_path' => $projectImagePath,
                     'client_name' => $this->nullableStringValue($validated['client_name'] ?? null),
+                    'province_code' => $this->nullableStringValue($validated['province_code'] ?? null),
+                    'city_code' => $this->nullableStringValue($validated['city_code'] ?? null),
+                    'address' => $this->nullableStringValue($validated['address'] ?? null),
                     'live_event_start_date' => $validated['live_event_start_date'] ?? null,
                     'live_event_end_date' => $validated['live_event_end_date'] ?? null,
                     'start_date' => $validated['start_date'],
@@ -141,6 +148,9 @@ class ProjectController extends Controller
                     'description' => $this->nullableStringValue($validated['description'] ?? null),
                     'image_path' => $projectImagePath ?? $project->image_path,
                     'client_name' => $this->nullableStringValue($validated['client_name'] ?? null),
+                    'province_code' => $this->nullableStringValue($validated['province_code'] ?? null),
+                    'city_code' => $this->nullableStringValue($validated['city_code'] ?? null),
+                    'address' => $this->nullableStringValue($validated['address'] ?? null),
                     'live_event_start_date' => $validated['live_event_start_date'] ?? null,
                     'live_event_end_date' => $validated['live_event_end_date'] ?? null,
                     'start_date' => $validated['start_date'],
@@ -696,6 +706,37 @@ class ProjectController extends Controller
     }
 
     /**
+     * @return Collection<int, array{code:string, name:string}>
+     */
+    private function projectProvinceOptions(): Collection
+    {
+        return Province::query()
+            ->orderBy('name')
+            ->get(['code', 'name'])
+            ->map(fn (Province $province): array => [
+                'code' => (string) $province->code,
+                'name' => trim((string) $province->name),
+            ])
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, array{code:string, province_code:string, name:string}>
+     */
+    private function projectCityOptions(): Collection
+    {
+        return City::query()
+            ->orderBy('name')
+            ->get(['code', 'province_code', 'name'])
+            ->map(fn (City $city): array => [
+                'code' => (string) $city->code,
+                'province_code' => (string) $city->province_code,
+                'name' => trim((string) $city->name),
+            ])
+            ->values();
+    }
+
+    /**
      * @return Collection<int, array{id:string, label:string}>
      */
     private function projectStaffOptions(): Collection
@@ -926,6 +967,9 @@ class ProjectController extends Controller
                 'name' => trim((string) $project->name),
                 'description' => trim((string) ($project->description ?? '')),
                 'client_name' => trim((string) ($project->client_name ?? '')),
+                'province_code' => trim((string) ($project->province_code ?? '')),
+                'city_code' => trim((string) ($project->city_code ?? '')),
+                'address' => trim((string) ($project->address ?? '')),
                 'live_event_start_date' => $project->live_event_start_date?->toDateString() ?? '',
                 'live_event_end_date' => $project->live_event_end_date?->toDateString() ?? '',
                 'start_date' => $project->start_date?->toDateString() ?? '',
@@ -1234,7 +1278,7 @@ class ProjectController extends Controller
      */
     private function validateProjectPayload(Request $request): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'company_id' => ['required', 'uuid', 'exists:companies,id'],
             'staff_employee_ids' => ['required', 'array', 'min:1'],
             'staff_employee_ids.*' => ['required', 'uuid', 'exists:employees,id'],
@@ -1242,12 +1286,30 @@ class ProjectController extends Controller
             'description' => ['nullable', 'string', 'max:5000'],
             'project_image' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'client_name' => ['nullable', 'string', 'max:255'],
+            'province_code' => ['nullable', 'required_with:city_code', 'string', 'size:2', 'exists:indonesia_provinces,code'],
+            'city_code' => ['nullable', 'required_with:province_code', 'string', 'size:4', 'exists:indonesia_cities,code'],
+            'address' => ['nullable', 'string', 'max:2000'],
             'live_event_start_date' => ['nullable', 'date_format:Y-m-d'],
             'live_event_end_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:live_event_start_date'],
             'start_date' => ['required', 'date_format:Y-m-d'],
             'end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date'],
             'status' => ['nullable', 'in:active,pending,completed,cancelled'],
         ]);
+
+        $provinceCode = $this->nullableStringValue($validated['province_code'] ?? null);
+        $cityCode = $this->nullableStringValue($validated['city_code'] ?? null);
+
+        if (
+            $provinceCode !== null
+            && $cityCode !== null
+            && ! City::query()->where('code', $cityCode)->where('province_code', $provinceCode)->exists()
+        ) {
+            throw ValidationException::withMessages([
+                'city_code' => 'Kabupaten/kota harus sesuai dengan provinsi yang dipilih.',
+            ]);
+        }
+
+        return $validated;
     }
 
     private function generateProjectCodeFromName(string $projectName, string $companyId, ?string $exceptProjectId = null): string

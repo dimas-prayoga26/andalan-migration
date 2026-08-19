@@ -14,6 +14,7 @@ use App\Models\ProjectMember;
 use App\Models\ProjectTask;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -48,6 +49,21 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $projectDepartmentsMigration = File::get(database_path('migrations/2026_08_12_154047_create_project_departments_table.php'));
         $liveEventDatesMigration = File::get(database_path('migrations/2026_06_28_234546_add_live_event_dates_to_projects_table.php'));
         $projectImagePathMigration = collect(File::glob(database_path('migrations/*_add_image_path_to_projects_table.php')))
+            ->map(fn (string $path): string => File::get($path))
+            ->implode("\n");
+        $projectLocationMigration = collect(File::glob(database_path('migrations/*_add_location_fields_to_projects_table.php')))
+            ->map(fn (string $path): string => File::get($path))
+            ->implode("\n");
+        $indonesiaProvinceMigration = collect(File::glob(database_path('migrations/*_create_indonesia_provinces_table.php')))
+            ->map(fn (string $path): string => File::get($path))
+            ->implode("\n");
+        $indonesiaCityMigration = collect(File::glob(database_path('migrations/*_create_indonesia_cities_table.php')))
+            ->map(fn (string $path): string => File::get($path))
+            ->implode("\n");
+        $indonesiaDistrictMigration = collect(File::glob(database_path('migrations/*_create_indonesia_districts_table.php')))
+            ->map(fn (string $path): string => File::get($path))
+            ->implode("\n");
+        $indonesiaVillageMigration = collect(File::glob(database_path('migrations/*_create_indonesia_villages_table.php')))
             ->map(fn (string $path): string => File::get($path))
             ->implode("\n");
         $taskListSurface = $taskList.$taskListItemsPartial.$taskListWeekPlanPartial.$taskListProjectGridPartial;
@@ -333,6 +349,14 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('current_department_id', $projectController);
         $this->assertStringContainsString('live_event_start_date', $projectController);
         $this->assertStringContainsString('live_event_end_date', $projectController);
+        $this->assertStringContainsString('Laravolt\Indonesia\Models\Province', $projectController);
+        $this->assertStringContainsString('Laravolt\Indonesia\Models\City', $projectController);
+        $this->assertStringContainsString('projectProvinceOptions', $projectController);
+        $this->assertStringContainsString('projectCityOptions', $projectController);
+        $this->assertStringContainsString("'province_code' => ['nullable', 'required_with:city_code', 'string', 'size:2', 'exists:indonesia_provinces,code']", $projectController);
+        $this->assertStringContainsString("'city_code' => ['nullable', 'required_with:province_code', 'string', 'size:4', 'exists:indonesia_cities,code']", $projectController);
+        $this->assertStringContainsString("'address' => ['nullable', 'string', 'max:2000']", $projectController);
+        $this->assertStringContainsString('Kabupaten/kota harus sesuai dengan provinsi yang dipilih.', $projectController);
         $this->assertStringContainsString("'subtitle' => trim((string) (\$project->description ?? \$project->client_name ?? '-'))", $projectController);
         $this->assertStringContainsString('live_event_date_label', $projectController);
         $this->assertStringContainsString('live_event_duration_label', $projectController);
@@ -355,6 +379,21 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('projects_live_event_dates_index', $liveEventDatesMigration);
         $this->assertStringContainsString("\$table->string('image_path', 2048)->nullable()->after('description');", $projectImagePathMigration);
         $this->assertStringContainsString("\$table->dropColumn('image_path');", $projectImagePathMigration);
+        $this->assertStringContainsString("\$table->char('code', 2)->unique()", $indonesiaProvinceMigration);
+        $this->assertStringContainsString("\$table->char('code', 4)->unique()", $indonesiaCityMigration);
+        $this->assertStringContainsString("\$table->char('province_code', 2)", $indonesiaCityMigration);
+        $this->assertStringContainsString("->on('indonesia_provinces')", $indonesiaCityMigration);
+        $this->assertStringContainsString("\$table->char('code', 7)->unique()", $indonesiaDistrictMigration);
+        $this->assertStringContainsString("\$table->char('city_code', 4)", $indonesiaDistrictMigration);
+        $this->assertStringContainsString("->on('indonesia_cities')", $indonesiaDistrictMigration);
+        $this->assertStringContainsString("\$table->char('code', 10)->unique()", $indonesiaVillageMigration);
+        $this->assertStringContainsString("\$table->char('district_code', 7)", $indonesiaVillageMigration);
+        $this->assertStringContainsString("->on('indonesia_districts')", $indonesiaVillageMigration);
+        $this->assertStringContainsString("\$table->char('province_code', 2)->nullable()->after('client_name')", $projectLocationMigration);
+        $this->assertStringContainsString("\$table->char('city_code', 4)->nullable()->after('province_code')", $projectLocationMigration);
+        $this->assertStringContainsString("\$table->text('address')->nullable()->after('city_code')", $projectLocationMigration);
+        $this->assertStringContainsString("->on('indonesia_provinces')", $projectLocationMigration);
+        $this->assertStringContainsString("->on('indonesia_cities')", $projectLocationMigration);
         $this->assertStringContainsString("route('project_management.projects.tasks.toggle'", $projectController);
         $this->assertStringContainsString('public function storeTask(Request $request, Project $project): JsonResponse', $projectController);
         $this->assertStringContainsString('public function updateTask(Request $request, Project $project, ProjectTask $projectTask): JsonResponse', $projectController);
@@ -401,7 +440,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('fillProjectCreateForm', $projectsIndex);
         $this->assertStringContainsString('Update Project', $projectsIndex);
         $this->assertStringContainsString('_method: \'DELETE\'', $projectsIndex);
-        $this->assertStringContainsString("asset('assets/vendor/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css')", $projectsIndex);
         $this->assertStringContainsString('class="form-control project-staff-select2 js-skip-selectpicker"', $projectsIndex);
         $this->assertStringContainsString('name="staff_employee_ids[]" multiple data-placeholder="Select staff"', $projectsIndex);
         $this->assertStringContainsString('selectElement.select2({', $projectsIndex);
@@ -410,17 +448,44 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('.project-create-select2-dropdown .select2-results__option[aria-selected="true"]::after', $projectsIndex);
         $this->assertStringContainsString('content: "\f00c";', $projectsIndex);
         $this->assertStringNotContainsString('data-actions-box="true"', $projectsIndex);
-        $this->assertStringContainsString('class="form-control project-create-date-input js-project-create-date-input"', $projectsIndex);
-        $this->assertStringContainsString('initializeProjectCreateDatePickers', $projectsIndex);
-        $this->assertStringContainsString('hideProjectCreateDatePickers', $projectsIndex);
+        $this->assertStringContainsString('$projectProvinceOptions = collect($projectProvinceOptions ?? []);', $projectsIndex);
+        $this->assertStringContainsString('$projectCityOptions = collect($projectCityOptions ?? []);', $projectsIndex);
+        $this->assertStringContainsString('selectpicker form-select js-project-location-selectpicker" id="projectProvinceCode" name="province_code" data-live-search="true" data-width="100%" data-size="5"', $projectsIndex);
+        $this->assertStringContainsString('selectpicker form-select js-project-location-selectpicker" id="projectCityCode" name="city_code" data-live-search="true" data-width="100%" data-size="5"', $projectsIndex);
+        $this->assertStringContainsString('data-province-code="{{ $cityOption[\'province_code\'] }}"', $projectsIndex);
+        $this->assertStringContainsString('id="projectAddress" name="address"', $projectsIndex);
+        $this->assertStringContainsString('refreshProjectLocationSelectpickers', $projectsIndex);
+        $this->assertStringContainsString("$(window).on('load.projectLocationSelectpicker'", $projectsIndex);
+        $this->assertStringContainsString('syncProjectCityOptions', $projectsIndex);
+        $this->assertStringContainsString('bindProjectLocationDefaults', $projectsIndex);
+        $this->assertStringContainsString("String(option.attr('data-province-code')) === String(provinceCode)", $projectsIndex);
+        $this->assertStringContainsString('Live Event Date', $projectsIndex);
+        $this->assertStringContainsString('id="projectLiveEventDateRange"', $projectsIndex);
+        $this->assertStringContainsString('id="projectDateRange"', $projectsIndex);
+        $this->assertStringContainsString('name="live_event_start_date"', $projectsIndex);
+        $this->assertStringContainsString('name="live_event_end_date"', $projectsIndex);
+        $this->assertStringContainsString('name="start_date" required', $projectsIndex);
+        $this->assertStringContainsString('name="end_date" required', $projectsIndex);
+        $this->assertStringContainsString('class="form-control project-create-date-range-input js-project-create-date-range-input"', $projectsIndex);
+        $this->assertStringContainsString('initializeProjectCreateDateRangePickers', $projectsIndex);
+        $this->assertStringContainsString('hideProjectCreateDateRangePickers', $projectsIndex);
         $this->assertStringContainsString('bindProjectLifecycleDateDefaults', $projectsIndex);
-        $this->assertStringContainsString("syncProjectLifecycleDate('#projectLiveEventStartDate', '#projectStartDate');", $projectsIndex);
-        $this->assertStringContainsString("syncProjectLifecycleDate('#projectLiveEventEndDate', '#projectEndDate');", $projectsIndex);
-        $this->assertStringContainsString("format: 'YYYY-MM-DD'", $projectsIndex);
-        $this->assertStringContainsString("widgetParent: $('#projectCreateModal .modal-body')", $projectsIndex);
-        $this->assertStringContainsString("$(document).on('select2:opening', '#projectStaffEmployeeIds', hideProjectCreateDatePickers);", $projectsIndex);
+        $this->assertStringContainsString('syncProjectLifecycleDateRange', $projectsIndex);
+        $this->assertStringContainsString('$.fn.daterangepicker', $projectsIndex);
+        $this->assertStringContainsString("format: 'DD/MM/YYYY'", $projectsIndex);
+        $this->assertStringContainsString("picker.startDate.format('YYYY-MM-DD')", $projectsIndex);
+        $this->assertStringContainsString("picker.endDate.format('YYYY-MM-DD')", $projectsIndex);
+        $this->assertStringContainsString("parentEl: '#projectCreateModal'", $projectsIndex);
+        $this->assertStringContainsString("$(document).on('select2:opening', '#projectStaffEmployeeIds', hideProjectCreateDateRangePickers);", $projectsIndex);
         $this->assertStringNotContainsString('type="date" class="form-control" id="projectLiveEventStartDate"', $projectsIndex);
         $this->assertStringNotContainsString('type="date" class="form-control" id="projectStartDate"', $projectsIndex);
+        $this->assertStringNotContainsString('Live Event Start</label>', $projectsIndex);
+        $this->assertStringNotContainsString('Live Event End</label>', $projectsIndex);
+        $this->assertStringNotContainsString('Start Date <span class="required text-danger">*</span></label>', $projectsIndex);
+        $this->assertStringNotContainsString('End Date <span class="required text-danger">*</span></label>', $projectsIndex);
+        $this->assertStringNotContainsString('js-project-create-date-input', $projectsIndex);
+        $this->assertStringNotContainsString('initializeProjectCreateDatePickers', $projectsIndex);
+        $this->assertStringNotContainsString('hideProjectCreateDatePickers', $projectsIndex);
         $this->assertStringContainsString('enctype="multipart/form-data"', $projectsIndex);
         $this->assertStringContainsString('Project Image', $projectsIndex);
         $this->assertStringContainsString('type="file" class="form-control" id="projectImageFile" name="project_image"', $projectsIndex);
@@ -981,6 +1046,20 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         ]);
         $this->assignEmployeeToDepartment($staffEmployee, $staffDepartment);
 
+        DB::table('indonesia_provinces')->insert([
+            'code' => '32',
+            'name' => 'JAWA BARAT',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('indonesia_cities')->insert([
+            'code' => '3273',
+            'province_code' => '32',
+            'name' => 'KOTA BANDUNG',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $this->withoutMiddleware();
 
         $response = $this
@@ -991,6 +1070,9 @@ class ProjectManagementOverviewLayoutTest extends TestCase
                 'name' => 'Creator Member Project',
                 'description' => 'Project creator should become PIC and active team member.',
                 'client_name' => 'RNB',
+                'province_code' => '32',
+                'city_code' => '3273',
+                'address' => 'Jl. Asia Afrika No. 1',
                 'start_date' => '2026-08-18',
                 'end_date' => '2026-08-20',
             ]);
@@ -1006,6 +1088,9 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame((string) $picUser->id, (string) $project->created_by);
+        $this->assertSame('32', $project->province_code);
+        $this->assertSame('3273', $project->city_code);
+        $this->assertSame('Jl. Asia Afrika No. 1', $project->address);
 
         foreach ([$picEmployee, $staffEmployee] as $employee) {
             $this->assertDatabaseHas('project_members', [
@@ -1353,6 +1438,23 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             $table->timestamps();
         });
 
+        Schema::create('indonesia_provinces', function (Blueprint $table): void {
+            $table->id();
+            $table->char('code', 2)->unique();
+            $table->string('name');
+            $table->text('meta')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('indonesia_cities', function (Blueprint $table): void {
+            $table->id();
+            $table->char('code', 4)->unique();
+            $table->char('province_code', 2);
+            $table->string('name');
+            $table->text('meta')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('projects', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('company_id')->nullable()->constrained('companies', 'id')->nullOnDelete();
@@ -1360,6 +1462,9 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             $table->string('name');
             $table->text('description')->nullable();
             $table->string('client_name')->nullable();
+            $table->char('province_code', 2)->nullable();
+            $table->char('city_code', 4)->nullable();
+            $table->text('address')->nullable();
             $table->date('live_event_start_date')->nullable();
             $table->date('live_event_end_date')->nullable();
             $table->date('start_date')->nullable();

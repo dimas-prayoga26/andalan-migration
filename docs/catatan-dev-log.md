@@ -11,6 +11,16 @@ Aturan log:
 - Memperbaiki auto overtime 12 jam agar `assigned_by` memakai PIC/supervisor aktif dari `employee_pic_assignments`, bukan staff yang melakukan clock-out.
 - Perubahan ini mencegah halaman detail overtime menampilkan staff sebagai `Supervisor` / fallback `Approved by Supervisor`.
 - Detail: `docs/dev-log/2026-08-18-1012-fix-auto-overtime-supervisor-pic.md`.
+- Membatasi title project card pada halaman Project Management > Projects menjadi satu baris dengan ellipsis.
+- Detail: `docs/dev-log/2026-08-18-1429-line-clamp-title-project-card.md`.
+- Menggabungkan tanggal live event dan tanggal project pada modal Add/Update Project menjadi date range picker.
+- Detail: `docs/dev-log/2026-08-18-1448-project-modal-date-range.md`.
+- Menambahkan pilihan Provinsi, Kabupaten/Kota, dan Alamat pada modal Add/Update Project memakai data lokal `laravolt/indonesia`.
+- Detail: `docs/dev-log/2026-08-18-1524-project-location-laravolt.md`.
+
+### 2026-08-19 (Rabu)
+- Mengganti style select Provinsi dan Kabupaten/Kota pada modal Add/Update Project dari Select2 menjadi `selectpicker`, menyamakan tampilan dengan field Company.
+- Detail: `docs/dev-log/2026-08-19-1015-select-provinsi-kota-selectpicker.md`.
 
 ### 2026-08-11 (Selasa)
 - Mengubah perhitungan attendance agar posisi `Driver` dan `Executive Assistant` tidak terkena pengurangan rest 1 jam.
@@ -297,8 +307,14 @@ Aturan log:
 
 ## File Detail Entry
 
+### 2026-08-19
+- `2026-08-19-1015-select-provinsi-kota-selectpicker.md`
+
 ### 2026-08-18
 - `2026-08-18-1012-fix-auto-overtime-supervisor-pic.md`
+- `2026-08-18-1429-line-clamp-title-project-card.md`
+- `2026-08-18-1448-project-modal-date-range.md`
+- `2026-08-18-1524-project-location-laravolt.md`
 
 ### 2026-07-08
 - `2026-07-08-1515-ringkasan-perubahan-attendance-leave-business-trip-overtime.md`

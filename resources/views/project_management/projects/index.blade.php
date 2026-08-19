@@ -15,7 +15,6 @@
 @if ($canManageProjects ?? false)
     <link rel="stylesheet" href="{{ asset('assets/vendor/select2/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/vendor/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css') }}">
 @endif
 <style>
     .project-card {
@@ -27,6 +26,18 @@
 
     .project-card-description {
         min-height: 62px;
+    }
+
+    .project-card-title-wrapper {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .project-card-title {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .project-card-folder {
@@ -175,6 +186,26 @@
         margin-top: 5px;
     }
 
+    .project-create-form .select2-container--default .select2-selection--single {
+        align-items: center;
+        border-color: #e5e7eb;
+        border-radius: 8px;
+        display: flex;
+        min-height: 46px;
+    }
+
+    .project-create-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #374151;
+        line-height: 44px;
+        padding-left: 16px;
+        padding-right: 32px;
+    }
+
+    .project-create-form .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 44px;
+        right: 10px;
+    }
+
     .project-create-select2-dropdown {
         z-index: 1065;
     }
@@ -205,11 +236,12 @@
         color: #fff;
     }
 
-    .project-create-date-input {
+    .project-create-date-range-input {
+        background-color: #fff;
         cursor: pointer;
     }
 
-    #projectCreateModal .bootstrap-datetimepicker-widget {
+    #projectCreateModal .daterangepicker {
         z-index: 1066;
     }
 </style>
@@ -229,6 +261,8 @@
 @php
     $projectCards = collect($projectCards ?? []);
     $projectCompanyOptions = collect($projectCompanyOptions ?? []);
+    $projectCityOptions = collect($projectCityOptions ?? []);
+    $projectProvinceOptions = collect($projectProvinceOptions ?? []);
     $projectStaffOptions = collect($projectStaffOptions ?? []);
 @endphp
 
@@ -252,9 +286,9 @@
                             <div class="avatar avatar-sm rounded me-3 p-2 project-card-avatar">
                                 <img src="{{ $projectCard['image_url'] ?? asset('assets/images/files/folder.avif') }}" class="project-card-folder" alt="">
                             </div>
-                            <div class="clearfix pe-2">
+                            <div class="clearfix pe-2 project-card-title-wrapper">
                                 <h6 class="mb-0 fw-semibold">
-                                    <a href="{{ $projectCard['detail_url'] }}" class="stretched-link">{{ $projectCard['name'] }}</a>
+                                    <a href="{{ $projectCard['detail_url'] }}" class="stretched-link project-card-title" title="{{ $projectCard['name'] }}">{{ $projectCard['name'] }}</a>
                                 </h6>
                                 <span class="small">{{ $projectCard['client_name'] }}</span>
                             </div>
@@ -369,20 +403,36 @@
                                 <input type="text" class="form-control" id="projectClientName" name="client_name" maxlength="255" placeholder="RNB">
                             </div>
                             <div class="col-md-6">
-                                <label for="projectLiveEventStartDate" class="form-label">Live Event Start</label>
-                                <input type="text" class="form-control project-create-date-input js-project-create-date-input" id="projectLiveEventStartDate" name="live_event_start_date" placeholder="yyyy-mm-dd" autocomplete="off">
+                                <label for="projectProvinceCode" class="form-label">Provinsi</label>
+                                <select class="selectpicker form-select js-project-location-selectpicker" id="projectProvinceCode" name="province_code" data-live-search="true" data-width="100%" data-size="5" title="Select province">
+                                    @foreach ($projectProvinceOptions as $provinceOption)
+                                        <option value="{{ $provinceOption['code'] }}">{{ $provinceOption['name'] }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                             <div class="col-md-6">
-                                <label for="projectLiveEventEndDate" class="form-label">Live Event End</label>
-                                <input type="text" class="form-control project-create-date-input js-project-create-date-input" id="projectLiveEventEndDate" name="live_event_end_date" placeholder="yyyy-mm-dd" autocomplete="off">
+                                <label for="projectCityCode" class="form-label">Kabupaten/Kota</label>
+                                <select class="selectpicker form-select js-project-location-selectpicker" id="projectCityCode" name="city_code" data-live-search="true" data-width="100%" data-size="5" title="Select city">
+                                    @foreach ($projectCityOptions as $cityOption)
+                                        <option value="{{ $cityOption['code'] }}" data-province-code="{{ $cityOption['province_code'] }}">{{ $cityOption['name'] }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                             <div class="col-md-6">
-                                <label for="projectStartDate" class="form-label">Start Date <span class="required text-danger">*</span></label>
-                                <input type="text" class="form-control project-create-date-input js-project-create-date-input" id="projectStartDate" name="start_date" placeholder="yyyy-mm-dd" autocomplete="off" required>
+                                <label for="projectLiveEventDateRange" class="form-label">Live Event Date</label>
+                                <input type="hidden" id="projectLiveEventStartDate" name="live_event_start_date">
+                                <input type="hidden" id="projectLiveEventEndDate" name="live_event_end_date">
+                                <input type="text" class="form-control project-create-date-range-input js-project-create-date-range-input" id="projectLiveEventDateRange" placeholder="Select date range" autocomplete="off" readonly data-start-target="#projectLiveEventStartDate" data-end-target="#projectLiveEventEndDate">
                             </div>
                             <div class="col-md-6">
-                                <label for="projectEndDate" class="form-label">End Date <span class="required text-danger">*</span></label>
-                                <input type="text" class="form-control project-create-date-input js-project-create-date-input" id="projectEndDate" name="end_date" placeholder="yyyy-mm-dd" autocomplete="off" required>
+                                <label for="projectDateRange" class="form-label">Date <span class="required text-danger">*</span></label>
+                                <input type="hidden" id="projectStartDate" name="start_date" required>
+                                <input type="hidden" id="projectEndDate" name="end_date" required>
+                                <input type="text" class="form-control project-create-date-range-input js-project-create-date-range-input" id="projectDateRange" placeholder="Select date range" autocomplete="off" readonly required data-start-target="#projectStartDate" data-end-target="#projectEndDate">
+                            </div>
+                            <div class="col-12">
+                                <label for="projectAddress" class="form-label">Alamat</label>
+                                <textarea class="form-control" id="projectAddress" name="address" rows="2" maxlength="2000" placeholder="Tambahkan alamat project"></textarea>
                             </div>
                             <div class="col-12">
                                 <label for="projectDescription" class="form-label">Description</label>
@@ -458,91 +508,147 @@
 
                 $('#projectCreateModal').modal('show');
             };
-            var initializeProjectCreateDatePickers = function () {
-                if (! $.fn.datetimepicker || typeof moment === 'undefined') {
+            var formatProjectCreateDateRangeDisplay = function (startDateValue, endDateValue) {
+                if (! startDateValue || ! endDateValue || typeof moment === 'undefined') {
+                    return '';
+                }
+
+                var startDate = moment(startDateValue, 'YYYY-MM-DD');
+                var endDate = moment(endDateValue, 'YYYY-MM-DD');
+
+                if (! startDate.isValid() || ! endDate.isValid()) {
+                    return '';
+                }
+
+                return startDate.format('DD/MM/YYYY') + ' - ' + endDate.format('DD/MM/YYYY');
+            };
+            var setProjectCreateDateRangeValue = function (rangeInput, startDateValue, endDateValue, shouldTriggerChange) {
+                var startDate = startDateValue || '';
+                var endDate = endDateValue || startDate;
+                var startTarget = $(rangeInput.data('startTarget'));
+                var endTarget = $(rangeInput.data('endTarget'));
+
+                startTarget.val(startDate);
+                endTarget.val(endDate);
+                rangeInput.val(formatProjectCreateDateRangeDisplay(startDate, endDate));
+
+                if ($.fn.daterangepicker && rangeInput.data('daterangepicker') && typeof moment !== 'undefined' && startDate && endDate) {
+                    var startMoment = moment(startDate, 'YYYY-MM-DD');
+                    var endMoment = moment(endDate, 'YYYY-MM-DD');
+
+                    if (startMoment.isValid() && endMoment.isValid()) {
+                        rangeInput.data('daterangepicker').setStartDate(startMoment);
+                        rangeInput.data('daterangepicker').setEndDate(endMoment);
+                    }
+                }
+
+                if (shouldTriggerChange !== false) {
+                    rangeInput.trigger('change.projectCreateRangeValue');
+                }
+            };
+            var clearProjectCreateDateRangeValue = function (rangeInput) {
+                $(rangeInput.data('startTarget')).val('');
+                $(rangeInput.data('endTarget')).val('');
+                rangeInput.val('').trigger('change.projectCreateRangeValue');
+            };
+            var initializeProjectCreateDateRangePickers = function () {
+                if (! $.fn.daterangepicker || typeof moment === 'undefined') {
                     return;
                 }
 
-                $('.js-project-create-date-input').each(function () {
+                $('.js-project-create-date-range-input').each(function () {
                     var input = $(this);
+                    var startTarget = $(input.data('startTarget'));
+                    var endTarget = $(input.data('endTarget'));
 
-                    if (input.data('DateTimePicker')) {
+                    input.val(formatProjectCreateDateRangeDisplay(startTarget.val(), endTarget.val()));
+
+                    if (input.data('daterangepicker-initialized')) {
                         return;
                     }
 
-                    input.datetimepicker({
-                        format: 'YYYY-MM-DD',
-                        useCurrent: false,
-                        widgetParent: $('#projectCreateModal .modal-body'),
-                        widgetPositioning: {
-                            horizontal: 'auto',
-                            vertical: 'bottom',
-                        },
-                        icons: {
-                            previous: 'las la-angle-left',
-                            next: 'las la-angle-right',
+                    input.daterangepicker({
+                        autoApply: true,
+                        autoUpdateInput: false,
+                        parentEl: '#projectCreateModal',
+                        locale: {
+                            format: 'DD/MM/YYYY',
+                            cancelLabel: 'Clear',
                         },
                     });
+
+                    input.on('apply.daterangepicker', function (event, picker) {
+                        setProjectCreateDateRangeValue(input, picker.startDate.format('YYYY-MM-DD'), picker.endDate.format('YYYY-MM-DD'));
+                    });
+
+                    input.on('cancel.daterangepicker', function () {
+                        clearProjectCreateDateRangeValue(input);
+                    });
+
+                    input.data('daterangepicker-initialized', true);
                 });
             };
-            var hideProjectCreateDatePickers = function () {
-                $('.js-project-create-date-input').each(function () {
-                    var datePicker = $(this).data('DateTimePicker');
+            var hideProjectCreateDateRangePickers = function () {
+                $('.js-project-create-date-range-input').each(function () {
+                    var dateRangePicker = $(this).data('daterangepicker');
 
-                    if (datePicker) {
-                        datePicker.hide();
+                    if (dateRangePicker && typeof dateRangePicker.hide === 'function') {
+                        dateRangePicker.hide();
                     }
                 });
             };
-            var setProjectCreateDateValue = function (targetInput, dateValue) {
-                var datePicker = targetInput.data('DateTimePicker');
+            var syncProjectLifecycleDateRange = function () {
+                var liveStartDate = $('#projectLiveEventStartDate').val();
+                var liveEndDate = $('#projectLiveEventEndDate').val();
 
-                if (! dateValue) {
-                    clearProjectCreateDateValue(targetInput);
-
+                if (! liveStartDate || ! liveEndDate || $('#projectStartDate').val() || $('#projectEndDate').val()) {
                     return;
                 }
 
-                if (datePicker && typeof moment !== 'undefined') {
-                    datePicker.date(moment(dateValue, 'YYYY-MM-DD'));
-
-                    return;
-                }
-
-                targetInput.val(dateValue).trigger('change');
-            };
-            var clearProjectCreateDateValue = function (targetInput) {
-                var datePicker = targetInput.data('DateTimePicker');
-
-                if (datePicker) {
-                    datePicker.clear();
-                }
-
-                targetInput.val('').trigger('change');
-            };
-            var syncProjectLifecycleDate = function (sourceSelector, targetSelector) {
-                var sourceInput = $(sourceSelector);
-                var targetInput = $(targetSelector);
-                var sourceValue = sourceInput.val();
-
-                if (! sourceValue || targetInput.val()) {
-                    return;
-                }
-
-                setProjectCreateDateValue(targetInput, sourceValue);
+                setProjectCreateDateRangeValue($('#projectDateRange'), liveStartDate, liveEndDate, false);
             };
             var bindProjectLifecycleDateDefaults = function () {
-                $('#projectLiveEventStartDate')
-                    .off('dp.change.projectCreateSync change.projectCreateSync')
-                    .on('dp.change.projectCreateSync change.projectCreateSync', function () {
-                        syncProjectLifecycleDate('#projectLiveEventStartDate', '#projectStartDate');
+                $('#projectLiveEventDateRange')
+                    .off('apply.daterangepicker.projectCreateSync change.projectCreateSync')
+                    .on('apply.daterangepicker.projectCreateSync change.projectCreateSync', function () {
+                        syncProjectLifecycleDateRange();
                     });
+            };
+            var syncProjectCityOptions = function (shouldResetCity) {
+                var provinceCode = $('#projectProvinceCode').val();
+                var citySelect = $('#projectCityCode');
+                var selectedCityOption = citySelect.find('option:selected');
 
-                $('#projectLiveEventEndDate')
-                    .off('dp.change.projectCreateSync change.projectCreateSync')
-                    .on('dp.change.projectCreateSync change.projectCreateSync', function () {
-                        syncProjectLifecycleDate('#projectLiveEventEndDate', '#projectEndDate');
+                citySelect.find('option[data-province-code]').each(function () {
+                    var option = $(this);
+                    var isVisible = ! provinceCode || String(option.attr('data-province-code')) === String(provinceCode);
+
+                    option.prop('disabled', ! isVisible).prop('hidden', ! isVisible);
+                });
+
+                if (shouldResetCity || (selectedCityOption.length && selectedCityOption.prop('disabled'))) {
+                    citySelect.val('');
+                }
+
+                citySelect.trigger('change');
+
+                if ($.fn.selectpicker) {
+                    citySelect.selectpicker('refresh');
+                }
+            };
+            var bindProjectLocationDefaults = function () {
+                $('#projectProvinceCode')
+                    .off('change.projectLocation')
+                    .on('change.projectLocation', function () {
+                        syncProjectCityOptions(true);
                     });
+            };
+            var refreshProjectLocationSelectpickers = function () {
+                if (! $.fn.selectpicker) {
+                    return;
+                }
+
+                $('.js-project-location-selectpicker').selectpicker('refresh');
             };
             var initializeProjectStaffSelect2 = function () {
                 var selectElement = $('#projectStaffEmployeeIds');
@@ -581,6 +687,7 @@
                 }
 
                 initializeProjectStaffSelect2();
+                refreshProjectLocationSelectpickers();
             };
             var setProjectCreateMode = function (mode, payload) {
                 var form = $('#projectCreateForm');
@@ -596,16 +703,18 @@
 
                 form[0]?.reset();
                 setProjectCreateMode('create', {});
-                clearProjectCreateDateValue($('#projectLiveEventStartDate'));
-                clearProjectCreateDateValue($('#projectLiveEventEndDate'));
-                clearProjectCreateDateValue($('#projectStartDate'));
-                clearProjectCreateDateValue($('#projectEndDate'));
+                clearProjectCreateDateRangeValue($('#projectLiveEventDateRange'));
+                clearProjectCreateDateRangeValue($('#projectDateRange'));
                 $('#projectStaffEmployeeIds').val(null).trigger('change');
                 $('#projectCompanyId').val('');
+                $('#projectProvinceCode').val('').trigger('change');
+                syncProjectCityOptions(true);
 
                 if ($.fn.selectpicker) {
                     $('#projectCompanyId').selectpicker('refresh');
                 }
+
+                refreshProjectLocationSelectpickers();
             };
             var fillProjectCreateForm = function (payload) {
                 resetProjectCreateForm();
@@ -613,16 +722,21 @@
                 $('#projectCompanyId').val(payload.company_id || '');
                 $('#projectName').val(payload.name || '');
                 $('#projectClientName').val(payload.client_name || '');
+                $('#projectProvinceCode').val(payload.province_code || '').trigger('change');
+                syncProjectCityOptions(false);
+                $('#projectCityCode').val(payload.city_code || '').trigger('change');
+                syncProjectCityOptions(false);
+                $('#projectAddress').val(payload.address || '');
                 $('#projectDescription').val(payload.description || '');
 
                 if ($.fn.selectpicker) {
                     $('#projectCompanyId').selectpicker('refresh');
                 }
 
-                setProjectCreateDateValue($('#projectLiveEventStartDate'), payload.live_event_start_date || '');
-                setProjectCreateDateValue($('#projectLiveEventEndDate'), payload.live_event_end_date || '');
-                setProjectCreateDateValue($('#projectStartDate'), payload.start_date || '');
-                setProjectCreateDateValue($('#projectEndDate'), payload.end_date || '');
+                refreshProjectLocationSelectpickers();
+
+                setProjectCreateDateRangeValue($('#projectLiveEventDateRange'), payload.live_event_start_date || '', payload.live_event_end_date || '');
+                setProjectCreateDateRangeValue($('#projectDateRange'), payload.start_date || '', payload.end_date || '');
                 $('#projectStaffEmployeeIds').val(payload.staff_employee_ids || []).trigger('change');
             };
             var handleProjectCreateAjaxError = function (xhr) {
@@ -638,25 +752,39 @@
 
             $('#projectCreateModal').on('shown.bs.modal', function () {
                 refreshProjectCreateSelects();
-                initializeProjectCreateDatePickers();
+                window.setTimeout(function () {
+                    refreshProjectLocationSelectpickers();
+                    syncProjectCityOptions(false);
+                    initializeProjectCreateDateRangePickers();
+                }, 0);
             });
             $('#projectCreateModal').on('hidden.bs.modal', function () {
-                hideProjectCreateDatePickers();
+                hideProjectCreateDateRangePickers();
                 resetProjectCreateForm();
             });
             $('#projectCreateModal').on('mousedown', function (event) {
-                if ($(event.target).closest('.bootstrap-datetimepicker-widget, .js-project-create-date-input').length) {
+                if ($(event.target).closest('.daterangepicker, .js-project-create-date-range-input').length) {
                     return;
                 }
 
-                hideProjectCreateDatePickers();
+                hideProjectCreateDateRangePickers();
             });
-            $(document).on('focus', '#projectCreateModal input:not(.js-project-create-date-input), #projectCreateModal textarea, #projectCreateModal select', hideProjectCreateDatePickers);
-            $(document).on('select2:opening', '#projectStaffEmployeeIds', hideProjectCreateDatePickers);
+            $(document).on('focus', '#projectCreateModal input:not(.js-project-create-date-range-input), #projectCreateModal textarea, #projectCreateModal select', hideProjectCreateDateRangePickers);
+            $(document).on('select2:opening', '#projectStaffEmployeeIds', hideProjectCreateDateRangePickers);
 
-            initializeProjectCreateDatePickers();
+            initializeProjectCreateDateRangePickers();
             bindProjectLifecycleDateDefaults();
+            bindProjectLocationDefaults();
+            refreshProjectLocationSelectpickers();
+            syncProjectCityOptions(false);
             initializeProjectStaffSelect2();
+
+            $(window).on('load.projectLocationSelectpicker', function () {
+                window.setTimeout(function () {
+                    refreshProjectLocationSelectpickers();
+                    syncProjectCityOptions(false);
+                }, 0);
+            });
 
             $(document).on('click', '.js-project-edit', function (event) {
                 event.preventDefault();
@@ -669,7 +797,7 @@
                 }
 
                 refreshProjectCreateSelects();
-                initializeProjectCreateDatePickers();
+                initializeProjectCreateDateRangePickers();
                 fillProjectCreateForm(payload);
                 showProjectCreateModal();
             });
@@ -729,6 +857,16 @@
                 var formData = new FormData(this);
                 var submitButton = $('#projectCreateSubmit');
                 var formMethod = form.data('formMethod') || 'POST';
+
+                if (! formData.get('start_date') || ! formData.get('end_date')) {
+                    showProjectCreateAlert({
+                        icon: 'warning',
+                        title: 'Tanggal belum dipilih',
+                        text: 'Pilih date range project terlebih dahulu.',
+                    });
+
+                    return;
+                }
 
                 if (formMethod !== 'POST') {
                     formData.append('_method', formMethod);

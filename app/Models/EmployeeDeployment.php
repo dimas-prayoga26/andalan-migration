@@ -65,4 +65,9 @@ class EmployeeDeployment extends Model
     {
         return $this->belongsTo(Department::class, 'current_department_id', 'id');
     }
+
+    public function eventDivision(): BelongsTo
+    {
+        return $this->belongsTo(EventDivision::class, 'current_event_division_id', 'id');
+    }
 }

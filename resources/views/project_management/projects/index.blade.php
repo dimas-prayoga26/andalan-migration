@@ -109,7 +109,7 @@
         color: #fff;
     }
 
-    .project-department-add-task {
+    .project-division-add-task {
         appearance: none;
         background: transparent;
         border: 0;
@@ -121,8 +121,8 @@
         white-space: nowrap;
     }
 
-    .project-department-add-task:hover,
-    .project-department-add-task:focus {
+    .project-division-add-task:hover,
+    .project-division-add-task:focus {
         color: #22a447;
         text-decoration: none;
     }
@@ -716,6 +716,17 @@
 
                 refreshProjectLocationSelectpickers();
             };
+            var ensureProjectStaffOptionsPresent = function (staffMembers) {
+                var selectElement = $('#projectStaffEmployeeIds');
+
+                (staffMembers || []).forEach(function (staffMember) {
+                    if (! staffMember || ! staffMember.id || selectElement.find('option[value="' + staffMember.id + '"]').length) {
+                        return;
+                    }
+
+                    selectElement.append($('<option></option>').attr('value', staffMember.id).text(staffMember.label || ''));
+                });
+            };
             var fillProjectCreateForm = function (payload) {
                 resetProjectCreateForm();
                 setProjectCreateMode('edit', payload);
@@ -737,6 +748,7 @@
 
                 setProjectCreateDateRangeValue($('#projectLiveEventDateRange'), payload.live_event_start_date || '', payload.live_event_end_date || '');
                 setProjectCreateDateRangeValue($('#projectDateRange'), payload.start_date || '', payload.end_date || '');
+                ensureProjectStaffOptionsPresent(payload.staff_members || []);
                 $('#projectStaffEmployeeIds').val(payload.staff_employee_ids || []).trigger('change');
             };
             var handleProjectCreateAjaxError = function (xhr) {

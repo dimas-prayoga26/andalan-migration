@@ -54,4 +54,9 @@ class ProjectTask extends Model
     {
         return $this->belongsTo(AttendanceOvertime::class, 'overtime_id', 'id');
     }
+
+    public function eventDivision(): BelongsTo
+    {
+        return $this->belongsTo(EventDivision::class, 'event_division_id', 'id');
+    }
 }

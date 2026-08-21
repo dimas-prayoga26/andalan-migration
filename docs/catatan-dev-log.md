@@ -7,6 +7,11 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-08-21 (Jumat)
+- Merapikan tampilan detail Project Management agar sisa class/ID/copy lama `department` diganti menjadi `division`, mengikuti sumber data baru `event_divisions`.
+- Memastikan detail project tetap membaca scope dari `project_division_event`, `event_divisions`, `project_tasks.event_division_id`, dan `employee_deployments.current_event_division_id`, bukan `departments`.
+- Detail: `docs/dev-log/2026-08-21-1053-project-detail-division-event-cleanup.md`.
+
 ### 2026-08-18 (Selasa)
 - Memperbaiki auto overtime 12 jam agar `assigned_by` memakai PIC/supervisor aktif dari `employee_pic_assignments`, bukan staff yang melakukan clock-out.
 - Perubahan ini mencegah halaman detail overtime menampilkan staff sebagai `Supervisor` / fallback `Approved by Supervisor`.
@@ -312,6 +317,9 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-08-21
+- `2026-08-21-1053-project-detail-division-event-cleanup.md`
 
 ### 2026-08-19
 - `2026-08-19-1015-select-provinsi-kota-selectpicker.md`

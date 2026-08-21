@@ -71,7 +71,7 @@ Route::middleware('auth')->group(function (): void {
         Route::delete('/project-management/projects/{project}', [ProjectManagementProjectController::class, 'destroyProject'])->name('project_management.projects.destroy');
         Route::get('/project-management/projects/detail', [ProjectManagementProjectController::class, 'detailFallback'])->name('project_management.projects.detail.fallback');
         Route::get('/project-management/projects/{project}', [ProjectManagementProjectController::class, 'detail'])->name('project_management.projects.detail');
-        Route::patch('/project-management/projects/{project}/departments/{department}/google-drive', [ProjectManagementProjectController::class, 'updateDepartmentGoogleDrive'])->name('project_management.projects.departments.google-drive.update');
+        Route::patch('/project-management/projects/{project}/event-divisions/{eventDivision}/google-drive', [ProjectManagementProjectController::class, 'updateEventDivisionGoogleDrive'])->name('project_management.projects.event-divisions.google-drive.update');
         Route::post('/project-management/projects/{project}/tasks', [ProjectManagementProjectController::class, 'storeTask'])->name('project_management.projects.tasks.store');
         Route::put('/project-management/projects/{project}/tasks/{projectTask}', [ProjectManagementProjectController::class, 'updateTask'])->name('project_management.projects.tasks.update');
         Route::patch('/project-management/projects/{project}/tasks/{projectTask}/toggle', [ProjectManagementProjectController::class, 'toggleTask'])->name('project_management.projects.tasks.toggle');
@@ -105,6 +105,11 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/authorization', [AuthorizationController::class, 'store'])->name('authorization.store');
         Route::get('/authorization/access-menus', [AuthorizationController::class, 'accessMenus'])->name('authorization.access-menus');
         Route::post('/authorization/position-permissions', [AuthorizationController::class, 'updatePositionPermissions'])->name('authorization.position-permissions.update');
+        Route::get('/authorization/event-divisions', [AuthorizationController::class, 'eventDivisions'])->name('authorization.event-divisions');
+        Route::post('/authorization/event-divisions', [AuthorizationController::class, 'updateEventDivisionAssignments'])->name('authorization.event-divisions.update');
+        Route::post('/authorization/event-divisions/divisions', [AuthorizationController::class, 'storeEventDivision'])->name('authorization.event-divisions.divisions.store');
+        Route::patch('/authorization/event-divisions/divisions/{eventDivision}', [AuthorizationController::class, 'updateEventDivision'])->name('authorization.event-divisions.divisions.update');
+        Route::delete('/authorization/event-divisions/divisions/{eventDivision}', [AuthorizationController::class, 'destroyEventDivision'])->name('authorization.event-divisions.divisions.destroy');
         Route::get('/authorization/{employee}', [AuthorizationController::class, 'show'])->name('authorization.show');
         Route::get('/authorization/{employee}/edit', [AuthorizationController::class, 'edit'])->name('authorization.edit');
         Route::put('/authorization/{employee}', [AuthorizationController::class, 'update'])->name('authorization.update');

@@ -268,6 +268,17 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringNotContainsString('private function administratorCompanyId(User $user): ?string', $authorizationController);
     }
 
+    public function test_assign_event_division_disables_staff_already_selected_in_another_division(): void
+    {
+        $assignEventDivisionView = File::get(resource_path('views/authorization/assign-event-divisions.blade.php'));
+
+        $this->assertStringContainsString('function refreshSelectAvailability()', $assignEventDivisionView);
+        $this->assertStringContainsString('selectedElsewhere = selectedElsewhere.concat(selectedEmployeeIds($(this)))', $assignEventDivisionView);
+        $this->assertStringContainsString("option.prop('disabled', isSelectedElsewhere && ! isSelectedHere)", $assignEventDivisionView);
+        $this->assertStringContainsString("$(document).on('change', '.js-event-division-select'", $assignEventDivisionView);
+        $this->assertStringContainsString('aria-disabled=true', $assignEventDivisionView);
+    }
+
     public function test_sidebar_hides_menu_without_position_permission(): void
     {
         $sidebar = Blade::render(File::get(resource_path('views/layouts/sidebar.blade.php')), [

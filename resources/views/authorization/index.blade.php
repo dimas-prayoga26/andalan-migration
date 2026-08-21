@@ -145,6 +145,9 @@
                 <li class="nav-item">
                     <a class="nav-link py-3 px-1" href="{{ route('authorization.access-menus') }}">Assign Permission</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link py-3 px-1" href="{{ route('authorization.event-divisions') }}">Assign Event Division</a>
+                </li>
             @endif
         </ul>
     </div>

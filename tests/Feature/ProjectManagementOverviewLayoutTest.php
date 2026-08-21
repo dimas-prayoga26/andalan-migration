@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmployeeDeployment;
 use App\Models\EmployeePicAssignment;
+use App\Models\EventDivision;
 use App\Models\Position;
 use App\Models\Project;
 use App\Models\ProjectMember;
@@ -45,8 +46,8 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $taskListWeekPlanPartial = File::get(resource_path('views/project_management/task_list/partials/week-plan.blade.php'));
         $taskListProjectGridPartial = File::get(resource_path('views/project_management/task_list/partials/project-grid.blade.php'));
         $projectModel = File::get(app_path('Models/Project.php'));
-        $projectDepartmentModel = File::get(app_path('Models/ProjectDepartment.php'));
-        $projectDepartmentsMigration = File::get(database_path('migrations/2026_08_12_154047_create_project_departments_table.php'));
+        $projectDivisionEventModel = File::get(app_path('Models/ProjectDivisionEvent.php'));
+        $projectDivisionEventMigration = File::get(database_path('migrations/2026_08_20_090001_replace_project_departments_with_project_division_event_table.php'));
         $liveEventDatesMigration = File::get(database_path('migrations/2026_06_28_234546_add_live_event_dates_to_projects_table.php'));
         $projectImagePathMigration = collect(File::glob(database_path('migrations/*_add_image_path_to_projects_table.php')))
             ->map(fn (string $path): string => File::get($path))
@@ -100,24 +101,24 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("Route::delete('/project-management/projects/{project}', [ProjectManagementProjectController::class, 'destroyProject'])->name('project_management.projects.destroy');", $routes);
         $this->assertStringContainsString("Route::get('/project-management/projects/detail', [ProjectManagementProjectController::class, 'detailFallback'])->name('project_management.projects.detail.fallback');", $routes);
         $this->assertStringContainsString("Route::get('/project-management/projects/{project}', [ProjectManagementProjectController::class, 'detail'])->name('project_management.projects.detail');", $routes);
-        $this->assertStringContainsString("Route::patch('/project-management/projects/{project}/departments/{department}/google-drive', [ProjectManagementProjectController::class, 'updateDepartmentGoogleDrive'])->name('project_management.projects.departments.google-drive.update');", $routes);
+        $this->assertStringContainsString("Route::patch('/project-management/projects/{project}/event-divisions/{eventDivision}/google-drive', [ProjectManagementProjectController::class, 'updateEventDivisionGoogleDrive'])->name('project_management.projects.event-divisions.google-drive.update');", $routes);
         $this->assertStringContainsString("Route::post('/project-management/projects/{project}/tasks', [ProjectManagementProjectController::class, 'storeTask'])->name('project_management.projects.tasks.store');", $routes);
         $this->assertStringContainsString("Route::put('/project-management/projects/{project}/tasks/{projectTask}', [ProjectManagementProjectController::class, 'updateTask'])->name('project_management.projects.tasks.update');", $routes);
         $this->assertStringContainsString("Route::patch('/project-management/projects/{project}/tasks/{projectTask}/toggle', [ProjectManagementProjectController::class, 'toggleTask'])->name('project_management.projects.tasks.toggle');", $routes);
         $this->assertStringContainsString("Route::delete('/project-management/projects/{project}/tasks/{projectTask}', [ProjectManagementProjectController::class, 'destroyTask'])->name('project_management.projects.tasks.destroy');", $routes);
         $this->assertStringContainsString("Route::get('/project-management/detail', [ProjectManagementProjectController::class, 'detailFallback'])->name('project_management.detail');", $routes);
-        $this->assertStringContainsString("Schema::create('project_departments'", $projectDepartmentsMigration);
-        $this->assertStringContainsString("\$table->foreignUuid('project_id')->constrained('projects', 'id')->cascadeOnDelete();", $projectDepartmentsMigration);
-        $this->assertStringContainsString("\$table->foreignUuid('department_id')->constrained('departments', 'id')->cascadeOnDelete();", $projectDepartmentsMigration);
-        $this->assertStringContainsString("\$table->string('google_drive_url', 2048)->nullable();", $projectDepartmentsMigration);
-        $this->assertStringContainsString('project_departments_project_department_unique', $projectDepartmentsMigration);
-        $this->assertStringContainsString('public function projectDepartments(): HasMany', $projectModel);
-        $this->assertStringContainsString('class ProjectDepartment extends Model', $projectDepartmentModel);
-        $this->assertStringContainsString('return $this->belongsTo(Project::class', $projectDepartmentModel);
-        $this->assertStringContainsString('return $this->belongsTo(Department::class', $projectDepartmentModel);
-        $this->assertStringContainsString("'projectDepartments:id,project_id,department_id,google_drive_url,status'", $projectController);
-        $this->assertStringContainsString("'google_drive_url' => trim((string) (\$projectDepartment->google_drive_url ?? ''))", $projectController);
-        $this->assertStringContainsString("href=\"{{ \$departmentGroup['google_drive_url'] }}\"", $projectsDetail);
+        $this->assertStringContainsString("Schema::create('project_division_event'", $projectDivisionEventMigration);
+        $this->assertStringContainsString("\$table->foreignUuid('project_id')->constrained('projects', 'id')->cascadeOnDelete();", $projectDivisionEventMigration);
+        $this->assertStringContainsString("\$table->foreignUuid('event_division_id')->constrained('event_divisions', 'id')->cascadeOnDelete();", $projectDivisionEventMigration);
+        $this->assertStringContainsString("\$table->string('google_drive_url', 2048)->nullable();", $projectDivisionEventMigration);
+        $this->assertStringContainsString('project_division_event_project_event_division_unique', $projectDivisionEventMigration);
+        $this->assertStringContainsString('public function projectDivisionEvents(): HasMany', $projectModel);
+        $this->assertStringContainsString('class ProjectDivisionEvent extends Model', $projectDivisionEventModel);
+        $this->assertStringContainsString('return $this->belongsTo(Project::class', $projectDivisionEventModel);
+        $this->assertStringContainsString('return $this->belongsTo(EventDivision::class', $projectDivisionEventModel);
+        $this->assertStringContainsString("'projectDivisionEvents:id,project_id,event_division_id,google_drive_url,status'", $projectController);
+        $this->assertStringContainsString("->map(fn (ProjectDivisionEvent \$projectDivisionEvent): string => trim((string) (\$projectDivisionEvent->google_drive_url ?? '')));", $projectController);
+        $this->assertStringContainsString("href=\"{{ \$divisionGroup['google_drive_url'] }}\"", $projectsDetail);
         $this->assertStringContainsString('target="_blank"', $projectsDetail);
         $this->assertStringNotContainsString('public function taskList(Request $request): View', $overviewController);
         $this->assertStringNotContainsString('public function storeTask(Request $request): JsonResponse', $overviewController);
@@ -327,7 +328,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("'status' => strtolower(trim((string) (\$validated['status'] ?? 'active')))", $projectController);
         $this->assertStringContainsString("'status' => ['nullable', 'in:active,pending,completed,cancelled']", $projectController);
         $this->assertStringContainsString('ProjectMember::query()->create', $projectController);
-        $this->assertStringContainsString('ProjectDepartment::query()->firstOrCreate', $projectController);
         $this->assertStringContainsString("'image_path' => \$projectImagePath", $projectController);
         $this->assertStringContainsString('private function storeProjectImageFile(Request $request): ?string', $projectController);
         $this->assertStringContainsString("'project_image' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048']", $projectController);
@@ -343,10 +343,10 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('if ($canManageEventProjects || $this->userIsProjectCreator($project, $userId))', $projectController);
         $this->assertStringContainsString('private function projectsForEmployee(string $employeeId, ?string $userId = null, bool $canManageEventProjects = false): Builder', $projectController);
         $this->assertStringContainsString("->orWhere('created_by', \$userId)", $projectController);
-        $this->assertStringContainsString('private function projectDepartmentGroups(Project $project, Collection $tasks, ?string $ownDepartmentId, bool $canManageProject, bool $canManageGoogleDrive): Collection', $projectController);
-        $this->assertStringContainsString("'can_create_task' => \$canManageGoogleDrive && \$taskAssigneeOptions->isNotEmpty(),", $projectController);
+        $this->assertStringContainsString('private function projectDivisionGroups(Project $project, Collection $tasks, ?string $employeeId, bool $canManageProject, bool $canManageGoogleDrive): Collection', $projectController);
+        $this->assertStringContainsString("'can_create_task' => (\$canManageGoogleDrive || \$employeeCanCreateOwnTask) && \$visibleTaskAssigneeOptions->isNotEmpty(),", $projectController);
         $this->assertStringContainsString("->where('project_id', \$project->id)", $projectController);
-        $this->assertStringContainsString('current_department_id', $projectController);
+        $this->assertStringContainsString('event_division_id', $projectController);
         $this->assertStringContainsString('live_event_start_date', $projectController);
         $this->assertStringContainsString('live_event_end_date', $projectController);
         $this->assertStringContainsString('Laravolt\Indonesia\Models\Province', $projectController);
@@ -502,15 +502,15 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('card project-card h-100', $projectsIndex);
         $this->assertStringContainsString('project-card-avatar', $projectsIndex);
         $this->assertStringContainsString('collect($projectCard[\'team_members\'] ?? [])->take(4)', $projectsIndex);
-        $this->assertStringContainsString('$projectDepartmentGroups = collect($projectDepartmentGroups ?? []);', $projectsDetail);
+        $this->assertStringContainsString('$projectDivisionGroups = collect($projectDivisionGroups ?? []);', $projectsDetail);
         $this->assertStringContainsString("text-{{ \$projectDetail['status_class'] ?? 'primary' }}", $projectsDetail);
         $this->assertStringContainsString('project-card-command', $projectsDetail);
         $this->assertStringNotContainsString('badge badge-sm badge-{{ $projectDetail[\'status_class\'] ?? \'primary\' }} light', $projectsDetail);
         $this->assertStringContainsString('project-detail-overview-row', $projectsDetail);
         $this->assertStringNotContainsString('card project-detail-card h-100', $projectsDetail);
         $this->assertStringNotContainsString('project-tasks-over-time-card h-100', $projectsDetail);
-        $this->assertStringContainsString('$summaryChartLabels = $projectDepartmentGroups', $projectsDetail);
-        $this->assertStringContainsString('$summaryChartSeries = $projectDepartmentGroups', $projectsDetail);
+        $this->assertStringContainsString('$summaryChartLabels = $projectDivisionGroups', $projectsDetail);
+        $this->assertStringContainsString('$summaryChartSeries = $projectDivisionGroups', $projectsDetail);
         $this->assertStringContainsString('projectTasksSummaryChart', $projectsDetail);
         $this->assertStringContainsString('project-summary-chart', $projectsDetail);
         $this->assertStringContainsString('renderProjectTasksSummaryChart', $projectsDetail);
@@ -545,16 +545,16 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("return originalValue + ' Tasks';", $projectsDetail);
         $this->assertStringNotContainsString("asset('assets/vendor/chart-js/chart.bundle.min.js')", $projectsDetail);
         $this->assertStringNotContainsString('Department Scope', $projectsDetail);
-        $this->assertStringContainsString('project-department-row', $projectsDetail);
+        $this->assertStringContainsString('project-division-row', $projectsDetail);
         $this->assertStringContainsString("asset('assets/vendor/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css')", $projectsDetail);
-        $this->assertStringContainsString('project-department-view-all', $projectsDetail);
+        $this->assertStringContainsString('project-division-view-all', $projectsDetail);
         $this->assertStringContainsString('>Drive</a>', $projectsDetail);
         $this->assertStringContainsString('>Add Drive</button>', $projectsDetail);
-        $this->assertStringContainsString("{{ empty(\$departmentGroup['google_drive_url']) ? 'Add Drive' : 'Drive' }}</button>", $projectsDetail);
-        $this->assertStringContainsString('<button type="button" class="btn btn-sm btn-light project-department-view-all" disabled>Add Drive</button>', $projectsDetail);
-        $this->assertStringContainsString('.project-department-view-all:disabled', $projectsDetail);
+        $this->assertStringContainsString("{{ empty(\$divisionGroup['google_drive_url']) ? 'Add Drive' : 'Drive' }}</button>", $projectsDetail);
+        $this->assertStringContainsString('<button type="button" class="btn btn-sm btn-light project-division-view-all" disabled>Add Drive</button>', $projectsDetail);
+        $this->assertStringContainsString('.project-division-view-all:disabled', $projectsDetail);
         $this->assertStringNotContainsString('View All', $projectsDetail);
-        $this->assertStringContainsString('project-department-add-task', $projectsDetail);
+        $this->assertStringContainsString('project-division-add-task', $projectsDetail);
         $this->assertStringContainsString('js-project-task-create', $projectsDetail);
         $this->assertStringContainsString('+ Add Task</button>', $projectsDetail);
         $this->assertStringContainsString('id="projectTaskFormModal"', $projectsDetail);
@@ -582,7 +582,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('Live Event Dates', $projectsDetail);
         $this->assertStringContainsString("{{ \$projectDetail['live_event_date_label'] ?? '-' }}", $projectsDetail);
         $this->assertStringContainsString("{{ \$projectDetail['live_event_duration_label'] ?? '-' }}", $projectsDetail);
-        $this->assertStringContainsString('id="projectDepartmentDriveModal"', $projectsDetail);
+        $this->assertStringContainsString('id="projectDivisionDriveModal"', $projectsDetail);
         $this->assertStringContainsString("currentDriveUrl ? 'Update ' : 'Add '", $projectsDetail);
         $this->assertStringNotContainsString('Your Department', $projectsDetail);
         $this->assertStringNotContainsString('View Only', $projectsDetail);
@@ -1035,16 +1035,11 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'id' => (string) Str::uuid(),
             'name' => 'Supervisor',
         ]);
-        $picDepartment = $this->createProjectTaskListDepartment('PIC Department');
-        $staffDepartment = $this->createProjectTaskListDepartment('Staff Department');
-
         EmployeeDeployment::query()->create([
             'id' => (string) Str::uuid(),
             'employee_id' => $picEmployee->id,
-            'current_department_id' => $picDepartment->id,
             'current_position_id' => $supervisorPosition->id,
         ]);
-        $this->assignEmployeeToDepartment($staffEmployee, $staffDepartment);
 
         DB::table('indonesia_provinces')->insert([
             'code' => '32',
@@ -1097,14 +1092,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
                 'project_id' => $project->id,
                 'employee_id' => $employee->id,
                 'left_at' => null,
-                'status' => 'active',
-            ]);
-        }
-
-        foreach ([$picDepartment, $staffDepartment] as $department) {
-            $this->assertDatabaseHas('project_departments', [
-                'project_id' => $project->id,
-                'department_id' => $department->id,
                 'status' => 'active',
             ]);
         }
@@ -1194,7 +1181,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             ]);
     }
 
-    public function test_event_project_admin_can_update_project_department_google_drive(): void
+    public function test_event_project_admin_can_update_project_event_division_google_drive(): void
     {
         if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
             $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
@@ -1204,9 +1191,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
 
         [$adminUser, $adminEmployee] = $this->createProjectTaskListUser('event_admin_drive');
         [$staffUser, $staffEmployee] = $this->createProjectTaskListUser('staff_drive');
-        $department = $this->createProjectTaskListDepartment('Operations');
-        $this->assignEmployeeToDepartment($adminEmployee, $department);
-        $this->assignEmployeeToDepartment($staffEmployee, $department);
+        $eventDivision = $this->createProjectTaskListEventDivision('Operations');
 
         $adminEmployee->update(['is_event_project_admin' => true]);
 
@@ -1230,38 +1215,38 @@ class ProjectManagementOverviewLayoutTest extends TestCase
 
         $response = $this
             ->actingAs($adminUser)
-            ->patchJson(route('project_management.projects.departments.google-drive.update', [$project, $department]), [
+            ->patchJson(route('project_management.projects.event-divisions.google-drive.update', [$project, $eventDivision]), [
                 'google_drive_url' => 'https://drive.google.com/drive/folders/event-admin-drive',
             ]);
 
         $response->assertOk()
             ->assertJson([
                 'success' => true,
-                'message' => 'Google Drive department berhasil diperbarui.',
+                'message' => 'Google Drive division berhasil diperbarui.',
                 'google_drive_url' => 'https://drive.google.com/drive/folders/event-admin-drive',
             ]);
 
-        $this->assertDatabaseHas('project_departments', [
+        $this->assertDatabaseHas('project_division_event', [
             'project_id' => $project->id,
-            'department_id' => $department->id,
+            'event_division_id' => $eventDivision->id,
             'google_drive_url' => 'https://drive.google.com/drive/folders/event-admin-drive',
             'status' => 'active',
         ]);
 
         $forbiddenResponse = $this
             ->actingAs($staffUser)
-            ->patchJson(route('project_management.projects.departments.google-drive.update', [$project, $department]), [
+            ->patchJson(route('project_management.projects.event-divisions.google-drive.update', [$project, $eventDivision]), [
                 'google_drive_url' => 'https://drive.google.com/drive/folders/staff-drive',
             ]);
 
         $forbiddenResponse->assertForbidden()
             ->assertJson([
                 'success' => false,
-                'message' => 'Tidak memiliki akses untuk memperbarui Google Drive department project ini.',
+                'message' => 'Tidak memiliki akses untuk memperbarui Google Drive division project ini.',
             ]);
     }
 
-    public function test_event_project_admin_can_assign_detail_project_task_to_event_member_department(): void
+    public function test_event_project_admin_can_assign_detail_project_task_to_event_division(): void
     {
         if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
             $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
@@ -1271,10 +1256,8 @@ class ProjectManagementOverviewLayoutTest extends TestCase
 
         [$picUser, $picEmployee] = $this->createProjectTaskListUser('event_pic_task');
         [, $staffEmployee] = $this->createProjectTaskListUser('event_member_task');
-        $picDepartment = $this->createProjectTaskListDepartment('Project Planning and Development');
-        $staffDepartment = $this->createProjectTaskListDepartment('Information and Communications Technology');
-        $this->assignEmployeeToDepartment($picEmployee, $picDepartment);
-        $this->assignEmployeeToDepartment($staffEmployee, $staffDepartment);
+        $eventDivision = $this->createProjectTaskListEventDivision('Information and Communications Technology');
+        $this->assignEmployeeToEventDivision($staffEmployee, $eventDivision);
         $picEmployee->update(['is_event_project_admin' => true]);
 
         $project = Project::query()->create([
@@ -1306,7 +1289,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
                 'due_date' => '2026-08-12',
                 'priority' => 'high',
                 'status' => 'pending',
-                'department_id' => $staffDepartment->id,
+                'event_division_id' => $eventDivision->id,
                 'assigned_employee_id' => $staffEmployee->id,
             ]);
 
@@ -1318,6 +1301,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
 
         $this->assertDatabaseHas('project_tasks', [
             'project_id' => $project->id,
+            'event_division_id' => $eventDivision->id,
             'employee_id' => $staffEmployee->id,
             'assigned_by' => $picUser->id,
             'title' => 'Prepare event dashboard access',
@@ -1326,7 +1310,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
 
         $picEmployee->update(['is_event_project_admin' => false]);
 
-        $forbiddenResponse = $this
+        $invalidAssignmentResponse = $this
             ->actingAs($picUser)
             ->postJson(route('project_management.projects.tasks.store', $project), [
                 'title' => 'Invalid non admin event task',
@@ -1334,22 +1318,81 @@ class ProjectManagementOverviewLayoutTest extends TestCase
                 'due_date' => '2026-08-12',
                 'priority' => 'high',
                 'status' => 'pending',
-                'department_id' => $staffDepartment->id,
+                'event_division_id' => $eventDivision->id,
                 'assigned_employee_id' => $staffEmployee->id,
             ]);
 
-        $forbiddenResponse->assertForbidden()
+        $invalidAssignmentResponse->assertUnprocessable()
             ->assertJson([
                 'success' => false,
-                'message' => 'Tidak memiliki akses untuk menambahkan task project ini.',
+                'message' => 'Staff task harus merupakan member aktif project ini pada event division yang dipilih.',
             ]);
+    }
+
+    public function test_project_member_can_create_own_detail_project_task_for_event_division(): void
+    {
+        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
+            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
+        }
+
+        $this->createProjectTaskListTestSchema();
+
+        [$staffUser, $staffEmployee] = $this->createProjectTaskListUser('event_member_own_task');
+        $eventDivision = $this->createProjectTaskListEventDivision('Graphic Design');
+        $this->assignEmployeeToEventDivision($staffEmployee, $eventDivision);
+
+        $project = Project::query()->create([
+            'id' => (string) Str::uuid(),
+            'name' => 'Staff Own Event Task',
+            'code' => 'STAFF-OWN-TASK',
+            'status' => 'active',
+            'created_by' => $staffUser->id,
+        ]);
+
+        ProjectMember::query()->create([
+            'id' => (string) Str::uuid(),
+            'project_id' => $project->id,
+            'employee_id' => $staffEmployee->id,
+            'joined_at' => '2026-08-01',
+            'status' => 'active',
+        ]);
+
+        $this->withoutMiddleware();
+
+        $response = $this
+            ->actingAs($staffUser)
+            ->postJson(route('project_management.projects.tasks.store', $project), [
+                'title' => 'Create own division task',
+                'description' => 'Staff creates a task for their own event division.',
+                'start_date' => '2026-08-10',
+                'due_date' => '2026-08-12',
+                'priority' => 'medium',
+                'status' => 'pending',
+                'event_division_id' => $eventDivision->id,
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Task project berhasil ditambahkan.',
+            ]);
+
+        $this->assertDatabaseHas('project_tasks', [
+            'project_id' => $project->id,
+            'event_division_id' => $eventDivision->id,
+            'employee_id' => $staffEmployee->id,
+            'assigned_by' => $staffUser->id,
+            'title' => 'Create own division task',
+            'status' => 'pending',
+        ]);
     }
 
     private function createProjectTaskListTestSchema(): void
     {
         foreach ([
             'project_tasks',
-            'project_departments',
+            'project_division_event',
+            'event_divisions',
             'project_members',
             'projects',
             'employee_pic_assignments',
@@ -1382,6 +1425,14 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             $table->timestamps();
         });
 
+        Schema::create('event_divisions', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->string('title');
+            $table->string('sub_title')->nullable();
+            $table->string('status')->default('active');
+            $table->timestamps();
+        });
+
         Schema::create('companies', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->string('name');
@@ -1399,6 +1450,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             $table->foreignUuid('user_id')->unique()->constrained('users', 'id')->cascadeOnDelete();
             $table->string('status')->default('Active');
             $table->boolean('is_event_project_admin')->default(false);
+            $table->softDeletes();
             $table->timestamps();
         });
 
@@ -1414,6 +1466,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             $table->uuid('id')->primary();
             $table->foreignUuid('employee_id')->unique()->constrained('employees', 'id')->cascadeOnDelete();
             $table->foreignUuid('current_department_id')->nullable()->constrained('departments', 'id')->nullOnDelete();
+            $table->foreignUuid('current_event_division_id')->nullable()->constrained('event_divisions', 'id')->nullOnDelete();
             $table->foreignUuid('current_position_id')->nullable()->constrained('positions', 'id')->nullOnDelete();
             $table->timestamps();
         });
@@ -1485,10 +1538,10 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             $table->timestamps();
         });
 
-        Schema::create('project_departments', function (Blueprint $table): void {
+        Schema::create('project_division_event', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('project_id')->constrained('projects', 'id')->cascadeOnDelete();
-            $table->foreignUuid('department_id')->constrained('departments', 'id')->cascadeOnDelete();
+            $table->foreignUuid('event_division_id')->constrained('event_divisions', 'id')->cascadeOnDelete();
             $table->string('google_drive_url', 2048)->nullable();
             $table->string('status')->default('active');
             $table->timestamps();
@@ -1497,6 +1550,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         Schema::create('project_tasks', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('project_id')->nullable()->constrained('projects', 'id')->nullOnDelete();
+            $table->foreignUuid('event_division_id')->nullable()->constrained('event_divisions', 'id')->nullOnDelete();
             $table->foreignUuid('employee_id')->constrained('employees', 'id')->cascadeOnDelete();
             $table->foreignUuid('assigned_by')->nullable()->constrained('users', 'id')->nullOnDelete();
             $table->foreignUuid('overtime_id')->nullable();
@@ -1534,6 +1588,26 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         ]);
 
         return [$user, $employee];
+    }
+
+    private function createProjectTaskListEventDivision(string $title): EventDivision
+    {
+        return EventDivision::query()->create([
+            'id' => (string) Str::uuid(),
+            'title' => $title,
+            'status' => 'active',
+        ]);
+    }
+
+    private function assignEmployeeToEventDivision(Employee $employee, EventDivision $eventDivision): EmployeeDeployment
+    {
+        return EmployeeDeployment::query()->updateOrCreate(
+            ['employee_id' => $employee->id],
+            [
+                'id' => (string) Str::uuid(),
+                'current_event_division_id' => $eventDivision->id,
+            ],
+        );
     }
 
     private function createProjectTaskListDepartment(string $name): Department

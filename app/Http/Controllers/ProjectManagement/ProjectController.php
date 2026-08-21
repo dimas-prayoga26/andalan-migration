@@ -4,10 +4,10 @@ namespace App\Http\Controllers\ProjectManagement;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
-use App\Models\Department;
 use App\Models\Employee;
+use App\Models\EventDivision;
 use App\Models\Project;
-use App\Models\ProjectDepartment;
+use App\Models\ProjectDivisionEvent;
 use App\Models\ProjectMember;
 use App\Models\ProjectTask;
 use App\Models\User;
@@ -94,7 +94,8 @@ class ProjectController extends Controller
                     'created_by' => $authenticatedUserId,
                 ]);
 
-                $this->syncProjectMembersAndDepartments($project, $staffEmployeeIds, (string) $validated['start_date']);
+                $this->syncProjectMembers($project, $staffEmployeeIds, (string) $validated['start_date']);
+                $this->syncProjectDivisionEvents($project, $staffEmployeeIds);
 
                 return $project;
             });
@@ -158,7 +159,8 @@ class ProjectController extends Controller
                     'status' => strtolower(trim((string) ($validated['status'] ?? $project->status ?? 'active'))),
                 ]);
 
-                $this->syncProjectMembersAndDepartments($project, $staffEmployeeIds, (string) $validated['start_date']);
+                $this->syncProjectMembers($project, $staffEmployeeIds, (string) $validated['start_date']);
+                $this->syncProjectDivisionEvents($project, $staffEmployeeIds);
             });
         } catch (Throwable $exception) {
             if ($projectImagePath !== null) {
@@ -245,16 +247,14 @@ class ProjectController extends Controller
         $canManageProject = $canManageEventProjects || $this->userIsProjectCreator($project, $authenticatedUserId);
         abort_if($employeeId === null || ! $this->employeeCanViewProject($project, $employeeId, $authenticatedUserId, $canManageEventProjects), 403);
 
-        $ownDepartmentId = $this->authenticatedDepartmentId($authenticatedUser);
         $project->loadMissing([
             'creator:id,username',
             'memberships.employee:id,user_id',
             'memberships.employee.user:id,username',
             'memberships.employee.profile:id,employee_id,name,profile_picture_path',
-            'memberships.employee.deployment:id,employee_id,current_department_id',
-            'memberships.employee.deployment.department:id,name',
-            'projectDepartments:id,project_id,department_id,google_drive_url,status',
-            'projectDepartments.department:id,name',
+            'memberships.employee.deployment:id,employee_id,current_event_division_id',
+            'projectDivisionEvents:id,project_id,event_division_id,google_drive_url,status',
+            'projectDivisionEvents.eventDivision:id,title,sub_title',
         ]);
 
         $tasks = ProjectTask::query()
@@ -264,23 +264,21 @@ class ProjectController extends Controller
                 'employee:id,user_id',
                 'employee.user:id,username',
                 'employee.profile:id,employee_id,name,profile_picture_path',
-                'employee.deployment:id,employee_id,current_department_id',
-                'employee.deployment.department:id,name',
             ])
             ->orderByRaw('COALESCE(due_date, start_date, created_at) ASC')
             ->get();
 
-        $projectDepartmentGroups = $this->projectDepartmentGroups($project, $tasks, $ownDepartmentId, $canManageProject, $canManageEventProjects);
+        $projectDivisionGroups = $this->projectDivisionGroups($project, $tasks, $employeeId, $canManageProject, $canManageEventProjects);
 
         return view('project_management.projects.detail', array_merge($this->profileMetricData($employeeId), [
             'projectDetail' => $this->projectDetailValue($project),
-            'projectDepartmentGroups' => $projectDepartmentGroups,
+            'projectDivisionGroups' => $projectDivisionGroups,
             'projectSummary' => $this->projectSummaryValue($project, $tasks),
             'projectTaskTimeline' => $this->projectTaskTimelineValue($project, $tasks),
         ]));
     }
 
-    public function updateDepartmentGoogleDrive(Request $request, Project $project, Department $department): JsonResponse
+    public function updateEventDivisionGoogleDrive(Request $request, Project $project, EventDivision $eventDivision): JsonResponse
     {
         $authenticatedUser = Auth::user();
         $employeeId = $this->authenticatedEmployeeId($authenticatedUser);
@@ -293,7 +291,7 @@ class ProjectController extends Controller
         ) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tidak memiliki akses untuk memperbarui Google Drive department project ini.',
+                'message' => 'Tidak memiliki akses untuk memperbarui Google Drive division project ini.',
             ], 403);
         }
 
@@ -303,10 +301,10 @@ class ProjectController extends Controller
 
         $googleDriveUrl = $this->nullableStringValue($validated['google_drive_url'] ?? null);
 
-        ProjectDepartment::query()->updateOrCreate(
+        ProjectDivisionEvent::query()->updateOrCreate(
             [
                 'project_id' => $project->id,
-                'department_id' => $department->id,
+                'event_division_id' => $eventDivision->id,
             ],
             [
                 'google_drive_url' => $googleDriveUrl,
@@ -316,7 +314,7 @@ class ProjectController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Google Drive department berhasil diperbarui.',
+            'message' => 'Google Drive division berhasil diperbarui.',
             'google_drive_url' => $googleDriveUrl ?? '',
         ]);
     }
@@ -326,14 +324,12 @@ class ProjectController extends Controller
         $authenticatedUser = Auth::user();
         $employeeId = $this->authenticatedEmployeeId($authenticatedUser);
         $authenticatedUserId = $this->authenticatedUserId($authenticatedUser);
-        $ownDepartmentId = $this->authenticatedDepartmentId($authenticatedUser);
         $canManageProject = $this->authenticatedEmployeeIsEventProjectAdmin($authenticatedUser) || $this->userIsProjectCreator($project, $authenticatedUserId);
 
         if (
             $employeeId === null
-            || $ownDepartmentId === null
             || ! $this->employeeCanViewProject($project, $employeeId, $authenticatedUserId, $canManageProject)
-            || ! $this->canManageProjectTask($project, $projectTask, $ownDepartmentId, $canManageProject)
+            || ! $this->canManageProjectTask($project, $projectTask, $employeeId, $canManageProject)
         ) {
             return response()->json([
                 'success' => false,
@@ -353,8 +349,8 @@ class ProjectController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => $isCompleted ? 'Task department berhasil diselesaikan.' : 'Task department dikembalikan ke pending.',
-            'task' => $this->projectTaskValue($projectTask->fresh(['assignedBy:id,username', 'employee:id,user_id', 'employee.user:id,username', 'employee.profile:id,employee_id,name', 'employee.deployment:id,employee_id,current_department_id', 'employee.deployment.department:id,name']), $ownDepartmentId, $canManageProject),
+            'message' => $isCompleted ? 'Task division berhasil diselesaikan.' : 'Task division dikembalikan ke pending.',
+            'task' => $this->projectTaskValue($projectTask->fresh(['assignedBy:id,username', 'employee:id,user_id', 'employee.user:id,username', 'employee.profile:id,employee_id,name']), $employeeId, $canManageProject),
         ]);
     }
 
@@ -363,10 +359,9 @@ class ProjectController extends Controller
         $authenticatedUser = Auth::user();
         $employeeId = $this->authenticatedEmployeeId($authenticatedUser);
         $authenticatedUserId = $this->authenticatedUserId($authenticatedUser);
-        $ownDepartmentId = $this->authenticatedDepartmentId($authenticatedUser);
         $canManageEventProjects = $this->authenticatedEmployeeIsEventProjectAdmin($authenticatedUser);
 
-        if ($employeeId === null || $ownDepartmentId === null || ! $canManageEventProjects || ! $this->employeeCanViewProject($project, $employeeId, $authenticatedUserId, true)) {
+        if ($employeeId === null || ! $this->employeeCanViewProject($project, $employeeId, $authenticatedUserId, $canManageEventProjects)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk menambahkan task project ini.',
@@ -374,11 +369,11 @@ class ProjectController extends Controller
         }
 
         $validated = $this->validateProjectTaskPayload($request, true);
-        $taskEmployeeId = $this->validatedProjectDetailTaskEmployeeId($project, $employeeId, $ownDepartmentId, $canManageEventProjects, $validated);
+        $taskEmployeeId = $this->validatedProjectDetailTaskEmployeeId($project, $employeeId, $canManageEventProjects, $validated);
         if ($taskEmployeeId === false) {
             return response()->json([
                 'success' => false,
-                'message' => 'Staff task harus merupakan member aktif project pada department yang dipilih.',
+                'message' => 'Staff task harus merupakan member aktif project ini pada event division yang dipilih.',
             ], 422);
         }
 
@@ -386,6 +381,7 @@ class ProjectController extends Controller
 
         ProjectTask::query()->create([
             'project_id' => $project->id,
+            'event_division_id' => $validated['event_division_id'],
             'employee_id' => $taskEmployeeId,
             'assigned_by' => $authenticatedUser?->id,
             'title' => trim((string) $validated['title']),
@@ -409,15 +405,13 @@ class ProjectController extends Controller
     {
         $authenticatedUser = Auth::user();
         $employeeId = $this->authenticatedEmployeeId($authenticatedUser);
-        $ownDepartmentId = $this->authenticatedDepartmentId($authenticatedUser);
         $authenticatedUserId = $this->authenticatedUserId($authenticatedUser);
         $canManageProject = $this->authenticatedEmployeeIsEventProjectAdmin($authenticatedUser) || $this->userIsProjectCreator($project, $authenticatedUserId);
 
         if (
             $employeeId === null
-            || $ownDepartmentId === null
             || ! $this->employeeCanViewProject($project, $employeeId, $authenticatedUserId, $canManageProject)
-            || ! $this->canManageProjectTask($project, $projectTask, $ownDepartmentId, $canManageProject)
+            || ! $this->canManageProjectTask($project, $projectTask, $employeeId, $canManageProject)
         ) {
             return response()->json([
                 'success' => false,
@@ -452,14 +446,12 @@ class ProjectController extends Controller
         $authenticatedUser = Auth::user();
         $employeeId = $this->authenticatedEmployeeId($authenticatedUser);
         $authenticatedUserId = $this->authenticatedUserId($authenticatedUser);
-        $ownDepartmentId = $this->authenticatedDepartmentId($authenticatedUser);
         $canManageProject = $this->authenticatedEmployeeIsEventProjectAdmin($authenticatedUser) || $this->userIsProjectCreator($project, $authenticatedUserId);
 
         if (
             $employeeId === null
-            || $ownDepartmentId === null
             || ! $this->employeeCanViewProject($project, $employeeId, $authenticatedUserId, $canManageProject)
-            || ! $this->canManageProjectTask($project, $projectTask, $ownDepartmentId, $canManageProject)
+            || ! $this->canManageProjectTask($project, $projectTask, $employeeId, $canManageProject)
         ) {
             return response()->json([
                 'success' => false,
@@ -496,18 +488,6 @@ class ProjectController extends Controller
         $userId = trim((string) $authenticatedUser->id);
 
         return $userId !== '' ? $userId : null;
-    }
-
-    private function authenticatedDepartmentId(?User $authenticatedUser): ?string
-    {
-        if (! $authenticatedUser instanceof User) {
-            return null;
-        }
-
-        $authenticatedUser->loadMissing('employee.deployment:id,employee_id,current_department_id');
-        $departmentId = trim((string) ($authenticatedUser->employee?->deployment?->current_department_id ?? ''));
-
-        return $departmentId !== '' ? $departmentId : null;
     }
 
     private function authenticatedEmployeeIsEventProjectAdmin(?User $authenticatedUser): bool
@@ -589,6 +569,9 @@ class ProjectController extends Controller
                             'employee:id,user_id',
                             'employee.user:id,username',
                             'employee.profile:id,employee_id,name,profile_picture_path',
+                            'employee.deployment:id,employee_id,current_position_id',
+                            'employee.deployment.position:id,name',
+                            'employee.deployment.positions:id,name',
                         ]);
                 },
             ])
@@ -599,10 +582,9 @@ class ProjectController extends Controller
     /**
      * @param  Collection<int, string>  $staffEmployeeIds
      */
-    private function syncProjectMembersAndDepartments(Project $project, Collection $staffEmployeeIds, string $joinedAt): void
+    private function syncProjectMembers(Project $project, Collection $staffEmployeeIds, string $joinedAt): void
     {
         $staffEmployees = Employee::query()
-            ->with('deployment:id,employee_id,current_department_id')
             ->whereIn('id', $staffEmployeeIds)
             ->get(['id'])
             ->keyBy('id');
@@ -641,22 +623,33 @@ class ProjectController extends Controller
                 'status' => 'active',
             ]);
         }
+    }
 
-        $staffEmployees
-            ->map(fn (Employee $employee): ?string => $this->nullableStringValue($employee->deployment?->current_department_id))
+    /**
+     * @param  Collection<int, string>  $staffEmployeeIds
+     */
+    private function syncProjectDivisionEvents(Project $project, Collection $staffEmployeeIds): void
+    {
+        $eventDivisionIds = Employee::query()
+            ->whereIn('id', $staffEmployeeIds)
+            ->with('deployment:id,employee_id,current_event_division_id')
+            ->get(['id'])
+            ->map(fn (Employee $employee): ?string => $this->nullableStringValue($employee->deployment?->current_event_division_id))
             ->filter()
             ->unique()
-            ->each(function (string $departmentId) use ($project): void {
-                ProjectDepartment::query()->firstOrCreate(
-                    [
-                        'project_id' => $project->id,
-                        'department_id' => $departmentId,
-                    ],
-                    [
-                        'status' => 'active',
-                    ],
-                );
-            });
+            ->values();
+
+        foreach ($eventDivisionIds as $eventDivisionId) {
+            ProjectDivisionEvent::query()->firstOrCreate(
+                [
+                    'project_id' => $project->id,
+                    'event_division_id' => $eventDivisionId,
+                ],
+                [
+                    'status' => 'active',
+                ],
+            );
+        }
     }
 
     /**
@@ -745,16 +738,20 @@ class ProjectController extends Controller
             ->with([
                 'profile:id,employee_id,name',
                 'user:id,username,email',
-                'deployment:id,employee_id,current_position_id',
-                'deployment.position:id,name',
-                'deployment.positions:id,name',
+                'deployment:id,employee_id,current_event_division_id',
+                'deployment.eventDivision:id,title',
             ])
             ->where('status', 'Active')
+            ->whereHas('deployment', function (Builder $query): void {
+                $query->whereNotNull('current_event_division_id');
+            })
             ->orderBy('employee_code')
             ->get(['id', 'user_id', 'employee_code', 'status'])
             ->map(fn (Employee $employee): array => [
                 'id' => (string) $employee->id,
-                'label' => $this->employeeProjectOptionLabel($employee),
+                'label' => $this->employeeDisplayName($employee).' - '.trim((string) ($employee->deployment?->eventDivision?->title ?? '')),
+                'division_id' => (string) $employee->deployment?->current_event_division_id,
+                'division_name' => trim((string) ($employee->deployment?->eventDivision?->title ?? '')),
             ])
             ->sortBy('label')
             ->values();
@@ -964,6 +961,13 @@ class ProjectController extends Controller
                     ->map(fn (mixed $employeeId): string => (string) $employeeId)
                     ->filter()
                     ->values(),
+                'staff_members' => $project->memberships
+                    ->filter(fn ($membership): bool => $membership->employee instanceof Employee)
+                    ->map(fn ($membership): array => [
+                        'id' => (string) $membership->employee->id,
+                        'label' => $this->employeeProjectOptionLabel($membership->employee),
+                    ])
+                    ->values(),
                 'name' => trim((string) $project->name),
                 'description' => trim((string) ($project->description ?? '')),
                 'client_name' => trim((string) ($project->client_name ?? '')),
@@ -1163,78 +1167,69 @@ class ProjectController extends Controller
      * @param  Collection<int, ProjectTask>  $tasks
      * @return Collection<int, array<string, mixed>>
      */
-    private function projectDepartmentGroups(Project $project, Collection $tasks, ?string $ownDepartmentId, bool $canManageProject, bool $canManageGoogleDrive): Collection
+    private function projectDivisionGroups(Project $project, Collection $tasks, ?string $employeeId, bool $canManageProject, bool $canManageGoogleDrive): Collection
     {
-        $departments = collect();
         $projectMemberEmployees = $project->memberships
             ->filter(fn ($membership): bool => $membership->status === 'active' && $membership->left_at === null && $membership->employee instanceof Employee)
             ->map(fn ($membership): Employee => $membership->employee)
             ->values();
 
-        foreach ($project->projectDepartments as $projectDepartment) {
-            $department = $projectDepartment->department;
-            if ($department !== null && $projectDepartment->status === 'active') {
-                $departments->put((string) $department->id, [
-                    'id' => (string) $department->id,
-                    'name' => trim((string) $department->name),
-                    'google_drive_url' => trim((string) ($projectDepartment->google_drive_url ?? '')),
-                ]);
-            }
-        }
+        $activeProjectDivisionEvents = $project->projectDivisionEvents
+            ->filter(fn (ProjectDivisionEvent $projectDivisionEvent): bool => $projectDivisionEvent->status === 'active');
 
-        foreach ($project->memberships as $membership) {
-            $department = $membership->employee?->deployment?->department;
-            if ($department !== null && ! $departments->has((string) $department->id)) {
-                $departments->put((string) $department->id, [
-                    'id' => (string) $department->id,
-                    'name' => trim((string) $department->name),
-                    'google_drive_url' => '',
-                ]);
-            }
-        }
+        $divisionDriveUrls = $activeProjectDivisionEvents
+            ->keyBy(fn (ProjectDivisionEvent $projectDivisionEvent): string => (string) $projectDivisionEvent->event_division_id)
+            ->map(fn (ProjectDivisionEvent $projectDivisionEvent): string => trim((string) ($projectDivisionEvent->google_drive_url ?? '')));
 
-        foreach ($tasks as $task) {
-            $department = $task->employee?->deployment?->department;
-            if ($department !== null && ! $departments->has((string) $department->id)) {
-                $departments->put((string) $department->id, [
-                    'id' => (string) $department->id,
-                    'name' => trim((string) $department->name),
-                    'google_drive_url' => '',
-                ]);
-            }
-        }
+        $relevantDivisionIds = $activeProjectDivisionEvents
+            ->pluck('event_division_id')
+            ->merge($tasks->pluck('event_division_id'))
+            ->map(fn (mixed $eventDivisionId): ?string => $this->nullableStringValue($eventDivisionId))
+            ->filter()
+            ->unique()
+            ->values();
 
-        return $departments
-            ->sortBy('name')
-            ->values()
-            ->map(function (array $department) use ($project, $tasks, $ownDepartmentId, $canManageProject, $canManageGoogleDrive, $projectMemberEmployees): array {
-                $departmentTasks = $tasks
-                    ->filter(fn (ProjectTask $task): bool => (string) ($task->employee?->deployment?->current_department_id ?? '') === $department['id'])
+        return EventDivision::query()
+            ->where('status', 'active')
+            ->whereIn('id', $relevantDivisionIds)
+            ->orderBy('title')
+            ->get(['id', 'title', 'sub_title'])
+            ->map(function (EventDivision $eventDivision) use ($project, $tasks, $employeeId, $canManageProject, $canManageGoogleDrive, $projectMemberEmployees, $divisionDriveUrls): array {
+                $divisionId = (string) $eventDivision->id;
+                $divisionTasks = $tasks
+                    ->filter(fn (ProjectTask $task): bool => (string) $task->event_division_id === $divisionId)
                     ->values();
-                $completedCount = $departmentTasks->filter(fn (ProjectTask $task): bool => $this->isCompletedTask($task))->count();
+                $completedCount = $divisionTasks->filter(fn (ProjectTask $task): bool => $this->isCompletedTask($task))->count();
                 $taskAssigneeOptions = $projectMemberEmployees
-                    ->filter(fn (Employee $employee): bool => (string) ($employee->deployment?->current_department_id ?? '') === $department['id'])
+                    ->filter(fn (Employee $employee): bool => (string) ($employee->deployment?->current_event_division_id ?? '') === $divisionId)
                     ->map(fn (Employee $employee): array => [
                         'id' => (string) $employee->id,
                         'name' => $this->employeeDisplayName($employee),
                     ])
                     ->values();
+                $employeeCanCreateOwnTask = $employeeId !== null
+                    && $taskAssigneeOptions->contains(fn (array $taskAssigneeOption): bool => (string) $taskAssigneeOption['id'] === $employeeId);
+                $visibleTaskAssigneeOptions = $canManageGoogleDrive
+                    ? $taskAssigneeOptions
+                    : $taskAssigneeOptions
+                        ->filter(fn (array $taskAssigneeOption): bool => (string) $taskAssigneeOption['id'] === (string) $employeeId)
+                        ->values();
 
                 return [
-                    'id' => $department['id'],
-                    'name' => $department['name'],
-                    'google_drive_url' => $department['google_drive_url'],
-                    'is_own_department' => $ownDepartmentId !== null && $department['id'] === $ownDepartmentId,
-                    'can_create_task' => $canManageGoogleDrive && $taskAssigneeOptions->isNotEmpty(),
+                    'id' => $divisionId,
+                    'name' => trim((string) $eventDivision->title),
+                    'sub_title' => trim((string) ($eventDivision->sub_title ?? '')),
+                    'google_drive_url' => $divisionDriveUrls->get($divisionId, ''),
+                    'can_create_task' => ($canManageGoogleDrive || $employeeCanCreateOwnTask) && $visibleTaskAssigneeOptions->isNotEmpty(),
                     'can_manage_drive' => $canManageGoogleDrive,
-                    'task_assignee_options' => $taskAssigneeOptions,
+                    'task_assignee_options' => $visibleTaskAssigneeOptions,
                     'store_url' => route('project_management.projects.tasks.store', $project),
-                    'drive_update_url' => route('project_management.projects.departments.google-drive.update', [$project, $department['id']]),
-                    'total_tasks' => $departmentTasks->count(),
+                    'drive_update_url' => route('project_management.projects.event-divisions.google-drive.update', [$project, $divisionId]),
+                    'total_tasks' => $divisionTasks->count(),
                     'completed_tasks' => $completedCount,
-                    'completion_rate' => $this->percentage($completedCount, $departmentTasks->count()),
-                    'tasks' => $departmentTasks
-                        ->map(fn (ProjectTask $task): array => $this->projectTaskValue($task, $ownDepartmentId, $canManageProject))
+                    'completion_rate' => $this->percentage($completedCount, $divisionTasks->count()),
+                    'tasks' => $divisionTasks
+                        ->map(fn (ProjectTask $task): array => $this->projectTaskValue($task, $employeeId, $canManageProject))
                         ->values(),
                 ];
             });
@@ -1243,13 +1238,12 @@ class ProjectController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function projectTaskValue(?ProjectTask $projectTask, ?string $ownDepartmentId, bool $canManageProject = false): array
+    private function projectTaskValue(?ProjectTask $projectTask, ?string $employeeId, bool $canManageProject = false): array
     {
         if (! $projectTask instanceof ProjectTask) {
             return [];
         }
 
-        $departmentId = trim((string) ($projectTask->employee?->deployment?->current_department_id ?? ''));
         $isCompleted = $this->isCompletedTask($projectTask);
 
         return [
@@ -1266,7 +1260,7 @@ class ProjectController extends Controller
             'due_label' => $this->taskDueLabel($projectTask->due_date, $isCompleted),
             'employee_id' => trim((string) $projectTask->employee_id),
             'assignee_label' => trim((string) ($projectTask->employee?->profile?->name ?? $projectTask->employee?->user?->username ?? 'Staff')),
-            'can_toggle' => $canManageProject || ($ownDepartmentId !== null && $departmentId === $ownDepartmentId),
+            'can_toggle' => $canManageProject || ($employeeId !== null && (string) $projectTask->employee_id === $employeeId),
             'toggle_url' => route('project_management.projects.tasks.toggle', [$projectTask->project_id, $projectTask]),
             'update_url' => route('project_management.projects.tasks.update', [$projectTask->project_id, $projectTask]),
             'delete_url' => route('project_management.projects.tasks.destroy', [$projectTask->project_id, $projectTask]),
@@ -1421,14 +1415,14 @@ class ProjectController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function validateProjectTaskPayload(Request $request, bool $requiresDepartment = false): array
+    private function validateProjectTaskPayload(Request $request, bool $requiresEventDivision = false): array
     {
         return $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'blockers' => ['nullable', 'string', 'max:5000'],
             'attachment_path' => ['nullable', 'string', 'max:255'],
-            'department_id' => [$requiresDepartment ? 'required' : 'nullable', 'uuid', 'exists:departments,id'],
+            'event_division_id' => [$requiresEventDivision ? 'required' : 'nullable', 'uuid', 'exists:event_divisions,id'],
             'assigned_employee_id' => ['nullable', 'uuid', 'exists:employees,id'],
             'priority' => ['required', 'in:low,medium,high'],
             'status' => ['required', 'in:pending,in_progress,completed,cancelled'],
@@ -1437,10 +1431,10 @@ class ProjectController extends Controller
         ]);
     }
 
-    private function validatedProjectDetailTaskEmployeeId(Project $project, string $employeeId, string $ownDepartmentId, bool $canManageProject, array $validated): string|false
+    private function validatedProjectDetailTaskEmployeeId(Project $project, string $employeeId, bool $canManageProject, array $validated): string|false
     {
-        $departmentId = trim((string) ($validated['department_id'] ?? ''));
-        if ($departmentId === '') {
+        $eventDivisionId = trim((string) ($validated['event_division_id'] ?? ''));
+        if ($eventDivisionId === '') {
             return false;
         }
 
@@ -1451,25 +1445,21 @@ class ProjectController extends Controller
             ? $requestedEmployeeId
             : $employeeId;
 
-        if (! $canManageProject && $departmentId !== $ownDepartmentId) {
-            return false;
-        }
-
         if (! $canManageProject && $taskEmployeeId !== $employeeId) {
             return false;
         }
 
-        return $this->employeeIsActiveProjectMemberInDepartment($project, $taskEmployeeId, $departmentId)
+        return $this->employeeIsActiveProjectMemberInEventDivision($project, $taskEmployeeId, $eventDivisionId)
             ? $taskEmployeeId
             : false;
     }
 
-    private function employeeIsActiveProjectMemberInDepartment(Project $project, string $employeeId, string $departmentId): bool
+    private function employeeIsActiveProjectMemberInEventDivision(Project $project, string $employeeId, string $eventDivisionId): bool
     {
         return Employee::query()
             ->whereKey($employeeId)
-            ->whereHas('deployment', function (Builder $query) use ($departmentId): void {
-                $query->where('current_department_id', $departmentId);
+            ->whereHas('deployment', function (Builder $query) use ($eventDivisionId): void {
+                $query->where('current_event_division_id', $eventDivisionId);
             })
             ->whereHas('projectMemberships', function (Builder $query) use ($project): void {
                 $query
@@ -1480,7 +1470,7 @@ class ProjectController extends Controller
             ->exists();
     }
 
-    private function canManageProjectTask(Project $project, ProjectTask $projectTask, string $departmentId, bool $canManageProject = false): bool
+    private function canManageProjectTask(Project $project, ProjectTask $projectTask, ?string $employeeId, bool $canManageProject = false): bool
     {
         if ((string) $projectTask->project_id !== (string) $project->id) {
             return false;
@@ -1494,9 +1484,7 @@ class ProjectController extends Controller
             return true;
         }
 
-        $projectTask->loadMissing('employee.deployment:id,employee_id,current_department_id');
-
-        return (string) ($projectTask->employee?->deployment?->current_department_id ?? '') === $departmentId;
+        return $employeeId !== null && (string) $projectTask->employee_id === $employeeId;
     }
 
     private function employeeDisplayName(Employee $employee): string

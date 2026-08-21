@@ -53,9 +53,9 @@ class Project extends Model
         return $this->hasMany(ProjectMember::class, 'project_id', 'id');
     }
 
-    public function projectDepartments(): HasMany
+    public function projectDivisionEvents(): HasMany
     {
-        return $this->hasMany(ProjectDepartment::class, 'project_id', 'id');
+        return $this->hasMany(ProjectDivisionEvent::class, 'project_id', 'id');
     }
 
     public function members(): BelongsToMany

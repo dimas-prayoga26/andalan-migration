@@ -9,9 +9,11 @@ use App\Models\EmployeeDeployment;
 use App\Models\EmployeeIdentity;
 use App\Models\EmployeePicAssignment;
 use App\Models\EmployeeProfile;
+use App\Models\EventDivision;
 use App\Models\OfficeLocation;
 use App\Models\Permission;
 use App\Models\Position;
+use App\Models\ProjectDivisionEvent;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -214,6 +216,182 @@ class AuthorizationController extends Controller
         return redirect()
             ->route('authorization.access-menus')
             ->with('status', 'Access menu berhasil diperbarui.');
+    }
+
+    public function eventDivisions(Request $request): View
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+
+        return view('authorization.assign-event-divisions', [
+            'employees' => $this->authorizationEmployeesForEventDivision(),
+            'eventDivisionAssignments' => $this->eventDivisionAssignments(),
+        ]);
+    }
+
+    public function updateEventDivisionAssignments(Request $request): RedirectResponse
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+
+        $validated = $request->validate([
+            'division_employees' => ['array'],
+            'division_employees.*' => ['array'],
+            'division_employees.*.*' => ['string', 'exists:employees,id'],
+        ]);
+
+        $assignableEmployeeIds = $this->authorizationEmployeesForEventDivision()
+            ->pluck('id')
+            ->all();
+
+        $employeeDivisionMap = collect($validated['division_employees'] ?? [])
+            ->flatMap(fn (array $employeeIds, string $divisionId): array => collect($employeeIds)
+                ->filter(fn (string $employeeId): bool => in_array($employeeId, $assignableEmployeeIds, true))
+                ->mapWithKeys(fn (string $employeeId): array => [$employeeId => $divisionId])
+                ->all());
+
+        DB::transaction(function () use ($assignableEmployeeIds, $employeeDivisionMap): void {
+            foreach ($assignableEmployeeIds as $employeeId) {
+                EmployeeDeployment::query()->updateOrCreate(
+                    ['employee_id' => $employeeId],
+                    ['current_event_division_id' => $employeeDivisionMap->get($employeeId)],
+                );
+            }
+        });
+
+        return redirect()
+            ->route('authorization.event-divisions')
+            ->with('status', 'Event division assignment berhasil diperbarui.');
+    }
+
+    public function storeEventDivision(Request $request): RedirectResponse
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+
+        EventDivision::query()->create($this->validatedEventDivisionData($request));
+
+        return redirect()
+            ->route('authorization.event-divisions')
+            ->with('status', 'Event division berhasil ditambahkan.');
+    }
+
+    public function updateEventDivision(Request $request, EventDivision $eventDivision): RedirectResponse
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+
+        $eventDivision->update($this->validatedEventDivisionData($request, $eventDivision));
+
+        return redirect()
+            ->route('authorization.event-divisions')
+            ->with('status', 'Event division berhasil diperbarui.');
+    }
+
+    public function destroyEventDivision(Request $request, EventDivision $eventDivision): RedirectResponse
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+
+        DB::transaction(function () use ($eventDivision): void {
+            $eventDivision->update(['status' => 'inactive']);
+
+            EmployeeDeployment::query()
+                ->where('current_event_division_id', $eventDivision->id)
+                ->update(['current_event_division_id' => null]);
+
+            ProjectDivisionEvent::query()
+                ->where('event_division_id', $eventDivision->id)
+                ->update(['status' => 'inactive']);
+        });
+
+        return redirect()
+            ->route('authorization.event-divisions')
+            ->with('status', 'Event division berhasil dihapus.');
+    }
+
+    /**
+     * @return Collection<int, array{id: string, name: string}>
+     */
+    private function authorizationEmployeesForEventDivision(): Collection
+    {
+        return Employee::query()
+            ->with('profile:id,employee_id,name')
+            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+            ->orderBy('employee_code')
+            ->get(['id', 'employee_code'])
+            ->map(fn (Employee $employee): array => [
+                'id' => (string) $employee->id,
+                'name' => (string) ($employee->profile?->name ?? $employee->employee_code ?? $employee->id),
+            ])
+            ->values();
+    }
+
+    /**
+     * @return array{title: string, sub_title: ?string, status: string}
+     */
+    private function validatedEventDivisionData(Request $request, ?EventDivision $eventDivision = null): array
+    {
+        $validated = $request->validate([
+            'title' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('event_divisions', 'title')
+                    ->where(fn ($query) => $query->where('status', 'active'))
+                    ->ignore($eventDivision?->id, 'id'),
+            ],
+            'sub_title' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        return [
+            'title' => trim((string) $validated['title']),
+            'sub_title' => $this->nullableStringValue($validated['sub_title'] ?? null),
+            'status' => 'active',
+        ];
+    }
+
+    /**
+     * @return Collection<int, array{id: string, title: string, sub_title: string, employee_ids: array<int, string>}>
+     */
+    private function eventDivisionAssignments(): Collection
+    {
+        $employeeDivisionMap = Employee::query()
+            ->with('deployment:id,employee_id,current_event_division_id')
+            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+            ->get(['id'])
+            ->mapWithKeys(fn (Employee $employee): array => [(string) $employee->id => $this->nullableStringValue($employee->deployment?->current_event_division_id)]);
+
+        return EventDivision::query()
+            ->where('status', 'active')
+            ->orderBy('title')
+            ->get(['id', 'title', 'sub_title'])
+            ->map(fn (EventDivision $eventDivision): array => [
+                'id' => (string) $eventDivision->id,
+                'title' => (string) $eventDivision->title,
+                'sub_title' => (string) ($eventDivision->sub_title ?? ''),
+                'employee_ids' => $employeeDivisionMap
+                    ->filter(fn (?string $divisionId): bool => $divisionId === (string) $eventDivision->id)
+                    ->keys()
+                    ->values()
+                    ->all(),
+            ]);
+    }
+
+    private function nullableStringValue(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        return $value !== '' ? $value : null;
     }
 
     /**

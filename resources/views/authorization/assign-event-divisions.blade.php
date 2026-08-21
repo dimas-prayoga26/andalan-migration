@@ -175,7 +175,7 @@
                                         data-placeholder="Select staff"
                                     >
                                         @foreach ($employees as $employee)
-                                            <option value="{{ $employee['id'] }}" @selected(in_array($employee['id'], $selectedEmployeeIds, true))>{{ $employee['name'] }}</option>
+                                            <option value="{{ $employee['id'] }}" @selected(in_array($employee['id'], $selectedEmployeeIds, true))>{{ $employee['label'] }}</option>
                                         @endforeach
                                     </select>
                                 </td>

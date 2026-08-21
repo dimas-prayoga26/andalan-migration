@@ -63,4 +63,16 @@ class AuthorizationEventDivisionManagementTest extends TestCase
         $this->assertStringContainsString('use GeneratesCustomSequenceUuid;', $eventDivisionModel);
         $this->assertStringContainsString("'status' => 'active'", $eventDivisionModel);
     }
+
+    public function test_assign_event_division_staff_options_include_position_name(): void
+    {
+        $controller = File::get(app_path('Http/Controllers/AuthorizationController.php'));
+        $view = File::get(resource_path('views/authorization/assign-event-divisions.blade.php'));
+
+        $this->assertStringContainsString("'deployment.position:id,name'", $controller);
+        $this->assertStringContainsString("'deployment.positions:id,name'", $controller);
+        $this->assertStringContainsString("'position' => \$position", $controller);
+        $this->assertStringContainsString("'label' => \$position !== '' ? \$name.' - '.\$position : \$name", $controller);
+        $this->assertStringContainsString("{{ \$employee['label'] }}", $view);
+    }
 }

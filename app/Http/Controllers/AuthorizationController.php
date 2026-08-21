@@ -316,19 +316,31 @@ class AuthorizationController extends Controller
     }
 
     /**
-     * @return Collection<int, array{id: string, name: string}>
+     * @return Collection<int, array{id: string, name: string, position: string, label: string}>
      */
     private function authorizationEmployeesForEventDivision(): Collection
     {
         return Employee::query()
-            ->with('profile:id,employee_id,name')
+            ->with([
+                'profile:id,employee_id,name',
+                'deployment:id,employee_id,current_position_id',
+                'deployment.position:id,name',
+                'deployment.positions:id,name',
+            ])
             ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
             ->orderBy('employee_code')
             ->get(['id', 'employee_code'])
-            ->map(fn (Employee $employee): array => [
-                'id' => (string) $employee->id,
-                'name' => (string) ($employee->profile?->name ?? $employee->employee_code ?? $employee->id),
-            ])
+            ->map(function (Employee $employee): array {
+                $name = (string) ($employee->profile?->name ?? $employee->employee_code ?? $employee->id);
+                $position = $this->positionNamesFor($employee)->implode(', ');
+
+                return [
+                    'id' => (string) $employee->id,
+                    'name' => $name,
+                    'position' => $position,
+                    'label' => $position !== '' ? $name.' - '.$position : $name,
+                ];
+            })
             ->values();
     }
 

@@ -262,6 +262,7 @@ class AuthorizationMenuRouteTest extends TestCase
 
         $this->assertStringContainsString('@if ($canManagePositionPermissions)', $authorizationIndex);
         $this->assertStringContainsString("route('authorization.access-menus')", $authorizationIndex);
+        $this->assertStringContainsString("Route::has('authorization.event-divisions')", $authorizationIndex);
         $this->assertStringContainsString('private function viewerCompanyId(User $user): ?string', $authorizationController);
         $this->assertStringContainsString('private function canManagePositionPermissions(User $user): bool', $authorizationController);
         $this->assertStringContainsString("=== 'chief operating officer'", $authorizationController);

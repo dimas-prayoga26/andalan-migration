@@ -103,6 +103,10 @@
     'homeRoute' => 'dashboard',
 ])
 
+@php
+    $hasEventDivisionRoute = \Illuminate\Support\Facades\Route::has('authorization.event-divisions');
+@endphp
+
 <div class="card authorization-nav-card">
     <div class="card-header py-0">
         <ul class="nav nav-underline authorization-tabs gap-3">
@@ -112,9 +116,11 @@
             <li class="nav-item">
                 <a class="nav-link py-3 px-1 active" href="{{ route('authorization.access-menus') }}">Assign Permission</a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link py-3 px-1" href="{{ route('authorization.event-divisions') }}">Assign Event Division</a>
-            </li>
+            @if ($hasEventDivisionRoute)
+                <li class="nav-item">
+                    <a class="nav-link py-3 px-1" href="{{ route('authorization.event-divisions') }}">Assign Event Division</a>
+                </li>
+            @endif
         </ul>
     </div>
 </div>

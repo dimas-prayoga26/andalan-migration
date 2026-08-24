@@ -146,6 +146,20 @@
 
                     return normalizedValue.charAt(0) === '@' ? normalizedValue : '@' + normalizedValue;
                 };
+                var renderTaskContext = function (row) {
+                    var contextLabel = nullableText(row.task_context || row.project);
+
+                    return '<div class="text-muted fs-13">' + escapeHtml(contextLabel) + '</div>';
+                };
+                var renderTaskTitle = function (row) {
+                    var title = '<span class="fw-semibold text-black">' + escapeHtml(row.task) + '</span>';
+
+                    if (row.task_context_type === 'overtime') {
+                        return title + ' <span class="badge badge-info light ms-1 align-middle">Overtime</span>';
+                    }
+
+                    return title;
+                };
 
                 var taskTable = $('#picTaskTable').DataTable({
                     ajax: {
@@ -172,8 +186,8 @@
                         {
                             data: null,
                             render: function (row) {
-                                return '<span class="fw-semibold text-black">' + escapeHtml(row.task) + '</span>'
-                                    + '<div class="text-muted fs-13">' + escapeHtml(row.project) + '</div>'
+                                return renderTaskTitle(row)
+                                    + (row.task_context_type === 'overtime' ? '' : renderTaskContext(row))
                                     + '<div class="text-muted fs-13">Assign by : <span class="fw-semibold">' + escapeHtml(row.assigned_by) + '</span></div>';
                             }
                         },
@@ -214,7 +228,7 @@
                     $('#picTaskDetailTitle').text(nullableText(row.task));
                     $('#picTaskDetailDescription').text(nullableText(row.description));
                     $('#picTaskDetailCategory').text(nullableText(row.task_category));
-                    $('#picTaskDetailProject').text(nullableText(row.project));
+                    $('#picTaskDetailProject').text(nullableText(row.task_context || row.project));
                     $('#picTaskDetailAssignedBy').text(assignedByText(row.assigned_by));
                     $('#picTaskDetailDueDate').text(nullableText(row.due_date));
                     $('#picTaskDetailBlockers').text(nullableText(row.blockers));

@@ -6,9 +6,12 @@ use App\Http\Controllers\PicAttendance\PicAttendanceController;
 use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
 use App\Http\Controllers\PicAttendance\PicAttendanceTaskController;
+use App\Models\Project;
+use App\Models\ProjectTask;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class PicAttendanceModuleTest extends TestCase
@@ -224,17 +227,68 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString("->whereIn('employee_id', \$visibleEmployeeIds->all())", $taskController);
         $this->assertStringContainsString('$visibleEmployeeIds = collect([$selectedStaffId]);', $taskController);
         $this->assertStringNotContainsString('return $staffEmployeeIds->first();', $taskController);
-        $this->assertStringContainsString("->whereNull('overtime_id')", $taskController);
+        $this->assertStringNotContainsString("->whereNull('overtime_id')", $taskController);
         $this->assertStringContainsString("'due_date' => \$this->dateRangeLabel(\$projectTask->start_date, \$projectTask->due_date)", $taskController);
         $this->assertStringContainsString("'description' => trim((string) (\$projectTask->description ?? ''))", $taskController);
         $this->assertStringContainsString("'blockers' => trim((string) (\$projectTask->blockers ?? ''))", $taskController);
         $this->assertStringContainsString("'attachment_path' => trim((string) (\$projectTask->attachment_path ?? ''))", $taskController);
-        $this->assertStringContainsString("'task_category' => \$projectTask->project_id !== null ? 'Project Task' : 'Daily Task'", $taskController);
+        $this->assertStringContainsString("'task_context' => \$taskContext", $taskController);
+        $this->assertStringContainsString("'task_context_type' => \$isOvertimeTask ? 'overtime' : (\$projectTask->project_id !== null ? 'project' : 'daily')", $taskController);
+        $this->assertStringContainsString('renderTaskContext', $taskView);
+        $this->assertStringContainsString('renderTaskTitle', $taskView);
+        $this->assertStringContainsString('badge badge-info light ms-1 align-middle">Overtime</span>', $taskView);
+        $this->assertStringContainsString("row.task_context_type === 'overtime' ? '' : renderTaskContext(row)", $taskView);
         $this->assertStringContainsString("'priority' => \$this->priorityLabel((string) \$projectTask->priority)", $taskController);
         $this->assertStringContainsString("'status' => \$this->statusLabel(", $taskController);
         $this->assertStringContainsString("'status_class' => \$isCompleted ? 'success' : 'warning'", $taskController);
         $this->assertStringNotContainsString('Staff Task List', $taskView);
         $this->assertStringContainsString('No task data available.', $taskView);
         $this->assertStringNotContainsString('<form', $taskView);
+    }
+
+    public function test_pic_task_monitoring_context_labels_follow_task_source(): void
+    {
+        $controller = app(PicAttendanceTaskController::class);
+        $method = new ReflectionMethod(PicAttendanceTaskController::class, 'taskRow');
+        $method->setAccessible(true);
+
+        $overtimeTask = new ProjectTask([
+            'id' => 'task-overtime',
+            'overtime_id' => 'overtime-1',
+            'title' => 'Rekap Absensi',
+            'status' => 'pending',
+        ]);
+        $projectTask = new ProjectTask([
+            'id' => 'task-project',
+            'project_id' => 'project-1',
+            'title' => 'Venue Report',
+            'status' => 'pending',
+        ]);
+        $projectTask->setRelation('project', new Project([
+            'id' => 'project-1',
+            'name' => 'Muktamar PKB',
+        ]));
+
+        $dailyTask = new ProjectTask([
+            'id' => 'task-daily',
+            'title' => 'Daily Report',
+            'status' => 'pending',
+        ]);
+
+        $overtimeRow = $method->invoke($controller, $overtimeTask);
+        $projectRow = $method->invoke($controller, $projectTask);
+        $dailyRow = $method->invoke($controller, $dailyTask);
+
+        $this->assertSame('Overtime', $overtimeRow['task_context']);
+        $this->assertSame('overtime', $overtimeRow['task_context_type']);
+        $this->assertSame('Overtime Task', $overtimeRow['task_category']);
+
+        $this->assertSame('Task (Muktamar PKB)', $projectRow['task_context']);
+        $this->assertSame('project', $projectRow['task_context_type']);
+        $this->assertSame('Task (Muktamar PKB)', $projectRow['task_category']);
+
+        $this->assertSame('Daily Task', $dailyRow['task_context']);
+        $this->assertSame('daily', $dailyRow['task_context_type']);
+        $this->assertSame('Daily Task', $dailyRow['task_category']);
     }
 }

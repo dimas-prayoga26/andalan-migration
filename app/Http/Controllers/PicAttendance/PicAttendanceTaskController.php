@@ -54,7 +54,6 @@ class PicAttendanceTaskController extends Controller
                 'assignedBy:id,username,email',
             ])
             ->whereIn('employee_id', $visibleEmployeeIds->all())
-            ->whereNull('overtime_id')
             ->whereRaw('DATE(COALESCE(due_date, start_date, created_at)) BETWEEN ? AND ?', [$currentMonthStart, $currentMonthEnd])
             ->orderByRaw('COALESCE(due_date, start_date, created_at) DESC')
             ->get([
@@ -155,6 +154,10 @@ class PicAttendanceTaskController extends Controller
     {
         $isCompleted = $projectTask->status === 'completed' || $projectTask->completed_at !== null;
         $projectName = trim((string) ($projectTask->project?->name ?? 'Daily Task'));
+        $isOvertimeTask = $projectTask->overtime_id !== null;
+        $taskContext = $isOvertimeTask
+            ? 'Overtime'
+            : ($projectTask->project_id !== null ? 'Task ('.$projectName.')' : 'Daily Task');
 
         return [
             'id' => (string) $projectTask->id,
@@ -164,7 +167,9 @@ class PicAttendanceTaskController extends Controller
             'blockers' => trim((string) ($projectTask->blockers ?? '')),
             'attachment_path' => trim((string) ($projectTask->attachment_path ?? '')),
             'project' => $projectName,
-            'task_category' => $projectTask->project_id !== null ? 'Project Task' : 'Daily Task',
+            'task_category' => $isOvertimeTask ? 'Overtime Task' : ($projectTask->project_id !== null ? $taskContext : 'Daily Task'),
+            'task_context' => $taskContext,
+            'task_context_type' => $isOvertimeTask ? 'overtime' : ($projectTask->project_id !== null ? 'project' : 'daily'),
             'assigned_by' => $this->assignedByLabel($projectTask),
             'due_date' => $this->dateRangeLabel($projectTask->start_date, $projectTask->due_date),
             'priority' => $this->priorityLabel((string) $projectTask->priority),

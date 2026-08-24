@@ -7,6 +7,10 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-08-24 (Senin)
+- Mengubah label konteks task pada PIC Attendance > Task Monitoring: overtime task tampil sebagai badge overtime, project task tampil `Task (Nama Project)`, dan daily task tetap `Daily Task`.
+- Detail: `docs/dev-log/2026-08-24-1420-pic-task-monitoring-label-overtime-project.md`.
+
 ### 2026-08-21 (Jumat)
 - Merapikan tampilan detail Project Management agar sisa class/ID/copy lama `department` diganti menjadi `division`, mengikuti sumber data baru `event_divisions`.
 - Memastikan detail project tetap membaca scope dari `project_division_event`, `event_divisions`, `project_tasks.event_division_id`, dan `employee_deployments.current_event_division_id`, bukan `departments`.
@@ -317,6 +321,9 @@ Aturan log:
 - Tambah otomasi sinkronisasi saldo cuti bulanan via command + scheduler.
 
 ## File Detail Entry
+
+### 2026-08-24
+- `2026-08-24-1420-pic-task-monitoring-label-overtime-project.md`
 
 ### 2026-08-21
 - `2026-08-21-1053-project-detail-division-event-cleanup.md`

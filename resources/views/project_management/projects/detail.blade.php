@@ -510,11 +510,15 @@
                         </div>
                         <div class="clearfix text-end d-flex align-items-center justify-content-end project-division-actions">
                             @if ($divisionGroup['can_manage_drive'] ?? false)
-                                <button type="button" class="btn btn-sm btn-light project-division-view-all js-project-division-drive" data-bs-toggle="modal" data-bs-target="#projectDivisionDriveModal" data-update-url="{{ $divisionGroup['drive_update_url'] }}" data-event-division-name="{{ $divisionGroup['name'] }}" data-google-drive-url="{{ $divisionGroup['google_drive_url'] }}">{{ empty($divisionGroup['google_drive_url']) ? 'Add Drive' : 'Drive' }}</button>
+                                @if (! empty($divisionGroup['google_drive_url']))
+                                    <button type="button" class="btn btn-sm btn-light project-division-view-all js-project-division-drive" data-update-url="{{ $divisionGroup['drive_update_url'] }}" data-project-name="{{ $projectDetail['name'] ?? 'Project' }}" data-event-division-name="{{ $divisionGroup['name'] }}" data-google-drive-url="{{ $divisionGroup['google_drive_url'] }}" data-folder-id="{{ $divisionGroup['folder_id'] }}" data-drive-configured="true">Drive</button>
+                                @else
+                                    <button type="button" class="btn btn-sm btn-light project-division-view-all js-project-division-drive" data-update-url="{{ $divisionGroup['drive_update_url'] }}" data-project-name="{{ $projectDetail['name'] ?? 'Project' }}" data-event-division-name="{{ $divisionGroup['name'] }}" data-google-drive-url="{{ $divisionGroup['google_drive_url'] }}" data-folder-id="{{ $divisionGroup['folder_id'] }}" data-drive-configured="false">Konfigurasi Drive</button>
+                                @endif
                             @elseif (! empty($divisionGroup['google_drive_url']))
                                 <a href="{{ $divisionGroup['google_drive_url'] }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-light project-division-view-all">Drive</a>
                             @else
-                                <button type="button" class="btn btn-sm btn-light project-division-view-all" disabled>Add Drive</button>
+                                <button type="button" class="btn btn-sm btn-light project-division-view-all" disabled>Konfigurasi Drive</button>
                             @endif
                         </div>
                     </div>
@@ -680,17 +684,50 @@
             <form id="projectDivisionDriveForm" method="POST">
                 @csrf
                 <input type="hidden" name="_method" value="PATCH">
+                <input type="hidden" name="folder_id" id="projectDivisionDriveFolderId">
                 <div class="modal-header">
                     <h5 class="modal-title" id="projectDivisionDriveTitle">Google Drive Division</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <label for="projectDivisionDriveUrl" class="form-label">Google Drive URL</label>
-                    <input type="url" class="form-control" id="projectDivisionDriveUrl" name="google_drive_url" maxlength="2048" placeholder="https://drive.google.com/drive/folders/...">
+                    <div class="mb-3">
+                        <label for="projectDivisionDriveParentName" class="form-label">Lokasi Folder Induk</label>
+                        <div class="d-flex gap-2">
+                            <input type="hidden" id="projectDivisionDriveParentId">
+                            <input type="text" class="form-control" id="projectDivisionDriveParentName" value="Belum dipilih" readonly>
+                            <button type="button" class="btn btn-light flex-shrink-0" id="projectDivisionDrivePickParent">Pilih Folder</button>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="projectDivisionDriveProjectFolderName" class="form-label">Folder Project</label>
+                            <input type="text" class="form-control" id="projectDivisionDriveProjectFolderName" maxlength="255">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="projectDivisionDriveDivisionFolderName" class="form-label">Folder Divisi</label>
+                            <input type="text" class="form-control" id="projectDivisionDriveDivisionFolderName" maxlength="255">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="projectDivisionDriveFolderPath" class="form-label">Struktur Folder</label>
+                        <input type="text" class="form-control" id="projectDivisionDriveFolderPath" readonly>
+                    </div>
+                    <div class="d-flex justify-content-end mb-3">
+                        <button type="button" class="btn btn-primary" id="projectDivisionDriveCreateFolder" disabled>Buat Struktur Folder</button>
+                    </div>
+                    <hr>
+                    <label for="projectDivisionDriveUrl" class="form-label d-flex align-items-center gap-2">
+                        <span>Google Drive URL</span>
+                        <span class="badge bg-danger" id="projectDivisionDriveStatusBadge">Belum siap</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="url" class="form-control" id="projectDivisionDriveUrl" name="google_drive_url" maxlength="2048" placeholder="https://drive.google.com/drive/folders/...">
+                        <button type="button" class="btn btn-light" id="projectDivisionDriveOpenUrl" disabled>Open</button>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-dark light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="projectDivisionDriveSubmit">Save changes</button>
+                    <button type="submit" class="btn btn-primary" id="projectDivisionDriveSubmit">Simpan URL</button>
                 </div>
             </form>
         </div>
@@ -710,9 +747,21 @@
 <script src="{{ asset('assets/vendor/apexcharts/dist/apexcharts.min.js') }}?v={{ $apexChartsVersion }}"></script>
 <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
+<script src="https://apis.google.com/js/api.js"></script>
 <script>
     $(function () {
         var projectTaskDeleteUrl = '';
+        var projectDivisionDriveAccessToken = '';
+        var projectDivisionDriveActiveButton = null;
+        var projectDivisionDriveApiKey = @json(config('services.google.api_key'));
+        var projectDivisionDriveOauthClientId = @json(config('services.google.client_id'));
+        var projectDivisionDriveOauthScope = 'https://www.googleapis.com/auth/drive.file';
+        var projectDivisionDriveAccessTokenUrl = @json(route('google-drive.oauth.access-token'));
+        var projectDivisionDriveExchangeCodeUrl = @json(route('google-drive.oauth.exchange-code'));
+        var projectDivisionDriveFolderMimeType = 'application/vnd.google-apps.folder';
+        var projectDivisionDrivePendingButton = null;
+        var projectDivisionDriveCodeClient = null;
 
         if (typeof moment !== 'undefined') {
             moment.updateLocale('en', {
@@ -749,6 +798,441 @@
             }
 
             $(selector).modal('hide');
+        };
+        var showModal = function (selector) {
+            var modalElement = document.querySelector(selector);
+
+            if (window.bootstrap && modalElement) {
+                var modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                modal.show();
+
+                return;
+            }
+
+            $(selector).modal('show');
+        };
+        var fillProjectDivisionDriveForm = function (button) {
+            var currentDriveUrl = $(button).attr('data-google-drive-url') || '';
+
+            projectDivisionDriveActiveButton = button;
+            $('#projectDivisionDriveTitle').text('Konfigurasi Drive ' + ($(button).attr('data-event-division-name') || 'Google Drive Division'));
+            $('#projectDivisionDriveForm').attr('action', $(button).attr('data-update-url') || '');
+            $('#projectDivisionDriveUrl').val(currentDriveUrl);
+            $('#projectDivisionDriveFolderId').val($(button).attr('data-folder-id') || '');
+            refreshProjectDivisionDriveOpenButton();
+            $('#projectDivisionDriveParentId').val('');
+            $('#projectDivisionDriveParentName').val('Belum dipilih');
+            $('#projectDivisionDriveProjectFolderName').val(projectDivisionDriveProjectName(button));
+            $('#projectDivisionDriveDivisionFolderName').val(projectDivisionDriveDivisionName(button));
+            $('#projectDivisionDriveCreateFolder').prop('disabled', true).text('Buat Struktur Folder');
+            updateProjectDivisionDriveFolderPath(button);
+        };
+        var resetProjectDivisionDriveButton = function (button) {
+            if (! button) {
+                return;
+            }
+
+            $(button).prop('disabled', false).text('Konfigurasi Drive');
+        };
+        var showProjectDivisionDriveModal = function (button) {
+            fillProjectDivisionDriveForm(button);
+            showModal('#projectDivisionDriveModal');
+        };
+        var restoreProjectDivisionDriveModal = function () {
+            window.setTimeout(function () {
+                if (projectDivisionDriveActiveButton) {
+                    showModal('#projectDivisionDriveModal');
+                }
+            }, 150);
+        };
+        var projectDivisionDriveProjectName = function (button) {
+            return $(button).attr('data-project-name') || 'Project';
+        };
+        var projectDivisionDriveDivisionName = function (button) {
+            return $(button).attr('data-event-division-name') || 'Google Drive Division';
+        };
+        var updateProjectDivisionDriveFolderPath = function (button) {
+            var parentName = $('#projectDivisionDriveParentName').val() || 'Belum dipilih';
+            var projectFolderName = $('#projectDivisionDriveProjectFolderName').val() || projectDivisionDriveProjectName(button);
+            var divisionFolderName = $('#projectDivisionDriveDivisionFolderName').val() || projectDivisionDriveDivisionName(button);
+
+            $('#projectDivisionDriveFolderPath').val(parentName + ' / ' + projectFolderName + ' / ' + divisionFolderName);
+        };
+        var saveProjectDivisionDriveUrl = function (button, driveUrl, folderId) {
+            return $.ajax({
+                url: $(button).attr('data-update-url') || '',
+                type: 'POST',
+                data: {
+                    _method: 'PATCH',
+                    google_drive_url: driveUrl,
+                    folder_id: folderId || '',
+                },
+                headers: {
+                    'X-CSRF-TOKEN': @json(csrf_token()),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+        };
+        var syncProjectDivisionDriveButton = function (button, driveUrl, folderId) {
+            $(button).attr('data-google-drive-url', driveUrl);
+            $(button).attr('data-folder-id', folderId || '');
+            $(button).attr('data-drive-configured', driveUrl ? 'true' : 'false');
+            $(button).text(driveUrl ? 'Drive' : 'Konfigurasi Drive');
+            $('#projectDivisionDriveUrl').val(driveUrl);
+            $('#projectDivisionDriveFolderId').val(folderId || '');
+            refreshProjectDivisionDriveOpenButton();
+        };
+        var refreshProjectDivisionDriveStatusBadge = function () {
+            var hasDriveUrl = Boolean($('#projectDivisionDriveUrl').val());
+
+            $('#projectDivisionDriveStatusBadge')
+                .toggleClass('bg-success', hasDriveUrl)
+                .toggleClass('bg-danger', ! hasDriveUrl)
+                .text(hasDriveUrl ? 'Folder siap' : 'Belum siap');
+        };
+        var refreshProjectDivisionDriveOpenButton = function () {
+            $('#projectDivisionDriveOpenUrl').prop('disabled', ! $('#projectDivisionDriveUrl').val());
+            refreshProjectDivisionDriveStatusBadge();
+        };
+        var escapeProjectDivisionDriveQueryValue = function (value) {
+            return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        };
+        var findProjectDivisionDriveFolder = function (folderName, parentFolderId) {
+            var query = "'" + escapeProjectDivisionDriveQueryValue(parentFolderId) + "' in parents and name = '" + escapeProjectDivisionDriveQueryValue(folderName) + "' and mimeType = '" + projectDivisionDriveFolderMimeType + "' and trashed = false";
+
+            return $.ajax({
+                url: 'https://www.googleapis.com/drive/v3/files',
+                type: 'GET',
+                data: {
+                    q: query,
+                    fields: 'files(id,name,webViewLink)',
+                    pageSize: 1,
+                    supportsAllDrives: true,
+                    includeItemsFromAllDrives: true,
+                },
+                headers: {
+                    Authorization: 'Bearer ' + projectDivisionDriveAccessToken,
+                },
+            }).then(function (response) {
+                return response.files?.[0] || null;
+            });
+        };
+        var createProjectDivisionDriveChildFolder = function (folderName, parentFolderId) {
+            return $.ajax({
+                url: 'https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink&supportsAllDrives=true',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    name: folderName,
+                    mimeType: projectDivisionDriveFolderMimeType,
+                    parents: [parentFolderId],
+                }),
+                headers: {
+                    Authorization: 'Bearer ' + projectDivisionDriveAccessToken,
+                },
+            });
+        };
+        var findOrCreateProjectDivisionDriveFolder = function (folderName, parentFolderId) {
+            return findProjectDivisionDriveFolder(folderName, parentFolderId).then(function (folder) {
+                if (folder) {
+                    return folder;
+                }
+
+                return createProjectDivisionDriveChildFolder(folderName, parentFolderId);
+            });
+        };
+        var createProjectDivisionDriveFolder = function (button) {
+            var parentFolderId = $('#projectDivisionDriveParentId').val();
+            var projectName = $('#projectDivisionDriveProjectFolderName').val() || projectDivisionDriveProjectName(button);
+            var divisionName = $('#projectDivisionDriveDivisionFolderName').val() || projectDivisionDriveDivisionName(button);
+            var createButton = $('#projectDivisionDriveCreateFolder');
+
+            if (! parentFolderId) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Pilih lokasi',
+                    text: 'Pilih folder induk terlebih dahulu.',
+                });
+
+                return;
+            }
+
+            createButton.prop('disabled', true).text('Membuat struktur...');
+
+            findOrCreateProjectDivisionDriveFolder(projectName, parentFolderId)
+                .then(function (projectFolder) {
+                    return findOrCreateProjectDivisionDriveFolder(divisionName, projectFolder.id);
+                })
+                .then(function (folder) {
+                    var driveUrl = folder.webViewLink || ('https://drive.google.com/drive/folders/' + folder.id);
+
+                    $('#projectDivisionDriveUrl').val(driveUrl);
+                    $('#projectDivisionDriveFolderId').val(folder.id || '');
+                    createButton.text('Menyimpan link...');
+
+                    return saveProjectDivisionDriveUrl(button, driveUrl, folder.id || '')
+                        .then(function (response) {
+                            if (response.success === true || response.status === true) {
+                                syncProjectDivisionDriveButton(button, response.google_drive_url || driveUrl, response.folder_id || folder.id || '');
+                                hideModal('#projectDivisionDriveModal');
+
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Drive siap',
+                                    text: 'Struktur folder Google Drive berhasil dibuat dan disimpan.',
+                                    timer: 1100,
+                                    showConfirmButton: false,
+                                });
+
+                                return;
+                            }
+
+                            $(button).attr('data-google-drive-url', driveUrl);
+                            showProjectDivisionDriveModal(button);
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Folder dibuat',
+                                text: response.message || 'Link folder belum tersimpan otomatis.',
+                            });
+                        });
+                })
+                .fail(function (xhr) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Drive belum tersimpan',
+                        text: xhr.responseJSON?.error?.message || xhr.responseJSON?.message || 'Google Drive API gagal membuat folder atau link belum tersimpan.',
+                    });
+                })
+                .always(function () {
+                    createButton.prop('disabled', false).text('Buat Struktur Folder');
+                });
+        };
+        var openProjectDivisionDrivePicker = function () {
+            if (! projectDivisionDriveApiKey) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Konfigurasi belum lengkap',
+                    text: 'GOOGLE_API_KEY belum diset.',
+                });
+
+                return;
+            }
+
+            if (! projectDivisionDriveAccessToken) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'OAuth belum siap',
+                    text: 'Hubungkan akun Google terlebih dahulu.',
+                });
+
+                return;
+            }
+
+            if (! window.gapi) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Picker belum siap',
+                    text: 'Google Picker belum selesai dimuat.',
+                });
+
+                return;
+            }
+
+            gapi.load('picker', {
+                callback: function () {
+                    var folderView = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+                        .setIncludeFolders(true)
+                        .setMimeTypes(projectDivisionDriveFolderMimeType)
+                        .setSelectFolderEnabled(true);
+                    var picker = new google.picker.PickerBuilder()
+                        .addView(folderView)
+                        .setDeveloperKey(projectDivisionDriveApiKey)
+                        .setOAuthToken(projectDivisionDriveAccessToken)
+                        .setOrigin(window.location.protocol + '//' + window.location.host)
+                        .setCallback(function (data) {
+                            var pickerAction = data[google.picker.Response.ACTION];
+
+                            if (pickerAction !== google.picker.Action.PICKED) {
+                                restoreProjectDivisionDriveModal();
+
+                                return;
+                            }
+
+                            var folder = data[google.picker.Response.DOCUMENTS]?.[0];
+
+                            if (! folder) {
+                                restoreProjectDivisionDriveModal();
+
+                                return;
+                            }
+
+                            $('#projectDivisionDriveParentId').val(folder[google.picker.Document.ID] || folder.id || '');
+                            $('#projectDivisionDriveParentName').val(folder[google.picker.Document.NAME] || folder.name || folder.title || 'Folder Drive');
+                            $('#projectDivisionDriveCreateFolder').prop('disabled', false);
+                            updateProjectDivisionDriveFolderPath(projectDivisionDriveActiveButton);
+                            restoreProjectDivisionDriveModal();
+                        })
+                        .build();
+
+                    hideModal('#projectDivisionDriveModal');
+                    picker.setVisible(true);
+                },
+            });
+        };
+        var requestProjectDivisionDriveOAuth = function (button) {
+            if (! projectDivisionDriveOauthClientId) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Konfigurasi belum lengkap',
+                    text: 'GOOGLE_CLIENT_ID belum diset.',
+                });
+
+                return;
+            }
+
+            projectDivisionDrivePendingButton = button;
+            $(button).prop('disabled', true).text('Menghubungkan...');
+
+            $.ajax({
+                url: projectDivisionDriveAccessTokenUrl,
+                type: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function (response) {
+                    projectDivisionDriveAccessToken = response.access_token || '';
+
+                    if (! projectDivisionDriveAccessToken) {
+                        requestProjectDivisionDriveCode();
+
+                        return;
+                    }
+
+                    resetProjectDivisionDriveButton(button);
+                    projectDivisionDrivePendingButton = null;
+                    showProjectDivisionDriveModal(button);
+                },
+                error: function (xhr) {
+                    if (xhr.responseJSON?.requires_authorization === true) {
+                        requestProjectDivisionDriveCode();
+
+                        return;
+                    }
+
+                    resetProjectDivisionDriveButton(button);
+                    projectDivisionDrivePendingButton = null;
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'OAuth belum siap',
+                        text: xhr.responseJSON?.message || 'Gagal membaca token Google dari server.',
+                    });
+                },
+            });
+        };
+        var requestProjectDivisionDriveCode = function () {
+            if (! window.google?.accounts?.oauth2) {
+                resetProjectDivisionDriveButton(projectDivisionDrivePendingButton);
+                projectDivisionDrivePendingButton = null;
+                Swal.fire({
+                    icon: 'error',
+                    title: 'OAuth belum siap',
+                    text: 'Google OAuth belum selesai dimuat.',
+                });
+
+                return;
+            }
+
+            if (! projectDivisionDriveCodeClient) {
+                projectDivisionDriveCodeClient = google.accounts.oauth2.initCodeClient({
+                    client_id: projectDivisionDriveOauthClientId,
+                    scope: projectDivisionDriveOauthScope,
+                    ux_mode: 'popup',
+                    prompt: 'consent',
+                    callback: function (response) {
+                        var targetButton = projectDivisionDrivePendingButton;
+
+                        if (! response || response.error) {
+                            projectDivisionDrivePendingButton = null;
+                            resetProjectDivisionDriveButton(targetButton);
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'OAuth dibatalkan',
+                                text: response?.error_description || response?.error || 'OAuth Google dibatalkan.',
+                            });
+
+                            return;
+                        }
+
+                        exchangeProjectDivisionDriveCode(response.code || '', targetButton);
+                    },
+                    error_callback: function () {
+                        var targetButton = projectDivisionDrivePendingButton;
+
+                        projectDivisionDrivePendingButton = null;
+                        resetProjectDivisionDriveButton(targetButton);
+
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'OAuth dibatalkan',
+                            text: 'Popup Google OAuth ditutup atau gagal dibuka.',
+                        });
+                    },
+                });
+            }
+
+            projectDivisionDriveCodeClient.requestCode();
+        };
+        var exchangeProjectDivisionDriveCode = function (code, button) {
+            if (! code) {
+                projectDivisionDrivePendingButton = null;
+                resetProjectDivisionDriveButton(button);
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'OAuth gagal',
+                    text: 'Authorization code Google tidak diterima.',
+                });
+
+                return;
+            }
+
+            $.ajax({
+                url: projectDivisionDriveExchangeCodeUrl,
+                type: 'POST',
+                data: {
+                    code: code,
+                    redirect_uri: window.location.origin,
+                },
+                headers: {
+                    'X-CSRF-TOKEN': @json(csrf_token()),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function (response) {
+                    projectDivisionDriveAccessToken = response.access_token || '';
+                    projectDivisionDrivePendingButton = null;
+                    resetProjectDivisionDriveButton(button);
+
+                    if (! projectDivisionDriveAccessToken) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'OAuth gagal',
+                            text: 'Access token Google tidak diterima dari server.',
+                        });
+
+                        return;
+                    }
+
+                    showProjectDivisionDriveModal(button);
+                },
+                error: function (xhr) {
+                    projectDivisionDrivePendingButton = null;
+                    resetProjectDivisionDriveButton(button);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'OAuth gagal',
+                        text: xhr.responseJSON?.message || 'Gagal menyimpan OAuth Google.',
+                    });
+                },
+            });
         };
         var todayDate = function () {
             var now = new Date();
@@ -1100,11 +1584,43 @@
         });
 
         $(document).on('click', '.js-project-division-drive', function () {
-            var currentDriveUrl = $(this).attr('data-google-drive-url') || '';
+            if ($(this).attr('data-drive-configured') === 'true') {
+                showProjectDivisionDriveModal(this);
 
-            $('#projectDivisionDriveTitle').text((currentDriveUrl ? 'Update ' : 'Add ') + ($(this).attr('data-event-division-name') || 'Google Drive Division') + ' Drive');
-            $('#projectDivisionDriveForm').attr('action', $(this).attr('data-update-url') || '');
-            $('#projectDivisionDriveUrl').val(currentDriveUrl);
+                return;
+            }
+
+            requestProjectDivisionDriveOAuth(this);
+        });
+
+        $('#projectDivisionDrivePickParent').on('click', openProjectDivisionDrivePicker);
+
+        $('#projectDivisionDriveProjectFolderName, #projectDivisionDriveDivisionFolderName').on('input', function () {
+            if (! projectDivisionDriveActiveButton) {
+                return;
+            }
+
+            updateProjectDivisionDriveFolderPath(projectDivisionDriveActiveButton);
+        });
+
+        $('#projectDivisionDriveUrl').on('input', refreshProjectDivisionDriveOpenButton);
+
+        $('#projectDivisionDriveOpenUrl').on('click', function () {
+            var driveUrl = $('#projectDivisionDriveUrl').val();
+
+            if (! driveUrl) {
+                return;
+            }
+
+            window.open(driveUrl, '_blank', 'noopener,noreferrer');
+        });
+
+        $('#projectDivisionDriveCreateFolder').on('click', function () {
+            if (! projectDivisionDriveActiveButton) {
+                return;
+            }
+
+            createProjectDivisionDriveFolder(projectDivisionDriveActiveButton);
         });
 
         $('#projectDivisionDriveForm').on('submit', function (event) {
@@ -1126,15 +1642,15 @@
                 },
                 success: function (response) {
                     if (response.success === true || response.status === true) {
+                        syncProjectDivisionDriveButton(projectDivisionDriveActiveButton, response.google_drive_url || $('#projectDivisionDriveUrl').val(), response.folder_id || $('#projectDivisionDriveFolderId').val());
+                        hideModal('#projectDivisionDriveModal');
+
                         Swal.fire({
                             icon: 'success',
                             title: 'Berhasil',
                             text: response.message,
                             timer: 1100,
                             showConfirmButton: false,
-                        }).then(function () {
-                            hideModal('#projectDivisionDriveModal');
-                            window.location.reload();
                         });
                     } else {
                         Swal.fire({
@@ -1146,7 +1662,7 @@
                 },
                 error: handleProjectTaskAjaxError,
                 complete: function () {
-                    submitButton.prop('disabled', false).text('Save changes');
+                    submitButton.prop('disabled', false).text('Simpan URL');
                 },
             });
         });

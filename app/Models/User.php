@@ -59,6 +59,11 @@ class User extends Authenticatable
         return $this->hasMany(Project::class, 'created_by', 'id');
     }
 
+    public function googleOauthTokens(): HasMany
+    {
+        return $this->hasMany(GoogleOauthToken::class, 'user_id', 'id');
+    }
+
     public function approvedBusinessTrips(): HasMany
     {
         return $this->hasMany(BusinessTrip::class, 'approved_by', 'id');

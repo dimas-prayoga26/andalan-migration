@@ -502,7 +502,7 @@
             var attendanceClockOutSummaryTimeElement = document.getElementById('dashboardAttendanceClockOutSummaryTimeValue');
             var clockInCardButtonElement = document.getElementById('dashboardClockInCardButton');
             var clockOutCardButtonElement = document.getElementById('dashboardClockOutCardButton');
-            var googleMapsApiKey = @json(config('services.google_maps.api_key'));
+            var googleMapsApiKey = @json(config('services.google.api_key'));
             var officeLocation = @json($officeLocation);
             var clockInModalElement = document.getElementById('dashboardClockIn');
             var clockOutModalElement = document.getElementById('dashboardClockOut');

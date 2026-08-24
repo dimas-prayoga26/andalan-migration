@@ -253,7 +253,7 @@ class ProjectController extends Controller
             'memberships.employee.user:id,username',
             'memberships.employee.profile:id,employee_id,name,profile_picture_path',
             'memberships.employee.deployment:id,employee_id,current_event_division_id',
-            'projectDivisionEvents:id,project_id,event_division_id,google_drive_url,status',
+            'projectDivisionEvents:id,project_id,event_division_id,google_drive_url,folder_id,status',
             'projectDivisionEvents.eventDivision:id,title,sub_title',
         ]);
 
@@ -297,9 +297,11 @@ class ProjectController extends Controller
 
         $validated = $request->validate([
             'google_drive_url' => ['nullable', 'url', 'max:2048'],
+            'folder_id' => ['nullable', 'string', 'max:255'],
         ]);
 
         $googleDriveUrl = $this->nullableStringValue($validated['google_drive_url'] ?? null);
+        $folderId = $this->nullableStringValue($validated['folder_id'] ?? null);
 
         ProjectDivisionEvent::query()->updateOrCreate(
             [
@@ -308,6 +310,7 @@ class ProjectController extends Controller
             ],
             [
                 'google_drive_url' => $googleDriveUrl,
+                'folder_id' => $folderId,
                 'status' => 'active',
             ],
         );
@@ -316,6 +319,7 @@ class ProjectController extends Controller
             'success' => true,
             'message' => 'Google Drive division berhasil diperbarui.',
             'google_drive_url' => $googleDriveUrl ?? '',
+            'folder_id' => $folderId ?? '',
         ]);
     }
 
@@ -1180,6 +1184,9 @@ class ProjectController extends Controller
         $divisionDriveUrls = $activeProjectDivisionEvents
             ->keyBy(fn (ProjectDivisionEvent $projectDivisionEvent): string => (string) $projectDivisionEvent->event_division_id)
             ->map(fn (ProjectDivisionEvent $projectDivisionEvent): string => trim((string) ($projectDivisionEvent->google_drive_url ?? '')));
+        $divisionFolderIds = $activeProjectDivisionEvents
+            ->keyBy(fn (ProjectDivisionEvent $projectDivisionEvent): string => (string) $projectDivisionEvent->event_division_id)
+            ->map(fn (ProjectDivisionEvent $projectDivisionEvent): string => trim((string) ($projectDivisionEvent->folder_id ?? '')));
 
         $relevantDivisionIds = $activeProjectDivisionEvents
             ->pluck('event_division_id')
@@ -1194,7 +1201,7 @@ class ProjectController extends Controller
             ->whereIn('id', $relevantDivisionIds)
             ->orderBy('title')
             ->get(['id', 'title', 'sub_title'])
-            ->map(function (EventDivision $eventDivision) use ($project, $tasks, $employeeId, $canManageProject, $canManageGoogleDrive, $projectMemberEmployees, $divisionDriveUrls): array {
+            ->map(function (EventDivision $eventDivision) use ($project, $tasks, $employeeId, $canManageProject, $canManageGoogleDrive, $projectMemberEmployees, $divisionDriveUrls, $divisionFolderIds): array {
                 $divisionId = (string) $eventDivision->id;
                 $divisionTasks = $tasks
                     ->filter(fn (ProjectTask $task): bool => (string) $task->event_division_id === $divisionId)
@@ -1220,6 +1227,7 @@ class ProjectController extends Controller
                     'name' => trim((string) $eventDivision->title),
                     'sub_title' => trim((string) ($eventDivision->sub_title ?? '')),
                     'google_drive_url' => $divisionDriveUrls->get($divisionId, ''),
+                    'folder_id' => $divisionFolderIds->get($divisionId, ''),
                     'can_create_task' => ($canManageGoogleDrive || $employeeCanCreateOwnTask) && $visibleTaskAssigneeOptions->isNotEmpty(),
                     'can_manage_drive' => $canManageGoogleDrive,
                     'task_assignee_options' => $visibleTaskAssigneeOptions,

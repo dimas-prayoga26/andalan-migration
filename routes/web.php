@@ -12,6 +12,7 @@ use App\Http\Controllers\DirectorAttendance\DirectorAttendanceController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceOvertimeController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceTaskController;
 use App\Http\Controllers\EmployeeDataController;
+use App\Http\Controllers\GoogleDriveOAuthController;
 use App\Http\Controllers\PicAttendance\PicAttendanceController;
 use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
@@ -48,6 +49,8 @@ Route::middleware('auth')->group(function (): void {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
+    Route::get('/google-drive/oauth/access-token', [GoogleDriveOAuthController::class, 'accessToken'])->name('google-drive.oauth.access-token');
+    Route::post('/google-drive/oauth/exchange-code', [GoogleDriveOAuthController::class, 'exchangeCode'])->name('google-drive.oauth.exchange-code');
 
     // Activity Schedule
     Route::middleware('position.permission:view-calendar')->group(function (): void {

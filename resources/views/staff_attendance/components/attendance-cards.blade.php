@@ -329,7 +329,7 @@
             var attendanceExceptionCardButtonElement = document.getElementById('attendanceExceptionCardButton');
             var attendanceConfirmationCardSlideElement = document.getElementById('attendanceConfirmationCardSlide');
             var endOfShiftCardSlideElement = document.getElementById('endOfShiftCardSlide');
-            var googleMapsApiKey = @json(config('services.google_maps.api_key'));
+            var googleMapsApiKey = @json(config('services.google.api_key'));
             var officeLocation = @json($officeLocation);
             var clockInModalElement = document.getElementById('clockIn');
             var clockOutModalElement = document.getElementById('clockOut');
@@ -749,7 +749,7 @@
                     }
 
                     if (!googleMapsApiKey) {
-                        reject(new Error('GOOGLE_MAPS_API_KEY belum diset'));
+                        reject(new Error('GOOGLE_API_KEY belum diset'));
                         return;
                     }
 

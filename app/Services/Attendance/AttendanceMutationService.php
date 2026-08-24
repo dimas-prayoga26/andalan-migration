@@ -794,7 +794,7 @@ class AttendanceMutationService
      */
     private function reverseGeocodeCoordinates(float $latitude, float $longitude): array
     {
-        $googleMapsApiKey = config('services.google_maps.api_key');
+        $googleMapsApiKey = config('services.google.api_key');
         if (empty($googleMapsApiKey) || ! $this->isValidCoordinate($latitude, $longitude)) {
             return [
                 'formatted_address' => null,

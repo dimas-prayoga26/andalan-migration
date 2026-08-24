@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Models\EmployeeDeployment;
 use App\Models\EmployeePicAssignment;
 use App\Models\EventDivision;
+use App\Models\GoogleOauthToken;
 use App\Models\Position;
 use App\Models\Project;
 use App\Models\ProjectMember;
@@ -18,6 +19,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
@@ -35,7 +37,9 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $overviewController = File::get(app_path('Http/Controllers/ProjectManagement/OverviewController.php'));
         $taskListController = File::get(app_path('Http/Controllers/ProjectManagement/TaskListController.php'));
         $projectController = File::get(app_path('Http/Controllers/ProjectManagement/ProjectController.php'));
+        $googleDriveOAuthController = File::get(app_path('Http/Controllers/GoogleDriveOAuthController.php'));
         $appServiceProvider = File::get(app_path('Providers/AppServiceProvider.php'));
+        $servicesConfig = File::get(config_path('services.php'));
         $routes = File::get(base_path('routes/web.php'));
         $commonJs = File::get(resource_path('views/layouts/commonjs.blade.php'));
         $profileNavbar = File::get(resource_path('views/project_management/layouts/profile-navbar.blade.php'));
@@ -47,7 +51,15 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $taskListProjectGridPartial = File::get(resource_path('views/project_management/task_list/partials/project-grid.blade.php'));
         $projectModel = File::get(app_path('Models/Project.php'));
         $projectDivisionEventModel = File::get(app_path('Models/ProjectDivisionEvent.php'));
+        $userModel = File::get(app_path('Models/User.php'));
+        $googleOauthTokenModel = File::get(app_path('Models/GoogleOauthToken.php'));
         $projectDivisionEventMigration = File::get(database_path('migrations/2026_08_20_090001_replace_project_departments_with_project_division_event_table.php'));
+        $projectDivisionEventFolderIdMigration = collect(File::glob(database_path('migrations/*_add_folder_id_to_project_division_event_table.php')))
+            ->map(fn (string $path): string => File::get($path))
+            ->implode("\n");
+        $googleOauthTokenMigration = collect(File::glob(database_path('migrations/*_create_google_oauth_tokens_table.php')))
+            ->map(fn (string $path): string => File::get($path))
+            ->implode("\n");
         $liveEventDatesMigration = File::get(database_path('migrations/2026_06_28_234546_add_live_event_dates_to_projects_table.php'));
         $projectImagePathMigration = collect(File::glob(database_path('migrations/*_add_image_path_to_projects_table.php')))
             ->map(fn (string $path): string => File::get($path))
@@ -102,6 +114,8 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("Route::get('/project-management/projects/detail', [ProjectManagementProjectController::class, 'detailFallback'])->name('project_management.projects.detail.fallback');", $routes);
         $this->assertStringContainsString("Route::get('/project-management/projects/{project}', [ProjectManagementProjectController::class, 'detail'])->name('project_management.projects.detail');", $routes);
         $this->assertStringContainsString("Route::patch('/project-management/projects/{project}/event-divisions/{eventDivision}/google-drive', [ProjectManagementProjectController::class, 'updateEventDivisionGoogleDrive'])->name('project_management.projects.event-divisions.google-drive.update');", $routes);
+        $this->assertStringContainsString("Route::get('/google-drive/oauth/access-token', [GoogleDriveOAuthController::class, 'accessToken'])->name('google-drive.oauth.access-token');", $routes);
+        $this->assertStringContainsString("Route::post('/google-drive/oauth/exchange-code', [GoogleDriveOAuthController::class, 'exchangeCode'])->name('google-drive.oauth.exchange-code');", $routes);
         $this->assertStringContainsString("Route::post('/project-management/projects/{project}/tasks', [ProjectManagementProjectController::class, 'storeTask'])->name('project_management.projects.tasks.store');", $routes);
         $this->assertStringContainsString("Route::put('/project-management/projects/{project}/tasks/{projectTask}', [ProjectManagementProjectController::class, 'updateTask'])->name('project_management.projects.tasks.update');", $routes);
         $this->assertStringContainsString("Route::patch('/project-management/projects/{project}/tasks/{projectTask}/toggle', [ProjectManagementProjectController::class, 'toggleTask'])->name('project_management.projects.tasks.toggle');", $routes);
@@ -111,13 +125,27 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("\$table->foreignUuid('project_id')->constrained('projects', 'id')->cascadeOnDelete();", $projectDivisionEventMigration);
         $this->assertStringContainsString("\$table->foreignUuid('event_division_id')->constrained('event_divisions', 'id')->cascadeOnDelete();", $projectDivisionEventMigration);
         $this->assertStringContainsString("\$table->string('google_drive_url', 2048)->nullable();", $projectDivisionEventMigration);
+        $this->assertStringContainsString("\$table->string('folder_id')->nullable()->after('google_drive_url')->index();", $projectDivisionEventFolderIdMigration);
+        $this->assertStringContainsString("Schema::create('google_oauth_tokens'", $googleOauthTokenMigration);
+        $this->assertStringContainsString("\$table->foreignUuid('user_id')->constrained('users', 'id')->cascadeOnDelete();", $googleOauthTokenMigration);
+        $this->assertStringContainsString('google_oauth_tokens_user_provider_unique', $googleOauthTokenMigration);
+        $this->assertStringContainsString('public function googleOauthTokens(): HasMany', $userModel);
+        $this->assertStringContainsString("'access_token' => 'encrypted'", $googleOauthTokenModel);
+        $this->assertStringContainsString("'refresh_token' => 'encrypted'", $googleOauthTokenModel);
         $this->assertStringContainsString('project_division_event_project_event_division_unique', $projectDivisionEventMigration);
         $this->assertStringContainsString('public function projectDivisionEvents(): HasMany', $projectModel);
         $this->assertStringContainsString('class ProjectDivisionEvent extends Model', $projectDivisionEventModel);
         $this->assertStringContainsString('return $this->belongsTo(Project::class', $projectDivisionEventModel);
         $this->assertStringContainsString('return $this->belongsTo(EventDivision::class', $projectDivisionEventModel);
-        $this->assertStringContainsString("'projectDivisionEvents:id,project_id,event_division_id,google_drive_url,status'", $projectController);
+        $this->assertStringContainsString("'projectDivisionEvents:id,project_id,event_division_id,google_drive_url,folder_id,status'", $projectController);
         $this->assertStringContainsString("->map(fn (ProjectDivisionEvent \$projectDivisionEvent): string => trim((string) (\$projectDivisionEvent->google_drive_url ?? '')));", $projectController);
+        $this->assertStringContainsString("'folder_id' => ['nullable', 'string', 'max:255']", $projectController);
+        $this->assertStringContainsString('https://oauth2.googleapis.com/token', $googleDriveOAuthController);
+        $this->assertStringContainsString('updateOrCreate(', $googleDriveOAuthController);
+        $this->assertStringContainsString("'google' => [", $servicesConfig);
+        $this->assertStringContainsString("'api_key' => env('GOOGLE_API_KEY')", $servicesConfig);
+        $this->assertStringContainsString("'client_id' => env('GOOGLE_CLIENT_ID')", $servicesConfig);
+        $this->assertStringContainsString("'client_secret' => env('GOOGLE_CLIENT_SECRET')", $servicesConfig);
         $this->assertStringContainsString("href=\"{{ \$divisionGroup['google_drive_url'] }}\"", $projectsDetail);
         $this->assertStringContainsString('target="_blank"', $projectsDetail);
         $this->assertStringNotContainsString('public function taskList(Request $request): View', $overviewController);
@@ -549,9 +577,13 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("asset('assets/vendor/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css')", $projectsDetail);
         $this->assertStringContainsString('project-division-view-all', $projectsDetail);
         $this->assertStringContainsString('>Drive</a>', $projectsDetail);
-        $this->assertStringContainsString('>Add Drive</button>', $projectsDetail);
-        $this->assertStringContainsString("{{ empty(\$divisionGroup['google_drive_url']) ? 'Add Drive' : 'Drive' }}</button>", $projectsDetail);
-        $this->assertStringContainsString('<button type="button" class="btn btn-sm btn-light project-division-view-all" disabled>Add Drive</button>', $projectsDetail);
+        $this->assertStringContainsString('data-drive-configured="true">Drive</button>', $projectsDetail);
+        $this->assertStringContainsString('data-drive-configured="false">Konfigurasi Drive</button>', $projectsDetail);
+        $this->assertStringContainsString('>Konfigurasi Drive</button>', $projectsDetail);
+        $this->assertStringContainsString('@if (! empty($divisionGroup[\'google_drive_url\']))', $projectsDetail);
+        $this->assertStringNotContainsString("{{ empty(\$divisionGroup['google_drive_url']) ? 'Add Drive' : 'Drive' }}</button>", $projectsDetail);
+        $this->assertStringContainsString('<button type="button" class="btn btn-sm btn-light project-division-view-all" disabled>Konfigurasi Drive</button>', $projectsDetail);
+        $this->assertStringNotContainsString('data-bs-toggle="modal" data-bs-target="#projectDivisionDriveModal" data-update-url="{{ $divisionGroup[\'drive_update_url\'] }}"', $projectsDetail);
         $this->assertStringContainsString('.project-division-view-all:disabled', $projectsDetail);
         $this->assertStringNotContainsString('View All', $projectsDetail);
         $this->assertStringContainsString('project-division-add-task', $projectsDetail);
@@ -583,7 +615,47 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString("{{ \$projectDetail['live_event_date_label'] ?? '-' }}", $projectsDetail);
         $this->assertStringContainsString("{{ \$projectDetail['live_event_duration_label'] ?? '-' }}", $projectsDetail);
         $this->assertStringContainsString('id="projectDivisionDriveModal"', $projectsDetail);
-        $this->assertStringContainsString("currentDriveUrl ? 'Update ' : 'Add '", $projectsDetail);
+        $this->assertStringContainsString("'Konfigurasi Drive ' +", $projectsDetail);
+        $this->assertStringContainsString('https://accounts.google.com/gsi/client', $projectsDetail);
+        $this->assertStringContainsString('https://apis.google.com/js/api.js', $projectsDetail);
+        $this->assertStringContainsString('config(\'services.google.client_id\')', $projectsDetail);
+        $this->assertStringContainsString('config(\'services.google.api_key\')', $projectsDetail);
+        $this->assertStringContainsString('https://www.googleapis.com/auth/drive.file', $projectsDetail);
+        $this->assertStringContainsString('projectDivisionDrivePickParent', $projectsDetail);
+        $this->assertStringContainsString('projectDivisionDriveCreateFolder', $projectsDetail);
+        $this->assertStringContainsString('projectDivisionDriveProjectFolderName', $projectsDetail);
+        $this->assertStringContainsString('projectDivisionDriveDivisionFolderName', $projectsDetail);
+        $this->assertStringContainsString('restoreProjectDivisionDriveModal', $projectsDetail);
+        $this->assertStringContainsString('Buat Struktur Folder', $projectsDetail);
+        $this->assertStringContainsString('Simpan URL', $projectsDetail);
+        $this->assertStringContainsString('projectDivisionDriveOpenUrl', $projectsDetail);
+        $this->assertStringContainsString('projectDivisionDriveStatusBadge', $projectsDetail);
+        $this->assertStringContainsString('badge bg-danger', $projectsDetail);
+        $this->assertStringContainsString('Folder siap', $projectsDetail);
+        $this->assertStringContainsString('Belum siap', $projectsDetail);
+        $this->assertStringContainsString("window.open(driveUrl, '_blank', 'noopener,noreferrer')", $projectsDetail);
+        $this->assertStringContainsString(".toggleClass('bg-danger', ! hasDriveUrl)", $projectsDetail);
+        $this->assertStringContainsString("text(hasDriveUrl ? 'Folder siap' : 'Belum siap')", $projectsDetail);
+        $this->assertStringContainsString('application/vnd.google-apps.folder', $projectsDetail);
+        $this->assertStringContainsString('https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink&supportsAllDrives=true', $projectsDetail);
+        $this->assertStringContainsString('parents: [parentFolderId]', $projectsDetail);
+        $this->assertStringContainsString('webViewLink', $projectsDetail);
+        $this->assertStringContainsString('setSelectFolderEnabled(true)', $projectsDetail);
+        $this->assertStringContainsString("hideModal('#projectDivisionDriveModal');", $projectsDetail);
+        $this->assertStringContainsString('findOrCreateProjectDivisionDriveFolder(projectName, parentFolderId)', $projectsDetail);
+        $this->assertStringContainsString('saveProjectDivisionDriveUrl(button, driveUrl, folder.id || \'\')', $projectsDetail);
+        $this->assertStringContainsString('syncProjectDivisionDriveButton(button, response.google_drive_url || driveUrl, response.folder_id || folder.id || \'\')', $projectsDetail);
+        $this->assertStringContainsString('syncProjectDivisionDriveButton(projectDivisionDriveActiveButton, response.google_drive_url || $(\'#projectDivisionDriveUrl\').val(), response.folder_id || $(\'#projectDivisionDriveFolderId\').val())', $projectsDetail);
+        $this->assertStringContainsString("$(button).text(driveUrl ? 'Drive' : 'Konfigurasi Drive');", $projectsDetail);
+        $this->assertStringContainsString("if ($(this).attr('data-drive-configured') === 'true')", $projectsDetail);
+        $this->assertStringContainsString("text('Membuat struktur...')", $projectsDetail);
+        $this->assertStringContainsString("text('Menyimpan link...')", $projectsDetail);
+        $this->assertStringContainsString('google.accounts.oauth2.initCodeClient', $projectsDetail);
+        $this->assertStringContainsString("prompt: 'consent'", $projectsDetail);
+        $this->assertStringContainsString('projectDivisionDriveCodeClient.requestCode', $projectsDetail);
+        $this->assertStringContainsString('projectDivisionDriveAccessTokenUrl', $projectsDetail);
+        $this->assertStringContainsString('projectDivisionDriveExchangeCodeUrl', $projectsDetail);
+        $this->assertStringNotContainsString('google.accounts.oauth2.initTokenClient', $projectsDetail);
         $this->assertStringNotContainsString('Your Department', $projectsDetail);
         $this->assertStringNotContainsString('View Only', $projectsDetail);
         $this->assertStringNotContainsString('Routine Cardio Burn Workout', $taskListSurface);
@@ -1217,6 +1289,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             ->actingAs($adminUser)
             ->patchJson(route('project_management.projects.event-divisions.google-drive.update', [$project, $eventDivision]), [
                 'google_drive_url' => 'https://drive.google.com/drive/folders/event-admin-drive',
+                'folder_id' => 'event-admin-drive',
             ]);
 
         $response->assertOk()
@@ -1224,12 +1297,14 @@ class ProjectManagementOverviewLayoutTest extends TestCase
                 'success' => true,
                 'message' => 'Google Drive division berhasil diperbarui.',
                 'google_drive_url' => 'https://drive.google.com/drive/folders/event-admin-drive',
+                'folder_id' => 'event-admin-drive',
             ]);
 
         $this->assertDatabaseHas('project_division_event', [
             'project_id' => $project->id,
             'event_division_id' => $eventDivision->id,
             'google_drive_url' => 'https://drive.google.com/drive/folders/event-admin-drive',
+            'folder_id' => 'event-admin-drive',
             'status' => 'active',
         ]);
 
@@ -1243,6 +1318,64 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'message' => 'Tidak memiliki akses untuk memperbarui Google Drive division project ini.',
+            ]);
+    }
+
+    public function test_google_drive_oauth_code_exchange_stores_token_for_authenticated_user(): void
+    {
+        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
+            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
+        }
+
+        $this->createProjectTaskListTestSchema();
+
+        [$user] = $this->createProjectTaskListUser('google_drive_oauth_user');
+
+        config([
+            'services.google.client_id' => 'local-client-id.apps.googleusercontent.com',
+            'services.google.client_secret' => 'local-client-secret',
+        ]);
+
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response([
+                'access_token' => 'server-access-token',
+                'refresh_token' => 'server-refresh-token',
+                'expires_in' => 3600,
+                'token_type' => 'Bearer',
+                'scope' => 'https://www.googleapis.com/auth/drive.file',
+            ]),
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->postJson(route('google-drive.oauth.exchange-code'), [
+                'code' => 'google-auth-code',
+                'redirect_uri' => 'http://127.0.0.1:8000',
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'access_token' => 'server-access-token',
+            ]);
+
+        $googleOauthToken = GoogleOauthToken::query()
+            ->where('user_id', $user->id)
+            ->where('provider', 'google_drive')
+            ->firstOrFail();
+
+        $this->assertSame('server-access-token', $googleOauthToken->access_token);
+        $this->assertSame('server-refresh-token', $googleOauthToken->refresh_token);
+
+        $tokenResponse = $this
+            ->actingAs($user)
+            ->getJson(route('google-drive.oauth.access-token'));
+
+        $tokenResponse->assertOk()
+            ->assertJson([
+                'success' => true,
+                'access_token' => 'server-access-token',
             ]);
     }
 
@@ -1392,6 +1525,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         foreach ([
             'project_tasks',
             'project_division_event',
+            'google_oauth_tokens',
             'event_divisions',
             'project_members',
             'projects',
@@ -1543,8 +1677,25 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             $table->foreignUuid('project_id')->constrained('projects', 'id')->cascadeOnDelete();
             $table->foreignUuid('event_division_id')->constrained('event_divisions', 'id')->cascadeOnDelete();
             $table->string('google_drive_url', 2048)->nullable();
+            $table->string('folder_id')->nullable()->index();
             $table->string('status')->default('active');
             $table->timestamps();
+        });
+
+        Schema::create('google_oauth_tokens', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('user_id')->constrained('users', 'id')->cascadeOnDelete();
+            $table->string('provider')->default('google_drive');
+            $table->text('scopes')->nullable();
+            $table->text('access_token')->nullable();
+            $table->text('refresh_token')->nullable();
+            $table->string('token_type')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamp('refresh_token_expires_at')->nullable();
+            $table->timestamp('revoked_at')->nullable();
+            $table->timestamps();
+
+            $table->unique(['user_id', 'provider'], 'google_oauth_tokens_user_provider_unique');
         });
 
         Schema::create('project_tasks', function (Blueprint $table): void {

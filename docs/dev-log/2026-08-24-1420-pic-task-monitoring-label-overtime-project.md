@@ -5,7 +5,7 @@ Tanggal: 2026-08-24 14:20 WIB
 ## Ringkasan
 
 - Mengubah label kecil pada kolom Task di PIC Attendance > Task Monitoring agar mengikuti sumber task.
-- Task yang terhubung ke overtime sekarang ikut tampil dan title task diberi badge `Overtime` di sampingnya.
+- Task yang terhubung ke overtime sekarang ikut tampil, title task diberi badge `Overtime` di sampingnya, dan `record_number` overtime tampil di bawah title.
 - Task yang berasal dari project tampil sebagai `Task (Nama Project)`.
 - Daily task tetap tampil sebagai `Daily Task`.
 - Modal detail task memakai label konteks yang sama agar konsisten dengan tabel.

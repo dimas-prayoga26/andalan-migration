@@ -51,6 +51,7 @@ class PicAttendanceTaskController extends Controller
                 'employee.profile:id,employee_id,name',
                 'employee.user:id,username,email',
                 'project:id,name',
+                'overtime:id,record_number',
                 'assignedBy:id,username,email',
             ])
             ->whereIn('employee_id', $visibleEmployeeIds->all())
@@ -156,7 +157,7 @@ class PicAttendanceTaskController extends Controller
         $projectName = trim((string) ($projectTask->project?->name ?? 'Daily Task'));
         $isOvertimeTask = $projectTask->overtime_id !== null;
         $taskContext = $isOvertimeTask
-            ? 'Overtime'
+            ? $this->overtimeRecordNumberLabel($projectTask)
             : ($projectTask->project_id !== null ? 'Task ('.$projectName.')' : 'Daily Task');
 
         return [
@@ -233,6 +234,13 @@ class PicAttendanceTaskController extends Controller
         }
 
         return 'Self';
+    }
+
+    private function overtimeRecordNumberLabel(ProjectTask $projectTask): string
+    {
+        $recordNumber = trim((string) ($projectTask->overtime?->record_number ?? ''));
+
+        return $recordNumber !== '' ? $recordNumber : '-';
     }
 
     private function dateRangeLabel(?CarbonInterface $startDate, ?CarbonInterface $dueDate): string

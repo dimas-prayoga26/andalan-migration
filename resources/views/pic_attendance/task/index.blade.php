@@ -187,7 +187,7 @@
                             data: null,
                             render: function (row) {
                                 return renderTaskTitle(row)
-                                    + (row.task_context_type === 'overtime' ? '' : renderTaskContext(row))
+                                    + renderTaskContext(row)
                                     + '<div class="text-muted fs-13">Assign by : <span class="fw-semibold">' + escapeHtml(row.assigned_by) + '</span></div>';
                             }
                         },

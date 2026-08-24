@@ -6,9 +6,13 @@ use App\Http\Controllers\AdminAttendance\AttendanceRecapController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceOvertimeController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceTaskController;
+use App\Models\AttendanceOvertime;
+use App\Models\Project;
+use App\Models\ProjectTask;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class DirectorAttendanceModuleTest extends TestCase
@@ -196,6 +200,9 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('function renderAttachment(value)', $directorTaskView);
         $this->assertStringContainsString('function statusTextClass(value)', $directorTaskView);
         $this->assertStringContainsString('function assignedByText(value)', $directorTaskView);
+        $this->assertStringContainsString('function renderTaskContext(row)', $directorTaskView);
+        $this->assertStringContainsString('function renderTaskTitle(row)', $directorTaskView);
+        $this->assertStringContainsString('badge badge-info light ms-1 align-middle">Overtime</span>', $directorTaskView);
         $this->assertStringContainsString('DataTable', $directorTaskView);
         $this->assertStringContainsString('requestData.company_id = companyFilter ? companyFilter.value :', $directorTaskView);
         $this->assertStringContainsString('taskTable.ajax.reload();', $directorTaskView);
@@ -210,13 +217,15 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringContainsString("->whereRaw('LOWER(COALESCE(status, \"\")) = ?', ['active'])", $directorTaskController);
         $this->assertStringContainsString("if (\$companyId !== '')", $directorTaskController);
         $this->assertStringContainsString("->where('current_company_id', \$companyId)", $directorTaskController);
-        $this->assertStringContainsString("->whereNull('overtime_id')", $directorTaskController);
+        $this->assertStringContainsString("'overtime:id,record_number'", $directorTaskController);
+        $this->assertStringNotContainsString("->whereNull('overtime_id')", $directorTaskController);
         $this->assertStringContainsString("->whereIn('employee_id', \$selectedStaffIds->all())", $directorTaskController);
         $this->assertStringContainsString("'company' => trim((string) (\$projectTask->employee?->deployment?->company?->name ?? '-'))", $directorTaskController);
         $this->assertStringContainsString("'description' => trim((string) (\$projectTask->description ?? ''))", $directorTaskController);
         $this->assertStringContainsString("'blockers' => trim((string) (\$projectTask->blockers ?? ''))", $directorTaskController);
         $this->assertStringContainsString("'attachment_path' => trim((string) (\$projectTask->attachment_path ?? ''))", $directorTaskController);
-        $this->assertStringContainsString("'task_category' => \$projectTask->project_id !== null ? 'Project Task' : 'Daily Task'", $directorTaskController);
+        $this->assertStringContainsString("'task_context' => \$taskContext", $directorTaskController);
+        $this->assertStringContainsString("'task_context_type' => \$isOvertimeTask ? 'overtime' : (\$projectTask->project_id !== null ? 'project' : 'daily')", $directorTaskController);
         $this->assertStringContainsString("'due_date' => \$this->dateRangeLabel(\$projectTask->start_date, \$projectTask->due_date)", $directorTaskController);
         $this->assertStringContainsString("'priority' => \$this->priorityLabel((string) \$projectTask->priority)", $directorTaskController);
         $this->assertStringContainsString("'status' => \$this->statusLabel(", $directorTaskController);
@@ -253,5 +262,56 @@ class DirectorAttendanceModuleTest extends TestCase
             $legacySeeder,
         );
         $this->assertStringContainsString("'view-director-attendance' => ['section' => 'HR Management', 'label' => 'Director']", $authorizationController);
+    }
+
+    public function test_director_task_monitoring_context_labels_follow_pic_task_source(): void
+    {
+        $controller = app(DirectorAttendanceTaskController::class);
+        $method = new ReflectionMethod(DirectorAttendanceTaskController::class, 'taskRow');
+        $method->setAccessible(true);
+
+        $overtimeTask = new ProjectTask([
+            'id' => 'director-task-overtime',
+            'overtime_id' => 'director-overtime-1',
+            'title' => 'Rekap Absensi',
+            'status' => 'pending',
+        ]);
+        $overtimeTask->setRelation('overtime', new AttendanceOvertime([
+            'id' => 'director-overtime-1',
+            'record_number' => 'OVT-2608-0001',
+        ]));
+
+        $projectTask = new ProjectTask([
+            'id' => 'director-task-project',
+            'project_id' => 'director-project-1',
+            'title' => 'Venue Report',
+            'status' => 'pending',
+        ]);
+        $projectTask->setRelation('project', new Project([
+            'id' => 'director-project-1',
+            'name' => 'Muktamar PKB',
+        ]));
+
+        $dailyTask = new ProjectTask([
+            'id' => 'director-task-daily',
+            'title' => 'Daily Report',
+            'status' => 'pending',
+        ]);
+
+        $overtimeRow = $method->invoke($controller, $overtimeTask);
+        $projectRow = $method->invoke($controller, $projectTask);
+        $dailyRow = $method->invoke($controller, $dailyTask);
+
+        $this->assertSame('OVT-2608-0001', $overtimeRow['task_context']);
+        $this->assertSame('overtime', $overtimeRow['task_context_type']);
+        $this->assertSame('Overtime Task', $overtimeRow['task_category']);
+
+        $this->assertSame('Task (Muktamar PKB)', $projectRow['task_context']);
+        $this->assertSame('project', $projectRow['task_context_type']);
+        $this->assertSame('Task (Muktamar PKB)', $projectRow['task_category']);
+
+        $this->assertSame('Daily Task', $dailyRow['task_context']);
+        $this->assertSame('daily', $dailyRow['task_context_type']);
+        $this->assertSame('Daily Task', $dailyRow['task_category']);
     }
 }

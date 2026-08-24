@@ -10,6 +10,8 @@ Aturan log:
 ### 2026-08-24 (Senin)
 - Mengubah label konteks task pada PIC Attendance > Task Monitoring: overtime task tampil sebagai badge overtime, project task tampil `Task (Nama Project)`, dan daily task tetap `Daily Task`.
 - Detail: `docs/dev-log/2026-08-24-1420-pic-task-monitoring-label-overtime-project.md`.
+- Menyamakan Director Attendance > Task Monitoring dengan PIC: task overtime ikut tampil, badge `Overtime` muncul di title, dan `record_number` tampil di bawah title.
+- Detail: `docs/dev-log/2026-08-24-1515-director-task-monitoring-sama-pic.md`.
 - Mengubah label konfigurasi Google Drive pada detail Project Management menjadi `Konfigurasi Drive`, dengan Google OAuth, Google Picker untuk memilih folder induk, lalu pembuatan struktur folder `Project / Division`.
 - Detail: `docs/dev-log/2026-08-24-1450-siapkan-drive-project-detail.md`.
 - Menambahkan `folder_id` pada `project_division_event` dan tabel `google_oauth_tokens` yang berelasi ke `users` untuk menyimpan OAuth Google terenkripsi.

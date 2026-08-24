@@ -170,6 +170,22 @@
                     return normalizedValue.charAt(0) === '@' ? normalizedValue : '@' + normalizedValue;
                 }
 
+                function renderTaskContext(row) {
+                    var contextLabel = nullableText(row.task_context || row.project);
+
+                    return '<div class="text-muted fs-13">' + escapeHtml(contextLabel) + '</div>';
+                }
+
+                function renderTaskTitle(row) {
+                    var title = '<span class="fw-semibold text-black">' + escapeHtml(row.task) + '</span>';
+
+                    if (row.task_context_type === 'overtime') {
+                        return title + ' <span class="badge badge-info light ms-1 align-middle">Overtime</span>';
+                    }
+
+                    return title;
+                }
+
                 function refreshSelectPlugin(selectElement) {
                     var select = $(selectElement);
 
@@ -238,8 +254,8 @@
                         {
                             data: null,
                             render: function (row) {
-                                return '<span class="fw-semibold text-black">' + escapeHtml(row.task) + '</span>'
-                                    + '<div class="text-muted fs-13">' + escapeHtml(row.project) + '</div>'
+                                return renderTaskTitle(row)
+                                    + renderTaskContext(row)
                                     + '<div class="text-muted fs-13">Assign by : <span class="fw-semibold">' + escapeHtml(row.assigned_by) + '</span></div>';
                             }
                         },
@@ -284,7 +300,7 @@
                     $('#directorTaskDetailTitle').text(nullableText(row.task));
                     $('#directorTaskDetailDescription').text(nullableText(row.description));
                     $('#directorTaskDetailCategory').text(nullableText(row.task_category));
-                    $('#directorTaskDetailProject').text(nullableText(row.project));
+                    $('#directorTaskDetailProject').text(nullableText(row.task_context || row.project));
                     $('#directorTaskDetailAssignedBy').text(assignedByText(row.assigned_by));
                     $('#directorTaskDetailDueDate').text(nullableText(row.due_date));
                     $('#directorTaskDetailBlockers').text(nullableText(row.blockers));

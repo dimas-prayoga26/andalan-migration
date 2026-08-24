@@ -52,10 +52,10 @@ class DirectorAttendanceTaskController extends Controller
                 'employee.deployment:id,employee_id,current_company_id',
                 'employee.deployment.company:id,name',
                 'project:id,name',
+                'overtime:id,record_number',
                 'assignedBy:id,username,email',
             ])
             ->whereIn('employee_id', $selectedStaffIds->all())
-            ->whereNull('overtime_id')
             ->whereRaw('DATE(COALESCE(due_date, start_date, created_at)) BETWEEN ? AND ?', [$currentMonthStart, $currentMonthEnd])
             ->orderByRaw('COALESCE(due_date, start_date, created_at) DESC')
             ->get([
@@ -210,6 +210,10 @@ class DirectorAttendanceTaskController extends Controller
     {
         $isCompleted = $projectTask->status === 'completed' || $projectTask->completed_at !== null;
         $projectName = trim((string) ($projectTask->project?->name ?? 'Daily Task'));
+        $isOvertimeTask = $projectTask->overtime_id !== null;
+        $taskContext = $isOvertimeTask
+            ? $this->overtimeRecordNumberLabel($projectTask)
+            : ($projectTask->project_id !== null ? 'Task ('.$projectName.')' : 'Daily Task');
 
         return [
             'id' => (string) $projectTask->id,
@@ -220,7 +224,9 @@ class DirectorAttendanceTaskController extends Controller
             'blockers' => trim((string) ($projectTask->blockers ?? '')),
             'attachment_path' => trim((string) ($projectTask->attachment_path ?? '')),
             'project' => $projectName,
-            'task_category' => $projectTask->project_id !== null ? 'Project Task' : 'Daily Task',
+            'task_category' => $isOvertimeTask ? 'Overtime Task' : ($projectTask->project_id !== null ? $taskContext : 'Daily Task'),
+            'task_context' => $taskContext,
+            'task_context_type' => $isOvertimeTask ? 'overtime' : ($projectTask->project_id !== null ? 'project' : 'daily'),
             'assigned_by' => $this->assignedByLabel($projectTask),
             'due_date' => $this->dateRangeLabel($projectTask->start_date, $projectTask->due_date),
             'priority' => $this->priorityLabel((string) $projectTask->priority),
@@ -284,6 +290,13 @@ class DirectorAttendanceTaskController extends Controller
         }
 
         return 'Self';
+    }
+
+    private function overtimeRecordNumberLabel(ProjectTask $projectTask): string
+    {
+        $recordNumber = trim((string) ($projectTask->overtime?->record_number ?? ''));
+
+        return $recordNumber !== '' ? $recordNumber : '-';
     }
 
     private function dateRangeLabel(?CarbonInterface $startDate, ?CarbonInterface $dueDate): string

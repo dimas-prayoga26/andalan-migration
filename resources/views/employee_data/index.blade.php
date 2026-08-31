@@ -147,6 +147,13 @@
             align-items: center;
             justify-content: center;
             font-size: 1.05rem;
+            overflow: hidden;
+        }
+
+        .employee-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .applicant-action-group {
@@ -365,7 +372,15 @@
                                     @forelse ($employees as $employee)
                                         <tr>
                                             <td>{{ $loop->iteration }}.</td>
-                                            <td><span class="employee-photo">{{ $employee['initials'] }}</span></td>
+                                            <td>
+                                                <span class="employee-photo">
+                                                    @if (! empty($employee['avatar_url']))
+                                                        <img src="{{ $employee['avatar_url'] }}" alt="{{ $employee['name'] }}">
+                                                    @else
+                                                        {{ $employee['initials'] }}
+                                                    @endif
+                                                </span>
+                                            </td>
                                             <td>{{ $employee['nik'] }}</td>
                                             <td>{{ $employee['name'] }}</td>
                                             <td>{{ $employee['position'] }}</td>

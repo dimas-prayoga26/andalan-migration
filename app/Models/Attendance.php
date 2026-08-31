@@ -6,6 +6,7 @@ use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -52,5 +53,10 @@ class Attendance extends Model
     public function attendanceException(): HasOne
     {
         return $this->hasOne(AttendanceException::class, 'attendance_id', 'id');
+    }
+
+    public function userActivityLogs(): HasMany
+    {
+        return $this->hasMany(UserActivityLog::class, 'attendance_id', 'id');
     }
 }

@@ -528,6 +528,7 @@
             var updateAttendanceUrlTemplate = @json(url('/attendance/__ATTENDANCE_ID__'));
             var currentIpUrl = @json(route('attendance.current-ip'));
             var verifyTelegramUsernameUrl = @json(route('attendance.verify-telegram-username'));
+            var userActivityLogUrl = @json(route('user-activity-log.store'));
             var csrfToken = @json(csrf_token());
             var browserPublicIp = null;
             var attendanceState = {
@@ -541,6 +542,7 @@
             };
             var modalContext = {
                 clockIn: {
+                    type: 'clock_in',
                     modalElement: clockInModalElement,
                     currentDateElement: clockInCurrentDateElement,
                     runningTimeElement: clockInRunningTimeElement,
@@ -560,6 +562,7 @@
                     userToOfficeLine: null
                 },
                 clockOut: {
+                    type: 'clock_out',
                     modalElement: clockOutModalElement,
                     currentDateElement: clockOutCurrentDateElement,
                     runningTimeElement: clockOutRunningTimeElement,
@@ -1002,6 +1005,24 @@
                 });
             }
 
+            function logUserActivity(eventName, metadata) {
+                if (!userActivityLogUrl || !eventName) {
+                    return;
+                }
+
+                $.ajax({
+                    url: userActivityLogUrl,
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    data: {
+                        event: eventName,
+                        metadata: metadata || {}
+                    }
+                });
+            }
+
             function checkOnsiteLocation(context) {
                 if (!context) {
                     return;
@@ -1039,6 +1060,9 @@
                             updateUserLocationOnMap(context, position);
                             setVerificationMessage(context, 'Verification successful', 'success');
                             renderSubmitButtons();
+                            logUserActivity(context.type + '_verified', {
+                                has_coordinates: true
+                            });
                         },
                         function () {
                             context.hasVerifiedOnsite = false;
@@ -1311,8 +1335,18 @@
                 });
             }
 
+            if (clockInCardButtonElement) {
+                clockInCardButtonElement.addEventListener('click', function () {
+                    logUserActivity('clock_in_clicked');
+                });
+            }
+
             if (clockOutCardButtonElement) {
                 clockOutCardButtonElement.addEventListener('click', function (event) {
+                    logUserActivity('clock_out_clicked', {
+                        can_clock_out_now: attendanceState.canClockOutNow
+                    });
+
                     if (attendanceState.canClockOutNow) {
                         return;
                     }

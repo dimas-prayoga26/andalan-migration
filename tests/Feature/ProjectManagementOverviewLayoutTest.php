@@ -154,6 +154,8 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('public function filter(Request $request): JsonResponse', $taskListController);
         $this->assertStringContainsString('$this->taskListData($request)', $taskListController);
         $this->assertStringContainsString('private function taskListFragments(array $taskListData): array', $taskListController);
+        $this->assertStringContainsString("->orderByRaw('COALESCE(due_date, start_date, created_at) DESC')", $taskListController);
+        $this->assertStringContainsString("->orderByDesc('created_at')", $taskListController);
         $this->assertStringContainsString('public function storeTask(Request $request): JsonResponse', $taskListController);
         $this->assertStringContainsString('public function updateTask(Request $request, ProjectTask $projectTask): JsonResponse', $taskListController);
         $this->assertStringContainsString('public function updateTaskStatus(Request $request, ProjectTask $projectTask): JsonResponse', $taskListController);
@@ -1061,6 +1063,58 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'id' => $otherTask->id,
             'deleted_at' => null,
         ]);
+    }
+
+    public function test_task_list_shows_latest_tasks_first(): void
+    {
+        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
+            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
+        }
+
+        $this->createProjectTaskListTestSchema();
+
+        [$user, $employee] = $this->createProjectTaskListUser('latest_task_list');
+
+        foreach ([
+            ['title' => 'Older completed task', 'date' => '2026-08-21'],
+            ['title' => 'Middle completed task', 'date' => '2026-08-24'],
+            ['title' => 'Newest completed task', 'date' => '2026-08-26'],
+        ] as $task) {
+            ProjectTask::query()->create([
+                'employee_id' => $employee->id,
+                'assigned_by' => $user->id,
+                'title' => $task['title'],
+                'status' => 'completed',
+                'priority' => 'medium',
+                'start_date' => $task['date'],
+                'due_date' => $task['date'],
+                'completed_at' => $task['date'].' 17:00:00',
+            ]);
+        }
+
+        $this->withoutMiddleware();
+
+        $response = $this
+            ->actingAs($user)
+            ->getJson(route('project_management.task_list.filter', [
+                'month' => '2026-08',
+            ]));
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+            ]);
+
+        $taskListHtml = (string) $response->json('fragments.task_list');
+        $newestPosition = strpos($taskListHtml, 'Newest completed task');
+        $middlePosition = strpos($taskListHtml, 'Middle completed task');
+        $olderPosition = strpos($taskListHtml, 'Older completed task');
+
+        $this->assertIsInt($newestPosition);
+        $this->assertIsInt($middlePosition);
+        $this->assertIsInt($olderPosition);
+        $this->assertLessThan($middlePosition, $newestPosition);
+        $this->assertLessThan($olderPosition, $middlePosition);
     }
 
     public function test_project_staff_employee_ids_include_pic_without_duplicates(): void

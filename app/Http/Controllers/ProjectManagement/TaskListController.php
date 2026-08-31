@@ -296,7 +296,9 @@ class TaskListController extends Controller
                 'employee.profile:id,employee_id,name',
                 'employee.user:id,username,email',
             ])
-            ->orderByRaw('COALESCE(due_date, start_date, created_at) ASC')
+            ->orderByRaw('COALESCE(due_date, start_date, created_at) DESC')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get()
             ->map(fn (ProjectTask $projectTask): array => $this->taskListItemValue($projectTask));
 

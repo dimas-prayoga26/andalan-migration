@@ -15,6 +15,7 @@ use App\Services\Attendance\AttendanceCardsViewDataService;
 use App\Services\Attendance\AttendanceIpVerificationService;
 use App\Services\Attendance\AttendanceMutationService;
 use App\Services\Attendance\TelegramVerificationService;
+use App\Services\UserActivityLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -26,7 +27,8 @@ class AttendanceController extends Controller
         private AttendanceMutationService $attendanceMutationService,
         private AttendanceCalendarEventService $attendanceCalendarEventService,
         private AttendanceIpVerificationService $attendanceIpVerificationService,
-        private TelegramVerificationService $telegramVerificationService
+        private TelegramVerificationService $telegramVerificationService,
+        private UserActivityLogger $userActivityLogger
     ) {}
 
     public function index(AttendanceIndexRequest $request): View
@@ -68,12 +70,26 @@ class AttendanceController extends Controller
     public function store(StoreAttendanceRequest $request): JsonResponse
     {
         try {
+            $validated = $request->validated();
             $storeResult = $this->attendanceMutationService->store(
-                $request->validated(),
+                $validated,
                 $request->ip(),
                 $request->userAgent(),
                 Auth::user(),
                 Auth::id(),
+            );
+            $attendance = null;
+            $attendanceId = $storeResult['payload']['attendance_id'] ?? null;
+
+            if (is_string($attendanceId) && trim($attendanceId) !== '') {
+                $attendance = Attendance::query()->find($attendanceId);
+            }
+
+            $this->userActivityLogger->clockInSubmitted(
+                $request,
+                Auth::user() instanceof User ? Auth::user() : null,
+                $attendance,
+                $this->attendanceSubmissionMetadata($storeResult, $validated, $attendance)
             );
 
             return response()->json($storeResult['payload'], $storeResult['status']);
@@ -90,13 +106,20 @@ class AttendanceController extends Controller
     public function update(UpdateAttendanceRequest $request, Attendance $attendance): JsonResponse
     {
         try {
+            $validated = $request->validated();
             $updateResult = $this->attendanceMutationService->update(
-                $request->validated(),
+                $validated,
                 $request->ip(),
                 $request->userAgent(),
                 $attendance,
                 Auth::user(),
                 Auth::id(),
+            );
+            $this->userActivityLogger->clockOutSubmitted(
+                $request,
+                Auth::user() instanceof User ? Auth::user() : null,
+                $attendance,
+                $this->attendanceSubmissionMetadata($updateResult, $validated, $attendance)
             );
 
             return response()->json($updateResult['payload'], $updateResult['status']);
@@ -157,5 +180,25 @@ class AttendanceController extends Controller
                 'message' => 'Terjadi kesalahan saat memproses attendance exception.',
             ], 500);
         }
+    }
+
+    /**
+     * @param  array{payload: array<string, mixed>, status: int}  $result
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function attendanceSubmissionMetadata(array $result, array $validated, ?Attendance $attendance): array
+    {
+        $payload = $result['payload'];
+        $status = $result['status'];
+
+        return [
+            'success' => (bool) ($payload['success'] ?? ($status >= 200 && $status < 300)),
+            'status' => $status,
+            'message' => $payload['message'] ?? null,
+            'attendance_id' => $payload['attendance_id'] ?? $attendance?->id,
+            'client_ip' => $validated['client_ip'] ?? null,
+            'has_coordinates' => isset($validated['latitude'], $validated['longitude']),
+        ];
     }
 }

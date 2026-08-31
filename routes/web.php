@@ -33,6 +33,7 @@ use App\Http\Controllers\StaffAttendance\AttendanceLeaveRequestController;
 use App\Http\Controllers\StaffAttendance\AttendanceOvertimeController;
 use App\Http\Controllers\StaffAttendance\AttendanceReportController;
 use App\Http\Controllers\TalentAcquisitionController;
+use App\Http\Controllers\UserActivityLogController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -41,6 +42,8 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::middleware('auth')->group(function (): void {
+    Route::post('/user-activity-log', [UserActivityLogController::class, 'store'])->name('user-activity-log.store');
+
     Route::get('/', [DashboardController::class, 'index'])
         ->middleware('position.permission:view-dashboard')
         ->name('dashboard');

@@ -69,6 +69,11 @@ class User extends Authenticatable
         return $this->hasMany(BusinessTrip::class, 'approved_by', 'id');
     }
 
+    public function userActivityLogs(): HasMany
+    {
+        return $this->hasMany(UserActivityLog::class, 'user_id', 'id');
+    }
+
     /**
      * @param  array<int, string>  $permissionNames
      */

@@ -10,6 +10,15 @@ use Symfony\Component\HttpFoundation\Response;
 
 class LogAuthenticatedPageVisit
 {
+    /**
+     * @var array<int, string>
+     */
+    private const LOGGABLE_ROUTE_NAMES = [
+        'dashboard',
+        'attendance',
+        'attendance.today',
+    ];
+
     public function __construct(private UserActivityLogger $activityLogger) {}
 
     /**
@@ -41,6 +50,7 @@ class LogAuthenticatedPageVisit
             && ! $request->expectsJson()
             && ! $request->ajax()
             && ! $request->is('up', 'assets/*', 'build/*', 'favicon.ico')
-            && (! is_string($routeName) || ! str_starts_with($routeName, 'user-activity-log.'));
+            && is_string($routeName)
+            && in_array($routeName, self::LOGGABLE_ROUTE_NAMES, true);
     }
 }

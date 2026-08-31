@@ -528,7 +528,7 @@
             var updateAttendanceUrlTemplate = @json(url('/attendance/__ATTENDANCE_ID__'));
             var currentIpUrl = @json(route('attendance.current-ip'));
             var verifyTelegramUsernameUrl = @json(route('attendance.verify-telegram-username'));
-            var userActivityLogUrl = @json(route('user-activity-log.store'));
+            var userActivityLogUrl = @json(\Illuminate\Support\Facades\Route::has('user-activity-log.store') ? route('user-activity-log.store') : null);
             var csrfToken = @json(csrf_token());
             var browserPublicIp = null;
             var attendanceState = {

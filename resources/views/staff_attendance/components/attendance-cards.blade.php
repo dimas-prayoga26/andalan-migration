@@ -366,7 +366,7 @@
             var currentIpUrl = @json(route('attendance.current-ip'));
             var verifyTelegramUsernameUrl = @json(route('attendance.verify-telegram-username'));
             var storeAttendanceExceptionUrl = @json(route('attendance.exceptions.store'));
-            var userActivityLogUrl = @json(route('user-activity-log.store'));
+            var userActivityLogUrl = @json(\Illuminate\Support\Facades\Route::has('user-activity-log.store') ? route('user-activity-log.store') : null);
             var csrfToken = @json(csrf_token());
             var browserPublicIp = null;
             var attendanceState = {

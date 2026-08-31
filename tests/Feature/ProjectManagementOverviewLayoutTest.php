@@ -1076,9 +1076,9 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         [$user, $employee] = $this->createProjectTaskListUser('latest_task_list');
 
         foreach ([
-            ['title' => 'Older completed task', 'date' => '2026-08-21'],
-            ['title' => 'Middle completed task', 'date' => '2026-08-24'],
-            ['title' => 'Newest completed task', 'date' => '2026-08-26'],
+            ['title' => 'Older completed task', 'date' => '2026-08-31', 'created_at' => '2026-08-21 08:00:00'],
+            ['title' => 'Middle completed task', 'date' => '2026-08-24', 'created_at' => '2026-08-24 08:00:00'],
+            ['title' => 'Newest completed task', 'date' => '2026-08-01', 'created_at' => '2026-08-26 08:00:00'],
         ] as $task) {
             ProjectTask::query()->create([
                 'employee_id' => $employee->id,
@@ -1089,6 +1089,8 @@ class ProjectManagementOverviewLayoutTest extends TestCase
                 'start_date' => $task['date'],
                 'due_date' => $task['date'],
                 'completed_at' => $task['date'].' 17:00:00',
+                'created_at' => $task['created_at'],
+                'updated_at' => $task['created_at'],
             ]);
         }
 
@@ -1115,6 +1117,72 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertIsInt($olderPosition);
         $this->assertLessThan($middlePosition, $newestPosition);
         $this->assertLessThan($olderPosition, $middlePosition);
+    }
+
+    public function test_task_list_includes_tasks_that_overlap_selected_month(): void
+    {
+        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
+            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
+        }
+
+        $this->createProjectTaskListTestSchema();
+
+        [$user, $employee] = $this->createProjectTaskListUser('overlap_task_list');
+
+        ProjectTask::query()->create([
+            'employee_id' => $employee->id,
+            'assigned_by' => $user->id,
+            'title' => 'Develop web',
+            'status' => 'in_progress',
+            'priority' => 'high',
+            'start_date' => '2026-08-31',
+            'due_date' => '2026-09-04',
+            'created_at' => '2026-08-31 08:00:00',
+            'updated_at' => '2026-08-31 08:00:00',
+        ]);
+
+        ProjectTask::query()->create([
+            'employee_id' => $employee->id,
+            'assigned_by' => $user->id,
+            'title' => 'September only task',
+            'status' => 'in_progress',
+            'priority' => 'medium',
+            'start_date' => '2026-09-01',
+            'due_date' => '2026-09-04',
+            'created_at' => '2026-09-01 08:00:00',
+            'updated_at' => '2026-09-01 08:00:00',
+        ]);
+
+        $this->withoutMiddleware();
+
+        $augustResponse = $this
+            ->actingAs($user)
+            ->getJson(route('project_management.task_list.filter', [
+                'month' => '2026-08',
+            ]));
+
+        $augustResponse->assertOk()
+            ->assertJson([
+                'success' => true,
+            ]);
+
+        $augustTaskListHtml = (string) $augustResponse->json('fragments.task_list');
+
+        $this->assertStringContainsString('Develop web', $augustTaskListHtml);
+        $this->assertStringNotContainsString('September only task', $augustTaskListHtml);
+
+        $septemberResponse = $this
+            ->actingAs($user)
+            ->getJson(route('project_management.task_list.filter', [
+                'month' => '2026-09',
+            ]));
+
+        $septemberResponse->assertOk()
+            ->assertJson([
+                'success' => true,
+            ]);
+
+        $this->assertStringContainsString('Develop web', (string) $septemberResponse->json('fragments.task_list'));
     }
 
     public function test_project_staff_employee_ids_include_pic_without_duplicates(): void

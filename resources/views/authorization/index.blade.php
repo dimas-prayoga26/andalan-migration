@@ -44,6 +44,13 @@
             background: #eef2ff;
             color: #2448c7;
             font-weight: 700;
+            overflow: hidden;
+        }
+
+        .authorization-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .authorization-list-actions {
@@ -214,7 +221,13 @@
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center gap-3">
-                                    <span class="authorization-avatar">{{ $user['initials'] }}</span>
+                                    <span class="authorization-avatar">
+                                        @if (! empty($user['avatar_url']))
+                                            <img src="{{ $user['avatar_url'] }}" alt="{{ $user['name'] }}">
+                                        @else
+                                            {{ $user['initials'] }}
+                                        @endif
+                                    </span>
                                     <div>
                                         <h6 class="mb-0 text-black">{{ $user['name'] }}</h6>
                                     </div>

@@ -186,12 +186,7 @@
 
 @section('content')
 @php
-    $photoFile = trim((string) $applicant->photo);
-    $photoUrl = $photoFile === ''
-        ? null
-        : (\Illuminate\Support\Str::startsWith($photoFile, ['http://', 'https://'])
-            ? $photoFile
-            : 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/'.rawurlencode($photoFile));
+    $photoUrl = $applicant->photoUrl();
     $cvUrl = $applicant->cvDownloadUrl();
     $initials = collect(explode(' ', $applicant->full_name))
         ->filter()

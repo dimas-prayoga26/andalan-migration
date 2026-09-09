@@ -74,6 +74,15 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+            vertical-align: middle;
+        }
+
+        .talent-photo img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .talent-status-form {
@@ -307,11 +316,6 @@
                 </ul>
             </div>
             <div class="card-body">
-                @if (! ($syncResult['available'] ?? true))
-                    <div class="alert alert-warning mb-3" role="alert">
-                        {{ $syncResult['message'] ?? 'Koneksi database legacy belum tersedia.' }}
-                    </div>
-                @endif
                 @if (session('status'))
                     <div class="alert alert-success mb-3" role="alert">{{ session('status') }}</div>
                 @endif
@@ -346,9 +350,35 @@
                         </thead>
                         <tbody>
                         @forelse ($applicants as $applicant)
+                            @php
+                                $photoUrl = $applicant->photoUrl();
+                                $loadPhotoImmediately = $loop->iteration <= 10;
+                            @endphp
                             <tr>
                                 <td>{{ $loop->iteration }}.</td>
-                                <td><span class="talent-photo" title="{{ $applicant->photo ?: 'No photo' }}"><i class="bi bi-person-fill"></i></span></td>
+                                <td>
+                                    <span class="talent-photo" title="{{ $applicant->photo ?: 'No photo' }}">
+                                        @if ($photoUrl)
+                                            <img
+                                                @if ($loadPhotoImmediately)
+                                                    src="{{ $photoUrl }}"
+                                                @endif
+                                                data-photo-src="{{ $photoUrl }}"
+                                                alt="{{ $applicant->full_name }}"
+                                                loading="lazy"
+                                                decoding="async"
+                                                @if (! $loadPhotoImmediately)
+                                                    style="display: none;"
+                                                @endif
+                                                onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                                onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';"
+                                            >
+                                            <i class="bi bi-person-fill" @if ($loadPhotoImmediately) style="display: none;" @endif></i>
+                                        @else
+                                            <i class="bi bi-person-fill"></i>
+                                        @endif
+                                    </span>
+                                </td>
                                 <td>{{ $applicant->full_name }}</td>
                                 <td>{{ $applicant->jobVacancy?->name ?? '-' }}</td>
                                 <td>
@@ -411,6 +441,14 @@
             selectElement.classList.add('status-value-' + statusValue);
         }
 
+        function loadVisibleApplicantPhotos() {
+            $('#applicantsTable tbody tr:visible img[data-photo-src]').each(function () {
+                if (!this.getAttribute('src')) {
+                    this.setAttribute('src', this.dataset.photoSrc);
+                }
+            });
+        }
+
         $(function () {
             var applicantsTable = $('#applicantsTable').DataTable({
                 order: [],
@@ -424,6 +462,8 @@
                     tableApi.column(0, { page: 'current' }).nodes().each(function (cell, index) {
                         cell.innerHTML = (pageInfo.start + index + 1) + '.';
                     });
+
+                    loadVisibleApplicantPhotos();
                 }
             });
 
@@ -436,6 +476,8 @@
                     .search(selectedPosition ? '^' + escapedPosition + '$' : '', true, false)
                     .draw();
             });
+
+            window.setTimeout(loadVisibleApplicantPhotos, 100);
         });
     </script>
 @endsection

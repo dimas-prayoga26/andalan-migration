@@ -5,20 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Applicant;
 use App\Models\ApplicantStatus;
 use App\Models\JobVacancy;
-use App\Services\Applicants\LegacyApplicantSyncService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use Throwable;
 
 class TalentAcquisitionController extends Controller
 {
-    public function applicants(LegacyApplicantSyncService $legacyApplicantSync): View
+    public function applicants(): View
     {
-        $syncResult = $legacyApplicantSync->sync();
-
         $applicants = Applicant::query()
             ->select([
                 'id',
@@ -48,24 +43,20 @@ class TalentAcquisitionController extends Controller
             'applicants' => $applicants,
             'applicantStatuses' => $applicantStatuses,
             'jobVacancies' => $jobVacancies,
-            'syncResult' => $syncResult,
         ]);
     }
 
-    public function jobVacancies(LegacyApplicantSyncService $legacyApplicantSync): View
+    public function jobVacancies(): View
     {
-        $syncResult = $legacyApplicantSync->sync();
-
         $jobVacancies = JobVacancy::query()
             ->withCount('applicants')
-            ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
+            ->orderByRaw('CASE WHEN status = 1 THEN 0 ELSE 1 END')
             ->orderBy('name')
             ->get();
 
         return view('applicant_data.job_vancancies', [
             'jobVacancies' => $jobVacancies,
             'jobVacancyStatuses' => JobVacancy::statusOptions(),
-            'syncResult' => $syncResult,
         ]);
     }
 
@@ -94,26 +85,9 @@ class TalentAcquisitionController extends Controller
 
         $applicantStatus = ApplicantStatus::query()->findOrFail($validated['applicant_status_id']);
 
-        try {
-            DB::transaction(function () use ($applicant, $applicantStatus): void {
-                if ($applicant->legacy_applicant_id !== null) {
-                    DB::connection('legacy_mysql')
-                        ->table('applicants')
-                        ->where('id', $applicant->legacy_applicant_id)
-                        ->update(['nb' => $applicantStatus->value]);
-                }
-
-                $applicant->update([
-                    'applicant_status_id' => $applicantStatus->id,
-                ]);
-            });
-        } catch (Throwable $throwable) {
-            report($throwable);
-
-            return back()->withErrors([
-                'applicant_status_id' => 'Status pelamar gagal diperbarui.',
-            ]);
-        }
+        $applicant->update([
+            'applicant_status_id' => $applicantStatus->id,
+        ]);
 
         return back()->with('status', 'Status pelamar berhasil diperbarui.');
     }
@@ -121,32 +95,14 @@ class TalentAcquisitionController extends Controller
     public function updateJobVacancyStatus(Request $request, JobVacancy $jobVacancy): RedirectResponse
     {
         $validated = $request->validate([
-            'status' => ['required', Rule::in(JobVacancy::statuses())],
+            'status' => ['required', 'integer', Rule::in(JobVacancy::statuses())],
         ]);
 
-        $legacyStatusValue = JobVacancy::legacyStatusValueFor($validated['status']);
+        $status = JobVacancy::statusValueFor((int) $validated['status']);
 
-        try {
-            DB::transaction(function () use ($jobVacancy, $validated, $legacyStatusValue): void {
-                if ($jobVacancy->legacy_vacancy_id !== null) {
-                    DB::connection('legacy_mysql')
-                        ->table('opt_applicants_vacancies')
-                        ->where('id', $jobVacancy->legacy_vacancy_id)
-                        ->update(['status' => $legacyStatusValue]);
-                }
-
-                $jobVacancy->update([
-                    'status' => $validated['status'],
-                    'legacy_status_value' => $legacyStatusValue,
-                ]);
-            });
-        } catch (Throwable $throwable) {
-            report($throwable);
-
-            return back()->withErrors([
-                'status' => 'Status lowongan gagal diperbarui.',
-            ]);
-        }
+        $jobVacancy->update([
+            'status' => $status,
+        ]);
 
         return back()->with('status', 'Status lowongan berhasil diperbarui.');
     }

@@ -192,11 +192,6 @@
                 </ul>
             </div>
             <div class="card-body">
-                @if (! ($syncResult['available'] ?? true))
-                    <div class="alert alert-warning mb-3" role="alert">
-                        {{ $syncResult['message'] ?? 'Koneksi database legacy belum tersedia.' }}
-                    </div>
-                @endif
                 @if (session('status'))
                     <div class="alert alert-success mb-3" role="alert">{{ session('status') }}</div>
                 @endif
@@ -228,9 +223,9 @@
                                     <form method="POST" action="{{ route('applicant.job_vacancies.status.update', ['jobVacancy' => $jobVacancy->id]) }}" class="talent-vacancy-status-form">
                                         @csrf
                                         @method('PATCH')
-                                        <select name="status" class="talent-vacancy-status-select {{ $jobVacancy->status }}" onchange="updateJobVacancyStatusColor(this); this.form.submit()" aria-label="Update status {{ $jobVacancy->name }}">
+                                        <select name="status" class="talent-vacancy-status-select {{ $jobVacancy->statusCssClass() }}" onchange="updateJobVacancyStatusColor(this); this.form.submit()" aria-label="Update status {{ $jobVacancy->name }}">
                                             @foreach ($jobVacancyStatuses as $statusValue => $statusLabel)
-                                                <option value="{{ $statusValue }}" @selected($jobVacancy->status === $statusValue)>
+                                                <option value="{{ $statusValue }}" @selected((int) $jobVacancy->status === (int) $statusValue)>
                                                     {{ $statusLabel }}
                                                 </option>
                                             @endforeach
@@ -266,7 +261,7 @@
     <script>
         function updateJobVacancyStatusColor(selectElement) {
             selectElement.classList.remove('active', 'inactive');
-            selectElement.classList.add(selectElement.value === 'active' ? 'active' : 'inactive');
+            selectElement.classList.add(selectElement.value === '1' ? 'active' : 'inactive');
         }
 
         $(function () {

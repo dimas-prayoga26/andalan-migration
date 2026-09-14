@@ -24,6 +24,9 @@ class AuthorizationMenuRouteTest extends TestCase
         $dataEmployeeUpdateRoute = Route::getRoutes()->getByName('authorization.update');
         $destroyRoute = Route::getRoutes()->getByName('authorization.destroy');
         $employeeDataRoute = Route::getRoutes()->getByName('employee_data');
+        $employeeDataDatatableRoute = Route::getRoutes()->getByName('employee_data.datatable');
+        $employeeDataAuthorizationRoute = Route::getRoutes()->getByName('employee_data.authorization');
+        $employeeDataAuthorizationDatatableRoute = Route::getRoutes()->getByName('employee_data.authorization.datatable');
         $employeeDataEventAdminRoute = Route::getRoutes()->getByName('employee_data.event-project-admin.update');
 
         $this->assertNotNull($route);
@@ -47,6 +50,12 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertContains('DELETE', $destroyRoute?->methods() ?? []);
         $this->assertSame('employee-data', $employeeDataRoute?->uri());
         $this->assertSame(EmployeeDataController::class.'@index', $employeeDataRoute?->getActionName());
+        $this->assertSame('employee-data/datatable', $employeeDataDatatableRoute?->uri());
+        $this->assertSame(EmployeeDataController::class.'@datatable', $employeeDataDatatableRoute?->getActionName());
+        $this->assertSame('employee-data/authorize', $employeeDataAuthorizationRoute?->uri());
+        $this->assertSame(EmployeeDataController::class.'@authorization', $employeeDataAuthorizationRoute?->getActionName());
+        $this->assertSame('employee-data/authorize/datatable', $employeeDataAuthorizationDatatableRoute?->uri());
+        $this->assertSame(EmployeeDataController::class.'@authorizationDatatable', $employeeDataAuthorizationDatatableRoute?->getActionName());
         $this->assertSame('employee-data/{employee}/event-project-admin', $employeeDataEventAdminRoute?->uri());
         $this->assertContains('PATCH', $employeeDataEventAdminRoute?->methods() ?? []);
         $this->assertSame(EmployeeDataController::class.'@updateEventProjectAdmin', $employeeDataEventAdminRoute?->getActionName());
@@ -62,6 +71,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $authorizationView = File::get(resource_path('views/authorization/index.blade.php'));
         $authorizationFormView = File::get(resource_path('views/authorization/form.blade.php'));
         $employeeDataView = File::get(resource_path('views/employee_data/index.blade.php'));
+        $employeeDataAuthorizationView = File::get(resource_path('views/employee_data/authorization.blade.php'));
         $employeeDataController = File::get(app_path('Http/Controllers/EmployeeDataController.php'));
         $eventAdminMigration = File::get(database_path('migrations/2026_08_12_155553_add_is_event_project_admin_to_employees_table.php'));
         $employeeModel = File::get(app_path('Models/Employee.php'));
@@ -75,6 +85,10 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertTrue(View::exists('authorization.access-menus'));
         $this->assertStringContainsString("view('authorization.index'", $controller);
         $this->assertStringContainsString("view('employee_data.index'", $employeeDataController);
+        $this->assertStringContainsString("view('employee_data.authorization'", $employeeDataController);
+        $this->assertStringContainsString('public function datatable()', $employeeDataController);
+        $this->assertStringContainsString('public function authorizationDatatable()', $employeeDataController);
+        $this->assertStringContainsString('authorizationRows', $employeeDataController);
         $this->assertStringContainsString('updateEventProjectAdmin', $employeeDataController);
         $this->assertStringContainsString("'is_event_project_admin' => ['required', 'boolean']", $employeeDataController);
         $this->assertStringContainsString("'is_event_project_admin' => (bool) \$validated['is_event_project_admin']", $employeeDataController);
@@ -117,9 +131,17 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringNotContainsString('Bukan Event Admin', $authorizationView);
         $this->assertStringContainsString("'is_event_project_admin' => (bool) (\$user->employee?->is_event_project_admin ?? false)", $controller);
         $this->assertStringContainsString('Event Admin', $employeeDataView);
+        $this->assertStringContainsString("route('employee_data.datatable')", $employeeDataView);
+        $this->assertStringContainsString('renderEmployeeEventAdmin', $employeeDataView);
+        $this->assertStringContainsString('renderEmployeeAction', $employeeDataView);
+        $this->assertStringContainsString('ajax: {', $employeeDataView);
         $this->assertStringContainsString("route('employee_data.event-project-admin.update'", $employeeDataView);
         $this->assertStringContainsString('js-event-project-admin-switch', $employeeDataView);
         $this->assertStringContainsString('js-event-project-admin-form', $employeeDataView);
+        $this->assertStringContainsString("route('employee_data.authorization.datatable')", $employeeDataAuthorizationView);
+        $this->assertStringContainsString('renderAuthorizationDepartments', $employeeDataAuthorizationView);
+        $this->assertStringContainsString('renderAuthorizationAction', $employeeDataAuthorizationView);
+        $this->assertStringContainsString('ajax: {', $employeeDataAuthorizationView);
         $this->assertStringContainsString('Employee List', $authorizationView);
         $this->assertStringContainsString("route('authorization.create')", $authorizationView);
         $this->assertStringContainsString('Add Employee', $authorizationView);

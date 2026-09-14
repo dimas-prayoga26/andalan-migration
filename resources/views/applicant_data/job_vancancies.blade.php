@@ -214,33 +214,7 @@
                             <th class="mw-180">Legacy Created</th>
                         </tr>
                         </thead>
-                        <tbody>
-                        @forelse ($jobVacancies as $jobVacancy)
-                            <tr>
-                                <td>{{ $loop->iteration }}.</td>
-                                <td>{{ $jobVacancy->name }}</td>
-                                <td>
-                                    <form method="POST" action="{{ route('applicant.job_vacancies.status.update', ['jobVacancy' => $jobVacancy->id]) }}" class="talent-vacancy-status-form">
-                                        @csrf
-                                        @method('PATCH')
-                                        <select name="status" class="talent-vacancy-status-select {{ $jobVacancy->statusCssClass() }}" onchange="updateJobVacancyStatusColor(this); this.form.submit()" aria-label="Update status {{ $jobVacancy->name }}">
-                                            @foreach ($jobVacancyStatuses as $statusValue => $statusLabel)
-                                                <option value="{{ $statusValue }}" @selected((int) $jobVacancy->status === (int) $statusValue)>
-                                                    {{ $statusLabel }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </form>
-                                </td>
-                                <td>{{ $jobVacancy->applicants_count }}</td>
-                                <td>{{ $jobVacancy->legacy_created_at?->format('d M Y H:i') ?? '-' }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="text-center text-muted">Belum ada data lowongan.</td>
-                            </tr>
-                        @endforelse
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
@@ -259,26 +233,68 @@
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
+        var jobVacancyStatuses = @json(collect($jobVacancyStatuses)->map(fn ($label, $value) => ['value' => (int) $value, 'label' => (string) $label])->values());
+        var csrfToken = @json(csrf_token());
+        var jobVacancyStatusUpdateUrlTemplate = @json(route('applicant.job_vacancies.status.update', ['jobVacancy' => '__JOB_VACANCY_ID__']));
+
+        function escapeHtml(value) {
+            return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
+        }
+
+        function jobVacancyUrl(template, jobVacancyId) {
+            return template.replace('__JOB_VACANCY_ID__', encodeURIComponent(jobVacancyId));
+        }
+
         function updateJobVacancyStatusColor(selectElement) {
             selectElement.classList.remove('active', 'inactive');
             selectElement.classList.add(selectElement.value === '1' ? 'active' : 'inactive');
         }
 
+        function renderJobVacancyStatus(jobVacancy) {
+            var options = jobVacancyStatuses.map(function (status) {
+                return '<option value="' + status.value + '"' + (Number(jobVacancy.status) === Number(status.value) ? ' selected' : '') + '>'
+                    + escapeHtml(status.label)
+                    + '</option>';
+            }).join('');
+
+            return '<form method="POST" action="' + jobVacancyUrl(jobVacancyStatusUpdateUrlTemplate, jobVacancy.id) + '" class="talent-vacancy-status-form">'
+                + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
+                + '<input type="hidden" name="_method" value="PATCH">'
+                + '<select name="status" class="talent-vacancy-status-select ' + escapeHtml(jobVacancy.status_css_class) + '" onchange="updateJobVacancyStatusColor(this); this.form.submit()" aria-label="Update status ' + escapeHtml(jobVacancy.name) + '">'
+                + options
+                + '</select>'
+                + '</form>';
+        }
+
         $(function () {
             var jobVacancyTable = $('#jobVacanciesTable').DataTable({
+                ajax: {
+                    url: "{{ route('applicant.job_vacancies.datatable') }}",
+                    dataSrc: 'data'
+                },
+                columns: [
+                    {
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row, meta) {
+                            return (meta.row + meta.settings._iDisplayStart + 1) + '.';
+                        }
+                    },
+                    { data: 'name' },
+                    {
+                        data: null,
+                        render: function (data, type, row) {
+                            return renderJobVacancyStatus(row);
+                        }
+                    },
+                    { data: 'applicants_count' },
+                    { data: 'legacy_created_at' }
+                ],
                 columnDefs: [
                     { targets: 0, orderable: false }
                 ]
             });
-
-            jobVacancyTable.on('order.dt search.dt draw.dt', function () {
-                jobVacancyTable
-                    .column(0, { search: 'applied', order: 'applied', page: 'current' })
-                    .nodes()
-                    .each(function (cell, index) {
-                        cell.innerHTML = (index + 1) + '.';
-                    });
-            }).draw();
         });
     </script>
 @endsection

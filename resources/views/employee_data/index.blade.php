@@ -368,6 +368,7 @@
                                 </tr>
                                 </thead>
                                 <tbody>
+                                @if (false)
                                 @isset($employees)
                                     @forelse ($employees as $employee)
                                         <tr>
@@ -560,6 +561,7 @@
                                     </td>
                                 </tr>
                                 @endisset
+                                @endif
                                 </tbody>
                             </table>
                             </div>
@@ -584,6 +586,45 @@
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
+        var csrfToken = @json(csrf_token());
+        var employeeEventAdminUpdateUrlTemplate = @json(route('employee_data.event-project-admin.update', ['employee' => '__EMPLOYEE_ID__']));
+        var employeeEditUrlTemplate = @json(route('authorization.edit', ['employee' => '__EMPLOYEE_ID__']));
+
+        function escapeHtml(value) {
+            return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
+        }
+
+        function employeeUrl(template, employeeId) {
+            return template.replace('__EMPLOYEE_ID__', encodeURIComponent(employeeId));
+        }
+
+        function renderEmployeePhoto(employee) {
+            if (employee.avatar_url) {
+                return '<span class="employee-photo"><img src="' + escapeHtml(employee.avatar_url) + '" alt="' + escapeHtml(employee.name) + '"></span>';
+            }
+
+            return '<span class="employee-photo">' + escapeHtml(employee.initials || 'E') + '</span>';
+        }
+
+        function renderEmployeeEventAdmin(employee) {
+            return '<form method="POST" action="' + employeeUrl(employeeEventAdminUpdateUrlTemplate, employee.id) + '" class="m-0 js-event-project-admin-form">'
+                + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
+                + '<input type="hidden" name="_method" value="PATCH">'
+                + '<input type="hidden" name="is_event_project_admin" value="0">'
+                + '<div class="form-check form-switch mb-0">'
+                + '<input class="form-check-input js-event-project-admin-switch" type="checkbox" role="switch" name="is_event_project_admin" value="1"' + (employee.is_event_project_admin ? ' checked' : '') + ' aria-label="Set ' + escapeHtml(employee.name) + ' as Event Project Admin">'
+                + '</div>'
+                + '</form>';
+        }
+
+        function renderEmployeeAction(employee) {
+            return '<div class="applicant-action-group">'
+                + '<button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>'
+                + '<a href="' + employeeUrl(employeeEditUrlTemplate, employee.id) + '" class="applicant-action-btn edit" aria-label="Update ' + escapeHtml(employee.name) + '"><i class="bi bi-pencil"></i></a>'
+                + '<button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>'
+                + '</div>';
+        }
+
         $(function () {
             $('.absensi-tab-btn').on('click', function (event) {
                 event.preventDefault();
@@ -595,6 +636,48 @@
             });
 
             var applicantsTable = $('#myTable').DataTable({
+                ajax: {
+                    url: "{{ route('employee_data.datatable') }}",
+                    dataSrc: 'data'
+                },
+                columns: [
+                    {
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row, meta) {
+                            return (meta.row + meta.settings._iDisplayStart + 1) + '.';
+                        }
+                    },
+                    {
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            return renderEmployeePhoto(row);
+                        }
+                    },
+                    { data: 'nik' },
+                    { data: 'name' },
+                    { data: 'position' },
+                    { data: 'company' },
+                    {
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            return renderEmployeeEventAdmin(row);
+                        }
+                    },
+                    {
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            return renderEmployeeAction(row);
+                        }
+                    }
+                ],
                 columnDefs: [
                     {
                         targets: [0, 1, 6, 7],
@@ -606,15 +689,6 @@
             $(document).on('change', '.js-event-project-admin-switch', function () {
                 $(this).closest('form').trigger('submit');
             });
-
-            applicantsTable.on('order.dt search.dt draw.dt', function () {
-                applicantsTable
-                    .column(0, { search: 'applied', order: 'applied', page: 'current' })
-                    .nodes()
-                    .each(function (cell, index) {
-                        cell.innerHTML = (index + 1) + '.';
-                    });
-            }).draw();
         });
     </script>
 @endsection

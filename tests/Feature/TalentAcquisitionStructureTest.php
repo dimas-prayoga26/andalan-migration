@@ -127,6 +127,8 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('targets: [0, 1, 5]', $applicantsView);
         $this->assertStringContainsString('meta.settings._iDisplayStart', $applicantsView);
         $this->assertStringContainsString('talent-status-select', $applicantsView);
+        $this->assertStringContainsString('talent-status-select-shell', $applicantsView);
+        $this->assertStringContainsString('appearance: none;', $applicantsView);
         $this->assertStringContainsString('talent-status-tabs', $applicantsView);
         $this->assertStringContainsString('talent-status-tab', $applicantsView);
         $this->assertStringContainsString('data-status-value="{{ $applicantStatus->value }}"', $applicantsView);
@@ -161,6 +163,7 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString("data: 'applicants_count'", $jobVacanciesView);
         $this->assertStringContainsString("data: 'legacy_created_at'", $jobVacanciesView);
         $this->assertStringContainsString('talent-vacancy-status-select', $jobVacanciesView);
+        $this->assertStringContainsString('talent-vacancy-status-select-shell', $jobVacanciesView);
         $this->assertStringContainsString('renderJobVacancyStatus', $jobVacanciesView);
         $this->assertStringContainsString('updateJobVacancyStatusColor', $jobVacanciesView);
         $this->assertStringContainsString("route('applicant.job_vacancies.status.update'", $jobVacanciesView);

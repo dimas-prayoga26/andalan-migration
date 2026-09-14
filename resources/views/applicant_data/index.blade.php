@@ -110,19 +110,63 @@
         }
 
         .talent-status-form {
+            align-items: center;
             display: inline-flex;
             vertical-align: middle;
         }
 
+        .talent-status-select-shell {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            min-width: 160px;
+        }
+
+        .talent-status-select-shell::after {
+            content: "";
+            position: absolute;
+            right: 0.85rem;
+            width: 0.45rem;
+            height: 0.45rem;
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            color: #64748b;
+            pointer-events: none;
+            transform: translateY(-20%) rotate(45deg);
+        }
+
         .talent-status-select {
-            min-height: 28px;
+            appearance: none;
+            min-height: 42px;
+            width: 100%;
             border: 1px solid #d9dce5;
-            border-radius: 0.35rem;
+            border-radius: 0.6rem;
             background: #fff;
             color: #27334a;
-            font-size: 0.78rem;
+            cursor: pointer;
+            font-size: 0.86rem;
             font-weight: 700;
-            padding: 0.15rem 1.75rem 0.15rem 0.5rem;
+            line-height: 1.2;
+            padding: 0.45rem 2.25rem 0.45rem 0.9rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+        }
+
+        .talent-status-select:hover {
+            border-color: #b8c0ce;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+        }
+
+        .talent-status-select:focus {
+            border-color: #93a4c0;
+            box-shadow: 0 0 0 0.18rem rgba(37, 99, 235, 0.12);
+            outline: 0;
+        }
+
+        .talent-status-select option {
+            background: #fff;
+            color: #111827;
+            font-weight: 500;
         }
 
         .talent-status-select.status-value-0 {
@@ -462,9 +506,11 @@
             return '<form method="POST" action="' + applicantUrl(applicantStatusUpdateUrlTemplate, applicant.id) + '" class="talent-status-form">'
                 + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
                 + '<input type="hidden" name="_method" value="PATCH">'
+                + '<span class="talent-status-select-shell">'
                 + '<select name="applicant_status_id" class="talent-status-select status-value-' + Number(applicant.applicant_status_value || 0) + '" onchange="updateApplicantStatusColor(this); this.form.submit()" aria-label="Update status ' + escapeHtml(applicant.full_name) + '">'
                 + options
                 + '</select>'
+                + '</span>'
                 + '</form>';
         }
 

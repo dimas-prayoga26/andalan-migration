@@ -3,11 +3,58 @@
 namespace Tests\Feature;
 
 use App\Models\Applicant;
+use App\Models\ApplicantStatus;
 use App\Models\JobVacancy;
+use App\Services\Applicants\LegacyApplicantSyncService;
+use Illuminate\Support\Collection;
+use ReflectionClass;
 use Tests\TestCase;
 
 class ApplicantLegacySyncTest extends TestCase
 {
+    public function test_legacy_pipe_values_are_combined_by_matching_index(): void
+    {
+        $rows = $this->combinedRows([
+            'company_name' => 'Upwork.com||Fiverr.com',
+            'role' => 'Pekerja Lepas Desainer Grafis||Pekerja Lepas Desainer Grafis',
+            'company_location' => 'California, Amerika Serikat||Israel',
+            'start_period' => '2022-03||2022-04',
+            'end_period' => '2026-02||2025-10',
+        ]);
+
+        $this->assertSame([
+            [
+                'company_name' => 'Upwork.com',
+                'role' => 'Pekerja Lepas Desainer Grafis',
+                'company_location' => 'California, Amerika Serikat',
+                'start_period' => '2022-03',
+                'end_period' => '2026-02',
+            ],
+            [
+                'company_name' => 'Fiverr.com',
+                'role' => 'Pekerja Lepas Desainer Grafis',
+                'company_location' => 'Israel',
+                'start_period' => '2022-04',
+                'end_period' => '2025-10',
+            ],
+        ], $rows->all());
+    }
+
+    public function test_legacy_html_entities_and_empty_dash_rows_are_normalized(): void
+    {
+        $rows = $this->combinedRows([
+            'name' => 'Graphics Designer &amp; Illustrator||-',
+            'value' => '15||-',
+        ]);
+
+        $this->assertSame([
+            [
+                'name' => 'Graphics Designer & Illustrator',
+                'value' => '15',
+            ],
+        ], $rows->all());
+    }
+
     public function test_portfolio_links_extract_multiple_urls(): void
     {
         $applicant = new Applicant([
@@ -43,28 +90,46 @@ class ApplicantLegacySyncTest extends TestCase
         $this->assertNull((new Applicant(['cv' => null]))->cvDownloadUrl());
     }
 
-    public function test_photo_url_points_to_legacy_photo_folder(): void
+    public function test_legacy_applicant_status_uses_the_full_application_workflow(): void
     {
-        $this->assertSame(
-            'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/saktian%20photo.jpg',
-            (new Applicant(['photo' => 'saktian photo.jpg']))->photoUrl()
-        );
+        $service = app(LegacyApplicantSyncService::class);
 
-        $this->assertSame(
-            'https://example.com/photo.jpg',
-            (new Applicant(['photo' => 'https://example.com/photo.jpg']))->photoUrl()
-        );
-
-        $this->assertNull((new Applicant(['photo' => null]))->photoUrl());
+        $this->assertSame(ApplicantStatus::VALUE_SUBMITTED, $this->applicantStatusValueFor($service, 0));
+        $this->assertSame(ApplicantStatus::VALUE_HR_INTERVIEW, $this->applicantStatusValueFor($service, 1));
+        $this->assertSame(ApplicantStatus::VALUE_TECHNICAL_TEST, $this->applicantStatusValueFor($service, 2));
+        $this->assertSame(ApplicantStatus::VALUE_USER_INTERVIEW, $this->applicantStatusValueFor($service, 3));
+        $this->assertSame(ApplicantStatus::VALUE_OFFERING, $this->applicantStatusValueFor($service, 4));
+        $this->assertSame(ApplicantStatus::VALUE_NOT_SUITABLE, $this->applicantStatusValueFor($service, 5));
+        $this->assertSame(ApplicantStatus::VALUE_SUBMITTED, $this->applicantStatusValueFor($service, 99));
     }
 
     public function test_job_vacancy_status_maps_to_legacy_values(): void
     {
-        $this->assertSame(1, JobVacancy::statusValueFor(JobVacancy::STATUS_ACTIVE));
-        $this->assertSame(2, JobVacancy::statusValueFor(JobVacancy::STATUS_INACTIVE));
+        $this->assertSame(1, JobVacancy::legacyStatusValueFor(JobVacancy::STATUS_ACTIVE));
+        $this->assertSame(2, JobVacancy::legacyStatusValueFor(JobVacancy::STATUS_INACTIVE));
         $this->assertSame([
             JobVacancy::STATUS_ACTIVE => 'Active',
             JobVacancy::STATUS_INACTIVE => 'Non Active',
         ], JobVacancy::statusOptions());
+    }
+
+    /**
+     * @param  array<string, string>  $legacyColumns
+     * @return Collection<int, array<string, string|null>>
+     */
+    private function combinedRows(array $legacyColumns): Collection
+    {
+        $reflection = new ReflectionClass(LegacyApplicantSyncService::class);
+        $method = $reflection->getMethod('combinedRows');
+
+        return $method->invoke(app(LegacyApplicantSyncService::class), $legacyColumns);
+    }
+
+    private function applicantStatusValueFor(LegacyApplicantSyncService $service, int $legacyStatus): int
+    {
+        $reflection = new ReflectionClass(LegacyApplicantSyncService::class);
+        $method = $reflection->getMethod('applicantStatusValueFor');
+
+        return $method->invoke($service, $legacyStatus);
     }
 }

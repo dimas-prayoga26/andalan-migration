@@ -114,9 +114,27 @@
         }
 
         .talent-status-select.status-value-2 {
+            background: #fff7ed;
+            border-color: #fed7aa;
+            color: #c2410c;
+        }
+
+        .talent-status-select.status-value-3 {
+            background: #f0f9ff;
+            border-color: #bae6fd;
+            color: #0369a1;
+        }
+
+        .talent-status-select.status-value-4 {
             background: #ecfdf5;
             border-color: #a7f3d0;
             color: #047857;
+        }
+
+        .talent-status-select.status-value-5 {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #b91c1c;
         }
 
         .talent-action-group {
@@ -316,6 +334,11 @@
                 </ul>
             </div>
             <div class="card-body">
+                @if (! ($syncResult['available'] ?? true))
+                    <div class="alert alert-warning mb-3" role="alert">
+                        {{ $syncResult['message'] ?? 'Koneksi database legacy belum tersedia.' }}
+                    </div>
+                @endif
                 @if (session('status'))
                     <div class="alert alert-success mb-3" role="alert">{{ session('status') }}</div>
                 @endif
@@ -437,7 +460,7 @@
             var selectedOption = selectElement.options[selectElement.selectedIndex];
             var statusValue = selectedOption ? selectedOption.dataset.statusValue : '0';
 
-            selectElement.classList.remove('status-value-0', 'status-value-1', 'status-value-2');
+            selectElement.classList.remove('status-value-0', 'status-value-1', 'status-value-2', 'status-value-3', 'status-value-4', 'status-value-5');
             selectElement.classList.add('status-value-' + statusValue);
         }
 

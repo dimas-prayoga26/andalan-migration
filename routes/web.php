@@ -89,6 +89,7 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware('position.permission:view-talent-acquisition')->group(function (): void {
         Route::get('/applicant', [TalentAcquisitionController::class, 'applicants'])->name('applicant');
         Route::get('/applicant/job-vacancies', [TalentAcquisitionController::class, 'jobVacancies'])->name('applicant.job_vacancies');
+        Route::post('/applicant/job-vacancies', [TalentAcquisitionController::class, 'storeJobVacancy'])->name('applicant.job_vacancies.store');
         Route::patch('/applicant/job-vacancies/{jobVacancy}/status', [TalentAcquisitionController::class, 'updateJobVacancyStatus'])->name('applicant.job_vacancies.status.update');
         Route::patch('/applicant/{applicant}/status', [TalentAcquisitionController::class, 'updateApplicantStatus'])->name('applicant.status.update');
         Route::get('/applicant/{applicant}', [TalentAcquisitionController::class, 'showApplicant'])->name('applicant.show');

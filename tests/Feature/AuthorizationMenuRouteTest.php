@@ -180,6 +180,11 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('Detail</a>', $authorizationView);
         $this->assertStringContainsString('Update</a>', $authorizationView);
         $this->assertStringContainsString('Delete</button>', $authorizationView);
+        $this->assertStringContainsString('assets/vendor/sweetalert2/sweetalert2.min.css', $authorizationView);
+        $this->assertStringContainsString('assets/vendor/sweetalert2/sweetalert2.min.js', $authorizationView);
+        $this->assertStringContainsString('data-authorization-delete-form', $authorizationView);
+        $this->assertStringContainsString('Swal.fire({', $authorizationView);
+        $this->assertStringNotContainsString("confirm('Delete this employee data?')", $authorizationView);
         $this->assertStringNotContainsString('Manage Access', $authorizationView);
         $this->assertStringNotContainsString('<th>Role</th>', $authorizationView);
         $this->assertStringNotContainsString('<th>Department</th>', $authorizationView);
@@ -300,6 +305,12 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString("option.prop('disabled', isSelectedElsewhere && ! isSelectedHere)", $assignEventDivisionView);
         $this->assertStringContainsString("$(document).on('change', '.js-event-division-select'", $assignEventDivisionView);
         $this->assertStringContainsString('aria-disabled=true', $assignEventDivisionView);
+        $this->assertStringContainsString('assets/vendor/sweetalert2/sweetalert2.min.css', $assignEventDivisionView);
+        $this->assertStringContainsString('assets/vendor/sweetalert2/sweetalert2.min.js', $assignEventDivisionView);
+        $this->assertStringContainsString('data-event-division-delete-form', $assignEventDivisionView);
+        $this->assertStringContainsString('initializeEventDivisionDeleteConfirmation', $assignEventDivisionView);
+        $this->assertStringContainsString('Swal.fire({', $assignEventDivisionView);
+        $this->assertStringNotContainsString("confirm('Delete this event division?')", $assignEventDivisionView);
     }
 
     public function test_sidebar_hides_menu_without_position_permission(): void

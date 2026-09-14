@@ -8,6 +8,7 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/vendor/select2/css/select2.min.css') }}">
     <style>
         .authorization-nav-card {
@@ -195,7 +196,6 @@
                                         type="submit"
                                         form="deleteEventDivisionForm-{{ $eventDivisionAssignment['id'] }}"
                                         class="btn btn-danger light btn-sm"
-                                        onclick="return confirm('Delete this event division?')"
                                     >
                                         Delete
                                     </button>
@@ -217,6 +217,8 @@
                 action="{{ route('authorization.event-divisions.divisions.destroy', ['eventDivision' => $eventDivisionAssignment['id']]) }}"
                 method="POST"
                 class="d-none"
+                data-event-division-delete-form
+                data-event-division-title="{{ $eventDivisionAssignment['title'] }}"
             >
                 @csrf
                 @method('DELETE')
@@ -291,6 +293,7 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
     <script src="{{ asset('assets/vendor/select2/js/select2.full.min.js') }}"></script>
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
         (function () {
@@ -384,10 +387,43 @@
                 });
             }
 
+            function initializeEventDivisionDeleteConfirmation() {
+                $(document).on('submit', '[data-event-division-delete-form]', function (event) {
+                    var form = this;
+
+                    if (form.dataset.deleteConfirmed === 'true') {
+                        return;
+                    }
+
+                    event.preventDefault();
+
+                    Swal.fire({
+                        title: 'Delete Event Division?',
+                        text: 'Event division ' + (form.dataset.eventDivisionTitle || 'this item') + ' will be deleted.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Delete',
+                        cancelButtonText: 'Cancel',
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d',
+                        reverseButtons: true,
+                        focusCancel: true
+                    }).then(function (result) {
+                        if (! result.isConfirmed) {
+                            return;
+                        }
+
+                        form.dataset.deleteConfirmed = 'true';
+                        form.submit();
+                    });
+                });
+            }
+
             $(function () {
                 initializeAuthorizationSelect2();
                 enforceSingleDivisionPerStaff();
                 initializeEventDivisionEditor();
+                initializeEventDivisionDeleteConfirmation();
             });
             $(window).on('load', initializeAuthorizationSelect2);
         })();

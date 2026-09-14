@@ -6,7 +6,9 @@
 .phpactor.json
 .phpunit.result.cache
 /.codex
+/.codex-temp
 /.cursor/
+/.agents/skills/laravel-best-practices
 /.idea
 /.nova
 /.phpunit.cache

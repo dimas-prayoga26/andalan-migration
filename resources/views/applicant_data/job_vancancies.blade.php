@@ -32,33 +32,7 @@
             margin-bottom: 0.85rem;
         }
 
-        .talent-create-form {
-            display: grid;
-            grid-template-columns: minmax(220px, 1fr) 180px auto;
-            align-items: end;
-            gap: 0.75rem;
-            margin-bottom: 1rem;
-            padding: 1rem;
-            border: 1px solid #eef0f4;
-            border-radius: 0.5rem;
-        }
-
-        .talent-create-form label {
-            color: #5f6b7a;
-            font-size: 0.82rem;
-            font-weight: 600;
-            margin-bottom: 0.3rem;
-        }
-
-        .talent-create-form .form-control,
-        .talent-create-form .form-select {
-            min-height: 40px;
-            border: 1px solid #d9dce5;
-            border-radius: 0.45rem;
-            color: #27334a;
-        }
-
-        .talent-create-form .btn {
+        .talent-create-link {
             min-height: 40px;
             display: inline-flex;
             align-items: center;
@@ -178,8 +152,13 @@
         }
 
         @media only screen and (max-width: 767.98px) {
-            .talent-create-form {
-                grid-template-columns: 1fr;
+            .talent-header-bar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .talent-create-link {
+                width: 100%;
             }
 
             #jobVacanciesTable_wrapper .dt-layout-row:first-child {
@@ -226,7 +205,7 @@
                         <a href="{{ route('applicant') }}" class="nav-link {{ request()->routeIs('applicant') ? 'active' : '' }}">Applicants</a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ route('applicant.job_vacancies') }}" class="nav-link {{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}">Job Vacancies</a>
+                        <a href="{{ route('applicant.job_vacancies') }}" class="nav-link {{ request()->routeIs('applicant.job_vacancies*') ? 'active' : '' }}">Job Vacancies</a>
                     </li>
                 </ul>
             </div>
@@ -245,37 +224,11 @@
 
                 <div class="talent-header-bar">
                     <div class="talent-table-title">Job Vacancy</div>
-                </div>
-
-                <form method="POST" action="{{ route('applicant.job_vacancies.store') }}" class="talent-create-form">
-                    @csrf
-                    <div>
-                        <label for="jobVacancyName">Lowongan Pekerjaan</label>
-                        <input
-                            type="text"
-                            id="jobVacancyName"
-                            name="name"
-                            class="form-control"
-                            value="{{ old('name') }}"
-                            maxlength="255"
-                            required
-                        >
-                    </div>
-                    <div>
-                        <label for="jobVacancyStatus">Status</label>
-                        <select id="jobVacancyStatus" name="status" class="form-select" required>
-                            @foreach ($jobVacancyStatuses as $statusValue => $statusLabel)
-                                <option value="{{ $statusValue }}" @selected(old('status', \App\Models\JobVacancy::STATUS_ACTIVE) === $statusValue)>
-                                    {{ $statusLabel }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary">
+                    <a href="{{ route('applicant.job_vacancies.create') }}" class="btn btn-primary talent-create-link">
                         <i class="bi bi-plus-lg"></i>
-                        Tambah
-                    </button>
-                </form>
+                        Tambah Lowongan
+                    </a>
+                </div>
 
                 <div class="table-responsive">
                     <table id="jobVacanciesTable" class="display table">
@@ -340,6 +293,7 @@
 
         $(function () {
             var jobVacancyTable = $('#jobVacanciesTable').DataTable({
+                lengthChange: false,
                 columnDefs: [
                     { targets: 0, orderable: false }
                 ]

@@ -69,6 +69,13 @@ class TalentAcquisitionController extends Controller
         ]);
     }
 
+    public function createJobVacancy(): View
+    {
+        return view('applicant_data.job_vacancy_create', [
+            'jobVacancyStatuses' => JobVacancy::statusOptions(),
+        ]);
+    }
+
     public function showApplicant(Applicant $applicant): View
     {
         $applicant->load([
@@ -174,7 +181,7 @@ class TalentAcquisitionController extends Controller
                 ]);
         }
 
-        return back()->with('status', 'Lowongan berhasil ditambahkan.');
+        return redirect()->route('applicant.job_vacancies')->with('status', 'Lowongan berhasil ditambahkan.');
     }
 
     public function updateJobVacancyStatus(Request $request, JobVacancy $jobVacancy): RedirectResponse

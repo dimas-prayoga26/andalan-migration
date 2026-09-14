@@ -137,6 +137,30 @@
             color: #b91c1c;
         }
 
+        .talent-status-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 0 0 1rem;
+        }
+
+        .talent-status-tab {
+            min-height: 36px;
+            border: 1px solid #d9dce5;
+            border-radius: 0.45rem;
+            background: #fff;
+            color: #5f6b7a;
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 0.35rem 0.75rem;
+        }
+
+        .talent-status-tab.active {
+            border-color: #1d4ed8;
+            background: #e8eefc;
+            color: #1239b3;
+        }
+
         .talent-action-group {
             display: inline-flex;
             align-items: center;
@@ -359,6 +383,14 @@
                     </div>
                 </div>
 
+                <div class="talent-status-tabs" role="tablist" aria-label="Filter status pelamar">
+                    @foreach ($applicantStatuses as $applicantStatus)
+                        <button type="button" class="talent-status-tab" data-status-value="{{ $applicantStatus->value }}" role="tab" aria-selected="false">
+                            {{ $applicantStatus->name }}
+                        </button>
+                    @endforeach
+                </div>
+
                 <div class="table-responsive">
                     <table id="applicantsTable" class="display table">
                         <thead>
@@ -375,28 +407,22 @@
                         @forelse ($applicants as $applicant)
                             @php
                                 $photoUrl = $applicant->photoUrl();
-                                $loadPhotoImmediately = $loop->iteration <= 10;
+                                $applicantStatusValue = $applicantStatuses->firstWhere('id', $applicant->applicant_status_id)?->value ?? 0;
                             @endphp
-                            <tr>
+                            <tr data-status-value="{{ $applicantStatusValue }}">
                                 <td>{{ $loop->iteration }}.</td>
                                 <td>
                                     <span class="talent-photo" title="{{ $applicant->photo ?: 'No photo' }}">
                                         @if ($photoUrl)
                                             <img
-                                                @if ($loadPhotoImmediately)
-                                                    src="{{ $photoUrl }}"
-                                                @endif
-                                                data-photo-src="{{ $photoUrl }}"
+                                                src="{{ $photoUrl }}"
                                                 alt="{{ $applicant->full_name }}"
                                                 loading="lazy"
                                                 decoding="async"
-                                                @if (! $loadPhotoImmediately)
-                                                    style="display: none;"
-                                                @endif
                                                 onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';"
                                             >
-                                            <i class="bi bi-person-fill" @if ($loadPhotoImmediately) style="display: none;" @endif></i>
+                                            <i class="bi bi-person-fill" style="display: none;"></i>
                                         @else
                                             <i class="bi bi-person-fill"></i>
                                         @endif
@@ -408,7 +434,7 @@
                                     <form method="POST" action="{{ route('applicant.status.update', ['applicant' => $applicant->id]) }}" class="talent-status-form">
                                         @csrf
                                         @method('PATCH')
-                                        <select name="applicant_status_id" class="talent-status-select status-value-{{ $applicantStatuses->firstWhere('id', $applicant->applicant_status_id)?->value ?? 0 }}" onchange="updateApplicantStatusColor(this); this.form.submit()" aria-label="Update status {{ $applicant->full_name }}">
+                                        <select name="applicant_status_id" class="talent-status-select status-value-{{ $applicantStatusValue }}" onchange="updateApplicantStatusColor(this); this.form.submit()" aria-label="Update status {{ $applicant->full_name }}">
                                             @foreach ($applicantStatuses as $applicantStatus)
                                                 <option value="{{ $applicantStatus->id }}" data-status-value="{{ $applicantStatus->value }}" @selected($applicant->applicant_status_id === $applicantStatus->id)>
                                                     {{ $applicantStatus->name }}
@@ -464,15 +490,9 @@
             selectElement.classList.add('status-value-' + statusValue);
         }
 
-        function loadVisibleApplicantPhotos() {
-            $('#applicantsTable tbody tr:visible img[data-photo-src]').each(function () {
-                if (!this.getAttribute('src')) {
-                    this.setAttribute('src', this.dataset.photoSrc);
-                }
-            });
-        }
-
         $(function () {
+            var selectedApplicantStatus = '';
+
             var applicantsTable = $('#applicantsTable').DataTable({
                 order: [],
                 columnDefs: [
@@ -485,9 +505,35 @@
                     tableApi.column(0, { page: 'current' }).nodes().each(function (cell, index) {
                         cell.innerHTML = (pageInfo.start + index + 1) + '.';
                     });
-
-                    loadVisibleApplicantPhotos();
                 }
+            });
+
+            $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                if (settings.nTable.id !== 'applicantsTable' || !selectedApplicantStatus) {
+                    return true;
+                }
+
+                var rowNode = applicantsTable.row(dataIndex).node();
+
+                return rowNode && String(rowNode.dataset.statusValue) === selectedApplicantStatus;
+            });
+
+            $('.talent-status-tab').on('click', function () {
+                var statusValue = String(this.dataset.statusValue);
+                var shouldReset = selectedApplicantStatus === statusValue;
+
+                selectedApplicantStatus = shouldReset ? '' : statusValue;
+                $('.talent-status-tab')
+                    .removeClass('active')
+                    .attr('aria-selected', 'false');
+
+                if (!shouldReset) {
+                    $(this)
+                        .addClass('active')
+                        .attr('aria-selected', 'true');
+                }
+
+                applicantsTable.draw();
             });
 
             $('#positionFilter').on('change', function () {
@@ -499,8 +545,6 @@
                     .search(selectedPosition ? '^' + escapedPosition + '$' : '', true, false)
                     .draw();
             });
-
-            window.setTimeout(loadVisibleApplicantPhotos, 100);
         });
     </script>
 @endsection

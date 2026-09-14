@@ -6,8 +6,11 @@
     @php
         $dashboardCssPath = public_path('assets/css/dashboard.css');
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
+        $sweetAlertCssPath = public_path('assets/vendor/sweetalert2/sweetalert2.min.css');
+        $sweetAlertCssVersion = file_exists($sweetAlertCssPath) ? filemtime($sweetAlertCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}?v={{ $sweetAlertCssVersion }}">
     <style>
         .talent-tabs {
             flex-wrap: nowrap;
@@ -448,7 +451,12 @@
                                         <a href="{{ route('applicant.show', ['applicant' => $applicant->id]) }}" class="talent-action-btn view" title="Detail">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        <form method="POST" action="{{ route('applicant.destroy', ['applicant' => $applicant->id]) }}" onsubmit="return confirm('Hapus data pelamar ini?')">
+                                        <form
+                                            method="POST"
+                                            action="{{ route('applicant.destroy', ['applicant' => $applicant->id]) }}"
+                                            data-applicant-delete-form
+                                            data-applicant-name="{{ $applicant->full_name }}"
+                                        >
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="talent-action-btn delete" title="Delete">
@@ -478,8 +486,11 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
         $dataTablesJsPath = public_path('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js');
         $dataTablesJsVersion = file_exists($dataTablesJsPath) ? filemtime($dataTablesJsPath) : time();
+        $sweetAlertJsPath = public_path('assets/vendor/sweetalert2/sweetalert2.min.js');
+        $sweetAlertJsVersion = file_exists($sweetAlertJsPath) ? filemtime($sweetAlertJsPath) : time();
     @endphp
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}?v={{ $sweetAlertJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
         function updateApplicantStatusColor(selectElement) {
@@ -544,6 +555,41 @@
                     .column(3)
                     .search(selectedPosition ? '^' + escapedPosition + '$' : '', true, false)
                     .draw();
+            });
+
+            $(document).on('submit', '[data-applicant-delete-form]', function (event) {
+                var form = this;
+                var applicantName = form.dataset.applicantName || 'pelamar ini';
+
+                if (form.dataset.deleteConfirmed === 'true') {
+                    return;
+                }
+
+                event.preventDefault();
+
+                if (typeof Swal === 'undefined' || !Swal || typeof Swal.fire !== 'function') {
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Hapus data pelamar?',
+                    text: 'Data ' + applicantName + ' akan dihapus dari daftar pelamar.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Hapus',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#64748b',
+                    reverseButtons: true,
+                    focusCancel: true
+                }).then(function (result) {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    form.dataset.deleteConfirmed = 'true';
+                    form.submit();
+                });
             });
         });
     </script>

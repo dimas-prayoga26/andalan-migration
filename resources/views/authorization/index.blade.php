@@ -8,6 +8,7 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}">
     <style>
         .authorization-nav-card {
             border-radius: 8px;
@@ -271,7 +272,12 @@
                                     <a href="{{ route('authorization.show', ['employee' => $user['id']]) }}" class="btn btn-info light btn-sm">Detail</a>
                                     @if ($canManageDataEmployee)
                                         <a href="{{ route('authorization.edit', ['employee' => $user['id']]) }}" class="btn btn-primary light btn-sm">Update</a>
-                                        <form action="{{ route('authorization.destroy', ['employee' => $user['id']]) }}" method="POST" onsubmit="return confirm('Delete this employee data?')">
+                                        <form
+                                            action="{{ route('authorization.destroy', ['employee' => $user['id']]) }}"
+                                            method="POST"
+                                            data-authorization-delete-form
+                                            data-employee-name="{{ $user['name'] }}"
+                                        >
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-danger light btn-sm">Delete</button>
@@ -327,6 +333,7 @@
         $dashboardJsPath = public_path('assets/js/dashboard.js');
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
         document.addEventListener('change', function (event) {
@@ -335,6 +342,40 @@
             }
 
             event.target.closest('form')?.submit();
+        });
+
+        document.addEventListener('submit', function (event) {
+            if (! event.target.matches('[data-authorization-delete-form]')) {
+                return;
+            }
+
+            var form = event.target;
+
+            if (form.dataset.deleteConfirmed === 'true') {
+                return;
+            }
+
+            event.preventDefault();
+
+            Swal.fire({
+                title: 'Delete Employee Data?',
+                text: 'Employee data for ' + (form.dataset.employeeName || 'this employee') + ' will be deleted.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Delete',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                reverseButtons: true,
+                focusCancel: true
+            }).then(function (result) {
+                if (! result.isConfirmed) {
+                    return;
+                }
+
+                form.dataset.deleteConfirmed = 'true';
+                form.submit();
+            });
         });
     </script>
 @endsection

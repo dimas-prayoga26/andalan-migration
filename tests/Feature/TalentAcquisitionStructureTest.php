@@ -136,6 +136,15 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString("route('applicant.show'", $applicantsView);
         $this->assertStringContainsString("route('applicant.destroy'", $applicantsView);
         $this->assertStringContainsString("@method('DELETE')", $applicantsView);
+        $this->assertStringContainsString('assets/vendor/sweetalert2/sweetalert2.min.css', $applicantsView);
+        $this->assertStringContainsString('assets/vendor/sweetalert2/sweetalert2.min.js', $applicantsView);
+        $this->assertStringContainsString('data-applicant-delete-form', $applicantsView);
+        $this->assertStringContainsString('data-applicant-name="{{ $applicant->full_name }}"', $applicantsView);
+        $this->assertStringContainsString('Swal.fire({', $applicantsView);
+        $this->assertStringContainsString("confirmButtonText: 'Hapus'", $applicantsView);
+        $this->assertStringNotContainsString('deleteApplicantModal', $applicantsView);
+        $this->assertStringNotContainsString('new bootstrap.Modal(deleteApplicantModalElement)', $applicantsView);
+        $this->assertStringNotContainsString("confirm('Hapus data pelamar ini?')", $applicantsView);
         $this->assertStringNotContainsString('<th class="mw-260">Pendidikan</th>', $applicantsView);
         $this->assertStringNotContainsString('<th class="mw-320">Pengalaman Kerja</th>', $applicantsView);
         $this->assertStringNotContainsString('$applicant->educations', $applicantsView);

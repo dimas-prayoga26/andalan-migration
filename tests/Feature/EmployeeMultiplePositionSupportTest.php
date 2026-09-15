@@ -83,7 +83,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringContainsString("string('name', 191)->unique('positions_name_unique')", $positionMigration);
     }
 
-    public function test_position_permissions_read_primary_and_additional_positions(): void
+    public function test_position_permissions_read_only_primary_position_for_access(): void
     {
         $userModel = file_get_contents(app_path('Models/User.php'));
         $middleware = file_get_contents(app_path('Http/Middleware/EnsurePositionPermission.php'));
@@ -93,7 +93,8 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringContainsString("if (\$this->hasRole('superuser'))", $userModel);
         $this->assertStringContainsString("'employee.deployment.position.permissions:uuid,name'", $userModel);
         $this->assertStringContainsString("'employee.deployment.positions.permissions:uuid,name'", $userModel);
-        $this->assertStringContainsString('$deployment->positions', $userModel);
+        $this->assertStringContainsString('permissionPositionsForDeployment', $userModel);
+        $this->assertStringContainsString('pivot?->is_primary', $userModel);
 
         $this->assertIsString($middleware);
         $this->assertStringContainsString('hasAnyPositionPermission($permissionNames)', $middleware);

@@ -306,17 +306,40 @@ class DirectorAttendanceTaskController extends Controller
         }
 
         if ($startDate === null) {
-            return $dueDate?->format('d M Y') ?? '-';
+            return $dueDate !== null ? $this->dateLabelWithDay($dueDate) : '-';
         }
 
         if ($dueDate === null || $startDate->isSameDay($dueDate)) {
-            return $startDate->format('d M Y');
+            return $this->dateLabelWithDay($startDate);
         }
 
         if ($startDate->format('M Y') === $dueDate->format('M Y')) {
-            return $startDate->format('d').' - '.$dueDate->format('d M Y');
+            return $this->dateDayLabel($startDate).' - '.$this->dateLabelWithDay($dueDate);
         }
 
-        return $startDate->format('d M Y').' - '.$dueDate->format('d M Y');
+        return $this->dateLabelWithDay($startDate).' - '.$this->dateLabelWithDay($dueDate);
+    }
+
+    private function dateLabelWithDay(CarbonInterface $date): string
+    {
+        return $this->dateDayLabel($date).' '.$date->format('M Y');
+    }
+
+    private function dateDayLabel(CarbonInterface $date): string
+    {
+        return $date->format('d').' '.$this->indonesianWeekdayName($date);
+    }
+
+    private function indonesianWeekdayName(CarbonInterface $date): string
+    {
+        return match ((int) $date->dayOfWeek) {
+            0 => 'Minggu',
+            1 => 'Senin',
+            2 => 'Selasa',
+            3 => 'Rabu',
+            4 => 'Kamis',
+            5 => "Jum'at",
+            default => 'Sabtu',
+        };
     }
 }

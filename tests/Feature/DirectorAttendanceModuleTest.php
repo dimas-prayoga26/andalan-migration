@@ -296,6 +296,8 @@ class DirectorAttendanceModuleTest extends TestCase
             'id' => 'director-task-daily',
             'title' => 'Daily Report',
             'status' => 'pending',
+            'start_date' => '2026-09-14',
+            'due_date' => '2026-09-18',
         ]);
 
         $overtimeRow = $method->invoke($controller, $overtimeTask);
@@ -313,5 +315,6 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertSame('Daily Task', $dailyRow['task_context']);
         $this->assertSame('daily', $dailyRow['task_context_type']);
         $this->assertSame('Daily Task', $dailyRow['task_category']);
+        $this->assertSame("14 Senin - 18 Jum'at Sep 2026", $dailyRow['due_date']);
     }
 }

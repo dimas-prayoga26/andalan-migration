@@ -96,6 +96,66 @@ class AuthorizationEmployeeListScopeTest extends TestCase
         $response->assertForbidden();
     }
 
+    public function test_authorization_permission_uses_only_primary_deployment_position(): void
+    {
+        $rnbCompany = Company::query()->create(['name' => 'RNB']);
+        $operationsDepartment = $this->createDepartment('Operations');
+        $staffPosition = Position::query()->create(['name' => 'Staff']);
+        $administratorPosition = Position::query()->create(['name' => 'Administrator']);
+
+        $multiPositionUser = $this->createEmployeeUser(
+            name: 'Multi Position User',
+            username: 'multi.position',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+
+        $this->assignRole($multiPositionUser, 'Staff');
+        $this->assignPositionPermission($administratorPosition, 'view-authorization');
+
+        $multiPositionUser->load('employee.deployment');
+        $deployment = $multiPositionUser->employee?->deployment;
+        $this->assertInstanceOf(EmployeeDeployment::class, $deployment);
+
+        $deployment->positions()->sync([
+            (string) $staffPosition->id => [
+                'is_primary' => true,
+                'status' => 'active',
+            ],
+            (string) $administratorPosition->id => [
+                'is_primary' => false,
+                'status' => 'active',
+            ],
+        ]);
+
+        $userWithAdditionalAdministratorPosition = $multiPositionUser->fresh();
+        $this->assertFalse($userWithAdditionalAdministratorPosition->hasAnyPositionPermission(['view-authorization']));
+
+        $this->actingAs($userWithAdditionalAdministratorPosition)
+            ->get(route('authorization'))
+            ->assertForbidden();
+
+        $deployment->update(['current_position_id' => $administratorPosition->id]);
+        $deployment->positions()->sync([
+            (string) $staffPosition->id => [
+                'is_primary' => false,
+                'status' => 'active',
+            ],
+            (string) $administratorPosition->id => [
+                'is_primary' => true,
+                'status' => 'active',
+            ],
+        ]);
+
+        $userWithPrimaryAdministratorPosition = $multiPositionUser->fresh();
+        $this->assertTrue($userWithPrimaryAdministratorPosition->hasAnyPositionPermission(['view-authorization']));
+
+        $this->actingAs($userWithPrimaryAdministratorPosition)
+            ->get(route('authorization'))
+            ->assertOk();
+    }
+
     public function test_employee_search_filters_the_authorized_company_dataset(): void
     {
         $rnbCompany = Company::query()->create(['name' => 'RNB']);

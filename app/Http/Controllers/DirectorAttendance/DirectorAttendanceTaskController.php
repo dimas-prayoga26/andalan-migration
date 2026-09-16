@@ -327,7 +327,7 @@ class DirectorAttendanceTaskController extends Controller
 
     private function dateDayLabel(CarbonInterface $date): string
     {
-        return $this->indonesianWeekdayName($date).' '.$date->format('d');
+        return $this->indonesianWeekdayName($date).', '.$date->format('d');
     }
 
     private function indonesianWeekdayName(CarbonInterface $date): string

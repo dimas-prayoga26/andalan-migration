@@ -311,6 +311,6 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertSame('Daily Task', $dailyRow['task_context']);
         $this->assertSame('daily', $dailyRow['task_context_type']);
         $this->assertSame('Daily Task', $dailyRow['task_category']);
-        $this->assertSame("Senin 14 - Jum'at 18 Sep 2026", $dailyRow['due_date']);
+        $this->assertSame("Senin, 14 - Jum'at, 18 Sep 2026", $dailyRow['due_date']);
     }
 }

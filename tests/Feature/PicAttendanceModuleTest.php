@@ -129,6 +129,9 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringNotContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$employeeWorkDays->count().' days'", $attendanceController);
         $this->assertStringContainsString('private function currentCompanyIdFor(User $user): ?string', $attendanceController);
         $this->assertStringContainsString('protected function activeEmployeeIdsFor(Carbon $date, ?string $companyId): Collection', $attendanceController);
+        $this->assertStringContainsString('$attendanceDate = $this->recapAttendanceDate($request);', $attendanceController);
+        $this->assertStringContainsString("'recapAttendanceDateInput' => \$attendanceDate->format('d/m/Y')", $attendanceController);
+        $this->assertStringContainsString('private function recapAttendanceDate(Request $request): Carbon', $attendanceController);
         $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $attendanceController);
         $this->assertStringContainsString('updateSupervisorReview', $leaveController);
         $this->assertStringContainsString("'event_type' => 'supervisor_review'", $leaveController);
@@ -154,6 +157,17 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('id="recapAttendanceCaptureButton"', $attendanceView);
         $this->assertStringContainsString('id="recapAttendanceCaptureArea"', $attendanceView);
         $this->assertStringContainsString('id="recapAttendanceCaptureTable"', $attendanceView);
+        $this->assertStringContainsString('id="recapDailyAttendanceFilter"', $attendanceView);
+        $this->assertStringContainsString("route('pic-attendance.attendance')", $attendanceView);
+        $this->assertStringContainsString('id="recapAttendanceDateFilter"', $attendanceView);
+        $this->assertStringContainsString('{{ $recapAttendanceDateInput }}', $attendanceView);
+        $this->assertStringContainsString('id="recapAttendanceDateButton"', $attendanceView);
+        $this->assertStringContainsString('class="card recap-attendance-card"', $attendanceView);
+        $this->assertStringContainsString('class="card recap-monthly-card"', $attendanceView);
+        $this->assertStringContainsString('<input type="hidden" name="date" value="{{ $recapAttendanceDateInput }}">', $attendanceView);
+        $this->assertStringContainsString('#recapMonthlyFilterButton', $attendanceView);
+        $this->assertStringContainsString('min-width: 48px;', $attendanceView);
+        $this->assertStringContainsString('function initializeRecapAttendanceDatePicker()', $attendanceView);
         $this->assertStringContainsString('data-capture-tone="{{ $row[\'attachment_badge\'] }}"', $attendanceView);
         $this->assertStringContainsString('function downloadRecapAttendanceImage()', $attendanceView);
         $this->assertStringContainsString('function captureToneFromElement(element)', $attendanceView);
@@ -297,6 +311,6 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertSame('Daily Task', $dailyRow['task_context']);
         $this->assertSame('daily', $dailyRow['task_context_type']);
         $this->assertSame('Daily Task', $dailyRow['task_category']);
-        $this->assertSame("14 Senin - 18 Jum'at Sep 2026", $dailyRow['due_date']);
+        $this->assertSame("Senin 14 - Jum'at 18 Sep 2026", $dailyRow['due_date']);
     }
 }

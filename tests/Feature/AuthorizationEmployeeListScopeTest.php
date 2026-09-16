@@ -207,6 +207,67 @@ class AuthorizationEmployeeListScopeTest extends TestCase
             ->assertViewHas('search', 'Target');
     }
 
+    public function test_employee_list_can_be_filtered_between_active_and_inactive_staff(): void
+    {
+        $rnbCompany = Company::query()->create(['name' => 'RNB']);
+        $operationsDepartment = $this->createDepartment('Operations');
+        $staffPosition = Position::query()->create(['name' => 'Staff']);
+        $administratorPosition = Position::query()->create(['name' => 'Administrator']);
+
+        $administrator = $this->createEmployeeUser(
+            name: 'Administrator Viewer',
+            username: 'administrator.viewer',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $administratorPosition,
+        );
+        $activeStaff = $this->createEmployeeUser(
+            name: 'Visible Staff',
+            username: 'visible.staff',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+        $inactiveAccountStaff = $this->createEmployeeUser(
+            name: 'Archived Staff',
+            username: 'archived.staff',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+        $inactiveEmployeeStatusStaff = $this->createEmployeeUser(
+            name: 'Resigned Staff',
+            username: 'resigned.staff',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+
+        $inactiveAccountStaff->update(['is_active' => false]);
+        $inactiveEmployeeStatusStaff->employee?->update(['status' => 'Inactive']);
+
+        foreach ([$administrator, $activeStaff, $inactiveAccountStaff, $inactiveEmployeeStatusStaff] as $user) {
+            $this->assignRole($user, 'Staff');
+        }
+        $this->assignPositionPermission($administratorPosition, 'view-authorization');
+
+        $this->actingAs($administrator)
+            ->get(route('authorization'))
+            ->assertOk()
+            ->assertSee('Visible Staff')
+            ->assertDontSee('Archived Staff')
+            ->assertDontSee('Resigned Staff')
+            ->assertViewHas('employeeStatusFilter', 'active');
+
+        $this->actingAs($administrator)
+            ->get(route('authorization', ['status' => 'inactive']))
+            ->assertOk()
+            ->assertSee('Archived Staff')
+            ->assertSee('Resigned Staff')
+            ->assertDontSee('Visible Staff')
+            ->assertViewHas('employeeStatusFilter', 'inactive');
+    }
+
     public function test_employee_list_is_paginated_by_ten_records(): void
     {
         $rnbCompany = Company::query()->create(['name' => 'RNB']);

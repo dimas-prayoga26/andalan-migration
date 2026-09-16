@@ -41,10 +41,14 @@ class AuthorizationController extends Controller
         abort_unless($authenticatedUser instanceof User, 403);
 
         $search = $request->string('search')->trim()->toString();
+        $employeeStatusFilter = $request->string('status')->lower()->toString() === 'inactive'
+            ? 'inactive'
+            : 'active';
 
         return view('authorization.index', [
-            'users' => $this->authorizationUsersFor($authenticatedUser, $search),
+            'users' => $this->authorizationUsersFor($authenticatedUser, $search, $employeeStatusFilter),
             'search' => $search,
+            'employeeStatusFilter' => $employeeStatusFilter,
             'canManageDataEmployee' => $this->canManageAuthorization($authenticatedUser),
             'canManagePositionPermissions' => $this->canManagePositionPermissions($authenticatedUser),
         ]);
@@ -490,7 +494,7 @@ class AuthorizationController extends Controller
      *     initials: string
      * }>
      */
-    private function authorizationUsersFor(User $viewer, string $search = ''): LengthAwarePaginator
+    private function authorizationUsersFor(User $viewer, string $search = '', string $statusFilter = 'active'): LengthAwarePaginator
     {
         $viewer->loadMissing([
             'roles:uuid,name',
@@ -518,17 +522,35 @@ class AuthorizationController extends Controller
                 'employee.picAssignment.supervisor:id',
                 'employee.picAssignment.supervisor.profile:id,employee_id,name',
             ])
-            ->where('is_active', true)
             ->whereDoesntHave('roles', function (Builder $roleQuery): void {
                 $roleQuery->where('name', 'superuser');
             })
-            ->whereHas('employee', function (Builder $employeeQuery): void {
-                $employeeQuery
-                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                    ->whereHas('deployment', function (Builder $deploymentQuery): void {
-                        $deploymentQuery->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+            ->whereHas('employee');
+
+        if ($statusFilter === 'inactive') {
+            $query->where(function (Builder $inactiveQuery): void {
+                $inactiveQuery
+                    ->where('is_active', false)
+                    ->orWhereHas('employee', function (Builder $employeeQuery): void {
+                        $employeeQuery
+                            ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['active'])
+                            ->orWhereDoesntHave('deployment')
+                            ->orWhereHas('deployment', function (Builder $deploymentQuery): void {
+                                $deploymentQuery->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['active']);
+                            });
                     });
             });
+        } else {
+            $query
+                ->where('is_active', true)
+                ->whereHas('employee', function (Builder $employeeQuery): void {
+                    $employeeQuery
+                        ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+                        ->whereHas('deployment', function (Builder $deploymentQuery): void {
+                            $deploymentQuery->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+                        });
+                });
+        }
 
         if (! $this->canManageAuthorization($viewer)) {
             $companyId = $this->viewerCompanyId($viewer);
@@ -693,7 +715,7 @@ class AuthorizationController extends Controller
         $status = $status !== '' ? Str::title($status) : 'Active';
 
         if (! $user->is_active) {
-            $status = 'Restricted';
+            $status = 'Inactive';
         }
 
         return [

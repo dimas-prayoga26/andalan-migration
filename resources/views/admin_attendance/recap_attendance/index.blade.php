@@ -16,11 +16,29 @@
 
 <!-- Start - logs -->
 <div id="recapAttendanceCaptureArea" class="card" data-capture-title="{{ $recapAttendanceDayLabel }}" data-capture-subtitle="">
-	<div class="card-header border-0 align-items-center justify-content-end">
-		<div class="d-flex align-items-center">
-			<div class="clearfix">
-				<button id="recapAttendanceCaptureButton" type="button" class="btn btn-sm btn-primary light ms-2">Capture</button>
-			</div>	
+	<div class="card-header border-0 align-items-center justify-content-between flex-wrap gap-2">
+		<div class="clearfix">
+			<button id="recapAttendanceCaptureButton" type="button" class="btn btn-sm btn-primary light">Capture</button>
+		</div>
+		<div class="d-flex align-items-center flex-wrap gap-2">
+			<form id="recapDailyAttendanceFilter" method="GET" action="{{ route('admin-attendance.recap') }}" class="d-flex align-items-center">
+				<input type="hidden" name="month" value="{{ $recapMonthlySelectedMonth }}">
+				<input type="hidden" name="year" value="{{ $recapMonthlySelectedYear }}">
+				<div class="input-group input-group-sm">
+					<span class="input-group-text bg-white"><i class="fa-regular fa-calendar"></i></span>
+					<input
+						id="recapAttendanceDateFilter"
+						type="text"
+						name="date"
+						class="form-control js-recap-attendance-date"
+						value="{{ $recapAttendanceDateInput }}"
+						placeholder="dd/mm/yyyy"
+						autocomplete="off"
+						aria-label="Select attendance date"
+					>
+					<button id="recapAttendanceDateButton" type="submit" class="btn btn-sm btn-primary light" title="Apply date" aria-label="Apply attendance date"><i class="fa-solid fa-filter"></i></button>
+				</div>
+			</form>
 		</div>	
 	</div>
 	<div class="card-body table-card-body p-0">
@@ -387,6 +405,43 @@
 <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
 <script>
     (function () {
+        function initializeRecapAttendanceDatePicker() {
+            if (!window.jQuery || !jQuery.fn.daterangepicker || typeof moment === 'undefined') {
+                return;
+            }
+
+            var input = jQuery('.js-recap-attendance-date');
+            if (input.length === 0) {
+                return;
+            }
+
+            input.daterangepicker({
+                autoUpdateInput: false,
+                singleDatePicker: true,
+                showDropdowns: true,
+                maxDate: moment(),
+                locale: {
+                    cancelLabel: 'Clear',
+                    format: 'DD/MM/YYYY'
+                }
+            });
+
+            input.on('apply.daterangepicker', function (event, picker) {
+                jQuery(this).val(picker.startDate.format('DD/MM/YYYY'));
+                var form = document.getElementById('recapDailyAttendanceFilter');
+
+                if (form) {
+                    form.submit();
+                }
+            });
+
+            input.on('cancel.daterangepicker', function () {
+                jQuery(this).val('');
+            });
+        }
+
+        initializeRecapAttendanceDatePicker();
+
         function setText(id, value) {
             var element = document.getElementById(id);
             if (element) {

@@ -83,6 +83,11 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString("view('authorization.access-menus'", $controller);
         $this->assertStringContainsString('accessMenus', $controller);
         $this->assertStringContainsString('authorizationUsersFor', $controller);
+        $this->assertStringContainsString('$employeeStatusFilter', $controller);
+        $this->assertStringContainsString("'employeeStatusFilter' => \$employeeStatusFilter", $controller);
+        $this->assertStringContainsString("string \$statusFilter = 'active'", $controller);
+        $this->assertStringContainsString("if (\$statusFilter === 'inactive')", $controller);
+        $this->assertStringContainsString("->where('is_active', false)", $controller);
         $this->assertStringContainsString("->where('is_active', true)", $controller);
         $this->assertStringContainsString("->whereDoesntHave('roles'", $controller);
         $this->assertStringContainsString("->where('name', 'superuser')", $controller);
@@ -121,6 +126,10 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('js-event-project-admin-switch', $employeeDataView);
         $this->assertStringContainsString('js-event-project-admin-form', $employeeDataView);
         $this->assertStringContainsString('Employee List', $authorizationView);
+        $this->assertStringContainsString('$employeeStatusTabs', $authorizationView);
+        $this->assertStringContainsString("'inactive' => 'Inactive'", $authorizationView);
+        $this->assertStringContainsString('Employee status filter', $authorizationView);
+        $this->assertStringContainsString('name="status" value="{{ $employeeStatusFilter }}"', $authorizationView);
         $this->assertStringContainsString("route('authorization.create')", $authorizationView);
         $this->assertStringContainsString('Add Employee', $authorizationView);
         $this->assertStringContainsString('Employee, deployment, identity, and PIC data.', $authorizationView);
@@ -182,6 +191,10 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('Place of Birth', $authorizationFormView);
         $this->assertStringContainsString('Date of Birth', $authorizationFormView);
         $this->assertStringContainsString('ID Number / NIK', $authorizationFormView);
+        $this->assertStringContainsString('placeholder="3271010101900001"', $authorizationFormView);
+        $this->assertStringContainsString('placeholder="12.345.678.9-012.345"', $authorizationFormView);
+        $this->assertStringContainsString('placeholder="0001234567890"', $authorizationFormView);
+        $this->assertStringContainsString('placeholder="12345678901"', $authorizationFormView);
         $this->assertStringContainsString('Company', $authorizationFormView);
         $this->assertStringContainsString('Division', $authorizationFormView);
         $this->assertStringContainsString('PIC / Person in Charge', $authorizationFormView);

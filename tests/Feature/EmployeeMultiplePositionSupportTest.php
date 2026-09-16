@@ -116,7 +116,15 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringContainsString('$this->positionNamesFor($user->employee)', $controller);
 
         $this->assertIsString($form);
+        $this->assertStringContainsString('name="current_position_id"', $form);
+        $this->assertStringContainsString('data-position-primary-input', $form);
         $this->assertStringContainsString('name="current_position_ids[]"', $form);
+        $this->assertStringContainsString('js-position-primary-selector', $form);
+        $this->assertStringNotContainsString('js-position-role-summary', $form);
+        $this->assertStringContainsString('positionBaseLabel', $form);
+        $this->assertStringContainsString('Primary Position', $form);
+        $this->assertStringContainsString('Secondary Position', $form);
+        $this->assertStringContainsString('selectedPositionOrder = @js($selectedPositionIds->all())', $form);
         $this->assertStringContainsString('multiple', $form);
 
         $this->assertIsString($show);

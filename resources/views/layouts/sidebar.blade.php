@@ -13,6 +13,7 @@
 						$isAuthorizationMenu = request()->routeIs('authorization*') || request()->is('authorization*');
 						$isApplicantMenu = request()->routeIs('applicant*') || request()->is('applicant*');
 						$isSettingsMenu = request()->routeIs('settings*') || request()->is('settings*');
+						$isTestingMenu = request()->routeIs('testing');
 						$canViewSidebarMenu = $canViewSidebarMenu ?? static fn (string $permissionName): bool => true;
 						$canViewDashboardMenu = $canViewSidebarMenu('view-dashboard');
 						$canViewCalendarMenu = $canViewSidebarMenu('view-calendar');
@@ -88,6 +89,15 @@
 						</a>
 					</li>
 					@endif
+					<div class="copyright mt-1">
+						<p class="mb-1"><strong>Testing</strong> </p>
+					</div>
+					<li class="{{ $isTestingMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isTestingMenu ? 'active' : '' }}" href="{{ route('testing') }}" aria-expanded="{{ $isTestingMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-flask"></i>
+							<span class="nav-text" data-i18n="Testing">Testing</span>
+						</a>
+					</li>
 					@if ($canViewDirectorAttendanceMenu)
 					<li class="{{ $isDirectorAttendanceMenu ? 'mm-active' : '' }}">
 						<a class="{{ $isDirectorAttendanceMenu ? 'active' : '' }}" href="{{ route('director-attendance.attendance') }}" aria-expanded="{{ $isDirectorAttendanceMenu ? 'true' : 'false' }}">

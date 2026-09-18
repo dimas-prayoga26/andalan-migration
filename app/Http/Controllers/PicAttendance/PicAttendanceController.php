@@ -581,7 +581,7 @@ class PicAttendanceController extends Controller
             })
             ->count();
         $leaveTypeDays = $this->recapLeaveTypeDays($leaveRequests, $workDays);
-        $attendanceRows = $attendances->map(function (Attendance $attendance) use ($attendanceExceptionsByAttendanceId, $attendanceLogsByAttendanceId): array {
+        $attendanceRows = $attendances->map(function (Attendance $attendance) use ($attendanceExceptionsByAttendanceId, $attendanceLogsByAttendanceId, $employee): array {
             $attendanceException = $attendanceExceptionsByAttendanceId->get($attendance->id);
             $attendanceLog = $attendanceLogsByAttendanceId->get($attendance->id);
             $isLate = $this->isLateAttendance($attendance);

@@ -118,6 +118,7 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('$monthlyExpectedWorkMinutes = $monthlyWorkingDaysCount * 8 * 60;', $attendanceController);
         $this->assertStringContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$monthlyWorkingDaysCount.' days',", $attendanceController);
         $this->assertStringContainsString('recapCompactMinutesLabel($monthlyExpectedWorkMinutes)', $attendanceController);
+        $this->assertStringContainsString('use ($attendanceExceptionsByAttendanceId, $attendanceLogsByAttendanceId, $employee)', $attendanceController);
         $this->assertStringContainsString("private const TASK_HOURS_VERIFICATION = 'task_hours_verification';", $attendanceController);
         $this->assertStringContainsString("->whereNotNull('approved_start_time')", $attendanceController);
         $this->assertStringContainsString("->whereNotNull('approved_end_time')", $attendanceController);

@@ -143,6 +143,9 @@ Route::middleware('auth')->group(function (): void {
         return view('agenda');
     })->middleware('position.permission:view-meeting')->name('agenda');
 
+    // Testing
+    Route::view('/testing', 'testing.index')->name('testing');
+
     // Attendance overview and daily attendance
     Route::view('/attendance/overview', 'staff_attendance.overview.index')
         ->middleware('position.permission:view-attendance')

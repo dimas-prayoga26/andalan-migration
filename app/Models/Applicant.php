@@ -14,6 +14,8 @@ class Applicant extends Model
     use GeneratesCustomSequenceUuid;
     use SoftDeletes;
 
+    private const LEGACY_PHOTO_BASE_URL = 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/';
+
     private const LEGACY_CV_BASE_URL = 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/cv/';
 
     protected $table = 'applicants';
@@ -105,6 +107,21 @@ class Applicant extends Model
         }
 
         return self::LEGACY_CV_BASE_URL.rawurlencode($cvFile);
+    }
+
+    public function photoUrl(): ?string
+    {
+        $photoFile = trim((string) $this->photo);
+
+        if ($photoFile === '') {
+            return null;
+        }
+
+        if (Str::startsWith($photoFile, ['http://', 'https://'])) {
+            return $photoFile;
+        }
+
+        return self::LEGACY_PHOTO_BASE_URL.rawurlencode($photoFile);
     }
 
     /**

@@ -6,6 +6,8 @@ use App\Models\Employee;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -39,7 +41,7 @@ class EmployeeDataController extends Controller
         return Employee::query()
             ->with([
                 'user:id,is_active',
-                'profile:id,employee_id,name',
+                'profile:id,employee_id,name,profile_picture_path',
                 'identity:id,employee_id,nik',
                 'deployment:id,employee_id,current_company_id,current_position_id',
                 'deployment.company:id,name',
@@ -55,6 +57,7 @@ class EmployeeDataController extends Controller
             ->map(fn (Employee $employee): array => [
                 'id' => (string) $employee->id,
                 'initials' => $this->initials((string) ($employee->profile?->name ?? $employee->employee_code ?? '')),
+                'avatar_url' => $this->employeeAvatarUrl($employee->profile?->profile_picture_path),
                 'nik' => (string) ($employee->identity?->nik ?? '-'),
                 'name' => (string) ($employee->profile?->name ?? '-'),
                 'position' => $this->positionNamesFor($employee)->implode(', ') ?: '-',
@@ -92,5 +95,30 @@ class EmployeeDataController extends Controller
             ->implode('');
 
         return Str::upper($initials !== '' ? $initials : 'E');
+    }
+
+    private function employeeAvatarUrl(mixed $profilePicturePath): string
+    {
+        $defaultAvatarUrl = asset('assets/default_user.jpg');
+        $profilePicturePath = trim((string) $profilePicturePath);
+
+        if ($profilePicturePath === '') {
+            return $defaultAvatarUrl;
+        }
+
+        if (Str::startsWith($profilePicturePath, ['http://', 'https://'])) {
+            return $profilePicturePath;
+        }
+
+        $publicPath = ltrim($profilePicturePath, '/');
+        $storagePath = Str::startsWith($publicPath, 'storage/')
+            ? Str::after($publicPath, 'storage/')
+            : $publicPath;
+
+        if (Storage::disk('public')->exists($storagePath)) {
+            return asset('storage/'.$storagePath);
+        }
+
+        return File::exists(public_path($publicPath)) ? asset($publicPath) : $defaultAvatarUrl;
     }
 }

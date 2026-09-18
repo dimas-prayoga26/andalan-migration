@@ -296,7 +296,8 @@ class TaskListController extends Controller
                 'employee.profile:id,employee_id,name',
                 'employee.user:id,username,email',
             ])
-            ->orderByRaw('COALESCE(due_date, start_date, created_at) ASC')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get()
             ->map(fn (ProjectTask $projectTask): array => $this->taskListItemValue($projectTask));
 
@@ -855,9 +856,16 @@ class TaskListController extends Controller
 
     private function projectTaskQueryForMonth(Builder $taskQuery, int $year, int $month): Builder
     {
+        $monthStart = CarbonImmutable::create($year, $month, 1, 0, 0, 0, 'Asia/Jakarta')
+            ->startOfMonth()
+            ->toDateString();
+        $monthEnd = CarbonImmutable::create($year, $month, 1, 0, 0, 0, 'Asia/Jakarta')
+            ->endOfMonth()
+            ->toDateString();
+
         return (clone $taskQuery)
-            ->whereRaw('YEAR(COALESCE(due_date, start_date, created_at)) = ?', [$year])
-            ->whereRaw('MONTH(COALESCE(due_date, start_date, created_at)) = ?', [$month]);
+            ->whereRaw('DATE(COALESCE(start_date, due_date, created_at)) <= ?', [$monthEnd])
+            ->whereRaw('DATE(COALESCE(due_date, start_date, created_at)) >= ?', [$monthStart]);
     }
 
     private function completedTaskQuery(Builder $taskQuery): Builder

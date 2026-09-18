@@ -32,6 +32,15 @@
             margin-bottom: 0.85rem;
         }
 
+        .talent-create-link {
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            white-space: nowrap;
+        }
+
         .talent-table-title {
             color: #25314c;
             font-size: 1rem;
@@ -143,6 +152,15 @@
         }
 
         @media only screen and (max-width: 767.98px) {
+            .talent-header-bar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .talent-create-link {
+                width: 100%;
+            }
+
             #jobVacanciesTable_wrapper .dt-layout-row:first-child {
                 align-items: stretch;
                 flex-direction: column;
@@ -187,7 +205,7 @@
                         <a href="{{ route('applicant') }}" class="nav-link {{ request()->routeIs('applicant') ? 'active' : '' }}">Applicants</a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ route('applicant.job_vacancies') }}" class="nav-link {{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}">Job Vacancies</a>
+                        <a href="{{ route('applicant.job_vacancies') }}" class="nav-link {{ request()->routeIs('applicant.job_vacancies*') ? 'active' : '' }}">Job Vacancies</a>
                     </li>
                 </ul>
             </div>
@@ -206,6 +224,10 @@
 
                 <div class="talent-header-bar">
                     <div class="talent-table-title">Job Vacancy</div>
+                    <a href="{{ route('applicant.job_vacancies.create') }}" class="btn btn-primary talent-create-link">
+                        <i class="bi bi-plus-lg"></i>
+                        Tambah Lowongan
+                    </a>
                 </div>
 
                 <div class="table-responsive">
@@ -271,6 +293,7 @@
 
         $(function () {
             var jobVacancyTable = $('#jobVacanciesTable').DataTable({
+                lengthChange: false,
                 columnDefs: [
                     { targets: 0, orderable: false }
                 ]

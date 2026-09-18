@@ -24,10 +24,6 @@ class LegacyApplicantSyncService
 {
     private const LEGACY_ACTIVE_STATUS = 1;
 
-    private const LEGACY_APPLICANT_INTERVIEW_STATUS = 1;
-
-    private const LEGACY_APPLICANT_ACCEPTED_STATUS = 2;
-
     /**
      * @var Collection<int, int>|null
      */
@@ -150,7 +146,7 @@ class LegacyApplicantSyncService
                     ['legacy_applicant_id' => (int) $legacyApplicant->id],
                     [
                         'job_vacancy_id' => $jobVacancy?->id,
-                        'slug' => $this->normalizeNullableText($legacyApplicant->slug),
+                        'slug' => $this->uniqueApplicantSlug($legacyApplicant),
                         'applicant_status_id' => $this->applicantStatusIdFor($legacyApplicant->nb),
                         'full_name' => $this->normalizeNullableText($legacyApplicant->full_name) ?? '-',
                         'nickname' => $this->normalizeNullableText($legacyApplicant->nickname),
@@ -200,6 +196,38 @@ class LegacyApplicantSyncService
                         'marital_status_id' => $this->maritalStatusIdFor($legacyApplicant->marital_status),
                     ]);
             });
+    }
+
+    private function uniqueApplicantSlug(LegacyApplicant $legacyApplicant): ?string
+    {
+        $slug = $this->normalizeNullableText($legacyApplicant->slug);
+
+        if ($slug === null) {
+            return null;
+        }
+
+        $existingApplicant = Applicant::withTrashed()
+            ->where('slug', $slug)
+            ->where('legacy_applicant_id', '!=', (int) $legacyApplicant->id)
+            ->first(['legacy_applicant_id']);
+
+        if ($existingApplicant === null) {
+            return $slug;
+        }
+
+        $baseSlug = $slug.'-'.(int) $legacyApplicant->id;
+        $candidateSlug = $baseSlug;
+        $suffix = 2;
+
+        while (Applicant::withTrashed()
+            ->where('slug', $candidateSlug)
+            ->where('legacy_applicant_id', '!=', (int) $legacyApplicant->id)
+            ->exists()) {
+            $candidateSlug = $baseSlug.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $candidateSlug;
     }
 
     private function syncEducations(Applicant $applicant, LegacyApplicant $legacyApplicant): void
@@ -320,11 +348,15 @@ class LegacyApplicantSyncService
 
     private function applicantStatusValueFor(mixed $legacyStatus): int
     {
-        return match ($this->integerOrNull($legacyStatus)) {
-            self::LEGACY_APPLICANT_INTERVIEW_STATUS => ApplicantStatus::VALUE_INTERVIEW,
-            self::LEGACY_APPLICANT_ACCEPTED_STATUS => ApplicantStatus::VALUE_DITERIMA,
-            default => ApplicantStatus::VALUE_SUBMITTED,
-        };
+        $statusValue = $this->integerOrNull($legacyStatus);
+
+        if ($statusValue === null) {
+            return ApplicantStatus::VALUE_SUBMITTED;
+        }
+
+        return array_key_exists($statusValue, ApplicantStatus::defaultStatuses())
+            ? $statusValue
+            : ApplicantStatus::VALUE_SUBMITTED;
     }
 
     private function applicantStatusIdFor(mixed $legacyStatus): ?string

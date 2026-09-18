@@ -6,8 +6,11 @@
     @php
         $dashboardCssPath = public_path('assets/css/dashboard.css');
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
+        $sweetAlertCssPath = public_path('assets/vendor/sweetalert2/sweetalert2.min.css');
+        $sweetAlertCssVersion = file_exists($sweetAlertCssPath) ? filemtime($sweetAlertCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}?v={{ $sweetAlertCssVersion }}">
     <style>
         .talent-tabs {
             flex-wrap: nowrap;
@@ -74,6 +77,15 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+            vertical-align: middle;
+        }
+
+        .talent-photo img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .talent-status-form {
@@ -105,9 +117,51 @@
         }
 
         .talent-status-select.status-value-2 {
+            background: #fff7ed;
+            border-color: #fed7aa;
+            color: #c2410c;
+        }
+
+        .talent-status-select.status-value-3 {
+            background: #f0f9ff;
+            border-color: #bae6fd;
+            color: #0369a1;
+        }
+
+        .talent-status-select.status-value-4 {
             background: #ecfdf5;
             border-color: #a7f3d0;
             color: #047857;
+        }
+
+        .talent-status-select.status-value-5 {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #b91c1c;
+        }
+
+        .talent-status-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 0 0 1rem;
+        }
+
+        .talent-status-tab {
+            min-height: 36px;
+            border: 1px solid #d9dce5;
+            border-radius: 0.45rem;
+            background: #fff;
+            color: #5f6b7a;
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 0.35rem 0.75rem;
+        }
+
+        .talent-status-tab.active {
+            border-color: #1d4ed8;
+            background: #e8eefc;
+            color: #1239b3;
         }
 
         .talent-action-group {
@@ -332,6 +386,14 @@
                     </div>
                 </div>
 
+                <div class="talent-status-tabs" role="tablist" aria-label="Filter status pelamar">
+                    @foreach ($applicantStatuses as $applicantStatus)
+                        <button type="button" class="talent-status-tab" data-status-value="{{ $applicantStatus->value }}" role="tab" aria-selected="false">
+                            {{ $applicantStatus->name }}
+                        </button>
+                    @endforeach
+                </div>
+
                 <div class="table-responsive">
                     <table id="applicantsTable" class="display table">
                         <thead>
@@ -346,16 +408,36 @@
                         </thead>
                         <tbody>
                         @forelse ($applicants as $applicant)
-                            <tr>
+                            @php
+                                $photoUrl = $applicant->photoUrl();
+                                $applicantStatusValue = $applicantStatuses->firstWhere('id', $applicant->applicant_status_id)?->value ?? 0;
+                            @endphp
+                            <tr data-status-value="{{ $applicantStatusValue }}">
                                 <td>{{ $loop->iteration }}.</td>
-                                <td><span class="talent-photo" title="{{ $applicant->photo ?: 'No photo' }}"><i class="bi bi-person-fill"></i></span></td>
+                                <td>
+                                    <span class="talent-photo" title="{{ $applicant->photo ?: 'No photo' }}">
+                                        @if ($photoUrl)
+                                            <img
+                                                src="{{ $photoUrl }}"
+                                                alt="{{ $applicant->full_name }}"
+                                                loading="lazy"
+                                                decoding="async"
+                                                onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                                onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';"
+                                            >
+                                            <i class="bi bi-person-fill" style="display: none;"></i>
+                                        @else
+                                            <i class="bi bi-person-fill"></i>
+                                        @endif
+                                    </span>
+                                </td>
                                 <td>{{ $applicant->full_name }}</td>
                                 <td>{{ $applicant->jobVacancy?->name ?? '-' }}</td>
                                 <td>
                                     <form method="POST" action="{{ route('applicant.status.update', ['applicant' => $applicant->id]) }}" class="talent-status-form">
                                         @csrf
                                         @method('PATCH')
-                                        <select name="applicant_status_id" class="talent-status-select status-value-{{ $applicantStatuses->firstWhere('id', $applicant->applicant_status_id)?->value ?? 0 }}" onchange="updateApplicantStatusColor(this); this.form.submit()" aria-label="Update status {{ $applicant->full_name }}">
+                                        <select name="applicant_status_id" class="talent-status-select status-value-{{ $applicantStatusValue }}" onchange="updateApplicantStatusColor(this); this.form.submit()" aria-label="Update status {{ $applicant->full_name }}">
                                             @foreach ($applicantStatuses as $applicantStatus)
                                                 <option value="{{ $applicantStatus->id }}" data-status-value="{{ $applicantStatus->value }}" @selected($applicant->applicant_status_id === $applicantStatus->id)>
                                                     {{ $applicantStatus->name }}
@@ -369,7 +451,12 @@
                                         <a href="{{ route('applicant.show', ['applicant' => $applicant->id]) }}" class="talent-action-btn view" title="Detail">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        <form method="POST" action="{{ route('applicant.destroy', ['applicant' => $applicant->id]) }}" onsubmit="return confirm('Hapus data pelamar ini?')">
+                                        <form
+                                            method="POST"
+                                            action="{{ route('applicant.destroy', ['applicant' => $applicant->id]) }}"
+                                            data-applicant-delete-form
+                                            data-applicant-name="{{ $applicant->full_name }}"
+                                        >
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="talent-action-btn delete" title="Delete">
@@ -399,19 +486,24 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
         $dataTablesJsPath = public_path('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js');
         $dataTablesJsVersion = file_exists($dataTablesJsPath) ? filemtime($dataTablesJsPath) : time();
+        $sweetAlertJsPath = public_path('assets/vendor/sweetalert2/sweetalert2.min.js');
+        $sweetAlertJsVersion = file_exists($sweetAlertJsPath) ? filemtime($sweetAlertJsPath) : time();
     @endphp
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}?v={{ $sweetAlertJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
         function updateApplicantStatusColor(selectElement) {
             var selectedOption = selectElement.options[selectElement.selectedIndex];
             var statusValue = selectedOption ? selectedOption.dataset.statusValue : '0';
 
-            selectElement.classList.remove('status-value-0', 'status-value-1', 'status-value-2');
+            selectElement.classList.remove('status-value-0', 'status-value-1', 'status-value-2', 'status-value-3', 'status-value-4', 'status-value-5');
             selectElement.classList.add('status-value-' + statusValue);
         }
 
         $(function () {
+            var selectedApplicantStatus = '';
+
             var applicantsTable = $('#applicantsTable').DataTable({
                 order: [],
                 columnDefs: [
@@ -427,6 +519,34 @@
                 }
             });
 
+            $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                if (settings.nTable.id !== 'applicantsTable' || !selectedApplicantStatus) {
+                    return true;
+                }
+
+                var rowNode = applicantsTable.row(dataIndex).node();
+
+                return rowNode && String(rowNode.dataset.statusValue) === selectedApplicantStatus;
+            });
+
+            $('.talent-status-tab').on('click', function () {
+                var statusValue = String(this.dataset.statusValue);
+                var shouldReset = selectedApplicantStatus === statusValue;
+
+                selectedApplicantStatus = shouldReset ? '' : statusValue;
+                $('.talent-status-tab')
+                    .removeClass('active')
+                    .attr('aria-selected', 'false');
+
+                if (!shouldReset) {
+                    $(this)
+                        .addClass('active')
+                        .attr('aria-selected', 'true');
+                }
+
+                applicantsTable.draw();
+            });
+
             $('#positionFilter').on('change', function () {
                 var selectedPosition = $(this).val();
                 var escapedPosition = $.fn.dataTable.util.escapeRegex(selectedPosition);
@@ -435,6 +555,41 @@
                     .column(3)
                     .search(selectedPosition ? '^' + escapedPosition + '$' : '', true, false)
                     .draw();
+            });
+
+            $(document).on('submit', '[data-applicant-delete-form]', function (event) {
+                var form = this;
+                var applicantName = form.dataset.applicantName || 'pelamar ini';
+
+                if (form.dataset.deleteConfirmed === 'true') {
+                    return;
+                }
+
+                event.preventDefault();
+
+                if (typeof Swal === 'undefined' || !Swal || typeof Swal.fire !== 'function') {
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Hapus data pelamar?',
+                    text: 'Data ' + applicantName + ' akan dihapus dari daftar pelamar.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Hapus',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#64748b',
+                    reverseButtons: true,
+                    focusCancel: true
+                }).then(function (result) {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    form.dataset.deleteConfirmed = 'true';
+                    form.submit();
+                });
             });
         });
     </script>

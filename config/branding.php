@@ -27,7 +27,7 @@ return [
             'name' => 'RNE',
             'logo' => 'images/Logo RNE.png',
         ],
-        'siap.kopiniskala.com' => [
+        'siap.coffeeniskala.com' => [
             'name' => 'Niskala',
             'logo' => 'images/Logo Niskala.png',
         ],

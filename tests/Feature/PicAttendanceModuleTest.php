@@ -6,9 +6,13 @@ use App\Http\Controllers\PicAttendance\PicAttendanceController;
 use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
 use App\Http\Controllers\PicAttendance\PicAttendanceTaskController;
+use App\Models\AttendanceOvertime;
+use App\Models\Project;
+use App\Models\ProjectTask;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class PicAttendanceModuleTest extends TestCase
@@ -114,6 +118,7 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('$monthlyExpectedWorkMinutes = $monthlyWorkingDaysCount * 8 * 60;', $attendanceController);
         $this->assertStringContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$monthlyWorkingDaysCount.' days',", $attendanceController);
         $this->assertStringContainsString('recapCompactMinutesLabel($monthlyExpectedWorkMinutes)', $attendanceController);
+        $this->assertStringContainsString('use ($attendanceExceptionsByAttendanceId, $attendanceLogsByAttendanceId, $employee)', $attendanceController);
         $this->assertStringContainsString("private const TASK_HOURS_VERIFICATION = 'task_hours_verification';", $attendanceController);
         $this->assertStringContainsString("->whereNotNull('approved_start_time')", $attendanceController);
         $this->assertStringContainsString("->whereNotNull('approved_end_time')", $attendanceController);
@@ -125,6 +130,9 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringNotContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$employeeWorkDays->count().' days'", $attendanceController);
         $this->assertStringContainsString('private function currentCompanyIdFor(User $user): ?string', $attendanceController);
         $this->assertStringContainsString('protected function activeEmployeeIdsFor(Carbon $date, ?string $companyId): Collection', $attendanceController);
+        $this->assertStringContainsString('$attendanceDate = $this->recapAttendanceDate($request);', $attendanceController);
+        $this->assertStringContainsString("'recapAttendanceDateInput' => \$attendanceDate->format('d/m/Y')", $attendanceController);
+        $this->assertStringContainsString('private function recapAttendanceDate(Request $request): Carbon', $attendanceController);
         $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $attendanceController);
         $this->assertStringContainsString('updateSupervisorReview', $leaveController);
         $this->assertStringContainsString("'event_type' => 'supervisor_review'", $leaveController);
@@ -150,6 +158,17 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('id="recapAttendanceCaptureButton"', $attendanceView);
         $this->assertStringContainsString('id="recapAttendanceCaptureArea"', $attendanceView);
         $this->assertStringContainsString('id="recapAttendanceCaptureTable"', $attendanceView);
+        $this->assertStringContainsString('id="recapDailyAttendanceFilter"', $attendanceView);
+        $this->assertStringContainsString("route('pic-attendance.attendance')", $attendanceView);
+        $this->assertStringContainsString('id="recapAttendanceDateFilter"', $attendanceView);
+        $this->assertStringContainsString('{{ $recapAttendanceDateInput }}', $attendanceView);
+        $this->assertStringContainsString('id="recapAttendanceDateButton"', $attendanceView);
+        $this->assertStringContainsString('class="card recap-attendance-card"', $attendanceView);
+        $this->assertStringContainsString('class="card recap-monthly-card"', $attendanceView);
+        $this->assertStringContainsString('<input type="hidden" name="date" value="{{ $recapAttendanceDateInput }}">', $attendanceView);
+        $this->assertStringContainsString('#recapMonthlyFilterButton', $attendanceView);
+        $this->assertStringContainsString('min-width: 48px;', $attendanceView);
+        $this->assertStringContainsString('function initializeRecapAttendanceDatePicker()', $attendanceView);
         $this->assertStringContainsString('data-capture-tone="{{ $row[\'attachment_badge\'] }}"', $attendanceView);
         $this->assertStringContainsString('function downloadRecapAttendanceImage()', $attendanceView);
         $this->assertStringContainsString('function captureToneFromElement(element)', $attendanceView);
@@ -224,17 +243,75 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString("->whereIn('employee_id', \$visibleEmployeeIds->all())", $taskController);
         $this->assertStringContainsString('$visibleEmployeeIds = collect([$selectedStaffId]);', $taskController);
         $this->assertStringNotContainsString('return $staffEmployeeIds->first();', $taskController);
-        $this->assertStringContainsString("->whereNull('overtime_id')", $taskController);
+        $this->assertStringContainsString("'overtime:id,record_number'", $taskController);
+        $this->assertStringNotContainsString("->whereNull('overtime_id')", $taskController);
         $this->assertStringContainsString("'due_date' => \$this->dateRangeLabel(\$projectTask->start_date, \$projectTask->due_date)", $taskController);
         $this->assertStringContainsString("'description' => trim((string) (\$projectTask->description ?? ''))", $taskController);
         $this->assertStringContainsString("'blockers' => trim((string) (\$projectTask->blockers ?? ''))", $taskController);
         $this->assertStringContainsString("'attachment_path' => trim((string) (\$projectTask->attachment_path ?? ''))", $taskController);
-        $this->assertStringContainsString("'task_category' => \$projectTask->project_id !== null ? 'Project Task' : 'Daily Task'", $taskController);
+        $this->assertStringContainsString("'task_context' => \$taskContext", $taskController);
+        $this->assertStringContainsString("'task_context_type' => \$isOvertimeTask ? 'overtime' : (\$projectTask->project_id !== null ? 'project' : 'daily')", $taskController);
+        $this->assertStringContainsString('renderTaskContext', $taskView);
+        $this->assertStringContainsString('renderTaskTitle', $taskView);
+        $this->assertStringContainsString('badge badge-info light ms-1 align-middle">Overtime</span>', $taskView);
         $this->assertStringContainsString("'priority' => \$this->priorityLabel((string) \$projectTask->priority)", $taskController);
         $this->assertStringContainsString("'status' => \$this->statusLabel(", $taskController);
         $this->assertStringContainsString("'status_class' => \$isCompleted ? 'success' : 'warning'", $taskController);
         $this->assertStringNotContainsString('Staff Task List', $taskView);
         $this->assertStringContainsString('No task data available.', $taskView);
         $this->assertStringNotContainsString('<form', $taskView);
+    }
+
+    public function test_pic_task_monitoring_context_labels_follow_task_source(): void
+    {
+        $controller = app(PicAttendanceTaskController::class);
+        $method = new ReflectionMethod(PicAttendanceTaskController::class, 'taskRow');
+        $method->setAccessible(true);
+
+        $overtimeTask = new ProjectTask([
+            'id' => 'task-overtime',
+            'overtime_id' => 'overtime-1',
+            'title' => 'Rekap Absensi',
+            'status' => 'pending',
+        ]);
+        $overtimeTask->setRelation('overtime', new AttendanceOvertime([
+            'id' => 'overtime-1',
+            'record_number' => 'OVT-2608-0001',
+        ]));
+        $projectTask = new ProjectTask([
+            'id' => 'task-project',
+            'project_id' => 'project-1',
+            'title' => 'Venue Report',
+            'status' => 'pending',
+        ]);
+        $projectTask->setRelation('project', new Project([
+            'id' => 'project-1',
+            'name' => 'Muktamar PKB',
+        ]));
+
+        $dailyTask = new ProjectTask([
+            'id' => 'task-daily',
+            'title' => 'Daily Report',
+            'status' => 'pending',
+            'start_date' => '2026-09-14',
+            'due_date' => '2026-09-18',
+        ]);
+
+        $overtimeRow = $method->invoke($controller, $overtimeTask);
+        $projectRow = $method->invoke($controller, $projectTask);
+        $dailyRow = $method->invoke($controller, $dailyTask);
+
+        $this->assertSame('OVT-2608-0001', $overtimeRow['task_context']);
+        $this->assertSame('overtime', $overtimeRow['task_context_type']);
+        $this->assertSame('Overtime Task', $overtimeRow['task_category']);
+
+        $this->assertSame('Task (Muktamar PKB)', $projectRow['task_context']);
+        $this->assertSame('project', $projectRow['task_context_type']);
+        $this->assertSame('Task (Muktamar PKB)', $projectRow['task_category']);
+
+        $this->assertSame('Daily Task', $dailyRow['task_context']);
+        $this->assertSame('daily', $dailyRow['task_context_type']);
+        $this->assertSame('Daily Task', $dailyRow['task_category']);
+        $this->assertSame("Senin, 14 - Jum'at, 18 Sep 2026", $dailyRow['due_date']);
     }
 }

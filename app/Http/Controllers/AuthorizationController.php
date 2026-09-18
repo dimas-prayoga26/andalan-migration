@@ -9,9 +9,11 @@ use App\Models\EmployeeDeployment;
 use App\Models\EmployeeIdentity;
 use App\Models\EmployeePicAssignment;
 use App\Models\EmployeeProfile;
+use App\Models\EventDivision;
 use App\Models\OfficeLocation;
 use App\Models\Permission;
 use App\Models\Position;
+use App\Models\ProjectDivisionEvent;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -22,7 +24,9 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -37,10 +41,14 @@ class AuthorizationController extends Controller
         abort_unless($authenticatedUser instanceof User, 403);
 
         $search = $request->string('search')->trim()->toString();
+        $employeeStatusFilter = $request->string('status')->lower()->toString() === 'inactive'
+            ? 'inactive'
+            : 'active';
 
         return view('authorization.index', [
-            'users' => $this->authorizationUsersFor($authenticatedUser, $search),
+            'users' => $this->authorizationUsersFor($authenticatedUser, $search, $employeeStatusFilter),
             'search' => $search,
+            'employeeStatusFilter' => $employeeStatusFilter,
             'canManageDataEmployee' => $this->canManageAuthorization($authenticatedUser),
             'canManagePositionPermissions' => $this->canManagePositionPermissions($authenticatedUser),
         ]);
@@ -216,6 +224,194 @@ class AuthorizationController extends Controller
             ->with('status', 'Access menu berhasil diperbarui.');
     }
 
+    public function eventDivisions(Request $request): View
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+
+        return view('authorization.assign-event-divisions', [
+            'employees' => $this->authorizationEmployeesForEventDivision(),
+            'eventDivisionAssignments' => $this->eventDivisionAssignments(),
+        ]);
+    }
+
+    public function updateEventDivisionAssignments(Request $request): RedirectResponse
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+
+        $validated = $request->validate([
+            'division_employees' => ['array'],
+            'division_employees.*' => ['array'],
+            'division_employees.*.*' => ['string', 'exists:employees,id'],
+        ]);
+
+        $assignableEmployeeIds = $this->authorizationEmployeesForEventDivision()
+            ->pluck('id')
+            ->all();
+
+        $employeeDivisionMap = collect($validated['division_employees'] ?? [])
+            ->flatMap(fn (array $employeeIds, string $divisionId): array => collect($employeeIds)
+                ->filter(fn (string $employeeId): bool => in_array($employeeId, $assignableEmployeeIds, true))
+                ->mapWithKeys(fn (string $employeeId): array => [$employeeId => $divisionId])
+                ->all());
+
+        DB::transaction(function () use ($assignableEmployeeIds, $employeeDivisionMap): void {
+            foreach ($assignableEmployeeIds as $employeeId) {
+                EmployeeDeployment::query()->updateOrCreate(
+                    ['employee_id' => $employeeId],
+                    ['current_event_division_id' => $employeeDivisionMap->get($employeeId)],
+                );
+            }
+        });
+
+        return redirect()
+            ->route('authorization.event-divisions')
+            ->with('status', 'Event division assignment berhasil diperbarui.');
+    }
+
+    public function storeEventDivision(Request $request): RedirectResponse
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+
+        EventDivision::query()->create($this->validatedEventDivisionData($request));
+
+        return redirect()
+            ->route('authorization.event-divisions')
+            ->with('status', 'Event division berhasil ditambahkan.');
+    }
+
+    public function updateEventDivision(Request $request, EventDivision $eventDivision): RedirectResponse
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+
+        $eventDivision->update($this->validatedEventDivisionData($request, $eventDivision));
+
+        return redirect()
+            ->route('authorization.event-divisions')
+            ->with('status', 'Event division berhasil diperbarui.');
+    }
+
+    public function destroyEventDivision(Request $request, EventDivision $eventDivision): RedirectResponse
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+
+        DB::transaction(function () use ($eventDivision): void {
+            $eventDivision->update(['status' => 'inactive']);
+
+            EmployeeDeployment::query()
+                ->where('current_event_division_id', $eventDivision->id)
+                ->update(['current_event_division_id' => null]);
+
+            ProjectDivisionEvent::query()
+                ->where('event_division_id', $eventDivision->id)
+                ->update(['status' => 'inactive']);
+        });
+
+        return redirect()
+            ->route('authorization.event-divisions')
+            ->with('status', 'Event division berhasil dihapus.');
+    }
+
+    /**
+     * @return Collection<int, array{id: string, name: string, position: string, label: string}>
+     */
+    private function authorizationEmployeesForEventDivision(): Collection
+    {
+        return Employee::query()
+            ->with([
+                'profile:id,employee_id,name',
+                'deployment:id,employee_id,current_position_id',
+                'deployment.position:id,name',
+                'deployment.positions:id,name',
+            ])
+            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+            ->orderBy('employee_code')
+            ->get(['id', 'employee_code'])
+            ->map(function (Employee $employee): array {
+                $name = (string) ($employee->profile?->name ?? $employee->employee_code ?? $employee->id);
+                $position = $this->positionNamesFor($employee)->implode(', ');
+
+                return [
+                    'id' => (string) $employee->id,
+                    'name' => $name,
+                    'position' => $position,
+                    'label' => $position !== '' ? $name.' - '.$position : $name,
+                ];
+            })
+            ->values();
+    }
+
+    /**
+     * @return array{title: string, sub_title: ?string, status: string}
+     */
+    private function validatedEventDivisionData(Request $request, ?EventDivision $eventDivision = null): array
+    {
+        $validated = $request->validate([
+            'title' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('event_divisions', 'title')
+                    ->where(fn ($query) => $query->where('status', 'active'))
+                    ->ignore($eventDivision?->id, 'id'),
+            ],
+            'sub_title' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        return [
+            'title' => trim((string) $validated['title']),
+            'sub_title' => $this->nullableStringValue($validated['sub_title'] ?? null),
+            'status' => 'active',
+        ];
+    }
+
+    /**
+     * @return Collection<int, array{id: string, title: string, sub_title: string, employee_ids: array<int, string>}>
+     */
+    private function eventDivisionAssignments(): Collection
+    {
+        $employeeDivisionMap = Employee::query()
+            ->with('deployment:id,employee_id,current_event_division_id')
+            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+            ->get(['id'])
+            ->mapWithKeys(fn (Employee $employee): array => [(string) $employee->id => $this->nullableStringValue($employee->deployment?->current_event_division_id)]);
+
+        return EventDivision::query()
+            ->where('status', 'active')
+            ->orderBy('title')
+            ->get(['id', 'title', 'sub_title'])
+            ->map(fn (EventDivision $eventDivision): array => [
+                'id' => (string) $eventDivision->id,
+                'title' => (string) $eventDivision->title,
+                'sub_title' => (string) ($eventDivision->sub_title ?? ''),
+                'employee_ids' => $employeeDivisionMap
+                    ->filter(fn (?string $divisionId): bool => $divisionId === (string) $eventDivision->id)
+                    ->keys()
+                    ->values()
+                    ->all(),
+            ]);
+    }
+
+    private function nullableStringValue(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        return $value !== '' ? $value : null;
+    }
+
     /**
      * @return Collection<int, array{id: string, name: string}>
      */
@@ -298,7 +494,7 @@ class AuthorizationController extends Controller
      *     initials: string
      * }>
      */
-    private function authorizationUsersFor(User $viewer, string $search = ''): LengthAwarePaginator
+    private function authorizationUsersFor(User $viewer, string $search = '', string $statusFilter = 'active'): LengthAwarePaginator
     {
         $viewer->loadMissing([
             'roles:uuid,name',
@@ -316,7 +512,7 @@ class AuthorizationController extends Controller
             ->with([
                 'roles:uuid,name',
                 'employee:id,user_id,employee_code,status,is_event_project_admin',
-                'employee.profile:id,employee_id,name',
+                'employee.profile:id,employee_id,name,profile_picture_path',
                 'employee.identity:id,employee_id,nik',
                 'employee.deployment:id,employee_id,current_company_id,current_position_id,status',
                 'employee.deployment.company:id,name',
@@ -326,17 +522,35 @@ class AuthorizationController extends Controller
                 'employee.picAssignment.supervisor:id',
                 'employee.picAssignment.supervisor.profile:id,employee_id,name',
             ])
-            ->where('is_active', true)
             ->whereDoesntHave('roles', function (Builder $roleQuery): void {
                 $roleQuery->where('name', 'superuser');
             })
-            ->whereHas('employee', function (Builder $employeeQuery): void {
-                $employeeQuery
-                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                    ->whereHas('deployment', function (Builder $deploymentQuery): void {
-                        $deploymentQuery->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+            ->whereHas('employee');
+
+        if ($statusFilter === 'inactive') {
+            $query->where(function (Builder $inactiveQuery): void {
+                $inactiveQuery
+                    ->where('is_active', false)
+                    ->orWhereHas('employee', function (Builder $employeeQuery): void {
+                        $employeeQuery
+                            ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['active'])
+                            ->orWhereDoesntHave('deployment')
+                            ->orWhereHas('deployment', function (Builder $deploymentQuery): void {
+                                $deploymentQuery->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['active']);
+                            });
                     });
             });
+        } else {
+            $query
+                ->where('is_active', true)
+                ->whereHas('employee', function (Builder $employeeQuery): void {
+                    $employeeQuery
+                        ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+                        ->whereHas('deployment', function (Builder $deploymentQuery): void {
+                            $deploymentQuery->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+                        });
+                });
+        }
 
         if (! $this->canManageAuthorization($viewer)) {
             $companyId = $this->viewerCompanyId($viewer);
@@ -501,7 +715,7 @@ class AuthorizationController extends Controller
         $status = $status !== '' ? Str::title($status) : 'Active';
 
         if (! $user->is_active) {
-            $status = 'Restricted';
+            $status = 'Inactive';
         }
 
         return [
@@ -515,6 +729,7 @@ class AuthorizationController extends Controller
             'status' => $status,
             'is_event_project_admin' => (bool) ($user->employee?->is_event_project_admin ?? false),
             'initials' => $this->initials($name),
+            'avatar_url' => $this->employeeAvatarUrl($user->employee?->profile?->profile_picture_path),
         ];
     }
 
@@ -848,5 +1063,30 @@ class AuthorizationController extends Controller
             ->implode('');
 
         return Str::upper($initials !== '' ? $initials : 'U');
+    }
+
+    private function employeeAvatarUrl(mixed $profilePicturePath): string
+    {
+        $defaultAvatarUrl = asset('assets/default_user.jpg');
+        $profilePicturePath = trim((string) $profilePicturePath);
+
+        if ($profilePicturePath === '') {
+            return $defaultAvatarUrl;
+        }
+
+        if (Str::startsWith($profilePicturePath, ['http://', 'https://'])) {
+            return $profilePicturePath;
+        }
+
+        $publicPath = ltrim($profilePicturePath, '/');
+        $storagePath = Str::startsWith($publicPath, 'storage/')
+            ? Str::after($publicPath, 'storage/')
+            : $publicPath;
+
+        if (Storage::disk('public')->exists($storagePath)) {
+            return asset('storage/'.$storagePath);
+        }
+
+        return File::exists(public_path($publicPath)) ? asset($publicPath) : $defaultAvatarUrl;
     }
 }

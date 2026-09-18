@@ -45,7 +45,6 @@ class OvertimeReviewTableBuilder
      * @var array<int, string>
      */
     private const ADMIN_LIFECYCLE_RANGE = [
-        self::TASK_HOURS_VERIFICATION,
         'payroll_processing',
         self::DIRECTOR_APPROVAL,
         self::PAYMENT_DISTRIBUTION,

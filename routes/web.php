@@ -12,6 +12,7 @@ use App\Http\Controllers\DirectorAttendance\DirectorAttendanceController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceOvertimeController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceTaskController;
 use App\Http\Controllers\EmployeeDataController;
+use App\Http\Controllers\GoogleDriveOAuthController;
 use App\Http\Controllers\PicAttendance\PicAttendanceController;
 use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
@@ -32,6 +33,7 @@ use App\Http\Controllers\StaffAttendance\AttendanceLeaveRequestController;
 use App\Http\Controllers\StaffAttendance\AttendanceOvertimeController;
 use App\Http\Controllers\StaffAttendance\AttendanceReportController;
 use App\Http\Controllers\TalentAcquisitionController;
+use App\Http\Controllers\UserActivityLogController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -40,6 +42,8 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::middleware('auth')->group(function (): void {
+    Route::post('/user-activity-log', [UserActivityLogController::class, 'store'])->name('user-activity-log.store');
+
     Route::get('/', [DashboardController::class, 'index'])
         ->middleware('position.permission:view-dashboard')
         ->name('dashboard');
@@ -48,6 +52,8 @@ Route::middleware('auth')->group(function (): void {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
+    Route::get('/google-drive/oauth/access-token', [GoogleDriveOAuthController::class, 'accessToken'])->name('google-drive.oauth.access-token');
+    Route::post('/google-drive/oauth/exchange-code', [GoogleDriveOAuthController::class, 'exchangeCode'])->name('google-drive.oauth.exchange-code');
 
     // Activity Schedule
     Route::middleware('position.permission:view-calendar')->group(function (): void {
@@ -71,7 +77,7 @@ Route::middleware('auth')->group(function (): void {
         Route::delete('/project-management/projects/{project}', [ProjectManagementProjectController::class, 'destroyProject'])->name('project_management.projects.destroy');
         Route::get('/project-management/projects/detail', [ProjectManagementProjectController::class, 'detailFallback'])->name('project_management.projects.detail.fallback');
         Route::get('/project-management/projects/{project}', [ProjectManagementProjectController::class, 'detail'])->name('project_management.projects.detail');
-        Route::patch('/project-management/projects/{project}/departments/{department}/google-drive', [ProjectManagementProjectController::class, 'updateDepartmentGoogleDrive'])->name('project_management.projects.departments.google-drive.update');
+        Route::patch('/project-management/projects/{project}/event-divisions/{eventDivision}/google-drive', [ProjectManagementProjectController::class, 'updateEventDivisionGoogleDrive'])->name('project_management.projects.event-divisions.google-drive.update');
         Route::post('/project-management/projects/{project}/tasks', [ProjectManagementProjectController::class, 'storeTask'])->name('project_management.projects.tasks.store');
         Route::put('/project-management/projects/{project}/tasks/{projectTask}', [ProjectManagementProjectController::class, 'updateTask'])->name('project_management.projects.tasks.update');
         Route::patch('/project-management/projects/{project}/tasks/{projectTask}/toggle', [ProjectManagementProjectController::class, 'toggleTask'])->name('project_management.projects.tasks.toggle');
@@ -83,6 +89,8 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware('position.permission:view-talent-acquisition')->group(function (): void {
         Route::get('/applicant', [TalentAcquisitionController::class, 'applicants'])->name('applicant');
         Route::get('/applicant/job-vacancies', [TalentAcquisitionController::class, 'jobVacancies'])->name('applicant.job_vacancies');
+        Route::get('/applicant/job-vacancies/create', [TalentAcquisitionController::class, 'createJobVacancy'])->name('applicant.job_vacancies.create');
+        Route::post('/applicant/job-vacancies', [TalentAcquisitionController::class, 'storeJobVacancy'])->name('applicant.job_vacancies.store');
         Route::patch('/applicant/job-vacancies/{jobVacancy}/status', [TalentAcquisitionController::class, 'updateJobVacancyStatus'])->name('applicant.job_vacancies.status.update');
         Route::patch('/applicant/{applicant}/status', [TalentAcquisitionController::class, 'updateApplicantStatus'])->name('applicant.status.update');
         Route::get('/applicant/{applicant}', [TalentAcquisitionController::class, 'showApplicant'])->name('applicant.show');
@@ -105,6 +113,11 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/authorization', [AuthorizationController::class, 'store'])->name('authorization.store');
         Route::get('/authorization/access-menus', [AuthorizationController::class, 'accessMenus'])->name('authorization.access-menus');
         Route::post('/authorization/position-permissions', [AuthorizationController::class, 'updatePositionPermissions'])->name('authorization.position-permissions.update');
+        Route::get('/authorization/event-divisions', [AuthorizationController::class, 'eventDivisions'])->name('authorization.event-divisions');
+        Route::post('/authorization/event-divisions', [AuthorizationController::class, 'updateEventDivisionAssignments'])->name('authorization.event-divisions.update');
+        Route::post('/authorization/event-divisions/divisions', [AuthorizationController::class, 'storeEventDivision'])->name('authorization.event-divisions.divisions.store');
+        Route::patch('/authorization/event-divisions/divisions/{eventDivision}', [AuthorizationController::class, 'updateEventDivision'])->name('authorization.event-divisions.divisions.update');
+        Route::delete('/authorization/event-divisions/divisions/{eventDivision}', [AuthorizationController::class, 'destroyEventDivision'])->name('authorization.event-divisions.divisions.destroy');
         Route::get('/authorization/{employee}', [AuthorizationController::class, 'show'])->name('authorization.show');
         Route::get('/authorization/{employee}/edit', [AuthorizationController::class, 'edit'])->name('authorization.edit');
         Route::put('/authorization/{employee}', [AuthorizationController::class, 'update'])->name('authorization.update');

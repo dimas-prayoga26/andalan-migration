@@ -15,6 +15,9 @@ use App\Support\Attendance\AttendanceLocationFormatter;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class AttendanceOverviewController extends Controller
 {
@@ -62,7 +65,7 @@ class AttendanceOverviewController extends Controller
     private function dailyAttendanceLists(Carbon $date, Collection $activeEmployeeIds): array
     {
         $todayDate = $date->toDateString();
-        $attendanceTodayQuery = Attendance::query()->with(['employee:id,user_id',                'employee.profile:id,employee_id,name',                'employee.user:id,username,email'])->whereIn('employee_id', $activeEmployeeIds)->whereDate('date', $todayDate)->whereNotNull('clock_in')->whereNull('deleted_at');
+        $attendanceTodayQuery = Attendance::query()->with(['employee:id,user_id',                'employee.profile:id,employee_id,name,profile_picture_path',                'employee.user:id,username,email'])->whereIn('employee_id', $activeEmployeeIds)->whereDate('date', $todayDate)->whereNotNull('clock_in')->whereNull('deleted_at');
         $dailyEarlyBirds = (clone $attendanceTodayQuery)->where('late_minutes', '<=', 0)->orderBy('clock_in')->limit(5)->get(['id', 'employee_id', 'date', 'clock_in', 'status', 'late_minutes'])->values()->map(fn (Attendance $attendance, int $index): array => $this->presentAttendancePerson($attendance, $index + 1));
         $dailyRunningLate = (clone $attendanceTodayQuery)->where('late_minutes', '>', 0)->orderByDesc('clock_in')->limit(5)->get(['id', 'employee_id', 'date', 'clock_in', 'status', 'late_minutes'])->values()->map(fn (Attendance $attendance, int $index): array => $this->presentAttendancePerson($attendance, $index + 1));
         $dailyBusinessTrips = BusinessTrip::query()->with(['employee:id,user_id',                'employee.profile:id,employee_id,name',                'employee.user:id,username,email'])->whereIn('employee_id', $activeEmployeeIds)->whereDate('start_date', '<=', $todayDate)->whereDate('end_date', '>=', $todayDate)->whereRaw('LOWER(COALESCE(approval_status, "")) = ?', ['approved'])->orderBy('start_date')->limit(5)->get(['id', 'employee_id', 'start_date', 'end_date', 'city_destination', 'province_destination'])->map(fn (BusinessTrip $businessTrip): array => ['name' => $this->employeeDisplayName($businessTrip->employee),                'initials' => $this->initials($this->employeeDisplayName($businessTrip->employee)),                'destination' => $this->businessTripDestination($businessTrip),                'date_range' => $this->dateRangeLabel($businessTrip->start_date, $businessTrip->end_date)]);
@@ -162,12 +165,12 @@ class AttendanceOverviewController extends Controller
         return $count.'/'.max($total, 1);
     }
 
-    /**     * @return array{name: string, initials: string, time: string, rank: int}     */
+    /**     * @return array{name: string, initials: string, avatar_url: string, time: string, rank: int}     */
     private function presentAttendancePerson(Attendance $attendance, int $rank): array
     {
         $name = $this->employeeDisplayName($attendance->employee);
 
-        return ['name' => $name,            'initials' => $this->initials($name),            'time' => $attendance->clock_in instanceof \DateTimeInterface ? $attendance->clock_in->format('H:i:s').' WIB' : '-',            'rank' => $rank];
+        return ['name' => $name,            'initials' => $this->initials($name),            'avatar_url' => $this->employeeAvatarUrl($attendance->employee?->profile?->profile_picture_path),            'time' => $attendance->clock_in instanceof \DateTimeInterface ? $attendance->clock_in->format('H:i:s').' WIB' : '-',            'rank' => $rank];
     }
 
     private function isLateAttendance(Attendance $attendance): bool
@@ -322,5 +325,30 @@ class AttendanceOverviewController extends Controller
         $initials = collect(preg_split('/\s+/', trim($name)) ?: [])->filter()->map(static fn (string $part): string => mb_substr($part, 0, 1))->take(2)->implode('');
 
         return mb_strtoupper($initials !== '' ? $initials : 'U');
+    }
+
+    private function employeeAvatarUrl(mixed $profilePicturePath): string
+    {
+        $defaultAvatarUrl = asset('assets/default_user.jpg');
+        $profilePicturePath = trim((string) $profilePicturePath);
+
+        if ($profilePicturePath === '') {
+            return $defaultAvatarUrl;
+        }
+
+        if (Str::startsWith($profilePicturePath, ['http://', 'https://'])) {
+            return $profilePicturePath;
+        }
+
+        $publicPath = ltrim($profilePicturePath, '/');
+        $storagePath = Str::startsWith($publicPath, 'storage/')
+            ? Str::after($publicPath, 'storage/')
+            : $publicPath;
+
+        if (Storage::disk('public')->exists($storagePath)) {
+            return asset('storage/'.$storagePath);
+        }
+
+        return File::exists(public_path($publicPath)) ? asset($publicPath) : $defaultAvatarUrl;
     }
 }

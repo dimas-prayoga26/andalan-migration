@@ -99,6 +99,7 @@ class TwelveHourAutoOvertimeService
         $actualEndTime = $overtimeWindow['actual_end_at']->format('H:i:s');
         $overtimeDate = $overtimeWindow['actual_start_at']->toDateString();
         $actorUser = $this->resolveSupervisorUser($employee) ?? ($actor instanceof User ? $actor : $employee->user);
+        $executionActorUser = $employee->user instanceof User ? $employee->user : ($actor instanceof User ? $actor : $actorUser);
 
         $existingOvertime = AttendanceOvertime::query()
             ->where('employee_id', $employee->id)
@@ -123,7 +124,7 @@ class TwelveHourAutoOvertimeService
             'status' => self::OVERTIME_STATUS_COMPLETED,
         ]);
 
-        $this->createLifecycleLogs($overtime, $overtimeWindow['actual_start_at'], $overtimeWindow['actual_end_at'], $actorUser);
+        $this->createLifecycleLogs($overtime, $overtimeWindow['actual_start_at'], $overtimeWindow['actual_end_at'], $actorUser, $executionActorUser);
 
         return $overtime;
     }
@@ -162,7 +163,7 @@ class TwelveHourAutoOvertimeService
         ];
     }
 
-    private function createLifecycleLogs(AttendanceOvertime $overtime, Carbon $actualStartAt, Carbon $actualEndAt, ?User $actor): void
+    private function createLifecycleLogs(AttendanceOvertime $overtime, Carbon $actualStartAt, Carbon $actualEndAt, ?User $assignmentActor, ?User $executionActor): void
     {
         foreach (self::OVERTIME_LIFECYCLE_STEPS as $lifecycleStep) {
             $eventKey = $lifecycleStep['event_key'];
@@ -172,6 +173,7 @@ class TwelveHourAutoOvertimeService
                 'task_deliverables_submitted', 'session_ended' => $actualEndAt,
                 default => null,
             };
+            $actor = $eventKey === 'assignment_submitted' ? $assignmentActor : $executionActor;
 
             OvertimeLifecycleLog::query()->updateOrCreate(
                 [

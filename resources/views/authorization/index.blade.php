@@ -8,6 +8,7 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}">
     <style>
         .authorization-nav-card {
             border-radius: 8px;
@@ -44,6 +45,13 @@
             background: #eef2ff;
             color: #2448c7;
             font-weight: 700;
+            overflow: hidden;
+        }
+
+        .authorization-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .authorization-list-actions {
@@ -61,6 +69,21 @@
         .authorization-list-actions .btn {
             min-height: 42px;
             white-space: nowrap;
+        }
+
+        .authorization-status-tabs {
+            gap: 6px;
+        }
+
+        .authorization-status-tabs .nav-link {
+            border-radius: 6px;
+            color: #6b7280;
+            padding: 6px 14px;
+        }
+
+        .authorization-status-tabs .nav-link.active {
+            background: var(--bs-primary);
+            color: #fff;
         }
 
         .authorization-table-card .table-card-body {
@@ -135,6 +158,15 @@
     'homeRoute' => 'dashboard',
 ])
 
+@php
+    $hasEventDivisionRoute = \Illuminate\Support\Facades\Route::has('authorization.event-divisions');
+    $employeeStatusFilter = $employeeStatusFilter ?? 'active';
+    $employeeStatusTabs = [
+        'active' => 'Active',
+        'inactive' => 'Inactive',
+    ];
+@endphp
+
 <div class="card authorization-nav-card">
     <div class="card-header py-0">
         <ul class="nav nav-underline authorization-tabs gap-3">
@@ -145,6 +177,11 @@
                 <li class="nav-item">
                     <a class="nav-link py-3 px-1" href="{{ route('authorization.access-menus') }}">Assign Permission</a>
                 </li>
+                @if ($hasEventDivisionRoute)
+                    <li class="nav-item">
+                        <a class="nav-link py-3 px-1" href="{{ route('authorization.event-divisions') }}">Assign Event Division</a>
+                    </li>
+                @endif
             @endif
         </ul>
     </div>
@@ -155,9 +192,21 @@
         <div>
             <h4 class="card-title mb-1">Employee List</h4>
             <p class="mb-0 text-muted fs-13">Employee, deployment, identity, and PIC data.</p>
+            <ul class="nav nav-pills authorization-status-tabs mt-3" aria-label="Employee status filter">
+                @foreach ($employeeStatusTabs as $statusValue => $statusLabel)
+                    <li class="nav-item">
+                        <a
+                            class="nav-link {{ $employeeStatusFilter === $statusValue ? 'active' : '' }}"
+                            href="{{ route('authorization', array_filter(['status' => $statusValue, 'search' => $search !== '' ? $search : null])) }}"
+                            @if ($employeeStatusFilter === $statusValue) aria-current="page" @endif
+                        >{{ $statusLabel }}</a>
+                    </li>
+                @endforeach
+            </ul>
         </div>
         <div class="authorization-list-actions">
             <form method="GET" action="{{ route('authorization') }}" class="authorization-employee-search">
+                <input type="hidden" name="status" value="{{ $employeeStatusFilter }}">
                 <div class="input-group">
                     <button type="submit" class="input-group-text bg-white" aria-label="Search employee">
                         <i class="fa-solid fa-magnifying-glass"></i>
@@ -205,7 +254,13 @@
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center gap-3">
-                                    <span class="authorization-avatar">{{ $user['initials'] }}</span>
+                                    <span class="authorization-avatar">
+                                        @if (! empty($user['avatar_url']))
+                                            <img src="{{ $user['avatar_url'] }}" alt="{{ $user['name'] }}">
+                                        @else
+                                            {{ $user['initials'] }}
+                                        @endif
+                                    </span>
                                     <div>
                                         <h6 class="mb-0 text-black">{{ $user['name'] }}</h6>
                                     </div>
@@ -249,7 +304,12 @@
                                     <a href="{{ route('authorization.show', ['employee' => $user['id']]) }}" class="btn btn-info light btn-sm">Detail</a>
                                     @if ($canManageDataEmployee)
                                         <a href="{{ route('authorization.edit', ['employee' => $user['id']]) }}" class="btn btn-primary light btn-sm">Update</a>
-                                        <form action="{{ route('authorization.destroy', ['employee' => $user['id']]) }}" method="POST" onsubmit="return confirm('Delete this employee data?')">
+                                        <form
+                                            action="{{ route('authorization.destroy', ['employee' => $user['id']]) }}"
+                                            method="POST"
+                                            data-authorization-delete-form
+                                            data-employee-name="{{ $user['name'] }}"
+                                        >
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-danger light btn-sm">Delete</button>
@@ -261,7 +321,7 @@
                     @empty
                         <tr>
                             <td colspan="9" class="text-center text-muted py-4">
-                                {{ $search !== '' ? 'No matching employee found.' : 'No employee data available.' }}
+                                {{ $search !== '' ? 'No matching employee found.' : 'No '.$employeeStatusFilter.' employee data available.' }}
                             </td>
                         </tr>
                     @endforelse
@@ -305,6 +365,7 @@
         $dashboardJsPath = public_path('assets/js/dashboard.js');
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
         document.addEventListener('change', function (event) {
@@ -313,6 +374,40 @@
             }
 
             event.target.closest('form')?.submit();
+        });
+
+        document.addEventListener('submit', function (event) {
+            if (! event.target.matches('[data-authorization-delete-form]')) {
+                return;
+            }
+
+            var form = event.target;
+
+            if (form.dataset.deleteConfirmed === 'true') {
+                return;
+            }
+
+            event.preventDefault();
+
+            Swal.fire({
+                title: 'Delete Employee Data?',
+                text: 'Employee data for ' + (form.dataset.employeeName || 'this employee') + ' will be deleted.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Delete',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                reverseButtons: true,
+                focusCancel: true
+            }).then(function (result) {
+                if (! result.isConfirmed) {
+                    return;
+                }
+
+                form.dataset.deleteConfirmed = 'true';
+                form.submit();
+            });
         });
     </script>
 @endsection

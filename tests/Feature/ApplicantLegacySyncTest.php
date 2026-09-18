@@ -90,13 +90,16 @@ class ApplicantLegacySyncTest extends TestCase
         $this->assertNull((new Applicant(['cv' => null]))->cvDownloadUrl());
     }
 
-    public function test_legacy_applicant_status_is_limited_to_three_status_values(): void
+    public function test_legacy_applicant_status_uses_the_full_application_workflow(): void
     {
         $service = app(LegacyApplicantSyncService::class);
 
         $this->assertSame(ApplicantStatus::VALUE_SUBMITTED, $this->applicantStatusValueFor($service, 0));
-        $this->assertSame(ApplicantStatus::VALUE_INTERVIEW, $this->applicantStatusValueFor($service, 1));
-        $this->assertSame(ApplicantStatus::VALUE_DITERIMA, $this->applicantStatusValueFor($service, 2));
+        $this->assertSame(ApplicantStatus::VALUE_HR_INTERVIEW, $this->applicantStatusValueFor($service, 1));
+        $this->assertSame(ApplicantStatus::VALUE_TECHNICAL_TEST, $this->applicantStatusValueFor($service, 2));
+        $this->assertSame(ApplicantStatus::VALUE_USER_INTERVIEW, $this->applicantStatusValueFor($service, 3));
+        $this->assertSame(ApplicantStatus::VALUE_OFFERING, $this->applicantStatusValueFor($service, 4));
+        $this->assertSame(ApplicantStatus::VALUE_NOT_SUITABLE, $this->applicantStatusValueFor($service, 5));
         $this->assertSame(ApplicantStatus::VALUE_SUBMITTED, $this->applicantStatusValueFor($service, 99));
     }
 

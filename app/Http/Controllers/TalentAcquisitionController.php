@@ -69,6 +69,13 @@ class TalentAcquisitionController extends Controller
         ]);
     }
 
+    public function createJobVacancy(): View
+    {
+        return view('applicant_data.job_vacancy_create', [
+            'jobVacancyStatuses' => JobVacancy::statusOptions(),
+        ]);
+    }
+
     public function showApplicant(Applicant $applicant): View
     {
         $applicant->load([
@@ -116,6 +123,65 @@ class TalentAcquisitionController extends Controller
         }
 
         return back()->with('status', 'Status pelamar berhasil diperbarui.');
+    }
+
+    public function storeJobVacancy(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', Rule::unique((new JobVacancy)->getTable(), 'name')],
+            'status' => ['required', Rule::in(JobVacancy::statuses())],
+        ]);
+
+        $name = trim($validated['name']);
+        $status = $validated['status'];
+        $legacyStatusValue = JobVacancy::legacyStatusValueFor($status);
+
+        try {
+            DB::connection('legacy_mysql')->transaction(function () use ($name, $status, $legacyStatusValue): void {
+                $legacyConnection = DB::connection('legacy_mysql');
+                $legacyName = htmlentities($name, ENT_QUOTES, 'UTF-8', false);
+                $now = now();
+
+                if ($legacyConnection->table('opt_applicants_vacancies')->whereIn('name', [$name, $legacyName])->exists()) {
+                    throw new \RuntimeException('Nama lowongan sudah ada di database legacy.');
+                }
+
+                $legacyValue = ((int) $legacyConnection
+                    ->table('opt_applicants_vacancies')
+                    ->lockForUpdate()
+                    ->max('value')) + 1;
+
+                $legacyVacancyId = (int) $legacyConnection
+                    ->table('opt_applicants_vacancies')
+                    ->insertGetId([
+                        'name' => $legacyName,
+                        'value' => $legacyValue,
+                        'status' => $legacyStatusValue,
+                        'created_at' => $now->format('Y-m-d H:i:s'),
+                    ]);
+
+                DB::transaction(function () use ($legacyVacancyId, $legacyValue, $name, $status, $legacyStatusValue, $now): void {
+                    JobVacancy::query()->create([
+                        'legacy_vacancy_id' => $legacyVacancyId,
+                        'legacy_value' => $legacyValue,
+                        'name' => $name,
+                        'status' => $status,
+                        'legacy_status_value' => $legacyStatusValue,
+                        'legacy_created_at' => $now,
+                    ]);
+                });
+            });
+        } catch (Throwable $throwable) {
+            report($throwable);
+
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'name' => 'Lowongan gagal ditambahkan. Pastikan nama belum ada dan database legacy tersedia.',
+                ]);
+        }
+
+        return redirect()->route('applicant.job_vacancies')->with('status', 'Lowongan berhasil ditambahkan.');
     }
 
     public function updateJobVacancyStatus(Request $request, JobVacancy $jobVacancy): RedirectResponse

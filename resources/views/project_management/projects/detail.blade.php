@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="{{ asset('assets/vendor/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css') }}">
 <style>
     .project-detail-overview-row,
-    .project-department-row {
+    .project-division-row {
         --bs-gutter-x: 1.5rem;
         --bs-gutter-y: 1.5rem;
     }
@@ -183,36 +183,36 @@
         font-size: 13px;
     }
 
-    .project-department-card {
+    .project-division-card {
         border: 0;
         border-radius: var(--bs-border-radius-xl, 1rem);
         box-shadow: 0 5px 18px rgba(20, 24, 40, .05);
         overflow: hidden;
     }
 
-    .project-department-card .card-header {
+    .project-division-card .card-header {
         align-items: flex-start;
         padding: 24px 24px 0;
     }
 
-    .project-department-card .card-body {
+    .project-division-card .card-body {
         max-height: 330px;
         overflow-y: auto;
         padding: 18px 24px 24px;
     }
 
-    .project-department-task-title {
+    .project-division-task-title {
         max-width: min(245px, 46vw);
     }
 
-    .project-department-progress {
+    .project-division-progress {
         color: #64748b;
         font-size: 13px;
         font-weight: 600;
         margin-bottom: 16px;
     }
 
-    .project-department-add-task {
+    .project-division-add-task {
         appearance: none;
         background: transparent;
         border: 0;
@@ -224,17 +224,17 @@
         white-space: nowrap;
     }
 
-    .project-department-add-task:hover,
-    .project-department-add-task:focus {
+    .project-division-add-task:hover,
+    .project-division-add-task:focus {
         color: #22a447;
         text-decoration: none;
     }
 
-    .project-department-task {
+    .project-division-task {
         min-height: 46px;
     }
 
-    .project-department-task .timeline-vr-badge {
+    .project-division-task .timeline-vr-badge {
         width: 3px;
         height: 34px;
         border-radius: 8px;
@@ -247,7 +247,7 @@
     }
 
     .project-task-action,
-    .project-department-view-all {
+    .project-division-view-all {
         width: 34px;
         height: 34px;
         display: inline-flex;
@@ -256,7 +256,7 @@
         border-radius: 10px;
     }
 
-    .project-department-view-all {
+    .project-division-view-all {
         width: auto;
         min-width: 86px;
         padding-inline: 16px;
@@ -264,7 +264,7 @@
         font-weight: 600;
     }
 
-    .project-department-view-all:disabled {
+    .project-division-view-all:disabled {
         cursor: not-allowed;
         opacity: .55;
         pointer-events: none;
@@ -278,12 +278,12 @@
         min-width: 140px;
     }
 
-    .project-department-actions {
+    .project-division-actions {
         gap: 8px;
     }
 
     @media (max-width: 575.98px) {
-        .project-department-task-title {
+        .project-division-task-title {
             max-width: 170px;
         }
 
@@ -311,14 +311,14 @@
     $projectDetail = $projectDetail ?? [];
     $projectSummary = $projectSummary ?? [];
     $projectTaskTimeline = $projectTaskTimeline ?? [];
-    $projectDepartmentGroups = collect($projectDepartmentGroups ?? []);
+    $projectDivisionGroups = collect($projectDivisionGroups ?? []);
     $projectTeamMembers = collect($projectDetail['team_members'] ?? []);
-    $departmentPalette = ['#2445c7', '#ff8a00', '#2bc155', '#ff5b8a', '#ffb800', '#8b5cf6'];
-    $summaryChartLabels = $projectDepartmentGroups
-        ->map(fn ($departmentGroup): string => (string) ($departmentGroup['name'] ?? '-'))
+    $divisionPalette = ['#2445c7', '#ff8a00', '#2bc155', '#ff5b8a', '#ffb800', '#8b5cf6'];
+    $summaryChartLabels = $projectDivisionGroups
+        ->map(fn ($divisionGroup): string => (string) ($divisionGroup['name'] ?? '-'))
         ->values();
-    $summaryChartSeries = $projectDepartmentGroups
-        ->map(fn ($departmentGroup): int => (int) ($departmentGroup['total_tasks'] ?? 0))
+    $summaryChartSeries = $projectDivisionGroups
+        ->map(fn ($divisionGroup): int => (int) ($divisionGroup['total_tasks'] ?? 0))
         ->values();
 @endphp
 
@@ -440,23 +440,23 @@
                         </div>
 
                         <div class="col-sm-6 mb-3 project-summary-legend">
-                            @forelse ($projectDepartmentGroups as $departmentGroup)
+                            @forelse ($projectDivisionGroups as $divisionGroup)
                                 <div class="d-flex justify-content-between project-summary-legend-item">
                                     <div class="text-black">
-                                        <span class="project-summary-legend-color d-inline-block me-1" style="background: {{ $departmentPalette[$loop->index % count($departmentPalette)] }};"></span>
-                                        {{ $departmentGroup['name'] }}
+                                        <span class="project-summary-legend-color d-inline-block me-1" style="background: {{ $divisionPalette[$loop->index % count($divisionPalette)] }};"></span>
+                                        {{ $divisionGroup['name'] }}
                                     </div>
-                                    <span>{{ $departmentGroup['total_tasks'] }}</span>
+                                    <span>{{ $divisionGroup['total_tasks'] }}</span>
                                 </div>
                             @empty
-                                <p class="fs-14 mb-0">No department category available.</p>
+                                <p class="fs-14 mb-0">No division category available.</p>
                             @endforelse
                         </div>
                     </div>
                 </div>
                 <div class="card-footer border-0 pt-0">
                     <div class="alert alert-warning outline-dashed border-2 py-3 px-3 mb-0 text-dark">
-                        <strong class="text-warning">{{ $projectSummary['overdue_tasks'] ?? 0 }} Overdue Tasks</strong> Track departmental tasks to keep this project moving.
+                        <strong class="text-warning">{{ $projectSummary['overdue_tasks'] ?? 0 }} Overdue Tasks</strong> Track division tasks to keep this project moving.
                     </div>
                 </div>
             </div>
@@ -499,34 +499,38 @@
         </div>
     </div>
 
-    <div class="row project-department-row">
-        @forelse ($projectDepartmentGroups as $departmentGroup)
+    <div class="row project-division-row">
+        @forelse ($projectDivisionGroups as $divisionGroup)
             <div class="col-xxl-4 col-lg-6">
-                <div class="card project-department-card">
+                <div class="card project-division-card">
                     <div class="card-header pb-0 border-0">
                         <div class="clearfix">
-                            <h4 class="card-title mb-0">{{ $departmentGroup['name'] }}</h4>
-                            <small class="d-block">{{ $departmentGroup['total_tasks'] }} task from this project</small>
+                            <h4 class="card-title mb-0">{{ $divisionGroup['name'] }}</h4>
+                            <small class="d-block">{{ $divisionGroup['sub_title'] ?: $divisionGroup['total_tasks'].' task from this project' }}</small>
                         </div>
-                        <div class="clearfix text-end d-flex align-items-center justify-content-end project-department-actions">
-                            @if ($departmentGroup['can_manage_drive'] ?? false)
-                                <button type="button" class="btn btn-sm btn-light project-department-view-all js-project-department-drive" data-bs-toggle="modal" data-bs-target="#projectDepartmentDriveModal" data-update-url="{{ $departmentGroup['drive_update_url'] }}" data-department-name="{{ $departmentGroup['name'] }}" data-google-drive-url="{{ $departmentGroup['google_drive_url'] }}">{{ empty($departmentGroup['google_drive_url']) ? 'Add Drive' : 'Drive' }}</button>
-                            @elseif (! empty($departmentGroup['google_drive_url']))
-                                <a href="{{ $departmentGroup['google_drive_url'] }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-light project-department-view-all">Drive</a>
+                        <div class="clearfix text-end d-flex align-items-center justify-content-end project-division-actions">
+                            @if ($divisionGroup['can_manage_drive'] ?? false)
+                                @if (! empty($divisionGroup['google_drive_url']))
+                                    <button type="button" class="btn btn-sm btn-light project-division-view-all js-project-division-drive" data-update-url="{{ $divisionGroup['drive_update_url'] }}" data-project-name="{{ $projectDetail['name'] ?? 'Project' }}" data-event-division-name="{{ $divisionGroup['name'] }}" data-google-drive-url="{{ $divisionGroup['google_drive_url'] }}" data-folder-id="{{ $divisionGroup['folder_id'] }}" data-drive-configured="true">Drive</button>
+                                @else
+                                    <button type="button" class="btn btn-sm btn-light project-division-view-all js-project-division-drive" data-update-url="{{ $divisionGroup['drive_update_url'] }}" data-project-name="{{ $projectDetail['name'] ?? 'Project' }}" data-event-division-name="{{ $divisionGroup['name'] }}" data-google-drive-url="{{ $divisionGroup['google_drive_url'] }}" data-folder-id="{{ $divisionGroup['folder_id'] }}" data-drive-configured="false">Konfigurasi Drive</button>
+                                @endif
+                            @elseif (! empty($divisionGroup['google_drive_url']))
+                                <a href="{{ $divisionGroup['google_drive_url'] }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-light project-division-view-all">Drive</a>
                             @else
-                                <button type="button" class="btn btn-sm btn-light project-department-view-all" disabled>Add Drive</button>
+                                <button type="button" class="btn btn-sm btn-light project-division-view-all" disabled>Konfigurasi Drive</button>
                             @endif
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="project-department-progress d-flex align-items-center justify-content-between">
-                            <span class="text-gray fw-semibold">{{ $departmentGroup['completed_tasks'] }} / {{ $departmentGroup['total_tasks'] }} Completed <span class="text-success">({{ $departmentGroup['completion_rate'] }}%)</span></span>
-                            @if ($departmentGroup['can_create_task'] ?? false)
-                                <button type="button" class="project-department-add-task js-project-task-create" data-bs-toggle="modal" data-bs-target="#projectTaskFormModal" data-store-url="{{ $departmentGroup['store_url'] }}" data-department-id="{{ $departmentGroup['id'] }}" data-department-name="{{ $departmentGroup['name'] }}" data-assignee-options='@json($departmentGroup['task_assignee_options'] ?? [])'>+ Add Task</button>
+                        <div class="project-division-progress d-flex align-items-center justify-content-between">
+                            <span class="text-gray fw-semibold">{{ $divisionGroup['completed_tasks'] }} / {{ $divisionGroup['total_tasks'] }} Completed <span class="text-success">({{ $divisionGroup['completion_rate'] }}%)</span></span>
+                            @if ($divisionGroup['can_create_task'] ?? false)
+                                <button type="button" class="project-division-add-task js-project-task-create" data-bs-toggle="modal" data-bs-target="#projectTaskFormModal" data-store-url="{{ $divisionGroup['store_url'] }}" data-event-division-id="{{ $divisionGroup['id'] }}" data-event-division-name="{{ $divisionGroup['name'] }}" data-assignee-options='@json($divisionGroup['task_assignee_options'] ?? [])'>+ Add Task</button>
                             @endif
                         </div>
-                        @forelse ($departmentGroup['tasks'] as $task)
-                            <div class="d-flex align-items-center project-department-task py-2" data-project-task-row="{{ $task['id'] }}">
+                        @forelse ($divisionGroup['tasks'] as $task)
+                            <div class="d-flex align-items-center project-division-task py-2" data-project-task-row="{{ $task['id'] }}">
                                 <div class="timeline-vr-badge {{ $task['is_completed'] ? 'bg-success' : 'bg-light' }} me-2"></div>
                                 @if ($task['can_toggle'])
                                     <div class="form-check custom-checkbox">
@@ -537,7 +541,7 @@
                                     <div class="project-task-check-space"></div>
                                 @endif
                                 <div class="clearfix ms-2">
-                                    <h6 class="fs-13 mb-0 fw-semibold text-truncate project-department-task-title">{{ $task['title'] }}</h6>
+                                    <h6 class="fs-13 mb-0 fw-semibold text-truncate project-division-task-title">{{ $task['title'] }}</h6>
                                     <span class="small"><span data-task-due-label>{{ $task['due_label'] }}</span> by <span class="text-primary">{{ $task['assignee_label'] }}</span></span>
                                 </div>
                                 <div class="clearfix ms-auto">
@@ -547,7 +551,7 @@
                                                 <i class="bi bi-grid"></i>
                                             </button>
                                             <div class="dropdown-menu dropdown-menu-end">
-                                                <button type="button" class="dropdown-item js-project-task-edit" data-bs-toggle="modal" data-bs-target="#projectTaskFormModal" data-task='@json($task)' data-department-name="{{ $departmentGroup['name'] }}">Update Task</button>
+                                                <button type="button" class="dropdown-item js-project-task-edit" data-bs-toggle="modal" data-bs-target="#projectTaskFormModal" data-task='@json($task)' data-event-division-name="{{ $divisionGroup['name'] }}">Update Task</button>
                                                 <button type="button" class="dropdown-item text-danger js-project-task-delete" data-bs-toggle="modal" data-bs-target="#projectTaskDeleteModal" data-delete-url="{{ $task['delete_url'] }}">Delete Task</button>
                                             </div>
                                         </div>
@@ -557,7 +561,7 @@
                                 </div>
                             </div>
                         @empty
-                            <p class="fs-14 mb-0">No project task for this department.</p>
+                            <p class="fs-14 mb-0">No project task for this division.</p>
                         @endforelse
                     </div>
                 </div>
@@ -566,8 +570,8 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-body text-center">
-                        <h5 class="mb-1">No department task found</h5>
-                        <p class="mb-0 fs-14">Department cards appear after project members and project tasks are available.</p>
+                        <h5 class="mb-1">No division task found</h5>
+                        <p class="mb-0 fs-14">Division cards appear after event divisions are seeded.</p>
                     </div>
                 </div>
             </div>
@@ -581,7 +585,7 @@
             <form id="projectTaskForm" method="POST">
                 @csrf
                 <input type="hidden" name="_method" id="projectTaskFormMethod" value="POST">
-                <input type="hidden" name="department_id" id="projectTaskDepartmentId">
+                <input type="hidden" name="event_division_id" id="projectTaskEventDivisionId">
                 <div class="modal-header">
                     <div>
                         <h5 class="modal-title mb-0" id="projectTaskFormTitle">Create New Task</h5>
@@ -674,23 +678,56 @@
     </div>
 </div>
 
-<div class="modal fade" id="projectDepartmentDriveModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="projectDivisionDriveModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form id="projectDepartmentDriveForm" method="POST">
+            <form id="projectDivisionDriveForm" method="POST">
                 @csrf
                 <input type="hidden" name="_method" value="PATCH">
+                <input type="hidden" name="folder_id" id="projectDivisionDriveFolderId">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="projectDepartmentDriveTitle">Google Drive Department</h5>
+                    <h5 class="modal-title" id="projectDivisionDriveTitle">Google Drive Division</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <label for="projectDepartmentDriveUrl" class="form-label">Google Drive URL</label>
-                    <input type="url" class="form-control" id="projectDepartmentDriveUrl" name="google_drive_url" maxlength="2048" placeholder="https://drive.google.com/drive/folders/...">
+                    <div class="mb-3">
+                        <label for="projectDivisionDriveParentName" class="form-label">Lokasi Folder Induk</label>
+                        <div class="d-flex gap-2">
+                            <input type="hidden" id="projectDivisionDriveParentId">
+                            <input type="text" class="form-control" id="projectDivisionDriveParentName" value="Belum dipilih" readonly>
+                            <button type="button" class="btn btn-light flex-shrink-0" id="projectDivisionDrivePickParent">Pilih Folder</button>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="projectDivisionDriveProjectFolderName" class="form-label">Folder Project</label>
+                            <input type="text" class="form-control" id="projectDivisionDriveProjectFolderName" maxlength="255">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="projectDivisionDriveDivisionFolderName" class="form-label">Folder Divisi</label>
+                            <input type="text" class="form-control" id="projectDivisionDriveDivisionFolderName" maxlength="255">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="projectDivisionDriveFolderPath" class="form-label">Struktur Folder</label>
+                        <input type="text" class="form-control" id="projectDivisionDriveFolderPath" readonly>
+                    </div>
+                    <div class="d-flex justify-content-end mb-3">
+                        <button type="button" class="btn btn-primary" id="projectDivisionDriveCreateFolder" disabled>Buat Struktur Folder</button>
+                    </div>
+                    <hr>
+                    <label for="projectDivisionDriveUrl" class="form-label d-flex align-items-center gap-2">
+                        <span>Google Drive URL</span>
+                        <span class="badge bg-danger" id="projectDivisionDriveStatusBadge">Belum siap</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="url" class="form-control" id="projectDivisionDriveUrl" name="google_drive_url" maxlength="2048" placeholder="https://drive.google.com/drive/folders/...">
+                        <button type="button" class="btn btn-light" id="projectDivisionDriveOpenUrl" disabled>Open</button>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-dark light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="projectDepartmentDriveSubmit">Save changes</button>
+                    <button type="submit" class="btn btn-primary" id="projectDivisionDriveSubmit">Simpan URL</button>
                 </div>
             </form>
         </div>
@@ -710,9 +747,21 @@
 <script src="{{ asset('assets/vendor/apexcharts/dist/apexcharts.min.js') }}?v={{ $apexChartsVersion }}"></script>
 <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
+<script src="https://apis.google.com/js/api.js"></script>
 <script>
     $(function () {
         var projectTaskDeleteUrl = '';
+        var projectDivisionDriveAccessToken = '';
+        var projectDivisionDriveActiveButton = null;
+        var projectDivisionDriveApiKey = @json(config('services.google.api_key'));
+        var projectDivisionDriveOauthClientId = @json(config('services.google.client_id'));
+        var projectDivisionDriveOauthScope = 'https://www.googleapis.com/auth/drive.file';
+        var projectDivisionDriveAccessTokenUrl = @json(route('google-drive.oauth.access-token'));
+        var projectDivisionDriveExchangeCodeUrl = @json(route('google-drive.oauth.exchange-code'));
+        var projectDivisionDriveFolderMimeType = 'application/vnd.google-apps.folder';
+        var projectDivisionDrivePendingButton = null;
+        var projectDivisionDriveCodeClient = null;
 
         if (typeof moment !== 'undefined') {
             moment.updateLocale('en', {
@@ -749,6 +798,441 @@
             }
 
             $(selector).modal('hide');
+        };
+        var showModal = function (selector) {
+            var modalElement = document.querySelector(selector);
+
+            if (window.bootstrap && modalElement) {
+                var modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                modal.show();
+
+                return;
+            }
+
+            $(selector).modal('show');
+        };
+        var fillProjectDivisionDriveForm = function (button) {
+            var currentDriveUrl = $(button).attr('data-google-drive-url') || '';
+
+            projectDivisionDriveActiveButton = button;
+            $('#projectDivisionDriveTitle').text('Konfigurasi Drive ' + ($(button).attr('data-event-division-name') || 'Google Drive Division'));
+            $('#projectDivisionDriveForm').attr('action', $(button).attr('data-update-url') || '');
+            $('#projectDivisionDriveUrl').val(currentDriveUrl);
+            $('#projectDivisionDriveFolderId').val($(button).attr('data-folder-id') || '');
+            refreshProjectDivisionDriveOpenButton();
+            $('#projectDivisionDriveParentId').val('');
+            $('#projectDivisionDriveParentName').val('Belum dipilih');
+            $('#projectDivisionDriveProjectFolderName').val(projectDivisionDriveProjectName(button));
+            $('#projectDivisionDriveDivisionFolderName').val(projectDivisionDriveDivisionName(button));
+            $('#projectDivisionDriveCreateFolder').prop('disabled', true).text('Buat Struktur Folder');
+            updateProjectDivisionDriveFolderPath(button);
+        };
+        var resetProjectDivisionDriveButton = function (button) {
+            if (! button) {
+                return;
+            }
+
+            $(button).prop('disabled', false).text('Konfigurasi Drive');
+        };
+        var showProjectDivisionDriveModal = function (button) {
+            fillProjectDivisionDriveForm(button);
+            showModal('#projectDivisionDriveModal');
+        };
+        var restoreProjectDivisionDriveModal = function () {
+            window.setTimeout(function () {
+                if (projectDivisionDriveActiveButton) {
+                    showModal('#projectDivisionDriveModal');
+                }
+            }, 150);
+        };
+        var projectDivisionDriveProjectName = function (button) {
+            return $(button).attr('data-project-name') || 'Project';
+        };
+        var projectDivisionDriveDivisionName = function (button) {
+            return $(button).attr('data-event-division-name') || 'Google Drive Division';
+        };
+        var updateProjectDivisionDriveFolderPath = function (button) {
+            var parentName = $('#projectDivisionDriveParentName').val() || 'Belum dipilih';
+            var projectFolderName = $('#projectDivisionDriveProjectFolderName').val() || projectDivisionDriveProjectName(button);
+            var divisionFolderName = $('#projectDivisionDriveDivisionFolderName').val() || projectDivisionDriveDivisionName(button);
+
+            $('#projectDivisionDriveFolderPath').val(parentName + ' / ' + projectFolderName + ' / ' + divisionFolderName);
+        };
+        var saveProjectDivisionDriveUrl = function (button, driveUrl, folderId) {
+            return $.ajax({
+                url: $(button).attr('data-update-url') || '',
+                type: 'POST',
+                data: {
+                    _method: 'PATCH',
+                    google_drive_url: driveUrl,
+                    folder_id: folderId || '',
+                },
+                headers: {
+                    'X-CSRF-TOKEN': @json(csrf_token()),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+        };
+        var syncProjectDivisionDriveButton = function (button, driveUrl, folderId) {
+            $(button).attr('data-google-drive-url', driveUrl);
+            $(button).attr('data-folder-id', folderId || '');
+            $(button).attr('data-drive-configured', driveUrl ? 'true' : 'false');
+            $(button).text(driveUrl ? 'Drive' : 'Konfigurasi Drive');
+            $('#projectDivisionDriveUrl').val(driveUrl);
+            $('#projectDivisionDriveFolderId').val(folderId || '');
+            refreshProjectDivisionDriveOpenButton();
+        };
+        var refreshProjectDivisionDriveStatusBadge = function () {
+            var hasDriveUrl = Boolean($('#projectDivisionDriveUrl').val());
+
+            $('#projectDivisionDriveStatusBadge')
+                .toggleClass('bg-success', hasDriveUrl)
+                .toggleClass('bg-danger', ! hasDriveUrl)
+                .text(hasDriveUrl ? 'Folder siap' : 'Belum siap');
+        };
+        var refreshProjectDivisionDriveOpenButton = function () {
+            $('#projectDivisionDriveOpenUrl').prop('disabled', ! $('#projectDivisionDriveUrl').val());
+            refreshProjectDivisionDriveStatusBadge();
+        };
+        var escapeProjectDivisionDriveQueryValue = function (value) {
+            return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        };
+        var findProjectDivisionDriveFolder = function (folderName, parentFolderId) {
+            var query = "'" + escapeProjectDivisionDriveQueryValue(parentFolderId) + "' in parents and name = '" + escapeProjectDivisionDriveQueryValue(folderName) + "' and mimeType = '" + projectDivisionDriveFolderMimeType + "' and trashed = false";
+
+            return $.ajax({
+                url: 'https://www.googleapis.com/drive/v3/files',
+                type: 'GET',
+                data: {
+                    q: query,
+                    fields: 'files(id,name,webViewLink)',
+                    pageSize: 1,
+                    supportsAllDrives: true,
+                    includeItemsFromAllDrives: true,
+                },
+                headers: {
+                    Authorization: 'Bearer ' + projectDivisionDriveAccessToken,
+                },
+            }).then(function (response) {
+                return response.files?.[0] || null;
+            });
+        };
+        var createProjectDivisionDriveChildFolder = function (folderName, parentFolderId) {
+            return $.ajax({
+                url: 'https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink&supportsAllDrives=true',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    name: folderName,
+                    mimeType: projectDivisionDriveFolderMimeType,
+                    parents: [parentFolderId],
+                }),
+                headers: {
+                    Authorization: 'Bearer ' + projectDivisionDriveAccessToken,
+                },
+            });
+        };
+        var findOrCreateProjectDivisionDriveFolder = function (folderName, parentFolderId) {
+            return findProjectDivisionDriveFolder(folderName, parentFolderId).then(function (folder) {
+                if (folder) {
+                    return folder;
+                }
+
+                return createProjectDivisionDriveChildFolder(folderName, parentFolderId);
+            });
+        };
+        var createProjectDivisionDriveFolder = function (button) {
+            var parentFolderId = $('#projectDivisionDriveParentId').val();
+            var projectName = $('#projectDivisionDriveProjectFolderName').val() || projectDivisionDriveProjectName(button);
+            var divisionName = $('#projectDivisionDriveDivisionFolderName').val() || projectDivisionDriveDivisionName(button);
+            var createButton = $('#projectDivisionDriveCreateFolder');
+
+            if (! parentFolderId) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Pilih lokasi',
+                    text: 'Pilih folder induk terlebih dahulu.',
+                });
+
+                return;
+            }
+
+            createButton.prop('disabled', true).text('Membuat struktur...');
+
+            findOrCreateProjectDivisionDriveFolder(projectName, parentFolderId)
+                .then(function (projectFolder) {
+                    return findOrCreateProjectDivisionDriveFolder(divisionName, projectFolder.id);
+                })
+                .then(function (folder) {
+                    var driveUrl = folder.webViewLink || ('https://drive.google.com/drive/folders/' + folder.id);
+
+                    $('#projectDivisionDriveUrl').val(driveUrl);
+                    $('#projectDivisionDriveFolderId').val(folder.id || '');
+                    createButton.text('Menyimpan link...');
+
+                    return saveProjectDivisionDriveUrl(button, driveUrl, folder.id || '')
+                        .then(function (response) {
+                            if (response.success === true || response.status === true) {
+                                syncProjectDivisionDriveButton(button, response.google_drive_url || driveUrl, response.folder_id || folder.id || '');
+                                hideModal('#projectDivisionDriveModal');
+
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Drive siap',
+                                    text: 'Struktur folder Google Drive berhasil dibuat dan disimpan.',
+                                    timer: 1100,
+                                    showConfirmButton: false,
+                                });
+
+                                return;
+                            }
+
+                            $(button).attr('data-google-drive-url', driveUrl);
+                            showProjectDivisionDriveModal(button);
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Folder dibuat',
+                                text: response.message || 'Link folder belum tersimpan otomatis.',
+                            });
+                        });
+                })
+                .fail(function (xhr) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Drive belum tersimpan',
+                        text: xhr.responseJSON?.error?.message || xhr.responseJSON?.message || 'Google Drive API gagal membuat folder atau link belum tersimpan.',
+                    });
+                })
+                .always(function () {
+                    createButton.prop('disabled', false).text('Buat Struktur Folder');
+                });
+        };
+        var openProjectDivisionDrivePicker = function () {
+            if (! projectDivisionDriveApiKey) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Konfigurasi belum lengkap',
+                    text: 'GOOGLE_API_KEY belum diset.',
+                });
+
+                return;
+            }
+
+            if (! projectDivisionDriveAccessToken) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'OAuth belum siap',
+                    text: 'Hubungkan akun Google terlebih dahulu.',
+                });
+
+                return;
+            }
+
+            if (! window.gapi) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Picker belum siap',
+                    text: 'Google Picker belum selesai dimuat.',
+                });
+
+                return;
+            }
+
+            gapi.load('picker', {
+                callback: function () {
+                    var folderView = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+                        .setIncludeFolders(true)
+                        .setMimeTypes(projectDivisionDriveFolderMimeType)
+                        .setSelectFolderEnabled(true);
+                    var picker = new google.picker.PickerBuilder()
+                        .addView(folderView)
+                        .setDeveloperKey(projectDivisionDriveApiKey)
+                        .setOAuthToken(projectDivisionDriveAccessToken)
+                        .setOrigin(window.location.protocol + '//' + window.location.host)
+                        .setCallback(function (data) {
+                            var pickerAction = data[google.picker.Response.ACTION];
+
+                            if (pickerAction !== google.picker.Action.PICKED) {
+                                restoreProjectDivisionDriveModal();
+
+                                return;
+                            }
+
+                            var folder = data[google.picker.Response.DOCUMENTS]?.[0];
+
+                            if (! folder) {
+                                restoreProjectDivisionDriveModal();
+
+                                return;
+                            }
+
+                            $('#projectDivisionDriveParentId').val(folder[google.picker.Document.ID] || folder.id || '');
+                            $('#projectDivisionDriveParentName').val(folder[google.picker.Document.NAME] || folder.name || folder.title || 'Folder Drive');
+                            $('#projectDivisionDriveCreateFolder').prop('disabled', false);
+                            updateProjectDivisionDriveFolderPath(projectDivisionDriveActiveButton);
+                            restoreProjectDivisionDriveModal();
+                        })
+                        .build();
+
+                    hideModal('#projectDivisionDriveModal');
+                    picker.setVisible(true);
+                },
+            });
+        };
+        var requestProjectDivisionDriveOAuth = function (button) {
+            if (! projectDivisionDriveOauthClientId) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Konfigurasi belum lengkap',
+                    text: 'GOOGLE_CLIENT_ID belum diset.',
+                });
+
+                return;
+            }
+
+            projectDivisionDrivePendingButton = button;
+            $(button).prop('disabled', true).text('Menghubungkan...');
+
+            $.ajax({
+                url: projectDivisionDriveAccessTokenUrl,
+                type: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function (response) {
+                    projectDivisionDriveAccessToken = response.access_token || '';
+
+                    if (! projectDivisionDriveAccessToken) {
+                        requestProjectDivisionDriveCode();
+
+                        return;
+                    }
+
+                    resetProjectDivisionDriveButton(button);
+                    projectDivisionDrivePendingButton = null;
+                    showProjectDivisionDriveModal(button);
+                },
+                error: function (xhr) {
+                    if (xhr.responseJSON?.requires_authorization === true) {
+                        requestProjectDivisionDriveCode();
+
+                        return;
+                    }
+
+                    resetProjectDivisionDriveButton(button);
+                    projectDivisionDrivePendingButton = null;
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'OAuth belum siap',
+                        text: xhr.responseJSON?.message || 'Gagal membaca token Google dari server.',
+                    });
+                },
+            });
+        };
+        var requestProjectDivisionDriveCode = function () {
+            if (! window.google?.accounts?.oauth2) {
+                resetProjectDivisionDriveButton(projectDivisionDrivePendingButton);
+                projectDivisionDrivePendingButton = null;
+                Swal.fire({
+                    icon: 'error',
+                    title: 'OAuth belum siap',
+                    text: 'Google OAuth belum selesai dimuat.',
+                });
+
+                return;
+            }
+
+            if (! projectDivisionDriveCodeClient) {
+                projectDivisionDriveCodeClient = google.accounts.oauth2.initCodeClient({
+                    client_id: projectDivisionDriveOauthClientId,
+                    scope: projectDivisionDriveOauthScope,
+                    ux_mode: 'popup',
+                    prompt: 'consent',
+                    callback: function (response) {
+                        var targetButton = projectDivisionDrivePendingButton;
+
+                        if (! response || response.error) {
+                            projectDivisionDrivePendingButton = null;
+                            resetProjectDivisionDriveButton(targetButton);
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'OAuth dibatalkan',
+                                text: response?.error_description || response?.error || 'OAuth Google dibatalkan.',
+                            });
+
+                            return;
+                        }
+
+                        exchangeProjectDivisionDriveCode(response.code || '', targetButton);
+                    },
+                    error_callback: function () {
+                        var targetButton = projectDivisionDrivePendingButton;
+
+                        projectDivisionDrivePendingButton = null;
+                        resetProjectDivisionDriveButton(targetButton);
+
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'OAuth dibatalkan',
+                            text: 'Popup Google OAuth ditutup atau gagal dibuka.',
+                        });
+                    },
+                });
+            }
+
+            projectDivisionDriveCodeClient.requestCode();
+        };
+        var exchangeProjectDivisionDriveCode = function (code, button) {
+            if (! code) {
+                projectDivisionDrivePendingButton = null;
+                resetProjectDivisionDriveButton(button);
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'OAuth gagal',
+                    text: 'Authorization code Google tidak diterima.',
+                });
+
+                return;
+            }
+
+            $.ajax({
+                url: projectDivisionDriveExchangeCodeUrl,
+                type: 'POST',
+                data: {
+                    code: code,
+                    redirect_uri: window.location.origin,
+                },
+                headers: {
+                    'X-CSRF-TOKEN': @json(csrf_token()),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function (response) {
+                    projectDivisionDriveAccessToken = response.access_token || '';
+                    projectDivisionDrivePendingButton = null;
+                    resetProjectDivisionDriveButton(button);
+
+                    if (! projectDivisionDriveAccessToken) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'OAuth gagal',
+                            text: 'Access token Google tidak diterima dari server.',
+                        });
+
+                        return;
+                    }
+
+                    showProjectDivisionDriveModal(button);
+                },
+                error: function (xhr) {
+                    projectDivisionDrivePendingButton = null;
+                    resetProjectDivisionDriveButton(button);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'OAuth gagal',
+                        text: xhr.responseJSON?.message || 'Gagal menyimpan OAuth Google.',
+                    });
+                },
+            });
         };
         var todayDate = function () {
             var now = new Date();
@@ -797,7 +1281,7 @@
             $('#projectTaskFormTitle').text('Create New Task');
             $('#projectTaskForm').attr('action', $(button).attr('data-store-url') || '');
             $('#projectTaskFormMethod').val('POST');
-            $('#projectTaskDepartmentId').val($(button).attr('data-department-id') || '');
+            $('#projectTaskEventDivisionId').val($(button).attr('data-event-division-id') || '');
             $('#projectTaskAssignee').empty();
             assigneeOptions.forEach(function (assignee) {
                 $('#projectTaskAssignee').append(new Option(assignee.name || assignee.id || 'Staff', assignee.id || ''));
@@ -818,7 +1302,7 @@
             $('#projectTaskFormTitle').text('Update Task');
             $('#projectTaskForm').attr('action', task.update_url || '');
             $('#projectTaskFormMethod').val('PUT');
-            $('#projectTaskDepartmentId').val('');
+            $('#projectTaskEventDivisionId').val('');
             $('#projectTaskAssignee').empty().append(new Option(task.assignee_label || 'Staff', task.employee_id || ''));
             $('#projectTaskTitle').val(task.title || '');
             $('#projectTaskDescription').val(task.description || '');
@@ -1099,19 +1583,51 @@
             projectTaskDeleteUrl = $(this).attr('data-delete-url') || '';
         });
 
-        $(document).on('click', '.js-project-department-drive', function () {
-            var currentDriveUrl = $(this).attr('data-google-drive-url') || '';
+        $(document).on('click', '.js-project-division-drive', function () {
+            if ($(this).attr('data-drive-configured') === 'true') {
+                showProjectDivisionDriveModal(this);
 
-            $('#projectDepartmentDriveTitle').text((currentDriveUrl ? 'Update ' : 'Add ') + ($(this).attr('data-department-name') || 'Google Drive Department') + ' Drive');
-            $('#projectDepartmentDriveForm').attr('action', $(this).attr('data-update-url') || '');
-            $('#projectDepartmentDriveUrl').val(currentDriveUrl);
+                return;
+            }
+
+            requestProjectDivisionDriveOAuth(this);
         });
 
-        $('#projectDepartmentDriveForm').on('submit', function (event) {
+        $('#projectDivisionDrivePickParent').on('click', openProjectDivisionDrivePicker);
+
+        $('#projectDivisionDriveProjectFolderName, #projectDivisionDriveDivisionFolderName').on('input', function () {
+            if (! projectDivisionDriveActiveButton) {
+                return;
+            }
+
+            updateProjectDivisionDriveFolderPath(projectDivisionDriveActiveButton);
+        });
+
+        $('#projectDivisionDriveUrl').on('input', refreshProjectDivisionDriveOpenButton);
+
+        $('#projectDivisionDriveOpenUrl').on('click', function () {
+            var driveUrl = $('#projectDivisionDriveUrl').val();
+
+            if (! driveUrl) {
+                return;
+            }
+
+            window.open(driveUrl, '_blank', 'noopener,noreferrer');
+        });
+
+        $('#projectDivisionDriveCreateFolder').on('click', function () {
+            if (! projectDivisionDriveActiveButton) {
+                return;
+            }
+
+            createProjectDivisionDriveFolder(projectDivisionDriveActiveButton);
+        });
+
+        $('#projectDivisionDriveForm').on('submit', function (event) {
             event.preventDefault();
 
             var form = $(this);
-            var submitButton = $('#projectDepartmentDriveSubmit');
+            var submitButton = $('#projectDivisionDriveSubmit');
 
             $.ajax({
                 url: form.attr('action'),
@@ -1126,15 +1642,15 @@
                 },
                 success: function (response) {
                     if (response.success === true || response.status === true) {
+                        syncProjectDivisionDriveButton(projectDivisionDriveActiveButton, response.google_drive_url || $('#projectDivisionDriveUrl').val(), response.folder_id || $('#projectDivisionDriveFolderId').val());
+                        hideModal('#projectDivisionDriveModal');
+
                         Swal.fire({
                             icon: 'success',
                             title: 'Berhasil',
                             text: response.message,
                             timer: 1100,
                             showConfirmButton: false,
-                        }).then(function () {
-                            hideModal('#projectDepartmentDriveModal');
-                            window.location.reload();
                         });
                     } else {
                         Swal.fire({
@@ -1146,7 +1662,7 @@
                 },
                 error: handleProjectTaskAjaxError,
                 complete: function () {
-                    submitButton.prop('disabled', false).text('Save changes');
+                    submitButton.prop('disabled', false).text('Simpan URL');
                 },
             });
         });
@@ -1284,7 +1800,7 @@
                     Swal.fire({
                         icon: 'error',
                         title: 'Terjadi Kesalahan',
-                        text: xhr.responseJSON?.message || 'Gagal mengubah task department.',
+                        text: xhr.responseJSON?.message || 'Gagal mengubah task division.',
                     });
                 },
                 complete: function () {

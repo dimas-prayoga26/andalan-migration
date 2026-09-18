@@ -52,7 +52,14 @@
             max-width: 48px;
             min-height: 48px;
             min-width: 48px !important;
+            overflow: hidden;
             width: 48px !important;
+        }
+
+        .admin-attendance-person-avatar img {
+            height: 100%;
+            object-fit: cover;
+            width: 100%;
         }
 
         .admin-attendance-empty {
@@ -389,7 +396,13 @@
                     <div class="card-body loadmore-content dz-scroll pb-0 pt-0 height320">
                         @forelse ($dailyEarlyBirds as $staff)
                             <div class="d-flex border-bottom py-3">
-                                <span class="admin-attendance-person-avatar avatar me-3">{{ $staff['initials'] }}</span>
+                                <span class="admin-attendance-person-avatar avatar me-3">
+                                    @if (! empty($staff['avatar_url']))
+                                        <img src="{{ $staff['avatar_url'] }}" alt="{{ $staff['name'] }}">
+                                    @else
+                                        {{ $staff['initials'] }}
+                                    @endif
+                                </span>
                                 <div class="pe-3 me-auto">
                                     <h6 class="fs-16 mb-0 text-black">{{ $staff['name'] }}</h6>
                                     <span class="fs-12">{{ $staff['time'] }}</span>
@@ -416,7 +429,13 @@
                     <div class="card-body loadmore-content dz-scroll pb-0 pt-0 height320">
                         @forelse ($dailyRunningLate as $staff)
                             <div class="d-flex border-bottom py-3">
-                                <span class="admin-attendance-person-avatar avatar me-3">{{ $staff['initials'] }}</span>
+                                <span class="admin-attendance-person-avatar avatar me-3">
+                                    @if (! empty($staff['avatar_url']))
+                                        <img src="{{ $staff['avatar_url'] }}" alt="{{ $staff['name'] }}">
+                                    @else
+                                        {{ $staff['initials'] }}
+                                    @endif
+                                </span>
                                 <div class="pe-3 me-auto">
                                     <h6 class="fs-16 mb-0 text-black">{{ $staff['name'] }}</h6>
                                     <span class="fs-12">{{ $staff['time'] }}</span>

@@ -329,7 +329,7 @@
             var attendanceExceptionCardButtonElement = document.getElementById('attendanceExceptionCardButton');
             var attendanceConfirmationCardSlideElement = document.getElementById('attendanceConfirmationCardSlide');
             var endOfShiftCardSlideElement = document.getElementById('endOfShiftCardSlide');
-            var googleMapsApiKey = @json(config('services.google_maps.api_key'));
+            var googleMapsApiKey = @json(config('services.google.api_key'));
             var officeLocation = @json($officeLocation);
             var clockInModalElement = document.getElementById('clockIn');
             var clockOutModalElement = document.getElementById('clockOut');
@@ -366,6 +366,7 @@
             var currentIpUrl = @json(route('attendance.current-ip'));
             var verifyTelegramUsernameUrl = @json(route('attendance.verify-telegram-username'));
             var storeAttendanceExceptionUrl = @json(route('attendance.exceptions.store'));
+            var userActivityLogUrl = @json(\Illuminate\Support\Facades\Route::has('user-activity-log.store') ? route('user-activity-log.store') : null);
             var csrfToken = @json(csrf_token());
             var browserPublicIp = null;
             var attendanceState = {
@@ -749,7 +750,7 @@
                     }
 
                     if (!googleMapsApiKey) {
-                        reject(new Error('GOOGLE_MAPS_API_KEY belum diset'));
+                        reject(new Error('GOOGLE_API_KEY belum diset'));
                         return;
                     }
 
@@ -923,6 +924,24 @@
                 });
             }
 
+            function logUserActivity(eventName, metadata) {
+                if (!userActivityLogUrl || !eventName) {
+                    return;
+                }
+
+                $.ajax({
+                    url: userActivityLogUrl,
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    data: {
+                        event: eventName,
+                        metadata: metadata || {}
+                    }
+                });
+            }
+
             function checkOnsiteLocation(context) {
                 if (!context) {
                     return;
@@ -963,6 +982,9 @@
                             setOnsiteStatus(context, 'Verification successful', 'success');
                             setVerificationMessage(context, 'Verification successful', 'success');
                             renderSubmitButtons();
+                            logUserActivity(context.type + '_verified', {
+                                has_coordinates: true
+                            });
                         },
                         function (error) {
                             context.hasVerifiedOnsite = false;
@@ -1342,8 +1364,18 @@
                 });
             }
 
+            if (clockInCardButtonElement) {
+                clockInCardButtonElement.addEventListener('click', function () {
+                    logUserActivity('clock_in_clicked');
+                });
+            }
+
             if (clockOutCardButtonElement) {
                 clockOutCardButtonElement.addEventListener('click', function (event) {
+                    logUserActivity('clock_out_clicked', {
+                        can_clock_out_now: attendanceState.canClockOutNow
+                    });
+
                     if (attendanceState.canClockOutNow) {
                         return;
                     }

@@ -42,17 +42,21 @@ class PicAttendanceTaskController extends Controller
             return response()->json(['data' => []]);
         }
 
+        $currentMonthStart = now('Asia/Jakarta')->startOfMonth()->toDateString();
+        $currentMonthEnd = now('Asia/Jakarta')->endOfMonth()->toDateString();
+
         $tasks = ProjectTask::query()
             ->with([
                 'employee:id,user_id',
                 'employee.profile:id,employee_id,name',
                 'employee.user:id,username,email',
                 'project:id,name',
+                'overtime:id,record_number',
                 'assignedBy:id,username,email',
             ])
             ->whereIn('employee_id', $visibleEmployeeIds->all())
-            ->whereNull('overtime_id')
-            ->orderByRaw('COALESCE(due_date, start_date, created_at) ASC')
+            ->whereRaw('DATE(COALESCE(due_date, start_date, created_at)) BETWEEN ? AND ?', [$currentMonthStart, $currentMonthEnd])
+            ->orderByRaw('COALESCE(due_date, start_date, created_at) DESC')
             ->get([
                 'id',
                 'project_id',
@@ -151,6 +155,10 @@ class PicAttendanceTaskController extends Controller
     {
         $isCompleted = $projectTask->status === 'completed' || $projectTask->completed_at !== null;
         $projectName = trim((string) ($projectTask->project?->name ?? 'Daily Task'));
+        $isOvertimeTask = $projectTask->overtime_id !== null;
+        $taskContext = $isOvertimeTask
+            ? $this->overtimeRecordNumberLabel($projectTask)
+            : ($projectTask->project_id !== null ? 'Task ('.$projectName.')' : 'Daily Task');
 
         return [
             'id' => (string) $projectTask->id,
@@ -160,7 +168,9 @@ class PicAttendanceTaskController extends Controller
             'blockers' => trim((string) ($projectTask->blockers ?? '')),
             'attachment_path' => trim((string) ($projectTask->attachment_path ?? '')),
             'project' => $projectName,
-            'task_category' => $projectTask->project_id !== null ? 'Project Task' : 'Daily Task',
+            'task_category' => $isOvertimeTask ? 'Overtime Task' : ($projectTask->project_id !== null ? $taskContext : 'Daily Task'),
+            'task_context' => $taskContext,
+            'task_context_type' => $isOvertimeTask ? 'overtime' : ($projectTask->project_id !== null ? 'project' : 'daily'),
             'assigned_by' => $this->assignedByLabel($projectTask),
             'due_date' => $this->dateRangeLabel($projectTask->start_date, $projectTask->due_date),
             'priority' => $this->priorityLabel((string) $projectTask->priority),
@@ -226,6 +236,13 @@ class PicAttendanceTaskController extends Controller
         return 'Self';
     }
 
+    private function overtimeRecordNumberLabel(ProjectTask $projectTask): string
+    {
+        $recordNumber = trim((string) ($projectTask->overtime?->record_number ?? ''));
+
+        return $recordNumber !== '' ? $recordNumber : '-';
+    }
+
     private function dateRangeLabel(?CarbonInterface $startDate, ?CarbonInterface $dueDate): string
     {
         if ($startDate === null && $dueDate === null) {
@@ -233,17 +250,40 @@ class PicAttendanceTaskController extends Controller
         }
 
         if ($startDate === null) {
-            return $dueDate?->format('d M Y') ?? '-';
+            return $dueDate !== null ? $this->dateLabelWithDay($dueDate) : '-';
         }
 
         if ($dueDate === null || $startDate->isSameDay($dueDate)) {
-            return $startDate->format('d M Y');
+            return $this->dateLabelWithDay($startDate);
         }
 
         if ($startDate->format('M Y') === $dueDate->format('M Y')) {
-            return $startDate->format('d').' - '.$dueDate->format('d M Y');
+            return $this->dateDayLabel($startDate).' - '.$this->dateLabelWithDay($dueDate);
         }
 
-        return $startDate->format('d M Y').' - '.$dueDate->format('d M Y');
+        return $this->dateLabelWithDay($startDate).' - '.$this->dateLabelWithDay($dueDate);
+    }
+
+    private function dateLabelWithDay(CarbonInterface $date): string
+    {
+        return $this->dateDayLabel($date).' '.$date->format('M Y');
+    }
+
+    private function dateDayLabel(CarbonInterface $date): string
+    {
+        return $this->indonesianWeekdayName($date).', '.$date->format('d');
+    }
+
+    private function indonesianWeekdayName(CarbonInterface $date): string
+    {
+        return match ((int) $date->dayOfWeek) {
+            0 => 'Minggu',
+            1 => 'Senin',
+            2 => 'Selasa',
+            3 => 'Rabu',
+            4 => 'Kamis',
+            5 => "Jum'at",
+            default => 'Sabtu',
+        };
     }
 }

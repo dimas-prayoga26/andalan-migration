@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Hidden(['password', 'remember_token', 'email_token', 'password_token'])]
@@ -59,9 +60,19 @@ class User extends Authenticatable
         return $this->hasMany(Project::class, 'created_by', 'id');
     }
 
+    public function googleOauthTokens(): HasMany
+    {
+        return $this->hasMany(GoogleOauthToken::class, 'user_id', 'id');
+    }
+
     public function approvedBusinessTrips(): HasMany
     {
         return $this->hasMany(BusinessTrip::class, 'approved_by', 'id');
+    }
+
+    public function userActivityLogs(): HasMany
+    {
+        return $this->hasMany(UserActivityLog::class, 'user_id', 'id');
     }
 
     /**
@@ -79,29 +90,38 @@ class User extends Authenticatable
         ]);
 
         $deployment = $this->employee?->deployment;
-        $positionPermissions = collect();
+        $permissionPositions = $this->permissionPositionsForDeployment($deployment);
 
-        if ($deployment?->position !== null) {
-            if ($deployment->position->name === 'Super Administrator') {
-                return true;
-            }
-
-            $positionPermissions = $positionPermissions->merge($deployment->position->permissions);
+        if ($permissionPositions->contains('name', 'Super Administrator')) {
+            return true;
         }
 
-        if ($deployment?->positions !== null) {
-            if ($deployment->positions->contains('name', 'Super Administrator')) {
-                return true;
-            }
-
-            $positionPermissions = $positionPermissions->merge(
-                $deployment->positions->flatMap(static fn (Position $position) => $position->permissions)
-            );
-        }
-
-        return $positionPermissions
+        return $permissionPositions
+            ->flatMap(static fn (Position $position) => $position->permissions)
             ->pluck('name')
             ->intersect($permissionNames)
             ->isNotEmpty();
+    }
+
+    /**
+     * @return Collection<int, Position>
+     */
+    private function permissionPositionsForDeployment(?EmployeeDeployment $deployment): Collection
+    {
+        if ($deployment === null) {
+            return collect();
+        }
+
+        $primaryPositions = $deployment->positions
+            ->filter(static fn (Position $position): bool => (bool) ($position->pivot?->is_primary ?? false))
+            ->values();
+
+        if ($primaryPositions->isNotEmpty()) {
+            return $primaryPositions;
+        }
+
+        return $deployment->position !== null
+            ? collect([$deployment->position])
+            : collect();
     }
 }

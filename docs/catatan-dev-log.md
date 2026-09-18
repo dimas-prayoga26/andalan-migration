@@ -7,10 +7,41 @@ Aturan log:
 
 ## Ringkasan Harian
 
+### 2026-08-24 (Senin)
+- Mengubah label konteks task pada PIC Attendance > Task Monitoring: overtime task tampil sebagai badge overtime, project task tampil `Task (Nama Project)`, dan daily task tetap `Daily Task`.
+- Detail: `docs/dev-log/2026-08-24-1420-pic-task-monitoring-label-overtime-project.md`.
+- Menyamakan Director Attendance > Task Monitoring dengan PIC: task overtime ikut tampil, badge `Overtime` muncul di title, dan `record_number` tampil di bawah title.
+- Detail: `docs/dev-log/2026-08-24-1515-director-task-monitoring-sama-pic.md`.
+- Mengubah label konfigurasi Google Drive pada detail Project Management menjadi `Konfigurasi Drive`, dengan Google OAuth, Google Picker untuk memilih folder induk, lalu pembuatan struktur folder `Project / Division`.
+- Detail: `docs/dev-log/2026-08-24-1450-siapkan-drive-project-detail.md`.
+- Menambahkan `folder_id` pada `project_division_event` dan tabel `google_oauth_tokens` yang berelasi ke `users` untuk menyimpan OAuth Google terenkripsi.
+- Detail: `docs/dev-log/2026-08-24-1425-google-drive-oauth-token-folder-id.md`.
+
+### 2026-08-21 (Jumat)
+- Merapikan tampilan detail Project Management agar sisa class/ID/copy lama `department` diganti menjadi `division`, mengikuti sumber data baru `event_divisions`.
+- Memastikan detail project tetap membaca scope dari `project_division_event`, `event_divisions`, `project_tasks.event_division_id`, dan `employee_deployments.current_event_division_id`, bukan `departments`.
+- Detail: `docs/dev-log/2026-08-21-1053-project-detail-division-event-cleanup.md`.
+
 ### 2026-08-18 (Selasa)
 - Memperbaiki auto overtime 12 jam agar `assigned_by` memakai PIC/supervisor aktif dari `employee_pic_assignments`, bukan staff yang melakukan clock-out.
 - Perubahan ini mencegah halaman detail overtime menampilkan staff sebagai `Supervisor` / fallback `Approved by Supervisor`.
 - Detail: `docs/dev-log/2026-08-18-1012-fix-auto-overtime-supervisor-pic.md`.
+- Membatasi title project card pada halaman Project Management > Projects menjadi satu baris dengan ellipsis.
+- Detail: `docs/dev-log/2026-08-18-1429-line-clamp-title-project-card.md`.
+- Menggabungkan tanggal live event dan tanggal project pada modal Add/Update Project menjadi date range picker.
+- Detail: `docs/dev-log/2026-08-18-1448-project-modal-date-range.md`.
+- Menambahkan pilihan Provinsi, Kabupaten/Kota, dan Alamat pada modal Add/Update Project memakai data lokal `laravolt/indonesia`.
+- Detail: `docs/dev-log/2026-08-18-1524-project-location-laravolt.md`.
+
+### 2026-08-19 (Rabu)
+- Mengganti style select Provinsi dan Kabupaten/Kota pada modal Add/Update Project dari Select2 menjadi `selectpicker`, menyamakan tampilan dengan field Company.
+- Detail: `docs/dev-log/2026-08-19-1015-select-provinsi-kota-selectpicker.md`.
+- Memperbaiki auto overtime 12 jam agar actor lifecycle log `Overtime Session Started`, `Task & Deliverables Submitted`, dan `Overtime Session Ended` memakai staff yang bersangkutan, bukan PIC/Supervisor.
+- Detail: `docs/dev-log/2026-08-19-1530-fix-actor-execution-auto-overtime.md`.
+- Memperbaiki tabel Pending pada Admin Attendance > Overtime agar baru tampil setelah masuk Phase 4: Payroll & Payment, bukan sejak `Task & Hours Verification` masih pending.
+- Detail: `docs/dev-log/2026-08-19-1600-admin-overtime-pending-mulai-phase4.md`.
+- Membatasi tabel Task Monitoring pada PIC dan Director Attendance > Task agar hanya bulan berjalan, serta mengubah urutan Due Date jadi dari yang terbaru.
+- Detail: `docs/dev-log/2026-08-19-1630-task-monitoring-bulan-berjalan.md`.
 
 ### 2026-08-11 (Selasa)
 - Mengubah perhitungan attendance agar posisi `Driver` dan `Executive Assistant` tidak terkena pengurangan rest 1 jam.
@@ -297,8 +328,25 @@ Aturan log:
 
 ## File Detail Entry
 
+### 2026-08-24
+- `2026-08-24-1420-pic-task-monitoring-label-overtime-project.md`
+- `2026-08-24-1425-google-drive-oauth-token-folder-id.md`
+- `2026-08-24-1450-siapkan-drive-project-detail.md`
+
+### 2026-08-21
+- `2026-08-21-1053-project-detail-division-event-cleanup.md`
+
+### 2026-08-19
+- `2026-08-19-1015-select-provinsi-kota-selectpicker.md`
+- `2026-08-19-1530-fix-actor-execution-auto-overtime.md`
+- `2026-08-19-1600-admin-overtime-pending-mulai-phase4.md`
+- `2026-08-19-1630-task-monitoring-bulan-berjalan.md`
+
 ### 2026-08-18
 - `2026-08-18-1012-fix-auto-overtime-supervisor-pic.md`
+- `2026-08-18-1429-line-clamp-title-project-card.md`
+- `2026-08-18-1448-project-modal-date-range.md`
+- `2026-08-18-1524-project-location-laravolt.md`
 
 ### 2026-07-08
 - `2026-07-08-1515-ringkasan-perubahan-attendance-leave-business-trip-overtime.md`

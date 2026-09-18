@@ -8,13 +8,11 @@
 						$isAttendanceMenu = request()->routeIs('attendance*') || request()->is('attendance*');
 						$isAdminAttendanceMenu = request()->routeIs('admin-attendance*') || request()->is('admin-attendance*');
 						$isPicAttendanceMenu = request()->routeIs('pic-attendance*') || request()->is('pic-attendance*');
-						$isPicAttendanceTaskMenu = request()->routeIs('pic-attendance.task*');
 						$isDirectorAttendanceMenu = request()->routeIs('director-attendance*') || request()->is('director-attendance*');
 						$isReportingMenu = request()->routeIs('project_management', 'project_management.detail') || request()->is('project-management*');
 						$isAuthorizationMenu = request()->routeIs('authorization*') || request()->is('authorization*');
 						$isApplicantMenu = request()->routeIs('applicant*') || request()->is('applicant*');
 						$isSettingsMenu = request()->routeIs('settings*') || request()->is('settings*');
-						$isTestingMenu = request()->routeIs('testing');
 						$canViewSidebarMenu = $canViewSidebarMenu ?? static fn (string $permissionName): bool => true;
 						$canViewDashboardMenu = $canViewSidebarMenu('view-dashboard');
 						$canViewCalendarMenu = $canViewSidebarMenu('view-calendar');
@@ -26,7 +24,6 @@
 						$canViewAuthorizationMenu = $canViewSidebarMenu('view-authorization');
 						$canViewTalentAcquisitionMenu = $canViewSidebarMenu('view-talent-acquisition');
 						$canViewSettingsMenu = $canViewSidebarMenu('view-settings');
-						$showPicAttendanceMenu = true;
 					@endphp
 					@if ($canViewDashboardMenu || $canViewCalendarMenu)
 					<div class="copyright mt-1">
@@ -70,22 +67,7 @@
 						</a>
 					</li>
 					@endif
-					<div class="copyright mt-1">
-						<p class="mb-1"><strong>PIC Management</strong> </p>
-					</div>
-					<li class="{{ $isPicAttendanceMenu && ! $isPicAttendanceTaskMenu ? 'mm-active' : '' }}">
-						<a class="{{ $isPicAttendanceMenu && ! $isPicAttendanceTaskMenu ? 'active' : '' }}" href="{{ route('pic-attendance.attendance') }}" aria-expanded="{{ $isPicAttendanceMenu && ! $isPicAttendanceTaskMenu ? 'true' : 'false' }}">
-							<i class="fa-regular fa-clock"></i>
-							<span class="nav-text" data-i18n="Attendance">Attendance </span>
-						</a>
-					</li>
-					<li class="{{ $isPicAttendanceTaskMenu ? 'mm-active' : '' }}">
-						<a class="{{ $isPicAttendanceTaskMenu ? 'active' : '' }}" href="{{ route('pic-attendance.task') }}" aria-expanded="{{ $isPicAttendanceTaskMenu ? 'true' : 'false' }}">
-							<i class="fa-regular fa-rectangle-list"></i>
-							<span class="nav-text" data-i18n="Team tasks">Team tasks </span>
-						</a>
-					</li>
-					@if ($canViewAdminAttendanceMenu || $canViewDirectorAttendanceMenu || $canViewAuthorizationMenu || $canViewTalentAcquisitionMenu)
+					@if ($canViewAdminAttendanceMenu || $canViewPicAttendanceMenu || $canViewDirectorAttendanceMenu || $canViewAuthorizationMenu || $canViewTalentAcquisitionMenu)
 					<div class="copyright mt-1">
 						<p class="mb-1"><strong>HR Management</strong> </p>
 					</div>
@@ -98,23 +80,14 @@
 						</a>
 					</li>
 					@endif
-					{{-- @if ($showPicAttendanceMenu)
+					@if ($canViewPicAttendanceMenu)
 					<li class="{{ $isPicAttendanceMenu ? 'mm-active' : '' }}">
 						<a class="{{ $isPicAttendanceMenu ? 'active' : '' }}" href="{{ route('pic-attendance.attendance') }}" aria-expanded="{{ $isPicAttendanceMenu ? 'true' : 'false' }}">
 							<i class="fa-solid fa-clipboard-check"></i>
 							<span class="nav-text" data-i18n="PIC">PIC</span>
 						</a>
 					</li>
-					@endif --}}
-					<div class="copyright mt-1">
-						<p class="mb-1"><strong>Testing</strong> </p>
-					</div>
-					<li class="{{ $isTestingMenu ? 'mm-active' : '' }}">
-						<a class="{{ $isTestingMenu ? 'active' : '' }}" href="{{ route('testing') }}" aria-expanded="{{ $isTestingMenu ? 'true' : 'false' }}">
-							<i class="fa-solid fa-flask"></i>
-							<span class="nav-text" data-i18n="Testing">Testing</span>
-						</a>
-					</li>
+					@endif
 					@if ($canViewDirectorAttendanceMenu)
 					<li class="{{ $isDirectorAttendanceMenu ? 'mm-active' : '' }}">
 						<a class="{{ $isDirectorAttendanceMenu ? 'active' : '' }}" href="{{ route('director-attendance.attendance') }}" aria-expanded="{{ $isDirectorAttendanceMenu ? 'true' : 'false' }}">

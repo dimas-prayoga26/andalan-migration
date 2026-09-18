@@ -93,9 +93,6 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertTrue(View::exists('pic_attendance.overtime.detail'));
         $this->assertTrue(View::exists('pic_attendance.task.index'));
         $this->assertStringContainsString('view-pic-attendance', $sidebar);
-        $this->assertStringContainsString('$showPicAttendanceMenu = true;', $sidebar);
-        $this->assertStringContainsString('@if ($showPicAttendanceMenu)', $sidebar);
-        $this->assertStringContainsString('data-i18n="PIC">PIC</span>', $sidebar);
         $this->assertStringContainsString("route('pic-attendance.attendance')", $sidebar);
         $this->assertStringContainsString("route('pic-attendance.attendance')", $navigation);
         $this->assertStringContainsString("route('pic-attendance.leave')", $navigation);

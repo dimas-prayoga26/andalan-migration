@@ -67,11 +67,12 @@
 						</a>
 					</li>
 					@endif
+					@if ($canViewPicAttendanceMenu)
 					<div class="copyright mt-1">
 						<p class="mb-1"><strong>PIC Management</strong> </p>
 					</div>
-					<li>
-						<a class="" href="pic-attendance.html" aria-expanded="false">
+					<li class="{{ $isPicAttendanceMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isPicAttendanceMenu ? 'active' : '' }}" href="{{ route('pic-attendance.attendance') }}" aria-expanded="{{ $isPicAttendanceMenu ? 'true' : 'false' }}">
 							<i class="fa-regular fa-clock"></i>
 							<span class="nav-text" data-i18n="Attendance">Attendance </span>
 						</a>
@@ -82,6 +83,7 @@
 							<span class="nav-text" data-i18n="Team tasks">Team tasks </span>
 						</a>
 					</li>
+					@endif
 					@if ($canViewAdminAttendanceMenu || $canViewPicAttendanceMenu || $canViewDirectorAttendanceMenu || $canViewAuthorizationMenu || $canViewTalentAcquisitionMenu)
 					<div class="copyright mt-1">
 						<p class="mb-1"><strong>HR Management</strong> </p>

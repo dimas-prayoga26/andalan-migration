@@ -96,6 +96,66 @@ class AuthorizationEmployeeListScopeTest extends TestCase
         $response->assertForbidden();
     }
 
+    public function test_authorization_permission_uses_only_primary_deployment_position(): void
+    {
+        $rnbCompany = Company::query()->create(['name' => 'RNB']);
+        $operationsDepartment = $this->createDepartment('Operations');
+        $staffPosition = Position::query()->create(['name' => 'Staff']);
+        $administratorPosition = Position::query()->create(['name' => 'Administrator']);
+
+        $multiPositionUser = $this->createEmployeeUser(
+            name: 'Multi Position User',
+            username: 'multi.position',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+
+        $this->assignRole($multiPositionUser, 'Staff');
+        $this->assignPositionPermission($administratorPosition, 'view-authorization');
+
+        $multiPositionUser->load('employee.deployment');
+        $deployment = $multiPositionUser->employee?->deployment;
+        $this->assertInstanceOf(EmployeeDeployment::class, $deployment);
+
+        $deployment->positions()->sync([
+            (string) $staffPosition->id => [
+                'is_primary' => true,
+                'status' => 'active',
+            ],
+            (string) $administratorPosition->id => [
+                'is_primary' => false,
+                'status' => 'active',
+            ],
+        ]);
+
+        $userWithAdditionalAdministratorPosition = $multiPositionUser->fresh();
+        $this->assertFalse($userWithAdditionalAdministratorPosition->hasAnyPositionPermission(['view-authorization']));
+
+        $this->actingAs($userWithAdditionalAdministratorPosition)
+            ->get(route('authorization'))
+            ->assertForbidden();
+
+        $deployment->update(['current_position_id' => $administratorPosition->id]);
+        $deployment->positions()->sync([
+            (string) $staffPosition->id => [
+                'is_primary' => false,
+                'status' => 'active',
+            ],
+            (string) $administratorPosition->id => [
+                'is_primary' => true,
+                'status' => 'active',
+            ],
+        ]);
+
+        $userWithPrimaryAdministratorPosition = $multiPositionUser->fresh();
+        $this->assertTrue($userWithPrimaryAdministratorPosition->hasAnyPositionPermission(['view-authorization']));
+
+        $this->actingAs($userWithPrimaryAdministratorPosition)
+            ->get(route('authorization'))
+            ->assertOk();
+    }
+
     public function test_employee_search_filters_the_authorized_company_dataset(): void
     {
         $rnbCompany = Company::query()->create(['name' => 'RNB']);
@@ -145,6 +205,67 @@ class AuthorizationEmployeeListScopeTest extends TestCase
             ->assertDontSee('Different Employee')
             ->assertSee('Target Other Company')
             ->assertViewHas('search', 'Target');
+    }
+
+    public function test_employee_list_can_be_filtered_between_active_and_inactive_staff(): void
+    {
+        $rnbCompany = Company::query()->create(['name' => 'RNB']);
+        $operationsDepartment = $this->createDepartment('Operations');
+        $staffPosition = Position::query()->create(['name' => 'Staff']);
+        $administratorPosition = Position::query()->create(['name' => 'Administrator']);
+
+        $administrator = $this->createEmployeeUser(
+            name: 'Administrator Viewer',
+            username: 'administrator.viewer',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $administratorPosition,
+        );
+        $activeStaff = $this->createEmployeeUser(
+            name: 'Visible Staff',
+            username: 'visible.staff',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+        $inactiveAccountStaff = $this->createEmployeeUser(
+            name: 'Archived Staff',
+            username: 'archived.staff',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+        $inactiveEmployeeStatusStaff = $this->createEmployeeUser(
+            name: 'Resigned Staff',
+            username: 'resigned.staff',
+            company: $rnbCompany,
+            department: $operationsDepartment,
+            position: $staffPosition,
+        );
+
+        $inactiveAccountStaff->update(['is_active' => false]);
+        $inactiveEmployeeStatusStaff->employee?->update(['status' => 'Inactive']);
+
+        foreach ([$administrator, $activeStaff, $inactiveAccountStaff, $inactiveEmployeeStatusStaff] as $user) {
+            $this->assignRole($user, 'Staff');
+        }
+        $this->assignPositionPermission($administratorPosition, 'view-authorization');
+
+        $this->actingAs($administrator)
+            ->get(route('authorization'))
+            ->assertOk()
+            ->assertSee('Visible Staff')
+            ->assertDontSee('Archived Staff')
+            ->assertDontSee('Resigned Staff')
+            ->assertViewHas('employeeStatusFilter', 'active');
+
+        $this->actingAs($administrator)
+            ->get(route('authorization', ['status' => 'inactive']))
+            ->assertOk()
+            ->assertSee('Archived Staff')
+            ->assertSee('Resigned Staff')
+            ->assertDontSee('Visible Staff')
+            ->assertViewHas('employeeStatusFilter', 'inactive');
     }
 
     public function test_employee_list_is_paginated_by_ten_records(): void

@@ -13,6 +13,7 @@ class TalentAcquisitionStructureTest extends TestCase
     {
         $applicantsRoute = Route::getRoutes()->getByName('applicant');
         $jobVacanciesRoute = Route::getRoutes()->getByName('applicant.job_vacancies');
+        $createJobVacancyRoute = Route::getRoutes()->getByName('applicant.job_vacancies.create');
         $updateJobVacancyStatusRoute = Route::getRoutes()->getByName('applicant.job_vacancies.status.update');
         $showApplicantRoute = Route::getRoutes()->getByName('applicant.show');
         $updateStatusRoute = Route::getRoutes()->getByName('applicant.status.update');
@@ -25,6 +26,10 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertNotNull($jobVacanciesRoute);
         $this->assertSame('applicant/job-vacancies', $jobVacanciesRoute?->uri());
         $this->assertSame(TalentAcquisitionController::class.'@jobVacancies', $jobVacanciesRoute?->getActionName());
+
+        $this->assertNotNull($createJobVacancyRoute);
+        $this->assertSame('applicant/job-vacancies/create', $createJobVacancyRoute?->uri());
+        $this->assertSame(TalentAcquisitionController::class.'@createJobVacancy', $createJobVacancyRoute?->getActionName());
 
         $this->assertNotNull($updateJobVacancyStatusRoute);
         $this->assertSame('applicant/job-vacancies/{jobVacancy}/status', $updateJobVacancyStatusRoute?->uri());
@@ -51,8 +56,8 @@ class TalentAcquisitionStructureTest extends TestCase
         $applicantsView = File::get(resource_path('views/applicant_data/index.blade.php'));
         $applicantDetailView = File::get(resource_path('views/applicant_data/show.blade.php'));
         $jobVacanciesView = File::get(resource_path('views/applicant_data/job_vancancies.blade.php'));
+        $jobVacancyCreateView = File::get(resource_path('views/applicant_data/job_vacancy_create.blade.php'));
         $databaseConfig = File::get(config_path('database.php'));
-        $servicesPath = app_path('Services/Applicants/LegacyApplicantSyncService.php');
 
         $this->assertStringContainsString('Talent Acquisition', $sidebar);
         $this->assertStringContainsString('Applicants', $sidebar);
@@ -61,15 +66,15 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString("route('applicant')", $sidebar);
         $this->assertStringContainsString("route('applicant.job_vacancies')", $sidebar);
         $this->assertStringContainsString('position.permission:view-talent-acquisition', $routes);
+        $this->assertStringContainsString('LegacyApplicantSyncService', $controller);
+        $this->assertStringContainsString('createJobVacancy', $controller);
         $this->assertStringContainsString('updateApplicantStatus', $controller);
         $this->assertStringContainsString('destroyApplicant', $controller);
         $this->assertStringContainsString('updateJobVacancyStatus', $controller);
-        $this->assertStringNotContainsString('LegacyApplicantSyncService', $controller);
-        $this->assertStringNotContainsString("DB::connection('legacy_mysql')", $controller);
-        $this->assertStringNotContainsString("->table('opt_applicants_vacancies')", $controller);
-        $this->assertFileDoesNotExist($servicesPath);
+        $this->assertStringContainsString("DB::connection('legacy_mysql')", $controller);
+        $this->assertStringContainsString("->table('opt_applicants_vacancies')", $controller);
         $this->assertStringContainsString('JobVacancy::statusOptions()', $controller);
-        $this->assertStringContainsString('JobVacancy::statusValueFor', $controller);
+        $this->assertStringContainsString('JobVacancy::legacyStatusValueFor', $controller);
         $this->assertStringContainsString("'jobVacancy:id,name'", $controller);
         $this->assertStringContainsString("'applicant_status_id'", $controller);
         $this->assertStringContainsString("->latest('legacy_created_at')", $controller);
@@ -78,8 +83,20 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString("'educations.educationLevel:id,name'", $controller);
         $this->assertStringContainsString("'workExperiences:id,applicant_id,sequence,company_name,role,company_location,start_period,end_period'", $controller);
         $this->assertStringContainsString("withCount('applicants')", $controller);
-        $this->assertStringNotContainsString("'legacy_mysql'", $databaseConfig);
-        $this->assertStringNotContainsString('LEGACY_DB_DATABASE', $databaseConfig);
+        $this->assertStringContainsString("max('legacy_applicant_id')", File::get(app_path('Services/Applicants/LegacyApplicantSyncService.php')));
+        $this->assertStringContainsString("->where('id', '>', \$lastSyncedLegacyApplicantId)", File::get(app_path('Services/Applicants/LegacyApplicantSyncService.php')));
+        $this->assertStringContainsString('syncExistingApplicantStatuses', File::get(app_path('Services/Applicants/LegacyApplicantSyncService.php')));
+        $this->assertStringContainsString("'applicant_status_id' => \$statusIdsByValue->get(\$statusValue)", File::get(app_path('Services/Applicants/LegacyApplicantSyncService.php')));
+        $this->assertStringContainsString("'gender_id' => \$this->genderIdFor(\$legacyApplicant->gender)", File::get(app_path('Services/Applicants/LegacyApplicantSyncService.php')));
+        $this->assertStringContainsString("'marital_status_id' => \$this->maritalStatusIdFor(\$legacyApplicant->marital_status)", File::get(app_path('Services/Applicants/LegacyApplicantSyncService.php')));
+        $this->assertStringContainsString('LegacyEducationLevel', File::get(app_path('Services/Applicants/LegacyApplicantSyncService.php')));
+        $this->assertStringContainsString("'education_level_id' => \$educationLevelId", File::get(app_path('Services/Applicants/LegacyApplicantSyncService.php')));
+        $this->assertStringContainsString("'sequence' => \$index + 1", File::get(app_path('Services/Applicants/LegacyApplicantSyncService.php')));
+        $this->assertStringNotContainsString("'gender' => \$this->normalizeNullableText(\$legacyApplicant->gender)", File::get(app_path('Services/Applicants/LegacyApplicantSyncService.php')));
+        $this->assertStringNotContainsString("'marital_status' => \$this->normalizeNullableText(\$legacyApplicant->marital_status)", File::get(app_path('Services/Applicants/LegacyApplicantSyncService.php')));
+        $this->assertStringNotContainsString("'legacy_status_value' => \$this->integerOrNull(\$legacyApplicant->nb)", File::get(app_path('Services/Applicants/LegacyApplicantSyncService.php')));
+        $this->assertStringContainsString("'legacy_mysql'", $databaseConfig);
+        $this->assertStringContainsString("env('LEGACY_DB_DATABASE', 'rnbmanag_andalanbersamacom')", $databaseConfig);
         $this->assertStringContainsString('@forelse ($applicants as $applicant)', $applicantsView);
         $this->assertStringContainsString('<th class="mw-80">No</th>', $applicantsView);
         $this->assertStringContainsString('<th class="mw-100">Photo</th>', $applicantsView);
@@ -88,21 +105,29 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('<th class="mw-420">Keterangan</th>', $applicantsView);
         $this->assertStringContainsString('<th class="mw-120">Action</th>', $applicantsView);
         $this->assertStringContainsString('$applicant->full_name', $applicantsView);
-        $this->assertStringContainsString('$applicant->photoUrl()', $applicantsView);
-        $this->assertStringContainsString('$loadPhotoImmediately = $loop->iteration <= 10', $applicantsView);
-        $this->assertStringContainsString('.talent-photo img', $applicantsView);
-        $this->assertStringContainsString('src="{{ $photoUrl }}"', $applicantsView);
-        $this->assertStringContainsString('data-photo-src="{{ $photoUrl }}"', $applicantsView);
-        $this->assertStringContainsString('loadVisibleApplicantPhotos', $applicantsView);
         $this->assertStringContainsString('$applicant->applicant_status_id', $applicantsView);
+        $this->assertStringContainsString('src="{{ $photoUrl }}"', $applicantsView);
+        $this->assertStringContainsString('loading="lazy"', $applicantsView);
+        $this->assertStringNotContainsString('data-photo-src', $applicantsView);
+        $this->assertStringNotContainsString('loadVisibleApplicantPhotos', $applicantsView);
         $this->assertStringContainsString('order: []', $applicantsView);
         $this->assertStringContainsString('targets: [0, 1, 5]', $applicantsView);
         $this->assertStringContainsString('pageInfo.start + index + 1', $applicantsView);
         $this->assertStringContainsString('talent-status-select', $applicantsView);
-        $this->assertStringContainsString('status-value-{{ $applicantStatuses->firstWhere', $applicantsView);
+        $this->assertStringContainsString('talent-status-tabs', $applicantsView);
+        $this->assertStringContainsString('talent-status-tab', $applicantsView);
+        $this->assertStringContainsString('@foreach ($applicantStatuses as $applicantStatus)', $applicantsView);
+        $this->assertStringContainsString('data-status-value="{{ $applicantStatus->value }}"', $applicantsView);
+        $this->assertStringContainsString('data-status-value="{{ $applicantStatusValue }}"', $applicantsView);
+        $this->assertStringContainsString('selectedApplicantStatus', $applicantsView);
+        $this->assertStringContainsString('$.fn.dataTable.ext.search.push', $applicantsView);
+        $this->assertStringContainsString('status-value-{{ $applicantStatusValue }}', $applicantsView);
         $this->assertStringContainsString('.talent-status-select.status-value-0', $applicantsView);
         $this->assertStringContainsString('.talent-status-select.status-value-1', $applicantsView);
         $this->assertStringContainsString('.talent-status-select.status-value-2', $applicantsView);
+        $this->assertStringContainsString('.talent-status-select.status-value-3', $applicantsView);
+        $this->assertStringContainsString('.talent-status-select.status-value-4', $applicantsView);
+        $this->assertStringContainsString('.talent-status-select.status-value-5', $applicantsView);
         $this->assertStringContainsString('updateApplicantStatusColor', $applicantsView);
         $this->assertStringContainsString('#applicantsTable_wrapper .dt-layout-row:first-child', $applicantsView);
         $this->assertStringContainsString('#applicantsTable_wrapper .dt-search input', $applicantsView);
@@ -111,6 +136,15 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString("route('applicant.show'", $applicantsView);
         $this->assertStringContainsString("route('applicant.destroy'", $applicantsView);
         $this->assertStringContainsString("@method('DELETE')", $applicantsView);
+        $this->assertStringContainsString('assets/vendor/sweetalert2/sweetalert2.min.css', $applicantsView);
+        $this->assertStringContainsString('assets/vendor/sweetalert2/sweetalert2.min.js', $applicantsView);
+        $this->assertStringContainsString('data-applicant-delete-form', $applicantsView);
+        $this->assertStringContainsString('data-applicant-name="{{ $applicant->full_name }}"', $applicantsView);
+        $this->assertStringContainsString('Swal.fire({', $applicantsView);
+        $this->assertStringContainsString("confirmButtonText: 'Hapus'", $applicantsView);
+        $this->assertStringNotContainsString('deleteApplicantModal', $applicantsView);
+        $this->assertStringNotContainsString('new bootstrap.Modal(deleteApplicantModalElement)', $applicantsView);
+        $this->assertStringNotContainsString("confirm('Hapus data pelamar ini?')", $applicantsView);
         $this->assertStringNotContainsString('<th class="mw-260">Pendidikan</th>', $applicantsView);
         $this->assertStringNotContainsString('<th class="mw-320">Pengalaman Kerja</th>', $applicantsView);
         $this->assertStringNotContainsString('$applicant->educations', $applicantsView);
@@ -120,12 +154,22 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('@forelse ($jobVacancies as $jobVacancy)', $jobVacanciesView);
         $this->assertStringContainsString('$jobVacancy->applicants_count', $jobVacanciesView);
         $this->assertStringContainsString('talent-vacancy-status-select', $jobVacanciesView);
+        $this->assertStringContainsString("route('applicant.job_vacancies.create')", $jobVacanciesView);
+        $this->assertStringContainsString('Tambah Lowongan', $jobVacanciesView);
+        $this->assertStringContainsString('lengthChange: false', $jobVacanciesView);
+        $this->assertStringNotContainsString('<form method="POST" action="{{ route(\'applicant.job_vacancies.store\') }}" class="talent-create-form">', $jobVacanciesView);
         $this->assertStringContainsString('updateJobVacancyStatusColor', $jobVacanciesView);
         $this->assertStringContainsString("route('applicant.job_vacancies.status.update'", $jobVacanciesView);
         $this->assertStringContainsString('@foreach ($jobVacancyStatuses as $statusValue => $statusLabel)', $jobVacanciesView);
         $this->assertStringNotContainsString('talent-status-badge', $jobVacanciesView);
+        $this->assertStringContainsString('Create Job Vacancy', $jobVacancyCreateView);
+        $this->assertStringContainsString('Tambah Lowongan Pekerjaan', $jobVacancyCreateView);
+        $this->assertStringContainsString("route('applicant.job_vacancies.store')", $jobVacancyCreateView);
+        $this->assertStringContainsString("route('applicant.job_vacancies')", $jobVacancyCreateView);
+        $this->assertStringContainsString('name="name"', $jobVacancyCreateView);
+        $this->assertStringContainsString('name="status"', $jobVacancyCreateView);
+        $this->assertStringContainsString('@foreach ($jobVacancyStatuses as $statusValue => $statusLabel)', $jobVacancyCreateView);
         $this->assertStringContainsString('Applicant Detail', $applicantDetailView);
-        $this->assertStringContainsString('$applicant->photoUrl()', $applicantDetailView);
         $this->assertStringContainsString('$applicant->statusLabel()', $applicantDetailView);
         $this->assertStringContainsString('applicant-cv-photo', $applicantDetailView);
         $this->assertStringContainsString('applicant-cv-list', $applicantDetailView);
@@ -153,7 +197,5 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringNotContainsString('<div class="applicant-detail-label">Photo</div>', $applicantDetailView);
         $this->assertStringNotContainsString('<div class="applicant-detail-label">Agreement</div>', $applicantDetailView);
         $this->assertStringNotContainsString('<table class="table table-sm table-striped align-middle">', $applicantDetailView);
-        $this->assertStringNotContainsString('Koneksi database legacy belum tersedia.', $applicantsView);
-        $this->assertStringNotContainsString('Koneksi database legacy belum tersedia.', $jobVacanciesView);
     }
 }

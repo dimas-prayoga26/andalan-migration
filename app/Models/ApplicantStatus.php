@@ -12,9 +12,19 @@ class ApplicantStatus extends Model
 
     public const VALUE_SUBMITTED = 0;
 
-    public const VALUE_INTERVIEW = 1;
+    public const VALUE_HR_INTERVIEW = 1;
 
-    public const VALUE_DITERIMA = 2;
+    public const VALUE_TECHNICAL_TEST = 2;
+
+    public const VALUE_USER_INTERVIEW = 3;
+
+    public const VALUE_OFFERING = 4;
+
+    public const VALUE_NOT_SUITABLE = 5;
+
+    public const VALUE_INTERVIEW = self::VALUE_HR_INTERVIEW;
+
+    public const VALUE_DITERIMA = self::VALUE_OFFERING;
 
     protected $table = 'applicant_statuses';
 
@@ -52,8 +62,11 @@ class ApplicantStatus extends Model
     {
         return [
             self::VALUE_SUBMITTED => 'Submitted',
-            self::VALUE_INTERVIEW => 'Interview',
-            self::VALUE_DITERIMA => 'Diterima',
+            self::VALUE_HR_INTERVIEW => 'HR Interview',
+            self::VALUE_TECHNICAL_TEST => 'Technical test',
+            self::VALUE_USER_INTERVIEW => 'User Interview',
+            self::VALUE_OFFERING => 'Offering',
+            self::VALUE_NOT_SUITABLE => 'Not Suitable',
         ];
     }
 }

@@ -32,6 +32,15 @@
             margin-bottom: 0.85rem;
         }
 
+        .talent-create-link {
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            white-space: nowrap;
+        }
+
         .talent-table-title {
             color: #25314c;
             font-size: 1rem;
@@ -143,6 +152,15 @@
         }
 
         @media only screen and (max-width: 767.98px) {
+            .talent-header-bar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .talent-create-link {
+                width: 100%;
+            }
+
             #jobVacanciesTable_wrapper .dt-layout-row:first-child {
                 align-items: stretch;
                 flex-direction: column;
@@ -187,11 +205,16 @@
                         <a href="{{ route('applicant') }}" class="nav-link {{ request()->routeIs('applicant') ? 'active' : '' }}">Applicants</a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ route('applicant.job_vacancies') }}" class="nav-link {{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}">Job Vacancies</a>
+                        <a href="{{ route('applicant.job_vacancies') }}" class="nav-link {{ request()->routeIs('applicant.job_vacancies*') ? 'active' : '' }}">Job Vacancies</a>
                     </li>
                 </ul>
             </div>
             <div class="card-body">
+                @if (! ($syncResult['available'] ?? true))
+                    <div class="alert alert-warning mb-3" role="alert">
+                        {{ $syncResult['message'] ?? 'Koneksi database legacy belum tersedia.' }}
+                    </div>
+                @endif
                 @if (session('status'))
                     <div class="alert alert-success mb-3" role="alert">{{ session('status') }}</div>
                 @endif
@@ -201,6 +224,10 @@
 
                 <div class="talent-header-bar">
                     <div class="talent-table-title">Job Vacancy</div>
+                    <a href="{{ route('applicant.job_vacancies.create') }}" class="btn btn-primary talent-create-link">
+                        <i class="bi bi-plus-lg"></i>
+                        Tambah Lowongan
+                    </a>
                 </div>
 
                 <div class="table-responsive">
@@ -223,9 +250,9 @@
                                     <form method="POST" action="{{ route('applicant.job_vacancies.status.update', ['jobVacancy' => $jobVacancy->id]) }}" class="talent-vacancy-status-form">
                                         @csrf
                                         @method('PATCH')
-                                        <select name="status" class="talent-vacancy-status-select {{ $jobVacancy->statusCssClass() }}" onchange="updateJobVacancyStatusColor(this); this.form.submit()" aria-label="Update status {{ $jobVacancy->name }}">
+                                        <select name="status" class="talent-vacancy-status-select {{ $jobVacancy->status }}" onchange="updateJobVacancyStatusColor(this); this.form.submit()" aria-label="Update status {{ $jobVacancy->name }}">
                                             @foreach ($jobVacancyStatuses as $statusValue => $statusLabel)
-                                                <option value="{{ $statusValue }}" @selected((int) $jobVacancy->status === (int) $statusValue)>
+                                                <option value="{{ $statusValue }}" @selected($jobVacancy->status === $statusValue)>
                                                     {{ $statusLabel }}
                                                 </option>
                                             @endforeach
@@ -261,11 +288,12 @@
     <script>
         function updateJobVacancyStatusColor(selectElement) {
             selectElement.classList.remove('active', 'inactive');
-            selectElement.classList.add(selectElement.value === '1' ? 'active' : 'inactive');
+            selectElement.classList.add(selectElement.value === 'active' ? 'active' : 'inactive');
         }
 
         $(function () {
             var jobVacancyTable = $('#jobVacanciesTable').DataTable({
+                lengthChange: false,
                 columnDefs: [
                     { targets: 0, orderable: false }
                 ]

@@ -11,9 +11,13 @@ class JobVacancy extends Model
 {
     use GeneratesCustomSequenceUuid;
 
-    public const STATUS_ACTIVE = 1;
+    public const STATUS_ACTIVE = 'active';
 
-    public const STATUS_INACTIVE = 2;
+    public const STATUS_INACTIVE = 'inactive';
+
+    public const LEGACY_STATUS_ACTIVE = 1;
+
+    public const LEGACY_STATUS_INACTIVE = 2;
 
     protected $table = 'job_vacancies';
 
@@ -30,7 +34,6 @@ class JobVacancy extends Model
     protected function casts(): array
     {
         return [
-            'status' => 'integer',
             'legacy_created_at' => 'datetime',
         ];
     }
@@ -55,7 +58,7 @@ class JobVacancy extends Model
     }
 
     /**
-     * @return array<int, int>
+     * @return array<int, string>
      */
     public static function statuses(): array
     {
@@ -66,7 +69,7 @@ class JobVacancy extends Model
     }
 
     /**
-     * @return array<int, string>
+     * @return array<string, string>
      */
     public static function statusOptions(): array
     {
@@ -76,20 +79,15 @@ class JobVacancy extends Model
         ];
     }
 
-    public static function statusValueFor(int $status): int
+    public static function legacyStatusValueFor(string $status): int
     {
         return $status === self::STATUS_ACTIVE
-            ? self::STATUS_ACTIVE
-            : self::STATUS_INACTIVE;
+            ? self::LEGACY_STATUS_ACTIVE
+            : self::LEGACY_STATUS_INACTIVE;
     }
 
     public function statusLabel(): string
     {
-        return self::statusOptions()[(int) $this->status] ?? 'Non Active';
-    }
-
-    public function statusCssClass(): string
-    {
-        return (int) $this->status === self::STATUS_ACTIVE ? 'active' : 'inactive';
+        return self::statusOptions()[$this->status] ?? 'Non Active';
     }
 }

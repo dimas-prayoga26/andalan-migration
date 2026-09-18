@@ -87,6 +87,10 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $recapController);
         $this->assertStringContainsString("'recapDetailMonth' => \$detailContext['month']", $recapController);
         $this->assertStringContainsString('recapAttendanceLogRows', $recapController);
+        $this->assertStringContainsString('$attendanceDate = $this->recapAttendanceDate($request);', $recapController);
+        $this->assertStringContainsString("'recapAttendanceDateInput' => \$attendanceDate->format('d/m/Y')", $recapController);
+        $this->assertStringContainsString('private function recapAttendanceDate(Request $request): Carbon', $recapController);
+        $this->assertStringContainsString("\$request->string('date')->trim()->toString()", $recapController);
         $this->assertStringContainsString('recapMonthlyRows', $recapController);
         $this->assertStringContainsString('$monthlyWorkingDaysCount = $this->recapWorkDaysBetween(', $recapController);
         $this->assertStringContainsString('$monthlyExpectedWorkMinutes = $monthlyWorkingDaysCount * 8 * 60;', $recapController);
@@ -255,6 +259,15 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $leaveController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceLeaveController.php'));
 
         $this->assertStringContainsString('@forelse ($recapAttendanceLogRows as $row)', $recapView);
+        $this->assertStringContainsString('id="recapDailyAttendanceFilter"', $recapView);
+        $this->assertStringContainsString('id="recapAttendanceDateFilter"', $recapView);
+        $this->assertStringContainsString('name="date"', $recapView);
+        $this->assertStringContainsString('js-recap-attendance-date', $recapView);
+        $this->assertStringContainsString('{{ $recapAttendanceDateInput }}', $recapView);
+        $this->assertStringContainsString('id="recapAttendanceDateButton"', $recapView);
+        $this->assertStringContainsString('function initializeRecapAttendanceDatePicker()', $recapView);
+        $this->assertStringContainsString('singleDatePicker: true', $recapView);
+        $this->assertStringContainsString('form.submit();', $recapView);
         $this->assertStringContainsString('id="recapAttendanceCaptureButton"', $recapView);
         $this->assertStringContainsString('id="recapAttendanceCaptureArea"', $recapView);
         $this->assertStringContainsString('id="recapAttendanceCaptureTable"', $recapView);

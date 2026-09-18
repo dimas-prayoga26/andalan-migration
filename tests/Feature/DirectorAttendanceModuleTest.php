@@ -52,6 +52,7 @@ class DirectorAttendanceModuleTest extends TestCase
     public function test_director_module_has_its_own_views_navigation_and_permission(): void
     {
         $directorController = File::get(app_path('Http/Controllers/DirectorAttendance/DirectorAttendanceController.php'));
+        $directorAttendanceView = File::get(resource_path('views/director_attendance/attendance/index.blade.php'));
         $directorDetailView = File::get(resource_path('views/director_attendance/attendance/detail-employees.blade.php'));
         $directorOvertimeController = File::get(app_path('Http/Controllers/DirectorAttendance/DirectorAttendanceOvertimeController.php'));
         $directorOvertimeDetailView = File::get(resource_path('views/director_attendance/overtime/detail.blade.php'));
@@ -160,6 +161,17 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('Task', $navigation);
         $this->assertStringNotContainsString('Leave', $navigation);
         $this->assertStringNotContainsString('Business Trip', $navigation);
+        $this->assertStringContainsString('id="recapDailyAttendanceFilter"', $directorAttendanceView);
+        $this->assertStringContainsString("route('director-attendance.attendance')", $directorAttendanceView);
+        $this->assertStringContainsString('id="recapAttendanceDateFilter"', $directorAttendanceView);
+        $this->assertStringContainsString('{{ $recapAttendanceDateInput }}', $directorAttendanceView);
+        $this->assertStringContainsString('id="recapAttendanceDateButton"', $directorAttendanceView);
+        $this->assertStringContainsString('class="card recap-attendance-card"', $directorAttendanceView);
+        $this->assertStringContainsString('class="card recap-monthly-card"', $directorAttendanceView);
+        $this->assertStringContainsString('<input type="hidden" name="date" value="{{ $recapAttendanceDateInput }}">', $directorAttendanceView);
+        $this->assertStringContainsString('#recapMonthlyFilterButton', $directorAttendanceView);
+        $this->assertStringContainsString('min-width: 48px;', $directorAttendanceView);
+        $this->assertStringContainsString('function initializeRecapAttendanceDatePicker()', $directorAttendanceView);
         $this->assertStringContainsString('Task Monitoring', $directorTaskView);
         $this->assertStringContainsString('$directorTaskCompanyOptions', $directorTaskView);
         $this->assertStringContainsString('id="directorTaskCompanyFilter"', $directorTaskView);
@@ -296,6 +308,8 @@ class DirectorAttendanceModuleTest extends TestCase
             'id' => 'director-task-daily',
             'title' => 'Daily Report',
             'status' => 'pending',
+            'start_date' => '2026-09-14',
+            'due_date' => '2026-09-18',
         ]);
 
         $overtimeRow = $method->invoke($controller, $overtimeTask);
@@ -313,5 +327,6 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertSame('Daily Task', $dailyRow['task_context']);
         $this->assertSame('daily', $dailyRow['task_context_type']);
         $this->assertSame('Daily Task', $dailyRow['task_category']);
+        $this->assertSame("Senin, 14 - Jum'at, 18 Sep 2026", $dailyRow['due_date']);
     }
 }

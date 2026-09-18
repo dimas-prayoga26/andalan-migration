@@ -157,6 +157,7 @@
 						<th>Name</th>
 						<th>Clock In</th>
 						<th>Clock Out</th>
+                        <th>Location</th>
 						<th>Note</th>
 						<th>Working Hours</th>
 						<th>Attachment</th>
@@ -180,6 +181,7 @@
 									<span class="fw-bold">{{ $row['clock_out'] }}</span>
 								@endif
 							</td>
+                            <td>{{ $row['location_address'] }}</td>
 							<td data-capture-tone="{{ $row['attachment_badge'] }}">{{ $row['note'] }}</td>
 							<td>{{ $row['working_hours'] }}</td>
 							<td>

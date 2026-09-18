@@ -9,9 +9,20 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 
 This application is a Laravel application running on PHP 8.4. You are an expert with the Laravel ecosystem. Always use the APIs that match the installed major version of each package — do not assume a version.
 
+<<<<<<< HEAD
+- php - 8.4
+- laravel/framework (LARAVEL) - v13
+- laravel/prompts (PROMPTS) - v0
+- laravel/boost (BOOST) - v2
+- laravel/mcp (MCP) - v0
+- laravel/pail (PAIL) - v1
+- laravel/pint (PINT) - v1
+- phpunit/phpunit (PHPUNIT) - v12
+=======
 Before relying on a package's API, confirm its installed version:
 - PHP packages: run `composer show --direct` to list direct dependencies with versions, or `composer show <vendor/package>` for a single package.
 - JS packages: check `package.json` for the installed versions.
+>>>>>>> 7c5d7c93c9b060f44e20a01df99a4d63a5e4fc29
 
 ## Skills Activation
 

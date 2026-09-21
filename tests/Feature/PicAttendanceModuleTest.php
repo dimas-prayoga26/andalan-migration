@@ -107,7 +107,7 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString("'Administrator' => \$allPermissionsWithoutPic", $permissionSeeder);
         $this->assertStringNotContainsString("'System Administrator' =>", $permissionSeeder);
         $this->assertStringContainsString("'view-pic-attendance', 'view-director-attendance'", $permissionSeeder);
-        $this->assertStringContainsString("'view-pic-attendance' => ['section' => 'HR Management', 'label' => 'PIC']", $authorizationController);
+        $this->assertStringContainsString("'view-pic-attendance' => ['section' => 'PIC Management', 'label' => 'PIC']", $authorizationController);
         $this->assertStringContainsString('employee_pic_assignments', $leaveController);
         $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $leaveController);
         $this->assertStringContainsString('employee_pic_assignments', $attendanceController);
@@ -119,6 +119,9 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('$monthlyExpectedWorkMinutes = $monthlyWorkingDaysCount * 8 * 60;', $attendanceController);
         $this->assertStringContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$monthlyWorkingDaysCount.' days',", $attendanceController);
         $this->assertStringContainsString('recapCompactMinutesLabel($monthlyExpectedWorkMinutes)', $attendanceController);
+        $this->assertStringContainsString('$attendanceDate = $this->recapAttendanceDate($request);', $attendanceController);
+        $this->assertStringContainsString("'recapAttendanceDateInput' => \$attendanceDate->format('d/m/Y'),", $attendanceController);
+        $this->assertStringContainsString('private function recapAttendanceDate(Request $request): Carbon', $attendanceController);
         $this->assertStringContainsString("private const TASK_HOURS_VERIFICATION = 'task_hours_verification';", $attendanceController);
         $this->assertStringContainsString("->whereNotNull('approved_start_time')", $attendanceController);
         $this->assertStringContainsString("->whereNotNull('approved_end_time')", $attendanceController);
@@ -155,6 +158,16 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('id="recapAttendanceCaptureButton"', $attendanceView);
         $this->assertStringContainsString('id="recapAttendanceCaptureArea"', $attendanceView);
         $this->assertStringContainsString('id="recapAttendanceCaptureTable"', $attendanceView);
+        $this->assertStringContainsString('id="recapDailyAttendanceFilter"', $attendanceView);
+        $this->assertStringContainsString("action=\"{{ route('pic-attendance.attendance') }}\"", $attendanceView);
+        $this->assertStringContainsString('id="recapAttendanceDateFilter"', $attendanceView);
+        $this->assertStringContainsString('name="date"', $attendanceView);
+        $this->assertStringContainsString('value="{{ $recapAttendanceDateInput }}"', $attendanceView);
+        $this->assertStringContainsString('class="form-control js-recap-attendance-date"', $attendanceView);
+        $this->assertStringContainsString('function initializeRecapAttendanceDatePicker()', $attendanceView);
+        $this->assertStringContainsString('maxDate: moment()', $attendanceView);
+        $this->assertStringContainsString('name="month" value="{{ $recapMonthlySelectedMonth }}"', $attendanceView);
+        $this->assertStringContainsString('name="year" value="{{ $recapMonthlySelectedYear }}"', $attendanceView);
         $this->assertStringContainsString('data-capture-tone="{{ $row[\'attachment_badge\'] }}"', $attendanceView);
         $this->assertStringContainsString('function downloadRecapAttendanceImage()', $attendanceView);
         $this->assertStringContainsString('function captureToneFromElement(element)', $attendanceView);

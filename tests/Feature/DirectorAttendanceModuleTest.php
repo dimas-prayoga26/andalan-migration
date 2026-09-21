@@ -53,6 +53,7 @@ class DirectorAttendanceModuleTest extends TestCase
     public function test_director_module_has_its_own_views_navigation_and_permission(): void
     {
         $directorController = File::get(app_path('Http/Controllers/DirectorAttendance/DirectorAttendanceController.php'));
+        $directorView = File::get(resource_path('views/director_attendance/attendance/index.blade.php'));
         $directorDetailView = File::get(resource_path('views/director_attendance/attendance/detail-employees.blade.php'));
         $directorOvertimeController = File::get(app_path('Http/Controllers/DirectorAttendance/DirectorAttendanceOvertimeController.php'));
         $directorOvertimeDetailView = File::get(resource_path('views/director_attendance/overtime/detail.blade.php'));
@@ -145,6 +146,16 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('$.fn.peity', $directorDetailView);
         $this->assertStringContainsString('<th class="mw-160">Address</th>', $directorDetailView);
         $this->assertStringContainsString("{ data: 'location_address', render: function(data) { return escapeHtml(data); } }", $directorDetailView);
+        $this->assertStringContainsString('id="recapDailyAttendanceFilter"', $directorView);
+        $this->assertStringContainsString("action=\"{{ route('director-attendance.attendance') }}\"", $directorView);
+        $this->assertStringContainsString('id="recapAttendanceDateFilter"', $directorView);
+        $this->assertStringContainsString('name="date"', $directorView);
+        $this->assertStringContainsString('value="{{ $recapAttendanceDateInput }}"', $directorView);
+        $this->assertStringContainsString('class="form-control js-recap-attendance-date"', $directorView);
+        $this->assertStringContainsString('function initializeRecapAttendanceDatePicker()', $directorView);
+        $this->assertStringContainsString('maxDate: moment()', $directorView);
+        $this->assertStringContainsString('name="month" value="{{ $recapMonthlySelectedMonth }}"', $directorView);
+        $this->assertStringContainsString('name="year" value="{{ $recapMonthlySelectedYear }}"', $directorView);
         $this->assertTrue(View::exists('director_attendance.attendance.index'));
         $this->assertTrue(View::exists('director_attendance.attendance.detail-employees'));
         $this->assertTrue(View::exists('director_attendance.overtime.index'));
@@ -262,7 +273,7 @@ class DirectorAttendanceModuleTest extends TestCase
             "/where\\('name', 'Board of Directors'\\)[\\s\\S]*?\\?->syncPermissions\\(\\[[^\\]]*'view-admin-attendance'/",
             $legacySeeder,
         );
-        $this->assertStringContainsString("'view-director-attendance' => ['section' => 'HR Management', 'label' => 'Director']", $authorizationController);
+        $this->assertStringContainsString("'view-director-attendance' => ['section' => 'Director Management', 'label' => 'Director']", $authorizationController);
     }
 
     public function test_director_task_monitoring_context_labels_follow_pic_task_source(): void

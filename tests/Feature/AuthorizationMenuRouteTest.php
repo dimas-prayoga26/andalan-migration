@@ -117,7 +117,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('current_company_id', $controller);
         $this->assertStringContainsString('isSuperuser', $controller);
         $this->assertStringContainsString('syncDataEmployeeRelations', $controller);
-        $this->assertStringContainsString("'view-authorization' => ['section' => 'HR Management', 'label' => 'Employee Data']", $controller);
+        $this->assertStringContainsString("'view-authorization' => ['section' => 'Admin Management', 'label' => 'Employee Data']", $controller);
         $this->assertStringContainsString("'view-settings' => ['section' => 'Setting', 'label' => 'Setting']", $controller);
         $this->assertStringContainsString('Employee Data', $authorizationView);
         $this->assertStringContainsString('Event Admin', $authorizationView);
@@ -266,8 +266,18 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('$canViewAuthorizationMenu', $sidebarView);
         $this->assertStringContainsString("canViewSidebarMenu('view-authorization')", $sidebarView);
         $this->assertStringContainsString("canViewSidebarMenu('view-settings')", $sidebarView);
-        $this->assertStringContainsString('@if ($canViewAuthorizationMenu)', $sidebarView);
+        $this->assertStringContainsString('@if ($showAdminAuthorizationMenu)', $sidebarView);
+        $this->assertStringContainsString('@if ($showDirectorAuthorizationMenu)', $sidebarView);
         $this->assertStringContainsString("route('authorization')", $sidebarView);
+        $this->assertStringContainsString('Admin Management', $sidebarView);
+        $this->assertStringContainsString('PIC Management', $sidebarView);
+        $this->assertStringContainsString('Director Management', $sidebarView);
+        $this->assertStringContainsString('$showAdminManagementMenu', $sidebarView);
+        $this->assertStringContainsString('$showPicManagementMenu', $sidebarView);
+        $this->assertStringContainsString('$showDirectorManagementMenu', $sidebarView);
+        $this->assertStringContainsString('$showAdminAuthorizationMenu', $sidebarView);
+        $this->assertStringContainsString('$showDirectorAuthorizationMenu', $sidebarView);
+        $this->assertStringNotContainsString('HR Management', $sidebarView);
         $this->assertStringNotContainsString("route('authorization.access-menus')", $sidebarView);
         $this->assertStringNotContainsString('Assign Permission', $sidebarView);
         $this->assertStringContainsString('Employee Data', $sidebarView);
@@ -322,6 +332,52 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('Dashboard', $sidebar);
         $this->assertStringNotContainsString('Employee Data </span>', $sidebar);
         $this->assertStringNotContainsString('Admin Attendance </span>', $sidebar);
+    }
+
+    public function test_sidebar_groups_management_menus_by_permission(): void
+    {
+        $sidebarView = File::get(resource_path('views/layouts/sidebar.blade.php'));
+
+        $picSidebar = Blade::render($sidebarView, [
+            'canViewSidebarMenu' => static fn (string $permissionName): bool => $permissionName === 'view-pic-attendance',
+        ]);
+
+        $this->assertStringContainsString('PIC Management', $picSidebar);
+        $this->assertStringContainsString('PIC</span>', $picSidebar);
+        $this->assertStringNotContainsString('Admin Management', $picSidebar);
+        $this->assertStringNotContainsString('Director Management', $picSidebar);
+        $this->assertStringNotContainsString('Employee Data </span>', $picSidebar);
+        $this->assertStringNotContainsString('Talent Acquisition</span>', $picSidebar);
+
+        $adminSidebar = Blade::render($sidebarView, [
+            'canViewSidebarMenu' => static fn (string $permissionName): bool => in_array($permissionName, [
+                'view-admin-attendance',
+                'view-authorization',
+                'view-talent-acquisition',
+            ], true),
+        ]);
+
+        $this->assertStringContainsString('Admin Management', $adminSidebar);
+        $this->assertStringContainsString('Admin Attendance </span>', $adminSidebar);
+        $this->assertStringContainsString('Employee Data </span>', $adminSidebar);
+        $this->assertStringContainsString('Talent Acquisition</span>', $adminSidebar);
+        $this->assertStringNotContainsString('PIC Management', $adminSidebar);
+        $this->assertStringNotContainsString('Director Management', $adminSidebar);
+
+        $directorSidebar = Blade::render($sidebarView, [
+            'canViewSidebarMenu' => static fn (string $permissionName): bool => in_array($permissionName, [
+                'view-director-attendance',
+                'view-authorization',
+                'view-talent-acquisition',
+            ], true),
+        ]);
+
+        $this->assertStringContainsString('Director Management', $directorSidebar);
+        $this->assertStringContainsString('Director</span>', $directorSidebar);
+        $this->assertStringContainsString('Employee Data </span>', $directorSidebar);
+        $this->assertStringContainsString('Talent Acquisition</span>', $directorSidebar);
+        $this->assertStringNotContainsString('Admin Management', $directorSidebar);
+        $this->assertStringNotContainsString('PIC Management', $directorSidebar);
     }
 
     public function test_sidebar_javascript_keeps_parent_menu_active_on_module_sub_routes(): void

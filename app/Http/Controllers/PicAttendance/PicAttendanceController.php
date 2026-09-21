@@ -147,7 +147,7 @@ class PicAttendanceController extends Controller
 
     private function recapViewData(Request $request): array
     {
-        $attendanceDate = now('Asia/Jakarta')->startOfDay();
+        $attendanceDate = $this->recapAttendanceDate($request);
         $authenticatedUser = $request->user();
         $currentCompanyId = $authenticatedUser instanceof User
             ? $this->currentCompanyIdFor($authenticatedUser)
@@ -157,10 +157,35 @@ class PicAttendanceController extends Controller
         $recapMonthlyData = $this->recapMonthlyData($request, $currentCompanyId, false);
 
         return [
+            'recapAttendanceDateInput' => $attendanceDate->format('d/m/Y'),
             'recapAttendanceDateLabel' => $attendanceDate->format('d F Y'),
             'recapAttendanceDayLabel' => $attendanceDate->translatedFormat('l, d F Y'),
             'recapAttendanceLogRows' => $this->recapAttendanceLogRows($attendanceDate, $activeEmployeeIds),
         ] + $recapMonthlyData;
+    }
+
+    private function recapAttendanceDate(Request $request): Carbon
+    {
+        $today = now('Asia/Jakarta')->startOfDay();
+        $dateValue = $request->string('date')->trim()->toString();
+
+        if ($dateValue === '') {
+            return $today;
+        }
+
+        foreach (['Y-m-d', 'd/m/Y', 'j/n/Y', 'd-m-Y', 'j-n-Y'] as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $dateValue, 'Asia/Jakarta');
+            } catch (\Throwable) {
+                continue;
+            }
+
+            if ($date instanceof Carbon && $date->format($format) === $dateValue) {
+                return $date->startOfDay()->greaterThan($today) ? $today : $date->startOfDay();
+            }
+        }
+
+        return $today;
     }
 
     private function recapMonthlyData(Request $request, ?string $companyId, bool $includeRows = true): array

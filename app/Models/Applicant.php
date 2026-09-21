@@ -15,6 +15,10 @@ class Applicant extends Model
     use GeneratesCustomSequenceUuid;
     use SoftDeletes;
 
+    private const FALLBACK_PHOTO_BASE_URL = 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/';
+
+    private const FALLBACK_CV_BASE_URL = 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/cv/';
+
     protected $table = 'applicants';
 
     protected $guarded = [];
@@ -96,7 +100,7 @@ class Applicant extends Model
             $cvFile,
             'files/cv',
             (string) config('applicant_files.cv_base_url'),
-            (string) config('applicant_files.fallback_cv_base_url'),
+            (string) config('applicant_files.fallback_cv_base_url', self::FALLBACK_CV_BASE_URL),
         );
     }
 
@@ -112,7 +116,7 @@ class Applicant extends Model
             $photoFile,
             'files/photo',
             (string) config('applicant_files.photo_base_url'),
-            (string) config('applicant_files.fallback_photo_base_url'),
+            (string) config('applicant_files.fallback_photo_base_url', self::FALLBACK_PHOTO_BASE_URL),
         );
     }
 
@@ -122,14 +126,17 @@ class Applicant extends Model
             return $filename;
         }
 
-        $encodedFilename = rawurlencode($filename);
+        $normalizedFilename = $this->normalizeUploadedFilename($filename, $directory);
+        $encodedFilename = collect(explode('/', $normalizedFilename))
+            ->map(static fn (string $segment): string => rawurlencode($segment))
+            ->implode('/');
 
         foreach ((array) config('applicant_files.careers_public_paths', []) as $publicPath) {
             $candidatePath = rtrim((string) $publicPath, DIRECTORY_SEPARATOR)
                 .DIRECTORY_SEPARATOR
                 .str_replace('/', DIRECTORY_SEPARATOR, $directory)
                 .DIRECTORY_SEPARATOR
-                .$filename;
+                .str_replace('/', DIRECTORY_SEPARATOR, $normalizedFilename);
 
             if (File::exists($candidatePath)) {
                 return rtrim($baseUrl, '/').'/'.$encodedFilename;
@@ -137,6 +144,24 @@ class Applicant extends Model
         }
 
         return rtrim($fallbackBaseUrl, '/').'/'.$encodedFilename;
+    }
+
+    private function normalizeUploadedFilename(string $filename, string $directory): string
+    {
+        $normalizedFilename = str_replace('\\', '/', trim($filename));
+        $normalizedFilename = ltrim($normalizedFilename, '/');
+        $normalizedFilename = preg_replace('#^public/#i', '', $normalizedFilename) ?? $normalizedFilename;
+
+        $directory = trim(str_replace('\\', '/', $directory), '/');
+        $directoryTail = basename($directory);
+
+        foreach ([$directory.'/', $directoryTail.'/'] as $prefix) {
+            if (Str::startsWith($normalizedFilename, $prefix)) {
+                return ltrim(substr($normalizedFilename, strlen($prefix)), '/');
+            }
+        }
+
+        return $normalizedFilename;
     }
 
     /**

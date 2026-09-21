@@ -47,4 +47,19 @@ class ApplicantFileUrlTest extends TestCase
             $applicant->cvDownloadUrl(),
         );
     }
+
+    public function test_it_does_not_duplicate_upload_directory_when_database_value_contains_path(): void
+    {
+        config([
+            'applicant_files.careers_public_paths' => [base_path('.codex-temp/missing-applicant-files')],
+            'applicant_files.fallback_photo_base_url' => 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/',
+        ]);
+
+        $applicant = new Applicant(['photo' => 'files/photo/profile photo.png']);
+
+        $this->assertSame(
+            'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/profile%20photo.png',
+            $applicant->photoUrl(),
+        );
+    }
 }

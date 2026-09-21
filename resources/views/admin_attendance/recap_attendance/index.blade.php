@@ -7,6 +7,113 @@
 @section('content')
 @include('admin_attendance.layout.navbar')
 
+<style>
+	.recap-attendance-date-filter {
+		width: 220px;
+	}
+
+	.recap-attendance-date-filter .input-group-text,
+	.recap-attendance-date-filter .btn,
+	.recap-attendance-date-filter .form-control {
+		min-height: 38px;
+	}
+
+	.recap-attendance-date-filter .form-control {
+		padding-left: 12px;
+		padding-right: 12px;
+	}
+
+	#recapMonthlyFilterButton {
+		min-width: 48px;
+		min-height: 44px;
+	}
+
+	.recap-attendance-card .table-responsive,
+	.recap-monthly-card .table-responsive {
+		overflow-x: auto;
+	}
+
+	#recapAttendanceCaptureTable {
+		min-width: 980px;
+	}
+
+	#recapMonthlyTable {
+		min-width: 1220px;
+	}
+
+	.recap-monthly-header {
+		gap: 12px;
+	}
+
+	.recap-monthly-title {
+		line-height: 1.25;
+	}
+
+	.recap-monthly-filter {
+		gap: 8px;
+	}
+
+	.recap-monthly-select .bootstrap-select,
+	.recap-monthly-select .selectpicker {
+		width: 100% !important;
+	}
+
+	.recap-monthly-month {
+		width: 150px;
+	}
+
+	.recap-monthly-year {
+		width: 100px;
+	}
+
+	@media (max-width: 575.98px) {
+		.recap-attendance-date-filter {
+			width: 100%;
+		}
+
+		.recap-attendance-card .card-header,
+		.recap-monthly-header {
+			align-items: stretch !important;
+			padding-left: 18px;
+			padding-right: 18px;
+		}
+
+		.recap-attendance-card .card-body,
+		.recap-monthly-card .card-body {
+			padding-top: 0 !important;
+		}
+
+		.recap-monthly-title {
+			width: 100%;
+			font-size: 18px;
+			margin-bottom: 4px !important;
+		}
+
+		.recap-monthly-filter-wrap,
+		#recapMonthlyFilter {
+			width: 100%;
+		}
+
+		#recapMonthlyFilter {
+			display: grid !important;
+			grid-template-columns: minmax(0, 1fr) 92px 48px;
+			gap: 8px;
+			align-items: stretch;
+		}
+
+		.recap-monthly-month,
+		.recap-monthly-year {
+			width: auto;
+			min-width: 0;
+		}
+
+		#recapMonthlyFilterButton {
+			margin-left: 0 !important;
+			width: 48px;
+		}
+	}
+</style>
+
 <!-- Start - Attendance -->
 <div class="col-lg-12">
 	<div class="d-flex justify-content-between align-items-center mb-3">
@@ -15,13 +122,31 @@
 </div>		
 
 <!-- Start - logs -->
-<div id="recapAttendanceCaptureArea" class="card" data-capture-title="{{ $recapAttendanceDayLabel }}" data-capture-subtitle="">
-	<div class="card-header border-0 align-items-center justify-content-end">
-		<div class="d-flex align-items-center">
-			<div class="clearfix">
-				<button id="recapAttendanceCaptureButton" type="button" class="btn btn-sm btn-primary light ms-2">Capture</button>
-			</div>	
-		</div>	
+<div id="recapAttendanceCaptureArea" class="card recap-attendance-card" data-capture-title="{{ $recapAttendanceDayLabel }}" data-capture-subtitle="">
+	<div class="card-header border-0 align-items-center justify-content-between flex-wrap gap-2">
+		<div class="d-flex align-items-center flex-wrap gap-2">
+			<form id="recapDailyAttendanceFilter" method="GET" action="{{ route('admin-attendance.recap') }}" class="d-flex align-items-center">
+				<input type="hidden" name="month" value="{{ $recapMonthlySelectedMonth }}">
+				<input type="hidden" name="year" value="{{ $recapMonthlySelectedYear }}">
+				<div class="input-group input-group-sm recap-attendance-date-filter">
+					<span class="input-group-text bg-white"><i class="fa-regular fa-calendar"></i></span>
+					<input
+						id="recapAttendanceDateFilter"
+						type="text"
+						name="date"
+						class="form-control js-recap-attendance-date"
+						value="{{ $recapAttendanceDateInput }}"
+						placeholder="dd/mm/yyyy"
+						autocomplete="off"
+						aria-label="Select attendance date"
+					>
+					<button id="recapAttendanceDateButton" type="submit" class="btn btn-sm btn-primary light" title="Apply date" aria-label="Apply attendance date"><i class="fa-solid fa-filter"></i></button>
+				</div>
+			</form>
+		</div>
+		<div class="clearfix">
+			<button id="recapAttendanceCaptureButton" type="button" class="btn btn-sm btn-primary light">Capture</button>
+		</div>
 	</div>
 	<div class="card-body table-card-body p-0">
 		<h6 class="text-center fw-bold mb-3">{{ $recapAttendanceDayLabel }}</h6>
@@ -113,26 +238,27 @@
 <!-- End - logs -->
 
 				<!-- Start - logs -->
-<div class="card">
-	<div class="card-header border-0 align-items-center">
-		<h4 id="recapMonthlyPeriodLabel" class="card-title m-0">Attendance Logs Monthly ({{ $recapMonthlyPeriodLabel }})</h4>
-		<div class="d-flex align-items-center">
-			<form id="recapMonthlyFilter" method="GET" action="{{ route('admin-attendance.recap') }}" class="clearfix d-flex align-items-center">
-				<div class="clearfix me-1">
+<div class="card recap-monthly-card">
+	<div class="card-header border-0 align-items-center justify-content-between flex-wrap recap-monthly-header">
+		<h4 id="recapMonthlyPeriodLabel" class="card-title m-0 recap-monthly-title">Attendance Logs Monthly ({{ $recapMonthlyPeriodLabel }})</h4>
+		<div class="d-flex align-items-center recap-monthly-filter-wrap">
+			<form id="recapMonthlyFilter" method="GET" action="{{ route('admin-attendance.recap') }}" class="clearfix d-flex align-items-center recap-monthly-filter">
+				<input type="hidden" name="date" value="{{ $recapAttendanceDateInput }}">
+				<div class="clearfix recap-monthly-select recap-monthly-month">
 					<select id="recapMonthlyMonthFilter" name="month" class="selectpicker form-select form-select-sm" aria-label="Select month">
 						@foreach ($recapMonthlyMonthOptions as $monthOption)
 							<option value="{{ $monthOption['value'] }}" @selected($recapMonthlySelectedMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
 						@endforeach
 					</select>
 				</div>
-				<div class="clearfix">
+				<div class="clearfix recap-monthly-select recap-monthly-year">
 					<select id="recapMonthlyYearFilter" name="year" class="selectpicker form-select form-select-sm" aria-label="Select year">
 						@foreach ($recapMonthlyYearOptions as $yearOption)
 							<option value="{{ $yearOption }}" @selected($recapMonthlySelectedYear === $yearOption)>{{ $yearOption }}</option>
 						@endforeach
 					</select>
 				</div>
-				<button id="recapMonthlyFilterButton" type="button" class="btn btn-sm btn-primary light ms-2" title="Apply period" aria-label="Apply period"><i class="fa-solid fa-filter"></i></button>
+				<button id="recapMonthlyFilterButton" type="button" class="btn btn-sm btn-primary light" title="Apply period" aria-label="Apply period"><i class="fa-solid fa-filter"></i></button>
 			</form>	
 		</div>	
 	</div>
@@ -387,6 +513,43 @@
 <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
 <script>
     (function () {
+        function initializeRecapAttendanceDatePicker() {
+            if (!window.jQuery || !jQuery.fn.daterangepicker || typeof moment === 'undefined') {
+                return;
+            }
+
+            var input = jQuery('.js-recap-attendance-date');
+            if (input.length === 0) {
+                return;
+            }
+
+            input.daterangepicker({
+                autoUpdateInput: false,
+                singleDatePicker: true,
+                showDropdowns: true,
+                maxDate: moment(),
+                locale: {
+                    cancelLabel: 'Clear',
+                    format: 'DD/MM/YYYY'
+                }
+            });
+
+            input.on('apply.daterangepicker', function (event, picker) {
+                jQuery(this).val(picker.startDate.format('DD/MM/YYYY'));
+                var form = document.getElementById('recapDailyAttendanceFilter');
+
+                if (form) {
+                    form.submit();
+                }
+            });
+
+            input.on('cancel.daterangepicker', function () {
+                jQuery(this).val('');
+            });
+        }
+
+        initializeRecapAttendanceDatePicker();
+
         function setText(id, value) {
             var element = document.getElementById(id);
             if (element) {

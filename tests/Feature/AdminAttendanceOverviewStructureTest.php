@@ -71,6 +71,8 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringNotContainsString('function recap', $overviewController);
         $this->assertStringNotContainsString('AttendanceOverviewController', $recapController);
         $this->assertStringContainsString('recapViewData', $recapController);
+        $this->assertStringContainsString('recapAttendanceDate($request)', $recapController);
+        $this->assertStringContainsString("'recapAttendanceDateInput' => \$attendanceDate->format('d/m/Y')", $recapController);
         $this->assertStringContainsString('monthlyDatatable', $recapController);
         $this->assertStringContainsString('recapEmployeeDetailData', $recapController);
         $this->assertStringContainsString("'profile:id,employee_id,name,profile_picture_path'", $recapController);
@@ -255,6 +257,16 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $leaveController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceLeaveController.php'));
 
         $this->assertStringContainsString('@forelse ($recapAttendanceLogRows as $row)', $recapView);
+        $this->assertStringContainsString('id="recapDailyAttendanceFilter"', $recapView);
+        $this->assertStringContainsString('id="recapAttendanceDateFilter"', $recapView);
+        $this->assertStringContainsString('name="date"', $recapView);
+        $this->assertStringContainsString('value="{{ $recapAttendanceDateInput }}"', $recapView);
+        $this->assertStringContainsString('class="form-control js-recap-attendance-date"', $recapView);
+        $this->assertStringContainsString('function initializeRecapAttendanceDatePicker()', $recapView);
+        $this->assertStringContainsString('maxDate: moment()', $recapView);
+        $this->assertStringContainsString('name="month" value="{{ $recapMonthlySelectedMonth }}"', $recapView);
+        $this->assertStringContainsString('name="year" value="{{ $recapMonthlySelectedYear }}"', $recapView);
+        $this->assertStringContainsString('name="date" value="{{ $recapAttendanceDateInput }}"', $recapView);
         $this->assertStringContainsString('id="recapAttendanceCaptureButton"', $recapView);
         $this->assertStringContainsString('id="recapAttendanceCaptureArea"', $recapView);
         $this->assertStringContainsString('id="recapAttendanceCaptureTable"', $recapView);

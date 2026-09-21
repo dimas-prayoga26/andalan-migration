@@ -56,6 +56,8 @@ class ApplicantStatusMailTest extends TestCase
 
     public function test_null_brand_key_falls_back_to_rnb_branding(): void
     {
+        config(['career_brands.default_brand' => 'tms']);
+
         Mail::fake();
 
         $jobVacancy = JobVacancy::query()->create([

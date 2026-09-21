@@ -91,8 +91,6 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/applicant/datatable', [TalentAcquisitionController::class, 'applicantsDatatable'])->name('applicant.datatable');
         Route::get('/applicant/job-vacancies', [TalentAcquisitionController::class, 'jobVacancies'])->name('applicant.job_vacancies');
         Route::get('/applicant/job-vacancies/datatable', [TalentAcquisitionController::class, 'jobVacanciesDatatable'])->name('applicant.job_vacancies.datatable');
-        Route::get('/applicant/job-vacancies/create', [TalentAcquisitionController::class, 'createJobVacancy'])->name('applicant.job_vacancies.create');
-        Route::post('/applicant/job-vacancies', [TalentAcquisitionController::class, 'storeJobVacancy'])->name('applicant.job_vacancies.store');
         Route::patch('/applicant/job-vacancies/{jobVacancy}/status', [TalentAcquisitionController::class, 'updateJobVacancyStatus'])->name('applicant.job_vacancies.status.update');
         Route::patch('/applicant/{applicant}/status', [TalentAcquisitionController::class, 'updateApplicantStatus'])->name('applicant.status.update');
         Route::get('/applicant/{applicant}', [TalentAcquisitionController::class, 'showApplicant'])->name('applicant.show');
@@ -144,9 +142,6 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/agenda', function () {
         return view('agenda');
     })->middleware('position.permission:view-meeting')->name('agenda');
-
-    // Testing
-    Route::view('/testing', 'testing.index')->name('testing');
 
     // Attendance overview and daily attendance
     Route::view('/attendance/overview', 'staff_attendance.overview.index')

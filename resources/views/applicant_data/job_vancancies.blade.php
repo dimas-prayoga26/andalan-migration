@@ -32,15 +32,6 @@
             margin-bottom: 0.85rem;
         }
 
-        .talent-create-link {
-            min-height: 40px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.35rem;
-            white-space: nowrap;
-        }
-
         .talent-table-title {
             color: #25314c;
             font-size: 1rem;
@@ -192,15 +183,6 @@
         }
 
         @media only screen and (max-width: 767.98px) {
-            .talent-header-bar {
-                align-items: stretch;
-                flex-direction: column;
-            }
-
-            .talent-create-link {
-                width: 100%;
-            }
-
             #jobVacanciesTable_wrapper .dt-layout-row:first-child {
                 align-items: stretch;
                 flex-direction: column;
@@ -245,16 +227,11 @@
                         <a href="{{ route('applicant') }}" class="nav-link {{ request()->routeIs('applicant') ? 'active' : '' }}">Applicants</a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ route('applicant.job_vacancies') }}" class="nav-link {{ request()->routeIs('applicant.job_vacancies*') ? 'active' : '' }}">Job Vacancies</a>
+                        <a href="{{ route('applicant.job_vacancies') }}" class="nav-link {{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}">Job Vacancies</a>
                     </li>
                 </ul>
             </div>
             <div class="card-body">
-                @if (! ($syncResult['available'] ?? true))
-                    <div class="alert alert-warning mb-3" role="alert">
-                        {{ $syncResult['message'] ?? 'Koneksi database legacy belum tersedia.' }}
-                    </div>
-                @endif
                 @if (session('status'))
                     <div class="alert alert-success mb-3" role="alert">{{ session('status') }}</div>
                 @endif
@@ -264,10 +241,6 @@
 
                 <div class="talent-header-bar">
                     <div class="talent-table-title">Job Vacancy</div>
-                    <a href="{{ route('applicant.job_vacancies.create') }}" class="btn btn-primary talent-create-link">
-                        <i class="bi bi-plus-lg"></i>
-                        Tambah Lowongan
-                    </a>
                 </div>
 
                 <div class="table-responsive">
@@ -300,7 +273,7 @@
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
-        var jobVacancyStatuses = @json(collect($jobVacancyStatuses)->map(fn ($label, $value) => ['value' => (string) $value, 'label' => (string) $label])->values());
+        var jobVacancyStatuses = @json(collect($jobVacancyStatuses)->map(fn ($label, $value) => ['value' => (int) $value, 'label' => (string) $label])->values());
         var csrfToken = @json(csrf_token());
         var jobVacancyStatusUpdateUrlTemplate = @json(route('applicant.job_vacancies.status.update', ['jobVacancy' => '__JOB_VACANCY_ID__']));
 
@@ -314,12 +287,12 @@
 
         function updateJobVacancyStatusColor(selectElement) {
             selectElement.classList.remove('active', 'inactive');
-            selectElement.classList.add(selectElement.value === 'active' ? 'active' : 'inactive');
+            selectElement.classList.add(selectElement.value === '1' ? 'active' : 'inactive');
         }
 
         function renderJobVacancyStatus(jobVacancy) {
             var options = jobVacancyStatuses.map(function (status) {
-                return '<option value="' + escapeHtml(status.value) + '"' + (String(jobVacancy.status) === String(status.value) ? ' selected' : '') + '>'
+                return '<option value="' + status.value + '"' + (Number(jobVacancy.status) === Number(status.value) ? ' selected' : '') + '>'
                     + escapeHtml(status.label)
                     + '</option>';
             }).join('');
@@ -337,7 +310,6 @@
 
         $(function () {
             var jobVacancyTable = $('#jobVacanciesTable').DataTable({
-                lengthChange: false,
                 ajax: {
                     url: "{{ route('applicant.job_vacancies.datatable') }}",
                     dataSrc: 'data'

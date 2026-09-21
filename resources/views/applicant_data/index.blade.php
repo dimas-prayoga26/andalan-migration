@@ -6,11 +6,8 @@
     @php
         $dashboardCssPath = public_path('assets/css/dashboard.css');
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
-        $sweetAlertCssPath = public_path('assets/vendor/sweetalert2/sweetalert2.min.css');
-        $sweetAlertCssVersion = file_exists($sweetAlertCssPath) ? filemtime($sweetAlertCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
-    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}?v={{ $sweetAlertCssVersion }}">
     <style>
         .talent-tabs {
             flex-wrap: nowrap;
@@ -405,11 +402,6 @@
                 </ul>
             </div>
             <div class="card-body">
-                @if (! ($syncResult['available'] ?? true))
-                    <div class="alert alert-warning mb-3" role="alert">
-                        {{ $syncResult['message'] ?? 'Koneksi database legacy belum tersedia.' }}
-                    </div>
-                @endif
                 @if (session('status'))
                     <div class="alert alert-success mb-3" role="alert">{{ session('status') }}</div>
                 @endif
@@ -465,11 +457,8 @@
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
         $dataTablesJsPath = public_path('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js');
         $dataTablesJsVersion = file_exists($dataTablesJsPath) ? filemtime($dataTablesJsPath) : time();
-        $sweetAlertJsPath = public_path('assets/vendor/sweetalert2/sweetalert2.min.js');
-        $sweetAlertJsVersion = file_exists($sweetAlertJsPath) ? filemtime($sweetAlertJsPath) : time();
     @endphp
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
-    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}?v={{ $sweetAlertJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
         var applicantStatuses = @json($applicantStatuses->map(fn ($status) => ['id' => (string) $status->id, 'value' => (int) $status->value, 'name' => (string) $status->name])->values());
@@ -528,7 +517,7 @@
         function renderApplicantAction(applicant) {
             return '<div class="talent-action-group">'
                 + '<a href="' + applicantUrl(applicantShowUrlTemplate, applicant.id) + '" class="talent-action-btn view" title="Detail"><i class="bi bi-eye"></i></a>'
-                + '<form method="POST" action="' + applicantUrl(applicantDestroyUrlTemplate, applicant.id) + '" data-applicant-delete-form data-applicant-name="' + escapeHtml(applicant.full_name) + '">'
+                + '<form method="POST" action="' + applicantUrl(applicantDestroyUrlTemplate, applicant.id) + '" onsubmit="return confirm(\'Hapus data pelamar ini?\')">'
                 + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
                 + '<input type="hidden" name="_method" value="DELETE">'
                 + '<button type="submit" class="talent-action-btn delete" title="Delete"><i class="bi bi-trash"></i></button>'
@@ -620,41 +609,6 @@
                     .column(3)
                     .search(selectedPosition ? '^' + escapedPosition + '$' : '', true, false)
                     .draw();
-            });
-
-            $(document).on('submit', '[data-applicant-delete-form]', function (event) {
-                var form = this;
-                var applicantName = form.dataset.applicantName || 'pelamar ini';
-
-                if (form.dataset.deleteConfirmed === 'true') {
-                    return;
-                }
-
-                event.preventDefault();
-
-                if (typeof Swal === 'undefined' || !Swal || typeof Swal.fire !== 'function') {
-                    return;
-                }
-
-                Swal.fire({
-                    title: 'Hapus data pelamar?',
-                    text: 'Data ' + applicantName + ' akan dihapus dari daftar pelamar.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Hapus',
-                    cancelButtonText: 'Batal',
-                    confirmButtonColor: '#dc2626',
-                    cancelButtonColor: '#64748b',
-                    reverseButtons: true,
-                    focusCancel: true
-                }).then(function (result) {
-                    if (!result.isConfirmed) {
-                        return;
-                    }
-
-                    form.dataset.deleteConfirmed = 'true';
-                    form.submit();
-                });
             });
         });
     </script>

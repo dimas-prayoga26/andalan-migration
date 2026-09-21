@@ -22,10 +22,6 @@ class ApplicantStatus extends Model
 
     public const VALUE_NOT_SUITABLE = 5;
 
-    public const VALUE_INTERVIEW = self::VALUE_HR_INTERVIEW;
-
-    public const VALUE_DITERIMA = self::VALUE_OFFERING;
-
     protected $table = 'applicant_statuses';
 
     protected $guarded = [];

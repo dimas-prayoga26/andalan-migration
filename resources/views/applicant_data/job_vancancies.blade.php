@@ -48,33 +48,73 @@
         }
 
         .talent-vacancy-status-form {
+            align-items: center;
             display: inline-flex;
             vertical-align: middle;
         }
 
+        .talent-vacancy-status-select-shell {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            min-width: 150px;
+        }
+
+        .talent-vacancy-status-select-shell::after {
+            content: "";
+            position: absolute;
+            right: 0.85rem;
+            width: 0.45rem;
+            height: 0.45rem;
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            color: #64748b;
+            pointer-events: none;
+            transform: translateY(-20%) rotate(45deg);
+        }
+
         .talent-vacancy-status-select {
-            min-height: 30px;
-            border-radius: 0.35rem;
-            padding: 0.18rem 1.75rem 0.18rem 0.55rem;
-            font-size: 0.9rem;
+            appearance: none;
+            min-height: 42px;
+            width: 100%;
+            border-radius: 0.6rem;
+            cursor: pointer;
+            font-size: 0.86rem;
             font-weight: 700;
             line-height: 1.2;
+            padding: 0.45rem 2.25rem 0.45rem 0.9rem;
             background: #fff;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
         }
 
         .talent-vacancy-status-select.active {
-            border: 1px solid #22c55e;
+            border: 1px solid #86efac;
+            background: #f0fdf4;
             color: #15803d;
         }
 
         .talent-vacancy-status-select.inactive {
-            border: 1px solid #ff4f7b;
+            border: 1px solid #fecdd3;
+            background: #fff1f2;
             color: #e11d48;
         }
 
+        .talent-vacancy-status-select:hover {
+            border-color: #b8c0ce;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+        }
+
         .talent-vacancy-status-select:focus {
-            box-shadow: 0 0 0 0.15rem rgba(15, 23, 42, 0.08);
+            border-color: #93a4c0;
+            box-shadow: 0 0 0 0.18rem rgba(37, 99, 235, 0.12);
             outline: 0;
+        }
+
+        .talent-vacancy-status-select option {
+            background: #fff;
+            color: #111827;
+            font-weight: 500;
         }
 
         #jobVacanciesTable_wrapper .dt-layout-row:first-child {
@@ -241,33 +281,7 @@
                             <th class="mw-180">Legacy Created</th>
                         </tr>
                         </thead>
-                        <tbody>
-                        @forelse ($jobVacancies as $jobVacancy)
-                            <tr>
-                                <td>{{ $loop->iteration }}.</td>
-                                <td>{{ $jobVacancy->name }}</td>
-                                <td>
-                                    <form method="POST" action="{{ route('applicant.job_vacancies.status.update', ['jobVacancy' => $jobVacancy->id]) }}" class="talent-vacancy-status-form">
-                                        @csrf
-                                        @method('PATCH')
-                                        <select name="status" class="talent-vacancy-status-select {{ $jobVacancy->status }}" onchange="updateJobVacancyStatusColor(this); this.form.submit()" aria-label="Update status {{ $jobVacancy->name }}">
-                                            @foreach ($jobVacancyStatuses as $statusValue => $statusLabel)
-                                                <option value="{{ $statusValue }}" @selected($jobVacancy->status === $statusValue)>
-                                                    {{ $statusLabel }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </form>
-                                </td>
-                                <td>{{ $jobVacancy->applicants_count }}</td>
-                                <td>{{ $jobVacancy->legacy_created_at?->format('d M Y H:i') ?? '-' }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="text-center text-muted">Belum ada data lowongan.</td>
-                            </tr>
-                        @endforelse
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
@@ -286,27 +300,71 @@
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
+        var jobVacancyStatuses = @json(collect($jobVacancyStatuses)->map(fn ($label, $value) => ['value' => (string) $value, 'label' => (string) $label])->values());
+        var csrfToken = @json(csrf_token());
+        var jobVacancyStatusUpdateUrlTemplate = @json(route('applicant.job_vacancies.status.update', ['jobVacancy' => '__JOB_VACANCY_ID__']));
+
+        function escapeHtml(value) {
+            return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
+        }
+
+        function jobVacancyUrl(template, jobVacancyId) {
+            return template.replace('__JOB_VACANCY_ID__', encodeURIComponent(jobVacancyId));
+        }
+
         function updateJobVacancyStatusColor(selectElement) {
             selectElement.classList.remove('active', 'inactive');
             selectElement.classList.add(selectElement.value === 'active' ? 'active' : 'inactive');
         }
 
+        function renderJobVacancyStatus(jobVacancy) {
+            var options = jobVacancyStatuses.map(function (status) {
+                return '<option value="' + escapeHtml(status.value) + '"' + (String(jobVacancy.status) === String(status.value) ? ' selected' : '') + '>'
+                    + escapeHtml(status.label)
+                    + '</option>';
+            }).join('');
+
+            return '<form method="POST" action="' + jobVacancyUrl(jobVacancyStatusUpdateUrlTemplate, jobVacancy.id) + '" class="talent-vacancy-status-form">'
+                + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
+                + '<input type="hidden" name="_method" value="PATCH">'
+                + '<span class="talent-vacancy-status-select-shell">'
+                + '<select name="status" class="talent-vacancy-status-select ' + escapeHtml(jobVacancy.status_css_class) + '" onchange="updateJobVacancyStatusColor(this); this.form.submit()" aria-label="Update status ' + escapeHtml(jobVacancy.name) + '">'
+                + options
+                + '</select>'
+                + '</span>'
+                + '</form>';
+        }
+
         $(function () {
             var jobVacancyTable = $('#jobVacanciesTable').DataTable({
                 lengthChange: false,
+                ajax: {
+                    url: "{{ route('applicant.job_vacancies.datatable') }}",
+                    dataSrc: 'data'
+                },
+                columns: [
+                    {
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row, meta) {
+                            return (meta.row + meta.settings._iDisplayStart + 1) + '.';
+                        }
+                    },
+                    { data: 'name' },
+                    {
+                        data: null,
+                        render: function (data, type, row) {
+                            return renderJobVacancyStatus(row);
+                        }
+                    },
+                    { data: 'applicants_count' },
+                    { data: 'legacy_created_at' }
+                ],
                 columnDefs: [
                     { targets: 0, orderable: false }
                 ]
             });
-
-            jobVacancyTable.on('order.dt search.dt draw.dt', function () {
-                jobVacancyTable
-                    .column(0, { search: 'applied', order: 'applied', page: 'current' })
-                    .nodes()
-                    .each(function (cell, index) {
-                        cell.innerHTML = (index + 1) + '.';
-                    });
-            }).draw();
         });
     </script>
 @endsection

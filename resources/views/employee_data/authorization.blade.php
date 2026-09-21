@@ -360,6 +360,7 @@
                                 </tr>
                                 </thead>
                                 <tbody>
+                                @if (false)
                                 <tr>
                                     <td>1.</td>
                                     <td>
@@ -561,6 +562,7 @@
                                         </div>
                                     </td>
                                 </tr>
+                                @endif
                                 </tbody>
                             </table>
                             </div>
@@ -585,6 +587,26 @@
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
+        function escapeHtml(value) {
+            return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
+        }
+
+        function renderAuthorizationAction() {
+            return '<div class="applicant-action-group">'
+                + '<button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>'
+                + '<button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>'
+                + '</div>';
+        }
+
+        function renderAuthorizationDepartments(row) {
+            var departments = Array.isArray(row.departments) ? row.departments : [];
+            var chips = departments.map(function (department) {
+                return '<span class="permission-chip">' + escapeHtml(department) + '</span>';
+            }).join('');
+
+            return '<div class="permission-wrap">' + chips + '</div>';
+        }
+
         $(function () {
             $('.absensi-tab-btn').on('click', function (event) {
                 event.preventDefault();
@@ -596,6 +618,36 @@
             });
 
             var applicantsTable = $('#myTable').DataTable({
+                ajax: {
+                    url: "{{ route('employee_data.authorization.datatable') }}",
+                    dataSrc: 'data'
+                },
+                columns: [
+                    {
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row, meta) {
+                            return (meta.row + meta.settings._iDisplayStart + 1) + '.';
+                        }
+                    },
+                    {
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function () {
+                            return renderAuthorizationAction();
+                        }
+                    },
+                    { data: 'menu' },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            return renderAuthorizationDepartments(row);
+                        }
+                    }
+                ],
                 columnDefs: [
                     {
                         targets: [0, 1, 3],
@@ -603,15 +655,6 @@
                     }
                 ]
             });
-
-            applicantsTable.on('order.dt search.dt draw.dt', function () {
-                applicantsTable
-                    .column(0, { search: 'applied', order: 'applied', page: 'current' })
-                    .nodes()
-                    .each(function (cell, index) {
-                        cell.innerHTML = (index + 1) + '.';
-                    });
-            }).draw();
         });
     </script>
 @endsection

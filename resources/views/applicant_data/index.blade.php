@@ -68,78 +68,6 @@
             padding: 0.35rem 0.75rem;
         }
 
-        .talent-photo {
-            width: 34px;
-            height: 34px;
-            border-radius: 0.45rem;
-            background: #e5e7eb;
-            color: #64748b;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            vertical-align: middle;
-        }
-
-        .talent-photo img {
-            display: block;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .talent-status-form {
-            display: inline-flex;
-            vertical-align: middle;
-        }
-
-        .talent-status-select {
-            min-height: 28px;
-            border: 1px solid #d9dce5;
-            border-radius: 0.35rem;
-            background: #fff;
-            color: #27334a;
-            font-size: 0.78rem;
-            font-weight: 700;
-            padding: 0.15rem 1.75rem 0.15rem 0.5rem;
-        }
-
-        .talent-status-select.status-value-0 {
-            background: #f3f4f6;
-            border-color: #d1d5db;
-            color: #4b5563;
-        }
-
-        .talent-status-select.status-value-1 {
-            background: #eef2ff;
-            border-color: #c7d2fe;
-            color: #2448c7;
-        }
-
-        .talent-status-select.status-value-2 {
-            background: #fff7ed;
-            border-color: #fed7aa;
-            color: #c2410c;
-        }
-
-        .talent-status-select.status-value-3 {
-            background: #f0f9ff;
-            border-color: #bae6fd;
-            color: #0369a1;
-        }
-
-        .talent-status-select.status-value-4 {
-            background: #ecfdf5;
-            border-color: #a7f3d0;
-            color: #047857;
-        }
-
-        .talent-status-select.status-value-5 {
-            background: #fef2f2;
-            border-color: #fecaca;
-            color: #b91c1c;
-        }
-
         .talent-status-tabs {
             display: flex;
             flex-wrap: wrap;
@@ -162,6 +90,122 @@
             border-color: #1d4ed8;
             background: #e8eefc;
             color: #1239b3;
+        }
+
+        .talent-photo {
+            width: 34px;
+            height: 34px;
+            border-radius: 0.45rem;
+            background: #e5e7eb;
+            color: #64748b;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            vertical-align: middle;
+        }
+
+        .talent-photo img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .talent-status-form {
+            align-items: center;
+            display: inline-flex;
+            vertical-align: middle;
+        }
+
+        .talent-status-select-shell {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            min-width: 160px;
+        }
+
+        .talent-status-select-shell::after {
+            content: "";
+            position: absolute;
+            right: 0.85rem;
+            width: 0.45rem;
+            height: 0.45rem;
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            color: #64748b;
+            pointer-events: none;
+            transform: translateY(-20%) rotate(45deg);
+        }
+
+        .talent-status-select {
+            appearance: none;
+            min-height: 42px;
+            width: 100%;
+            border: 1px solid #d9dce5;
+            border-radius: 0.6rem;
+            background: #fff;
+            color: #27334a;
+            cursor: pointer;
+            font-size: 0.86rem;
+            font-weight: 700;
+            line-height: 1.2;
+            padding: 0.45rem 2.25rem 0.45rem 0.9rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+        }
+
+        .talent-status-select:hover {
+            border-color: #b8c0ce;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+        }
+
+        .talent-status-select:focus {
+            border-color: #93a4c0;
+            box-shadow: 0 0 0 0.18rem rgba(37, 99, 235, 0.12);
+            outline: 0;
+        }
+
+        .talent-status-select option {
+            background: #fff;
+            color: #111827;
+            font-weight: 500;
+        }
+
+        .talent-status-select.status-value-0 {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+            color: #4b5563;
+        }
+
+        .talent-status-select.status-value-1 {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #2448c7;
+        }
+
+        .talent-status-select.status-value-2 {
+            background: #fff7ed;
+            border-color: #fed7aa;
+            color: #c2410c;
+        }
+
+        .talent-status-select.status-value-3 {
+            background: #ecfeff;
+            border-color: #a5f3fc;
+            color: #0e7490;
+        }
+
+        .talent-status-select.status-value-4 {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+            color: #047857;
+        }
+
+        .talent-status-select.status-value-5 {
+            background: #fff1f2;
+            border-color: #fecdd3;
+            color: #be123c;
         }
 
         .talent-action-group {
@@ -406,72 +450,7 @@
                             <th class="mw-120">Action</th>
                         </tr>
                         </thead>
-                        <tbody>
-                        @forelse ($applicants as $applicant)
-                            @php
-                                $photoUrl = $applicant->photoUrl();
-                                $applicantStatusValue = $applicantStatuses->firstWhere('id', $applicant->applicant_status_id)?->value ?? 0;
-                            @endphp
-                            <tr data-status-value="{{ $applicantStatusValue }}">
-                                <td>{{ $loop->iteration }}.</td>
-                                <td>
-                                    <span class="talent-photo" title="{{ $applicant->photo ?: 'No photo' }}">
-                                        @if ($photoUrl)
-                                            <img
-                                                src="{{ $photoUrl }}"
-                                                alt="{{ $applicant->full_name }}"
-                                                loading="lazy"
-                                                decoding="async"
-                                                onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
-                                                onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';"
-                                            >
-                                            <i class="bi bi-person-fill" style="display: none;"></i>
-                                        @else
-                                            <i class="bi bi-person-fill"></i>
-                                        @endif
-                                    </span>
-                                </td>
-                                <td>{{ $applicant->full_name }}</td>
-                                <td>{{ $applicant->jobVacancy?->name ?? '-' }}</td>
-                                <td>
-                                    <form method="POST" action="{{ route('applicant.status.update', ['applicant' => $applicant->id]) }}" class="talent-status-form">
-                                        @csrf
-                                        @method('PATCH')
-                                        <select name="applicant_status_id" class="talent-status-select status-value-{{ $applicantStatusValue }}" onchange="updateApplicantStatusColor(this); this.form.submit()" aria-label="Update status {{ $applicant->full_name }}">
-                                            @foreach ($applicantStatuses as $applicantStatus)
-                                                <option value="{{ $applicantStatus->id }}" data-status-value="{{ $applicantStatus->value }}" @selected($applicant->applicant_status_id === $applicantStatus->id)>
-                                                    {{ $applicantStatus->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </form>
-                                </td>
-                                <td>
-                                    <div class="talent-action-group">
-                                        <a href="{{ route('applicant.show', ['applicant' => $applicant->id]) }}" class="talent-action-btn view" title="Detail">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <form
-                                            method="POST"
-                                            action="{{ route('applicant.destroy', ['applicant' => $applicant->id]) }}"
-                                            data-applicant-delete-form
-                                            data-applicant-name="{{ $applicant->full_name }}"
-                                        >
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="talent-action-btn delete" title="Delete">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="text-center text-muted">Belum ada data pelamar.</td>
-                            </tr>
-                        @endforelse
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
@@ -493,6 +472,20 @@
     <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}?v={{ $sweetAlertJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
+        var applicantStatuses = @json($applicantStatuses->map(fn ($status) => ['id' => (string) $status->id, 'value' => (int) $status->value, 'name' => (string) $status->name])->values());
+        var csrfToken = @json(csrf_token());
+        var applicantStatusUpdateUrlTemplate = @json(route('applicant.status.update', ['applicant' => '__APPLICANT_ID__']));
+        var applicantShowUrlTemplate = @json(route('applicant.show', ['applicant' => '__APPLICANT_ID__']));
+        var applicantDestroyUrlTemplate = @json(route('applicant.destroy', ['applicant' => '__APPLICANT_ID__']));
+
+        function escapeHtml(value) {
+            return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
+        }
+
+        function applicantUrl(template, applicantId) {
+            return template.replace('__APPLICANT_ID__', encodeURIComponent(applicantId));
+        }
+
         function updateApplicantStatusColor(selectElement) {
             var selectedOption = selectElement.options[selectElement.selectedIndex];
             var statusValue = selectedOption ? selectedOption.dataset.statusValue : '0';
@@ -501,22 +494,94 @@
             selectElement.classList.add('status-value-' + statusValue);
         }
 
+        function renderApplicantPhoto(applicant) {
+            var title = escapeHtml(applicant.photo || 'No photo');
+
+            if (!applicant.photo_url) {
+                return '<span class="talent-photo" title="' + title + '"><i class="bi bi-person-fill"></i></span>';
+            }
+
+            return '<span class="talent-photo" title="' + title + '">'
+                + '<img src="' + escapeHtml(applicant.photo_url) + '" alt="' + escapeHtml(applicant.full_name) + '" loading="lazy" decoding="async" onload="this.style.display=\'block\'; this.nextElementSibling.style.display=\'none\';" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'inline-block\';">'
+                + '<i class="bi bi-person-fill" style="display: none;"></i>'
+                + '</span>';
+        }
+
+        function renderApplicantStatus(applicant) {
+            var options = applicantStatuses.map(function (status) {
+                return '<option value="' + escapeHtml(status.id) + '" data-status-value="' + status.value + '"' + (String(applicant.applicant_status_id) === String(status.id) ? ' selected' : '') + '>'
+                    + escapeHtml(status.name)
+                    + '</option>';
+            }).join('');
+
+            return '<form method="POST" action="' + applicantUrl(applicantStatusUpdateUrlTemplate, applicant.id) + '" class="talent-status-form">'
+                + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
+                + '<input type="hidden" name="_method" value="PATCH">'
+                + '<span class="talent-status-select-shell">'
+                + '<select name="applicant_status_id" class="talent-status-select status-value-' + Number(applicant.applicant_status_value || 0) + '" onchange="updateApplicantStatusColor(this); this.form.submit()" aria-label="Update status ' + escapeHtml(applicant.full_name) + '">'
+                + options
+                + '</select>'
+                + '</span>'
+                + '</form>';
+        }
+
+        function renderApplicantAction(applicant) {
+            return '<div class="talent-action-group">'
+                + '<a href="' + applicantUrl(applicantShowUrlTemplate, applicant.id) + '" class="talent-action-btn view" title="Detail"><i class="bi bi-eye"></i></a>'
+                + '<form method="POST" action="' + applicantUrl(applicantDestroyUrlTemplate, applicant.id) + '" data-applicant-delete-form data-applicant-name="' + escapeHtml(applicant.full_name) + '">'
+                + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
+                + '<input type="hidden" name="_method" value="DELETE">'
+                + '<button type="submit" class="talent-action-btn delete" title="Delete"><i class="bi bi-trash"></i></button>'
+                + '</form>'
+                + '</div>';
+        }
+
         $(function () {
             var selectedApplicantStatus = '';
 
             var applicantsTable = $('#applicantsTable').DataTable({
+                ajax: {
+                    url: "{{ route('applicant.datatable') }}",
+                    dataSrc: 'data'
+                },
                 order: [],
+                columns: [
+                    {
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row, meta) {
+                            return (meta.row + meta.settings._iDisplayStart + 1) + '.';
+                        }
+                    },
+                    {
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            return renderApplicantPhoto(row);
+                        }
+                    },
+                    { data: 'full_name' },
+                    { data: 'job_vacancy_name' },
+                    {
+                        data: null,
+                        render: function (data, type, row) {
+                            return renderApplicantStatus(row);
+                        }
+                    },
+                    {
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            return renderApplicantAction(row);
+                        }
+                    }
+                ],
                 columnDefs: [
                     { targets: [0, 1, 5], orderable: false }
-                ],
-                drawCallback: function () {
-                    var tableApi = this.api();
-                    var pageInfo = tableApi.page.info();
-
-                    tableApi.column(0, { page: 'current' }).nodes().each(function (cell, index) {
-                        cell.innerHTML = (pageInfo.start + index + 1) + '.';
-                    });
-                }
+                ]
             });
 
             $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
@@ -524,24 +589,24 @@
                     return true;
                 }
 
-                var rowNode = applicantsTable.row(dataIndex).node();
+                var applicant = settings.aoData[dataIndex] ? settings.aoData[dataIndex]._aData : null;
 
-                return rowNode && String(rowNode.dataset.statusValue) === selectedApplicantStatus;
+                return applicant && String(applicant.applicant_status_value) === selectedApplicantStatus;
             });
 
             $('.talent-status-tab').on('click', function () {
-                var statusValue = String(this.dataset.statusValue);
-                var shouldReset = selectedApplicantStatus === statusValue;
+                var $tab = $(this);
+                var statusValue = String($tab.data('status-value'));
+                var isActive = $tab.hasClass('active');
 
-                selectedApplicantStatus = shouldReset ? '' : statusValue;
+                selectedApplicantStatus = isActive ? '' : statusValue;
+
                 $('.talent-status-tab')
                     .removeClass('active')
                     .attr('aria-selected', 'false');
 
-                if (!shouldReset) {
-                    $(this)
-                        .addClass('active')
-                        .attr('aria-selected', 'true');
+                if (!isActive) {
+                    $tab.addClass('active').attr('aria-selected', 'true');
                 }
 
                 applicantsTable.draw();

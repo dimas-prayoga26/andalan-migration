@@ -9,6 +9,7 @@ use App\Http\Controllers\PicAttendance\PicAttendanceTaskController;
 use App\Models\AttendanceOvertime;
 use App\Models\Project;
 use App\Models\ProjectTask;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
@@ -286,6 +287,8 @@ class PicAttendanceModuleTest extends TestCase
             'project_id' => 'project-1',
             'title' => 'Venue Report',
             'status' => 'pending',
+            'start_date' => Carbon::create(2026, 9, 21, 0, 0, 0, 'Asia/Jakarta'),
+            'due_date' => Carbon::create(2026, 9, 23, 0, 0, 0, 'Asia/Jakarta'),
         ]);
         $projectTask->setRelation('project', new Project([
             'id' => 'project-1',
@@ -311,6 +314,7 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertSame('Task (Muktamar PKB)', $projectRow['task_context']);
         $this->assertSame('project', $projectRow['task_context_type']);
         $this->assertSame('Task (Muktamar PKB)', $projectRow['task_category']);
+        $this->assertSame('Senin, 21 - Rabu, 23 Sep 2026', $projectRow['due_date']);
 
         $this->assertSame('Daily Task', $dailyRow['task_context']);
         $this->assertSame('daily', $dailyRow['task_context_type']);

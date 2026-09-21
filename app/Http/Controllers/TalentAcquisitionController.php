@@ -7,6 +7,7 @@ use App\Models\ApplicantStatus;
 use App\Models\JobVacancy;
 use App\Services\Applicants\LegacyApplicantSyncService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,23 +20,6 @@ class TalentAcquisitionController extends Controller
     {
         $syncResult = $legacyApplicantSync->sync();
 
-        $applicants = Applicant::query()
-            ->select([
-                'id',
-                'job_vacancy_id',
-                'applicant_status_id',
-                'full_name',
-                'photo',
-                'legacy_created_at',
-            ])
-            ->with([
-                'jobVacancy:id,name',
-            ])
-            ->latest('legacy_created_at')
-            ->latest('legacy_applicant_id')
-            ->latest('created_at')
-            ->get();
-
         $jobVacancies = JobVacancy::query()
             ->orderBy('name')
             ->get(['id', 'name']);
@@ -45,10 +29,46 @@ class TalentAcquisitionController extends Controller
             ->get(['id', 'value', 'name']);
 
         return view('applicant_data.index', [
-            'applicants' => $applicants,
             'applicantStatuses' => $applicantStatuses,
             'jobVacancies' => $jobVacancies,
             'syncResult' => $syncResult,
+        ]);
+    }
+
+    public function applicantsDatatable(): JsonResponse
+    {
+        $applicants = Applicant::query()
+            ->select([
+                'id',
+                'job_vacancy_id',
+                'applicant_status_id',
+                'full_name',
+                'photo',
+                'legacy_created_at',
+                'legacy_applicant_id',
+                'created_at',
+            ])
+            ->with([
+                'applicantStatus:id,value,name',
+                'jobVacancy:id,name',
+            ])
+            ->latest('legacy_created_at')
+            ->latest('legacy_applicant_id')
+            ->latest('created_at')
+            ->get()
+            ->map(fn (Applicant $applicant): array => [
+                'id' => (string) $applicant->id,
+                'full_name' => (string) $applicant->full_name,
+                'photo' => (string) ($applicant->photo ?? ''),
+                'photo_url' => $applicant->photoUrl(),
+                'job_vacancy_name' => (string) ($applicant->jobVacancy?->name ?? '-'),
+                'applicant_status_id' => (string) ($applicant->applicant_status_id ?? ''),
+                'applicant_status_value' => (int) ($applicant->applicantStatus?->value ?? ApplicantStatus::VALUE_SUBMITTED),
+            ])
+            ->values();
+
+        return response()->json([
+            'data' => $applicants,
         ]);
     }
 
@@ -56,16 +76,31 @@ class TalentAcquisitionController extends Controller
     {
         $syncResult = $legacyApplicantSync->sync();
 
+        return view('applicant_data.job_vancancies', [
+            'jobVacancyStatuses' => JobVacancy::statusOptions(),
+            'syncResult' => $syncResult,
+        ]);
+    }
+
+    public function jobVacanciesDatatable(): JsonResponse
+    {
         $jobVacancies = JobVacancy::query()
             ->withCount('applicants')
             ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(fn (JobVacancy $jobVacancy): array => [
+                'id' => (string) $jobVacancy->id,
+                'name' => (string) $jobVacancy->name,
+                'status' => (string) $jobVacancy->status,
+                'status_css_class' => $jobVacancy->statusCssClass(),
+                'applicants_count' => (int) $jobVacancy->applicants_count,
+                'legacy_created_at' => $jobVacancy->legacy_created_at?->format('d M Y H:i') ?? '-',
+            ])
+            ->values();
 
-        return view('applicant_data.job_vancancies', [
-            'jobVacancies' => $jobVacancies,
-            'jobVacancyStatuses' => JobVacancy::statusOptions(),
-            'syncResult' => $syncResult,
+        return response()->json([
+            'data' => $jobVacancies,
         ]);
     }
 

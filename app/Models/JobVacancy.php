@@ -90,4 +90,11 @@ class JobVacancy extends Model
     {
         return self::statusOptions()[$this->status] ?? 'Non Active';
     }
+
+    public function statusCssClass(): string
+    {
+        return $this->status === self::STATUS_ACTIVE
+            ? self::STATUS_ACTIVE
+            : self::STATUS_INACTIVE;
+    }
 }

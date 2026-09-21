@@ -7,16 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 class Applicant extends Model
 {
     use GeneratesCustomSequenceUuid;
     use SoftDeletes;
-
-    private const LEGACY_PHOTO_BASE_URL = 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/';
-
-    private const LEGACY_CV_BASE_URL = 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/cv/';
 
     protected $table = 'applicants';
 
@@ -102,11 +99,12 @@ class Applicant extends Model
             return null;
         }
 
-        if (Str::startsWith($cvFile, ['http://', 'https://'])) {
-            return $cvFile;
-        }
-
-        return self::LEGACY_CV_BASE_URL.rawurlencode($cvFile);
+        return $this->uploadedFileUrl(
+            $cvFile,
+            'files/cv',
+            (string) config('applicant_files.cv_base_url'),
+            (string) config('applicant_files.legacy_cv_base_url'),
+        );
     }
 
     public function photoUrl(): ?string
@@ -117,11 +115,35 @@ class Applicant extends Model
             return null;
         }
 
-        if (Str::startsWith($photoFile, ['http://', 'https://'])) {
-            return $photoFile;
+        return $this->uploadedFileUrl(
+            $photoFile,
+            'files/photo',
+            (string) config('applicant_files.photo_base_url'),
+            (string) config('applicant_files.legacy_photo_base_url'),
+        );
+    }
+
+    private function uploadedFileUrl(string $filename, string $directory, string $baseUrl, string $legacyBaseUrl): string
+    {
+        if (Str::startsWith($filename, ['http://', 'https://'])) {
+            return $filename;
         }
 
-        return self::LEGACY_PHOTO_BASE_URL.rawurlencode($photoFile);
+        $encodedFilename = rawurlencode($filename);
+
+        foreach ((array) config('applicant_files.careers_public_paths', []) as $publicPath) {
+            $candidatePath = rtrim((string) $publicPath, DIRECTORY_SEPARATOR)
+                .DIRECTORY_SEPARATOR
+                .str_replace('/', DIRECTORY_SEPARATOR, $directory)
+                .DIRECTORY_SEPARATOR
+                .$filename;
+
+            if (File::exists($candidatePath)) {
+                return rtrim($baseUrl, '/').'/'.$encodedFilename;
+            }
+        }
+
+        return rtrim($legacyBaseUrl, '/').'/'.$encodedFilename;
     }
 
     /**

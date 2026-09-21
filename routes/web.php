@@ -88,7 +88,9 @@ Route::middleware('auth')->group(function (): void {
     // Applicant
     Route::middleware('position.permission:view-talent-acquisition')->group(function (): void {
         Route::get('/applicant', [TalentAcquisitionController::class, 'applicants'])->name('applicant');
+        Route::get('/applicant/datatable', [TalentAcquisitionController::class, 'applicantsDatatable'])->name('applicant.datatable');
         Route::get('/applicant/job-vacancies', [TalentAcquisitionController::class, 'jobVacancies'])->name('applicant.job_vacancies');
+        Route::get('/applicant/job-vacancies/datatable', [TalentAcquisitionController::class, 'jobVacanciesDatatable'])->name('applicant.job_vacancies.datatable');
         Route::get('/applicant/job-vacancies/create', [TalentAcquisitionController::class, 'createJobVacancy'])->name('applicant.job_vacancies.create');
         Route::post('/applicant/job-vacancies', [TalentAcquisitionController::class, 'storeJobVacancy'])->name('applicant.job_vacancies.store');
         Route::patch('/applicant/job-vacancies/{jobVacancy}/status', [TalentAcquisitionController::class, 'updateJobVacancyStatus'])->name('applicant.job_vacancies.status.update');
@@ -100,10 +102,10 @@ Route::middleware('auth')->group(function (): void {
     // Employee
     Route::middleware('position.permission:view-organization,view-employee-database')->group(function (): void {
         Route::get('/employee-data', [EmployeeDataController::class, 'index'])->name('employee_data');
+        Route::get('/employee-data/datatable', [EmployeeDataController::class, 'datatable'])->name('employee_data.datatable');
         Route::patch('/employee-data/{employee}/event-project-admin', [EmployeeDataController::class, 'updateEventProjectAdmin'])->name('employee_data.event-project-admin.update');
-        Route::get('/employee-data/authorize', function () {
-            return view('employee_data.authorization');
-        })->name('employee_data.authorization');
+        Route::get('/employee-data/authorize', [EmployeeDataController::class, 'authorization'])->name('employee_data.authorization');
+        Route::get('/employee-data/authorize/datatable', [EmployeeDataController::class, 'authorizationDatatable'])->name('employee_data.authorization.datatable');
     });
 
     // Authorization

@@ -10,6 +10,7 @@ use App\Models\EmployeeDeployment;
 use App\Models\EmployeeProfile;
 use App\Models\Position;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -46,6 +47,35 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
         $this->assertStringContainsString("\$leaveRequest->setRelation('employee', \$employee)", $controller);
         $this->assertStringContainsString("@if (\$row['has_detail'])", $view);
         $this->assertStringContainsString('<span>-</span>', $view);
+    }
+
+    public function test_admin_daily_log_date_filter_normalizes_supported_dates_and_rejects_future_dates(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 21, 10, 0, 0, 'Asia/Jakarta'));
+
+        try {
+            $controller = app(AttendanceRecapController::class);
+            $method = new ReflectionMethod(AttendanceRecapController::class, 'recapAttendanceDate');
+
+            $this->assertSame(
+                '2026-09-19',
+                $method->invoke($controller, Request::create('/admin-attendance/recap-attendance', 'GET', ['date' => '19/09/2026']))->toDateString()
+            );
+            $this->assertSame(
+                '2026-09-18',
+                $method->invoke($controller, Request::create('/admin-attendance/recap-attendance', 'GET', ['date' => '2026-09-18']))->toDateString()
+            );
+            $this->assertSame(
+                '2026-09-21',
+                $method->invoke($controller, Request::create('/admin-attendance/recap-attendance', 'GET', ['date' => '22/09/2026']))->toDateString()
+            );
+            $this->assertSame(
+                '2026-09-21',
+                $method->invoke($controller, Request::create('/admin-attendance/recap-attendance', 'GET', ['date' => 'not-a-date']))->toDateString()
+            );
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_clock_in_at_office_start_boundary_is_presented_on_time_even_when_status_is_late(): void

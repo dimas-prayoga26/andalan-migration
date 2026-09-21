@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -15,8 +16,25 @@ class EmployeeDataController extends Controller
 {
     public function index(): View
     {
-        return view('employee_data.index', [
-            'employees' => $this->employeeRows(),
+        return view('employee_data.index');
+    }
+
+    public function datatable(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->employeeRows(),
+        ]);
+    }
+
+    public function authorization(): View
+    {
+        return view('employee_data.authorization');
+    }
+
+    public function authorizationDatatable(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->authorizationRows(),
         ]);
     }
 
@@ -120,5 +138,125 @@ class EmployeeDataController extends Controller
         }
 
         return File::exists(public_path($publicPath)) ? asset($publicPath) : $defaultAvatarUrl;
+    }
+
+    /**
+     * @return Collection<int, array{menu: string, departments: array<int, string>}>
+     */
+    private function authorizationRows(): Collection
+    {
+        return collect([
+            [
+                'menu' => 'Administrations',
+                'departments' => [
+                    'Board of Directors',
+                    'Administrator',
+                    'Finance and Administration Coordinator',
+                    'Accounting and Taxation',
+                ],
+            ],
+            [
+                'menu' => 'Applicants',
+                'departments' => [
+                    'Board of Directors',
+                    'Administrator',
+                    'Finance and Administration Coordinator',
+                ],
+            ],
+            [
+                'menu' => 'Attendances',
+                'departments' => [
+                    'All Staff',
+                    'Legal Officer & Partnership',
+                    'Finance and Administration Coordinator',
+                    'Accounting and Taxation',
+                    'Operations Coordinator',
+                    'Interior Design',
+                    'Architecture Design',
+                    'Web Developer',
+                    'Documentation Staff',
+                ],
+            ],
+            [
+                'menu' => 'Attendances-data',
+                'departments' => [
+                    'Board of Directors',
+                    'Administrator',
+                    'Legal Officer & Partnership',
+                    'Finance and Administration Coordinator',
+                ],
+            ],
+            [
+                'menu' => 'Blogs',
+                'departments' => [
+                    'Select All',
+                    'Administrator',
+                    'Legal Officer & Partnership',
+                    'Finance and Administration Coordinator',
+                    'Accounting and Taxation',
+                    'Operations Coordinator',
+                    'Interior Design',
+                    'Architecture Design',
+                    'Web Developer',
+                ],
+            ],
+            [
+                'menu' => 'Calendar',
+                'departments' => [
+                    'Select All',
+                    'Administrator',
+                    'Legal Officer & Partnership',
+                    'Finance and Administration Coordinator',
+                    'Accounting and Taxation',
+                    'Operations Coordinator',
+                    'Interior Design',
+                    'Architecture Design',
+                    'Web Developer',
+                ],
+            ],
+            [
+                'menu' => 'Cms',
+                'departments' => [
+                    'Select All',
+                    'Administrator',
+                    'Legal Officer & Partnership',
+                    'Finance and Administration Coordinator',
+                    'Accounting and Taxation',
+                    'Operations Coordinator',
+                    'Interior Design',
+                    'Architecture Design',
+                    'Web Developer',
+                ],
+            ],
+            [
+                'menu' => 'Dashboard',
+                'departments' => [
+                    'Select All',
+                    'Administrator',
+                    'Legal Officer & Partnership',
+                    'Finance and Administration Coordinator',
+                    'Accounting and Taxation',
+                    'Operations Coordinator',
+                    'Interior Design',
+                    'Architecture Design',
+                    'Web Developer',
+                ],
+            ],
+            [
+                'menu' => 'Finances',
+                'departments' => [
+                    'Board of Directors',
+                    'Administrator',
+                    'Finance and Administration Coordinator',
+                    'Accounting and Taxation',
+                ],
+            ],
+            [
+                'menu' => 'Options',
+                'departments' => [
+                    'Administrator',
+                ],
+            ],
+        ]);
     }
 }

@@ -33,8 +33,8 @@
 		overflow-x: auto;
 	}
 
-	#recapAttendanceTable {
-		min-width: 900px;
+	#recapAttendanceCaptureTable {
+		min-width: 980px;
 	}
 
 	#recapMonthlyTable {
@@ -145,8 +145,8 @@
 			</form>
 		</div>
 		<div class="clearfix">
-			<button type="button" class="btn btn-sm btn-primary light">Capture</button>
-		</div>
+			<button class="btn btn-sm btn-primary light">Capture</button>
+		</div>	
 	</div>
 	<div class="card-body table-card-body p-0">
 		<h6 class="text-center fw-bold mb-3">{{ $recapAttendanceDayLabel }}</h6>

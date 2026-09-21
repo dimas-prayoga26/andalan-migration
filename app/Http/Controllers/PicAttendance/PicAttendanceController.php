@@ -181,9 +181,7 @@ class PicAttendanceController extends Controller
             }
 
             if ($date instanceof Carbon && $date->format($format) === $dateValue) {
-                $date = $date->startOfDay();
-
-                return $date->greaterThan($today) ? $today : $date;
+                return $date->startOfDay()->greaterThan($today) ? $today : $date->startOfDay();
             }
         }
 

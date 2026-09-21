@@ -34,7 +34,7 @@
 	}
 
 	#recapAttendanceCaptureTable {
-		min-width: 900px;
+		min-width: 980px;
 	}
 
 	#recapMonthlyTable {
@@ -146,7 +146,7 @@
 		</div>
 		<div class="clearfix">
 			<button id="recapAttendanceCaptureButton" type="button" class="btn btn-sm btn-primary light">Capture</button>
-		</div>
+		</div>	
 	</div>
 	<div class="card-body table-card-body p-0">
 		<h6 class="text-center fw-bold mb-3">{{ $recapAttendanceDayLabel }}</h6>

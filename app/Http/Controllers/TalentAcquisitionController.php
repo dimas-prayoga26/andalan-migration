@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
+use Throwable;
 
 class TalentAcquisitionController extends Controller
 {
@@ -125,22 +126,38 @@ class TalentAcquisitionController extends Controller
 
         $applicant->setRelation('applicantStatus', $applicantStatus);
 
-        $this->sendApplicantStatusMail($applicant);
+        $mailSent = $this->sendApplicantStatusMail($applicant);
 
-        return back()->with('status', 'Status pelamar berhasil diperbarui.');
+        $response = back()->with('status', 'Status pelamar berhasil diperbarui.');
+
+        if (! $mailSent) {
+            return $response->withErrors([
+                'mail' => 'Status tersimpan, tapi email gagal dikirim. Periksa kembali username/password SMTP brand.',
+            ]);
+        }
+
+        return $response;
     }
 
-    private function sendApplicantStatusMail(Applicant $applicant): void
+    private function sendApplicantStatusMail(Applicant $applicant): bool
     {
         if (! filled($applicant->email)) {
-            return;
+            return true;
         }
 
         $brand = CareerBrand::brand($applicant->brand_key);
 
-        Mail::mailer($this->mailerForBrand($brand))
-            ->to($applicant->email)
-            ->send(new ApplicantStatusMail($applicant, $brand));
+        try {
+            Mail::mailer($this->mailerForBrand($brand))
+                ->to($applicant->email)
+                ->send(new ApplicantStatusMail($applicant, $brand));
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
+
+        return true;
     }
 
     /**

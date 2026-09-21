@@ -6,7 +6,9 @@ use App\Http\Controllers\TalentAcquisitionController;
 use App\Mail\ApplicantStatusMail;
 use App\Models\Applicant;
 use App\Support\CareerBrand;
+use Illuminate\Support\Facades\Mail;
 use ReflectionMethod;
+use RuntimeException;
 use Tests\TestCase;
 
 class CareerBrandTest extends TestCase
@@ -91,6 +93,24 @@ class CareerBrandTest extends TestCase
         $this->assertSame('smtp', $method->invoke(
             new TalentAcquisitionController,
             ['mailer' => 'rnb'],
+        ));
+    }
+
+    public function test_applicant_status_mail_failure_does_not_throw(): void
+    {
+        Mail::shouldReceive('mailer')
+            ->once()
+            ->andThrow(new RuntimeException('SMTP authentication failed.'));
+
+        $method = new ReflectionMethod(TalentAcquisitionController::class, 'sendApplicantStatusMail');
+
+        $this->assertFalse($method->invoke(
+            new TalentAcquisitionController,
+            new Applicant([
+                'full_name' => 'John Doe',
+                'email' => 'john@example.com',
+                'brand_key' => null,
+            ]),
         ));
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Applicant;
+use App\Support\CareerBrand;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
@@ -29,10 +30,12 @@ class ApplicantStatusMail extends Mailable
      */
     public function envelope(): Envelope
     {
+        $from = $this->fromAddress();
+
         return new Envelope(
-            from: new Address((string) $this->brand['email'], (string) $this->brand['name']),
+            from: $from,
             replyTo: [
-                new Address((string) $this->brand['email'], (string) $this->brand['name']),
+                $from,
             ],
             subject: $this->subjectText(),
         );
@@ -56,6 +59,21 @@ class ApplicantStatusMail extends Mailable
     {
         $statusName = $this->applicant->statusLabel();
 
-        return 'Status Lamaran Anda: '.$statusName.' - '.$this->brand['name'];
+        return 'Status Lamaran Anda: '.$statusName.' - '.$this->brandName();
+    }
+
+    private function fromAddress(): Address
+    {
+        return new Address($this->brandEmail(), $this->brandName());
+    }
+
+    private function brandEmail(): string
+    {
+        return (string) ($this->brand['email'] ?? CareerBrand::fallbackBrand()['email']);
+    }
+
+    private function brandName(): string
+    {
+        return (string) ($this->brand['name'] ?? CareerBrand::fallbackBrand()['name']);
     }
 }

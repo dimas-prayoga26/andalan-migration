@@ -28,6 +28,7 @@ return [
     'brands' => [
         'rnb' => [
             'name' => 'RNB Management',
+            'mailer' => 'rnb',
             'logo_url' => 'https://raw.githubusercontent.com/dimas-prayoga26/web_careers_company/main/public/images/Logo%20RNB.png',
             'website' => 'https://rnb.co.id/',
             'email' => 'hr@rnb.co.id',
@@ -38,6 +39,7 @@ return [
         ],
         'andalanku' => [
             'name' => 'AndalanKu',
+            'mailer' => 'andalanku',
             'logo_url' => 'https://raw.githubusercontent.com/dimas-prayoga26/web_careers_company/main/public/images/Logo%20AndalanKu.png',
             'website' => 'https://andalanku.com/',
             'email' => 'recruitment@andalanku.com',
@@ -48,6 +50,7 @@ return [
         ],
         'kma' => [
             'name' => 'KMA',
+            'mailer' => 'kma',
             'logo_url' => 'https://raw.githubusercontent.com/dimas-prayoga26/web_careers_company/main/public/images/Logo%20KMA.png',
             'website' => 'https://karpetmerah.id/',
             'email' => 'hr@karpetmerah.id',
@@ -58,6 +61,7 @@ return [
         ],
         'niskala' => [
             'name' => 'Niskala',
+            'mailer' => 'niskala',
             'logo_url' => 'https://raw.githubusercontent.com/dimas-prayoga26/web_careers_company/main/public/images/Logo%20Niskala.png',
             'website' => 'https://coffeeniskala.com/',
             'email' => 'hr@coffeeniskala.com',
@@ -68,6 +72,7 @@ return [
         ],
         'rne' => [
             'name' => 'RNE',
+            'mailer' => 'rne',
             'logo_url' => 'https://raw.githubusercontent.com/dimas-prayoga26/web_careers_company/main/public/images/Logo%20RNE.png',
             'website' => 'https://rne.co.id/',
             'email' => 'hr@rne.co.id',
@@ -78,6 +83,7 @@ return [
         ],
         'tms' => [
             'name' => 'TMS',
+            'mailer' => 'tms',
             'logo_url' => 'https://raw.githubusercontent.com/dimas-prayoga26/web_careers_company/main/public/images/Logo%20TMS.png',
             'website' => 'https://tims.co.id/',
             'email' => 'hr@tims.co.id',
@@ -88,6 +94,7 @@ return [
         ],
         'trah' => [
             'name' => 'Trah',
+            'mailer' => 'trah',
             'logo_url' => 'https://raw.githubusercontent.com/dimas-prayoga26/web_careers_company/main/public/images/Logo%20Trah.png',
             'website' => 'https://trah.co.id/',
             'email' => 'hr@trah.co.id',

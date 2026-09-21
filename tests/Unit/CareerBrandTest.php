@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use App\Mail\ApplicantStatusMail;
+use App\Models\Applicant;
 use App\Support\CareerBrand;
 use Tests\TestCase;
 
@@ -16,6 +18,8 @@ class CareerBrandTest extends TestCase
 
             $this->assertSame('rnb', $brand['key']);
             $this->assertSame('RNB Management', $brand['name']);
+            $this->assertSame('hr@rnb.co.id', $brand['email']);
+            $this->assertSame('rnb', $brand['mailer']);
         }
     }
 
@@ -25,6 +29,7 @@ class CareerBrandTest extends TestCase
 
         $this->assertSame('tms', $brand['key']);
         $this->assertSame('TMS', $brand['name']);
+        $this->assertSame('tms', $brand['mailer']);
     }
 
     public function test_null_brand_config_falls_back_to_rnb_brand(): void
@@ -35,5 +40,37 @@ class CareerBrandTest extends TestCase
 
         $this->assertSame('rnb', $brand['key']);
         $this->assertSame('RNB Management', $brand['name']);
+        $this->assertSame('rnb', $brand['mailer']);
+    }
+
+    public function test_partial_rnb_brand_config_is_completed_with_required_mail_fields(): void
+    {
+        config(['career_brands.brands.rnb' => [
+            'name' => 'RNB Management',
+        ]]);
+
+        $brand = CareerBrand::brand(null);
+
+        $this->assertSame('rnb', $brand['key']);
+        $this->assertSame('RNB Management', $brand['name']);
+        $this->assertSame('hr@rnb.co.id', $brand['email']);
+        $this->assertSame('rnb', $brand['mailer']);
+        $this->assertSame('https://rnb.co.id/', $brand['website']);
+    }
+
+    public function test_applicant_status_mail_handles_brand_without_email(): void
+    {
+        $mail = new ApplicantStatusMail(new Applicant([
+            'full_name' => 'John Doe',
+        ]), [
+            'key' => 'rnb',
+            'name' => 'RNB Management',
+        ]);
+
+        $envelope = $mail->envelope();
+
+        $this->assertSame('Status Lamaran Anda: Submitted - RNB Management', $envelope->subject);
+        $this->assertSame('hr@rnb.co.id', $envelope->from->address);
+        $this->assertSame('RNB Management', $envelope->from->name);
     }
 }

@@ -138,7 +138,9 @@ class TalentAcquisitionController extends Controller
 
         $brand = CareerBrand::brand($applicant->brand_key);
 
-        Mail::to($applicant->email)->send(new ApplicantStatusMail($applicant, $brand));
+        Mail::mailer((string) $brand['mailer'])
+            ->to($applicant->email)
+            ->send(new ApplicantStatusMail($applicant, $brand));
     }
 
     public function updateJobVacancyStatus(Request $request, JobVacancy $jobVacancy): RedirectResponse

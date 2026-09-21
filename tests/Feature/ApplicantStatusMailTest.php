@@ -50,7 +50,8 @@ class ApplicantStatusMailTest extends TestCase
                 && $mail->applicant->is($applicant)
                 && $mail->applicant->applicant_status_id === $hrInterviewStatus->id
                 && $mail->brand['key'] === 'tms'
-                && $mail->brand['name'] === 'TMS';
+                && $mail->brand['name'] === 'TMS'
+                && $mail->mailer === 'tms';
         });
     }
 
@@ -82,7 +83,8 @@ class ApplicantStatusMailTest extends TestCase
             ->assertRedirect();
 
         Mail::assertSent(ApplicantStatusMail::class, fn (ApplicantStatusMail $mail): bool => $mail->brand['key'] === 'rnb'
-            && $mail->brand['name'] === 'RNB Management');
+            && $mail->brand['name'] === 'RNB Management'
+            && $mail->mailer === 'rnb');
     }
 
     public function test_status_update_is_not_blocked_when_applicant_has_no_email(): void

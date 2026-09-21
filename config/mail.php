@@ -49,6 +49,83 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
+        'rnb' => [
+            'transport' => 'smtp',
+            'scheme' => env('RNB_MAIL_SCHEME', 'smtps'),
+            'host' => env('RNB_MAIL_HOST', 'mail.rnb.co.id'),
+            'port' => env('RNB_MAIL_PORT', 465),
+            'username' => env('RNB_MAIL_USERNAME', 'hr@rnb.co.id'),
+            'password' => env('RNB_MAIL_PASSWORD'),
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
+        'andalanku' => [
+            'transport' => 'smtp',
+            'scheme' => env('ANDALANKU_MAIL_SCHEME', 'smtps'),
+            'host' => env('ANDALANKU_MAIL_HOST', 'mail.andalanku.com'),
+            'port' => env('ANDALANKU_MAIL_PORT', 465),
+            'username' => env('ANDALANKU_MAIL_USERNAME', 'recruitment@andalanku.com'),
+            'password' => env('ANDALANKU_MAIL_PASSWORD'),
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
+        'kma' => [
+            'transport' => 'smtp',
+            'scheme' => env('KMA_MAIL_SCHEME', 'smtps'),
+            'host' => env('KMA_MAIL_HOST', 'mail.karpetmerah.id'),
+            'port' => env('KMA_MAIL_PORT', 465),
+            'username' => env('KMA_MAIL_USERNAME', 'hr@karpetmerah.id'),
+            'password' => env('KMA_MAIL_PASSWORD'),
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
+        'niskala' => [
+            'transport' => 'smtp',
+            'scheme' => env('NISKALA_MAIL_SCHEME', 'smtps'),
+            'host' => env('NISKALA_MAIL_HOST', 'mail.coffeeniskala.com'),
+            'port' => env('NISKALA_MAIL_PORT', 465),
+            'username' => env('NISKALA_MAIL_USERNAME', 'hr@coffeeniskala.com'),
+            'password' => env('NISKALA_MAIL_PASSWORD'),
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
+        'rne' => [
+            'transport' => 'smtp',
+            'scheme' => env('RNE_MAIL_SCHEME', 'smtps'),
+            'host' => env('RNE_MAIL_HOST', 'mail.rne.co.id'),
+            'port' => env('RNE_MAIL_PORT', 465),
+            'username' => env('RNE_MAIL_USERNAME', 'hr@rne.co.id'),
+            'password' => env('RNE_MAIL_PASSWORD'),
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
+        'tms' => [
+            'transport' => 'smtp',
+            'scheme' => env('TMS_MAIL_SCHEME', 'smtps'),
+            'host' => env('TMS_MAIL_HOST', 'mail.tims.co.id'),
+            'port' => env('TMS_MAIL_PORT', 465),
+            'username' => env('TMS_MAIL_USERNAME', 'hr@tims.co.id'),
+            'password' => env('TMS_MAIL_PASSWORD'),
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
+        'trah' => [
+            'transport' => 'smtp',
+            'scheme' => env('TRAH_MAIL_SCHEME', 'smtps'),
+            'host' => env('TRAH_MAIL_HOST', 'mail.trah.co.id'),
+            'port' => env('TRAH_MAIL_PORT', 465),
+            'username' => env('TRAH_MAIL_USERNAME', 'hr@trah.co.id'),
+            'password' => env('TRAH_MAIL_PASSWORD'),
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
         'ses' => [
             'transport' => 'ses',
         ],

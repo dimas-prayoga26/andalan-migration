@@ -89,23 +89,23 @@ class PicAttendanceOvertimeController extends Controller
         $companyId = $authenticatedUser instanceof User ? $this->currentCompanyIdFor($authenticatedUser) : null;
         $assignedByUserId = $authenticatedUser instanceof User ? (string) $authenticatedUser->id : null;
         $picOvertimeCompanyId = is_string($assignedByUserId) && trim($assignedByUserId) !== '' ? null : $companyId;
-        $legacyMonth = $request->query('month');
-        $legacyYear = $request->query('year');
-        $cardMonth = $this->normalizeMonth($request->query('card_month', $legacyMonth));
-        $cardYear = $this->normalizeYear($request->query('card_year', $legacyYear));
+        $fallbackMonth = $request->query('month');
+        $fallbackYear = $request->query('year');
+        $cardMonth = $this->normalizeMonth($request->query('card_month', $fallbackMonth));
+        $cardYear = $this->normalizeYear($request->query('card_year', $fallbackYear));
         $pendingTableData = $tableBuilder->buildForContext(
             'pic',
             $picOvertimeCompanyId,
             $assignedByUserId,
-            $request->query('pending_month', $legacyMonth),
-            $request->query('pending_year', $legacyYear)
+            $request->query('pending_month', $fallbackMonth),
+            $request->query('pending_year', $fallbackYear)
         );
         $approvedTableData = $tableBuilder->buildForContext(
             'pic',
             $picOvertimeCompanyId,
             $assignedByUserId,
-            $request->query('approved_month', $legacyMonth),
-            $request->query('approved_year', $legacyYear)
+            $request->query('approved_month', $fallbackMonth),
+            $request->query('approved_year', $fallbackYear)
         );
         $overtimeSummary = is_string($assignedByUserId) && trim($assignedByUserId) !== ''
             ? $metricBuilder->summarizeForPeriod(

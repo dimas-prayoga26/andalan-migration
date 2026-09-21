@@ -6,7 +6,7 @@ use App\Models\Applicant;
 use App\Models\JobVacancy;
 use Tests\TestCase;
 
-class ApplicantLegacySyncTest extends TestCase
+class ApplicantSupportTest extends TestCase
 {
     public function test_portfolio_links_extract_multiple_urls(): void
     {
@@ -28,7 +28,7 @@ class ApplicantLegacySyncTest extends TestCase
         $this->assertNull((new Applicant(['phone' => null]))->whatsAppUrl());
     }
 
-    public function test_cv_download_url_points_to_legacy_cv_folder(): void
+    public function test_cv_download_url_points_to_archived_upload_folder_when_local_file_is_missing(): void
     {
         $this->assertSame(
             'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/cv/saktian%20cv.pdf',
@@ -43,7 +43,7 @@ class ApplicantLegacySyncTest extends TestCase
         $this->assertNull((new Applicant(['cv' => null]))->cvDownloadUrl());
     }
 
-    public function test_photo_url_points_to_legacy_photo_folder(): void
+    public function test_photo_url_points_to_archived_upload_folder_when_local_file_is_missing(): void
     {
         $this->assertSame(
             'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/saktian%20photo.jpg',
@@ -58,7 +58,7 @@ class ApplicantLegacySyncTest extends TestCase
         $this->assertNull((new Applicant(['photo' => null]))->photoUrl());
     }
 
-    public function test_job_vacancy_status_maps_to_legacy_values(): void
+    public function test_job_vacancy_status_uses_current_values(): void
     {
         $this->assertSame(1, JobVacancy::statusValueFor(JobVacancy::STATUS_ACTIVE));
         $this->assertSame(2, JobVacancy::statusValueFor(JobVacancy::STATUS_INACTIVE));

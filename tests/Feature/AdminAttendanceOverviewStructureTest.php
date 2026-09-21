@@ -130,10 +130,10 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('supervisorApprovedLeaveRequestQuery', $leaveController);
         $this->assertStringContainsString('return (int) $this->supervisorApprovedLeaveRequestQuery($activeEmployeeIds)', $leaveController);
         $this->assertStringContainsString('current_company_id', $leaveController);
-        $this->assertStringContainsString('$legacyMonth = $request->query(\'month\');', $overtimeController);
-        $this->assertStringContainsString('$cardMonth = $this->normalizeMonth($request->query(\'card_month\', $legacyMonth));', $overtimeController);
-        $this->assertStringContainsString('$request->query(\'pending_month\', $legacyMonth)', $overtimeController);
-        $this->assertStringContainsString('$request->query(\'complete_month\', $legacyMonth)', $overtimeController);
+        $this->assertStringContainsString('$fallbackMonth = $request->query(\'month\');', $overtimeController);
+        $this->assertStringContainsString('$cardMonth = $this->normalizeMonth($request->query(\'card_month\', $fallbackMonth));', $overtimeController);
+        $this->assertStringContainsString('$request->query(\'pending_month\', $fallbackMonth)', $overtimeController);
+        $this->assertStringContainsString('$request->query(\'complete_month\', $fallbackMonth)', $overtimeController);
         $this->assertStringContainsString('$metricBuilder->summarizeForPeriod(null, null, $cardMonth, $cardYear)', $overtimeController);
         $this->assertStringContainsString('$this->adminOvertimeCardsFor(null, $cardMonth, $cardYear)', $overtimeController);
         $this->assertStringContainsString("'selectedCardMonth' => \$cardMonth", $overtimeController);

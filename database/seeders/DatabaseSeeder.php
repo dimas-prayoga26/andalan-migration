@@ -22,7 +22,7 @@ class DatabaseSeeder extends Seeder
             LeaveSubTypeSeeder::class,
             CompanySeeder::class,
             PositionSeeder::class,
-            LegacySqlUserSeeder::class,
+            UserSeeder::class,
             PositionPermissionSeeder::class,
             EmployeePicAssignmentSeeder::class,
             NiskalaMultiPicLeaveSeeder::class,

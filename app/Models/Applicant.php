@@ -23,13 +23,6 @@ class Applicant extends Model
 
     public $incrementing = false;
 
-    protected function casts(): array
-    {
-        return [
-            'legacy_created_at' => 'datetime',
-        ];
-    }
-
     protected static function booted(): void
     {
         static::creating(function (self $applicant): void {
@@ -103,7 +96,7 @@ class Applicant extends Model
             $cvFile,
             'files/cv',
             (string) config('applicant_files.cv_base_url'),
-            (string) config('applicant_files.legacy_cv_base_url'),
+            (string) config('applicant_files.fallback_cv_base_url'),
         );
     }
 
@@ -119,11 +112,11 @@ class Applicant extends Model
             $photoFile,
             'files/photo',
             (string) config('applicant_files.photo_base_url'),
-            (string) config('applicant_files.legacy_photo_base_url'),
+            (string) config('applicant_files.fallback_photo_base_url'),
         );
     }
 
-    private function uploadedFileUrl(string $filename, string $directory, string $baseUrl, string $legacyBaseUrl): string
+    private function uploadedFileUrl(string $filename, string $directory, string $baseUrl, string $fallbackBaseUrl): string
     {
         if (Str::startsWith($filename, ['http://', 'https://'])) {
             return $filename;
@@ -143,7 +136,7 @@ class Applicant extends Model
             }
         }
 
-        return rtrim($legacyBaseUrl, '/').'/'.$encodedFilename;
+        return rtrim($fallbackBaseUrl, '/').'/'.$encodedFilename;
     }
 
     /**

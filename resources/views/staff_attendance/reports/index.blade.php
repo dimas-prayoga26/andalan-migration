@@ -468,10 +468,10 @@
                     return;
                 }
 
-                var legacyNextButton = tableWrapper.find('.dataTables_paginate .paginate_button.next');
-                if (legacyNextButton.length > 0) {
+                var fallbackNextButton = tableWrapper.find('.dataTables_paginate .paginate_button.next');
+                if (fallbackNextButton.length > 0) {
                     $('<span class="paginate_button current attendance-empty-page-btn">1</span>')
-                        .insertBefore(legacyNextButton.first());
+                        .insertBefore(fallbackNextButton.first());
                 }
             }
 

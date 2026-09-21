@@ -31,7 +31,6 @@ class JobVacancy extends Model
     {
         return [
             'status' => 'integer',
-            'legacy_created_at' => 'datetime',
         ];
     }
 

@@ -86,9 +86,9 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('$pendingTableData = $tableBuilder->buildForContext(', $directorOvertimeController);
         $this->assertStringContainsString('$approvedTableData = $tableBuilder->buildForContext(', $directorOvertimeController);
         $this->assertStringContainsString("'director',", $directorOvertimeController);
-        $this->assertStringContainsString("\$request->query('card_month', \$legacyMonth)", $directorOvertimeController);
-        $this->assertStringContainsString("\$request->query('pending_month', \$legacyMonth)", $directorOvertimeController);
-        $this->assertStringContainsString("\$request->query('approved_month', \$legacyMonth)", $directorOvertimeController);
+        $this->assertStringContainsString("\$request->query('card_month', \$fallbackMonth)", $directorOvertimeController);
+        $this->assertStringContainsString("\$request->query('pending_month', \$fallbackMonth)", $directorOvertimeController);
+        $this->assertStringContainsString("\$request->query('approved_month', \$fallbackMonth)", $directorOvertimeController);
         $this->assertStringContainsString('$overtimeSummary = $metricBuilder->summarizeForPeriod(null, null, $cardMonth, $cardYear);', $directorOvertimeController);
         $this->assertStringContainsString("'overtimeSummary' => \$overtimeSummary", $directorOvertimeController);
         $this->assertStringContainsString("'overtimeMetricCards' => \$metricBuilder->metricCards(\$overtimeSummary)", $directorOvertimeController);

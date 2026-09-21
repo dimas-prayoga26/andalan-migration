@@ -251,7 +251,7 @@
                             <th class="mw-300">Lowongan Pekerjaan</th>
                             <th class="mw-160">Status</th>
                             <th class="mw-160">Total Pelamar</th>
-                            <th class="mw-180">Legacy Created</th>
+                            <th class="mw-180">Created At</th>
                         </tr>
                         </thead>
                         <tbody></tbody>
@@ -331,7 +331,7 @@
                         }
                     },
                     { data: 'applicants_count' },
-                    { data: 'legacy_created_at' }
+                    { data: 'created_at' }
                 ],
                 columnDefs: [
                     { targets: 0, orderable: false }

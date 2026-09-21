@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ApplicantStatusMail;
 use App\Models\Applicant;
 use App\Models\ApplicantStatus;
 use App\Models\JobVacancy;
+use App\Support\CareerBrand;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 
 class TalentAcquisitionController extends Controller
@@ -38,16 +41,12 @@ class TalentAcquisitionController extends Controller
                 'applicant_status_id',
                 'full_name',
                 'photo',
-                'legacy_created_at',
-                'legacy_applicant_id',
                 'created_at',
             ])
             ->with([
                 'applicantStatus:id,value,name',
                 'jobVacancy:id,name',
             ])
-            ->latest('legacy_created_at')
-            ->latest('legacy_applicant_id')
             ->latest('created_at')
             ->get()
             ->map(fn (Applicant $applicant): array => [
@@ -86,7 +85,7 @@ class TalentAcquisitionController extends Controller
                 'status' => (int) $jobVacancy->status,
                 'status_css_class' => $jobVacancy->statusCssClass(),
                 'applicants_count' => (int) $jobVacancy->applicants_count,
-                'legacy_created_at' => $jobVacancy->legacy_created_at?->format('d M Y H:i') ?? '-',
+                'created_at' => $jobVacancy->created_at?->format('d M Y H:i') ?? '-',
             ])
             ->values();
 
@@ -124,7 +123,22 @@ class TalentAcquisitionController extends Controller
             'applicant_status_id' => $applicantStatus->id,
         ]);
 
+        $applicant->setRelation('applicantStatus', $applicantStatus);
+
+        $this->sendApplicantStatusMail($applicant);
+
         return back()->with('status', 'Status pelamar berhasil diperbarui.');
+    }
+
+    private function sendApplicantStatusMail(Applicant $applicant): void
+    {
+        if (! filled($applicant->email)) {
+            return;
+        }
+
+        $brand = CareerBrand::brand($applicant->brand_key);
+
+        Mail::to($applicant->email)->send(new ApplicantStatusMail($applicant, $brand));
     }
 
     public function updateJobVacancyStatus(Request $request, JobVacancy $jobVacancy): RedirectResponse
@@ -144,7 +158,7 @@ class TalentAcquisitionController extends Controller
 
     public function destroyApplicant(Applicant $applicant): RedirectResponse
     {
-        $applicant->delete();
+        $applicant->forceDelete();
 
         return redirect()->route('applicant')->with('status', 'Data pelamar berhasil dihapus.');
     }

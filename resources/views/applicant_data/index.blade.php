@@ -6,8 +6,11 @@
     @php
         $dashboardCssPath = public_path('assets/css/dashboard.css');
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
+        $sweetAlertCssPath = public_path('assets/vendor/sweetalert2/sweetalert2.min.css');
+        $sweetAlertCssVersion = file_exists($sweetAlertCssPath) ? filemtime($sweetAlertCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}?v={{ $sweetAlertCssVersion }}">
     <style>
         .talent-tabs {
             flex-wrap: nowrap;
@@ -408,6 +411,7 @@
                 @if ($errors->any())
                     <div class="alert alert-danger mb-3" role="alert">{{ $errors->first() }}</div>
                 @endif
+                @include('settings.partials.delete-confirmation-swal')
 
                 <div class="talent-header-bar">
                     <div class="talent-table-title">Data Pelamar</div>
@@ -517,7 +521,7 @@
         function renderApplicantAction(applicant) {
             return '<div class="talent-action-group">'
                 + '<a href="' + applicantUrl(applicantShowUrlTemplate, applicant.id) + '" class="talent-action-btn view" title="Detail"><i class="bi bi-eye"></i></a>'
-                + '<form method="POST" action="' + applicantUrl(applicantDestroyUrlTemplate, applicant.id) + '" onsubmit="return confirm(\'Hapus data pelamar ini?\')">'
+                + '<form method="POST" action="' + applicantUrl(applicantDestroyUrlTemplate, applicant.id) + '" data-delete-confirmation-form data-delete-title="Hapus Data Pelamar?" data-delete-message="Data ' + escapeHtml(applicant.full_name) + ' akan dihapus permanen." data-delete-confirm-button="Ya, hapus" data-delete-cancel-button="Batal">'
                 + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
                 + '<input type="hidden" name="_method" value="DELETE">'
                 + '<button type="submit" class="talent-action-btn delete" title="Delete"><i class="bi bi-trash"></i></button>'
@@ -612,4 +616,5 @@
             });
         });
     </script>
+    @stack('scripts')
 @endsection

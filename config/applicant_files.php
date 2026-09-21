@@ -13,8 +13,8 @@ return [
     |
     | The careers application stores uploaded applicant files in its public
     | directory. The SIAP application only stores the filenames in the database,
-    | so it needs these paths to decide whether a file belongs to the new
-    | careers app or the legacy careers folder.
+    | so it checks the current careers folder first and falls back to the
+    | archived upload folder when older CV/photo files still live there.
     |
     */
 
@@ -27,7 +27,7 @@ return [
 
     'cv_base_url' => rtrim((string) env('CAREERS_CV_BASE_URL', 'https://careers.rnb.co.id/files/cv'), '/').'/',
 
-    'legacy_photo_base_url' => rtrim((string) env('LEGACY_CAREERS_PHOTO_BASE_URL', 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo'), '/').'/',
+    'fallback_photo_base_url' => rtrim((string) env('ARCHIVED_CAREERS_PHOTO_BASE_URL', 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo'), '/').'/',
 
-    'legacy_cv_base_url' => rtrim((string) env('LEGACY_CAREERS_CV_BASE_URL', 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/cv'), '/').'/',
+    'fallback_cv_base_url' => rtrim((string) env('ARCHIVED_CAREERS_CV_BASE_URL', 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/cv'), '/').'/',
 ];

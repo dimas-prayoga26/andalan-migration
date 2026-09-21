@@ -49,23 +49,23 @@ class AttendanceOvertimeController extends Controller
 
     public function index(Request $request, OvertimeSummaryMetricBuilder $metricBuilder, OvertimeReviewTableBuilder $tableBuilder): View
     {
-        $legacyMonth = $request->query('month');
-        $legacyYear = $request->query('year');
-        $cardMonth = $this->normalizeMonth($request->query('card_month', $legacyMonth));
-        $cardYear = $this->normalizeYear($request->query('card_year', $legacyYear));
+        $fallbackMonth = $request->query('month');
+        $fallbackYear = $request->query('year');
+        $cardMonth = $this->normalizeMonth($request->query('card_month', $fallbackMonth));
+        $cardYear = $this->normalizeYear($request->query('card_year', $fallbackYear));
         $pendingTableData = $tableBuilder->buildForContext(
             'admin',
             null,
             null,
-            $request->query('pending_month', $legacyMonth),
-            $request->query('pending_year', $legacyYear)
+            $request->query('pending_month', $fallbackMonth),
+            $request->query('pending_year', $fallbackYear)
         );
         $completeTableData = $tableBuilder->buildForContext(
             'admin',
             null,
             null,
-            $request->query('complete_month', $legacyMonth),
-            $request->query('complete_year', $legacyYear)
+            $request->query('complete_month', $fallbackMonth),
+            $request->query('complete_year', $fallbackYear)
         );
         $overtimeSummary = $metricBuilder->summarizeForPeriod(null, null, $cardMonth, $cardYear);
 

@@ -19,7 +19,7 @@ class ApplicantFileUrlTest extends TestCase
         config([
             'applicant_files.careers_public_paths' => [$publicPath],
             'applicant_files.photo_base_url' => 'https://careers.rnb.co.id/files/photo/',
-            'applicant_files.legacy_photo_base_url' => 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/',
+            'applicant_files.fallback_photo_base_url' => 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/',
         ]);
 
         $applicant = new Applicant(['photo' => 'profile photo.png']);
@@ -32,12 +32,12 @@ class ApplicantFileUrlTest extends TestCase
         File::deleteDirectory($publicPath);
     }
 
-    public function test_it_keeps_legacy_file_url_when_file_is_not_in_new_careers_folder(): void
+    public function test_it_uses_archived_upload_url_when_file_is_not_in_configured_public_folder(): void
     {
         config([
             'applicant_files.careers_public_paths' => [base_path('.codex-temp/missing-applicant-files')],
             'applicant_files.cv_base_url' => 'https://careers.rnb.co.id/files/cv/',
-            'applicant_files.legacy_cv_base_url' => 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/cv/',
+            'applicant_files.fallback_cv_base_url' => 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/cv/',
         ]);
 
         $applicant = new Applicant(['cv' => 'old cv.pdf']);

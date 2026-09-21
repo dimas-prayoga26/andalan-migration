@@ -3,44 +3,50 @@
         <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}"></script>
         <script>
             (function () {
-                document.querySelectorAll('[data-settings-delete-form]').forEach(function (form) {
-                    form.addEventListener('submit', function (event) {
-                        if (form.dataset.deleteConfirmed === 'true') {
-                            return;
-                        }
+                document.addEventListener('submit', function (event) {
+                    var form = event.target;
 
-                        event.preventDefault();
+                    if (!form.matches('[data-delete-confirmation-form], [data-settings-delete-form]')) {
+                        return;
+                    }
 
-                        var title = form.dataset.deleteTitle || 'Delete Data';
-                        var message = form.dataset.deleteMessage || 'This data will be permanently deleted.';
+                    if (form.dataset.deleteConfirmed === 'true') {
+                        return;
+                    }
 
-                        if (typeof Swal === 'undefined' || !Swal || typeof Swal.fire !== 'function') {
-                            if (window.confirm(message)) {
-                                form.dataset.deleteConfirmed = 'true';
-                                form.submit();
-                            }
+                    event.preventDefault();
 
-                            return;
-                        }
+                    var title = form.dataset.deleteTitle || 'Delete Data';
+                    var message = form.dataset.deleteMessage || 'This data will be permanently deleted.';
+                    var confirmButtonText = form.dataset.deleteConfirmButton || 'Delete';
+                    var cancelButtonText = form.dataset.deleteCancelButton || 'Cancel';
 
-                        Swal.fire({
-                            title: title,
-                            text: message,
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonText: 'Delete',
-                            cancelButtonText: 'Cancel',
-                            confirmButtonColor: '#dc3545',
-                            reverseButtons: true,
-                            focusCancel: true
-                        }).then(function (result) {
-                            if (!result.isConfirmed) {
-                                return;
-                            }
-
+                    if (typeof Swal === 'undefined' || !Swal || typeof Swal.fire !== 'function') {
+                        if (window.confirm(message)) {
                             form.dataset.deleteConfirmed = 'true';
                             form.submit();
-                        });
+                        }
+
+                        return;
+                    }
+
+                    Swal.fire({
+                        title: title,
+                        text: message,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: confirmButtonText,
+                        cancelButtonText: cancelButtonText,
+                        confirmButtonColor: '#dc3545',
+                        reverseButtons: true,
+                        focusCancel: true
+                    }).then(function (result) {
+                        if (!result.isConfirmed) {
+                            return;
+                        }
+
+                        form.dataset.deleteConfirmed = 'true';
+                        form.submit();
                     });
                 });
             })();

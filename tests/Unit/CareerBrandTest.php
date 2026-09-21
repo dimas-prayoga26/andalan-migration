@@ -2,9 +2,11 @@
 
 namespace Tests\Unit;
 
+use App\Http\Controllers\TalentAcquisitionController;
 use App\Mail\ApplicantStatusMail;
 use App\Models\Applicant;
 use App\Support\CareerBrand;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class CareerBrandTest extends TestCase
@@ -72,5 +74,23 @@ class CareerBrandTest extends TestCase
         $this->assertSame('Status Lamaran Anda: Submitted - RNB Management', $envelope->subject);
         $this->assertSame('hr@rnb.co.id', $envelope->from->address);
         $this->assertSame('RNB Management', $envelope->from->name);
+    }
+
+    public function test_missing_brand_mailer_config_falls_back_to_default_mailer(): void
+    {
+        config([
+            'mail.default' => 'smtp',
+            'mail.mailers.rnb' => null,
+            'mail.mailers.smtp' => [
+                'transport' => 'log',
+            ],
+        ]);
+
+        $method = new ReflectionMethod(TalentAcquisitionController::class, 'mailerForBrand');
+
+        $this->assertSame('smtp', $method->invoke(
+            new TalentAcquisitionController,
+            ['mailer' => 'rnb'],
+        ));
     }
 }

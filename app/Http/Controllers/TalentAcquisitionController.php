@@ -138,9 +138,29 @@ class TalentAcquisitionController extends Controller
 
         $brand = CareerBrand::brand($applicant->brand_key);
 
-        Mail::mailer((string) $brand['mailer'])
+        Mail::mailer($this->mailerForBrand($brand))
             ->to($applicant->email)
             ->send(new ApplicantStatusMail($applicant, $brand));
+    }
+
+    /**
+     * @param  array<string, mixed>  $brand
+     */
+    private function mailerForBrand(array $brand): string
+    {
+        $brandMailer = (string) ($brand['mailer'] ?? '');
+
+        if (filled($brandMailer) && is_array(config("mail.mailers.{$brandMailer}"))) {
+            return $brandMailer;
+        }
+
+        $defaultMailer = (string) config('mail.default', 'smtp');
+
+        if (filled($defaultMailer) && is_array(config("mail.mailers.{$defaultMailer}"))) {
+            return $defaultMailer;
+        }
+
+        return 'smtp';
     }
 
     public function updateJobVacancyStatus(Request $request, JobVacancy $jobVacancy): RedirectResponse

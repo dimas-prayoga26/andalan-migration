@@ -111,6 +111,10 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('position.permission:view-authorization', $routes);
         $this->assertStringContainsString("'position.permission' => EnsurePositionPermission::class", $bootstrapApp);
         $this->assertStringContainsString('hasAnyPositionPermission', $userModel);
+        $this->assertStringContainsString('permissionPositionsForDeployment', $userModel);
+        $this->assertStringContainsString('$position->pivot?->is_primary', $userModel);
+        $this->assertStringContainsString('$position->pivot?->sort_order', $userModel);
+        $this->assertStringContainsString('->take(2)', $userModel);
         $this->assertStringContainsString('abort_unless', $positionPermissionMiddleware);
         $this->assertStringContainsString('hasAnyPositionPermission($permissionNames)', $positionPermissionMiddleware);
         $this->assertStringContainsString("route('authorization.access-menus')", $controller);
@@ -206,6 +210,13 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('ID Number / NIK', $authorizationFormView);
         $this->assertStringContainsString('Company', $authorizationFormView);
         $this->assertStringContainsString('Division', $authorizationFormView);
+        $this->assertStringContainsString('name="current_position_id"', $authorizationFormView);
+        $this->assertStringContainsString('data-position-primary-input', $authorizationFormView);
+        $this->assertStringContainsString('data-position-order-fields', $authorizationFormView);
+        $this->assertStringContainsString("input.name = 'current_position_order[]'", $authorizationFormView);
+        $this->assertStringContainsString('js-position-primary-selector', $authorizationFormView);
+        $this->assertStringContainsString('Primary Position', $authorizationFormView);
+        $this->assertStringContainsString('Secondary Position', $authorizationFormView);
         $this->assertStringContainsString('PIC / Person in Charge', $authorizationFormView);
         $this->assertStringContainsString('The data is not valid.', $authorizationFormView);
         $this->assertStringNotContainsString('name="password"', $authorizationFormView);

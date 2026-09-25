@@ -41,10 +41,14 @@ class AuthorizationController extends Controller
         abort_unless($authenticatedUser instanceof User, 403);
 
         $search = $request->string('search')->trim()->toString();
+        $employeeStatusFilter = $request->string('status')->lower()->toString() === 'inactive'
+            ? 'inactive'
+            : 'active';
 
         return view('authorization.index', [
-            'users' => $this->authorizationUsersFor($authenticatedUser, $search),
+            'users' => $this->authorizationUsersFor($authenticatedUser, $search, $employeeStatusFilter),
             'search' => $search,
+            'employeeStatusFilter' => $employeeStatusFilter,
             'canManageDataEmployee' => $this->canManageAuthorization($authenticatedUser),
             'canManagePositionPermissions' => $this->canManagePositionPermissions($authenticatedUser),
         ]);
@@ -490,7 +494,7 @@ class AuthorizationController extends Controller
      *     initials: string
      * }>
      */
-    private function authorizationUsersFor(User $viewer, string $search = ''): LengthAwarePaginator
+    private function authorizationUsersFor(User $viewer, string $search = '', string $statusFilter = 'active'): LengthAwarePaginator
     {
         $viewer->loadMissing([
             'roles:uuid,name',
@@ -518,17 +522,35 @@ class AuthorizationController extends Controller
                 'employee.picAssignment.supervisor:id',
                 'employee.picAssignment.supervisor.profile:id,employee_id,name',
             ])
-            ->where('is_active', true)
             ->whereDoesntHave('roles', function (Builder $roleQuery): void {
                 $roleQuery->where('name', 'superuser');
             })
-            ->whereHas('employee', function (Builder $employeeQuery): void {
-                $employeeQuery
-                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                    ->whereHas('deployment', function (Builder $deploymentQuery): void {
-                        $deploymentQuery->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+            ->whereHas('employee');
+
+        if ($statusFilter === 'inactive') {
+            $query->where(function (Builder $inactiveQuery): void {
+                $inactiveQuery
+                    ->where('is_active', false)
+                    ->orWhereHas('employee', function (Builder $employeeQuery): void {
+                        $employeeQuery
+                            ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['active'])
+                            ->orWhereDoesntHave('deployment')
+                            ->orWhereHas('deployment', function (Builder $deploymentQuery): void {
+                                $deploymentQuery->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['active']);
+                            });
                     });
             });
+        } else {
+            $query
+                ->where('is_active', true)
+                ->whereHas('employee', function (Builder $employeeQuery): void {
+                    $employeeQuery
+                        ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+                        ->whereHas('deployment', function (Builder $deploymentQuery): void {
+                            $deploymentQuery->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
+                        });
+                });
+        }
 
         if (! $this->canManageAuthorization($viewer)) {
             $companyId = $this->viewerCompanyId($viewer);
@@ -820,6 +842,8 @@ class AuthorizationController extends Controller
             'current_position_id' => ['nullable', 'string', 'exists:positions,id'],
             'current_position_ids' => ['array'],
             'current_position_ids.*' => ['string', 'exists:positions,id'],
+            'current_position_order' => ['array'],
+            'current_position_order.*' => ['string', 'exists:positions,id'],
             'join_date' => ['nullable', 'date'],
             'resignation_date' => ['nullable', 'date', 'after_or_equal:join_date'],
             'pic_employee_id' => ['nullable', 'string', 'exists:employees,id'],
@@ -906,8 +930,13 @@ class AuthorizationController extends Controller
             ]
         );
 
-        $positionIds = collect($validated['current_position_ids'] ?? [])
+        $selectedPositionIds = collect($validated['current_position_ids'] ?? [])
             ->filter()
+            ->unique()
+            ->values();
+        $positionIds = collect($validated['current_position_order'] ?? [])
+            ->filter(fn (mixed $positionId): bool => $selectedPositionIds->contains($positionId))
+            ->merge($selectedPositionIds)
             ->unique()
             ->values();
         $primaryPositionId = $validated['current_position_id'] ?? $positionIds->first();
@@ -963,9 +992,11 @@ class AuthorizationController extends Controller
         ?string $endedAt,
     ): void {
         $syncData = $positionIds
-            ->mapWithKeys(fn (string $positionId): array => [
+            ->values()
+            ->mapWithKeys(fn (string $positionId, int $index): array => [
                 $positionId => [
                     'is_primary' => $primaryPositionId === $positionId,
+                    'sort_order' => $index,
                     'status' => 'active',
                     'started_at' => $startedAt,
                     'ended_at' => $endedAt,

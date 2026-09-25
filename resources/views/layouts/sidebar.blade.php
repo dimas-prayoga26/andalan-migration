@@ -6,7 +6,9 @@
 						$isDashboardMenu = request()->routeIs('dashboard');
 						$isCalendarMenu = request()->routeIs('activity-schadule*');
 						$isAttendanceMenu = request()->routeIs('attendance*') || request()->is('attendance*');
+						$isZoomMeetingMenu = request()->routeIs('zoom-meeting*') || request()->is('zoom-meeting*');
 						$isAdminAttendanceMenu = request()->routeIs('admin-attendance*') || request()->is('admin-attendance*');
+						$isHrMeetingMenu = request()->routeIs('hr-meetings*') || request()->is('hr-meetings*');
 						$isPicAttendanceMenu = request()->routeIs('pic-attendance*') || request()->is('pic-attendance*');
 						$isDirectorAttendanceMenu = request()->routeIs('director-attendance*') || request()->is('director-attendance*');
 						$isReportingMenu = request()->routeIs('project_management', 'project_management.detail') || request()->is('project-management*');
@@ -18,7 +20,9 @@
 						$canViewCalendarMenu = $canViewSidebarMenu('view-calendar');
 						$canViewAttendanceMenu = $canViewSidebarMenu('view-attendance');
 						$canViewTimesheetReportingMenu = $canViewSidebarMenu('view-timesheet-reporting');
+						$canViewMeetingMenu = $canViewSidebarMenu('view-meeting');
 						$canViewAdminAttendanceMenu = $canViewSidebarMenu('view-admin-attendance');
+						$canViewHrMeetingsMenu = $canViewAdminAttendanceMenu;
 						$canViewPicAttendanceMenu = $canViewSidebarMenu('view-pic-attendance');
 						$canViewDirectorAttendanceMenu = $canViewSidebarMenu('view-director-attendance');
 						$canViewAuthorizationMenu = $canViewSidebarMenu('view-authorization');
@@ -29,7 +33,7 @@
 						$showAdminTalentAcquisitionMenu = $canViewTalentAcquisitionMenu && ! $useDirectorManagementMenu;
 						$showDirectorAuthorizationMenu = $canViewAuthorizationMenu && $useDirectorManagementMenu;
 						$showDirectorTalentAcquisitionMenu = $canViewTalentAcquisitionMenu && $useDirectorManagementMenu;
-						$showAdminManagementMenu = $canViewAdminAttendanceMenu || $showAdminAuthorizationMenu || $showAdminTalentAcquisitionMenu;
+						$showAdminManagementMenu = $canViewAdminAttendanceMenu || $canViewHrMeetingsMenu || $showAdminAuthorizationMenu || $showAdminTalentAcquisitionMenu;
 						$showPicManagementMenu = $canViewPicAttendanceMenu;
 						$showDirectorManagementMenu = $canViewDirectorAttendanceMenu || $showDirectorAuthorizationMenu || $showDirectorTalentAcquisitionMenu;
 					@endphp
@@ -54,7 +58,7 @@
 						</a>
 					</li>
 					@endif
-					@if ($canViewAttendanceMenu || $canViewTimesheetReportingMenu)
+					@if ($canViewAttendanceMenu || $canViewTimesheetReportingMenu || $canViewMeetingMenu)
 					<div class="copyright mt-1">
 						<p class="mb-1"><strong>Siap</strong> </p>
 					</div>
@@ -75,6 +79,14 @@
 						</a>
 					</li>
 					@endif
+					@if ($canViewMeetingMenu)
+					<li class="{{ $isZoomMeetingMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isZoomMeetingMenu ? 'active' : '' }}" href="{{ route('zoom-meeting.index') }}" aria-expanded="{{ $isZoomMeetingMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-video"></i>
+							<span class="nav-text" data-i18n="Zoom Meeting">Zoom Meeting </span>
+						</a>
+					</li>
+					@endif
 					@if ($showAdminManagementMenu)
 					<div class="copyright mt-1">
 						<p class="mb-1"><strong>Admin Management</strong> </p>
@@ -84,6 +96,14 @@
 						<a class="{{ $isAdminAttendanceMenu ? 'active' : '' }}" href="{{ route('admin-attendance.overview') }}" aria-expanded="{{ $isAdminAttendanceMenu ? 'true' : 'false' }}">
 							<i class="fa-solid fa-user-clock"></i>
 							<span class="nav-text" data-i18n="Admin Attendance">Admin Attendance </span>
+						</a>
+					</li>
+					@endif
+					@if ($canViewHrMeetingsMenu)
+					<li class="{{ $isHrMeetingMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isHrMeetingMenu ? 'active' : '' }}" href="{{ route('hr-meetings.index') }}" aria-expanded="{{ $isHrMeetingMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-users-viewfinder"></i>
+							<span class="nav-text" data-i18n="HR Meetings">HR Meetings </span>
 						</a>
 					</li>
 					@endif
@@ -107,6 +127,9 @@
 							</li>
 							<li>
 								<a class="{{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}" href="{{ route('applicant.job_vacancies') }}">Job Vacancies</a>
+							</li>
+							<li>
+								<a class="{{ request()->routeIs('applicant.email*') ? 'active' : '' }}" href="{{ route('applicant.email.index') }}">Email</a>
 							</li>
 						</ul>
 					</li>
@@ -157,6 +180,9 @@
 							</li>
 							<li>
 								<a class="{{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}" href="{{ route('applicant.job_vacancies') }}">Job Vacancies</a>
+							</li>
+							<li>
+								<a class="{{ request()->routeIs('applicant.email*') ? 'active' : '' }}" href="{{ route('applicant.email.index') }}">Email</a>
 							</li>
 						</ul>
 					</li>

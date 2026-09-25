@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Hidden(['password', 'remember_token', 'email_token', 'password_token'])]
@@ -89,29 +90,47 @@ class User extends Authenticatable
         ]);
 
         $deployment = $this->employee?->deployment;
-        $positionPermissions = collect();
+        $permissionPositions = $this->permissionPositionsForDeployment($deployment);
 
-        if ($deployment?->position !== null) {
-            if ($deployment->position->name === 'Super Administrator') {
-                return true;
-            }
-
-            $positionPermissions = $positionPermissions->merge($deployment->position->permissions);
+        if ($permissionPositions->contains('name', 'Super Administrator')) {
+            return true;
         }
 
-        if ($deployment?->positions !== null) {
-            if ($deployment->positions->contains('name', 'Super Administrator')) {
-                return true;
-            }
-
-            $positionPermissions = $positionPermissions->merge(
-                $deployment->positions->flatMap(static fn (Position $position) => $position->permissions)
-            );
-        }
-
-        return $positionPermissions
+        return $permissionPositions
+            ->flatMap(static fn (Position $position) => $position->permissions)
             ->pluck('name')
             ->intersect($permissionNames)
             ->isNotEmpty();
+    }
+
+    /**
+     * @return Collection<int, Position>
+     */
+    private function permissionPositionsForDeployment(?EmployeeDeployment $deployment): Collection
+    {
+        if ($deployment === null) {
+            return collect();
+        }
+
+        $positions = $deployment->positions ?? collect();
+        $primaryPosition = $positions
+            ->first(static fn (Position $position): bool => (bool) ($position->pivot?->is_primary ?? false))
+            ?? $deployment->position;
+
+        $permissionPositions = collect([$primaryPosition])->filter();
+        $primaryPositionId = $primaryPosition?->id;
+        $secondaryPosition = $positions
+            ->reject(static fn (Position $position): bool => (string) $position->id === (string) $primaryPositionId)
+            ->sortBy(static fn (Position $position): string => str_pad((string) (int) ($position->pivot?->sort_order ?? 999), 5, '0', STR_PAD_LEFT).'|'.(string) $position->name)
+            ->first();
+
+        if ($secondaryPosition instanceof Position) {
+            $permissionPositions->push($secondaryPosition);
+        }
+
+        return $permissionPositions
+            ->unique('id')
+            ->take(2)
+            ->values();
     }
 }

@@ -11,8 +11,10 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class TalentAcquisitionController extends Controller
@@ -112,6 +114,18 @@ class TalentAcquisitionController extends Controller
         ]);
     }
 
+    public function showApplicantAssessment(Applicant $applicant): View
+    {
+        $applicant->load([
+            'jobVacancy:id,name',
+            'applicantStatus:id,value,name',
+        ]);
+
+        return view('applicant_data.assessment', [
+            'applicant' => $applicant,
+        ]);
+    }
+
     public function updateApplicantStatus(Request $request, Applicant $applicant): RedirectResponse
     {
         $validated = $request->validate([
@@ -188,11 +202,135 @@ class TalentAcquisitionController extends Controller
 
         $status = JobVacancy::statusValueFor((int) $validated['status']);
 
+        if ($status === JobVacancy::STATUS_ACTIVE && ! $jobVacancy->technicalCriteria()->exists()) {
+            return redirect()
+                ->route('applicant.job_vacancies.edit', $jobVacancy)
+                ->withErrors(['technical_criteria' => 'Isi kriteria tes teknis terlebih dahulu sebelum lowongan diaktifkan.']);
+        }
+
         $jobVacancy->update([
             'status' => $status,
         ]);
 
         return back()->with('status', 'Status lowongan berhasil diperbarui.');
+    }
+
+    public function createJobVacancy(): View
+    {
+        return view('applicant_data.job_vacancy_form', [
+            'jobVacancy' => new JobVacancy(['status' => JobVacancy::STATUS_INACTIVE]),
+            'jobVacancyStatuses' => JobVacancy::statusOptions(),
+            'technicalCriteria' => collect([
+                ['name' => '', 'weight' => ''],
+            ]),
+            'formAction' => route('applicant.job_vacancies.store'),
+            'formMethod' => 'POST',
+            'formTitle' => 'Create Job',
+            'submitLabel' => 'Create Job',
+        ]);
+    }
+
+    public function storeJobVacancy(Request $request): RedirectResponse
+    {
+        $validated = $this->validateJobVacancy($request);
+
+        DB::transaction(function () use ($validated): void {
+            $jobVacancy = JobVacancy::query()->create([
+                'name' => $validated['name'],
+                'status' => JobVacancy::statusValueFor((int) $validated['status']),
+            ]);
+
+            $this->syncJobVacancyTechnicalCriteria($jobVacancy, $validated['technical_criteria']);
+        });
+
+        return redirect()->route('applicant.job_vacancies')->with('status', 'Lowongan berhasil dibuat.');
+    }
+
+    public function editJobVacancy(JobVacancy $jobVacancy): View
+    {
+        $jobVacancy->load('technicalCriteria');
+
+        return view('applicant_data.job_vacancy_form', [
+            'jobVacancy' => $jobVacancy,
+            'jobVacancyStatuses' => JobVacancy::statusOptions(),
+            'technicalCriteria' => $jobVacancy->technicalCriteria
+                ->map(fn ($criterion): array => [
+                    'name' => (string) $criterion->name,
+                    'weight' => (int) $criterion->weight,
+                ]),
+            'formAction' => route('applicant.job_vacancies.update', $jobVacancy),
+            'formMethod' => 'PATCH',
+            'formTitle' => 'Update Job',
+            'submitLabel' => 'Update Job',
+        ]);
+    }
+
+    public function updateJobVacancy(Request $request, JobVacancy $jobVacancy): RedirectResponse
+    {
+        $validated = $this->validateJobVacancy($request, $jobVacancy);
+
+        DB::transaction(function () use ($jobVacancy, $validated): void {
+            $jobVacancy->update([
+                'name' => $validated['name'],
+                'status' => JobVacancy::statusValueFor((int) $validated['status']),
+            ]);
+
+            $this->syncJobVacancyTechnicalCriteria($jobVacancy, $validated['technical_criteria']);
+        });
+
+        return redirect()->route('applicant.job_vacancies')->with('status', 'Lowongan berhasil diperbarui.');
+    }
+
+    public function destroyJobVacancy(JobVacancy $jobVacancy): RedirectResponse
+    {
+        $jobVacancy->delete();
+
+        return back()->with('status', 'Lowongan berhasil dihapus.');
+    }
+
+    /**
+     * @return array{name: string, status: int|string, technical_criteria: array<int, array{name: string, weight: int|string}>}
+     */
+    private function validateJobVacancy(Request $request, ?JobVacancy $jobVacancy = null): array
+    {
+        $validated = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique((new JobVacancy)->getTable(), 'name')->ignore($jobVacancy?->getKey()),
+            ],
+            'status' => ['required', 'integer', Rule::in(JobVacancy::statuses())],
+            'technical_criteria' => ['required', 'array', 'min:1'],
+            'technical_criteria.*.name' => ['required', 'string', 'max:255'],
+            'technical_criteria.*.weight' => ['required', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $totalWeight = collect($validated['technical_criteria'])->sum(fn (array $criterion): int => (int) $criterion['weight']);
+
+        if ($totalWeight !== 100) {
+            throw ValidationException::withMessages([
+                'technical_criteria' => 'Total bobot kriteria tes teknis harus tepat 100%.',
+            ]);
+        }
+
+        return $validated;
+    }
+
+    /**
+     * @param  array<int, array{name: string, weight: int|string}>  $criteria
+     */
+    private function syncJobVacancyTechnicalCriteria(JobVacancy $jobVacancy, array $criteria): void
+    {
+        $jobVacancy->technicalCriteria()->delete();
+
+        foreach (array_values($criteria) as $index => $criterion) {
+            $jobVacancy->technicalCriteria()->create([
+                'name' => $criterion['name'],
+                'weight' => (int) $criterion['weight'],
+                'sort_order' => $index,
+            ]);
+        }
     }
 
     public function destroyApplicant(Applicant $applicant): RedirectResponse

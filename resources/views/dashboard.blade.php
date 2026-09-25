@@ -51,6 +51,11 @@
                 'view-employee-database',
             ]);
         }
+
+        $dashboardTaskProjectOptions = collect($dashboardTaskProjectOptions ?? []);
+        $dashboardTaskAssignableStaffOptions = collect($dashboardTaskAssignableStaffOptions ?? []);
+        $dashboardTaskProjectOptionsByEmployee = is_array($dashboardTaskProjectOptionsByEmployee ?? null) ? $dashboardTaskProjectOptionsByEmployee : [];
+        $dashboardTaskDefaultAssigneeEmployeeId = (string) ($dashboardTaskAssignableStaffOptions->first()['id'] ?? '');
     @endphp
 
     <div class="row">
@@ -223,7 +228,7 @@
             <div class="row">
                 <div class="col-12 mb-3">
                     <div class="row g-3">
-                        <div class="col-xl-6 {{ ($hasCheckedInToday ?? false) ? 'd-none d-md-block' : '' }}">
+                        <div class="col-xl-4 {{ ($hasCheckedInToday ?? false) ? 'd-none d-md-block' : '' }}">
                             <div class="card">
                                 <div class="card-header border-0 pb-3">
                                     <div>
@@ -235,7 +240,7 @@
                                     <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Date &amp; Time</p>
-                                            <span class="fs-20 text-success" id="dashboardAttendanceSummaryTimeValue">{{ now('Asia/Jakarta')->format('d M Y | H:i:s') }}</span>
+                                            <span class="fs-20 text-success" id="dashboardAttendanceSummaryTimeValue">{{ now('Asia/Jakarta')->format('d M | H:i:s') }}</span>
                                         </div>
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Clock In</p>
@@ -258,7 +263,7 @@
                                 <div class="mb-3"></div>
                             </div>
                         </div>
-                        <div class="col-xl-6 {{ !($hasCheckedInToday ?? false) ? 'd-none d-md-block' : '' }}">
+                        <div class="col-xl-4 {{ !($hasCheckedInToday ?? false) ? 'd-none d-md-block' : '' }}">
                             <div class="card">
                                 <div class="card-header border-0 pb-3">
                                     <div>
@@ -270,7 +275,7 @@
                                     <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Date &amp; Time</p>
-                                            <span class="fs-20 text-black" id="dashboardAttendanceClockOutSummaryTimeValue">{{ now('Asia/Jakarta')->format('d M Y | H:i:s') }}</span>
+                                            <span class="fs-20 text-black" id="dashboardAttendanceClockOutSummaryTimeValue">{{ now('Asia/Jakarta')->format('d M | H:i:s') }}</span>
                                         </div>
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Clock Out</p>
@@ -295,6 +300,30 @@
                                         title="{{ $clockOutUnavailableMessage ?? 'Clock out belum tersedia.' }}"
                                     @endif
                                 >Clock Out</a>
+                                <div class="mb-3"></div>
+                            </div>
+                        </div>
+                        <div class="col-xl-4">
+                            <div class="card">
+                                <div class="card-header border-0 pb-3">
+                                    <div>
+                                        <h4 class="card-title">Current Task</h4>
+                                        <p class="fs-13 mb-0">Track your task and see your daily and monthly progress.</p>
+                                    </div>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
+                                        <div class="text-center">
+                                            <p class="fs-14 mb-2">Month ({{ $dashboardTaskMonthLabel ?? now('Asia/Jakarta')->format('M') }})</p>
+                                            <span class="fs-20 text-black">{{ (int) ($dashboardMonthlyTaskTotal ?? 0) }} Task</span>
+                                        </div>
+                                        <div class="text-center">
+                                            <p class="fs-14 mb-2">Today ({{ $dashboardTaskTodayLabel ?? now('Asia/Jakarta')->format('D') }})</p>
+                                            <span class="fs-20 text-black">{{ (int) ($dashboardTodayDeadlineTaskTotal ?? 0) }} Task</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn light btn-primary m-3 mb-2 btn-lg" data-bs-toggle="modal" data-bs-target="#dashboardTaskFormModal" data-dashboard-task-form-mode="create">Create a New Task</button>
                                 <div class="mb-3"></div>
                             </div>
                         </div>
@@ -478,6 +507,114 @@
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn light btn-danger btn-lg w-100" id="dashboardClockOutSubmitBtn" disabled>Clock Out</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="dashboardTaskFormModal" tabindex="-1" aria-labelledby="dashboardTaskFormTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <form id="dashboardTaskForm">
+                    @csrf
+                    <input type="hidden" name="_method" id="dashboardTaskFormMethod" value="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="dashboardTaskFormTitle">Create New Task</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label class="form-label">Task Name <span class="required text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="title" id="dashboardTaskTitle" placeholder="Contoh: Rekap absensi bulanan" required>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label class="form-label">Task Description</label>
+                                    <textarea class="form-control" rows="3" name="description" id="dashboardTaskDescription" placeholder="Tambahkan detail atau konteks pekerjaan"></textarea>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Date <span class="required text-danger">*</span></label>
+                                    <input type="hidden" name="start_date" id="dashboardTaskStartDate" required>
+                                    <input type="hidden" name="due_date" id="dashboardTaskDueDate" required>
+                                    <input type="text" class="form-control js-dashboard-task-date-range-input" id="dashboardTaskDateRange" placeholder="Select date range" autocomplete="off" readonly required>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Priority <span class="required text-danger">*</span></label>
+                                    <select class="form-control default-select" name="priority" id="dashboardTaskPriority" required>
+                                        <option value="low">Low</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Task Status <span class="required text-danger">*</span></label>
+                                    <select class="form-control default-select" name="status" id="dashboardTaskStatus" required>
+                                        <option value="pending">To Do</option>
+                                        <option value="in_progress">On Progress</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Attachment</label>
+                                    <input type="text" class="form-control" name="attachment_path" id="dashboardTaskAttachment" placeholder="Contoh: Link Google Drive, Figma, atau Docs">
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Blockers</label>
+                                    <input type="text" class="form-control" name="blockers" id="dashboardTaskBlockers" placeholder="Contoh: Menunggu approval dokumen">
+                                </div>
+                            </div>
+                            @if ($dashboardTaskAssignableStaffOptions->count() > 1)
+                                <div class="col-12 col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Assign Staff <span class="required text-danger">*</span></label>
+                                        <select class="form-control default-select" name="assigned_employee_id" id="dashboardTaskAssigneeEmployeeId" required>
+                                            @foreach ($dashboardTaskAssignableStaffOptions as $staffOption)
+                                                <option value="{{ $staffOption['id'] }}">{{ $staffOption['name'] }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            @endif
+                            <div class="col-12 col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Task Category <span class="required text-danger">*</span></label>
+                                    <select class="form-control default-select" name="task_category" id="dashboardTaskCategory" required>
+                                        <option value="daily">Daily Task Report</option>
+                                        <option value="project">Project Report</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Project Name</label>
+                                    <select class="form-control default-select" name="project_id" id="dashboardTaskProject" disabled>
+                                        <option value="">Pilih Nama Project</option>
+                                        @foreach ($dashboardTaskProjectOptions as $projectOption)
+                                            <option value="{{ $projectOption['id'] }}">{{ $projectOption['name'] }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-success" id="dashboardTaskFormSubmit">Save changes</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -1241,7 +1378,7 @@
                 });
                 var formattedTime = timeMap.hour + ':' + timeMap.minute + ':' + timeMap.second;
                 var formattedCardMonth = String(cardDateMap.month || '').replace('.', '');
-                var formattedDateTime = cardDateMap.day + ' ' + formattedCardMonth + ' ' + cardDateMap.year + ' | ' + formattedTime;
+                var formattedDateTime = cardDateMap.day + ' ' + formattedCardMonth + ' | ' + formattedTime;
                 var modalDate = dateMap.weekday + ', ' + dateMap.day + ' ' + dateMap.month + ' ' + dateMap.year;
                 var modalDateTime = modalDate + ' - ' + formattedTime;
                 var hour = parseInt(timeMap.hour, 10);
@@ -1360,6 +1497,259 @@
             renderDashboardAttendanceTime();
             setInterval(renderDashboardAttendanceTime, 1000);
             renderSubmitButtons();
+        })();
+    </script>
+    <script>
+        (function () {
+            if (typeof window.jQuery === 'undefined') {
+                return;
+            }
+
+            var $ = window.jQuery;
+            var dashboardTaskStoreUrl = @json($dashboardTaskStoreUrl ?? route('project_management.task_list.tasks.store'));
+            var dashboardTaskProjectOptionsByEmployee = @json($dashboardTaskProjectOptionsByEmployee);
+            var dashboardTaskDefaultAssigneeEmployeeId = @json($dashboardTaskDefaultAssigneeEmployeeId);
+
+            function setDashboardTaskSelectValue(selector, value) {
+                var selectElement = $(selector);
+
+                if ($.fn.selectpicker && selectElement.data('selectpicker')) {
+                    selectElement.selectpicker('val', value);
+                    return;
+                }
+
+                selectElement.val(value);
+            }
+
+            function refreshDashboardTaskSelect(selector) {
+                var selectElement = $(selector);
+
+                if ($.fn.selectpicker && selectElement.length && selectElement.data('selectpicker')) {
+                    selectElement.selectpicker('refresh');
+                }
+            }
+
+            function refreshDashboardTaskFormSelects() {
+                [
+                    '#dashboardTaskPriority',
+                    '#dashboardTaskStatus',
+                    '#dashboardTaskCategory',
+                    '#dashboardTaskAssigneeEmployeeId',
+                    '#dashboardTaskProject',
+                ].forEach(refreshDashboardTaskSelect);
+            }
+
+            function selectedDashboardTaskAssigneeEmployeeId() {
+                return $('#dashboardTaskAssigneeEmployeeId').val() || dashboardTaskDefaultAssigneeEmployeeId;
+            }
+
+            function renderDashboardTaskProjectOptions(selectedProjectId) {
+                var employeeId = selectedDashboardTaskAssigneeEmployeeId();
+                var projectOptions = dashboardTaskProjectOptionsByEmployee[employeeId] || [];
+                var projectSelect = $('#dashboardTaskProject');
+
+                projectSelect.empty().append(new Option('Pilih Nama Project', ''));
+
+                projectOptions.forEach(function (projectOption) {
+                    projectSelect.append(new Option(projectOption.name, projectOption.id));
+                });
+
+                if (selectedProjectId) {
+                    setDashboardTaskSelectValue('#dashboardTaskProject', selectedProjectId);
+                }
+
+                refreshDashboardTaskSelect('#dashboardTaskProject');
+            }
+
+            function setDashboardTaskProjectFieldState() {
+                var isProjectTask = $('#dashboardTaskCategory').val() === 'project';
+                var selectedProjectId = $('#dashboardTaskProject').val();
+
+                renderDashboardTaskProjectOptions(selectedProjectId);
+                $('#dashboardTaskProject').prop('disabled', ! isProjectTask);
+
+                if (! isProjectTask) {
+                    setDashboardTaskSelectValue('#dashboardTaskProject', '');
+                }
+
+                refreshDashboardTaskSelect('#dashboardTaskProject');
+            }
+
+            function formatDashboardTaskDateRangeDisplay(startDateValue, dueDateValue) {
+                if (! startDateValue || ! dueDateValue || typeof moment === 'undefined') {
+                    return '';
+                }
+
+                var startDate = moment(startDateValue, 'YYYY-MM-DD');
+                var dueDate = moment(dueDateValue, 'YYYY-MM-DD');
+
+                if (! startDate.isValid() || ! dueDate.isValid()) {
+                    return '';
+                }
+
+                return startDate.format('DD/MM/YYYY') + ' - ' + dueDate.format('DD/MM/YYYY');
+            }
+
+            function setDashboardTaskDateRange(startDateValue, dueDateValue) {
+                var startDate = startDateValue || '';
+                var dueDate = dueDateValue || startDate;
+                var dateRangeInput = $('#dashboardTaskDateRange');
+
+                $('#dashboardTaskStartDate').val(startDate);
+                $('#dashboardTaskDueDate').val(dueDate);
+                dateRangeInput.val(formatDashboardTaskDateRangeDisplay(startDate, dueDate));
+
+                if ($.fn.daterangepicker && dateRangeInput.data('daterangepicker') && typeof moment !== 'undefined' && startDate && dueDate) {
+                    var startMoment = moment(startDate, 'YYYY-MM-DD');
+                    var dueMoment = moment(dueDate, 'YYYY-MM-DD');
+
+                    if (startMoment.isValid() && dueMoment.isValid()) {
+                        dateRangeInput.data('daterangepicker').setStartDate(startMoment);
+                        dateRangeInput.data('daterangepicker').setEndDate(dueMoment);
+                    }
+                }
+            }
+
+            function initializeDashboardTaskDateRangePicker() {
+                var dateRangeInput = $('#dashboardTaskDateRange');
+
+                if (! dateRangeInput.length) {
+                    return;
+                }
+
+                dateRangeInput.val(formatDashboardTaskDateRangeDisplay($('#dashboardTaskStartDate').val(), $('#dashboardTaskDueDate').val()));
+
+                if (! $.fn.daterangepicker || dateRangeInput.data('daterangepicker-initialized')) {
+                    return;
+                }
+
+                dateRangeInput.daterangepicker({
+                    autoApply: true,
+                    autoUpdateInput: false,
+                    parentEl: '#dashboardTaskFormModal',
+                    locale: {
+                        format: 'DD/MM/YYYY',
+                        cancelLabel: 'Clear'
+                    }
+                });
+
+                dateRangeInput.on('apply.daterangepicker', function (event, picker) {
+                    setDashboardTaskDateRange(picker.startDate.format('YYYY-MM-DD'), picker.endDate.format('YYYY-MM-DD'));
+                });
+
+                dateRangeInput.on('cancel.daterangepicker', function () {
+                    setDashboardTaskDateRange('', '');
+                });
+
+                dateRangeInput.data('daterangepicker-initialized', true);
+            }
+
+            function resetDashboardTaskForm() {
+                $('#dashboardTaskForm')[0].reset();
+                $('#dashboardTaskForm').attr('action', dashboardTaskStoreUrl);
+                $('#dashboardTaskFormMethod').val('POST');
+                $('#dashboardTaskFormSubmit').prop('disabled', false).removeClass('btn-warning').addClass('btn-success').text('Save changes');
+                setDashboardTaskSelectValue('#dashboardTaskStatus', 'pending');
+                setDashboardTaskSelectValue('#dashboardTaskPriority', 'medium');
+                setDashboardTaskSelectValue('#dashboardTaskCategory', 'daily');
+                setDashboardTaskSelectValue('#dashboardTaskAssigneeEmployeeId', dashboardTaskDefaultAssigneeEmployeeId);
+                setDashboardTaskDateRange('', '');
+                setDashboardTaskProjectFieldState();
+                refreshDashboardTaskFormSelects();
+            }
+
+            function handleDashboardTaskAjaxError(xhr) {
+                var message = xhr.responseJSON?.message || 'Gagal memproses permintaan.';
+
+                if (xhr.responseJSON?.errors) {
+                    var firstError = Object.values(xhr.responseJSON.errors)[0];
+                    if (Array.isArray(firstError) && firstError.length > 0) {
+                        message = firstError[0];
+                    }
+                }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Terjadi Kesalahan',
+                    text: message,
+                });
+            }
+
+            function hideDashboardTaskModal() {
+                var modalElement = document.getElementById('dashboardTaskFormModal');
+
+                if (window.bootstrap && modalElement) {
+                    var modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                    modal.hide();
+                    return;
+                }
+
+                $('#dashboardTaskFormModal').modal('hide');
+            }
+
+            $(document).on('click', '[data-dashboard-task-form-mode="create"]', resetDashboardTaskForm);
+            $('#dashboardTaskCategory').on('change', setDashboardTaskProjectFieldState);
+            $('#dashboardTaskAssigneeEmployeeId').on('change', setDashboardTaskProjectFieldState);
+            $('#dashboardTaskFormModal').on('shown.bs.modal', initializeDashboardTaskDateRangePicker);
+
+            $('#dashboardTaskForm').on('submit', function (event) {
+                event.preventDefault();
+
+                var form = $(this);
+                var formData = new FormData(this);
+                var submitButton = $('#dashboardTaskFormSubmit');
+
+                if (! formData.get('start_date') || ! formData.get('due_date')) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Tanggal belum lengkap',
+                        text: 'Pilih date range task terlebih dahulu.',
+                    });
+
+                    return;
+                }
+
+                $.ajax({
+                    url: form.attr('action') || dashboardTaskStoreUrl,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'X-CSRF-TOKEN': formData.get('_token'),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    beforeSend: function () {
+                        submitButton.prop('disabled', true).html('Menyimpan...');
+                    },
+                    success: function (response) {
+                        if (response.success === true || response.status === true) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: response.message,
+                                timer: 1200,
+                                showConfirmButton: false,
+                            }).then(function () {
+                                hideDashboardTaskModal();
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Gagal',
+                                text: response.message,
+                            });
+                        }
+                    },
+                    error: handleDashboardTaskAjaxError,
+                    complete: function () {
+                        submitButton.prop('disabled', false).html('Save changes');
+                    },
+                });
+            });
+
+            resetDashboardTaskForm();
         })();
     </script>
 @endsection

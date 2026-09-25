@@ -66,10 +66,6 @@ class EmployeeDataController extends Controller
                 'deployment.position:id,name',
                 'deployment.positions:id,name',
             ])
-            ->whereHas('user', function ($query): void {
-                $query->where('is_active', true);
-            })
-            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
             ->orderBy('employee_code')
             ->get(['id', 'user_id', 'employee_code', 'status', 'is_event_project_admin'])
             ->map(fn (Employee $employee): array => [

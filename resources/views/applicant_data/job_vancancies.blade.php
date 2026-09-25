@@ -6,8 +6,11 @@
     @php
         $dashboardCssPath = public_path('assets/css/dashboard.css');
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
+        $sweetAlertCssPath = public_path('assets/vendor/sweetalert2/sweetalert2.min.css');
+        $sweetAlertCssVersion = file_exists($sweetAlertCssPath) ? filemtime($sweetAlertCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}?v={{ $sweetAlertCssVersion }}">
     <style>
         .talent-tabs {
             flex-wrap: nowrap;
@@ -29,13 +32,38 @@
             align-items: center;
             justify-content: space-between;
             gap: 0.75rem;
-            margin-bottom: 0.85rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.85rem;
+            border-bottom: 1px solid #eef0f4;
         }
 
         .talent-table-title {
             color: #25314c;
             font-size: 1rem;
             font-weight: 700;
+        }
+
+        .talent-create-job-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            min-height: 38px;
+            border: 1px solid #c7d2fe;
+            border-radius: 0.5rem;
+            background: #eef2ff;
+            color: #2448c7;
+            font-size: 0.86rem;
+            font-weight: 800;
+            padding: 0.45rem 0.85rem;
+            text-decoration: none;
+        }
+
+        .talent-create-job-btn:hover {
+            border-color: #2448c7;
+            background: #2448c7;
+            color: #fff;
+            text-decoration: none;
         }
 
         .talent-vacancy-status-form {
@@ -106,6 +134,33 @@
             background: #fff;
             color: #111827;
             font-weight: 500;
+        }
+
+        .talent-vacancy-action-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .talent-vacancy-action-btn {
+            width: 34px;
+            height: 34px;
+            border: 0;
+            border-radius: 0.35rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .talent-vacancy-action-btn.edit {
+            background: #d9f2f4;
+            color: #287b84;
+        }
+
+        .talent-vacancy-action-btn.delete {
+            background: #ffe1e6;
+            color: #c0263d;
         }
 
         #jobVacanciesTable_wrapper .dt-layout-row:first-child {
@@ -241,6 +296,10 @@
 
                 <div class="talent-header-bar">
                     <div class="talent-table-title">Job Vacancy</div>
+                    <a href="{{ route('applicant.job_vacancies.create') }}" class="talent-create-job-btn">
+                        <i class="bi bi-plus-lg"></i>
+                        <span>Create Job</span>
+                    </a>
                 </div>
 
                 <div class="table-responsive">
@@ -252,6 +311,7 @@
                             <th class="mw-160">Status</th>
                             <th class="mw-160">Total Pelamar</th>
                             <th class="mw-180">Created At</th>
+                            <th class="mw-120">Action</th>
                         </tr>
                         </thead>
                         <tbody></tbody>
@@ -261,6 +321,8 @@
         </div>
     </div>
 </div>
+
+@include('settings.partials.delete-confirmation-swal')
 @endsection
 
 @section('script')
@@ -276,6 +338,8 @@
         var jobVacancyStatuses = @json(collect($jobVacancyStatuses)->map(fn ($label, $value) => ['value' => (int) $value, 'label' => (string) $label])->values());
         var csrfToken = @json(csrf_token());
         var jobVacancyStatusUpdateUrlTemplate = @json(route('applicant.job_vacancies.status.update', ['jobVacancy' => '__JOB_VACANCY_ID__']));
+        var jobVacancyEditUrlTemplate = @json(route('applicant.job_vacancies.edit', ['jobVacancy' => '__JOB_VACANCY_ID__']));
+        var jobVacancyDestroyUrlTemplate = @json(route('applicant.job_vacancies.destroy', ['jobVacancy' => '__JOB_VACANCY_ID__']));
 
         function escapeHtml(value) {
             return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
@@ -308,6 +372,17 @@
                 + '</form>';
         }
 
+        function renderJobVacancyAction(jobVacancy) {
+            return '<div class="talent-vacancy-action-group">'
+                + '<a href="' + jobVacancyUrl(jobVacancyEditUrlTemplate, jobVacancy.id) + '" class="talent-vacancy-action-btn edit" title="Update"><i class="bi bi-pencil-square"></i></a>'
+                + '<form method="POST" action="' + jobVacancyUrl(jobVacancyDestroyUrlTemplate, jobVacancy.id) + '" data-delete-confirmation-form data-delete-title="Hapus Lowongan?" data-delete-message="Lowongan ' + escapeHtml(jobVacancy.name) + ' akan dihapus." data-delete-confirm-button="Ya, hapus" data-delete-cancel-button="Batal">'
+                + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
+                + '<input type="hidden" name="_method" value="DELETE">'
+                + '<button type="submit" class="talent-vacancy-action-btn delete" title="Delete"><i class="bi bi-trash"></i></button>'
+                + '</form>'
+                + '</div>';
+        }
+
         $(function () {
             var jobVacancyTable = $('#jobVacanciesTable').DataTable({
                 ajax: {
@@ -331,12 +406,21 @@
                         }
                     },
                     { data: 'applicants_count' },
-                    { data: 'created_at' }
+                    { data: 'created_at' },
+                    {
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            return renderJobVacancyAction(row);
+                        }
+                    }
                 ],
                 columnDefs: [
-                    { targets: 0, orderable: false }
+                    { targets: [0, 5], orderable: false }
                 ]
             });
         });
     </script>
+    @stack('scripts')
 @endsection

@@ -56,9 +56,11 @@ class EmployeeDeployment extends Model
     public function positions(): BelongsToMany
     {
         return $this->belongsToMany(Position::class, 'employee_deployment_positions', 'employee_deployment_id', 'position_id', 'id', 'id')
-            ->withPivot(['is_primary', 'status', 'started_at', 'ended_at'])
+            ->withPivot(['is_primary', 'sort_order', 'status', 'started_at', 'ended_at'])
             ->withTimestamps()
-            ->wherePivot('status', 'active');
+            ->wherePivot('status', 'active')
+            ->orderBy('employee_deployment_positions.sort_order')
+            ->orderBy('positions.name');
     }
 
     public function department(): BelongsTo

@@ -48,6 +48,13 @@ class JobVacancy extends Model
         return $this->hasMany(Applicant::class, 'job_vacancy_id', 'id');
     }
 
+    public function technicalCriteria(): HasMany
+    {
+        return $this->hasMany(JobVacancyTechnicalCriterion::class, 'job_vacancy_id', 'id')
+            ->orderBy('sort_order')
+            ->orderBy('name');
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_ACTIVE);

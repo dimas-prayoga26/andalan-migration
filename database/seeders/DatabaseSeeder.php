@@ -22,12 +22,13 @@ class DatabaseSeeder extends Seeder
             LeaveSubTypeSeeder::class,
             CompanySeeder::class,
             PositionSeeder::class,
-            UserSeeder::class,
+            LegacySqlUserSeeder::class,
             PositionPermissionSeeder::class,
             EmployeePicAssignmentSeeder::class,
             NiskalaMultiPicLeaveSeeder::class,
             LeaveBalanceSeeder::class,
             RulesOfAttendacesSeeder::class,
+            MailAccessAccountSeeder::class,
         ];
 
         foreach ($seeders as $seederClass) {

@@ -162,20 +162,25 @@
                 <div class="col-md-3">
                     <label class="form-label">Position</label>
                     @php
+                        $selectedPrimaryPositionId = (string) old('current_position_id', $employee?->deployment?->current_position_id ?? '');
                         $selectedPositionIds = collect(old('current_position_ids', $employee?->deployment?->positions?->pluck('id')->all() ?? []))
-                            ->when(
-                                old('current_position_ids') === null && $employee?->deployment?->current_position_id,
-                                fn ($collection) => $collection->prepend($employee->deployment->current_position_id)
-                            )
+                            ->when($selectedPrimaryPositionId !== '', fn ($collection) => $collection->prepend($selectedPrimaryPositionId))
                             ->map(fn ($positionId) => (string) $positionId)
                             ->unique()
                             ->values();
                     @endphp
-                    <select name="current_position_ids[]" class="default-select form-control" multiple>
+                    <input type="hidden" name="current_position_id" value="{{ $selectedPositionIds->first() ?? '' }}" data-position-primary-input>
+                    <span data-position-order-fields></span>
+                    <select name="current_position_ids[]" class="default-select form-control js-position-primary-selector" multiple>
                         @foreach ($positions as $position)
                             <option value="{{ $position->id }}" @selected($selectedPositionIds->contains((string) $position->id))>{{ $position->name }}</option>
                         @endforeach
                     </select>
+                    @error('current_position_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                    @error('current_position_ids')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                    @error('current_position_ids.*')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                    @error('current_position_order')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                    @error('current_position_order.*')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">PIC / Person in Charge</label>
@@ -217,6 +222,106 @@
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var positionSelect = document.querySelector('.js-position-primary-selector');
+            var primaryInput = document.querySelector('[data-position-primary-input]');
+            var positionOrderFields = document.querySelector('[data-position-order-fields]');
+            var selectedPositionOrder = @js($selectedPositionIds->all());
+
+            if (!positionSelect || !primaryInput || !positionOrderFields) {
+                return;
+            }
+
+            Array.prototype.slice.call(positionSelect.options).forEach(function (option) {
+                option.dataset.positionBaseLabel = option.text.trim();
+            });
+
+            function selectedValues() {
+                return Array.prototype.slice.call(positionSelect.options)
+                    .filter(function (option) {
+                        return option.selected && option.value !== '';
+                    })
+                    .map(function (option) {
+                        return option.value;
+                    });
+            }
+
+            function uniqueValues(values) {
+                return values.filter(function (value, index, collection) {
+                    return value !== '' && collection.indexOf(value) === index;
+                });
+            }
+
+            function reconcileOrder() {
+                var currentSelectedValues = selectedValues();
+
+                selectedPositionOrder = uniqueValues(selectedPositionOrder)
+                    .filter(function (value) {
+                        return currentSelectedValues.indexOf(value) !== -1;
+                    });
+
+                currentSelectedValues.forEach(function (value) {
+                    if (selectedPositionOrder.indexOf(value) === -1) {
+                        selectedPositionOrder.push(value);
+                    }
+                });
+            }
+
+            function refreshSelectpicker() {
+                if (window.jQuery && jQuery.fn.selectpicker && jQuery(positionSelect).data('selectpicker')) {
+                    jQuery(positionSelect).selectpicker('refresh');
+                }
+            }
+
+            function renderPositionRoles() {
+                reconcileOrder();
+                primaryInput.value = selectedPositionOrder[0] || '';
+                positionOrderFields.replaceChildren();
+
+                selectedPositionOrder.forEach(function (positionId) {
+                    var input = document.createElement('input');
+
+                    input.type = 'hidden';
+                    input.name = 'current_position_order[]';
+                    input.value = positionId;
+                    positionOrderFields.appendChild(input);
+                });
+
+                Array.prototype.slice.call(positionSelect.options).forEach(function (option) {
+                    var baseLabel = option.dataset.positionBaseLabel || option.text.trim();
+                    var positionIndex = selectedPositionOrder.indexOf(option.value);
+
+                    option.text = positionIndex === -1
+                        ? baseLabel
+                        : baseLabel + (positionIndex === 0 ? ' (Primary Position)' : ' (Secondary Position)');
+                });
+
+                refreshSelectpicker();
+            }
+
+            renderPositionRoles();
+
+            positionSelect.addEventListener('change', renderPositionRoles);
+
+            if (window.jQuery) {
+                jQuery(positionSelect).on('changed.bs.select', function (event, clickedIndex, isSelected) {
+                    var option = typeof clickedIndex === 'number' ? positionSelect.options[clickedIndex] : null;
+
+                    if (option && option.value !== '') {
+                        if (isSelected) {
+                            selectedPositionOrder.push(option.value);
+                        } else {
+                            selectedPositionOrder = selectedPositionOrder.filter(function (value) {
+                                return value !== option.value;
+                            });
+                        }
+                    }
+
+                    renderPositionRoles();
+                });
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', function () {
             if (!window.jQuery || !jQuery.fn.daterangepicker || typeof moment === 'undefined') {
                 return;

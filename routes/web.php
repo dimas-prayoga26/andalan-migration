@@ -13,6 +13,7 @@ use App\Http\Controllers\DirectorAttendance\DirectorAttendanceOvertimeController
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceTaskController;
 use App\Http\Controllers\EmployeeDataController;
 use App\Http\Controllers\GoogleDriveOAuthController;
+use App\Http\Controllers\MailController;
 use App\Http\Controllers\PicAttendance\PicAttendanceController;
 use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
@@ -54,7 +55,6 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
     Route::get('/google-drive/oauth/access-token', [GoogleDriveOAuthController::class, 'accessToken'])->name('google-drive.oauth.access-token');
     Route::post('/google-drive/oauth/exchange-code', [GoogleDriveOAuthController::class, 'exchangeCode'])->name('google-drive.oauth.exchange-code');
-
     // Activity Schedule
     Route::middleware('position.permission:view-calendar')->group(function (): void {
         Route::get('/activity-schadule', [ActivityScheduleController::class, 'index'])->name('activity-schadule');
@@ -91,8 +91,24 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/applicant/datatable', [TalentAcquisitionController::class, 'applicantsDatatable'])->name('applicant.datatable');
         Route::get('/applicant/job-vacancies', [TalentAcquisitionController::class, 'jobVacancies'])->name('applicant.job_vacancies');
         Route::get('/applicant/job-vacancies/datatable', [TalentAcquisitionController::class, 'jobVacanciesDatatable'])->name('applicant.job_vacancies.datatable');
+        Route::get('/applicant/job-vacancies/create', [TalentAcquisitionController::class, 'createJobVacancy'])->name('applicant.job_vacancies.create');
+        Route::post('/applicant/job-vacancies', [TalentAcquisitionController::class, 'storeJobVacancy'])->name('applicant.job_vacancies.store');
         Route::patch('/applicant/job-vacancies/{jobVacancy}/status', [TalentAcquisitionController::class, 'updateJobVacancyStatus'])->name('applicant.job_vacancies.status.update');
+        Route::get('/applicant/job-vacancies/{jobVacancy}/edit', [TalentAcquisitionController::class, 'editJobVacancy'])->name('applicant.job_vacancies.edit');
+        Route::patch('/applicant/job-vacancies/{jobVacancy}', [TalentAcquisitionController::class, 'updateJobVacancy'])->name('applicant.job_vacancies.update');
+        Route::delete('/applicant/job-vacancies/{jobVacancy}', [TalentAcquisitionController::class, 'destroyJobVacancy'])->name('applicant.job_vacancies.destroy');
+        Route::get('/applicant/email', [MailController::class, 'index'])->name('applicant.email.index');
+        Route::post('/applicant/email/check', [MailController::class, 'checkEmail'])->name('applicant.email.check');
+        Route::post('/applicant/email/login', [MailController::class, 'authenticate'])->name('applicant.email.login');
+        Route::get('/applicant/email/inbox', [MailController::class, 'inbox'])->name('applicant.email.inbox');
+        Route::get('/applicant/email/compose', [MailController::class, 'compose'])->name('applicant.email.compose');
+        Route::post('/applicant/email/send', [MailController::class, 'send'])->name('applicant.email.send');
+        Route::get('/applicant/email/read/{uid}/attachments/{attachment}', [MailController::class, 'attachment'])->whereNumber('uid')->whereNumber('attachment')->name('applicant.email.attachment');
+        Route::post('/applicant/email/read/{uid}/reply', [MailController::class, 'reply'])->whereNumber('uid')->name('applicant.email.reply');
+        Route::get('/applicant/email/read/{uid?}', [MailController::class, 'read'])->whereNumber('uid')->name('applicant.email.read');
+        Route::post('/applicant/email/logout', [MailController::class, 'logout'])->name('applicant.email.logout');
         Route::patch('/applicant/{applicant}/status', [TalentAcquisitionController::class, 'updateApplicantStatus'])->name('applicant.status.update');
+        Route::get('/applicant/{applicant}/assessment', [TalentAcquisitionController::class, 'showApplicantAssessment'])->name('applicant.assessment');
         Route::get('/applicant/{applicant}', [TalentAcquisitionController::class, 'showApplicant'])->name('applicant.show');
         Route::delete('/applicant/{applicant}', [TalentAcquisitionController::class, 'destroyApplicant'])->name('applicant.destroy');
     });
@@ -142,6 +158,18 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/agenda', function () {
         return view('agenda');
     })->middleware('position.permission:view-meeting')->name('agenda');
+
+    Route::middleware('position.permission:view-meeting')->group(function (): void {
+        Route::view('/zoom-meeting', 'meetings.staff.index')->name('zoom-meeting.index');
+        Route::view('/zoom-meeting/details', 'meetings.staff.details')->name('zoom-meeting.details');
+    });
+
+    Route::middleware('position.permission:view-admin-attendance')->group(function (): void {
+        Route::view('/hr-meetings', 'meetings.admin.index')->name('hr-meetings.index');
+        Route::view('/hr-meetings/create', 'meetings.admin.create')->name('hr-meetings.create');
+        Route::view('/hr-meetings/details', 'meetings.admin.details')->name('hr-meetings.details');
+        Route::view('/hr-meetings/update', 'meetings.admin.update')->name('hr-meetings.update');
+    });
 
     // Attendance overview and daily attendance
     Route::view('/attendance/overview', 'staff_attendance.overview.index')

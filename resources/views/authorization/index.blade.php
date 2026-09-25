@@ -71,6 +71,21 @@
             white-space: nowrap;
         }
 
+        .authorization-status-tabs {
+            gap: 6px;
+        }
+
+        .authorization-status-tabs .nav-link {
+            border-radius: 6px;
+            color: #6b7280;
+            padding: 6px 14px;
+        }
+
+        .authorization-status-tabs .nav-link.active {
+            background: var(--bs-primary);
+            color: #fff;
+        }
+
         .authorization-table-card .table-card-body {
             padding: 0;
         }
@@ -145,6 +160,11 @@
 
 @php
     $hasEventDivisionRoute = \Illuminate\Support\Facades\Route::has('authorization.event-divisions');
+    $employeeStatusFilter = $employeeStatusFilter ?? 'active';
+    $employeeStatusTabs = [
+        'active' => 'Active',
+        'inactive' => 'Inactive',
+    ];
 @endphp
 
 <div class="card authorization-nav-card">
@@ -172,9 +192,21 @@
         <div>
             <h4 class="card-title mb-1">Employee List</h4>
             <p class="mb-0 text-muted fs-13">Employee, deployment, identity, and PIC data.</p>
+            <ul class="nav nav-pills authorization-status-tabs mt-3" aria-label="Employee status filter">
+                @foreach ($employeeStatusTabs as $statusValue => $statusLabel)
+                    <li class="nav-item">
+                        <a
+                            class="nav-link {{ $employeeStatusFilter === $statusValue ? 'active' : '' }}"
+                            href="{{ route('authorization', array_filter(['status' => $statusValue, 'search' => $search !== '' ? $search : null])) }}"
+                            @if ($employeeStatusFilter === $statusValue) aria-current="page" @endif
+                        >{{ $statusLabel }}</a>
+                    </li>
+                @endforeach
+            </ul>
         </div>
         <div class="authorization-list-actions">
             <form method="GET" action="{{ route('authorization') }}" class="authorization-employee-search">
+                <input type="hidden" name="status" value="{{ $employeeStatusFilter }}">
                 <div class="input-group">
                     <button type="submit" class="input-group-text bg-white" aria-label="Search employee">
                         <i class="fa-solid fa-magnifying-glass"></i>
@@ -289,7 +321,7 @@
                     @empty
                         <tr>
                             <td colspan="9" class="text-center text-muted py-4">
-                                {{ $search !== '' ? 'No matching employee found.' : 'No employee data available.' }}
+                                {{ $search !== '' ? 'No matching employee found.' : 'No '.$employeeStatusFilter.' employee data available.' }}
                             </td>
                         </tr>
                     @endforelse

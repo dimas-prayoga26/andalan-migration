@@ -43,6 +43,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
     public function test_multiple_position_schema_and_relations_are_registered(): void
     {
         $migration = file_get_contents(database_path('migrations/2026_06_30_114352_create_employee_deployment_positions_table.php'));
+        $sortOrderMigration = file_get_contents(database_path('migrations/2026_09_24_000000_add_sort_order_to_employee_deployment_positions_table.php'));
         $deploymentModel = file_get_contents(app_path('Models/EmployeeDeployment.php'));
         $positionModel = file_get_contents(app_path('Models/Position.php'));
 
@@ -52,9 +53,14 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringContainsString('position_id', $migration);
         $this->assertStringContainsString('is_primary', $migration);
 
+        $this->assertIsString($sortOrderMigration);
+        $this->assertStringContainsString("Schema::hasColumn('employee_deployment_positions', 'sort_order')", $sortOrderMigration);
+        $this->assertStringContainsString("unsignedSmallInteger('sort_order')", $sortOrderMigration);
+
         $this->assertIsString($deploymentModel);
         $this->assertStringContainsString('function positions(): BelongsToMany', $deploymentModel);
         $this->assertStringContainsString("'employee_deployment_positions'", $deploymentModel);
+        $this->assertStringContainsString("'sort_order'", $deploymentModel);
 
         $this->assertIsString($positionModel);
         $this->assertStringContainsString('function deployments(): BelongsToMany', $positionModel);
@@ -83,7 +89,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringContainsString("string('name', 191)->unique('positions_name_unique')", $positionMigration);
     }
 
-    public function test_position_permissions_read_primary_and_additional_positions(): void
+    public function test_position_permissions_read_primary_position_for_authorization(): void
     {
         $userModel = file_get_contents(app_path('Models/User.php'));
         $middleware = file_get_contents(app_path('Http/Middleware/EnsurePositionPermission.php'));
@@ -93,7 +99,10 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringContainsString("if (\$this->hasRole('superuser'))", $userModel);
         $this->assertStringContainsString("'employee.deployment.position.permissions:uuid,name'", $userModel);
         $this->assertStringContainsString("'employee.deployment.positions.permissions:uuid,name'", $userModel);
-        $this->assertStringContainsString('$deployment->positions', $userModel);
+        $this->assertStringContainsString('permissionPositionsForDeployment', $userModel);
+        $this->assertStringContainsString('$position->pivot?->is_primary', $userModel);
+        $this->assertStringContainsString('$position->pivot?->sort_order', $userModel);
+        $this->assertStringContainsString('->take(2)', $userModel);
 
         $this->assertIsString($middleware);
         $this->assertStringContainsString('hasAnyPositionPermission($permissionNames)', $middleware);
@@ -111,11 +120,20 @@ class EmployeeMultiplePositionSupportTest extends TestCase
 
         $this->assertIsString($controller);
         $this->assertStringContainsString("'current_position_ids' => ['array']", $controller);
+        $this->assertStringContainsString("'current_position_order' => ['array']", $controller);
+        $this->assertStringContainsString("'sort_order' => \$index", $controller);
         $this->assertStringContainsString('syncDeploymentPositions(', $controller);
         $this->assertStringContainsString('$this->positionNamesFor($user->employee)', $controller);
 
         $this->assertIsString($form);
+        $this->assertStringContainsString('name="current_position_id"', $form);
         $this->assertStringContainsString('name="current_position_ids[]"', $form);
+        $this->assertStringContainsString('data-position-primary-input', $form);
+        $this->assertStringContainsString('data-position-order-fields', $form);
+        $this->assertStringContainsString("input.name = 'current_position_order[]'", $form);
+        $this->assertStringContainsString('js-position-primary-selector', $form);
+        $this->assertStringContainsString('Primary Position', $form);
+        $this->assertStringContainsString('Secondary Position', $form);
         $this->assertStringContainsString('multiple', $form);
 
         $this->assertIsString($show);

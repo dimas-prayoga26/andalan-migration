@@ -57,7 +57,7 @@ return [
             'username' => env('RNB_MAIL_USERNAME', 'hr@rnb.co.id'),
             'password' => env('RNB_MAIL_PASSWORD'),
             'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'rnb.co.id'),
         ],
 
         'andalanku' => [
@@ -68,7 +68,7 @@ return [
             'username' => env('ANDALANKU_MAIL_USERNAME', 'recruitment@andalanku.com'),
             'password' => env('ANDALANKU_MAIL_PASSWORD'),
             'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'andalanku.com'),
         ],
 
         'kma' => [
@@ -79,7 +79,7 @@ return [
             'username' => env('KMA_MAIL_USERNAME', 'hr@karpetmerah.id'),
             'password' => env('KMA_MAIL_PASSWORD'),
             'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'karpetmerah.id'),
         ],
 
         'niskala' => [
@@ -90,7 +90,7 @@ return [
             'username' => env('NISKALA_MAIL_USERNAME', 'hr@coffeeniskala.com'),
             'password' => env('NISKALA_MAIL_PASSWORD'),
             'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'coffeeniskala.com'),
         ],
 
         'rne' => [
@@ -101,7 +101,7 @@ return [
             'username' => env('RNE_MAIL_USERNAME', 'hr@rne.co.id'),
             'password' => env('RNE_MAIL_PASSWORD'),
             'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'rne.co.id'),
         ],
 
         'tms' => [
@@ -112,7 +112,7 @@ return [
             'username' => env('TMS_MAIL_USERNAME', 'hr@tims.co.id'),
             'password' => env('TMS_MAIL_PASSWORD'),
             'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'tims.co.id'),
         ],
 
         'trah' => [
@@ -123,7 +123,7 @@ return [
             'username' => env('TRAH_MAIL_USERNAME', 'hr@trah.co.id'),
             'password' => env('TRAH_MAIL_PASSWORD'),
             'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'trah.co.id'),
         ],
 
         'ses' => [

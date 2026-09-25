@@ -384,6 +384,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'is_primary' => true,
+                ...$this->deploymentPositionSortOrderPayload(0),
                 'status' => 'active',
                 'started_at' => $joinDate,
                 'ended_at' => null,
@@ -391,6 +392,18 @@ class UserSeeder extends Seeder
                 'updated_at' => now(),
             ],
         );
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function deploymentPositionSortOrderPayload(int $sortOrder): array
+    {
+        if (! Schema::hasColumn('employee_deployment_positions', 'sort_order')) {
+            return [];
+        }
+
+        return ['sort_order' => $sortOrder];
     }
 
     private function toNullableInt(mixed $value): ?int

@@ -208,6 +208,86 @@
             color: #be123c;
         }
 
+        .talent-assessment-summary {
+            display: inline-grid;
+            gap: 0.2rem;
+            min-width: 150px;
+        }
+
+        .talent-assessment-badge {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            min-height: 32px;
+            border: 1px solid #d9dce5;
+            border-radius: 0.55rem;
+            background: #f8fafc;
+            color: #475569;
+            font-size: 0.82rem;
+            font-weight: 800;
+            padding: 0.35rem 0.65rem;
+        }
+
+        .talent-assessment-badge.pending {
+            background: #f8fafc;
+            border-color: #d9dce5;
+            color: #64748b;
+        }
+
+        .talent-assessment-badge.progress {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #2448c7;
+        }
+
+        .talent-assessment-badge.review {
+            background: #fff7ed;
+            border-color: #fed7aa;
+            color: #c2410c;
+        }
+
+        .talent-assessment-badge.final {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+            color: #047857;
+        }
+
+        .talent-assessment-note {
+            color: #94a3b8;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .talent-assessment-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+            border: 1px solid #c7d2fe;
+            border-radius: 0.35rem;
+            background: #eef2ff;
+            color: #2448c7;
+            font-size: 1rem;
+            padding: 0;
+            text-decoration: none;
+        }
+
+        .talent-assessment-button:hover {
+            border-color: #2448c7;
+            background: #2448c7;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .talent-assessment-button small {
+            color: currentColor;
+            font-size: 0.72rem;
+            font-weight: 600;
+            opacity: 0.72;
+        }
+
         .talent-action-group {
             display: inline-flex;
             align-items: center;
@@ -443,6 +523,7 @@
                             <th class="mw-220">Nama Lengkap</th>
                             <th class="mw-220">Posisi Dilamar</th>
                             <th class="mw-420">Keterangan</th>
+                            <th class="mw-180">Penilaian</th>
                             <th class="mw-120">Action</th>
                         </tr>
                         </thead>
@@ -469,6 +550,7 @@
         var csrfToken = @json(csrf_token());
         var applicantStatusUpdateUrlTemplate = @json(route('applicant.status.update', ['applicant' => '__APPLICANT_ID__']));
         var applicantShowUrlTemplate = @json(route('applicant.show', ['applicant' => '__APPLICANT_ID__']));
+        var applicantAssessmentUrlTemplate = @json(route('applicant.assessment', ['applicant' => '__APPLICANT_ID__']));
         var applicantDestroyUrlTemplate = @json(route('applicant.destroy', ['applicant' => '__APPLICANT_ID__']));
 
         function escapeHtml(value) {
@@ -516,6 +598,14 @@
                 + '</select>'
                 + '</span>'
                 + '</form>';
+        }
+
+        function renderAssessmentSummary(applicant) {
+            var assessmentUrl = applicantUrl(applicantAssessmentUrlTemplate, applicant.id);
+
+            return '<div class="talent-assessment-summary">'
+                + '<a href="' + assessmentUrl + '" class="talent-assessment-button" title="Form Penilaian" aria-label="Form Penilaian"><i class="bi bi-clipboard-check"></i></a>'
+                + '</div>';
         }
 
         function renderApplicantAction(applicant) {
@@ -568,12 +658,20 @@
                         searchable: false,
                         orderable: false,
                         render: function (data, type, row) {
+                            return renderAssessmentSummary(row);
+                        }
+                    },
+                    {
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row) {
                             return renderApplicantAction(row);
                         }
                     }
                 ],
                 columnDefs: [
-                    { targets: [0, 1, 5], orderable: false }
+                    { targets: [0, 1, 5, 6], orderable: false }
                 ]
             });
 
@@ -600,7 +698,7 @@
 
                 if (!isActive) {
                     $tab.addClass('active').attr('aria-selected', 'true');
-                }
+                } 
 
                 applicantsTable.draw();
             });

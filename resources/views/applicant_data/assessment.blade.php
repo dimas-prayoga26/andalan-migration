@@ -267,7 +267,7 @@
                     <div class="applicant-assessment-overview">
                         <div class="applicant-assessment-metric">
                             <div class="applicant-assessment-metric-label">HR Interview</div>
-                            <div class="applicant-assessment-metric-value">82 / Draft</div>
+                            <div class="applicant-assessment-metric-value">82 / 100</div>
                         </div>
                         <div class="applicant-assessment-metric">
                             <div class="applicant-assessment-metric-label">Assessment Test</div>
@@ -275,7 +275,7 @@
                         </div>
                         <div class="applicant-assessment-metric">
                             <div class="applicant-assessment-metric-label">Technical Test</div>
-                            <div class="applicant-assessment-metric-value">76 / Draft</div>
+                            <div class="applicant-assessment-metric-value">76 / 100</div>
                         </div>
                         <div class="applicant-assessment-metric">
                             <div class="applicant-assessment-metric-label">Final Verdict</div>

@@ -625,6 +625,21 @@
     @php
         $sweetAlertJsPath = public_path('assets/vendor/sweetalert2/sweetalert2.min.js');
         $sweetAlertJsVersion = file_exists($sweetAlertJsPath) ? filemtime($sweetAlertJsPath) : time();
+        $dashboardCarbonClockNow = now('Asia/Jakarta');
+        $dashboardCarbonShortMonths = [];
+        $dashboardCarbonLongMonths = [];
+        $dashboardCarbonWeekdays = [];
+
+        for ($monthNumber = 1; $monthNumber <= 12; $monthNumber++) {
+            $monthDate = \Carbon\CarbonImmutable::create(2026, $monthNumber, 1, 0, 0, 0, 'Asia/Jakarta')->locale('id');
+            $dashboardCarbonShortMonths[$monthNumber] = $monthDate->format('M');
+            $dashboardCarbonLongMonths[$monthNumber] = $monthDate->translatedFormat('F');
+        }
+
+        for ($dayOffset = 0; $dayOffset <= 6; $dayOffset++) {
+            $weekdayDate = \Carbon\CarbonImmutable::create(2026, 9, 20 + $dayOffset, 0, 0, 0, 'Asia/Jakarta')->locale('id');
+            $dashboardCarbonWeekdays[$weekdayDate->dayOfWeek] = $weekdayDate->translatedFormat('l');
+        }
     @endphp
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ file_exists(public_path('assets/js/dashboard.js')) ? filemtime(public_path('assets/js/dashboard.js')) : time() }}"></script>
     <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}?v={{ $sweetAlertJsVersion }}"></script>
@@ -667,6 +682,12 @@
             var verifyTelegramUsernameUrl = @json(route('attendance.verify-telegram-username'));
             var userActivityLogUrl = @json(\Illuminate\Support\Facades\Route::has('user-activity-log.store') ? route('user-activity-log.store') : null);
             var csrfToken = @json(csrf_token());
+            var dashboardClockBaseEpochMs = @json($dashboardCarbonClockNow->getTimestamp() * 1000);
+            var dashboardClockBrowserStartEpochMs = Date.now();
+            var dashboardClockTimezoneOffsetMinutes = @json((int) ($dashboardCarbonClockNow->getOffset() / 60));
+            var dashboardClockShortMonths = @json($dashboardCarbonShortMonths);
+            var dashboardClockLongMonths = @json($dashboardCarbonLongMonths);
+            var dashboardClockWeekdays = @json($dashboardCarbonWeekdays);
             var browserPublicIp = null;
             var attendanceState = {
                 todayAttendanceId: @json($todayAttendanceId ?? null),
@@ -1342,47 +1363,21 @@
             }
 
             function renderDashboardAttendanceTime() {
-                var now = new Date();
-                var dateParts = new Intl.DateTimeFormat('id-ID', {
-                    timeZone: 'Asia/Jakarta',
-                    weekday: 'long',
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric'
-                }).formatToParts(now);
-                var cardDateParts = new Intl.DateTimeFormat('en-GB', {
-                    timeZone: 'Asia/Jakarta',
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric'
-                }).formatToParts(now);
-                var timeParts = new Intl.DateTimeFormat('id-ID', {
-                    timeZone: 'Asia/Jakarta',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hourCycle: 'h23'
-                }).formatToParts(now);
-
-                var dateMap = {};
-                dateParts.forEach(function (part) {
-                    dateMap[part.type] = part.value;
-                });
-                var cardDateMap = {};
-                cardDateParts.forEach(function (part) {
-                    cardDateMap[part.type] = part.value;
-                });
-                var timeMap = {};
-                timeParts.forEach(function (part) {
-                    timeMap[part.type] = part.value;
-                });
-                var formattedTime = timeMap.hour + ':' + timeMap.minute + ':' + timeMap.second;
-                var formattedCardMonth = String(cardDateMap.month || '').replace('.', '');
-                var formattedDateTime = cardDateMap.day + ' ' + formattedCardMonth + ' | ' + formattedTime;
-                var modalDate = dateMap.weekday + ', ' + dateMap.day + ' ' + dateMap.month + ' ' + dateMap.year;
+                var elapsedMs = Date.now() - dashboardClockBrowserStartEpochMs;
+                var jakartaDate = new Date(dashboardClockBaseEpochMs + elapsedMs + (dashboardClockTimezoneOffsetMinutes * 60 * 1000));
+                var day = String(jakartaDate.getUTCDate()).padStart(2, '0');
+                var monthNumber = jakartaDate.getUTCMonth() + 1;
+                var year = jakartaDate.getUTCFullYear();
+                var hour = jakartaDate.getUTCHours();
+                var minute = jakartaDate.getUTCMinutes();
+                var second = jakartaDate.getUTCSeconds();
+                var formattedTime = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0') + ':' + String(second).padStart(2, '0');
+                var formattedCardMonth = dashboardClockShortMonths[monthNumber] || '';
+                var formattedLongMonth = dashboardClockLongMonths[monthNumber] || formattedCardMonth;
+                var formattedWeekday = dashboardClockWeekdays[jakartaDate.getUTCDay()] || '';
+                var formattedDateTime = day + ' ' + formattedCardMonth + ' | ' + formattedTime;
+                var modalDate = formattedWeekday + ', ' + day + ' ' + formattedLongMonth + ' ' + year;
                 var modalDateTime = modalDate + ' - ' + formattedTime;
-                var hour = parseInt(timeMap.hour, 10);
-                var minute = parseInt(timeMap.minute, 10);
                 var totalMinutes = (hour * 60) + minute;
                 var isWithinWorkRange = totalMinutes >= officeStartTotalMinutes && totalMinutes < officeEndTotalMinutes;
                 if (!attendanceState.canClockOutNow && totalMinutes >= officeEndTotalMinutes) {

@@ -38,7 +38,7 @@
 	<!-- Favicon icon -->
 	<link rel="shortcut icon" type="image/x-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
     <link rel="apple-touch-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
-    <link rel="manifest" href="{{ route('manifest') }}">
+    <link rel="manifest" href="{{ url('/manifest.webmanifest') }}">
     
 	<!-- Start - Basic CSS -->
     <link href="{{ asset('assets/vendor/metismenu/dist/metisMenu.min.css') }}?v={{ $assetVersion('vendor/metismenu/dist/metisMenu.min.css') }}" rel="stylesheet">

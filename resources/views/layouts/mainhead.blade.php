@@ -33,7 +33,7 @@
 	<!-- Favicon icon -->
 	<link rel="shortcut icon" type="image/x-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
     <link rel="apple-touch-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
-    <link rel="manifest" href="{{ route('manifest') }}">
+    <link rel="manifest" href="{{ url('/manifest.webmanifest') }}">
 
     @php
         $assetVersion = static function (string $path): int {

@@ -1,5 +1,6 @@
 (function () {
     const promptElement = document.querySelector('[data-install-app-prompt]');
+    const launchScreen = document.querySelector('[data-pwa-launch-screen]');
 
     if (!promptElement) {
         return;
@@ -36,6 +37,25 @@
     const hidePrompt = () => {
         promptElement.setAttribute('hidden', 'hidden');
     };
+
+    const showLaunchScreen = () => {
+        if (!launchScreen || !isMobile() || !isStandalone()) {
+            return;
+        }
+
+        launchScreen.removeAttribute('hidden');
+
+        window.setTimeout(() => {
+            launchScreen.classList.add('is-hiding');
+
+            window.setTimeout(() => {
+                launchScreen.setAttribute('hidden', 'hidden');
+                launchScreen.classList.remove('is-hiding');
+            }, 380);
+        }, 1350);
+    };
+
+    showLaunchScreen();
 
     if ('serviceWorker' in navigator && window.isSecureContext) {
         window.addEventListener('load', () => {

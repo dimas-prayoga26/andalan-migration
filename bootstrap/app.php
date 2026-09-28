@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAuthenticatedUserIsActive;
 use App\Http\Middleware\EnsurePositionPermission;
 use App\Http\Middleware\HandleControllerExceptions;
 use App\Http\Middleware\LogAuthenticatedPageVisit;
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
         $middleware->web(append: [
             HandleControllerExceptions::class,
+            EnsureAuthenticatedUserIsActive::class,
             LogAuthenticatedPageVisit::class,
         ]);
         $middleware->alias([

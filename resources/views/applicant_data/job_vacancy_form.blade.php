@@ -51,6 +51,7 @@
         .job-vacancy-total-box {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             min-height: 38px;
             border: 1px solid #d9dce5;
             border-radius: 0.55rem;
@@ -172,8 +173,9 @@
                     </div>
                     <div class="d-flex flex-wrap align-items-center gap-2">
                         <span class="job-vacancy-total-box" data-criteria-total>Total 0%</span>
-                        <button type="button" class="btn btn-primary light btn-sm" data-add-criterion>
-                            <i class="bi bi-plus-lg me-1"></i>Tambah Kriteria
+                        <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center justify-content-center gap-1" data-add-criterion>
+                            <i class="bi bi-plus-lg"></i>
+                            <span>Tambah Kriteria</span>
                         </button>
                     </div>
                 </div>

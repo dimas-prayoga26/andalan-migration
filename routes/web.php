@@ -19,6 +19,7 @@ use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
 use App\Http\Controllers\PicAttendance\PicAttendanceTaskController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PwaManifestController;
 use App\Http\Controllers\ProjectManagement\OverviewController as ProjectManagementOverviewController;
 use App\Http\Controllers\ProjectManagement\ProjectController as ProjectManagementProjectController;
 use App\Http\Controllers\ProjectManagement\TaskListController as ProjectManagementTaskListController;
@@ -36,6 +37,8 @@ use App\Http\Controllers\StaffAttendance\AttendanceReportController;
 use App\Http\Controllers\TalentAcquisitionController;
 use App\Http\Controllers\UserActivityLogController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/manifest.webmanifest', PwaManifestController::class)->name('manifest');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'create'])->name('login');

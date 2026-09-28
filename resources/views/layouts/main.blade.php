@@ -101,6 +101,8 @@
 		});
 	</script>
 
+    @include('layouts.install-app-prompt')
+
 	@yield('script')
 </body>
 

@@ -43,29 +43,6 @@
             font-weight: 700;
         }
 
-        .talent-create-job-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.4rem;
-            min-height: 38px;
-            border: 1px solid #c7d2fe;
-            border-radius: 0.5rem;
-            background: #eef2ff;
-            color: #2448c7;
-            font-size: 0.86rem;
-            font-weight: 800;
-            padding: 0.45rem 0.85rem;
-            text-decoration: none;
-        }
-
-        .talent-create-job-btn:hover {
-            border-color: #2448c7;
-            background: #2448c7;
-            color: #fff;
-            text-decoration: none;
-        }
-
         .talent-vacancy-status-form {
             align-items: center;
             display: inline-flex;
@@ -296,7 +273,7 @@
 
                 <div class="talent-header-bar">
                     <div class="talent-table-title">Job Vacancy</div>
-                    <a href="{{ route('applicant.job_vacancies.create') }}" class="talent-create-job-btn">
+                    <a href="{{ route('applicant.job_vacancies.create') }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center justify-content-center gap-1">
                         <i class="bi bi-plus-lg"></i>
                         <span>Create Job</span>
                     </a>

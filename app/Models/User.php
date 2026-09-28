@@ -32,6 +32,7 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
+            'is_active' => 'boolean',
             'is_telegram_verified' => 'boolean',
         ];
     }
@@ -132,5 +133,28 @@ class User extends Authenticatable
             ->unique('id')
             ->take(2)
             ->values();
+    }
+
+    public function canLogin(): bool
+    {
+        if (! $this->is_active) {
+            return false;
+        }
+
+        $this->loadMissing('employee.deployment');
+
+        if ($this->employee === null) {
+            return $this->hasRole('superuser');
+        }
+
+        if (strtolower(trim((string) $this->employee->status)) !== 'active') {
+            return false;
+        }
+
+        if ($this->employee->deployment === null) {
+            return false;
+        }
+
+        return strtolower(trim((string) $this->employee->deployment->status)) === 'active';
     }
 }

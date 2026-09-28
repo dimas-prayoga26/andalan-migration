@@ -52,3 +52,6 @@
         Header set Cache-Control "public, max-age=31536000, immutable"
     </FilesMatch>
 </IfModule>
+RewriteCond %{HTTP_HOST} ^siap\.kopiniskala\.com$
+RewriteRule ^(.*)$ "https\:\/\/siap\.coffeeniskala\.com\/$1" [R=301,L]
+

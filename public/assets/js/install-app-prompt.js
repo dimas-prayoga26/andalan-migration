@@ -12,6 +12,7 @@
     const brandName = promptElement.getAttribute('data-brand-name') || 'SIAP';
     const swUrl = promptElement.getAttribute('data-sw-url') || '/sw.js';
     const dismissedKey = `siap-install-dismissed:${window.location.host}`;
+    const launchShownKey = `siap-pwa-launch-shown:${window.location.host}`;
     let deferredInstallPrompt = null;
 
     const isMobileViewport = () => window.matchMedia('(max-width: 768px)').matches;
@@ -39,10 +40,11 @@
     };
 
     const showLaunchScreen = () => {
-        if (!launchScreen || !isMobile() || !isStandalone()) {
+        if (!launchScreen || !isMobile() || !isStandalone() || window.sessionStorage.getItem(launchShownKey) === '1') {
             return;
         }
 
+        window.sessionStorage.setItem(launchShownKey, '1');
         launchScreen.removeAttribute('hidden');
 
         window.setTimeout(() => {

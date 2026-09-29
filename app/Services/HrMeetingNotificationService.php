@@ -78,12 +78,17 @@ class HrMeetingNotificationService
             ]);
         }
 
-        $this->webPushNotificationService->sendToSubscriptions($deviceSubscriptions->unique('endpoint_hash')->values(), [
+        $pushResult = $this->webPushNotificationService->sendToSubscriptions($deviceSubscriptions->unique('endpoint_hash')->values(), [
             'title' => $title,
             'body' => $body,
             'url' => $meetingUrl,
             'icon' => $iconUrl,
             'badge' => $iconUrl,
+        ]);
+
+        Log::info('HR meeting push notification dispatch completed.', [
+            'hr_meeting_id' => $meeting->id,
+            'result' => $pushResult,
         ]);
     }
 

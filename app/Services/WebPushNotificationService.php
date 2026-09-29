@@ -24,15 +24,23 @@ class WebPushNotificationService
             return;
         }
 
-        $webPush = new WebPush([
-            'VAPID' => [
-                'subject' => config('app.url') ?: url('/'),
-                'publicKey' => $publicKey,
-                'privateKey' => $privateKey,
-            ],
-        ]);
+        try {
+            $webPush = new WebPush([
+                'VAPID' => [
+                    'subject' => config('app.url') ?: url('/'),
+                    'publicKey' => $publicKey,
+                    'privateKey' => $privateKey,
+                ],
+            ]);
 
-        $encodedPayload = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+            $encodedPayload = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        } catch (Throwable $exception) {
+            Log::warning('Failed to prepare web push notification.', [
+                'message' => $exception->getMessage(),
+            ]);
+
+            return;
+        }
 
         $subscriptions->each(function (DeviceSubscription $deviceSubscription) use ($webPush, $encodedPayload): void {
             try {

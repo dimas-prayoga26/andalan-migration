@@ -11,7 +11,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 
-#[Signature('webpush:test {recipient : User ID, employee ID, username, email, employee code, or employee name} {--url=} {--title=Meeting Baru: Test Push} {--body=Jadwal meeting test berhasil dikirim dari SIAP.}')]
+#[Signature('webpush:test {recipient : User ID, employee ID, username, email, employee code, or employee name} {--latest} {--url=} {--title=Meeting Baru: Test Push} {--body=Jadwal meeting test berhasil dikirim dari SIAP.}')]
 #[Description('Send a test web push notification to a user or employee device subscription')]
 class TestWebPushNotification extends Command
 {
@@ -42,6 +42,13 @@ class TestWebPushNotification extends Command
             $this->warn('No device subscription found for this user/employee.');
 
             return self::SUCCESS;
+        }
+
+        if ((bool) $this->option('latest')) {
+            $subscriptions = $subscriptions
+                ->sortByDesc('last_subscribed_at')
+                ->take(1)
+                ->values();
         }
 
         $this->table(

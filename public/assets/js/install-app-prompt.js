@@ -14,6 +14,7 @@
     const launchShownKey = `siap-pwa-launch-shown:${window.location.host}`;
     const installStateKey = `siap-pwa-installed:${window.location.host}`;
     const subscribedVapidKey = `siap-pwa-vapid-key:${window.location.host}`;
+    const subscribedSwVersionKey = `siap-pwa-sw-version:${window.location.host}`;
     let deferredInstallPrompt = null;
 
     const isMobileViewport = () => window.matchMedia('(max-width: 768px)').matches;
@@ -176,7 +177,8 @@
         let shouldRefreshSubscription = false;
 
         try {
-            shouldRefreshSubscription = window.localStorage.getItem(subscribedVapidKey) !== pwaConfig.vapidPublicKey;
+            shouldRefreshSubscription = window.localStorage.getItem(subscribedVapidKey) !== pwaConfig.vapidPublicKey
+                || window.localStorage.getItem(subscribedSwVersionKey) !== String(pwaConfig.serviceWorkerVersion || '');
         } catch (error) {
             shouldRefreshSubscription = false;
         }
@@ -197,6 +199,7 @@
 
         try {
             window.localStorage.setItem(subscribedVapidKey, pwaConfig.vapidPublicKey);
+            window.localStorage.setItem(subscribedSwVersionKey, String(pwaConfig.serviceWorkerVersion || ''));
         } catch (error) {}
     };
 

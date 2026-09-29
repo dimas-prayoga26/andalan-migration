@@ -270,6 +270,7 @@
         window.SIAP_PWA = {
             isAuthenticated: @json(auth()->check()),
             vapidPublicKey: @json(config('services.webpush.vapid_public_key')),
+            serviceWorkerVersion: @json((string) $installPromptServiceWorkerVersion),
             subscribeUrl: @json(auth()->check() ? route('device-subscriptions.store') : null),
             unsubscribeUrl: @json(auth()->check() ? route('device-subscriptions.destroy') : null),
             csrfToken: @json(csrf_token())

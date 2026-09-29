@@ -263,5 +263,14 @@
         </div>
     </div>
 
+    <script>
+        window.SIAP_PWA = {
+            isAuthenticated: @json(auth()->check()),
+            vapidPublicKey: @json(config('services.webpush.vapid_public_key')),
+            subscribeUrl: @json(auth()->check() ? route('device-subscriptions.store') : null),
+            unsubscribeUrl: @json(auth()->check() ? route('device-subscriptions.destroy') : null),
+            csrfToken: @json(csrf_token())
+        };
+    </script>
     <script src="{{ asset('assets/js/install-app-prompt.js') }}?v={{ $installPromptScriptVersion }}"></script>
 @endonce

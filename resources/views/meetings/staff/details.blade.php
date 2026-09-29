@@ -252,11 +252,11 @@
                         <strong class="meeting-status-complete">Completed</strong>
                     </div>
                     <div class="meeting-meta-row">
-                        <span>Attachments Link</span>
+                        <span>Attachment Link</span>
                         <a href="#" class="fw-semibold">canva.com</a>
                     </div>
                     <div class="meeting-meta-row">
-                        <span>Total Task</span>
+                        <span>Total Tasks</span>
                         <strong>18 Tasks</strong>
                     </div>
                     <div class="meeting-meta-row">

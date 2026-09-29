@@ -82,6 +82,16 @@
 					</nav>
 				</div>
 				<!-- End - Page Title & Breadcrumb -->
+
+                @if (session('status'))
+                    <div class="alert alert-success">{{ session('status') }}</div>
+                @endif
+
+                @if ($errors->any())
+                    <div class="alert alert-danger">
+                        {{ $errors->first() }}
+                    </div>
+                @endif
 				
 				<div class="tab-content" id="tabContentMyProfileBottom">
 
@@ -94,8 +104,8 @@
                                             <img src="{{ asset('assets/images/logo/large/zoom.png') }}" class="meeting-zoom-logo" alt="Zoom">
                                         </div>
                                         <div class="clearfix">
-                                            <h4 class="mb-0 fw-semibold"><a href="report-project-details.html" class="stretched-link">Weekly Meeting</a></h4>
-                                            <span class="small">Evaluasi Mingguan</span>	
+                                            <h4 class="mb-0 fw-semibold"><a href="{{ $meeting->meeting_link ?: '#' }}" class="stretched-link" @if($meeting->meeting_link) target="_blank" rel="noopener noreferrer" @endif>{{ $meeting->title }}</a></h4>
+                                            <span class="small">{{ $meetingTypeLabels[$meeting->type] ?? $meeting->type }}</span>	
                                         </div>	
                                     </div>
                                 </div>
@@ -105,7 +115,7 @@
                                             <span class="d-block">Date</span>
                                         </div>
                                         <div class="col-md-6 col-12">
-                                            <span class="d-block fw-semibold">Friday, 04 September 2025</span>
+                                            <span class="d-block fw-semibold">{{ optional($meeting->meeting_date)->format('l, d F Y') }}</span>
                                         </div>
                                     </div>
                                     <div class="row ps-3 mb-3">
@@ -113,7 +123,7 @@
                                             <span class="d-block">Time</span>
                                         </div>
                                         <div class="col-md-6 col-12">
-                                            <span class="d-block fw-semibold">10:00 WIB</span>
+                                            <span class="d-block fw-semibold">{{ substr((string) $meeting->meeting_time, 0, 5) }} WIB</span>
                                         </div>
                                     </div>
                                     <div class="row ps-3 mb-3">
@@ -121,23 +131,30 @@
                                             <span class="d-block">Meeting Status</span>
                                         </div>
                                         <div class="col-md-6 col-12">
-                                            <span class="d-block text-success fw-semibold">Completed</span>
+                                            <span class="d-block fw-semibold">{{ ucfirst($meeting->status) }}</span>
                                         </div>
                                     </div>
                                     <div class="row ps-3 mb-3">
                                         <div class="col-md-6 col-12">
-                                            <span class="d-block">Attachments Link</span>
+                                            <span class="d-block">Attachment Link</span>
                                         </div>
                                         <div class="col-md-6 col-12">
-                                            <a href="https://www.canva.com" target="_blank" rel="noopener noreferrer"><span class="d-block text-primary fw-semibold">canva.com</span></a>
+                                            @if ($meeting->attachment_link)
+                                                <a href="{{ $meeting->attachment_link }}" target="_blank" rel="noopener noreferrer"><span class="d-block text-primary fw-semibold">{{ parse_url($meeting->attachment_link, PHP_URL_HOST) ?: $meeting->attachment_link }}</span></a>
+                                            @else
+                                                <span class="d-block fw-semibold">-</span>
+                                            @endif
                                             
                                         </div>
                                     </div>
                                     <div class="row ps-3 mb-3">
                                         <div class="col-md-6 col-12">
-                                            <span class="d-block">Total Task</span>
+                                            <span class="d-block">Total Tasks</span>
                                         </div>
                                         <div class="col-md-6 col-12">
+                                            {{-- Dynamic total tasks. Uncomment when HR meeting detail should read real task data again.
+                                            <span class="d-block fw-semibold">{{ (int) $meeting->tasks_count }} Tasks</span>
+                                            --}}
                                             <span class="d-block fw-semibold">18 Tasks</span>
                                         </div>
                                     </div>
@@ -146,7 +163,10 @@
                                             <span class="d-block">Joined</span>
                                         </div>
                                         <div class="col-md-6 col-12">
-                                            <span class="d-block fw-semibold">12 Staff</span>
+                                            {{-- Dynamic joined count. Uncomment when HR meeting detail should read real attendance data again.
+                                            <span class="d-block fw-semibold">{{ (int) $meeting->joined_count }} Staff</span>
+                                            --}}
+                                            <span class="d-block fw-semibold">0 Staff</span>
                                         </div>
                                     </div>
                                     <div class="clearfix mt-3 ms-3">
@@ -166,6 +186,9 @@
                                 <div class="card-header pb-0 border-0">
                                     <div class="clearfix">
                                         <h4 class="card-title mb-0">Tasks Summary</h4>
+                                        {{-- Dynamic overdue summary. Uncomment when HR meeting detail should read real task data again.
+                                        <small class="d-block">{{ (int) $meetingTaskSummary['overdue'] }} Overdue Tasks</small>
+                                        --}}
                                         <small class="d-block">24 Overdue Tasks</small>
                                     </div>
                                 </div>
@@ -173,6 +196,14 @@
                                     <div class="row align-items-center">
                                         <div class="col-sm-6 mb-3">
                                             <div id="chartTasksSummary" class="d-flex justify-content-center">
+                                                {{-- Dynamic chart gradient. Uncomment when HR meeting detail should read real task data again.
+                                                <div class="meeting-summary-donut" style="background: conic-gradient({{ $meetingTaskSummary['gradient'] }});" aria-label="Tasks summary chart">
+                                                    <div class="meeting-summary-donut-content">
+                                                        <strong>{{ (int) $meetingTaskSummary['total'] }}</strong>
+                                                        <span>Total</span>
+                                                    </div>
+                                                </div>
+                                                --}}
                                                 <div class="meeting-summary-donut" aria-label="Tasks summary chart">
                                                     <div class="meeting-summary-donut-content">
                                                         <strong>120</strong>
@@ -182,34 +213,34 @@
                                             </div>
                                         </div>
                                         <div class="col-sm-6 mb-3">
-                                            <div class="d-flex justify-content-between mb-3">
-                                                <div class="text-black">
-                                                    <i class="fa-solid fa-square text-primary me-1"></i> Administration
+                                            {{-- Dynamic task summary legend. Uncomment when HR meeting detail should read real task data again.
+                                            @foreach ($meetingTaskSummary['segments'] as $segment)
+                                                <div class="d-flex justify-content-between mb-3">
+                                                    <div class="text-black">
+                                                        <i class="fa-solid fa-square me-1" style="color: {{ $segment['color'] }}"></i> {{ $segment['label'] }}
+                                                    </div>
+                                                    <span>{{ (int) $segment['count'] }}</span>
                                                 </div>
+                                            @endforeach
+                                            --}}
+                                            <div class="d-flex justify-content-between mb-3">
+                                                <div class="text-black"><i class="fa-solid fa-square me-1" style="color:#243ec6"></i> Administration</div>
                                                 <span>25</span>
                                             </div>
                                             <div class="d-flex justify-content-between mb-3">
-                                                <div class="text-black">
-                                                    <i class="fa-solid fa-square text-secondary me-1"></i> Event (KMA)
-                                                </div>
+                                                <div class="text-black"><i class="fa-solid fa-square me-1" style="color:#9b2cf3"></i> Event (KMA)</div>
                                                 <span>25</span>
                                             </div>
                                             <div class="d-flex justify-content-between mb-3">
-                                                <div class="text-black">
-                                                    <i class="fa-solid fa-square text-success me-1"></i> Property (TRAH)
-                                                </div>
+                                                <div class="text-black"><i class="fa-solid fa-square me-1" style="color:#22c55e"></i> Property (TRAH)</div>
                                                 <span>17</span>
                                             </div>
                                             <div class="d-flex justify-content-between mb-3">
-                                                <div class="text-black">
-                                                    <i class="fa-solid fa-square text-danger me-1"></i> IT and Socmed (TMS)
-                                                </div>
+                                                <div class="text-black"><i class="fa-solid fa-square me-1" style="color:#f43f86"></i> IT and Socmed (TMS)</div>
                                                 <span>20</span>
                                             </div>
-                                            <div class="d-flex justify-content-between">
-                                                <div class="text-black">
-                                                    <i class="fa-solid fa-square text-warning me-1"></i> Others
-                                                </div>
+                                            <div class="d-flex justify-content-between mb-3">
+                                                <div class="text-black"><i class="fa-solid fa-square me-1" style="color:#ffb000"></i> Others</div>
                                                 <span>38</span>
                                             </div>
                                         </div>
@@ -225,8 +256,8 @@
                                     <div class="clearfix d-flex">
                                         
                                         <div class="clearfix">
-                                            <h4 class="mb-0 fw-semibold"><a href="report-project-details.html" class="stretched-link">Log Attendance</a></h4>
-                                            <span class="small">Record of attendance</span>	
+                                            <h4 class="mb-0 fw-semibold">Meeting Attendance</h4>
+                                            <span class="small">Staff joined in this meeting</span>	
                                         </div>	
                                     </div>
                                 </div>
@@ -241,13 +272,26 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody>
+                                                    {{-- Dynamic attendance rows. Uncomment when HR meeting detail should read real attendance data again.
+                                                    @forelse ($meetingAttendanceRows as $attendanceRow)
+                                                        <tr>
+                                                            <td>{{ $loop->iteration }}.</td>
+                                                            <td>{{ $attendanceRow['name'] }}</td>
+                                                            <td>{{ $attendanceRow['time'] }}</td>
+                                                        </tr>
+                                                    @empty
+                                                        <tr>
+                                                            <td colspan="3" class="text-muted">No attendance data available.</td>
+                                                        </tr>
+                                                    @endforelse
+                                                    --}}
                                                     <tr>
                                                         <td>1.</td>
                                                         <td>Williams</td>
                                                         <td>09:01 WIB</td>
                                                     </tr>
                                                     <tr>
-                                                        <td>2</td>
+                                                        <td>2.</td>
                                                         <td>Paul</td>
                                                         <td>09:0 WIB</td>
                                                     </tr>
@@ -274,21 +318,6 @@
                                                     <tr>
                                                         <td>7.</td>
                                                         <td>Juan</td>
-                                                        <td>09:10 WIB</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>8.</td>
-                                                        <td>Robert</td>
-                                                        <td>09:10 WIB</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>9.</td>
-                                                        <td>Bob</td>
-                                                        <td>09:10 WIB</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>10.</td>
-                                                        <td>Alex</td>
                                                         <td>09:10 WIB</td>
                                                     </tr>
                                                 </tbody>
@@ -985,4 +1014,168 @@
 				</div>
                     
 				<!-- End - Attendance -->
+@endsection
+
+@section('script')
+<div class="modal fade" id="create" tabindex="-1" aria-labelledby="createMeetingTaskLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            {{-- Dynamic task submit action. Uncomment when HR meeting detail task creation should be active again.
+            <form method="POST" action="{{ route('hr-meetings.tasks.store', $meeting) }}">
+            --}}
+            <form method="POST" action="javascript:void(0)" onsubmit="return false;">
+                @csrf
+                <input type="hidden" name="category" id="meetingTaskCategory" value="">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createMeetingTaskLabel">Create Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="meetingTaskTitle">Judul Task</label>
+                        <input type="text" class="form-control" id="meetingTaskTitle" name="title" placeholder="Judul task" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="meetingTaskAssignee">Assign to</label>
+                        {{-- Dynamic joined staff options. Uncomment when HR meeting detail task creation should be active again.
+                        <select class="form-select" id="meetingTaskAssignee" name="assigned_to" required @disabled(($meetingTaskAssigneeOptions ?? collect())->isEmpty())>
+                            @forelse ($meetingTaskAssigneeOptions ?? [] as $employee)
+                                <option value="{{ $employee['id'] }}">{{ $employee['name'] }}</option>
+                            @empty
+                                <option value="">Belum ada staff yang joined di meeting ini</option>
+                            @endforelse
+                        </select>
+                        --}}
+                        <select class="form-select" id="meetingTaskAssignee" name="assigned_to" required>
+                            <option value="syafiq">Syafiq</option>
+                            <option value="rexy">Rexy</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label" for="meetingTaskDateRangePicker">Date Range</label>
+                        <input type="text" class="form-control js-meeting-task-date-range-picker" id="meetingTaskDateRangePicker" data-start-date-target="#meetingTaskStartDate" data-due-date-target="#meetingTaskDueDate" placeholder="dd/mm/yyyy - dd/mm/yyyy" autocomplete="off" required>
+                        <input type="hidden" id="meetingTaskStartDate" name="start_date" value="">
+                        <input type="hidden" id="meetingTaskDueDate" name="due_date" value="">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+                    {{-- Dynamic submit button. Uncomment when HR meeting detail task creation should be active again.
+                    <button type="submit" class="btn btn-success" @disabled(($meetingTaskAssigneeOptions ?? collect())->isEmpty())>Submit</button>
+                    --}}
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    /*
+    Dynamic HR meeting detail task rendering and date-range picker are intentionally disabled.
+    Uncomment this block when the detail page should read/write real meeting task data again.
+
+    $(function () {
+        var meetingTaskCards = @json($meetingTaskCards ?? []);
+        var cardByTitle = {};
+
+        function escapeHtml(value) {
+            return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
+        }
+
+        function renderTask(task) {
+            var lineClass = task.is_completed ? 'bg-success' : 'bg-light';
+            var statusText = task.is_completed ? 'Status: Completed' : 'Due ' + (task.due_label || '-');
+
+            return ''
+                + '<div class="d-flex align-items-center py-2">'
+                + '<div class="timeline-vr-badge ' + lineClass + ' me-2"></div>'
+                + '<div class="clearfix ms-2">'
+                + '<h6 class="fs-13 mb-0 fw-semibold">' + escapeHtml(task.title || '-') + '</h6>'
+                + '<span class="small">' + escapeHtml(statusText) + ' by <span class="text-primary">' + escapeHtml(task.assignee || '-') + '</span></span>'
+                + '</div>'
+                + '<div class="clearfix ms-auto">'
+                + '<button type="button" class="btn btn-sm btn-light btn-square" disabled><i class="bi bi-grid"></i></button>'
+                + '</div>'
+                + '</div>';
+        }
+
+        meetingTaskCards.forEach(function (card) {
+            cardByTitle[card.title] = card;
+        });
+
+        $('.card').each(function () {
+            var cardElement = $(this);
+            var title = $.trim(cardElement.find('.card-title').first().text());
+            var cardData = cardByTitle[title];
+
+            if (!cardData) {
+                return;
+            }
+
+            var body = cardElement.find('.card-body').first();
+            var headerRow = body.children('.d-flex.justify-content-between.mb-3').first();
+            var completedText = cardData.completed + ' / ' + cardData.total + ' Completed <span class="text-success">(' + cardData.percentage + '%)</span>';
+            var tasksHtml = cardData.tasks.length
+                ? cardData.tasks.map(renderTask).join('')
+                : '<div class="text-muted py-2">No task yet.</div>';
+
+            headerRow.find('.text-gray').html(completedText);
+            headerRow.find('[data-bs-target="#create"]').attr('href', 'javascript:void(0)').attr('data-meeting-task-category', cardData.key);
+            body.children().not(headerRow).remove();
+            body.append(tasksHtml);
+        });
+
+        $('#create').on('show.bs.modal', function (event) {
+            var trigger = $(event.relatedTarget);
+            var category = trigger.data('meeting-task-category') || '';
+            var title = $.trim(trigger.closest('.card').find('.card-title').first().text());
+
+            $('#meetingTaskCategory').val(category);
+            $('#createMeetingTaskLabel').text(title ? 'Create Task - ' + title : 'Create Task');
+        });
+
+        $('.js-meeting-task-date-range-picker').each(function () {
+            var input = $(this);
+            var startDateInput = $(input.data('start-date-target'));
+            var dueDateInput = $(input.data('due-date-target'));
+
+            if (!$.fn.daterangepicker || !window.moment) {
+                input.attr('type', 'date');
+                input.on('change', function () {
+                    startDateInput.val(input.val());
+                    dueDateInput.val(input.val());
+                });
+                return;
+            }
+
+            input.daterangepicker({
+                autoUpdateInput: false,
+                showDropdowns: true,
+                startDate: moment(),
+                endDate: moment(),
+                locale: {
+                    format: 'DD/MM/YYYY',
+                    separator: ' - ',
+                    cancelLabel: 'Clear',
+                },
+            });
+
+            input.on('apply.daterangepicker', function (event, picker) {
+                input.val(picker.startDate.format('DD/MM/YYYY') + ' - ' + picker.endDate.format('DD/MM/YYYY'));
+                startDateInput.val(picker.startDate.format('YYYY-MM-DD'));
+                dueDateInput.val(picker.endDate.format('YYYY-MM-DD'));
+                input.trigger('blur');
+            });
+
+            input.on('cancel.daterangepicker', function () {
+                input.val('');
+                startDateInput.val('');
+                dueDateInput.val('');
+            });
+        });
+    });
+    */
+</script>
 @endsection

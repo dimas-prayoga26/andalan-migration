@@ -2,6 +2,7 @@
 
 namespace App\View\Composers;
 
+use App\Models\AppNotification;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
@@ -17,6 +18,8 @@ class HeaderProfileComposer
             'headerUserName' => '-',
             'headerUserPositionLabel' => '-',
             'headerUserAvatarUrl' => asset('assets/default_user.jpg'),
+            'headerNotifications' => collect(),
+            'headerUnreadNotificationsCount' => 0,
         ];
 
         $authenticatedUserId = Auth::id();
@@ -46,6 +49,17 @@ class HeaderProfileComposer
             $headerData['headerUserAvatarUrl'] = $this->avatarUrl(
                 $authenticatedUser->employee?->profile?->profile_picture_path,
             );
+
+            $headerData['headerNotifications'] = AppNotification::query()
+                ->where('user_id', $authenticatedUser->id)
+                ->latest()
+                ->limit(8)
+                ->get();
+
+            $headerData['headerUnreadNotificationsCount'] = AppNotification::query()
+                ->where('user_id', $authenticatedUser->id)
+                ->whereNull('read_at')
+                ->count();
         }
 
         $view->with($headerData);

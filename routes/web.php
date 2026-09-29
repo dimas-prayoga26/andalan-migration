@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityScheduleController;
+use App\Http\Controllers\AppNotificationController;
 use App\Http\Controllers\AdminAttendance\AttendanceLeaveController as AdminAttendanceLeaveController;
 use App\Http\Controllers\AdminAttendance\AttendanceOvertimeController as AdminAttendanceOvertimeController;
 use App\Http\Controllers\AdminAttendance\AttendanceOverviewController as AdminAttendanceOverviewController;
@@ -12,7 +13,9 @@ use App\Http\Controllers\DirectorAttendance\DirectorAttendanceController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceOvertimeController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceTaskController;
 use App\Http\Controllers\EmployeeDataController;
+use App\Http\Controllers\DeviceSubscriptionController;
 use App\Http\Controllers\GoogleDriveOAuthController;
+use App\Http\Controllers\HrMeetingController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\PicAttendance\PicAttendanceController;
 use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
@@ -47,6 +50,9 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/user-activity-log', [UserActivityLogController::class, 'store'])->name('user-activity-log.store');
+    Route::post('/device-subscriptions', [DeviceSubscriptionController::class, 'store'])->name('device-subscriptions.store');
+    Route::delete('/device-subscriptions', [DeviceSubscriptionController::class, 'destroy'])->name('device-subscriptions.destroy');
+    Route::get('/notifications/{appNotification}/open', [AppNotificationController::class, 'open'])->name('notifications.open');
 
     Route::get('/', [DashboardController::class, 'index'])
         ->middleware('position.permission:view-dashboard')
@@ -163,15 +169,21 @@ Route::middleware('auth')->group(function (): void {
     })->middleware('position.permission:view-meeting')->name('agenda');
 
     Route::middleware('position.permission:view-meeting')->group(function (): void {
-        Route::view('/zoom-meeting', 'meetings.staff.index')->name('zoom-meeting.index');
+        Route::get('/zoom-meeting', [HrMeetingController::class, 'staffIndex'])->name('zoom-meeting.index');
+        Route::match(['get', 'post'], '/zoom-meeting/{hrMeeting}/join', [HrMeetingController::class, 'staffJoin'])->name('zoom-meeting.join');
         Route::view('/zoom-meeting/details', 'meetings.staff.details')->name('zoom-meeting.details');
     });
 
     Route::middleware('position.permission:view-admin-attendance')->group(function (): void {
-        Route::view('/hr-meetings', 'meetings.admin.index')->name('hr-meetings.index');
-        Route::view('/hr-meetings/create', 'meetings.admin.create')->name('hr-meetings.create');
-        Route::view('/hr-meetings/details', 'meetings.admin.details')->name('hr-meetings.details');
-        Route::view('/hr-meetings/update', 'meetings.admin.update')->name('hr-meetings.update');
+        Route::get('/hr-meetings', [HrMeetingController::class, 'index'])->name('hr-meetings.index');
+        Route::get('/hr-meetings/datatable', [HrMeetingController::class, 'datatable'])->name('hr-meetings.datatable');
+        Route::get('/hr-meetings/create', [HrMeetingController::class, 'create'])->name('hr-meetings.create');
+        Route::post('/hr-meetings', [HrMeetingController::class, 'store'])->name('hr-meetings.store');
+        Route::get('/hr-meetings/details/{hrMeeting?}', [HrMeetingController::class, 'show'])->name('hr-meetings.details');
+        Route::get('/hr-meetings/update/{hrMeeting?}', [HrMeetingController::class, 'edit'])->name('hr-meetings.update');
+        Route::post('/hr-meetings/{hrMeeting}/tasks', [HrMeetingController::class, 'storeTask'])->name('hr-meetings.tasks.store');
+        Route::put('/hr-meetings/{hrMeeting}', [HrMeetingController::class, 'update'])->name('hr-meetings.update.save');
+        Route::delete('/hr-meetings/{hrMeeting}', [HrMeetingController::class, 'destroy'])->name('hr-meetings.destroy');
     });
 
     // Attendance overview and daily attendance

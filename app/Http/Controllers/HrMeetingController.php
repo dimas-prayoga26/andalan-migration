@@ -515,6 +515,9 @@ class HrMeetingController extends Controller
     {
         return Employee::query()
             ->where('status', 'Active')
+            ->whereHas('user', function ($query): void {
+                $query->where('is_active', true);
+            })
             ->whereHas('user.roles', function ($query): void {
                 $query->whereRaw('LOWER(name) = ?', ['staff']);
             })

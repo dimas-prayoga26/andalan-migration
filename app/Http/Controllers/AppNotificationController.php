@@ -10,7 +10,18 @@ class AppNotificationController extends Controller
 {
     public function open(AppNotification $appNotification): RedirectResponse
     {
-        abort_unless((string) $appNotification->user_id === (string) auth()->id(), 403);
+        $user = auth()->user();
+        $employeeId = $user?->employee?->id;
+
+        abort_unless(
+            (string) $appNotification->user_id === (string) $user?->id
+            || (
+                is_string($employeeId)
+                && $employeeId !== ''
+                && (string) $appNotification->employee_id === $employeeId
+            ),
+            403,
+        );
 
         if ($appNotification->read_at === null) {
             $appNotification->forceFill(['read_at' => now()])->save();

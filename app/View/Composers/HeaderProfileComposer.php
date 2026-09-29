@@ -49,15 +49,28 @@ class HeaderProfileComposer
             $headerData['headerUserAvatarUrl'] = $this->avatarUrl(
                 $authenticatedUser->employee?->profile?->profile_picture_path,
             );
+            $authenticatedEmployeeId = $authenticatedUser->employee?->id;
 
             $headerData['headerNotifications'] = AppNotification::query()
-                ->where('user_id', $authenticatedUser->id)
+                ->where(function ($query) use ($authenticatedUser, $authenticatedEmployeeId): void {
+                    $query->where('user_id', $authenticatedUser->id);
+
+                    if (is_string($authenticatedEmployeeId) && $authenticatedEmployeeId !== '') {
+                        $query->orWhere('employee_id', $authenticatedEmployeeId);
+                    }
+                })
                 ->latest()
                 ->limit(8)
                 ->get();
 
             $headerData['headerUnreadNotificationsCount'] = AppNotification::query()
-                ->where('user_id', $authenticatedUser->id)
+                ->where(function ($query) use ($authenticatedUser, $authenticatedEmployeeId): void {
+                    $query->where('user_id', $authenticatedUser->id);
+
+                    if (is_string($authenticatedEmployeeId) && $authenticatedEmployeeId !== '') {
+                        $query->orWhere('employee_id', $authenticatedEmployeeId);
+                    }
+                })
                 ->whereNull('read_at')
                 ->count();
         }

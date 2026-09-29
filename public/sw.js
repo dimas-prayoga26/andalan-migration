@@ -1,4 +1,4 @@
-const SIAP_CACHE_VERSION = 'siap-pwa-v1';
+const SIAP_CACHE_VERSION = 'siap-pwa-v2';
 
 self.addEventListener('install', (event) => {
     event.waitUntil(self.skipWaiting());
@@ -52,17 +52,5 @@ self.addEventListener('notificationclick', (event) => {
         ? event.notification.data.url
         : '/';
 
-    event.waitUntil(
-        self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-            .then((clientList) => {
-                for (const client of clientList) {
-                    if ('focus' in client) {
-                        client.navigate(targetUrl);
-                        return client.focus();
-                    }
-                }
-
-                return self.clients.openWindow(targetUrl);
-            })
-    );
+    event.waitUntil(self.clients.openWindow(targetUrl));
 });

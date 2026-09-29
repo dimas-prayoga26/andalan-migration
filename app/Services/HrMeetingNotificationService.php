@@ -53,18 +53,32 @@ class HrMeetingNotificationService
             ]);
         });
 
+        $recipientUserIds = $users->pluck('id')->filter()->unique()->values();
+        $recipientEmployeeIds = $users
+            ->pluck('employee.id')
+            ->filter()
+            ->unique()
+            ->values();
+
         $deviceSubscriptions = DeviceSubscription::query()
-            ->whereIn('user_id', $users->pluck('id')->all())
+            ->where(function ($query) use ($recipientUserIds, $recipientEmployeeIds): void {
+                $query->whereIn('user_id', $recipientUserIds->all());
+
+                if ($recipientEmployeeIds->isNotEmpty()) {
+                    $query->orWhereIn('employee_id', $recipientEmployeeIds->all());
+                }
+            })
             ->get();
 
         if ($deviceSubscriptions->isEmpty()) {
             Log::info('HR meeting push notification skipped because recipients have no device subscriptions.', [
                 'hr_meeting_id' => $meeting->id,
-                'recipient_user_ids' => $users->pluck('id')->values()->all(),
+                'recipient_user_ids' => $recipientUserIds->all(),
+                'recipient_employee_ids' => $recipientEmployeeIds->all(),
             ]);
         }
 
-        $this->webPushNotificationService->sendToSubscriptions($deviceSubscriptions, [
+        $this->webPushNotificationService->sendToSubscriptions($deviceSubscriptions->unique('endpoint_hash')->values(), [
             'title' => $title,
             'body' => $body,
             'url' => $meetingUrl,
@@ -87,11 +101,9 @@ class HrMeetingNotificationService
             ->values();
 
         if ($employeeIds->isNotEmpty()) {
-            return Employee::query()
-                ->with('user')
+            return $this->activeEmployeeUserQuery()
                 ->where('status', 'Active')
                 ->whereIn('id', $employeeIds->all())
-                ->whereHas('user', fn ($query) => $query->where('is_active', true))
                 ->get()
                 ->pluck('user')
                 ->filter()
@@ -121,7 +133,7 @@ class HrMeetingNotificationService
     private function activeEmployeeUserQuery()
     {
         return Employee::query()
-            ->with('user.roles')
+            ->with(['user.roles', 'user.employee'])
             ->where('status', 'Active')
             ->whereHas('user', fn ($query) => $query->where('is_active', true))
             ->whereHas('user.roles', function ($query): void {

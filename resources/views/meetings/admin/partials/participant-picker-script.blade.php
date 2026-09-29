@@ -61,6 +61,11 @@
 
             groupButtons.on('click', function () {
                 var group = $(this).data('group-option');
+
+                if (group === 'custom') {
+                    employeeChecks.prop('checked', false);
+                }
+
                 setGroup(group, group !== 'custom');
             });
 

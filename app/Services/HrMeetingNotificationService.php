@@ -87,8 +87,11 @@ class HrMeetingNotificationService
             ->values();
 
         if ($employeeIds->isNotEmpty()) {
-            return $this->activeEmployeeUserQuery()
+            return Employee::query()
+                ->with('user')
+                ->where('status', 'Active')
                 ->whereIn('id', $employeeIds->all())
+                ->whereHas('user', fn ($query) => $query->where('is_active', true))
                 ->get()
                 ->pluck('user')
                 ->filter()

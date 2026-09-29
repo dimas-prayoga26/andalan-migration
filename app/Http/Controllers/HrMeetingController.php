@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AppNotification;
 use App\Models\Employee;
 use App\Models\HrMeeting;
 use App\Models\HrMeetingTask;
@@ -297,7 +298,32 @@ class HrMeetingController extends Controller
 
     public function destroy(HrMeeting $hrMeeting): RedirectResponse
     {
-        $hrMeeting->delete();
+        DB::transaction(function () use ($hrMeeting): void {
+            $projectTaskIds = $hrMeeting->tasks()
+                ->whereNotNull('project_task_id')
+                ->pluck('project_task_id')
+                ->filter()
+                ->unique()
+                ->values();
+
+            AppNotification::query()
+                ->where('type', 'hr_meeting_scheduled')
+                ->where('url', 'like', '%'.$hrMeeting->id.'%')
+                ->delete();
+
+            $hrMeeting->participants()->delete();
+            $hrMeeting->attachments()->delete();
+            $hrMeeting->momExports()->delete();
+            $hrMeeting->tasks()->delete();
+
+            if ($projectTaskIds->isNotEmpty()) {
+                ProjectTask::query()
+                    ->whereIn('id', $projectTaskIds->all())
+                    ->delete();
+            }
+
+            $hrMeeting->delete();
+        });
 
         return redirect()
             ->route('hr-meetings.index')

@@ -63,7 +63,15 @@ class WebPushNotificationService
                 $statusCode = $report->getResponse()?->getStatusCode();
                 if (in_array($statusCode, [404, 410], true)) {
                     $deviceSubscription->delete();
+
+                    return;
                 }
+
+                Log::warning('Web push notification was rejected.', [
+                    'device_subscription_id' => $deviceSubscription->id,
+                    'status_code' => $statusCode,
+                    'reason' => $report->getReason(),
+                ]);
             } catch (Throwable $exception) {
                 Log::warning('Failed to send web push notification.', [
                     'device_subscription_id' => $deviceSubscription->id,

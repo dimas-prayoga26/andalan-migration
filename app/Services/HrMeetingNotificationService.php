@@ -9,6 +9,7 @@ use App\Models\HrMeeting;
 use App\Models\User;
 use App\Support\Branding\HostBrandingResolver;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class HrMeetingNotificationService
 {
@@ -24,6 +25,10 @@ class HrMeetingNotificationService
 
         $users = $this->recipientUsers($meeting);
         if ($users->isEmpty()) {
+            Log::warning('HR meeting notification skipped because no recipient users were found.', [
+                'hr_meeting_id' => $meeting->id,
+            ]);
+
             return;
         }
 
@@ -51,6 +56,13 @@ class HrMeetingNotificationService
         $deviceSubscriptions = DeviceSubscription::query()
             ->whereIn('user_id', $users->pluck('id')->all())
             ->get();
+
+        if ($deviceSubscriptions->isEmpty()) {
+            Log::info('HR meeting push notification skipped because recipients have no device subscriptions.', [
+                'hr_meeting_id' => $meeting->id,
+                'recipient_user_ids' => $users->pluck('id')->values()->all(),
+            ]);
+        }
 
         $this->webPushNotificationService->sendToSubscriptions($deviceSubscriptions, [
             'title' => $title,

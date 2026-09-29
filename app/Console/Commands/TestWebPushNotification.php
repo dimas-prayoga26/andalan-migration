@@ -44,6 +44,21 @@ class TestWebPushNotification extends Command
             return self::SUCCESS;
         }
 
+        $this->table(
+            ['ID', 'Browser', 'Platform', 'IP', 'Last Subscribed', 'Last Used', 'User Agent'],
+            $subscriptions
+                ->map(fn (DeviceSubscription $subscription): array => [
+                    $subscription->id,
+                    $subscription->browser ?: '-',
+                    $subscription->platform ?: '-',
+                    $subscription->ip_address ?: '-',
+                    $subscription->last_subscribed_at?->timezone('Asia/Jakarta')->format('d M Y H:i:s') ?: '-',
+                    $subscription->last_used_at?->timezone('Asia/Jakarta')->format('d M Y H:i:s') ?: '-',
+                    mb_strimwidth((string) $subscription->user_agent, 0, 90, '...'),
+                ])
+                ->all()
+        );
+
         $result = $webPushNotificationService->sendToSubscriptions($subscriptions, [
             'title' => (string) $this->option('title'),
             'body' => (string) $this->option('body'),

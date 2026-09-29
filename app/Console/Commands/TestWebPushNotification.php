@@ -11,7 +11,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 
-#[Signature('webpush:test {recipient : User ID, employee ID, username, email, employee code, or employee name} {--url=} {--title=Test Push Notification} {--body=This is a test notification from SIAP.}')]
+#[Signature('webpush:test {recipient : User ID, employee ID, username, email, employee code, or employee name} {--url=} {--title=Meeting Baru: Test Push} {--body=Jadwal meeting test berhasil dikirim dari SIAP.}')]
 #[Description('Send a test web push notification to a user or employee device subscription')]
 class TestWebPushNotification extends Command
 {

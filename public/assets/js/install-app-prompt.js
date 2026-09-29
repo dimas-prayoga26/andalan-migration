@@ -185,8 +185,12 @@
 
     if ('serviceWorker' in navigator && window.isSecureContext) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register(swUrl)
-                .then((registration) => syncDeviceSubscription(registration))
+            navigator.serviceWorker.register(swUrl, { updateViaCache: 'none' })
+                .then((registration) => {
+                    registration.update().catch(() => {});
+
+                    return syncDeviceSubscription(registration);
+                })
                 .catch(() => {});
         });
     }

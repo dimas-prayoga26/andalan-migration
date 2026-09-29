@@ -5,6 +5,9 @@
         $installPromptScriptVersion = file_exists(public_path('assets/js/install-app-prompt.js'))
             ? filemtime(public_path('assets/js/install-app-prompt.js'))
             : time();
+        $installPromptServiceWorkerVersion = file_exists(public_path('sw.js'))
+            ? filemtime(public_path('sw.js'))
+            : time();
     @endphp
 
     <style>
@@ -245,7 +248,7 @@
         class="install-app-prompt"
         data-install-app-prompt
         data-brand-name="{{ $installPromptBrandName }}"
-        data-sw-url="{{ url('/sw.js') }}"
+        data-sw-url="{{ url('/sw.js') }}?v={{ $installPromptServiceWorkerVersion }}"
         hidden
         role="region"
         aria-label="Install application"

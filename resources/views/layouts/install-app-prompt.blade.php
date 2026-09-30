@@ -1,3 +1,4 @@
+@if (request()->routeIs('login'))
 @once
     @php
         $installPromptBrandName = $brandName ?? 'SIAP';
@@ -278,3 +279,4 @@
     </script>
     <script src="{{ asset('assets/js/install-app-prompt.js') }}?v={{ $installPromptScriptVersion }}"></script>
 @endonce
+@endif

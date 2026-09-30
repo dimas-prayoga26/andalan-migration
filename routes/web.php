@@ -42,6 +42,19 @@ use App\Http\Controllers\UserActivityLogController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/manifest.webmanifest', PwaManifestController::class)->name('manifest');
+Route::get('/sw-push-debug', function (\Illuminate\Http\Request $request) {
+    \Illuminate\Support\Facades\Log::info('Service worker push debug.', [
+        'debug_id' => $request->query('debug_id'),
+        'stage' => $request->query('stage'),
+        'tag' => $request->query('tag'),
+        'title' => $request->query('title'),
+        'client_time' => $request->query('client_time'),
+        'server_time' => now('Asia/Jakarta')->toDateTimeString(),
+        'user_agent' => $request->userAgent(),
+    ]);
+
+    return response()->noContent();
+})->name('sw-push-debug');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'create'])->name('login');

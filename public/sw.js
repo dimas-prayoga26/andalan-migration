@@ -20,6 +20,26 @@ self.addEventListener('fetch', () => {
     // Required for PWA installability. Requests still go directly to the network.
 });
 
+const logPushDebug = (payload, stage) => {
+    if (!payload.debug_id) {
+        return Promise.resolve();
+    }
+
+    const params = new URLSearchParams({
+        debug_id: String(payload.debug_id),
+        stage,
+        tag: String(payload.tag || ''),
+        title: String(payload.title || ''),
+        client_time: new Date().toISOString(),
+    });
+
+    return fetch(`/sw-push-debug?${params.toString()}`, {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'same-origin',
+    }).catch(() => {});
+};
+
 self.addEventListener('push', (event) => {
     let payload = {};
 
@@ -50,7 +70,11 @@ self.addEventListener('push', (event) => {
         options.badge = payload.badge;
     }
 
-    event.waitUntil(self.registration.showNotification(title, options));
+    event.waitUntil(
+        logPushDebug(payload, 'received')
+            .then(() => self.registration.showNotification(title, options))
+            .then(() => logPushDebug(payload, 'shown'))
+    );
 });
 
 self.addEventListener('notificationclick', (event) => {

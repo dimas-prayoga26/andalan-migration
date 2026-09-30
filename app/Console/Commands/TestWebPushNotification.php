@@ -11,6 +11,7 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 #[Signature('webpush:test {recipient : User ID, employee ID, username, email, employee code, or employee name} {--latest} {--host=} {--url=} {--title=Meeting Baru: Test Push} {--body=Jadwal meeting test berhasil dikirim dari SIAP.}')]
 #[Description('Send a test web push notification to a user or employee device subscription')]
@@ -55,7 +56,9 @@ class TestWebPushNotification extends Command
         $host = trim((string) $this->option('host'));
         $brand = app(HostBrandingResolver::class)->resolve($host !== '' ? $host : null);
         $iconUrl = (string) ($brand['pwa_icon_192_url'] ?? $brand['logo_url'] ?? asset('images/images.png'));
+        $debugId = (string) Str::uuid();
         $this->line('Icon URL: '.$iconUrl);
+        $this->line('Debug ID: '.$debugId);
 
         $this->table(
             ['ID', 'Browser', 'Platform', 'IP', 'Last Subscribed', 'Last Used', 'User Agent'],
@@ -78,6 +81,7 @@ class TestWebPushNotification extends Command
             'url' => (string) ($this->option('url') ?: route('zoom-meeting.index')),
             'icon' => $iconUrl,
             'tag' => 'test-push-'.now()->timestamp,
+            'debug_id' => $debugId,
         ]);
 
         $this->table(['Metric', 'Value'], collect($result)

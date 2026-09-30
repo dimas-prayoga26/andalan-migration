@@ -53,6 +53,9 @@ class WebPushNotificationService
                     'publicKey' => $publicKey,
                     'privateKey' => $privateKey,
                 ],
+            ], [
+                'TTL' => 3600,
+                'urgency' => 'high',
             ]);
 
             $encodedPayload = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);

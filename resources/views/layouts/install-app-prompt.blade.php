@@ -13,8 +13,8 @@
     <style>
         .install-app-prompt {
             position: fixed;
+            top: calc(env(safe-area-inset-top, 0px) + 1rem);
             right: 1rem;
-            bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
             left: 1rem;
             z-index: 1085;
             display: none;

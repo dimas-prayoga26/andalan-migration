@@ -9,7 +9,8 @@ class HostBrandingResolver
      */
     public function resolve(?string $host = null): array
     {
-        $normalizedHost = $this->normalizeHost($host ?? $this->currentHost());
+        $resolvedHost = trim((string) $host) !== '' ? (string) $host : $this->currentHost();
+        $normalizedHost = $this->normalizeHost($resolvedHost);
         $hosts = config('branding.hosts', []);
         $brand = is_array($hosts) && array_key_exists($normalizedHost, $hosts)
             ? $hosts[$normalizedHost]
@@ -21,11 +22,11 @@ class HostBrandingResolver
         return [
             'name' => (string) ($brand['name'] ?? 'Andalan Bersama Group'),
             'logo_path' => $logoPath,
-            'logo_url' => asset($logoPath),
+            'logo_url' => $this->assetUrl($logoPath, $normalizedHost),
             'pwa_icon_192_path' => $pwaIcon192Path,
-            'pwa_icon_192_url' => asset($pwaIcon192Path),
+            'pwa_icon_192_url' => $this->assetUrl($pwaIcon192Path, $normalizedHost),
             'pwa_icon_512_path' => $pwaIcon512Path,
-            'pwa_icon_512_url' => asset($pwaIcon512Path),
+            'pwa_icon_512_url' => $this->assetUrl($pwaIcon512Path, $normalizedHost),
         ];
     }
 
@@ -36,6 +37,36 @@ class HostBrandingResolver
         }
 
         return request()->getHost();
+    }
+
+    private function assetUrl(string $path, string $host): string
+    {
+        $path = ltrim($path, '/');
+
+        if (! app()->runningInConsole() && $this->normalizeHost(request()->getHost()) === $host) {
+            return asset($path);
+        }
+
+        return rtrim($this->baseUrlForHost($host), '/').'/'.$path;
+    }
+
+    private function baseUrlForHost(string $host): string
+    {
+        $appUrl = (string) config('app.url');
+        $appHost = $this->normalizeHost((string) parse_url($appUrl, PHP_URL_HOST));
+        $scheme = (string) (parse_url($appUrl, PHP_URL_SCHEME) ?: 'https');
+
+        if ($appHost !== $host && ! $this->isLocalHost($host)) {
+            $scheme = 'https';
+        }
+
+        return $scheme.'://'.$host;
+    }
+
+    private function isLocalHost(string $host): bool
+    {
+        return in_array($host, ['localhost', '127.0.0.1', '::1'], true)
+            || str_ends_with($host, '.test');
     }
 
     private function normalizeHost(string $host): string

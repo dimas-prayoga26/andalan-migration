@@ -74,7 +74,7 @@ class HrMeetingController extends Controller
                 ->orderByDesc('meeting_date')
                 ->orderByDesc('meeting_time')
                 ->get()
-                ->map(fn (HrMeeting $meeting): array => $this->staffMeetingCardData($meeting, true));
+                ->map(fn (HrMeeting $meeting): array => $this->staffMeetingCardData($meeting));
         }
 
         return view('meetings.staff.index', [
@@ -119,6 +119,38 @@ class HrMeetingController extends Controller
         return redirect()
             ->route('zoom-meeting.index')
             ->with('error', 'Meeting link is not available.');
+    }
+
+    public function staffDetails(HrMeeting $hrMeeting): View
+    {
+        $employee = auth()->user()?->employee;
+
+        if (! $employee instanceof Employee || ! $this->employeeCanAccessMeeting($employee, $hrMeeting)) {
+            abort(403);
+        }
+
+        $hrMeeting->loadCount([
+            'participants as joined_count' => fn ($query) => $query->where('attendance_status', 'joined'),
+            'tasks',
+        ]);
+
+        $hrMeeting->load([
+            'tasks.projectTask.employee.profile',
+            'tasks.projectTask.employee.user',
+            'participants.employee.profile',
+            'participants.employee.user',
+        ]);
+
+        $meetingTaskCards = $this->meetingTaskCards($hrMeeting);
+
+        return view('meetings.staff.details', [
+            'meeting' => $hrMeeting,
+            'meetingTypeLabels' => $this->meetingTypeLabels(),
+            'meetingTaskCards' => $meetingTaskCards,
+            'meetingTaskSummary' => $this->meetingTaskSummary($hrMeeting, $meetingTaskCards),
+            'meetingAttendanceRows' => $this->meetingAttendanceRows($hrMeeting),
+            'meetingStaffAvatars' => $this->meetingStaffAvatars($hrMeeting),
+        ]);
     }
 
     public function index(Request $request): View
@@ -265,7 +297,14 @@ class HrMeetingController extends Controller
                 ->with('error', 'Create a meeting first before updating it.');
         }
 
-        $meeting->load('participants');
+        $meeting->load([
+            'participants.employee.profile',
+            'participants.employee.user',
+            'tasks.projectTask.employee.profile',
+            'tasks.projectTask.employee.user',
+        ]);
+
+        $meetingTaskCards = $this->meetingTaskCards($meeting);
 
         return view('meetings.admin.update', [
             'meeting' => $meeting,
@@ -273,6 +312,10 @@ class HrMeetingController extends Controller
             'meetingTypeLabels' => $this->meetingTypeLabels(),
             'selectedParticipantGroup' => $this->selectedParticipantGroup($meeting),
             'selectedParticipantIds' => $this->selectedParticipantIds($meeting),
+            'meetingAttendanceRows' => $this->meetingAttendanceRows($meeting),
+            'meetingTaskCards' => $meetingTaskCards,
+            'meetingTaskSummary' => $this->meetingTaskSummary($meeting, $meetingTaskCards),
+            'meetingTaskAssigneeOptions' => $this->meetingTaskAssigneeOptions($meeting),
         ]);
     }
 
@@ -401,15 +444,40 @@ class HrMeetingController extends Controller
     private function syncParticipants(HrMeeting $meeting, string $participantGroup, array $participantIds): void
     {
         $participants = $this->participantEmployeesForGroup($participantGroup, $participantIds);
+        $selectedEmployeeIds = $participants
+            ->pluck('id')
+            ->map(fn (mixed $employeeId): string => (string) $employeeId)
+            ->values()
+            ->all();
 
-        $meeting->participants()->delete();
+        $meeting->participants()
+            ->whereNull('employee_id')
+            ->delete();
+
+        $obsoleteParticipantsQuery = $meeting->participants()->whereNotNull('employee_id');
+
+        if ($selectedEmployeeIds === []) {
+            $obsoleteParticipantsQuery->delete();
+        } else {
+            $obsoleteParticipantsQuery
+                ->whereNotIn('employee_id', $selectedEmployeeIds)
+                ->delete();
+        }
 
         $participants->each(function (Employee $employee) use ($meeting, $participantGroup): void {
-            $meeting->participants()->create([
-                'employee_id' => $employee->id,
-                'participant_type' => $participantGroup,
-                'attendance_status' => 'invited',
-            ]);
+            $participant = $meeting->participants()
+                ->where('employee_id', $employee->id)
+                ->first();
+
+            if (! $participant) {
+                $participant = $meeting->participants()->make([
+                    'employee_id' => $employee->id,
+                    'attendance_status' => 'invited',
+                ]);
+            }
+
+            $participant->participant_type = $participantGroup;
+            $participant->save();
         });
     }
 
@@ -576,7 +644,7 @@ class HrMeetingController extends Controller
             ->map(function (array $card, string $category) use ($tasksByCategory): array {
                 $tasks = $tasksByCategory->get($category, collect());
                 $completed = $tasks->filter(fn (HrMeetingTask $task): bool => $task->projectTask?->status === 'completed')->count();
-                $total = max((int) $card['total'], $tasks->count());
+                $total = $tasks->count();
                 $percentage = $total > 0 ? (int) floor(($completed / $total) * 100) : 0;
 
                 return [
@@ -788,7 +856,7 @@ class HrMeetingController extends Controller
             'task_count' => $forceZeroTasks ? 0 : (int) ($meeting->staff_tasks_count ?? 0),
             'meeting_link' => $meeting->meeting_link,
             'join_url' => route('zoom-meeting.join', $meeting),
-            'details_url' => route('zoom-meeting.details'),
+            'details_url' => route('zoom-meeting.details', $meeting),
         ];
     }
 

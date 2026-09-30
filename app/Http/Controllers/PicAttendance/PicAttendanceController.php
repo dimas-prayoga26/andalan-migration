@@ -126,7 +126,7 @@ class PicAttendanceController extends Controller
 
         $employee = Employee::query()
             ->with([
-                'profile:id,employee_id,name,profile_picture_path',
+                'profile:id,employee_id,name,profile_picture_path,updated_at',
                 'user:id,username,email,phone',
                 'deployment:id,employee_id,current_company_id,current_position_id,current_department_id,current_office_location_id',
                 'deployment.company:id,name',
@@ -686,7 +686,10 @@ class PicAttendanceController extends Controller
                 'base' => $employee->deployment?->officeLocation?->name ?: '-',
                 'phone' => $employee->user?->phone ?: '-',
                 'email' => $employee->user?->email ?: '-',
-                'avatar_url' => $this->employeeAvatarUrl($employee->profile?->profile_picture_path),
+                'avatar_url' => $this->employeeAvatarUrl(
+                    $employee->profile?->profile_picture_path,
+                    $employee->profile?->updated_at?->timestamp
+                ),
             ],
             'recapDetailMetrics' => [
                 'on_time' => $this->recapDaysLabel($onTimeCount),
@@ -1273,7 +1276,7 @@ class PicAttendanceController extends Controller
         return mb_strtoupper($initials !== '' ? $initials : 'U');
     }
 
-    private function employeeAvatarUrl(mixed $profilePicturePath): string
+    private function employeeAvatarUrl(mixed $profilePicturePath, ?int $version = null): string
     {
         $defaultAvatarUrl = asset('assets/default_user.jpg');
         $profilePicturePath = trim((string) $profilePicturePath);
@@ -1283,7 +1286,7 @@ class PicAttendanceController extends Controller
         }
 
         if (Str::startsWith($profilePicturePath, ['http://', 'https://'])) {
-            return $profilePicturePath;
+            return $this->versionedAvatarUrl($profilePicturePath, $version);
         }
 
         $publicPath = ltrim($profilePicturePath, '/');
@@ -1292,9 +1295,22 @@ class PicAttendanceController extends Controller
             : $publicPath;
 
         if (Storage::disk('public')->exists($storagePath)) {
-            return asset('storage/'.$storagePath);
+            return $this->versionedAvatarUrl(asset('storage/'.$storagePath), $version);
         }
 
-        return File::exists(public_path($publicPath)) ? asset($publicPath) : $defaultAvatarUrl;
+        if (File::exists(public_path($publicPath))) {
+            return $this->versionedAvatarUrl(asset($publicPath), $version);
+        }
+
+        return $defaultAvatarUrl;
+    }
+
+    private function versionedAvatarUrl(string $url, ?int $version): string
+    {
+        if ($version === null || $version <= 0) {
+            return $url;
+        }
+
+        return $url.(str_contains($url, '?') ? '&' : '?').'v='.$version;
     }
 }

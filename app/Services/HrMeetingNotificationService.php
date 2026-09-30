@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\AppNotification;
-use App\Models\DeviceSubscription;
 use App\Models\Employee;
 use App\Models\HrMeeting;
 use App\Models\User;
@@ -13,10 +12,6 @@ use Illuminate\Support\Facades\Log;
 
 class HrMeetingNotificationService
 {
-    public function __construct(private readonly WebPushNotificationService $webPushNotificationService)
-    {
-    }
-
     public function notifyScheduled(HrMeeting $meeting): void
     {
         if ($meeting->status !== 'scheduled') {
@@ -38,7 +33,7 @@ class HrMeetingNotificationService
         $title = 'Meeting Baru: '.$meeting->title;
         $body = "Jadwal meeting {$dateLabel} pukul {$timeLabel}.";
         $brand = app(HostBrandingResolver::class)->resolve();
-        $iconUrl = (string) ($brand['pwa_icon_192_url'] ?? $brand['logo_url'] ?? asset('images/images.png'));
+        $iconUrl = (string) ($brand['logo_url'] ?? asset('images/images.png'));
 
         $users->each(function (User $user) use ($meeting, $meetingUrl, $title, $body, $iconUrl): void {
             AppNotification::query()->create([
@@ -53,42 +48,8 @@ class HrMeetingNotificationService
             ]);
         });
 
-        $recipientUserIds = $users->pluck('id')->filter()->unique()->values();
-        $recipientEmployeeIds = $users
-            ->pluck('employee.id')
-            ->filter()
-            ->unique()
-            ->values();
-
-        $deviceSubscriptions = DeviceSubscription::query()
-            ->where(function ($query) use ($recipientUserIds, $recipientEmployeeIds): void {
-                $query->whereIn('user_id', $recipientUserIds->all());
-
-                if ($recipientEmployeeIds->isNotEmpty()) {
-                    $query->orWhereIn('employee_id', $recipientEmployeeIds->all());
-                }
-            })
-            ->get();
-
-        if ($deviceSubscriptions->isEmpty()) {
-            Log::info('HR meeting push notification skipped because recipients have no device subscriptions.', [
-                'hr_meeting_id' => $meeting->id,
-                'recipient_user_ids' => $recipientUserIds->all(),
-                'recipient_employee_ids' => $recipientEmployeeIds->all(),
-            ]);
-        }
-
-        $pushResult = $this->webPushNotificationService->sendToSubscriptions($deviceSubscriptions->unique('endpoint_hash')->values(), [
-            'title' => $title,
-            'body' => $body,
-            'url' => $meetingUrl,
-            'icon' => $iconUrl,
-            'tag' => 'hr-meeting-'.$meeting->id,
-        ]);
-
-        Log::info('HR meeting push notification dispatch completed.', [
+        Log::info('HR meeting web push notification skipped because PWA is temporarily disabled.', [
             'hr_meeting_id' => $meeting->id,
-            'result' => $pushResult,
         ]);
     }
 

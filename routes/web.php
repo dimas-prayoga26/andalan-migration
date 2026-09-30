@@ -13,7 +13,6 @@ use App\Http\Controllers\DirectorAttendance\DirectorAttendanceController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceOvertimeController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceTaskController;
 use App\Http\Controllers\EmployeeDataController;
-use App\Http\Controllers\DeviceSubscriptionController;
 use App\Http\Controllers\GoogleDriveOAuthController;
 use App\Http\Controllers\HrMeetingController;
 use App\Http\Controllers\MailController;
@@ -22,7 +21,6 @@ use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
 use App\Http\Controllers\PicAttendance\PicAttendanceTaskController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\PwaManifestController;
 use App\Http\Controllers\ProjectManagement\OverviewController as ProjectManagementOverviewController;
 use App\Http\Controllers\ProjectManagement\ProjectController as ProjectManagementProjectController;
 use App\Http\Controllers\ProjectManagement\TaskListController as ProjectManagementTaskListController;
@@ -41,21 +39,6 @@ use App\Http\Controllers\TalentAcquisitionController;
 use App\Http\Controllers\UserActivityLogController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/manifest.webmanifest', PwaManifestController::class)->name('manifest');
-Route::get('/sw-push-debug', function (\Illuminate\Http\Request $request) {
-    \Illuminate\Support\Facades\Log::info('Service worker push debug.', [
-        'debug_id' => $request->query('debug_id'),
-        'stage' => $request->query('stage'),
-        'tag' => $request->query('tag'),
-        'title' => $request->query('title'),
-        'client_time' => $request->query('client_time'),
-        'server_time' => now('Asia/Jakarta')->toDateTimeString(),
-        'user_agent' => $request->userAgent(),
-    ]);
-
-    return response()->noContent();
-})->name('sw-push-debug');
-
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
     Route::post('/login', [AuthController::class, 'store'])->name('login.store');
@@ -63,8 +46,6 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/user-activity-log', [UserActivityLogController::class, 'store'])->name('user-activity-log.store');
-    Route::post('/device-subscriptions', [DeviceSubscriptionController::class, 'store'])->name('device-subscriptions.store');
-    Route::delete('/device-subscriptions', [DeviceSubscriptionController::class, 'destroy'])->name('device-subscriptions.destroy');
     Route::get('/notifications/{appNotification}/open', [AppNotificationController::class, 'open'])->name('notifications.open');
 
     Route::get('/', [DashboardController::class, 'index'])
@@ -184,7 +165,7 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware('position.permission:view-meeting')->group(function (): void {
         Route::get('/zoom-meeting', [HrMeetingController::class, 'staffIndex'])->name('zoom-meeting.index');
         Route::match(['get', 'post'], '/zoom-meeting/{hrMeeting}/join', [HrMeetingController::class, 'staffJoin'])->name('zoom-meeting.join');
-        Route::view('/zoom-meeting/details', 'meetings.staff.details')->name('zoom-meeting.details');
+        Route::get('/zoom-meeting/{hrMeeting}/details', [HrMeetingController::class, 'staffDetails'])->name('zoom-meeting.details');
     });
 
     Route::middleware('position.permission:view-admin-attendance')->group(function (): void {

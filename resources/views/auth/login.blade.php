@@ -31,14 +31,10 @@
 	<!-- Mobile Specific -->
 	<meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#2846c7">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="{{ $brandName ?? 'SIAP' }}">
 
-	<!-- Favicon icon -->
+    <!-- Favicon icon -->
 	<link rel="shortcut icon" type="image/x-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
     <link rel="apple-touch-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
-    <link rel="manifest" href="{{ url('/manifest.webmanifest') }}">
     
 	<!-- Start - Basic CSS -->
     <link href="{{ asset('assets/vendor/metismenu/dist/metisMenu.min.css') }}?v={{ $assetVersion('vendor/metismenu/dist/metisMenu.min.css') }}" rel="stylesheet">
@@ -261,8 +257,5 @@
 			});
 		})();
 	</script>
-
-    @include('layouts.install-app-prompt')
-	
 </body>
 </html>

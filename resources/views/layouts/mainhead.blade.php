@@ -24,17 +24,13 @@
 	<meta name="format-detection" content="telephone=no">
 
 	<!-- Mobile Specific -->
-	<meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#2846c7">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="{{ $brandName ?? 'SIAP' }}">
 
 	<!-- Favicon icon -->
 	<link rel="shortcut icon" type="image/x-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
     <link rel="apple-touch-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
-    <link rel="manifest" href="{{ url('/manifest.webmanifest') }}">
 
     @php
         $assetVersion = static function (string $path): int {

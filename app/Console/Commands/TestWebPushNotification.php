@@ -12,7 +12,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 
-#[Signature('webpush:test {recipient : User ID, employee ID, username, email, employee code, or employee name} {--latest} {--url=} {--title=Meeting Baru: Test Push} {--body=Jadwal meeting test berhasil dikirim dari SIAP.}')]
+#[Signature('webpush:test {recipient : User ID, employee ID, username, email, employee code, or employee name} {--latest} {--host=} {--url=} {--title=Meeting Baru: Test Push} {--body=Jadwal meeting test berhasil dikirim dari SIAP.}')]
 #[Description('Send a test web push notification to a user or employee device subscription')]
 class TestWebPushNotification extends Command
 {
@@ -52,8 +52,10 @@ class TestWebPushNotification extends Command
                 ->values();
         }
 
-        $brand = app(HostBrandingResolver::class)->resolve();
+        $host = trim((string) $this->option('host'));
+        $brand = app(HostBrandingResolver::class)->resolve($host !== '' ? $host : null);
         $iconUrl = (string) ($brand['pwa_icon_192_url'] ?? $brand['logo_url'] ?? asset('images/images.png'));
+        $this->line('Icon URL: '.$iconUrl);
 
         $this->table(
             ['ID', 'Browser', 'Platform', 'IP', 'Last Subscribed', 'Last Used', 'User Agent'],

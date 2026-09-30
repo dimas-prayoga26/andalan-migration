@@ -12,7 +12,10 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -248,6 +251,7 @@ class HrMeetingController extends Controller
             'meetingTaskSummary' => $this->meetingTaskSummary($meeting, $meetingTaskCards),
             'meetingTaskAssigneeOptions' => $this->meetingTaskAssigneeOptions($meeting),
             'meetingAttendanceRows' => $this->meetingAttendanceRows($meeting),
+            'meetingStaffAvatars' => $this->meetingStaffAvatars($meeting),
         ]);
     }
 
@@ -708,6 +712,24 @@ class HrMeetingController extends Controller
             ->values();
     }
 
+    private function meetingStaffAvatars(HrMeeting $meeting)
+    {
+        return $meeting->participants
+            ->filter(fn ($participant): bool => $participant->employee instanceof Employee)
+            ->map(function ($participant): array {
+                $name = $this->employeeDisplayName($participant->employee);
+
+                return [
+                    'id' => (string) $participant->employee->id,
+                    'name' => $name,
+                    'initials' => $this->initials($name),
+                    'avatar_url' => $this->employeeAvatarUrl($participant->employee->profile?->profile_picture_path),
+                ];
+            })
+            ->unique('id')
+            ->values();
+    }
+
     private function employeeDisplayName(?Employee $employee): string
     {
         if (! $employee instanceof Employee) {
@@ -715,6 +737,42 @@ class HrMeetingController extends Controller
         }
 
         return trim((string) ($employee->profile?->name ?? $employee->user?->name ?? $employee->employee_code)) ?: '-';
+    }
+
+    private function initials(string $name): string
+    {
+        $initials = collect(preg_split('/\s+/', trim($name)) ?: [])
+            ->filter()
+            ->map(fn (string $part): string => Str::substr($part, 0, 1))
+            ->take(2)
+            ->implode('');
+
+        return Str::upper($initials !== '' ? $initials : 'S');
+    }
+
+    private function employeeAvatarUrl(mixed $profilePicturePath): string
+    {
+        $defaultAvatarUrl = asset('assets/default_user.jpg');
+        $profilePicturePath = trim((string) $profilePicturePath);
+
+        if ($profilePicturePath === '') {
+            return $defaultAvatarUrl;
+        }
+
+        if (Str::startsWith($profilePicturePath, ['http://', 'https://'])) {
+            return $profilePicturePath;
+        }
+
+        $publicPath = ltrim($profilePicturePath, '/');
+        $storagePath = Str::startsWith($publicPath, 'storage/')
+            ? Str::after($publicPath, 'storage/')
+            : $publicPath;
+
+        if (Storage::disk('public')->exists($storagePath)) {
+            return asset('storage/'.$storagePath);
+        }
+
+        return File::exists(public_path($publicPath)) ? asset($publicPath) : $defaultAvatarUrl;
     }
 
     /**

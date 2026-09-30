@@ -58,6 +58,28 @@
         object-fit: cover;
         background: #f3f4f6;
     }
+
+    .meeting-staff-avatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        font-size: 11px;
+        line-height: 1;
+    }
+
+    .meeting-staff-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .meeting-staff-initials {
+        width: 100%;
+        height: 100%;
+        align-items: center;
+        justify-content: center;
+    }
 </style>
 @endsection
 
@@ -152,10 +174,7 @@
                                             <span class="d-block">Total Tasks</span>
                                         </div>
                                         <div class="col-md-6 col-12">
-                                            {{-- Dynamic total tasks. Uncomment when HR meeting detail should read real task data again.
                                             <span class="d-block fw-semibold">{{ (int) $meeting->tasks_count }} Tasks</span>
-                                            --}}
-                                            <span class="d-block fw-semibold">18 Tasks</span>
                                         </div>
                                     </div>
                                     <div class="row ps-3 mb-3">
@@ -163,19 +182,28 @@
                                             <span class="d-block">Joined</span>
                                         </div>
                                         <div class="col-md-6 col-12">
-                                            {{-- Dynamic joined count. Uncomment when HR meeting detail should read real attendance data again.
                                             <span class="d-block fw-semibold">{{ (int) $meeting->joined_count }} Staff</span>
-                                            --}}
-                                            <span class="d-block fw-semibold">0 Staff</span>
                                         </div>
                                     </div>
                                     <div class="clearfix mt-3 ms-3">
                                         <h6 class="mb-1 fw-semibold">Staff</h6>
                                         <div class="avatar-list avatar-list-stacked">
-                                            <img src="{{ asset('files/employees/ceo.png') }}" class="avatar avatar-xs rounded-circle border-2 border-white meeting-staff-img" alt="Staff">
-                                            <img src="{{ asset('files/employees/gamer.png') }}" class="avatar avatar-xs rounded-circle border-2 border-white meeting-staff-img" alt="Staff">
-                                            <img src="{{ asset('files/employees/girl.png') }}" class="avatar avatar-xs rounded-circle border-2 border-white meeting-staff-img" alt="Staff">
-                                            <img src="{{ asset('files/employees/man.png') }}" class="avatar avatar-xs rounded-circle border-2 border-white meeting-staff-img" alt="Staff">
+                                            @php
+                                                $meetingStaffAvatars = collect($meetingStaffAvatars ?? []);
+                                            @endphp
+                                            @forelse ($meetingStaffAvatars->take(6) as $staffAvatar)
+                                                <span class="avatar avatar-xs rounded-circle border-2 border-white meeting-staff-img meeting-staff-avatar bg-primary-subtle text-primary fw-semibold" title="{{ $staffAvatar['name'] }}">
+                                                    <img src="{{ $staffAvatar['avatar_url'] }}" alt="{{ $staffAvatar['name'] }}" loading="lazy" decoding="async" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                                                    <span class="meeting-staff-initials" style="display: none;">{{ $staffAvatar['initials'] }}</span>
+                                                </span>
+                                            @empty
+                                                <span class="text-muted small">No staff invited.</span>
+                                            @endforelse
+                                            @if ($meetingStaffAvatars->count() > 6)
+                                                <span class="avatar avatar-xs rounded-circle border-2 border-white meeting-staff-img meeting-staff-avatar bg-light text-primary fw-semibold" title="{{ $meetingStaffAvatars->count() - 6 }} more staff">
+                                                    +{{ $meetingStaffAvatars->count() - 6 }}
+                                                </span>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -186,34 +214,22 @@
                                 <div class="card-header pb-0 border-0">
                                     <div class="clearfix">
                                         <h4 class="card-title mb-0">Tasks Summary</h4>
-                                        {{-- Dynamic overdue summary. Uncomment when HR meeting detail should read real task data again.
                                         <small class="d-block">{{ (int) $meetingTaskSummary['overdue'] }} Overdue Tasks</small>
-                                        --}}
-                                        <small class="d-block">24 Overdue Tasks</small>
                                     </div>
                                 </div>
                                 <div class="card-body pb-0">
                                     <div class="row align-items-center">
                                         <div class="col-sm-6 mb-3">
                                             <div id="chartTasksSummary" class="d-flex justify-content-center">
-                                                {{-- Dynamic chart gradient. Uncomment when HR meeting detail should read real task data again.
                                                 <div class="meeting-summary-donut" style="background: conic-gradient({{ $meetingTaskSummary['gradient'] }});" aria-label="Tasks summary chart">
                                                     <div class="meeting-summary-donut-content">
                                                         <strong>{{ (int) $meetingTaskSummary['total'] }}</strong>
                                                         <span>Total</span>
                                                     </div>
                                                 </div>
-                                                --}}
-                                                <div class="meeting-summary-donut" aria-label="Tasks summary chart">
-                                                    <div class="meeting-summary-donut-content">
-                                                        <strong>120</strong>
-                                                        <span>Total</span>
-                                                    </div>
-                                                </div>
                                             </div>
                                         </div>
                                         <div class="col-sm-6 mb-3">
-                                            {{-- Dynamic task summary legend. Uncomment when HR meeting detail should read real task data again.
                                             @foreach ($meetingTaskSummary['segments'] as $segment)
                                                 <div class="d-flex justify-content-between mb-3">
                                                     <div class="text-black">
@@ -222,27 +238,6 @@
                                                     <span>{{ (int) $segment['count'] }}</span>
                                                 </div>
                                             @endforeach
-                                            --}}
-                                            <div class="d-flex justify-content-between mb-3">
-                                                <div class="text-black"><i class="fa-solid fa-square me-1" style="color:#243ec6"></i> Administration</div>
-                                                <span>25</span>
-                                            </div>
-                                            <div class="d-flex justify-content-between mb-3">
-                                                <div class="text-black"><i class="fa-solid fa-square me-1" style="color:#9b2cf3"></i> Event (KMA)</div>
-                                                <span>25</span>
-                                            </div>
-                                            <div class="d-flex justify-content-between mb-3">
-                                                <div class="text-black"><i class="fa-solid fa-square me-1" style="color:#22c55e"></i> Property (TRAH)</div>
-                                                <span>17</span>
-                                            </div>
-                                            <div class="d-flex justify-content-between mb-3">
-                                                <div class="text-black"><i class="fa-solid fa-square me-1" style="color:#f43f86"></i> IT and Socmed (TMS)</div>
-                                                <span>20</span>
-                                            </div>
-                                            <div class="d-flex justify-content-between mb-3">
-                                                <div class="text-black"><i class="fa-solid fa-square me-1" style="color:#ffb000"></i> Others</div>
-                                                <span>38</span>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -272,7 +267,6 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {{-- Dynamic attendance rows. Uncomment when HR meeting detail should read real attendance data again.
                                                     @forelse ($meetingAttendanceRows as $attendanceRow)
                                                         <tr>
                                                             <td>{{ $loop->iteration }}.</td>
@@ -284,42 +278,6 @@
                                                             <td colspan="3" class="text-muted">No attendance data available.</td>
                                                         </tr>
                                                     @endforelse
-                                                    --}}
-                                                    <tr>
-                                                        <td>1.</td>
-                                                        <td>Williams</td>
-                                                        <td>09:01 WIB</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>2.</td>
-                                                        <td>Paul</td>
-                                                        <td>09:0 WIB</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>3.</td>
-                                                        <td>Sarah</td>
-                                                        <td>09:00 WIB</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>4.</td>
-                                                        <td>Marcus</td>
-                                                        <td>09:00 WIB</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>5.</td>
-                                                        <td>Maria</td>
-                                                        <td>09:00 WIB</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>6.</td>
-                                                        <td>Robert</td>
-                                                        <td>09:00 WIB</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>7.</td>
-                                                        <td>Juan</td>
-                                                        <td>09:10 WIB</td>
-                                                    </tr>
                                                 </tbody>
                                             </table>
                                         </div>
@@ -1020,10 +978,7 @@
 <div class="modal fade" id="create" tabindex="-1" aria-labelledby="createMeetingTaskLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            {{-- Dynamic task submit action. Uncomment when HR meeting detail task creation should be active again.
             <form method="POST" action="{{ route('hr-meetings.tasks.store', $meeting) }}">
-            --}}
-            <form method="POST" action="javascript:void(0)" onsubmit="return false;">
                 @csrf
                 <input type="hidden" name="category" id="meetingTaskCategory" value="">
                 <div class="modal-header">
@@ -1037,19 +992,12 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label" for="meetingTaskAssignee">Assign to</label>
-                        {{-- Dynamic joined staff options. Uncomment when HR meeting detail task creation should be active again.
                         <select class="form-select" id="meetingTaskAssignee" name="assigned_to" required @disabled(($meetingTaskAssigneeOptions ?? collect())->isEmpty())>
                             @forelse ($meetingTaskAssigneeOptions ?? [] as $employee)
                                 <option value="{{ $employee['id'] }}">{{ $employee['name'] }}</option>
                             @empty
                                 <option value="">Belum ada staff yang joined di meeting ini</option>
                             @endforelse
-                        </select>
-                        --}}
-                        <select class="form-select" id="meetingTaskAssignee" name="assigned_to" required>
-                            <option value="syafiq">Syafiq</option>
-                            <option value="rexy">Rexy</option>
-                            <option value="admin">Admin</option>
                         </select>
                     </div>
                     <div class="mb-0">
@@ -1061,10 +1009,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
-                    {{-- Dynamic submit button. Uncomment when HR meeting detail task creation should be active again.
                     <button type="submit" class="btn btn-success" @disabled(($meetingTaskAssigneeOptions ?? collect())->isEmpty())>Submit</button>
-                    --}}
-                    <button type="button" class="btn btn-success" data-bs-dismiss="modal">Submit</button>
                 </div>
             </form>
         </div>
@@ -1072,10 +1017,6 @@
 </div>
 
 <script>
-    /*
-    Dynamic HR meeting detail task rendering and date-range picker are intentionally disabled.
-    Uncomment this block when the detail page should read/write real meeting task data again.
-
     $(function () {
         var meetingTaskCards = @json($meetingTaskCards ?? []);
         var cardByTitle = {};
@@ -1176,6 +1117,5 @@
             });
         });
     });
-    */
 </script>
 @endsection

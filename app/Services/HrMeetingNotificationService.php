@@ -38,7 +38,7 @@ class HrMeetingNotificationService
         $title = 'Meeting Baru: '.$meeting->title;
         $body = "Jadwal meeting {$dateLabel} pukul {$timeLabel}.";
         $brand = app(HostBrandingResolver::class)->resolve();
-        $iconUrl = (string) ($brand['logo_url'] ?? asset('images/images.png'));
+        $iconUrl = (string) ($brand['pwa_icon_192_url'] ?? $brand['logo_url'] ?? asset('images/images.png'));
 
         $users->each(function (User $user) use ($meeting, $meetingUrl, $title, $body, $iconUrl): void {
             AppNotification::query()->create([

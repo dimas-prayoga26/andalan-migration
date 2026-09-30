@@ -11,7 +11,8 @@ class PwaManifestController extends Controller
     {
         $brand = $brandingResolver->resolve();
         $appName = trim((string) $brand['name']) !== '' ? (string) $brand['name'] : 'SIAP';
-        $iconUrl = (string) ($brand['logo_url'] ?? asset('images/favicon.png'));
+        $icon192Url = (string) ($brand['pwa_icon_192_url'] ?? $brand['logo_url'] ?? asset('images/favicon.png'));
+        $icon512Url = (string) ($brand['pwa_icon_512_url'] ?? $icon192Url);
 
         return response()
             ->json([
@@ -26,16 +27,16 @@ class PwaManifestController extends Controller
                 'theme_color' => '#2846c7',
                 'icons' => [
                     [
-                        'src' => $iconUrl,
+                        'src' => $icon192Url,
                         'sizes' => '192x192',
                         'type' => 'image/png',
-                        'purpose' => 'any',
+                        'purpose' => 'any maskable',
                     ],
                     [
-                        'src' => $iconUrl,
+                        'src' => $icon512Url,
                         'sizes' => '512x512',
                         'type' => 'image/png',
-                        'purpose' => 'any',
+                        'purpose' => 'any maskable',
                     ],
                 ],
             ], 200, [], JSON_UNESCAPED_SLASHES)

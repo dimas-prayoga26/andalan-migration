@@ -34,6 +34,8 @@ return [
         'siap.tims.co.id' => [
             'name' => 'TMS',
             'logo' => 'images/Logo TMS.png',
+            'pwa_icon_192' => 'images/pwa/tms-192.png',
+            'pwa_icon_512' => 'images/pwa/tms-512.png',
         ],
         'dyms-dev.my.id' => [
             'name' => 'Dev',

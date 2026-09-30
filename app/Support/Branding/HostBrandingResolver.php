@@ -5,7 +5,7 @@ namespace App\Support\Branding;
 class HostBrandingResolver
 {
     /**
-     * @return array{name: string, logo_path: string, logo_url: string}
+     * @return array{name: string, logo_path: string, logo_url: string, pwa_icon_192_path: string, pwa_icon_192_url: string, pwa_icon_512_path: string, pwa_icon_512_url: string}
      */
     public function resolve(?string $host = null): array
     {
@@ -15,11 +15,17 @@ class HostBrandingResolver
             ? $hosts[$normalizedHost]
             : config('branding.default', []);
         $logoPath = (string) ($brand['logo'] ?? 'images/images.png');
+        $pwaIcon192Path = (string) ($brand['pwa_icon_192'] ?? $logoPath);
+        $pwaIcon512Path = (string) ($brand['pwa_icon_512'] ?? $pwaIcon192Path);
 
         return [
             'name' => (string) ($brand['name'] ?? 'Andalan Bersama Group'),
             'logo_path' => $logoPath,
             'logo_url' => asset($logoPath),
+            'pwa_icon_192_path' => $pwaIcon192Path,
+            'pwa_icon_192_url' => asset($pwaIcon192Path),
+            'pwa_icon_512_path' => $pwaIcon512Path,
+            'pwa_icon_512_url' => asset($pwaIcon512Path),
         ];
     }
 

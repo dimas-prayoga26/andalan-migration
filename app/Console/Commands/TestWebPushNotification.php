@@ -6,6 +6,7 @@ use App\Models\DeviceSubscription;
 use App\Models\Employee;
 use App\Models\User;
 use App\Services\WebPushNotificationService;
+use App\Support\Branding\HostBrandingResolver;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -51,6 +52,9 @@ class TestWebPushNotification extends Command
                 ->values();
         }
 
+        $brand = app(HostBrandingResolver::class)->resolve();
+        $iconUrl = (string) ($brand['pwa_icon_192_url'] ?? $brand['logo_url'] ?? asset('images/images.png'));
+
         $this->table(
             ['ID', 'Browser', 'Platform', 'IP', 'Last Subscribed', 'Last Used', 'User Agent'],
             $subscriptions
@@ -70,8 +74,8 @@ class TestWebPushNotification extends Command
             'title' => (string) $this->option('title'),
             'body' => (string) $this->option('body'),
             'url' => (string) ($this->option('url') ?: route('zoom-meeting.index')),
-            'icon' => asset('images/images.png'),
-            'badge' => asset('images/images.png'),
+            'icon' => $iconUrl,
+            'badge' => $iconUrl,
         ]);
 
         $this->table(['Metric', 'Value'], collect($result)

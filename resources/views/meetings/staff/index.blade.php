@@ -45,7 +45,7 @@
 
     @forelse ($scheduledMeetings as $meeting)
         <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <div class="card overflow-hidden">
+            <div class="card overflow-hidden" data-meeting-card="{{ $meeting['id'] }}">
                 <div class="card-body p-xxl-4">
                     <div class="d-flex justify-content-between mb-4 align-items-center gap-2">
                         <div class="d-flex align-items-center">
@@ -65,7 +65,7 @@
                     <div class="meeting-card-meta">
                         <span>
                             <i class="bi bi-people me-1"></i>
-                            {{ $meeting['joined_count'] }} Staff Joined
+                            <span class="js-meeting-joined-count" data-meeting-id="{{ $meeting['id'] }}">{{ $meeting['joined_count'] }} Staff Joined</span>
                         </span>
                         <span>
                             <i class="bi bi-check2-circle me-1"></i>
@@ -74,9 +74,9 @@
                     </div>
                 </div>
                 @if ($meeting['meeting_link'])
-                    <form method="POST" action="{{ $meeting['join_url'] }}" target="_blank" class="m-3 mt-0 mb-2">
+                    <form method="POST" action="{{ $meeting['join_url'] }}" target="_blank" class="m-3 mt-0 mb-2 js-join-meeting-form" data-meeting-id="{{ $meeting['id'] }}">
                         @csrf
-                        <button type="submit" class="btn light btn-primary w-100 btn-lg">Join Now</button>
+                        <button type="submit" class="btn light btn-primary w-100 btn-lg js-join-meeting-button">Join Now</button>
                     </form>
                 @else
                     <button type="button" class="btn light btn-primary mt-0 m-3 mb-2 btn-lg" disabled>Join Now</button>
@@ -173,4 +173,73 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('script')
+<script>
+    document.addEventListener('submit', function (event) {
+        var form = event.target;
+
+        if (!form.matches('.js-join-meeting-form')) {
+            return;
+        }
+
+        event.preventDefault();
+
+        var button = form.querySelector('.js-join-meeting-button');
+        var originalText = button ? button.textContent : '';
+        var meetingWindow = window.open('', '_blank');
+
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Joining...';
+        }
+
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+            .then(function (response) {
+                return response.json().then(function (payload) {
+                    if (!response.ok) {
+                        throw payload;
+                    }
+
+                    return payload;
+                });
+            })
+            .then(function (payload) {
+                document.querySelectorAll('.js-meeting-joined-count[data-meeting-id="' + payload.meeting_id + '"]').forEach(function (element) {
+                    element.textContent = payload.joined_label;
+                });
+
+                if (meetingWindow && payload.meeting_link) {
+                    meetingWindow.location.href = payload.meeting_link;
+                    return;
+                }
+
+                if (payload.meeting_link) {
+                    window.open(payload.meeting_link, '_blank', 'noopener');
+                }
+            })
+            .catch(function (error) {
+                if (meetingWindow) {
+                    meetingWindow.close();
+                }
+
+                alert(error && error.message ? error.message : 'Gagal join meeting.');
+            })
+            .finally(function () {
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = originalText || 'Join Now';
+                }
+            });
+    });
+</script>
 @endsection

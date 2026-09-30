@@ -48,6 +48,58 @@
             return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
         }
 
+        function nullableTaskText(value) {
+            return value ? value : '-';
+        }
+
+        function nullableTaskValue(value) {
+            if (value === null || typeof value === 'undefined') {
+                return '';
+            }
+
+            return String(value).trim();
+        }
+
+        function renderTaskAttachment(selector, attachmentPath) {
+            var attachmentValue = nullableTaskValue(attachmentPath);
+            var attachmentElement = $(selector);
+
+            if (attachmentValue === '') {
+                attachmentElement.text('No attachment');
+                return;
+            }
+
+            attachmentElement
+                .empty()
+                .append($('<a>', {
+                    href: attachmentValue,
+                    class: 'text-primary',
+                    target: '_blank',
+                    rel: 'noopener noreferrer',
+                    text: 'Open attachment'
+                }));
+        }
+
+        function escapeAttribute(value) {
+            return escapeHtml(value).replace(/'/g, '&#039;');
+        }
+
+        function taskPayload(task) {
+            return escapeAttribute(JSON.stringify(task || {}));
+        }
+
+        function renderTaskActions(task) {
+            return ''
+                + '<div class="dropdown">'
+                + '<button type="button" class="btn btn-sm btn-light btn-square" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Task actions"><i class="bi bi-grid"></i></button>'
+                + '<div class="dropdown-menu dropdown-menu-end">'
+                + '<button type="button" class="dropdown-item js-meeting-task-detail" data-bs-toggle="modal" data-bs-target="#meetingTaskDetailModal" data-task=\'' + taskPayload(task) + '\'>View More</button>'
+                + '<button type="button" class="dropdown-item js-meeting-task-edit" data-bs-toggle="modal" data-bs-target="#meetingTaskEditModal" data-task=\'' + taskPayload(task) + '\'>Update</button>'
+                + '<button type="button" class="dropdown-item text-danger js-meeting-task-delete" data-bs-toggle="modal" data-bs-target="#meetingTaskDeleteModal" data-task=\'' + taskPayload(task) + '\'>Delete</button>'
+                + '</div>'
+                + '</div>';
+        }
+
         function renderTask(task) {
             var lineClass = task.is_completed ? 'bg-success' : 'bg-light';
             var statusText = task.is_completed ? 'Status: Completed' : 'Due ' + (task.due_label || '-');
@@ -60,7 +112,7 @@
                 + '<span class="small">' + escapeHtml(statusText) + ' by <span class="text-primary">' + escapeHtml(task.assignee || '-') + '</span></span>'
                 + '</div>'
                 + '<div class="clearfix ms-auto">'
-                + '<button type="button" class="btn btn-sm btn-light btn-square" disabled><i class="bi bi-grid"></i></button>'
+                + renderTaskActions(task)
                 + '</div>'
                 + '</div>';
         }
@@ -138,6 +190,57 @@
                 startDateInput.val('');
                 dueDateInput.val('');
             });
+        });
+
+        $(document).on('click', '.js-meeting-task-detail', function () {
+            var task = $(this).data('task') || {};
+
+            $('#meetingTaskDetailTitle').text(nullableTaskText(task.title));
+            $('#meetingTaskDetailDescription').text(nullableTaskText(task.description));
+            $('#meetingTaskDetailDate').text(nullableTaskText(task.date_range_label || task.due_label));
+            $('#meetingTaskDetailBlockers').text(nullableTaskText(task.blockers));
+            $('#meetingTaskDetailCategory').text(nullableTaskText(task.task_category_label));
+            $('#meetingTaskDetailCategoryDescription').text(nullableTaskText(task.task_category_description));
+            $('#meetingTaskDetailAssignedBy').text('@' + (nullableTaskValue(task.assigned_by) || 'self'));
+            $('#meetingTaskDetailStatus')
+                .removeClass('text-danger text-success text-warning')
+                .addClass(task.status_class || 'text-warning')
+                .text(nullableTaskValue(task.status_label) || 'To Do');
+            renderTaskAttachment('#meetingTaskDetailAttachment', task.attachment_path);
+        });
+
+        $(document).on('click', '.js-meeting-task-edit', function () {
+            var task = $(this).data('task') || {};
+            var startDate = task.start_date || '';
+            var dueDate = task.due_date || startDate;
+            var startMoment = startDate && window.moment ? moment(startDate, 'YYYY-MM-DD') : null;
+            var dueMoment = dueDate && window.moment ? moment(dueDate, 'YYYY-MM-DD') : null;
+
+            $('#meetingTaskEditForm').attr('action', task.update_url || '#');
+            $('#meetingTaskEditCategory').val(task.category || '');
+            $('#meetingTaskEditTitle').val(task.title || '');
+            $('#meetingTaskEditAssignee').val(task.assignee_id || '');
+            $('#meetingTaskEditStatus').val(task.status || 'pending');
+            $('#meetingTaskEditStartDate').val(startDate);
+            $('#meetingTaskEditDueDate').val(dueDate);
+
+            if (startMoment && startMoment.isValid() && dueMoment && dueMoment.isValid()) {
+                $('#meetingTaskEditDateRangePicker').val(startMoment.format('DD/MM/YYYY') + ' - ' + dueMoment.format('DD/MM/YYYY'));
+
+                if ($.fn.daterangepicker && $('#meetingTaskEditDateRangePicker').data('daterangepicker')) {
+                    $('#meetingTaskEditDateRangePicker').data('daterangepicker').setStartDate(startMoment);
+                    $('#meetingTaskEditDateRangePicker').data('daterangepicker').setEndDate(dueMoment);
+                }
+            } else {
+                $('#meetingTaskEditDateRangePicker').val('');
+            }
+        });
+
+        $(document).on('click', '.js-meeting-task-delete', function () {
+            var task = $(this).data('task') || {};
+
+            $('#meetingTaskDeleteForm').attr('action', task.destroy_url || '#');
+            $('#meetingTaskDeleteTitle').text(task.title || '-');
         });
     });
 </script>

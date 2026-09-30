@@ -88,7 +88,7 @@ class HrMeetingController extends Controller
         ]);
     }
 
-    public function staffJoin(HrMeeting $hrMeeting): RedirectResponse
+    public function staffJoin(Request $request, HrMeeting $hrMeeting): RedirectResponse|JsonResponse
     {
         $employee = auth()->user()?->employee;
 
@@ -111,6 +111,27 @@ class HrMeetingController extends Controller
         }
 
         $participant->save();
+
+        if ($request->expectsJson()) {
+            $joinedCount = $hrMeeting->participants()
+                ->where('attendance_status', 'joined')
+                ->count();
+
+            if (! $hrMeeting->meeting_link) {
+                return response()->json([
+                    'message' => 'Meeting link is not available.',
+                    'joined_count' => $joinedCount,
+                    'joined_label' => $joinedCount.' Staff Joined',
+                ], 422);
+            }
+
+            return response()->json([
+                'meeting_id' => (string) $hrMeeting->id,
+                'meeting_link' => $hrMeeting->meeting_link,
+                'joined_count' => $joinedCount,
+                'joined_label' => $joinedCount.' Staff Joined',
+            ]);
+        }
 
         if ($hrMeeting->meeting_link) {
             return redirect()->away($hrMeeting->meeting_link);
@@ -137,6 +158,7 @@ class HrMeetingController extends Controller
         $hrMeeting->load([
             'tasks.projectTask.employee.profile',
             'tasks.projectTask.employee.user',
+            'tasks.projectTask.assignedBy',
             'participants.employee.profile',
             'participants.employee.user',
         ]);
@@ -269,6 +291,7 @@ class HrMeetingController extends Controller
         $meeting->load([
             'tasks.projectTask.employee.profile',
             'tasks.projectTask.employee.user',
+            'tasks.projectTask.assignedBy',
             'participants.employee.profile',
             'participants.employee.user',
         ]);
@@ -302,6 +325,7 @@ class HrMeetingController extends Controller
             'participants.employee.user',
             'tasks.projectTask.employee.profile',
             'tasks.projectTask.employee.user',
+            'tasks.projectTask.assignedBy',
         ]);
 
         $meetingTaskCards = $this->meetingTaskCards($meeting);
@@ -405,6 +429,85 @@ class HrMeetingController extends Controller
         return redirect()
             ->route('hr-meetings.details', $hrMeeting)
             ->with('status', 'Task meeting has been created.');
+    }
+
+    public function updateTask(Request $request, HrMeeting $hrMeeting, HrMeetingTask $hrMeetingTask): RedirectResponse
+    {
+        $this->ensureTaskBelongsToMeeting($hrMeeting, $hrMeetingTask);
+
+        $validated = $request->validate([
+            'category' => ['required', 'string', Rule::in(array_keys($this->meetingTaskCardDefinitions()))],
+            'title' => ['required', 'string', 'max:255'],
+            'assigned_to' => ['required', 'string', 'exists:employees,id'],
+            'start_date' => ['required', 'date'],
+            'due_date' => ['required', 'date'],
+            'status' => ['required', 'string', Rule::in(['pending', 'completed'])],
+        ]);
+
+        $assigneeIds = $this->meetingTaskAssigneeOptions($hrMeeting->loadMissing('participants.employee'))
+            ->pluck('id')
+            ->map(fn (mixed $employeeId): string => (string) $employeeId);
+
+        if (! $assigneeIds->contains((string) $validated['assigned_to'])) {
+            throw ValidationException::withMessages([
+                'assigned_to' => 'Staff task harus staff yang sudah joined di meeting ini.',
+            ]);
+        }
+
+        DB::transaction(function () use ($hrMeetingTask, $validated): void {
+            $status = (string) $validated['status'];
+            $projectTask = $hrMeetingTask->projectTask;
+
+            if (! $projectTask instanceof ProjectTask) {
+                $projectTask = ProjectTask::query()->create([
+                    'employee_id' => $validated['assigned_to'],
+                    'assigned_by' => auth()->id(),
+                    'title' => trim((string) $validated['title']),
+                    'description' => trim((string) $validated['title']),
+                    'status' => $status,
+                    'priority' => 'medium',
+                    'start_date' => $validated['start_date'],
+                    'due_date' => $validated['due_date'],
+                    'completed_at' => $status === 'completed' ? now('Asia/Jakarta') : null,
+                ]);
+
+                $hrMeetingTask->project_task_id = $projectTask->id;
+            } else {
+                $projectTask->update([
+                    'employee_id' => $validated['assigned_to'],
+                    'title' => trim((string) $validated['title']),
+                    'description' => trim((string) $validated['title']),
+                    'status' => $status,
+                    'start_date' => $validated['start_date'],
+                    'due_date' => $validated['due_date'],
+                    'completed_at' => $status === 'completed'
+                        ? ($projectTask->completed_at ?? now('Asia/Jakarta'))
+                        : null,
+                ]);
+            }
+
+            $hrMeetingTask->category = $validated['category'];
+            $hrMeetingTask->save();
+        });
+
+        return back()->with('status', 'Task meeting has been updated.');
+    }
+
+    public function destroyTask(HrMeeting $hrMeeting, HrMeetingTask $hrMeetingTask): RedirectResponse
+    {
+        $this->ensureTaskBelongsToMeeting($hrMeeting, $hrMeetingTask);
+
+        DB::transaction(function () use ($hrMeetingTask): void {
+            $projectTask = $hrMeetingTask->projectTask;
+
+            $hrMeetingTask->delete();
+
+            if ($projectTask instanceof ProjectTask) {
+                $projectTask->delete();
+            }
+        });
+
+        return back()->with('status', 'Task meeting and related project task have been deleted.');
     }
 
     /**
@@ -656,17 +759,37 @@ class HrMeetingController extends Controller
                     'percentage' => $percentage,
                     'tasks' => $tasks
                         ->sortByDesc('created_at')
-                        ->map(function (HrMeetingTask $task): array {
+                        ->map(function (HrMeetingTask $task) use ($card): array {
                             $projectTask = $task->projectTask;
                             $status = (string) ($projectTask?->status ?? 'pending');
+                            $startDate = $projectTask?->start_date;
+                            $dueDate = $projectTask?->due_date;
 
                             return [
                                 'id' => $task->id,
+                                'category' => (string) ($task->category ?: 'others'),
+                                'project_task_id' => $projectTask?->id,
                                 'title' => $projectTask?->title ?? '-',
+                                'description' => $projectTask?->description ?: ($projectTask?->title ?? '-'),
+                                'attachment_path' => trim((string) ($projectTask?->attachment_path ?? '')),
+                                'blockers' => trim((string) ($projectTask?->blockers ?? '')),
+                                'assignee_id' => $projectTask?->employee_id,
                                 'assignee' => $this->employeeDisplayName($projectTask?->employee),
+                                'assigned_by' => trim((string) ($projectTask?->assignedBy?->username ?? 'self')) ?: 'self',
+                                'task_category_label' => $card['title'],
+                                'task_category_description' => $card['subtitle'],
+                                'start_date' => $startDate?->format('Y-m-d'),
+                                'start_date_label' => $startDate?->format('d M Y') ?? '-',
+                                'due_date' => $dueDate?->format('Y-m-d'),
+                                'due_date_label' => $dueDate?->format('d M Y') ?? '-',
+                                'date_range_label' => $this->projectTaskDateLabel($projectTask),
                                 'due_label' => $this->projectTaskDateLabel($projectTask),
                                 'status' => $status,
+                                'status_label' => $status === 'completed' ? 'Completed' : 'To Do',
+                                'status_class' => $status === 'completed' ? 'text-success' : 'text-warning',
                                 'is_completed' => $status === 'completed',
+                                'update_url' => route('hr-meetings.tasks.update', [$task->hr_meeting_id, $task->id]),
+                                'destroy_url' => route('hr-meetings.tasks.destroy', [$task->hr_meeting_id, $task->id]),
                             ];
                         })
                         ->values()
@@ -688,6 +811,11 @@ class HrMeetingController extends Controller
             ->filter(fn (array $employee): bool => $employee['name'] !== '')
             ->unique('id')
             ->values();
+    }
+
+    private function ensureTaskBelongsToMeeting(HrMeeting $meeting, HrMeetingTask $task): void
+    {
+        abort_unless((string) $task->hr_meeting_id === (string) $meeting->id, 404);
     }
 
     private function projectTaskDateLabel(?ProjectTask $projectTask): string

@@ -176,6 +176,8 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/hr-meetings/details/{hrMeeting?}', [HrMeetingController::class, 'show'])->name('hr-meetings.details');
         Route::get('/hr-meetings/update/{hrMeeting?}', [HrMeetingController::class, 'edit'])->name('hr-meetings.update');
         Route::post('/hr-meetings/{hrMeeting}/tasks', [HrMeetingController::class, 'storeTask'])->name('hr-meetings.tasks.store');
+        Route::put('/hr-meetings/{hrMeeting}/tasks/{hrMeetingTask}', [HrMeetingController::class, 'updateTask'])->name('hr-meetings.tasks.update');
+        Route::delete('/hr-meetings/{hrMeeting}/tasks/{hrMeetingTask}', [HrMeetingController::class, 'destroyTask'])->name('hr-meetings.tasks.destroy');
         Route::put('/hr-meetings/{hrMeeting}', [HrMeetingController::class, 'update'])->name('hr-meetings.update.save');
         Route::delete('/hr-meetings/{hrMeeting}', [HrMeetingController::class, 'destroy'])->name('hr-meetings.destroy');
     });

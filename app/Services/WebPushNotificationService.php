@@ -13,7 +13,7 @@ class WebPushNotificationService
 {
     /**
      * @param  Collection<int, DeviceSubscription>  $subscriptions
-     * @param  array{title:string,body?:string,url?:string,icon?:string,badge?:string}  $payload
+     * @param  array{title:string,body?:string,url?:string,icon?:string,badge?:string,tag?:string}  $payload
      * @return array{total:int,success:int,rejected:int,failed:int,deleted:int,skipped:?string}
      */
     public function sendToSubscriptions(Collection $subscriptions, array $payload): array

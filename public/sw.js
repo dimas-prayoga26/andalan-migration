@@ -1,4 +1,4 @@
-const SIAP_CACHE_VERSION = 'siap-pwa-v2';
+const SIAP_CACHE_VERSION = 'siap-pwa-v3';
 
 self.addEventListener('install', (event) => {
     event.waitUntil(self.skipWaiting());
@@ -36,11 +36,16 @@ self.addEventListener('push', (event) => {
     const options = {
         body: payload.body || 'Ada notifikasi baru.',
         icon: payload.icon || '/images/images.png',
-        badge: payload.badge || '/images/images.png',
+        tag: payload.tag || `siap-notification-${Date.now()}`,
+        timestamp: Date.now(),
         data: {
             url: payload.url || '/',
         },
     };
+
+    if (payload.badge) {
+        options.badge = payload.badge;
+    }
 
     event.waitUntil(self.registration.showNotification(title, options));
 });

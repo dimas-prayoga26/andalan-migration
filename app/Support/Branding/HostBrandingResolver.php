@@ -21,11 +21,11 @@ class HostBrandingResolver
         return [
             'name' => (string) ($brand['name'] ?? 'Andalan Bersama Group'),
             'logo_path' => $logoPath,
-            'logo_url' => $this->versionedAsset($logoPath),
+            'logo_url' => asset($logoPath),
             'pwa_icon_192_path' => $pwaIcon192Path,
-            'pwa_icon_192_url' => $this->versionedAsset($pwaIcon192Path),
+            'pwa_icon_192_url' => asset($pwaIcon192Path),
             'pwa_icon_512_path' => $pwaIcon512Path,
-            'pwa_icon_512_url' => $this->versionedAsset($pwaIcon512Path),
+            'pwa_icon_512_url' => asset($pwaIcon512Path),
         ];
     }
 
@@ -36,18 +36,6 @@ class HostBrandingResolver
         }
 
         return request()->getHost();
-    }
-
-    private function versionedAsset(string $path): string
-    {
-        $url = asset($path);
-        $absolutePath = public_path($path);
-
-        if (is_file($absolutePath)) {
-            return $url.'?v='.filemtime($absolutePath);
-        }
-
-        return $url;
     }
 
     private function normalizeHost(string $host): string

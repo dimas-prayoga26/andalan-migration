@@ -77,7 +77,7 @@ class TestWebPushNotification extends Command
             'body' => (string) $this->option('body'),
             'url' => (string) ($this->option('url') ?: route('zoom-meeting.index')),
             'icon' => $iconUrl,
-            'badge' => $iconUrl,
+            'tag' => 'test-push-'.now()->timestamp,
         ]);
 
         $this->table(['Metric', 'Value'], collect($result)

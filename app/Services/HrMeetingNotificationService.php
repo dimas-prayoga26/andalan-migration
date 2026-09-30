@@ -83,7 +83,7 @@ class HrMeetingNotificationService
             'body' => $body,
             'url' => $meetingUrl,
             'icon' => $iconUrl,
-            'badge' => $iconUrl,
+            'tag' => 'hr-meeting-'.$meeting->id,
         ]);
 
         Log::info('HR meeting push notification dispatch completed.', [

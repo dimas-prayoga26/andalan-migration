@@ -35,10 +35,7 @@ class HrMeetingController extends Controller
             $baseQuery = HrMeeting::query()
                 ->withCount([
                     'participants as joined_count' => fn ($query) => $query->where('attendance_status', 'joined'),
-                    'tasks as staff_tasks_count' => fn ($query) => $query->whereHas(
-                        'projectTask',
-                        fn ($projectTaskQuery) => $projectTaskQuery->where('employee_id', $employee->id)
-                    ),
+                    'tasks',
                 ])
                 ->where(function ($query) use ($employee): void {
                     $query->whereHas('participants', function ($participantQuery) use ($employee): void {
@@ -977,11 +974,12 @@ class HrMeetingController extends Controller
     private function staffMeetingCardData(HrMeeting $meeting, bool $forceZeroTasks = false): array
     {
         return [
+            'id' => (string) $meeting->id,
             'title' => $this->meetingTypeLabels()[$meeting->type] ?? $meeting->type,
             'subtitle' => $meeting->title,
             'date_time' => trim(($meeting->meeting_date?->format('d M') ?? '-').' '.substr((string) $meeting->meeting_time, 0, 5).' WIB'),
             'joined_count' => (int) ($meeting->joined_count ?? 0),
-            'task_count' => $forceZeroTasks ? 0 : (int) ($meeting->staff_tasks_count ?? 0),
+            'task_count' => $forceZeroTasks ? 0 : (int) ($meeting->tasks_count ?? 0),
             'meeting_link' => $meeting->meeting_link,
             'join_url' => route('zoom-meeting.join', $meeting),
             'details_url' => route('zoom-meeting.details', $meeting),

@@ -69,7 +69,7 @@
                         </span>
                         <span>
                             <i class="bi bi-check2-circle me-1"></i>
-                            {{ $meeting['task_count'] }} Tasks
+                            {{ $meeting['task_count'] }} {{ (int) $meeting['task_count'] === 1 ? 'Task' : 'Tasks' }}
                         </span>
                     </div>
                 </div>
@@ -127,7 +127,7 @@
                         </span>
                         <span>
                             <i class="bi bi-check2-circle me-1"></i>
-                            {{ $meeting['task_count'] }} Tasks
+                            {{ $meeting['task_count'] }} {{ (int) $meeting['task_count'] === 1 ? 'Task' : 'Tasks' }}
                         </span>
                     </div>
                 </div>

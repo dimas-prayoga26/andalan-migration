@@ -1,4 +1,4 @@
-const SIAP_CACHE_VERSION = 'siap-pwa-v3';
+const SIAP_CACHE_VERSION = 'siap-pwa-v4';
 
 self.addEventListener('install', (event) => {
     event.waitUntil(self.skipWaiting());
@@ -37,7 +37,10 @@ self.addEventListener('push', (event) => {
         body: payload.body || 'Ada notifikasi baru.',
         icon: payload.icon || '/images/images.png',
         tag: payload.tag || `siap-notification-${Date.now()}`,
+        renotify: true,
+        silent: false,
         timestamp: Date.now(),
+        vibrate: [120, 60, 120],
         data: {
             url: payload.url || '/',
         },

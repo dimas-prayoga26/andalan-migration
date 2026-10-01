@@ -615,7 +615,7 @@ class AttendanceLeaveRequestController extends Controller
         $normalizedRoleNames = $user->getRoleNames()
             ->map(static fn (string $roleName): string => strtolower(trim($roleName)));
 
-        return $normalizedRoleNames->contains('superuser');
+        return $normalizedRoleNames->contains(strtolower(User::SUPERUSER_ROLE_NAME));
     }
 
     private function isSuperuser(?User $user): bool
@@ -626,7 +626,7 @@ class AttendanceLeaveRequestController extends Controller
 
         return $user->getRoleNames()
             ->map(static fn (string $roleName): string => strtolower(trim($roleName)))
-            ->contains('superuser');
+            ->contains(strtolower(User::SUPERUSER_ROLE_NAME));
     }
 
     private function normalizeUploadedAttachmentPath(mixed $attachmentPath): ?string

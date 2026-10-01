@@ -125,11 +125,11 @@ class ApplicantStatusMailTest extends TestCase
         ]);
 
         Role::query()->firstOrCreate([
-            'name' => 'superuser',
+            'name' => User::SUPERUSER_ROLE_NAME,
             'guard_name' => 'web',
         ]);
 
-        $user->assignRole('superuser');
+        $user->assignRole(User::SUPERUSER_ROLE_NAME);
 
         return $user;
     }

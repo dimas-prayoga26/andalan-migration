@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Permission;
 use App\Models\Position;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -70,29 +71,12 @@ class PositionPermissionSeeder extends Seeder
     private function syncRolePermissions(array $permissionNames): void
     {
         Role::query()
-            ->where('name', 'superuser')
+            ->where('name', User::SUPERUSER_ROLE_NAME)
             ->first()
             ?->syncPermissions($permissionNames);
 
         Role::query()
-            ->where('name', 'Board of Directors')
-            ->first()
-            ?->syncPermissions([
-                'view-dashboard',
-                'view-calendar',
-                'view-attendance',
-                'view-timesheet-reporting',
-                'view-meeting',
-                'view-director-attendance',
-                'view-organization',
-                'view-authorization',
-                'view-employee-database',
-                'view-talent-acquisition',
-                'view-settings',
-            ]);
-
-        Role::query()
-            ->where('name', 'Staff')
+            ->where('name', User::STAFF_ROLE_NAME)
             ->first()
             ?->syncPermissions([
                 'view-dashboard',

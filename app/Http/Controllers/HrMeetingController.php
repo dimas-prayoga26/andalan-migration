@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\HrMeeting;
 use App\Models\HrMeetingTask;
 use App\Models\ProjectTask;
+use App\Models\User;
 use App\Services\HrMeetingNotificationService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -749,7 +750,7 @@ class HrMeetingController extends Controller
                 $query->whereRaw('LOWER(name) = ?', ['staff']);
             })
             ->whereDoesntHave('user.roles', function ($query): void {
-                $query->whereRaw('LOWER(name) = ?', ['superuser']);
+                $query->whereRaw('LOWER(name) = ?', [strtolower(User::SUPERUSER_ROLE_NAME)]);
             });
     }
 

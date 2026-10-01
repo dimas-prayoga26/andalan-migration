@@ -58,21 +58,30 @@ class LeaveRequestHistorySeeder extends Seeder
                 throw new RuntimeException('User Staff pada company RNB tidak ditemukan.');
             }
 
-            $boardUsers = User::query()
+            $directorUsers = User::query()
                 ->whereHas('roles', function ($query): void {
-                    $query->whereRaw('LOWER(name) = ?', ['board of directors']);
+                    $query->whereRaw('LOWER(name) = ?', ['staff']);
                 })
                 ->whereHas('employee.deployment', function ($query) use ($rnbCompanyId): void {
                     $query->where('current_company_id', $rnbCompanyId);
                 })
+                ->where(function ($query): void {
+                    $query
+                        ->whereHas('employee.deployment.position', function ($positionQuery): void {
+                            $positionQuery->whereIn('name', ['Chief Operating Officer', 'Director']);
+                        })
+                        ->orWhereHas('employee.deployment.positions', function ($positionQuery): void {
+                            $positionQuery->whereIn('positions.name', ['Chief Operating Officer', 'Director']);
+                        });
+                })
                 ->orderBy('username')
                 ->get(['id', 'username']);
 
-            if ($boardUsers->isEmpty()) {
-                throw new RuntimeException('User role Board of Directors pada company RNB tidak ditemukan.');
+            if ($directorUsers->isEmpty()) {
+                throw new RuntimeException('User director pada company RNB tidak ditemukan.');
             }
 
-            $supervisorActorUserId = (string) $boardUsers->first()->id;
+            $supervisorActorUserId = (string) $directorUsers->first()->id;
 
             $leaveTypeIdsByCode = LeaveType::query()
                 ->whereIn(DB::raw('LOWER(code)'), ['annual', 'sick', 'special', 'unpaid'])

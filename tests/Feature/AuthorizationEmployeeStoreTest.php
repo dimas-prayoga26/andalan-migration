@@ -63,11 +63,11 @@ class AuthorizationEmployeeStoreTest extends TestCase
         ]);
 
         Role::query()->firstOrCreate([
-            'name' => 'superuser',
+            'name' => User::SUPERUSER_ROLE_NAME,
             'guard_name' => 'web',
         ]);
 
-        $manager->assignRole('superuser');
+        $manager->assignRole(User::SUPERUSER_ROLE_NAME);
 
         $employee = Employee::query()->create([
             'user_id' => $manager->id,

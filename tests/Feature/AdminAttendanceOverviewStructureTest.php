@@ -63,7 +63,7 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString("->where('late_minutes', '<=', 0)->orderBy('clock_in')->limit(5)", $overviewController);
         $this->assertStringContainsString("->where('late_minutes', '>', 0)->orderByDesc('clock_in')->limit(5)", $overviewController);
         $this->assertStringContainsString("->whereDoesntHave('roles'", $overviewController);
-        $this->assertStringContainsString("->where('name', 'superuser')", $overviewController);
+        $this->assertStringContainsString("->where('name', User::SUPERUSER_ROLE_NAME)", $overviewController);
         $this->assertStringContainsString("->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS)", $overviewController);
         $this->assertStringContainsString("->whereRaw('LOWER(COALESCE(workplace, \"\")) <> ?', ['rnb jakarta'])", $overviewController);
         $this->assertStringNotContainsString('currentCompanyIdFor', $overviewController);

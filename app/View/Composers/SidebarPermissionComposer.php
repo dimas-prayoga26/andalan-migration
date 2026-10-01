@@ -13,7 +13,7 @@ class SidebarPermissionComposer
         $canViewAllMenus = false;
 
         if ($user instanceof User) {
-            $canViewAllMenus = $user->hasRole('superuser');
+            $canViewAllMenus = $user->hasRole(User::SUPERUSER_ROLE_NAME);
         }
 
         $view->with('canViewSidebarMenu', static function (string $permissionName) use ($user, $canViewAllMenus): bool {

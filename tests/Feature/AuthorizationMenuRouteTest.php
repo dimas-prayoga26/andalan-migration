@@ -100,7 +100,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('authorizationUsersFor', $controller);
         $this->assertStringContainsString("->where('is_active', true)", $controller);
         $this->assertStringContainsString("->whereDoesntHave('roles'", $controller);
-        $this->assertStringContainsString("->where('name', 'superuser')", $controller);
+        $this->assertStringContainsString("->where('name', User::SUPERUSER_ROLE_NAME)", $controller);
         $this->assertStringContainsString("'authorization_company_name' => \$this->authorizationCompanyNameSubquery()", $controller);
         $this->assertStringContainsString("'authorization_pic_name' => \$this->authorizationPicNameSubquery()", $controller);
         $this->assertStringContainsString("->orderBy('authorization_company_name')", $controller);
@@ -260,6 +260,10 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('Role::query()->firstOrCreate', $controller);
         $this->assertStringContainsString('private function generateEmployeeCode(User $user): string', $controller);
         $this->assertStringContainsString("'employee_code' => \$this->generateEmployeeCode(\$user)", $controller);
+        $this->assertStringContainsString('private function dataEmployeePositions(?Employee $employee = null): Collection', $controller);
+        $this->assertStringContainsString("->where('name', '<>', 'Super Administrator')", $controller);
+        $this->assertStringContainsString("->whereNotIn('name', ['Superuser', 'Super User'])", $controller);
+        $this->assertStringContainsString('Rule::in($assignablePositionIds)', $controller);
         $this->assertStringContainsString('Employee has been added successfully.', $controller);
         $this->assertStringContainsString('Employee has been updated successfully.', $controller);
         $this->assertStringContainsString('Assign Permission', $accessMenusView);

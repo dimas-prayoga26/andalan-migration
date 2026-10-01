@@ -936,7 +936,7 @@ class AttendanceReportController extends Controller
 
         return $user->getRoleNames()
             ->map(fn (string $roleName): string => strtolower(trim($roleName)))
-            ->contains('superuser');
+            ->contains(strtolower(User::SUPERUSER_ROLE_NAME));
     }
 
     private function isBoardOfDirectur(?User $user): bool

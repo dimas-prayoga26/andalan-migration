@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\ProjectTask;
+use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -158,7 +159,7 @@ class DirectorAttendanceTaskController extends Controller
                     ->where('is_active', true)
                     ->whereNotIn('email', self::EXCLUDED_TASK_EMPLOYEE_EMAILS)
                     ->whereDoesntHave('roles', function ($roleQuery): void {
-                        $roleQuery->where('name', 'superuser');
+                        $roleQuery->where('name', User::SUPERUSER_ROLE_NAME);
                     });
             })
             ->whereHas('deployment', function ($query) use ($todayDate, $companyId): void {

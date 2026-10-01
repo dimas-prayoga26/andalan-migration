@@ -57,23 +57,32 @@ class LeaveRequestFinalApprovedSeeder extends Seeder
                 throw new RuntimeException('User Staff pada company RNB tidak ditemukan.');
             }
 
-            $boardUsers = User::query()
+            $directorUsers = User::query()
                 ->whereHas('roles', function ($query): void {
-                    $query->whereRaw('LOWER(name) = ?', ['board of directors']);
+                    $query->whereRaw('LOWER(name) = ?', ['staff']);
                 })
                 ->whereHas('employee.deployment', function ($query) use ($rnbCompanyId): void {
                     $query->where('current_company_id', $rnbCompanyId);
                 })
+                ->where(function ($query): void {
+                    $query
+                        ->whereHas('employee.deployment.position', function ($positionQuery): void {
+                            $positionQuery->whereIn('name', ['Chief Operating Officer', 'Director']);
+                        })
+                        ->orWhereHas('employee.deployment.positions', function ($positionQuery): void {
+                            $positionQuery->whereIn('positions.name', ['Chief Operating Officer', 'Director']);
+                        });
+                })
                 ->orderBy('username')
                 ->get(['id']);
 
-            if ($boardUsers->isEmpty()) {
-                throw new RuntimeException('User role Board of Directors pada company RNB tidak ditemukan.');
+            if ($directorUsers->isEmpty()) {
+                throw new RuntimeException('User director pada company RNB tidak ditemukan.');
             }
 
-            $supervisorActorUserId = (string) $boardUsers->first()->id;
-            $hrActorUserId = (string) ($boardUsers->skip(1)->first()->id ?? $supervisorActorUserId);
-            $finalDecisionActorUserId = (string) ($boardUsers->skip(2)->first()->id ?? $hrActorUserId);
+            $supervisorActorUserId = (string) $directorUsers->first()->id;
+            $hrActorUserId = (string) ($directorUsers->skip(1)->first()->id ?? $supervisorActorUserId);
+            $finalDecisionActorUserId = (string) ($directorUsers->skip(2)->first()->id ?? $hrActorUserId);
 
             $annualLeaveTypeId = LeaveType::query()
                 ->whereRaw('LOWER(code) = ?', ['annual'])

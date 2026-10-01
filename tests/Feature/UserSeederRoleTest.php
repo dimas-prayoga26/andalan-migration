@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Database\Seeders\UserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -23,9 +24,10 @@ class UserSeederRoleTest extends TestCase
     {
         $this->seed(UserSeeder::class);
 
-        $this->assertDatabaseHas('roles', ['name' => 'superuser', 'guard_name' => 'web']);
-        $this->assertDatabaseHas('roles', ['name' => 'Board of Directors', 'guard_name' => 'web']);
-        $this->assertDatabaseHas('roles', ['name' => 'Staff', 'guard_name' => 'web']);
+        $this->assertDatabaseHas('roles', ['name' => User::SUPERUSER_ROLE_NAME, 'guard_name' => 'web']);
+        $this->assertDatabaseHas('roles', ['name' => User::STAFF_ROLE_NAME, 'guard_name' => 'web']);
+        $this->assertDatabaseMissing('roles', ['name' => 'superuser', 'guard_name' => 'web']);
+        $this->assertDatabaseMissing('roles', ['name' => 'Board of Directors', 'guard_name' => 'web']);
         $this->assertDatabaseMissing('roles', ['name' => 'admin', 'guard_name' => 'web']);
         $this->assertDatabaseMissing('roles', ['name' => 'Supervisor', 'guard_name' => 'web']);
     }

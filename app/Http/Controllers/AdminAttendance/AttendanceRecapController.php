@@ -11,6 +11,7 @@ use App\Models\AttendanceOvertime;
 use App\Models\BusinessTrip;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Models\User;
 use App\Support\Attendance\AttendanceDurationFormatter;
 use App\Support\Attendance\AttendanceExceptionPresenter;
 use App\Support\Attendance\AttendanceLocationFormatter;
@@ -1084,7 +1085,7 @@ class AttendanceRecapController extends Controller
                     ->where('is_active', true)
                     ->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS)
                     ->whereDoesntHave('roles', function ($roleQuery): void {
-                        $roleQuery->where('name', 'superuser');
+                        $roleQuery->where('name', User::SUPERUSER_ROLE_NAME);
                     });
             })
             ->whereHas('deployment', function ($query) use ($todayDate): void {

@@ -122,10 +122,12 @@ class AuthorizationController extends Controller
         abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
         abort_unless($this->canViewEmployee($authenticatedUser, $employee), 404);
 
+        $employee = $this->loadDataEmployee($employee);
+
         return view('authorization.form', [
             'mode' => 'edit',
-            'employee' => $this->loadDataEmployee($employee),
-        ] + $this->dataEmployeeFormOptions());
+            'employee' => $employee,
+        ] + $this->dataEmployeeFormOptions($employee));
     }
 
     public function update(Request $request, Employee $employee): RedirectResponse
@@ -525,7 +527,7 @@ class AuthorizationController extends Controller
                 'employee.picAssignment.supervisor.profile:id,employee_id,name',
             ])
             ->whereDoesntHave('roles', function (Builder $roleQuery): void {
-                $roleQuery->where('name', 'superuser');
+                $roleQuery->where('name', User::SUPERUSER_ROLE_NAME);
             })
             ->whereHas('employee');
 
@@ -675,7 +677,7 @@ class AuthorizationController extends Controller
     {
         return $user->getRoleNames()
             ->map(fn (string $roleName): string => strtolower(trim($roleName)))
-            ->contains('superuser');
+            ->contains(strtolower(User::SUPERUSER_ROLE_NAME));
     }
 
     private function isChiefOperatingOfficerEmployee(User $user): bool
@@ -774,7 +776,7 @@ class AuthorizationController extends Controller
      *     picEmployees: Collection<int, Employee>
      * }
      */
-    private function dataEmployeeFormOptions(): array
+    private function dataEmployeeFormOptions(?Employee $employee = null): array
     {
         return [
             'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
@@ -789,8 +791,8 @@ class AuthorizationController extends Controller
                         ?: trim((string) $officeLocation->address),
                 ])
                 ->values(),
-            'departments' => Department::query()->orderBy('name')->get(['id', 'name']),
-            'positions' => Position::query()->orderBy('name')->get(['id', 'name']),
+            'departments' => $this->dataEmployeeDepartments($employee),
+            'positions' => $this->dataEmployeePositions($employee),
             'picEmployees' => Employee::query()
                 ->with('profile:id,employee_id,name')
                 ->orderBy('employee_code')
@@ -804,6 +806,8 @@ class AuthorizationController extends Controller
     private function validatedDataEmployee(Request $request, ?Employee $employee = null): array
     {
         $userId = $employee?->user_id;
+        $assignableDepartmentIds = $this->dataEmployeeDepartments($employee)->pluck('id')->all();
+        $assignablePositionIds = $this->dataEmployeePositions($employee)->pluck('id')->all();
 
         $request->merge([
             'is_active' => $request->boolean('is_active'),
@@ -840,12 +844,12 @@ class AuthorizationController extends Controller
                     $query->where('is_active', true);
                 }),
             ],
-            'current_department_id' => ['nullable', 'string', 'exists:departments,id'],
-            'current_position_id' => ['nullable', 'string', 'exists:positions,id'],
+            'current_department_id' => ['nullable', 'string', 'exists:departments,id', Rule::in($assignableDepartmentIds)],
+            'current_position_id' => ['nullable', 'string', 'exists:positions,id', Rule::in($assignablePositionIds)],
             'current_position_ids' => ['array'],
-            'current_position_ids.*' => ['string', 'exists:positions,id'],
+            'current_position_ids.*' => ['string', 'exists:positions,id', Rule::in($assignablePositionIds)],
             'current_position_order' => ['array'],
-            'current_position_order.*' => ['string', 'exists:positions,id'],
+            'current_position_order.*' => ['string', 'exists:positions,id', Rule::in($assignablePositionIds)],
             'pic_employee_id' => ['nullable', 'string', 'exists:employees,id'],
         ]);
     }
@@ -867,9 +871,54 @@ class AuthorizationController extends Controller
     private function defaultStaffRole(): Role
     {
         return Role::query()->firstOrCreate([
-            'name' => 'Staff',
+            'name' => User::STAFF_ROLE_NAME,
             'guard_name' => 'web',
         ]);
+    }
+
+    /**
+     * @return Collection<int, Department>
+     */
+    private function dataEmployeeDepartments(?Employee $employee = null): Collection
+    {
+        return Department::query()
+            ->when(! $this->employeeUsesAnyDepartment($employee, ['Superuser', 'Super User']), function (Builder $query): void {
+                $query->whereNotIn('name', ['Superuser', 'Super User']);
+            })
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    /**
+     * @return Collection<int, Position>
+     */
+    private function dataEmployeePositions(?Employee $employee = null): Collection
+    {
+        return Position::query()
+            ->when(! $this->employeeUsesPosition($employee, 'Super Administrator'), function (Builder $query): void {
+                $query->where('name', '<>', 'Super Administrator');
+            })
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    /**
+     * @param  array<int, string>  $departmentNames
+     */
+    private function employeeUsesAnyDepartment(?Employee $employee, array $departmentNames): bool
+    {
+        $employee?->loadMissing('deployment.department:id,name');
+
+        return in_array((string) ($employee?->deployment?->department?->name ?? ''), $departmentNames, true);
+    }
+
+    private function employeeUsesPosition(?Employee $employee, string $positionName): bool
+    {
+        $employee?->loadMissing('deployment.position:id,name', 'deployment.positions:id,name');
+
+        return collect([$employee?->deployment?->position?->name])
+            ->merge($employee?->deployment?->positions?->pluck('name') ?? collect())
+            ->contains($positionName);
     }
 
     private function shortNumericToken(string $value, string $salt): string

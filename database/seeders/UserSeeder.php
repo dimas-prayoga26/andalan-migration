@@ -53,7 +53,7 @@ class UserSeeder extends Seeder
         try {
             app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-            $roles = ['superuser', 'Board of Directors', 'Staff'];
+            $roles = [User::SUPERUSER_ROLE_NAME, User::STAFF_ROLE_NAME];
 
             Role::query()
                 ->whereNotIn('name', $roles)
@@ -127,7 +127,7 @@ class UserSeeder extends Seeder
                     'password' => Hash::make('password'),
                 ],
             );
-            $superuser->syncRoles(['superuser']);
+            $superuser->syncRoles([User::SUPERUSER_ROLE_NAME]);
             $this->seedUserRelations(
                 $superuser,
                 companyId: $companies->first()->id,
@@ -156,7 +156,7 @@ class UserSeeder extends Seeder
                         'password' => Hash::make('password'),
                     ],
                 );
-                $director->syncRoles(['Board of Directors']);
+                $director->syncRoles([User::STAFF_ROLE_NAME]);
                 $this->seedUserRelations(
                     $director,
                     companyId: $company->id,
@@ -176,7 +176,7 @@ class UserSeeder extends Seeder
                         'password' => Hash::make('password'),
                     ],
                 );
-                $supervisor->syncRoles(['Staff']);
+                $supervisor->syncRoles([User::STAFF_ROLE_NAME]);
                 $this->seedUserRelations(
                     $supervisor,
                     companyId: $company->id,
@@ -196,7 +196,7 @@ class UserSeeder extends Seeder
                         'password' => Hash::make('password'),
                     ],
                 );
-                $administrator->syncRoles(['Staff']);
+                $administrator->syncRoles([User::STAFF_ROLE_NAME]);
                 $this->seedUserRelations(
                     $administrator,
                     companyId: $company->id,
@@ -221,7 +221,7 @@ class UserSeeder extends Seeder
                             'password' => Hash::make('password'),
                         ],
                     );
-                    $staff->syncRoles(['Staff']);
+                    $staff->syncRoles([User::STAFF_ROLE_NAME]);
                     $staffAssignment = $this->resolveStaffAssignment(
                         companyName: (string) $company->name,
                         staffIndex: $staffIndex,

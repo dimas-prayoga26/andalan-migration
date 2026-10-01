@@ -3,7 +3,7 @@
 <body>
 
     @php
-        $isSuperuserLogoShift = auth()->user()?->hasRole('superuser') ?? false;
+        $isSuperuserLogoShift = auth()->user()?->hasRole(\App\Models\User::SUPERUSER_ROLE_NAME) ?? false;
     @endphp
 
 	<div id="preloader">

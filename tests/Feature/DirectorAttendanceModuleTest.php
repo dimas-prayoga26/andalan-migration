@@ -257,22 +257,10 @@ class DirectorAttendanceModuleTest extends TestCase
             "/\\\$directorPermissions = \\[[^\\]]*'view-admin-attendance'[^\\]]*\\];/s",
             $permissionSeeder,
         );
-        $this->assertMatchesRegularExpression(
-            "/where\\('name', 'Board of Directors'\\)[\\s\\S]*?\\?->syncPermissions\\(\\[[^\\]]*'view-director-attendance'/",
-            $permissionSeeder,
-        );
-        $this->assertDoesNotMatchRegularExpression(
-            "/where\\('name', 'Board of Directors'\\)[\\s\\S]*?\\?->syncPermissions\\(\\[[^\\]]*'view-admin-attendance'/",
-            $permissionSeeder,
-        );
-        $this->assertMatchesRegularExpression(
-            "/where\\('name', 'Board of Directors'\\)[\\s\\S]*?\\?->syncPermissions\\(\\[[^\\]]*'view-director-attendance'/",
-            $legacySeeder,
-        );
-        $this->assertDoesNotMatchRegularExpression(
-            "/where\\('name', 'Board of Directors'\\)[\\s\\S]*?\\?->syncPermissions\\(\\[[^\\]]*'view-admin-attendance'/",
-            $legacySeeder,
-        );
+        $this->assertStringNotContainsString("where('name', 'Board of Directors')", $permissionSeeder);
+        $this->assertStringNotContainsString("where('name', 'Board of Directors')", $legacySeeder);
+        $this->assertStringContainsString("'Chief Operating Officer' => \$directorPermissions", $permissionSeeder);
+        $this->assertStringContainsString("'Director' => \$directorPermissions", $permissionSeeder);
         $this->assertStringContainsString("'view-director-attendance' => ['section' => 'Director Management', 'label' => 'Director']", $authorizationController);
     }
 

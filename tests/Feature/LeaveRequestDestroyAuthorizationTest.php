@@ -24,7 +24,7 @@ class LeaveRequestDestroyAuthorizationTest extends TestCase
 
     public function test_superuser_can_delete_leave_request(): void
     {
-        $superuser = $this->createUserWithRole('superuser');
+        $superuser = $this->createUserWithRole(User::SUPERUSER_ROLE_NAME);
         $leaveRequest = LeaveRequest::query()->create([
             'employee_id' => null,
             'leave_type_id' => null,

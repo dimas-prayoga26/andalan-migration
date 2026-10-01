@@ -96,7 +96,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $sidebarComposer = file_get_contents(app_path('View/Composers/SidebarPermissionComposer.php'));
 
         $this->assertIsString($userModel);
-        $this->assertStringContainsString("if (\$this->hasRole('superuser'))", $userModel);
+        $this->assertStringContainsString('if ($this->hasRole(self::SUPERUSER_ROLE_NAME))', $userModel);
         $this->assertStringContainsString("'employee.deployment.position.permissions:uuid,name'", $userModel);
         $this->assertStringContainsString("'employee.deployment.positions.permissions:uuid,name'", $userModel);
         $this->assertStringContainsString('permissionPositionsForDeployment', $userModel);
@@ -237,7 +237,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
 
         $this->assertIsString($legacySeeder);
         $this->assertStringContainsString("'username' => 'superadmin'", $legacySeeder);
-        $this->assertStringContainsString("\$user->syncRoles(['superuser']);", $legacySeeder);
+        $this->assertStringContainsString('$user->syncRoles([User::SUPERUSER_ROLE_NAME]);', $legacySeeder);
         $this->assertStringNotContainsString("'admin@andalanbersama.com' => 'Administrator'", $legacySeeder);
         $this->assertStringNotContainsString("'admin@andalanbersama.com' => ['Administrator']", $legacySeeder);
         $this->assertStringNotContainsString("'admin@andalanbersama.com' => 'Super Administrator'", $legacySeeder);

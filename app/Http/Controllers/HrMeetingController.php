@@ -12,8 +12,8 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -29,10 +29,14 @@ class HrMeetingController extends Controller
         $scheduledMeetings = collect();
         $completedMeetings = collect();
 
-        if ($employee instanceof Employee) {
+        if ($employee instanceof Employee && (bool) $employee->is_core_staff) {
             $employee->loadMissing('deployment.position', 'deployment.positions');
 
             $baseQuery = HrMeeting::query()
+                ->with([
+                    'tasks:id,hr_meeting_id,project_task_id',
+                    'tasks.projectTask:id,attachment_path',
+                ])
                 ->withCount([
                     'participants as joined_count' => fn ($query) => $query->where('attendance_status', 'joined'),
                     'tasks',
@@ -156,11 +160,12 @@ class HrMeetingController extends Controller
             'tasks.projectTask.employee.profile',
             'tasks.projectTask.employee.user',
             'tasks.projectTask.assignedBy',
+            'tasks.projectTask.project',
             'participants.employee.profile',
             'participants.employee.user',
         ]);
 
-        $meetingTaskCards = $this->meetingTaskCards($hrMeeting);
+        $meetingTaskCards = $this->meetingTaskCards($hrMeeting, $employee, 'zoom-meeting.tasks.update', true);
 
         return view('meetings.staff.details', [
             'meeting' => $hrMeeting,
@@ -289,6 +294,7 @@ class HrMeetingController extends Controller
             'tasks.projectTask.employee.profile',
             'tasks.projectTask.employee.user',
             'tasks.projectTask.assignedBy',
+            'tasks.projectTask.project',
             'participants.employee.profile',
             'participants.employee.user',
         ]);
@@ -323,6 +329,7 @@ class HrMeetingController extends Controller
             'tasks.projectTask.employee.profile',
             'tasks.projectTask.employee.user',
             'tasks.projectTask.assignedBy',
+            'tasks.projectTask.project',
         ]);
 
         $meetingTaskCards = $this->meetingTaskCards($meeting);
@@ -430,64 +437,111 @@ class HrMeetingController extends Controller
 
     public function updateTask(Request $request, HrMeeting $hrMeeting, HrMeetingTask $hrMeetingTask): RedirectResponse
     {
+        $this->updateMeetingTaskFromRequest($request, $hrMeeting, $hrMeetingTask, true);
+
+        return back()->with('status', 'Task meeting has been updated.');
+    }
+
+    public function updateStaffTask(Request $request, HrMeeting $hrMeeting, HrMeetingTask $hrMeetingTask): RedirectResponse
+    {
+        $employee = auth()->user()?->employee;
+
+        if (! $employee instanceof Employee || ! $this->employeeCanAccessMeeting($employee, $hrMeeting)) {
+            abort(403);
+        }
+
+        $this->ensureTaskBelongsToMeeting($hrMeeting, $hrMeetingTask);
+
+        $projectTask = $hrMeetingTask->projectTask;
+
+        if (! $projectTask instanceof ProjectTask || (string) $projectTask->employee_id !== (string) $employee->id) {
+            abort(403);
+        }
+
+        $this->updateMeetingTaskFromRequest($request, $hrMeeting, $hrMeetingTask, false);
+
+        return back()->with('status', 'Task meeting has been updated.');
+    }
+
+    private function updateMeetingTaskFromRequest(Request $request, HrMeeting $hrMeeting, HrMeetingTask $hrMeetingTask, bool $allowAssigneeUpdate): void
+    {
         $this->ensureTaskBelongsToMeeting($hrMeeting, $hrMeetingTask);
 
         $validated = $request->validate([
             'category' => ['required', 'string', Rule::in(array_keys($this->meetingTaskCardDefinitions()))],
             'title' => ['required', 'string', 'max:255'],
-            'assigned_to' => ['required', 'string', 'exists:employees,id'],
-            'start_date' => ['required', 'date'],
-            'due_date' => ['required', 'date'],
-            'status' => ['required', 'string', Rule::in(['pending', 'completed'])],
+            'description' => ['nullable', 'string', 'max:5000'],
+            'assigned_to' => [$allowAssigneeUpdate ? 'required' : 'nullable', 'string', 'exists:employees,id'],
+            'start_date' => ['required', 'date_format:Y-m-d'],
+            'due_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date'],
+            'priority' => ['nullable', 'string', Rule::in(['low', 'medium', 'high'])],
+            'status' => ['required', 'string', Rule::in(['pending', 'in_progress', 'completed', 'cancelled'])],
+            'attachment_path' => ['nullable', 'string', 'max:255'],
+            'blockers' => ['nullable', 'string', 'max:5000'],
         ]);
 
-        $assigneeIds = $this->meetingTaskAssigneeOptions($hrMeeting->loadMissing('participants.employee'))
-            ->pluck('id')
-            ->map(fn (mixed $employeeId): string => (string) $employeeId);
+        $projectTask = $hrMeetingTask->projectTask;
+        $assigneeId = (string) ($projectTask?->employee_id ?? $validated['assigned_to'] ?? '');
 
-        if (! $assigneeIds->contains((string) $validated['assigned_to'])) {
-            throw ValidationException::withMessages([
-                'assigned_to' => 'Staff task harus staff yang sudah joined di meeting ini.',
-            ]);
+        if ($allowAssigneeUpdate) {
+            $assigneeId = (string) $validated['assigned_to'];
+
+            $assigneeIds = $this->meetingTaskAssigneeOptions($hrMeeting->loadMissing('participants.employee'))
+                ->pluck('id')
+                ->map(fn (mixed $employeeId): string => (string) $employeeId);
+
+            if (! $assigneeIds->contains($assigneeId)) {
+                throw ValidationException::withMessages([
+                    'assigned_to' => 'Staff task harus staff yang sudah joined di meeting ini.',
+                ]);
+            }
         }
 
-        DB::transaction(function () use ($hrMeetingTask, $validated): void {
-            $status = (string) $validated['status'];
-            $projectTask = $hrMeetingTask->projectTask;
+        $hasDescription = $request->has('description');
+        $hasPriority = $request->has('priority');
+        $hasBlockers = $request->has('blockers');
+        $hasAttachmentPath = $request->has('attachment_path');
+
+        DB::transaction(function () use ($hrMeetingTask, $projectTask, $validated, $assigneeId, $hasDescription, $hasPriority, $hasBlockers, $hasAttachmentPath): void {
+            $status = strtolower(trim((string) $validated['status']));
+            $title = trim((string) $validated['title']);
+            $completedAt = $status === 'completed' ? now('Asia/Jakarta') : null;
+            $projectTaskPayload = [
+                'employee_id' => $assigneeId,
+                'title' => $title,
+                'description' => $hasDescription
+                    ? $this->nullableStringValue($validated['description'] ?? null)
+                    : ($projectTask?->description ?? null),
+                'status' => $status,
+                'priority' => $hasPriority
+                    ? strtolower(trim((string) ($validated['priority'] ?? 'medium')))
+                    : (strtolower(trim((string) ($projectTask?->priority ?? 'medium'))) ?: 'medium'),
+                'start_date' => $validated['start_date'],
+                'due_date' => $validated['due_date'],
+                'blockers' => $hasBlockers
+                    ? $this->nullableStringValue($validated['blockers'] ?? null)
+                    : ($projectTask?->blockers ?? null),
+                'attachment_path' => $hasAttachmentPath
+                    ? $this->nullableStringValue($validated['attachment_path'] ?? null)
+                    : ($projectTask?->attachment_path ?? null),
+                'completed_at' => $status === 'completed'
+                    ? ($projectTask?->completed_at ?? $completedAt)
+                    : null,
+            ];
 
             if (! $projectTask instanceof ProjectTask) {
-                $projectTask = ProjectTask::query()->create([
-                    'employee_id' => $validated['assigned_to'],
+                $projectTask = ProjectTask::query()->create($projectTaskPayload + [
                     'assigned_by' => auth()->id(),
-                    'title' => trim((string) $validated['title']),
-                    'description' => trim((string) $validated['title']),
-                    'status' => $status,
-                    'priority' => 'medium',
-                    'start_date' => $validated['start_date'],
-                    'due_date' => $validated['due_date'],
-                    'completed_at' => $status === 'completed' ? now('Asia/Jakarta') : null,
                 ]);
 
                 $hrMeetingTask->project_task_id = $projectTask->id;
             } else {
-                $projectTask->update([
-                    'employee_id' => $validated['assigned_to'],
-                    'title' => trim((string) $validated['title']),
-                    'description' => trim((string) $validated['title']),
-                    'status' => $status,
-                    'start_date' => $validated['start_date'],
-                    'due_date' => $validated['due_date'],
-                    'completed_at' => $status === 'completed'
-                        ? ($projectTask->completed_at ?? now('Asia/Jakarta'))
-                        : null,
-                ]);
+                $projectTask->update($projectTaskPayload);
             }
 
             $hrMeetingTask->category = $validated['category'];
             $hrMeetingTask->save();
         });
-
-        return back()->with('status', 'Task meeting has been updated.');
     }
 
     public function destroyTask(HrMeeting $hrMeeting, HrMeetingTask $hrMeetingTask): RedirectResponse
@@ -687,6 +741,7 @@ class HrMeetingController extends Controller
     {
         return Employee::query()
             ->where('status', 'Active')
+            ->where('is_core_staff', true)
             ->whereHas('user', function ($query): void {
                 $query->where('is_active', true);
             })
@@ -735,13 +790,14 @@ class HrMeetingController extends Controller
     /**
      * @return array<int,array<string,mixed>>
      */
-    private function meetingTaskCards(HrMeeting $meeting): array
+    private function meetingTaskCards(HrMeeting $meeting, ?Employee $prioritizedEmployee = null, string $updateRouteName = 'hr-meetings.tasks.update', bool $restrictActionsToAssigned = false): array
     {
+        $prioritizedEmployeeId = (string) ($prioritizedEmployee?->id ?? '');
         $tasksByCategory = $meeting->tasks
             ->groupBy(fn (HrMeetingTask $task): string => (string) ($task->category ?: 'others'));
 
         return collect($this->meetingTaskCardDefinitions())
-            ->map(function (array $card, string $category) use ($tasksByCategory): array {
+            ->map(function (array $card, string $category) use ($tasksByCategory, $prioritizedEmployeeId, $updateRouteName, $restrictActionsToAssigned): array {
                 $tasks = $tasksByCategory->get($category, collect());
                 $completed = $tasks->filter(fn (HrMeetingTask $task): bool => $task->projectTask?->status === 'completed')->count();
                 $total = $tasks->count();
@@ -755,12 +811,28 @@ class HrMeetingController extends Controller
                     'total' => $total,
                     'percentage' => $percentage,
                     'tasks' => $tasks
-                        ->sortByDesc('created_at')
-                        ->map(function (HrMeetingTask $task) use ($card): array {
+                        ->sort(function (HrMeetingTask $firstTask, HrMeetingTask $secondTask) use ($prioritizedEmployeeId): int {
+                            $firstIsPrioritized = $prioritizedEmployeeId !== ''
+                                && (string) $firstTask->projectTask?->employee_id === $prioritizedEmployeeId;
+                            $secondIsPrioritized = $prioritizedEmployeeId !== ''
+                                && (string) $secondTask->projectTask?->employee_id === $prioritizedEmployeeId;
+                            $priorityComparison = (int) $secondIsPrioritized <=> (int) $firstIsPrioritized;
+
+                            if ($priorityComparison !== 0) {
+                                return $priorityComparison;
+                            }
+
+                            return ($secondTask->created_at?->getTimestamp() ?? 0) <=> ($firstTask->created_at?->getTimestamp() ?? 0);
+                        })
+                        ->map(function (HrMeetingTask $task) use ($card, $updateRouteName, $restrictActionsToAssigned, $prioritizedEmployeeId): array {
                             $projectTask = $task->projectTask;
                             $status = (string) ($projectTask?->status ?? 'pending');
                             $startDate = $projectTask?->start_date;
                             $dueDate = $projectTask?->due_date;
+                            $isAssignedToPrioritizedEmployee = $prioritizedEmployeeId !== ''
+                                && (string) $projectTask?->employee_id === $prioritizedEmployeeId;
+                            $canUpdate = ! $restrictActionsToAssigned || $isAssignedToPrioritizedEmployee;
+                            $canDelete = ! $restrictActionsToAssigned;
 
                             return [
                                 'id' => $task->id,
@@ -770,6 +842,9 @@ class HrMeetingController extends Controller
                                 'description' => $projectTask?->description ?: ($projectTask?->title ?? '-'),
                                 'attachment_path' => trim((string) ($projectTask?->attachment_path ?? '')),
                                 'blockers' => trim((string) ($projectTask?->blockers ?? '')),
+                                'priority' => strtolower(trim((string) ($projectTask?->priority ?? 'medium'))) ?: 'medium',
+                                'project_id' => $projectTask?->project_id,
+                                'project_name' => trim((string) ($projectTask?->project?->name ?? '')) ?: 'Pilih Nama Project',
                                 'assignee_id' => $projectTask?->employee_id,
                                 'assignee' => $this->employeeDisplayName($projectTask?->employee),
                                 'assigned_by' => trim((string) ($projectTask?->assignedBy?->username ?? 'self')) ?: 'self',
@@ -782,10 +857,12 @@ class HrMeetingController extends Controller
                                 'date_range_label' => $this->projectTaskDateLabel($projectTask),
                                 'due_label' => $this->projectTaskDateLabel($projectTask),
                                 'status' => $status,
-                                'status_label' => $status === 'completed' ? 'Completed' : 'To Do',
-                                'status_class' => $status === 'completed' ? 'text-success' : 'text-warning',
+                                'status_label' => $this->meetingTaskStatusLabel($status),
+                                'status_class' => $this->meetingTaskStatusClass($status),
                                 'is_completed' => $status === 'completed',
-                                'update_url' => route('hr-meetings.tasks.update', [$task->hr_meeting_id, $task->id]),
+                                'can_update' => $canUpdate,
+                                'can_delete' => $canDelete,
+                                'update_url' => route($updateRouteName, [$task->hr_meeting_id, $task->id]),
                                 'destroy_url' => route('hr-meetings.tasks.destroy', [$task->hr_meeting_id, $task->id]),
                             ];
                         })
@@ -813,6 +890,37 @@ class HrMeetingController extends Controller
     private function ensureTaskBelongsToMeeting(HrMeeting $meeting, HrMeetingTask $task): void
     {
         abort_unless((string) $task->hr_meeting_id === (string) $meeting->id, 404);
+    }
+
+    private function meetingTaskStatusLabel(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            'completed' => 'Completed',
+            'in_progress' => 'On Progress',
+            'cancelled' => 'Cancelled',
+            default => 'To Do',
+        };
+    }
+
+    private function meetingTaskStatusClass(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            'completed' => 'text-success',
+            'in_progress' => 'text-primary',
+            'cancelled' => 'text-danger',
+            default => 'text-warning',
+        };
+    }
+
+    private function nullableStringValue(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        return $value !== '' ? $value : null;
     }
 
     private function projectTaskDateLabel(?ProjectTask $projectTask): string
@@ -973,6 +1081,11 @@ class HrMeetingController extends Controller
      */
     private function staffMeetingCardData(HrMeeting $meeting, bool $forceZeroTasks = false): array
     {
+        $taskAttachmentUrl = $meeting->tasks
+            ->map(fn (HrMeetingTask $task): string => trim((string) ($task->projectTask?->attachment_path ?? '')))
+            ->first(static fn (string $attachmentPath): bool => $attachmentPath !== '') ?? '';
+        $meetingAttachmentUrl = trim((string) ($meeting->attachment_link ?? ''));
+
         return [
             'id' => (string) $meeting->id,
             'title' => $this->meetingTypeLabels()[$meeting->type] ?? $meeting->type,
@@ -980,6 +1093,7 @@ class HrMeetingController extends Controller
             'date_time' => trim(($meeting->meeting_date?->format('d M') ?? '-').' '.substr((string) $meeting->meeting_time, 0, 5).' WIB'),
             'joined_count' => (int) ($meeting->joined_count ?? 0),
             'task_count' => $forceZeroTasks ? 0 : (int) ($meeting->tasks_count ?? 0),
+            'task_attachment_url' => $taskAttachmentUrl !== '' ? $taskAttachmentUrl : $meetingAttachmentUrl,
             'meeting_link' => $meeting->meeting_link,
             'join_url' => route('zoom-meeting.join', $meeting),
             'details_url' => route('zoom-meeting.details', $meeting),
@@ -988,6 +1102,10 @@ class HrMeetingController extends Controller
 
     private function employeeCanAccessMeeting(Employee $employee, HrMeeting $meeting): bool
     {
+        if (! (bool) $employee->is_core_staff) {
+            return false;
+        }
+
         $employee->loadMissing('deployment.position', 'deployment.positions');
 
         return $meeting->participants()

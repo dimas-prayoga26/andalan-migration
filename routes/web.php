@@ -1,11 +1,11 @@
 <?php
 
 use App\Http\Controllers\ActivityScheduleController;
-use App\Http\Controllers\AppNotificationController;
 use App\Http\Controllers\AdminAttendance\AttendanceLeaveController as AdminAttendanceLeaveController;
 use App\Http\Controllers\AdminAttendance\AttendanceOvertimeController as AdminAttendanceOvertimeController;
 use App\Http\Controllers\AdminAttendance\AttendanceOverviewController as AdminAttendanceOverviewController;
 use App\Http\Controllers\AdminAttendance\AttendanceRecapController as AdminAttendanceRecapController;
+use App\Http\Controllers\AppNotificationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuthorizationController;
 use App\Http\Controllers\DashboardController;
@@ -166,6 +166,7 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/zoom-meeting', [HrMeetingController::class, 'staffIndex'])->name('zoom-meeting.index');
         Route::match(['get', 'post'], '/zoom-meeting/{hrMeeting}/join', [HrMeetingController::class, 'staffJoin'])->name('zoom-meeting.join');
         Route::get('/zoom-meeting/{hrMeeting}/details', [HrMeetingController::class, 'staffDetails'])->name('zoom-meeting.details');
+        Route::put('/zoom-meeting/{hrMeeting}/tasks/{hrMeetingTask}', [HrMeetingController::class, 'updateStaffTask'])->name('zoom-meeting.tasks.update');
     });
 
     Route::middleware('position.permission:view-admin-attendance')->group(function (): void {

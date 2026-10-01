@@ -852,13 +852,6 @@ class PicAttendanceOvertimeController extends Controller
             ])
             ->where('assigned_by', trim($assignedByUserId))
             ->whereBetween('overtime_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
-            ->whereHas('employee', function (Builder $query): void {
-                $query
-                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                    ->whereHas('deployment', function (Builder $query): void {
-                        $query->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
-                    });
-            })
             ->with([
                 'employee:id,user_id',
                 'employee.user:id,username,email',
@@ -1145,7 +1138,7 @@ class PicAttendanceOvertimeController extends Controller
         }
 
         $referenceDate = Carbon::now('Asia/Jakarta')->startOfDay();
-        $employeeIds = $this->activeSupervisedEmployeeIdsFor($user, $companyId, $referenceDate);
+        $employeeIds = $this->supervisedEmployeeIdsForHistory($user);
 
         if ($employeeIds->isEmpty()) {
             return collect();
@@ -1394,6 +1387,38 @@ class PicAttendanceOvertimeController extends Controller
                             ->orWhere('resignation_date', '>=', $referenceDate->toDateString());
                     });
             })
+            ->pluck('id')
+            ->map(static fn (string $employeeId): string => trim($employeeId))
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function supervisedEmployeeIdsForHistory(User $user): Collection
+    {
+        $supervisorEmployeeId = $this->currentEmployeeIdFor($user);
+
+        if ($supervisorEmployeeId === null) {
+            return collect();
+        }
+
+        $assignedStaffIds = DB::table('employee_pic_assignments')
+            ->where('supervisor_employee_id', $supervisorEmployeeId)
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->pluck('staff_employee_id')
+            ->filter(static fn (mixed $employeeId): bool => is_string($employeeId) && trim($employeeId) !== '')
+            ->map(static fn (string $employeeId): string => trim($employeeId))
+            ->values();
+
+        if ($assignedStaffIds->isEmpty()) {
+            return collect();
+        }
+
+        return Employee::query()
+            ->whereIn('id', $assignedStaffIds)
+            ->whereNull('deleted_at')
             ->pluck('id')
             ->map(static fn (string $employeeId): string => trim($employeeId))
             ->values();

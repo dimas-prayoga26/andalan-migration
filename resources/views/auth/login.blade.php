@@ -107,11 +107,6 @@
 							</a>
 						</div>
 						<h4 class="text-center mb-4">Sign in your account</h4>
-						@if ($errors->any())
-							<div class="alert alert-danger">
-								{{ $errors->first() }}
-							</div>
-						@endif
 						<form id="login-form" action="{{ route('login.store') }}" method="POST">
 							@csrf
 							<div class="form-group mb-3">
@@ -187,6 +182,17 @@
 
 			if (typeof Swal === 'undefined') {
 				return;
+			}
+
+			const serverLoginError = @json($errors->first());
+
+			if (serverLoginError) {
+				Swal.fire({
+					icon: 'error',
+					title: 'Login Gagal',
+					text: serverLoginError,
+					confirmButtonText: 'Coba Lagi',
+				});
 			}
 
 			loginForm.addEventListener('submit', async function (event) {

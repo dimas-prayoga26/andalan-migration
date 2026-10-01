@@ -83,9 +83,7 @@
                 <p class="text-center text-muted mb-4">Masukkan email yang sudah terdaftar.</p>
 
                 @if ($errors->any())
-                    <div class="alert alert-danger">
-                        {{ $errors->first() }}
-                    </div>
+                    @include('partials.swal-alert', ['type' => 'error', 'message' => $errors->first()])
                 @endif
 
                 <form method="POST" action="{{ route('applicant.email.check') }}">
@@ -102,9 +100,7 @@
                 <p class="text-center fw-semibold text-break mb-4">{{ $pendingEmail }}</p>
 
                 @if ($errors->any())
-                    <div class="alert alert-danger">
-                        {{ $errors->first() }}
-                    </div>
+                    @include('partials.swal-alert', ['type' => 'error', 'message' => $errors->first()])
                 @endif
 
                 <form method="POST" action="{{ route('applicant.email.login') }}">

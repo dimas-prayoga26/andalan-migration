@@ -230,9 +230,7 @@
             @endif
         </div>
     </div>
-    @if (session('status'))
-        <div class="alert alert-success mx-4 mb-3">{{ session('status') }}</div>
-    @endif
+    @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
     <div class="card-body table-card-body p-0">
         <div class="table-responsive">
             <table id="authorizationEmployeeTable" class="table table-sm mb-0 table-bottom-borderless table-striped align-middle">

@@ -31,12 +31,14 @@ class Employee extends Model
 
     protected $attributes = [
         'is_event_project_admin' => false,
+        'is_core_staff' => false,
     ];
 
     protected function casts(): array
     {
         return [
             'is_event_project_admin' => 'boolean',
+            'is_core_staff' => 'boolean',
         ];
     }
 

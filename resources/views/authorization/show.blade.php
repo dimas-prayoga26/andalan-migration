@@ -34,9 +34,7 @@
         </div>
     </div>
     <div class="card-body">
-        @if (session('status'))
-            <div class="alert alert-success mb-4" role="alert">{{ session('status') }}</div>
-        @endif
+        @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
 
         <div class="row g-4">
             <div class="col-lg-4">
@@ -48,6 +46,10 @@
                 <p class="mb-1">
                     <span class="text-muted">Event Project Admin:</span>
                     {{ $employee->is_event_project_admin ? 'Yes' : 'No' }}
+                </p>
+                <p class="mb-1">
+                    <span class="text-muted">Core Staff:</span>
+                    {{ $employee->is_core_staff ? 'Yes' : 'No' }}
                 </p>
             </div>
             <div class="col-lg-4">

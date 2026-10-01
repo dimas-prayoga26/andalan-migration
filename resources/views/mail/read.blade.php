@@ -101,16 +101,10 @@
                             </a>
                         </div>
                     </div>
-                    @if (session('mail_status'))
-                        <div class="alert alert-success mx-3">{{ session('mail_status') }}</div>
-                    @endif
+                    @include('partials.swal-alert', ['type' => 'success', 'message' => session('mail_status')])
 
                     @if ($errors->any())
-                        <div class="alert alert-danger mx-3">
-                            @foreach ($errors->all() as $error)
-                                <div>{{ $error }}</div>
-                            @endforeach
-                        </div>
+                        @include('partials.swal-alert', ['type' => 'error', 'message' => implode("\n", $errors->all())])
                     @endif
 
                     <div class="right-box-padding p-0">
@@ -137,7 +131,7 @@
                                 </div>
                                 <div class="read-content-body">
                                     @if ($readError)
-                                        <div class="alert alert-warning">{{ $readError }}</div>
+                                        @include('partials.swal-alert', ['type' => 'warning', 'message' => $readError])
                                     @elseif ($message)
                                         <div class="lh-lg">{!! nl2br(e($message['body'])) !!}</div>
                                     @endif

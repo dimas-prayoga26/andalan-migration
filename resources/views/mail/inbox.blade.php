@@ -154,7 +154,7 @@
                             <div class="email-list mail-list-clean dz-scroll" id="emails">
                                 @if ($inboxError)
                                     <div class="p-4">
-                                        <div class="alert alert-warning mb-0">{{ $inboxError }}</div>
+                                        @include('partials.swal-alert', ['type' => 'warning', 'message' => $inboxError])
                                     </div>
                                 @endif
 

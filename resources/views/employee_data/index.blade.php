@@ -350,9 +350,7 @@
                                 <button type="button" class="btn btn-outline-secondary btn-sm">Search</button>
                             </div>
                         </div>
-                        @if (session('status'))
-                            <div class="alert alert-success mb-3">{{ session('status') }}</div>
-                        @endif
+                        @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
                         <div class="table-responsive">
                             <table id="myTable" class="display table">
                                 <thead>

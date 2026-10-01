@@ -42,15 +42,11 @@
     </div>
     <div class="card-body">
         @if (session('success'))
-            <div class="alert alert-success">
-                {{ session('success') }}
-            </div>
+            @include('partials.swal-alert', ['type' => 'success', 'message' => session('success')])
         @endif
 
         @if ($errors->any())
-            <div class="alert alert-danger">
-                {{ $errors->first() }}
-            </div>
+            @include('partials.swal-alert', ['type' => 'error', 'message' => $errors->first()])
         @endif
 
         <form method="POST" action="{{ route('attendance.business-trips.store') }}">

@@ -90,6 +90,7 @@ class AuthorizationController extends Controller
                 'employee_code' => $this->generateEmployeeCode($user),
                 'status' => $validated['employee_status'],
                 'is_event_project_admin' => (bool) $validated['is_event_project_admin'],
+                'is_core_staff' => (bool) $validated['is_core_staff'],
             ]);
 
             $this->syncDataEmployeeRelations($employee, $validated);
@@ -149,6 +150,7 @@ class AuthorizationController extends Controller
             $employee->update([
                 'status' => $validated['employee_status'],
                 'is_event_project_admin' => (bool) $validated['is_event_project_admin'],
+                'is_core_staff' => (bool) $validated['is_core_staff'],
             ]);
 
             $this->syncDataEmployeeRelations($employee, $validated);
@@ -806,15 +808,15 @@ class AuthorizationController extends Controller
         $request->merge([
             'is_active' => $request->boolean('is_active'),
             'is_event_project_admin' => $request->boolean('is_event_project_admin'),
+            'is_core_staff' => $request->boolean('is_core_staff'),
             'date_of_birth' => $this->normalizeDateInput($request->input('date_of_birth')),
-            'employee_status' => 'Active',
-            'join_date' => $this->normalizeDateInput($request->input('join_date')),
-            'resignation_date' => $this->normalizeDateInput($request->input('resignation_date')),
+            'employee_status' => $request->boolean('is_active') ? 'Active' : 'Inactive',
         ]);
 
         return $request->validate([
             'is_active' => ['required', 'boolean'],
             'is_event_project_admin' => ['required', 'boolean'],
+            'is_core_staff' => ['required', 'boolean'],
             'employee_status' => ['required', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
             'nickname' => ['nullable', 'string', 'max:255'],
@@ -844,8 +846,6 @@ class AuthorizationController extends Controller
             'current_position_ids.*' => ['string', 'exists:positions,id'],
             'current_position_order' => ['array'],
             'current_position_order.*' => ['string', 'exists:positions,id'],
-            'join_date' => ['nullable', 'date'],
-            'resignation_date' => ['nullable', 'date', 'after_or_equal:join_date'],
             'pic_employee_id' => ['nullable', 'string', 'exists:employees,id'],
         ]);
     }
@@ -923,10 +923,10 @@ class AuthorizationController extends Controller
         EmployeeIdentity::query()->updateOrCreate(
             ['employee_id' => $employee->id],
             [
-                'nik' => $validated['nik'] ?? null,
-                'npwp' => $validated['npwp'] ?? null,
-                'bpjs_ketenagakerjaan' => $validated['bpjs_ketenagakerjaan'] ?? null,
-                'bpjs_kesehatan' => $validated['bpjs_kesehatan'] ?? null,
+                'nik' => $this->nullableStringValue($validated['nik'] ?? null),
+                'npwp' => $this->nullableStringValue($validated['npwp'] ?? null),
+                'bpjs_ketenagakerjaan' => $this->nullableStringValue($validated['bpjs_ketenagakerjaan'] ?? null),
+                'bpjs_kesehatan' => $this->nullableStringValue($validated['bpjs_kesehatan'] ?? null),
             ]
         );
 
@@ -963,8 +963,8 @@ class AuthorizationController extends Controller
                 'current_office_location_id' => $officeLocation?->id,
                 'current_department_id' => $validated['current_department_id'] ?? null,
                 'current_position_id' => $primaryPositionId,
-                'join_date' => $validated['join_date'] ?? null,
-                'resignation_date' => $validated['resignation_date'] ?? null,
+                'join_date' => $this->employeeJoinDate($employee),
+                'resignation_date' => $this->employeeResignationDate($employee, (bool) $validated['is_active']),
                 'workplace' => $workplace,
                 'status' => $validated['employee_status'],
             ]
@@ -974,11 +974,41 @@ class AuthorizationController extends Controller
             $deployment,
             $positionIds,
             $primaryPositionId,
-            $validated['join_date'] ?? null,
-            $validated['resignation_date'] ?? null,
+            $this->employeeJoinDate($employee),
+            $this->employeeResignationDate($employee, (bool) $validated['is_active']),
         );
 
         $this->syncPicAssignment($employee, $validated['pic_employee_id'] ?? null);
+    }
+
+    private function employeeJoinDate(Employee $employee): string
+    {
+        $existingJoinDate = $employee->deployment?->join_date;
+
+        if ($existingJoinDate !== null) {
+            return Carbon::parse($existingJoinDate)->toDateString();
+        }
+
+        if ($employee->created_at !== null) {
+            return Carbon::parse($employee->created_at)->timezone('Asia/Jakarta')->toDateString();
+        }
+
+        return now('Asia/Jakarta')->toDateString();
+    }
+
+    private function employeeResignationDate(Employee $employee, bool $isActive): ?string
+    {
+        if ($isActive) {
+            return null;
+        }
+
+        $existingResignationDate = $employee->deployment?->resignation_date;
+
+        if ($existingResignationDate !== null) {
+            return Carbon::parse($existingResignationDate)->toDateString();
+        }
+
+        return now('Asia/Jakarta')->toDateString();
     }
 
     /**

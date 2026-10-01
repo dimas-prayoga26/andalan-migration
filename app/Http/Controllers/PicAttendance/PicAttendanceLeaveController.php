@@ -30,15 +30,18 @@ class PicAttendanceLeaveController extends Controller
     public function index(Request $request): View
     {
         $selectedPeriod = $this->selectedPeriodFor($request);
+        $selectedCardPeriod = $this->selectedPeriodFor($request, 'card_month', 'card_year', $selectedPeriod);
 
         return view('pic_attendance.leave.index', [
             'leaveOverviewStats' => $this->leaveOverviewStatsFor($request),
-            'leavePendingCards' => $this->pendingLeaveCardsFor($request),
+            'leavePendingCards' => $this->pendingLeaveCardsFor($request, $selectedCardPeriod),
             'leaveGridPositionGroups' => $this->leaveGridPositionGroupsFor($request, $selectedPeriod),
             'leaveSelectedMonth' => $selectedPeriod['month'],
             'leaveSelectedYear' => $selectedPeriod['year'],
+            'leaveCardSelectedMonth' => $selectedCardPeriod['month'],
+            'leaveCardSelectedYear' => $selectedCardPeriod['year'],
             'leaveMonthOptions' => $this->leaveMonthOptions($selectedPeriod['year']),
-            'leaveYearOptions' => $this->leaveYearOptions($selectedPeriod['year']),
+            'leaveYearOptions' => $this->leaveYearOptions(min($selectedPeriod['year'], $selectedCardPeriod['year'])),
         ]);
     }
 
@@ -290,7 +293,6 @@ class PicAttendanceLeaveController extends Controller
             return collect();
         }
 
-        $todayDate = $date->toDateString();
         $supervisedEmployeeIds = DB::table('employee_pic_assignments')
             ->where('supervisor_employee_id', $this->supervisorEmployeeId)
             ->where('is_active', true)
@@ -308,25 +310,6 @@ class PicAttendanceLeaveController extends Controller
         return Employee::query()
             ->whereIn('id', $supervisedEmployeeIds)
             ->whereNull('deleted_at')
-            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-            ->whereHas('user', function (Builder $query): void {
-                $query->where('is_active', true);
-            })
-            ->whereHas('deployment', function (Builder $query) use ($todayDate): void {
-                $query
-                    ->whereNull('deleted_at')
-                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                    ->where(function (Builder $query) use ($todayDate): void {
-                        $query
-                            ->whereNull('join_date')
-                            ->orWhereDate('join_date', '<=', $todayDate);
-                    })
-                    ->where(function (Builder $query) use ($todayDate): void {
-                        $query
-                            ->whereNull('resignation_date')
-                            ->orWhereDate('resignation_date', '>=', $todayDate);
-                    });
-            })
             ->pluck('id')
             ->filter(static fn (mixed $employeeId): bool => is_string($employeeId) && trim($employeeId) !== '')
             ->values();
@@ -374,7 +357,7 @@ class PicAttendanceLeaveController extends Controller
      *     detail_url:string
      * }>
      */
-    private function pendingLeaveCardsFor(Request $request): Collection
+    private function pendingLeaveCardsFor(Request $request, array $selectedPeriod): Collection
     {
         $now = now('Asia/Jakarta')->startOfDay();
         $authenticatedUser = $request->user();
@@ -385,6 +368,9 @@ class PicAttendanceLeaveController extends Controller
         if ($activeEmployeeIds->isEmpty()) {
             return collect();
         }
+
+        $periodStart = Carbon::create($selectedPeriod['year'], $selectedPeriod['month'], 1, 0, 0, 0, 'Asia/Jakarta')->startOfDay();
+        $periodEnd = $periodStart->copy()->endOfMonth()->startOfDay();
 
         return $this->applyPendingSupervisorReviewFilter(
             $this->baseLeaveRequestQuery($activeEmployeeIds)
@@ -401,6 +387,8 @@ class PicAttendanceLeaveController extends Controller
                             ->oldest('happened_at');
                     },
                 ])
+                ->whereDate('start_date', '<=', $periodEnd->toDateString())
+                ->whereDate('end_date', '>=', $periodStart->toDateString())
                 ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['pending'])
         )
             ->orderBy('start_date')
@@ -640,15 +628,15 @@ class PicAttendanceLeaveController extends Controller
     /**
      * @return array{month: int, year: int}
      */
-    private function selectedPeriodFor(Request $request): array
+    private function selectedPeriodFor(Request $request, string $monthKey = 'month', string $yearKey = 'year', ?array $fallbackPeriod = null): array
     {
         $now = now('Asia/Jakarta')->startOfDay();
-        $selectedYear = $request->integer('year', (int) $now->year);
+        $selectedYear = $request->integer($yearKey, (int) ($fallbackPeriod['year'] ?? $now->year));
         $selectedYear = $selectedYear >= 2000 && $selectedYear <= (int) $now->year
             ? $selectedYear
-            : (int) $now->year;
-        $selectedMonth = $request->integer('month', (int) $now->month);
-        $selectedMonth = $selectedMonth >= 1 && $selectedMonth <= 12 ? $selectedMonth : (int) $now->month;
+            : (int) ($fallbackPeriod['year'] ?? $now->year);
+        $selectedMonth = $request->integer($monthKey, (int) ($fallbackPeriod['month'] ?? $now->month));
+        $selectedMonth = $selectedMonth >= 1 && $selectedMonth <= 12 ? $selectedMonth : (int) ($fallbackPeriod['month'] ?? $now->month);
 
         return [
             'month' => $selectedMonth,

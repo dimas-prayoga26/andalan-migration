@@ -233,6 +233,28 @@
         </div>
     </div>
     <div id="project-list-card-pane" class="row g-4 mt-1">
+        <div class="col-12">
+            <div class="d-flex justify-content-end mb-3 pic-leave-card-filter">
+                <form class="clearfix d-flex align-items-center" method="GET" action="{{ url()->current() }}">
+                    <input type="hidden" name="month" value="{{ $leaveSelectedMonth }}">
+                    <input type="hidden" name="year" value="{{ $leaveSelectedYear }}">
+                    <div class="clearfix me-1">
+                        <select name="card_month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                            @foreach (($leaveMonthOptions ?? []) as $month)
+                                <option value="{{ $month['value'] }}" @selected($month['value'] === $leaveCardSelectedMonth)>{{ $month['label'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="clearfix">
+                        <select name="card_year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                            @foreach (($leaveYearOptions ?? []) as $year)
+                                <option value="{{ $year }}" @selected($year === $leaveCardSelectedYear)>{{ $year }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </form>
+            </div>
+        </div>
         @forelse ($leavePendingCards as $leavePendingCard)
             <div class="col-xxl-3 col-xl-4 col-md-6">
                 <div class="card h-100">

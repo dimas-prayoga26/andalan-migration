@@ -486,10 +486,10 @@
             </div>
             <div class="card-body">
                 @if (session('status'))
-                    <div class="alert alert-success mb-3" role="alert">{{ session('status') }}</div>
+                    @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
                 @endif
                 @if ($errors->any())
-                    <div class="alert alert-danger mb-3" role="alert">{{ $errors->first() }}</div>
+                    @include('partials.swal-alert', ['type' => 'error', 'message' => $errors->first()])
                 @endif
                 @include('settings.partials.delete-confirmation-swal')
 

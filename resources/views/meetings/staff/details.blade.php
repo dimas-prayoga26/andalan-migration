@@ -184,6 +184,14 @@
     </nav>
 </div>
 
+@if (session('status'))
+    @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
+@endif
+
+@if ($errors->any())
+    @include('partials.swal-alert', ['type' => 'error', 'message' => $errors->first()])
+@endif
+
 <div class="row">
     <div class="col-xl-4 col-lg-6">
         <div class="card meeting-soft-card h-100">
@@ -328,6 +336,17 @@
     @include('meetings.admin.partials.task-cards', [
         'showTaskSummary' => false,
         'showAddTask' => false,
+        'showTaskActions' => true,
+        'showTaskDeleteActions' => false,
+        'allowTaskAssigneeEdit' => false,
+        'useFullTaskEditTemplate' => true,
     ])
 </div>
+@endsection
+
+@section('script')
+    @include('meetings.admin.partials.task-create-modal-script', [
+        'showAddTask' => false,
+        'showCreateTaskModal' => false,
+    ])
 @endsection

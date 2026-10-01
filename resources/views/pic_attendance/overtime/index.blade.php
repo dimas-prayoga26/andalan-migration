@@ -451,7 +451,9 @@
                 </div>
             @empty
                 <div class="col-12">
-                    <p class="text-muted mb-0">No overtime card data available for this period.</p>
+                    <div class="card">
+                        <div class="card-body text-center text-muted py-4">No overtime card data available for this period.</div>
+                    </div>
                 </div>
             @endforelse
         </div>
@@ -562,13 +564,7 @@
                 </div>
                 <div class="modal-body">
                     @if ($picOvertimeErrors->any())
-                        <div class="alert alert-danger">
-                            <ul class="mb-0 ps-3">
-                                @foreach ($picOvertimeErrors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
+                        @include('partials.swal-alert', ['type' => 'error', 'message' => implode("\n", $picOvertimeErrors->all())])
                     @endif
 
                     <div class="mb-3">

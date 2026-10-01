@@ -1,3 +1,4 @@
+@if ($showCreateTaskModal ?? ($showAddTask ?? true))
 <div class="modal fade" id="create" tabindex="-1" aria-labelledby="createMeetingTaskLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -38,6 +39,7 @@
         </div>
     </div>
 </div>
+@endif
 
 <script>
     $(function () {
@@ -80,6 +82,18 @@
                 }));
         }
 
+        function renderTaskAttachmentLink(task) {
+            var attachmentValue = nullableTaskValue(task.attachment_path);
+
+            if (attachmentValue === '') {
+                return '';
+            }
+
+            return ' <a href="' + escapeAttribute(attachmentValue) + '" target="_blank" rel="noopener noreferrer" class="small text-primary fw-semibold" title="' + escapeAttribute(attachmentValue) + '" aria-label="Open attachment">'
+                + '<i class="fa fa-paperclip me-1" aria-hidden="true"></i>Attachment'
+                + '</a>';
+        }
+
         function escapeAttribute(value) {
             return escapeHtml(value).replace(/'/g, '&#039;');
         }
@@ -89,13 +103,20 @@
         }
 
         function renderTaskActions(task) {
+            var updateAction = task.can_update !== false
+                ? '<button type="button" class="dropdown-item js-meeting-task-edit" data-bs-toggle="modal" data-bs-target="#meetingTaskEditModal" data-task=\'' + taskPayload(task) + '\'>Update</button>'
+                : '';
+            var deleteAction = task.can_delete !== false
+                ? '<button type="button" class="dropdown-item text-danger js-meeting-task-delete" data-bs-toggle="modal" data-bs-target="#meetingTaskDeleteModal" data-task=\'' + taskPayload(task) + '\'>Delete</button>'
+                : '';
+
             return ''
                 + '<div class="dropdown">'
                 + '<button type="button" class="btn btn-sm btn-light btn-square" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Task actions"><i class="bi bi-grid"></i></button>'
                 + '<div class="dropdown-menu dropdown-menu-end">'
                 + '<button type="button" class="dropdown-item js-meeting-task-detail" data-bs-toggle="modal" data-bs-target="#meetingTaskDetailModal" data-task=\'' + taskPayload(task) + '\'>View More</button>'
-                + '<button type="button" class="dropdown-item js-meeting-task-edit" data-bs-toggle="modal" data-bs-target="#meetingTaskEditModal" data-task=\'' + taskPayload(task) + '\'>Update</button>'
-                + '<button type="button" class="dropdown-item text-danger js-meeting-task-delete" data-bs-toggle="modal" data-bs-target="#meetingTaskDeleteModal" data-task=\'' + taskPayload(task) + '\'>Delete</button>'
+                + updateAction
+                + deleteAction
                 + '</div>'
                 + '</div>';
         }
@@ -108,7 +129,7 @@
                 + '<div class="d-flex align-items-center py-2">'
                 + '<div class="timeline-vr-badge ' + lineClass + ' me-2"></div>'
                 + '<div class="clearfix ms-2">'
-                + '<h6 class="fs-13 mb-0 fw-semibold">' + escapeHtml(task.title || '-') + '</h6>'
+                + '<h6 class="fs-13 mb-0 fw-semibold d-flex align-items-center flex-wrap gap-1"><span>' + escapeHtml(task.title || '-') + '</span>' + renderTaskAttachmentLink(task) + '</h6>'
                 + '<span class="small">' + escapeHtml(statusText) + ' by <span class="text-primary">' + escapeHtml(task.assignee || '-') + '</span></span>'
                 + '</div>'
                 + '<div class="clearfix ms-auto">'
@@ -203,7 +224,7 @@
             $('#meetingTaskDetailCategoryDescription').text(nullableTaskText(task.task_category_description));
             $('#meetingTaskDetailAssignedBy').text('@' + (nullableTaskValue(task.assigned_by) || 'self'));
             $('#meetingTaskDetailStatus')
-                .removeClass('text-danger text-success text-warning')
+                .removeClass('text-danger text-success text-warning text-primary')
                 .addClass(task.status_class || 'text-warning')
                 .text(nullableTaskValue(task.status_label) || 'To Do');
             renderTaskAttachment('#meetingTaskDetailAttachment', task.attachment_path);
@@ -218,9 +239,16 @@
 
             $('#meetingTaskEditForm').attr('action', task.update_url || '#');
             $('#meetingTaskEditCategory').val(task.category || '');
+            $('#meetingTaskEditCategoryLabel').val(task.task_category_label || '');
             $('#meetingTaskEditTitle').val(task.title || '');
+            $('#meetingTaskEditDescription').val(task.description || '');
             $('#meetingTaskEditAssignee').val(task.assignee_id || '');
+            $('#meetingTaskEditAssigneeHidden').val(task.assignee_id || '');
+            $('#meetingTaskEditPriority').val(task.priority || 'medium');
             $('#meetingTaskEditStatus').val(task.status || 'pending');
+            $('#meetingTaskEditAttachment').val(task.attachment_path || '');
+            $('#meetingTaskEditBlockers').val(task.blockers || '');
+            $('#meetingTaskEditProjectName').val(task.project_name || 'Pilih Nama Project');
             $('#meetingTaskEditStartDate').val(startDate);
             $('#meetingTaskEditDueDate').val(dueDate);
 

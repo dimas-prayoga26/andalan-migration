@@ -64,6 +64,7 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('$selectedPendingMonth', $picView);
         $this->assertStringContainsString('$selectedApprovedMonth', $picView);
         $this->assertStringContainsString('pic-overtime-card-filter', $picView);
+        $this->assertStringContainsString('<div class="card-body text-center text-muted py-4">No overtime card data available for this period.</div>', $picView);
         $this->assertStringContainsString('overtime-summary-metrics mb-3', $picView);
         $this->assertStringContainsString('@foreach (($overtimeMetricCards ?? []) as $summaryCard)', $picView);
         $this->assertStringContainsString('overtime-summary-card {{ $summaryCard[\'background_class\'] ?? \'bg-light-subtle\' }}', $picView);

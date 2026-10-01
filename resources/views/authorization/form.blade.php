@@ -39,19 +39,28 @@
                     <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" @checked(old('is_active', $employee?->user?->is_active ?? true))>
                     <label class="form-check-label fw-semibold" for="is_active">Employee Status</label>
                 </div>
+                <input type="hidden" name="is_event_project_admin" value="0">
+                @if ($isEdit)
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="is_event_project_admin" name="is_event_project_admin" value="1" @checked(old('is_event_project_admin', $employee?->is_event_project_admin ?? false))>
+                        <label class="form-check-label fw-semibold" for="is_event_project_admin">Event Project Admin</label>
+                    </div>
+                @endif
                 <div class="form-check form-switch mb-0">
-                    <input type="hidden" name="is_event_project_admin" value="0">
-                    <input class="form-check-input" type="checkbox" role="switch" id="is_event_project_admin" name="is_event_project_admin" value="1" @checked(old('is_event_project_admin', $employee?->is_event_project_admin ?? false))>
-                    <label class="form-check-label fw-semibold" for="is_event_project_admin">Event Project Admin</label>
+                    <input type="hidden" name="is_core_staff" value="0">
+                    <input class="form-check-input" type="checkbox" role="switch" id="is_core_staff" name="is_core_staff" value="1" @checked(old('is_core_staff', $employee?->is_core_staff ?? false))>
+                    <label class="form-check-label fw-semibold" for="is_core_staff">Core Staff</label>
                 </div>
             </div>
         </div>
 
         <div class="card-body">
             @if ($errors->any())
-                <div class="alert alert-danger">
-                    <strong>The data is not valid.</strong> Please check the required fields again.
-                </div>
+                @include('partials.swal-alert', [
+                    'type' => 'error',
+                    'title' => 'The data is not valid.',
+                    'message' => 'Please check the required fields again.',
+                ])
             @endif
 
             @if (! $isEdit)
@@ -63,31 +72,31 @@
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">Full Name</label>
-                    <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $employee?->profile?->name) }}" required>
+                    <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $employee?->profile?->name) }}" placeholder="Enter full name" required>
                     @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Nickname</label>
-                    <input type="text" name="nickname" class="form-control" value="{{ old('nickname', $employee?->profile?->nickname) }}">
+                    <input type="text" name="nickname" class="form-control" value="{{ old('nickname', $employee?->profile?->nickname) }}" placeholder="Enter nickname">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $employee?->user?->email) }}" required>
+                    <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $employee?->user?->email) }}" placeholder="name@example.com" required>
                     @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Phone Number</label>
-                    <input type="text" name="phone" class="form-control" value="{{ old('phone', $employee?->user?->phone) }}">
+                    <input type="text" name="phone" class="form-control" value="{{ old('phone', $employee?->user?->phone) }}" placeholder="Enter phone number">
                 </div>
 
                 <div class="col-md-3">
                     <label class="form-label">Username</label>
-                    <input type="text" name="username" class="form-control @error('username') is-invalid @enderror" value="{{ old('username', $employee?->user?->username) }}" required>
+                    <input type="text" name="username" class="form-control @error('username') is-invalid @enderror" value="{{ old('username', $employee?->user?->username) }}" placeholder="Enter username" required>
                     @error('username')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Place of Birth</label>
-                    <input type="text" name="place_of_birth" class="form-control" value="{{ old('place_of_birth', $employee?->profile?->place_of_birth) }}">
+                    <input type="text" name="place_of_birth" class="form-control" value="{{ old('place_of_birth', $employee?->profile?->place_of_birth) }}" placeholder="Enter place of birth">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Date of Birth</label>
@@ -96,20 +105,20 @@
 
                 <div class="col-md-3">
                     <label class="form-label">ID Number / NIK</label>
-                    <input type="text" name="nik" class="form-control" value="{{ old('nik', $employee?->identity?->nik) }}">
+                    <input type="text" name="nik" class="form-control" value="{{ old('nik', $employee?->identity?->nik) }}" placeholder="Enter ID number">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">NPWP</label>
-                    <input type="text" name="npwp" class="form-control" value="{{ old('npwp', $employee?->identity?->npwp) }}">
+                    <label class="form-label">NPWP <span class="text-muted fw-normal">(opsional)</span></label>
+                    <input type="text" name="npwp" class="form-control" value="{{ old('npwp', $employee?->identity?->npwp) }}" placeholder="Contoh: 12.345.678.9-012.345">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Healthcare BPJS</label>
-                    <input type="text" name="bpjs_kesehatan" class="form-control" value="{{ old('bpjs_kesehatan', $employee?->identity?->bpjs_kesehatan) }}">
+                    <label class="form-label">Healthcare BPJS <span class="text-muted fw-normal">(opsional)</span></label>
+                    <input type="text" name="bpjs_kesehatan" class="form-control" value="{{ old('bpjs_kesehatan', $employee?->identity?->bpjs_kesehatan) }}" placeholder="Contoh: 0001234567890">
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">Employment BPJS</label>
-                    <input type="text" name="bpjs_ketenagakerjaan" class="form-control" value="{{ old('bpjs_ketenagakerjaan', $employee?->identity?->bpjs_ketenagakerjaan) }}">
+                    <label class="form-label">Employment BPJS <span class="text-muted fw-normal">(opsional)</span></label>
+                    <input type="text" name="bpjs_ketenagakerjaan" class="form-control" value="{{ old('bpjs_ketenagakerjaan', $employee?->identity?->bpjs_ketenagakerjaan) }}" placeholder="Contoh: 12345678901">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Gender</label>
@@ -129,8 +138,6 @@
                         @endforeach
                     </select>
                 </div>
-                <input type="hidden" name="employee_status" value="Active">
-
                 <div class="col-md-3">
                     <label class="form-label">Company</label>
                     <select id="dataEmployeeCompany" name="current_company_id" class="default-select form-control">
@@ -192,15 +199,6 @@
                             </option>
                         @endforeach
                     </select>
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label">Start Contract</label>
-                    <input type="text" name="join_date" class="form-control js-data-employee-date" value="{{ old('join_date', $formatDate($employee?->deployment?->join_date)) }}" placeholder="dd/mm/yyyy" autocomplete="off">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">End Contract</label>
-                    <input type="text" name="resignation_date" class="form-control js-data-employee-date" value="{{ old('resignation_date', $formatDate($employee?->deployment?->resignation_date)) }}" placeholder="dd/mm/yyyy" autocomplete="off">
                 </div>
             </div>
         </div>

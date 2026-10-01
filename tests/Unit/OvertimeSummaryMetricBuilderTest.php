@@ -61,7 +61,7 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
         $this->assertSame('2 request', $summary['supervisor_approved_label']);
         $this->assertSame('1 request', $summary['director_approved_label']);
         $this->assertSame('6 hours', $summary['total_hours_label']);
-        $this->assertSame('', $summary['estimated_cost_label']);
+        $this->assertSame('-', $summary['estimated_cost_label']);
         $this->assertSame('3 hours', $summary['median_hours_label']);
         $this->assertSame('3 hours', $summary['average_hours_label']);
         $this->assertSame('rico.username', $summary['top_overtime_label']);
@@ -75,7 +75,7 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
             'supervisor_approved_label' => '3 request',
             'director_approved_label' => '2 request',
             'total_hours_label' => '0h 21m',
-            'estimated_cost_label' => '',
+            'estimated_cost_label' => '-',
             'median_hours_label' => '0h 21m',
             'average_hours_label' => '0h 21m',
             'top_overtime_label' => 'Dimas',
@@ -91,7 +91,9 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
         ], $metricCards[0]);
         $this->assertSame('bg-success-subtle', $metricCards[1]['background_class']);
         $this->assertSame('bg-danger-subtle', $metricCards[3]['background_class']);
-        $this->assertSame('Rp. 12 Jt', $metricCards[4]['value']);
+        $this->assertSame('-', $metricCards[4]['value']);
+        $this->assertSame('bg-dark-subtle', $metricCards[4]['background_class']);
+        $this->assertSame('text-black', $metricCards[4]['text_class']);
         $this->assertSame('bg-secondary-subtle', $metricCards[7]['background_class']);
         $this->assertSame('bg-light-subtle', $metricCards[8]['background_class']);
     }

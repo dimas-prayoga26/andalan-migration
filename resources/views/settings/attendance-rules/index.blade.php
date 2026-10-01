@@ -144,13 +144,9 @@
         </div>
     </div>
 
-    @if (session('status'))
-        <div class="alert alert-success mx-4 mb-3">{{ session('status') }}</div>
-    @endif
+    @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
 
-    @if (session('error'))
-        <div class="alert alert-danger mx-4 mb-3">{{ session('error') }}</div>
-    @endif
+    @include('partials.swal-alert', ['type' => 'error', 'message' => session('error')])
 
     <div class="card-body table-card-body p-0">
         <div class="table-responsive">

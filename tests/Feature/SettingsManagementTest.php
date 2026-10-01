@@ -131,7 +131,7 @@ class SettingsManagementTest extends TestCase
         $this->assertStringContainsString('delete-confirmation-swal', $attendanceRuleIndexView);
         $this->assertStringContainsString("{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}", $deleteConfirmationSwal);
         $this->assertStringContainsString('Swal.fire({', $deleteConfirmationSwal);
-        $this->assertStringContainsString("confirmButtonText: 'Delete'", $deleteConfirmationSwal);
+        $this->assertStringContainsString("form.dataset.deleteConfirmButton || 'Delete'", $deleteConfirmationSwal);
         $this->assertStringNotContainsString('window.bootstrap.Modal', $deleteConfirmationSwal);
     }
 }

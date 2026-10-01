@@ -69,7 +69,13 @@
                         </span>
                         <span>
                             <i class="bi bi-check2-circle me-1"></i>
-                            {{ $meeting['task_count'] }} {{ (int) $meeting['task_count'] === 1 ? 'Task' : 'Tasks' }}
+                            {{ $meeting['task_count'] }} Task
+                            @if ($meeting['task_attachment_url'] ?? false)
+                                <span class="mx-1 text-muted">|</span>
+                                <a href="{{ $meeting['task_attachment_url'] }}" target="_blank" rel="noopener noreferrer" class="text-primary fw-semibold" title="{{ $meeting['task_attachment_url'] }}" aria-label="Open task attachment">
+                                    <i class="fa fa-paperclip me-1" aria-hidden="true"></i>Attachment
+                                </a>
+                            @endif
                         </span>
                     </div>
                 </div>
@@ -127,7 +133,13 @@
                         </span>
                         <span>
                             <i class="bi bi-check2-circle me-1"></i>
-                            {{ $meeting['task_count'] }} {{ (int) $meeting['task_count'] === 1 ? 'Task' : 'Tasks' }}
+                            {{ $meeting['task_count'] }} Task
+                            @if ($meeting['task_attachment_url'] ?? false)
+                                <span class="mx-1 text-muted">|</span>
+                                <a href="{{ $meeting['task_attachment_url'] }}" target="_blank" rel="noopener noreferrer" class="text-primary fw-semibold" title="{{ $meeting['task_attachment_url'] }}" aria-label="Open task attachment">
+                                    <i class="fa fa-paperclip me-1" aria-hidden="true"></i>Attachment
+                                </a>
+                            @endif
                         </span>
                     </div>
                 </div>

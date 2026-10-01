@@ -136,12 +136,10 @@
         </button>
     </div>
     <div class="card-body pt-0">
-        @if (session('status'))
-            <div class="alert alert-success">{{ session('status') }}</div>
-        @endif
+        @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
 
         @if ($errors->any())
-            <div class="alert alert-danger">Periksa kembali position yang dipilih.</div>
+            @include('partials.swal-alert', ['type' => 'error', 'message' => 'Periksa kembali position yang dipilih.'])
         @endif
 
         <form id="authorizationAccessForm" action="{{ route('authorization.position-permissions.update') }}" method="POST">

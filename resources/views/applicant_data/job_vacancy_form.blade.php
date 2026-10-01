@@ -134,7 +134,7 @@
             </div>
             <div class="card-body">
                 @if ($errors->any())
-                    <div class="alert alert-danger mb-3" role="alert">{{ $errors->first() }}</div>
+                    @include('partials.swal-alert', ['type' => 'error', 'message' => $errors->first()])
                 @endif
 
                 <div class="job-vacancy-form-grid mb-4">
@@ -181,7 +181,7 @@
                 </div>
 
                 @error('technical_criteria')
-                    <div class="alert alert-danger mb-3" role="alert">{{ $message }}</div>
+                    @include('partials.swal-alert', ['type' => 'error', 'message' => $message])
                 @enderror
 
                 <div class="job-vacancy-criteria-list" data-criteria-list>

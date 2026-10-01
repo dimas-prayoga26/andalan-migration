@@ -265,15 +265,15 @@
             </div>
             <div class="card-body">
                 @if (session('status'))
-                    <div class="alert alert-success mb-3" role="alert">{{ session('status') }}</div>
+                    @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
                 @endif
                 @if ($errors->any())
-                    <div class="alert alert-danger mb-3" role="alert">{{ $errors->first() }}</div>
+                    @include('partials.swal-alert', ['type' => 'error', 'message' => $errors->first()])
                 @endif
 
                 <div class="talent-header-bar">
                     <div class="talent-table-title">Job Vacancy</div>
-                    <a href="{{ route('applicant.job_vacancies.create') }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center justify-content-center gap-1">
+                    <a href="{{ route('applicant.job_vacancies.create') }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center justify-content-center gap-1 talent-create-job-btn">
                         <i class="bi bi-plus-lg"></i>
                         <span>Create Job</span>
                     </a>

@@ -396,11 +396,9 @@
                 @csrf
                 @method('PUT')
                 <div class="card-body">
-                    @if (session('success'))
-                        <div class="alert alert-success" role="alert">{{ session('success') }}</div>
-                    @endif
+                    @include('partials.swal-alert', ['type' => 'success', 'message' => session('success')])
                     @error('status')
-                        <div class="alert alert-danger" role="alert">{{ $message }}</div>
+                        @include('partials.swal-alert', ['type' => 'error', 'message' => $message])
                     @enderror
                 <div class="row">
                     <div class="col-12 col-md-12 mb-3">

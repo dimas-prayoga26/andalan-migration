@@ -79,9 +79,11 @@
         </div>
         <div class="card-body">
             @if ($errors->any())
-                <div class="alert alert-danger">
-                    <strong>The data is not valid.</strong> Please check the required fields again.
-                </div>
+                @include('partials.swal-alert', [
+                    'type' => 'error',
+                    'title' => 'The data is not valid.',
+                    'message' => 'Please check the required fields again.',
+                ])
             @endif
 
             <div class="row g-3">

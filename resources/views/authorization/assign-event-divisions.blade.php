@@ -131,16 +131,12 @@
         </div>
     </div>
     <div class="card-body pt-0">
-        @if (session('status'))
-            <div class="alert alert-success">{{ session('status') }}</div>
-        @endif
+        @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
 
-        @if (session('error'))
-            <div class="alert alert-danger">{{ session('error') }}</div>
-        @endif
+        @include('partials.swal-alert', ['type' => 'error', 'message' => session('error')])
 
         @if ($errors->any())
-            <div class="alert alert-danger">Periksa kembali data yang dipilih atau diisi.</div>
+            @include('partials.swal-alert', ['type' => 'error', 'message' => 'Periksa kembali data yang dipilih atau diisi.'])
         @endif
 
         <form id="authorizationEventDivisionForm" action="{{ route('authorization.event-divisions.update') }}" method="POST">

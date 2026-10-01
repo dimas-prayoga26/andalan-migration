@@ -43,16 +43,10 @@
                             </a>
                         </div>
                         <div class="compose-content">
-                            @if (session('mail_status'))
-                                <div class="alert alert-success">{{ session('mail_status') }}</div>
-                            @endif
+                            @include('partials.swal-alert', ['type' => 'success', 'message' => session('mail_status')])
 
                             @if ($errors->any())
-                                <div class="alert alert-danger">
-                                    @foreach ($errors->all() as $error)
-                                        <div>{{ $error }}</div>
-                                    @endforeach
-                                </div>
+                                @include('partials.swal-alert', ['type' => 'error', 'message' => implode("\n", $errors->all())])
                             @endif
 
                             <form action="{{ route('applicant.email.send') }}" method="POST" enctype="multipart/form-data">

@@ -148,17 +148,9 @@
                         @csrf
                         @method('PATCH')
                         <div class="card-body">
-                    @if (session('profile_status'))
-                        <div class="alert alert-success mb-4">{{ session('profile_status') }}</div>
-                    @endif
+                    @include('partials.swal-alert', ['type' => 'success', 'message' => session('profile_status')])
                     @if ($errors->any())
-                        <div class="alert alert-danger mb-4">
-                            <ul class="mb-0">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
+                        @include('partials.swal-alert', ['type' => 'error', 'message' => implode("\n", $errors->all())])
                     @endif
                     @php
                         $profileNameValue = old('name', $profileFormName === '-' ? '' : $profileFormName);
@@ -236,17 +228,9 @@
                         @csrf
                         @method('PATCH')
                         <div class="card-body">
-                    @if (session('password_status'))
-                        <div class="alert alert-success mb-4">{{ session('password_status') }}</div>
-                    @endif
+                    @include('partials.swal-alert', ['type' => 'success', 'message' => session('password_status')])
                     @if ($errors->passwordUpdate->any())
-                        <div class="alert alert-danger mb-4">
-                            <ul class="mb-0">
-                                @foreach ($errors->passwordUpdate->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
+                        @include('partials.swal-alert', ['type' => 'error', 'message' => implode("\n", $errors->passwordUpdate->all())])
                     @endif
                     <div class="row">
                         <div class="col-md-4 mb-4">

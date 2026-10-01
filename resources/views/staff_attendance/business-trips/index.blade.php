@@ -74,11 +74,7 @@
 </div>
 
 @if (session('success'))
-    <div class="col-12">
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    </div>
+    @include('partials.swal-alert', ['type' => 'success', 'message' => session('success')])
 @endif
 
 @php

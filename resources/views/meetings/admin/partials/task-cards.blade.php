@@ -1,5 +1,8 @@
 @php
     $canManageMeetingTasks = $showTaskActions ?? ($showAddTask ?? true);
+    $showTaskDeleteActions = $showTaskDeleteActions ?? $canManageMeetingTasks;
+    $allowTaskAssigneeEdit = $allowTaskAssigneeEdit ?? true;
+    $useFullTaskEditTemplate = $useFullTaskEditTemplate ?? false;
 @endphp
 
 <div class="row">
@@ -28,7 +31,14 @@
                         <div class="d-flex align-items-center py-2">
                             <div class="timeline-vr-badge {{ $task['is_completed'] ? 'bg-success' : 'bg-light' }} me-2"></div>
                             <div class="clearfix ms-2">
-                                <h6 class="fs-13 mb-0 fw-semibold">{{ $task['title'] }}</h6>
+                                <h6 class="fs-13 mb-0 fw-semibold d-flex align-items-center flex-wrap gap-1">
+                                    <span>{{ $task['title'] }}</span>
+                                    @if ($task['attachment_path'] ?? false)
+                                        <a href="{{ $task['attachment_path'] }}" target="_blank" rel="noopener noreferrer" class="small text-primary fw-semibold" title="{{ $task['attachment_path'] }}" aria-label="Open attachment">
+                                            <i class="fa fa-paperclip me-1" aria-hidden="true"></i>Attachment
+                                        </a>
+                                    @endif
+                                </h6>
                                 <span class="small">
                                     {{ $task['is_completed'] ? 'Status: Completed' : 'Due '.$task['due_label'] }}
                                     by <span class="text-primary">{{ $task['assignee'] }}</span>
@@ -42,8 +52,12 @@
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end">
                                             <button type="button" class="dropdown-item js-meeting-task-detail" data-bs-toggle="modal" data-bs-target="#meetingTaskDetailModal" data-task='@json($task)'>View More</button>
-                                            <button type="button" class="dropdown-item js-meeting-task-edit" data-bs-toggle="modal" data-bs-target="#meetingTaskEditModal" data-task='@json($task)'>Update</button>
-                                            <button type="button" class="dropdown-item text-danger js-meeting-task-delete" data-bs-toggle="modal" data-bs-target="#meetingTaskDeleteModal" data-task='@json($task)'>Delete</button>
+                                            @if ($task['can_update'] ?? true)
+                                                <button type="button" class="dropdown-item js-meeting-task-edit" data-bs-toggle="modal" data-bs-target="#meetingTaskEditModal" data-task='@json($task)'>Update</button>
+                                            @endif
+                                            @if ($showTaskDeleteActions && ($task['can_delete'] ?? true))
+                                                <button type="button" class="dropdown-item text-danger js-meeting-task-delete" data-bs-toggle="modal" data-bs-target="#meetingTaskDeleteModal" data-task='@json($task)'>Delete</button>
+                                            @endif
                                         </div>
                                     </div>
                                 @else
@@ -154,7 +168,7 @@
     </div>
 
     <div class="modal fade" id="meetingTaskEditModal" tabindex="-1" aria-labelledby="meetingTaskEditModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog {{ $useFullTaskEditTemplate ? 'modal-lg' : 'modal-dialog-centered' }}" role="document">
             <div class="modal-content">
                 <form method="POST" id="meetingTaskEditForm" action="#">
                     @csrf
@@ -165,38 +179,127 @@
                     </div>
                     <div class="modal-body">
                         <input type="hidden" name="category" id="meetingTaskEditCategory" value="">
-                        <div class="mb-3">
-                            <label class="form-label" for="meetingTaskEditTitle">Judul Task</label>
-                            <input type="text" class="form-control" id="meetingTaskEditTitle" name="title" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" for="meetingTaskEditAssignee">Assign to</label>
-                            <select class="form-select" id="meetingTaskEditAssignee" name="assigned_to" required @disabled(($meetingTaskAssigneeOptions ?? collect())->isEmpty())>
-                                @forelse ($meetingTaskAssigneeOptions ?? [] as $employee)
-                                    <option value="{{ $employee['id'] }}">{{ $employee['name'] }}</option>
-                                @empty
-                                    <option value="">Belum ada staff yang joined di meeting ini</option>
-                                @endforelse
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" for="meetingTaskEditDateRangePicker">Date Range</label>
-                            <input type="text" class="form-control js-meeting-task-date-range-picker" id="meetingTaskEditDateRangePicker" data-start-date-target="#meetingTaskEditStartDate" data-due-date-target="#meetingTaskEditDueDate" placeholder="dd/mm/yyyy - dd/mm/yyyy" autocomplete="off" required>
-                            <input type="hidden" id="meetingTaskEditStartDate" name="start_date" value="">
-                            <input type="hidden" id="meetingTaskEditDueDate" name="due_date" value="">
-                        </div>
-                        <input type="hidden" id="meetingTaskEditStatus" name="status" value="pending">
+                        @if ($useFullTaskEditTemplate)
+                            @unless ($allowTaskAssigneeEdit)
+                                <input type="hidden" name="assigned_to" id="meetingTaskEditAssigneeHidden" value="">
+                            @endunless
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="meetingTaskEditTitle">Task Name <span class="required text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="meetingTaskEditTitle" name="title" required>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="meetingTaskEditDescription">Task Description</label>
+                                        <textarea class="form-control" rows="3" id="meetingTaskEditDescription" name="description" placeholder="Tambahkan detail atau konteks pekerjaan"></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="meetingTaskEditDateRangePicker">Date <span class="required text-danger">*</span></label>
+                                        <input type="hidden" id="meetingTaskEditStartDate" name="start_date" value="">
+                                        <input type="hidden" id="meetingTaskEditDueDate" name="due_date" value="">
+                                        <input type="text" class="form-control js-meeting-task-date-range-picker" id="meetingTaskEditDateRangePicker" data-start-date-target="#meetingTaskEditStartDate" data-due-date-target="#meetingTaskEditDueDate" placeholder="Select date range" autocomplete="off" readonly required>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-3">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="meetingTaskEditPriority">Priority <span class="required text-danger">*</span></label>
+                                        <select class="form-control default-select" id="meetingTaskEditPriority" name="priority" required>
+                                            <option value="low">Low</option>
+                                            <option value="medium">Medium</option>
+                                            <option value="high">High</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-3">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="meetingTaskEditStatus">Task Status <span class="required text-danger">*</span></label>
+                                        <select class="form-control default-select" id="meetingTaskEditStatus" name="status" required>
+                                            <option value="pending">To Do</option>
+                                            <option value="in_progress">On Progress</option>
+                                            <option value="completed">Completed</option>
+                                            <option value="cancelled">Cancelled</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="meetingTaskEditAttachment">Attachment</label>
+                                        <input type="text" class="form-control" id="meetingTaskEditAttachment" name="attachment_path" maxlength="255" placeholder="Contoh: Link Google Drive, Figma, atau Docs">
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="meetingTaskEditBlockers">Blockers</label>
+                                        <input type="text" class="form-control" id="meetingTaskEditBlockers" name="blockers" placeholder="Contoh: Menunggu approval dokumen">
+                                    </div>
+                                </div>
+                                @if ($allowTaskAssigneeEdit)
+                                    <div class="col-12 col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label" for="meetingTaskEditAssignee">Assign Staff <span class="required text-danger">*</span></label>
+                                            <select class="form-control default-select" id="meetingTaskEditAssignee" name="assigned_to" required @disabled(($meetingTaskAssigneeOptions ?? collect())->isEmpty())>
+                                                @forelse ($meetingTaskAssigneeOptions ?? [] as $employee)
+                                                    <option value="{{ $employee['id'] }}">{{ $employee['name'] }}</option>
+                                                @empty
+                                                    <option value="">Belum ada staff yang joined di meeting ini</option>
+                                                @endforelse
+                                            </select>
+                                        </div>
+                                    </div>
+                                @endif
+                                <div class="col-12 col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="meetingTaskEditCategoryLabel">Task Category <span class="required text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="meetingTaskEditCategoryLabel" value="" disabled>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="meetingTaskEditProjectName">Project Name</label>
+                                        <input type="text" class="form-control" id="meetingTaskEditProjectName" value="Pilih Nama Project" disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <div class="mb-3">
+                                <label class="form-label" for="meetingTaskEditTitle">Judul Task</label>
+                                <input type="text" class="form-control" id="meetingTaskEditTitle" name="title" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="meetingTaskEditAssignee">Assign to</label>
+                                <select class="form-select" id="meetingTaskEditAssignee" name="assigned_to" required @disabled(($meetingTaskAssigneeOptions ?? collect())->isEmpty())>
+                                    @forelse ($meetingTaskAssigneeOptions ?? [] as $employee)
+                                        <option value="{{ $employee['id'] }}">{{ $employee['name'] }}</option>
+                                    @empty
+                                        <option value="">Belum ada staff yang joined di meeting ini</option>
+                                    @endforelse
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="meetingTaskEditDateRangePicker">Date Range</label>
+                                <input type="text" class="form-control js-meeting-task-date-range-picker" id="meetingTaskEditDateRangePicker" data-start-date-target="#meetingTaskEditStartDate" data-due-date-target="#meetingTaskEditDueDate" placeholder="dd/mm/yyyy - dd/mm/yyyy" autocomplete="off" required>
+                                <input type="hidden" id="meetingTaskEditStartDate" name="start_date" value="">
+                                <input type="hidden" id="meetingTaskEditDueDate" name="due_date" value="">
+                            </div>
+                            <input type="hidden" id="meetingTaskEditStatus" name="status" value="pending">
+                            <input type="hidden" id="meetingTaskEditPriority" name="priority" value="medium">
+                        @endif
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-warning" @disabled(($meetingTaskAssigneeOptions ?? collect())->isEmpty())>Submit</button>
+                        <button type="submit" class="btn btn-warning" @disabled($allowTaskAssigneeEdit && ($meetingTaskAssigneeOptions ?? collect())->isEmpty())>{{ $useFullTaskEditTemplate ? 'Save changes' : 'Submit' }}</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <div class="modal fade" id="meetingTaskDeleteModal" tabindex="-1" aria-labelledby="meetingTaskDeleteModalLabel" aria-hidden="true">
+    @if ($showTaskDeleteActions)
+        <div class="modal fade" id="meetingTaskDeleteModal" tabindex="-1" aria-labelledby="meetingTaskDeleteModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <form method="POST" id="meetingTaskDeleteForm" action="#">
@@ -228,5 +331,6 @@
                 </form>
             </div>
         </div>
-    </div>
+        </div>
+    @endif
 @endif

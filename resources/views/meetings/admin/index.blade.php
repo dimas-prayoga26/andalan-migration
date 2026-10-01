@@ -214,11 +214,11 @@
 </div>
 
 @if (session('status'))
-    <div class="alert alert-success">{{ session('status') }}</div>
+    @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
 @endif
 
 @if (session('error'))
-    <div class="alert alert-danger">{{ session('error') }}</div>
+    @include('partials.swal-alert', ['type' => 'error', 'message' => session('error')])
 @endif
 
 <div class="card meeting-table-card">

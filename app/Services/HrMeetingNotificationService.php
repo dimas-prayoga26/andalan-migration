@@ -35,7 +35,7 @@ class HrMeetingNotificationService
         $brand = app(HostBrandingResolver::class)->resolve();
         $iconUrl = (string) ($brand['logo_url'] ?? asset('images/images.png'));
 
-        $users->each(function (User $user) use ($meeting, $meetingUrl, $title, $body, $iconUrl): void {
+        $users->each(function (User $user) use ($meetingUrl, $title, $body, $iconUrl): void {
             AppNotification::query()->create([
                 'user_id' => $user->id,
                 'employee_id' => $user->employee?->id,
@@ -101,6 +101,7 @@ class HrMeetingNotificationService
         return Employee::query()
             ->with(['user.roles', 'user.employee'])
             ->where('status', 'Active')
+            ->where('is_core_staff', true)
             ->whereHas('user', fn ($query) => $query->where('is_active', true))
             ->whereHas('user.roles', function ($query): void {
                 $query->whereRaw('LOWER(name) = ?', ['staff']);

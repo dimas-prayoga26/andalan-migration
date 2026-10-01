@@ -166,15 +166,11 @@ class OvertimeReviewTableBuilder
         $query = AttendanceOvertime::query()
             ->whereBetween('overtime_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
             ->whereHas('employee', function (Builder $query) use ($companyId): void {
-                $query
-                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                    ->whereHas('deployment', function (Builder $query) use ($companyId): void {
-                        $query->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
-
-                        if (is_string($companyId) && trim($companyId) !== '') {
-                            $query->where('current_company_id', trim($companyId));
-                        }
-                    });
+                $query->whereHas('deployment', function (Builder $query) use ($companyId): void {
+                    if (is_string($companyId) && trim($companyId) !== '') {
+                        $query->where('current_company_id', trim($companyId));
+                    }
+                });
             })
             ->with([
                 'employee:id,user_id',

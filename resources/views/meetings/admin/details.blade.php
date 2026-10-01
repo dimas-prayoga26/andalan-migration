@@ -106,13 +106,11 @@
 				<!-- End - Page Title & Breadcrumb -->
 
                 @if (session('status'))
-                    <div class="alert alert-success">{{ session('status') }}</div>
+                    @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
                 @endif
 
                 @if ($errors->any())
-                    <div class="alert alert-danger">
-                        {{ $errors->first() }}
-                    </div>
+                    @include('partials.swal-alert', ['type' => 'error', 'message' => $errors->first()])
                 @endif
 				
 				<div class="tab-content" id="tabContentMyProfileBottom">

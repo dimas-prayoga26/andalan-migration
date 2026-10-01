@@ -70,26 +70,14 @@ class OvertimeSummaryMetricBuilder
 
     private function activeOvertimeQuery(?string $companyId = null, ?string $assignedByUserId = null): Builder
     {
-        $today = Carbon::now('Asia/Jakarta')->toDateString();
         $query = AttendanceOvertime::query()
             ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled'])
-            ->whereHas('employee', function (Builder $query) use ($companyId, $today): void {
-                $query
-                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                    ->whereHas('deployment', function (Builder $query) use ($companyId, $today): void {
-                        $query
-                            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                            ->whereDate('join_date', '<=', $today)
-                            ->where(function (Builder $query) use ($today): void {
-                                $query
-                                    ->whereNull('resignation_date')
-                                    ->orWhereDate('resignation_date', '>=', $today);
-                            });
-
-                        if (is_string($companyId) && trim($companyId) !== '') {
-                            $query->where('current_company_id', trim($companyId));
-                        }
-                    });
+            ->whereHas('employee', function (Builder $query) use ($companyId): void {
+                $query->whereHas('deployment', function (Builder $query) use ($companyId): void {
+                    if (is_string($companyId) && trim($companyId) !== '') {
+                        $query->where('current_company_id', trim($companyId));
+                    }
+                });
             });
 
         if (is_string($assignedByUserId) && trim($assignedByUserId) !== '') {
@@ -168,7 +156,7 @@ class OvertimeSummaryMetricBuilder
             'supervisor_approved_label' => $this->requestLabel($verifiedOvertimes->count()),
             'director_approved_label' => $this->requestLabel($directorApprovalCount),
             'total_hours_label' => $this->hoursLabel($totalMinutes),
-            'estimated_cost_label' => '',
+            'estimated_cost_label' => '-',
             'median_hours_label' => $this->hoursLabel($medianMinutes),
             'average_hours_label' => $this->hoursLabel($averageMinutes),
             'top_overtime_label' => $this->topOvertimeName($durationRows),
@@ -186,7 +174,7 @@ class OvertimeSummaryMetricBuilder
         $supervisorApprovedLabel = $this->summaryValue($summary, 'supervisor_approved_label', '0 request');
         $directorApprovedLabel = $this->summaryValue($summary, 'director_approved_label', '0 request');
         $totalHoursLabel = $this->summaryValue($summary, 'total_hours_label', '0 hours');
-        $estimatedCostLabel = $this->summaryValue($summary, 'estimated_cost_label', 'Rp. 12 Jt');
+        $estimatedCostLabel = '-';
         $medianHoursLabel = $this->summaryValue($summary, 'median_hours_label', '0 hours');
         $averageHoursLabel = $this->summaryValue($summary, 'average_hours_label', '0 hours');
         $topOvertimeLabel = $this->summaryValue($summary, 'top_overtime_label', '-');
@@ -220,8 +208,8 @@ class OvertimeSummaryMetricBuilder
             [
                 'label' => 'Est. Cost',
                 'value' => $estimatedCostLabel,
-                'background_class' => $estimatedCostLabel === '-' ? 'bg-dark-subtle' : 'bg-info-subtle',
-                'text_class' => $estimatedCostLabel === '-' ? 'text-black' : 'text-info',
+                'background_class' => 'bg-dark-subtle',
+                'text_class' => 'text-black',
             ],
             [
                 'label' => 'Median Hours',
@@ -260,7 +248,7 @@ class OvertimeSummaryMetricBuilder
             'supervisor_approved_label' => '0 request',
             'director_approved_label' => '0 request',
             'total_hours_label' => '0 hours',
-            'estimated_cost_label' => '',
+            'estimated_cost_label' => '-',
             'median_hours_label' => '0 hours',
             'average_hours_label' => '0 hours',
             'top_overtime_label' => '-',

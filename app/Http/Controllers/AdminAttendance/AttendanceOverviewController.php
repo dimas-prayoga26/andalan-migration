@@ -10,7 +10,6 @@ use App\Models\BusinessTrip;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
-use App\Models\User;
 use App\Support\Attendance\AttendanceExceptionPresenter;
 use App\Support\Attendance\AttendanceLocationFormatter;
 use Illuminate\Contracts\View\View;
@@ -139,10 +138,11 @@ class AttendanceOverviewController extends Controller
         return Employee::query()->whereNull('deleted_at')->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])->whereHas('user', function ($query): void {
             $query
                 ->where('is_active', true)
-                ->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS)
-                ->whereDoesntHave('roles', function ($roleQuery): void {
-                    $roleQuery->where('name', User::SUPERUSER_ROLE_NAME);
-                });
+                ->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS);
+        })->whereDoesntHave('deployment.position', function ($query): void {
+            $query->where('name', 'Super Administrator');
+        })->whereDoesntHave('deployment.positions', function ($query): void {
+            $query->where('name', 'Super Administrator');
         })->whereHas('deployment', function ($query) use ($todayDate): void {
             $query->whereNull('deleted_at')->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])->whereRaw('LOWER(COALESCE(workplace, "")) <> ?', ['rnb jakarta'])->where(function ($query) use ($todayDate): void {
                 $query->whereNull('join_date')->orWhereDate('join_date', '<=', $todayDate);

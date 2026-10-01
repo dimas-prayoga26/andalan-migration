@@ -18,10 +18,6 @@ use Spatie\Permission\Traits\HasRoles;
 #[Hidden(['password', 'remember_token', 'email_token', 'password_token'])]
 class User extends Authenticatable
 {
-    public const SUPERUSER_ROLE_NAME = 'superUser';
-
-    public const STAFF_ROLE_NAME = 'Staff';
-
     /** @use HasFactory<UserFactory> */
     use GeneratesCustomSequenceUuid;
 
@@ -85,10 +81,6 @@ class User extends Authenticatable
      */
     public function hasAnyPositionPermission(array $permissionNames): bool
     {
-        if ($this->hasRole(self::SUPERUSER_ROLE_NAME)) {
-            return true;
-        }
-
         $this->loadMissing([
             'employee.deployment.position.permissions:uuid,name',
             'employee.deployment.positions.permissions:uuid,name',
@@ -106,6 +98,17 @@ class User extends Authenticatable
             ->pluck('name')
             ->intersect($permissionNames)
             ->isNotEmpty();
+    }
+
+    public function isSuperAdministrator(): bool
+    {
+        $this->loadMissing([
+            'employee.deployment.position:id,name',
+            'employee.deployment.positions:id,name',
+        ]);
+
+        return $this->permissionPositionsForDeployment($this->employee?->deployment)
+            ->contains('name', 'Super Administrator');
     }
 
     /**
@@ -148,7 +151,7 @@ class User extends Authenticatable
         $this->loadMissing('employee.deployment');
 
         if ($this->employee === null) {
-            return $this->hasRole(self::SUPERUSER_ROLE_NAME);
+            return false;
         }
 
         if (strtolower(trim((string) $this->employee->status)) !== 'active') {

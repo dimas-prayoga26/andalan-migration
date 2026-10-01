@@ -526,8 +526,11 @@ class AuthorizationController extends Controller
                 'employee.picAssignment.supervisor:id',
                 'employee.picAssignment.supervisor.profile:id,employee_id,name',
             ])
-            ->whereDoesntHave('roles', function (Builder $roleQuery): void {
-                $roleQuery->where('name', User::SUPERUSER_ROLE_NAME);
+            ->whereDoesntHave('employee.deployment.position', function (Builder $positionQuery): void {
+                $positionQuery->where('name', 'Super Administrator');
+            })
+            ->whereDoesntHave('employee.deployment.positions', function (Builder $positionQuery): void {
+                $positionQuery->where('name', 'Super Administrator');
             })
             ->whereHas('employee');
 
@@ -675,9 +678,7 @@ class AuthorizationController extends Controller
 
     private function isSuperuser(User $user): bool
     {
-        return $user->getRoleNames()
-            ->map(fn (string $roleName): string => strtolower(trim($roleName)))
-            ->contains(strtolower(User::SUPERUSER_ROLE_NAME));
+        return $user->isSuperAdministrator();
     }
 
     private function isChiefOperatingOfficerEmployee(User $user): bool
@@ -871,7 +872,7 @@ class AuthorizationController extends Controller
     private function defaultStaffRole(): Role
     {
         return Role::query()->firstOrCreate([
-            'name' => User::STAFF_ROLE_NAME,
+            'name' => 'Staff',
             'guard_name' => 'web',
         ]);
     }

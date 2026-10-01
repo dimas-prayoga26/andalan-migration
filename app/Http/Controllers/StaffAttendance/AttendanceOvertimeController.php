@@ -1707,10 +1707,7 @@ class AttendanceOvertimeController extends Controller
             return false;
         }
 
-        $normalizedRoleNames = $user->getRoleNames()
-            ->map(static fn (string $roleName): string => strtolower(trim($roleName)));
-
-        return $normalizedRoleNames->contains(strtolower(User::SUPERUSER_ROLE_NAME));
+        return $user->isSuperAdministrator();
     }
 
     private function isStaffUser(?User $user): bool
@@ -1731,10 +1728,7 @@ class AttendanceOvertimeController extends Controller
             return false;
         }
 
-        $normalizedRoleNames = $user->getRoleNames()
-            ->map(static fn (string $roleName): string => strtolower(trim($roleName)));
-
-        return $normalizedRoleNames->contains(strtolower(User::SUPERUSER_ROLE_NAME));
+        return $user->isSuperAdministrator();
     }
 
     private function canAccessOvertime(?User $authenticatedUser, AttendanceOvertime $attendanceOvertime): bool

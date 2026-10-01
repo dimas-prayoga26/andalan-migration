@@ -340,20 +340,21 @@ class AuthorizationEmployeeListScopeTest extends TestCase
             ->assertRedirect(route('authorization.access-menus'));
     }
 
-    public function test_superuser_sees_employee_list_from_all_companies(): void
+    public function test_super_administrator_sees_employee_list_from_all_companies(): void
     {
         $rnbCompany = Company::query()->create(['name' => 'RNB']);
         $otherCompany = Company::query()->create(['name' => 'ABG']);
         $superuserDepartment = $this->createDepartment('Super User');
         $operationsDepartment = $this->createDepartment('Operations');
         $staffPosition = Position::query()->create(['name' => 'Staff']);
+        $superAdministratorPosition = Position::query()->create(['name' => 'Super Administrator']);
 
         $superuser = $this->createEmployeeUser(
             name: 'Main Superuser',
             username: 'main.superuser',
             company: $rnbCompany,
             department: $superuserDepartment,
-            position: $staffPosition,
+            position: $superAdministratorPosition,
         );
         $rnbStaff = $this->createEmployeeUser(
             name: 'RNB Staff',
@@ -370,7 +371,7 @@ class AuthorizationEmployeeListScopeTest extends TestCase
             position: $staffPosition,
         );
 
-        $this->assignRole($superuser, User::SUPERUSER_ROLE_NAME);
+        $this->assignRole($superuser, 'Staff');
         $this->assignRole($rnbStaff, 'Staff');
         $this->assignRole($otherStaff, 'Staff');
 

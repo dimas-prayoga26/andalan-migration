@@ -3,7 +3,7 @@
 <body>
 
     @php
-        $isSuperuserLogoShift = auth()->user()?->hasRole(\App\Models\User::SUPERUSER_ROLE_NAME) ?? false;
+        $isSuperAdministratorLogoShift = auth()->user()?->isSuperAdministrator() ?? false;
     @endphp
 
 	<div id="preloader">
@@ -15,7 +15,7 @@
 	</div>
 
     <!-- Start - Main Wrapper -->
-    <div id="main-wrapper" class="{{ $isSuperuserLogoShift ? 'superuser-logo-shift' : '' }}">
+    <div id="main-wrapper" class="{{ $isSuperAdministratorLogoShift ? 'superuser-logo-shift' : '' }}">
 
         <!-- Start - Nav header -->
          <div class="nav-header">

@@ -99,8 +99,8 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('accessMenus', $controller);
         $this->assertStringContainsString('authorizationUsersFor', $controller);
         $this->assertStringContainsString("->where('is_active', true)", $controller);
-        $this->assertStringContainsString("->whereDoesntHave('roles'", $controller);
-        $this->assertStringContainsString("->where('name', User::SUPERUSER_ROLE_NAME)", $controller);
+        $this->assertStringContainsString("->whereDoesntHave('employee.deployment.position'", $controller);
+        $this->assertStringContainsString("->where('name', 'Super Administrator')", $controller);
         $this->assertStringContainsString("'authorization_company_name' => \$this->authorizationCompanyNameSubquery()", $controller);
         $this->assertStringContainsString("'authorization_pic_name' => \$this->authorizationPicNameSubquery()", $controller);
         $this->assertStringContainsString("->orderBy('authorization_company_name')", $controller);

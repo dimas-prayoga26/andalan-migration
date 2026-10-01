@@ -4,7 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Applicant;
 use App\Models\ApplicantStatus;
+use App\Models\Employee;
+use App\Models\EmployeeDeployment;
+use App\Models\EmployeeProfile;
 use App\Models\JobVacancy;
+use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -79,12 +83,26 @@ class ApplicantDestroyTest extends TestCase
             'is_active' => true,
         ]);
 
-        Role::query()->firstOrCreate([
-            'name' => User::SUPERUSER_ROLE_NAME,
+        $role = Role::query()->firstOrCreate([
+            'name' => 'Staff',
             'guard_name' => 'web',
         ]);
 
-        $user->assignRole(User::SUPERUSER_ROLE_NAME);
+        $user->assignRole($role);
+        $position = Position::query()->create(['name' => 'Super Administrator']);
+        $employee = Employee::query()->create([
+            'user_id' => $user->id,
+            'status' => 'Active',
+        ]);
+        EmployeeProfile::query()->create([
+            'employee_id' => $employee->id,
+            'name' => 'Super Administrator',
+        ]);
+        EmployeeDeployment::query()->create([
+            'employee_id' => $employee->id,
+            'current_position_id' => $position->id,
+            'status' => 'Active',
+        ]);
 
         return $user;
     }

@@ -20,7 +20,7 @@ class UserSeederAdministratorTest extends TestCase
         $this->assertStringContainsString("['email' => \"admin{\$directorNumber}@gmail.com\"]", $userSeeder);
         $this->assertStringContainsString("'username' => \"admin{\$directorNumber}\"", $userSeeder);
         $this->assertStringContainsString("'business_email' => \"admin{\$directorNumber}@{\$this->resolveCompanyEmailDomain((string) \$company->name)}\"", $userSeeder);
-        $this->assertStringContainsString('$administrator->syncRoles([User::STAFF_ROLE_NAME]);', $userSeeder);
+        $this->assertStringContainsString('$administrator->syncRoles([\'Staff\']);', $userSeeder);
         $this->assertStringContainsString('divisionId: $adminDivisionId', $userSeeder);
         $this->assertStringContainsString('positionId: $administratorPositionId', $userSeeder);
         $this->assertStringContainsString('positionId: $superAdministratorPositionId', $userSeeder);

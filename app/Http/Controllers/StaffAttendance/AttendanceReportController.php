@@ -934,9 +934,7 @@ class AttendanceReportController extends Controller
             return false;
         }
 
-        return $user->getRoleNames()
-            ->map(fn (string $roleName): string => strtolower(trim($roleName)))
-            ->contains(strtolower(User::SUPERUSER_ROLE_NAME));
+        return $user->isSuperAdministrator();
     }
 
     private function isBoardOfDirectur(?User $user): bool

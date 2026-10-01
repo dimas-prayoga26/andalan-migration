@@ -7,9 +7,7 @@ use Illuminate\Support\Str;
 
 return new class extends Migration
 {
-    private const SUPERUSER_ROLE = 'superUser';
-
-    private const LEGACY_SUPERUSER_ROLE = 'superuser';
+    private const LEGACY_SUPERUSER_ROLES = ['superUser', 'superuser'];
 
     private const STAFF_ROLE = 'Staff';
 
@@ -28,9 +26,12 @@ return new class extends Migration
 
         if (Schema::hasTable('roles')) {
             $staffRoleId = $this->ensureRole(self::STAFF_ROLE, $now);
-            $superUserRoleId = $this->normalizeSuperUserRole($now);
 
-            $this->syncSuperUserPermissions($superUserRoleId);
+            foreach (self::LEGACY_SUPERUSER_ROLES as $legacySuperuserRole) {
+                $this->moveRoleMembers($legacySuperuserRole, $staffRoleId);
+                $this->deleteRole($legacySuperuserRole);
+            }
+
             $this->moveRoleMembers(self::LEGACY_BOD_ROLE, $staffRoleId);
             $this->deleteRole(self::LEGACY_BOD_ROLE);
         }
@@ -46,20 +47,6 @@ return new class extends Migration
         $now = now();
 
         if (Schema::hasTable('roles')) {
-            $superUserRoleId = DB::table('roles')
-                ->where('name', self::SUPERUSER_ROLE)
-                ->where('guard_name', 'web')
-                ->value('uuid');
-
-            if (is_string($superUserRoleId) && trim($superUserRoleId) !== '') {
-                DB::table('roles')
-                    ->where('uuid', $superUserRoleId)
-                    ->update([
-                        'name' => self::LEGACY_SUPERUSER_ROLE,
-                        'updated_at' => $now,
-                    ]);
-            }
-
             $this->ensureRole(self::LEGACY_BOD_ROLE, $now);
         }
 
@@ -104,57 +91,6 @@ return new class extends Migration
         ]);
 
         return $roleId;
-    }
-
-    private function normalizeSuperUserRole(mixed $now): string
-    {
-        $superUserRoleId = DB::table('roles')
-            ->where('name', self::SUPERUSER_ROLE)
-            ->where('guard_name', 'web')
-            ->value('uuid');
-        $legacySuperUserRoleId = DB::table('roles')
-            ->where('name', self::LEGACY_SUPERUSER_ROLE)
-            ->where('guard_name', 'web')
-            ->value('uuid');
-
-        if (! is_string($superUserRoleId) || trim($superUserRoleId) === '') {
-            if (is_string($legacySuperUserRoleId) && trim($legacySuperUserRoleId) !== '') {
-                DB::table('roles')
-                    ->where('uuid', $legacySuperUserRoleId)
-                    ->update([
-                        'name' => self::SUPERUSER_ROLE,
-                        'updated_at' => $now,
-                    ]);
-
-                return $legacySuperUserRoleId;
-            }
-
-            return $this->ensureRole(self::SUPERUSER_ROLE, $now);
-        }
-
-        if (is_string($legacySuperUserRoleId) && trim($legacySuperUserRoleId) !== '') {
-            $this->moveRoleAssignments($legacySuperUserRoleId, $superUserRoleId);
-            $this->deleteRoleById($legacySuperUserRoleId);
-        }
-
-        return $superUserRoleId;
-    }
-
-    private function syncSuperUserPermissions(string $superUserRoleId): void
-    {
-        if (! Schema::hasTable('permissions') || ! Schema::hasTable('role_has_permissions')) {
-            return;
-        }
-
-        DB::table('permissions')
-            ->pluck('uuid')
-            ->filter()
-            ->each(function (string $permissionId) use ($superUserRoleId): void {
-                DB::table('role_has_permissions')->insertOrIgnore([
-                    'permission_id' => $permissionId,
-                    'role_id' => $superUserRoleId,
-                ]);
-            });
     }
 
     private function moveRoleMembers(string $fromRoleName, string $toRoleId): void

@@ -83,7 +83,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringNotContainsString("'Super Administrator' => \$allPermissions", $permissionSeeder);
         $this->assertStringContainsString("'Administrator' => \$allPermissionsWithoutPic", $permissionSeeder);
         $this->assertStringContainsString("'Chief Operating Officer' => \$directorPermissions", $permissionSeeder);
-        $this->assertStringContainsString('?->syncPermissions($permissionNames)', $permissionSeeder);
+        $this->assertStringContainsString("->where('name', 'Staff')", $permissionSeeder);
 
         $this->assertIsString($positionMigration);
         $this->assertStringContainsString("string('name', 191)->unique('positions_name_unique')", $positionMigration);
@@ -96,7 +96,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $sidebarComposer = file_get_contents(app_path('View/Composers/SidebarPermissionComposer.php'));
 
         $this->assertIsString($userModel);
-        $this->assertStringContainsString('if ($this->hasRole(self::SUPERUSER_ROLE_NAME))', $userModel);
+        $this->assertStringContainsString("contains('name', 'Super Administrator')", $userModel);
         $this->assertStringContainsString("'employee.deployment.position.permissions:uuid,name'", $userModel);
         $this->assertStringContainsString("'employee.deployment.positions.permissions:uuid,name'", $userModel);
         $this->assertStringContainsString('permissionPositionsForDeployment', $userModel);
@@ -237,7 +237,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
 
         $this->assertIsString($legacySeeder);
         $this->assertStringContainsString("'username' => 'superadmin'", $legacySeeder);
-        $this->assertStringContainsString('$user->syncRoles([User::SUPERUSER_ROLE_NAME]);', $legacySeeder);
+        $this->assertStringContainsString('$user->syncRoles([\'Staff\']);', $legacySeeder);
         $this->assertStringNotContainsString("'admin@andalanbersama.com' => 'Administrator'", $legacySeeder);
         $this->assertStringNotContainsString("'admin@andalanbersama.com' => ['Administrator']", $legacySeeder);
         $this->assertStringNotContainsString("'admin@andalanbersama.com' => 'Super Administrator'", $legacySeeder);

@@ -106,8 +106,11 @@ class HrMeetingNotificationService
             ->whereHas('user.roles', function ($query): void {
                 $query->whereRaw('LOWER(name) = ?', ['staff']);
             })
-            ->whereDoesntHave('user.roles', function ($query): void {
-                $query->whereRaw('LOWER(name) = ?', [strtolower(User::SUPERUSER_ROLE_NAME)]);
+            ->whereDoesntHave('deployment.position', function ($query): void {
+                $query->where('name', 'Super Administrator');
+            })
+            ->whereDoesntHave('deployment.positions', function ($query): void {
+                $query->where('name', 'Super Administrator');
             });
     }
 

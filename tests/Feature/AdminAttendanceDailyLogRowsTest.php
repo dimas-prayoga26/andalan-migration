@@ -234,8 +234,8 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
     {
         $controller = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceRecapController.php'));
 
-        $this->assertStringContainsString("->whereDoesntHave('roles'", $controller);
-        $this->assertStringContainsString("->where('name', User::SUPERUSER_ROLE_NAME)", $controller);
+        $this->assertStringContainsString("->whereDoesntHave('deployment.position'", $controller);
+        $this->assertStringContainsString("->where('name', 'Super Administrator')", $controller);
         $this->assertStringContainsString("->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS)", $controller);
         $this->assertStringContainsString("->whereRaw('LOWER(COALESCE(workplace, \"\")) <> ?', ['rnb jakarta'])", $controller);
 

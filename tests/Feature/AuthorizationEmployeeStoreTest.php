@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Employee;
 use App\Models\EmployeeDeployment;
 use App\Models\EmployeeProfile;
+use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -62,12 +63,15 @@ class AuthorizationEmployeeStoreTest extends TestCase
             'is_active' => true,
         ]);
 
-        Role::query()->firstOrCreate([
-            'name' => User::SUPERUSER_ROLE_NAME,
+        $staffRole = Role::query()->firstOrCreate([
+            'name' => 'Staff',
             'guard_name' => 'web',
         ]);
 
-        $manager->assignRole(User::SUPERUSER_ROLE_NAME);
+        $manager->assignRole($staffRole);
+        $position = Position::query()->create([
+            'name' => 'Super Administrator',
+        ]);
 
         $employee = Employee::query()->create([
             'user_id' => $manager->id,
@@ -81,6 +85,7 @@ class AuthorizationEmployeeStoreTest extends TestCase
 
         EmployeeDeployment::query()->create([
             'employee_id' => $employee->id,
+            'current_position_id' => $position->id,
             'status' => 'Active',
         ]);
 

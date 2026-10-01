@@ -53,7 +53,7 @@ class UserSeeder extends Seeder
         try {
             app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-            $roles = [User::SUPERUSER_ROLE_NAME, User::STAFF_ROLE_NAME];
+            $roles = ['Staff'];
 
             Role::query()
                 ->whereNotIn('name', $roles)
@@ -118,7 +118,7 @@ class UserSeeder extends Seeder
             $yogyakartaDomicileId = $this->toNullableInt(DB::table('meta_data_domicili')->where('name', 'Yogyakarta')->value('id'));
             $fallbackDomicileId = $this->toNullableInt(DB::table('meta_data_domicili')->orderBy('id')->value('id'));
 
-            $superuser = User::query()->updateOrCreate(
+            $superAdmin = User::query()->updateOrCreate(
                 ['email' => 'superadmin@andalanbersama.com'],
                 [
                     'username' => 'superadmin',
@@ -127,9 +127,9 @@ class UserSeeder extends Seeder
                     'password' => Hash::make('password'),
                 ],
             );
-            $superuser->syncRoles([User::SUPERUSER_ROLE_NAME]);
+            $superAdmin->syncRoles(['Staff']);
             $this->seedUserRelations(
-                $superuser,
+                $superAdmin,
                 companyId: $companies->first()->id,
                 divisionId: $adminDivisionId,
                 positionId: $superAdministratorPositionId,
@@ -156,7 +156,7 @@ class UserSeeder extends Seeder
                         'password' => Hash::make('password'),
                     ],
                 );
-                $director->syncRoles([User::STAFF_ROLE_NAME]);
+                $director->syncRoles(['Staff']);
                 $this->seedUserRelations(
                     $director,
                     companyId: $company->id,
@@ -176,7 +176,7 @@ class UserSeeder extends Seeder
                         'password' => Hash::make('password'),
                     ],
                 );
-                $supervisor->syncRoles([User::STAFF_ROLE_NAME]);
+                $supervisor->syncRoles(['Staff']);
                 $this->seedUserRelations(
                     $supervisor,
                     companyId: $company->id,
@@ -196,7 +196,7 @@ class UserSeeder extends Seeder
                         'password' => Hash::make('password'),
                     ],
                 );
-                $administrator->syncRoles([User::STAFF_ROLE_NAME]);
+                $administrator->syncRoles(['Staff']);
                 $this->seedUserRelations(
                     $administrator,
                     companyId: $company->id,
@@ -221,7 +221,7 @@ class UserSeeder extends Seeder
                             'password' => Hash::make('password'),
                         ],
                     );
-                    $staff->syncRoles([User::STAFF_ROLE_NAME]);
+                    $staff->syncRoles(['Staff']);
                     $staffAssignment = $this->resolveStaffAssignment(
                         companyName: (string) $company->name,
                         staffIndex: $staffIndex,

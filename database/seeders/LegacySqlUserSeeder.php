@@ -191,8 +191,7 @@ class LegacySqlUserSeeder extends Seeder
         $employeesByUserId = $this->parseInsertRows($employeesDump, 'employees')
             ->keyBy(static fn (array $employee): string => mb_strtolower((string) ($employee['user_id'] ?? '')));
 
-        Role::query()->firstOrCreate(['name' => User::STAFF_ROLE_NAME, 'guard_name' => 'web']);
-        Role::query()->firstOrCreate(['name' => User::SUPERUSER_ROLE_NAME, 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => 'Staff', 'guard_name' => 'web']);
 
         $this->parseInsertRows($usersDump, 'users')->each(function (array $currentUser) use ($employeesByUserId): void {
             $email = $this->currentSqlPersonalEmail($currentUser);
@@ -227,7 +226,7 @@ class LegacySqlUserSeeder extends Seeder
             ])->save();
 
             if ($user->roles()->doesntExist()) {
-                $user->syncRoles($email === 'superadmin@andalanbersama.com' ? [User::SUPERUSER_ROLE_NAME] : [User::STAFF_ROLE_NAME]);
+                $user->syncRoles(['Staff']);
             }
 
             $employee = Employee::withTrashed()->firstOrNew(['user_id' => $user->id]);
@@ -575,7 +574,7 @@ class LegacySqlUserSeeder extends Seeder
                 ?? $this->positionIdsByLegacyId[(int) $legacyUser['position']]
                 ?? null;
             $departmentId = $this->departmentIdsByLegacyId[(int) $legacyUser['department']] ?? null;
-            $roleName = $this->roleNamesByLegacyId[(int) $legacyUser['role']] ?? User::STAFF_ROLE_NAME;
+            $roleName = $this->roleNamesByLegacyId[(int) $legacyUser['role']] ?? 'Staff';
             $isActive = (int) $legacyUser['status'] === 1;
             $now = now();
 
@@ -633,7 +632,7 @@ class LegacySqlUserSeeder extends Seeder
         }
 
         Role::query()->firstOrCreate([
-            'name' => User::STAFF_ROLE_NAME,
+            'name' => 'Staff',
             'guard_name' => 'web',
         ]);
 
@@ -669,7 +668,7 @@ class LegacySqlUserSeeder extends Seeder
                     'created_at' => $now,
                 ],
             );
-            $user->syncRoles([User::STAFF_ROLE_NAME]);
+            $user->syncRoles(['Staff']);
 
             $employee = Employee::withTrashed()->updateOrCreate(
                 ['user_id' => $user->id],
@@ -1534,8 +1533,8 @@ class LegacySqlUserSeeder extends Seeder
     private function normalizeRoleName(string $name): string
     {
         return match (trim($name)) {
-            'Superuser' => User::SUPERUSER_ROLE_NAME,
-            'Board of Directors' => User::STAFF_ROLE_NAME,
+            'Superuser' => 'Staff',
+            'Board of Directors' => 'Staff',
             default => trim($name),
         };
     }
@@ -1635,7 +1634,7 @@ class LegacySqlUserSeeder extends Seeder
         }
 
         Role::query()->firstOrCreate([
-            'name' => User::SUPERUSER_ROLE_NAME,
+            'name' => 'Staff',
             'guard_name' => 'web',
         ]);
 
@@ -1652,7 +1651,7 @@ class LegacySqlUserSeeder extends Seeder
                 'updated_at' => $now,
             ],
         );
-        $user->syncRoles([User::SUPERUSER_ROLE_NAME]);
+        $user->syncRoles(['Staff']);
 
         $employee = Employee::withTrashed()->updateOrCreate(
             ['user_id' => $user->id],
@@ -1820,25 +1819,7 @@ class LegacySqlUserSeeder extends Seeder
     private function syncRolePermissions(): void
     {
         Role::query()
-            ->where('name', User::SUPERUSER_ROLE_NAME)
-            ->first()
-            ?->syncPermissions([
-                'view-dashboard',
-                'view-calendar',
-                'view-attendance',
-                'view-timesheet-reporting',
-                'view-admin-attendance',
-                'view-pic-attendance',
-                'view-director-attendance',
-                'view-authorization',
-                'view-employee-database',
-                'view-talent-acquisition',
-                'view-settings',
-                'view-meeting',
-            ]);
-
-        Role::query()
-            ->where('name', User::STAFF_ROLE_NAME)
+            ->where('name', 'Staff')
             ->first()
             ?->syncPermissions([
                 'view-dashboard',

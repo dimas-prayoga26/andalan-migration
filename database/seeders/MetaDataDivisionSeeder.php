@@ -18,7 +18,7 @@ class MetaDataDivisionSeeder extends Seeder
             $now = now();
             $divisions = [
                 'Branding Designer',
-                'Super User',
+                'Super Administrator',
                 'Administrator',
                 'Board of Directors',
                 'Administration, Finance and Legal',

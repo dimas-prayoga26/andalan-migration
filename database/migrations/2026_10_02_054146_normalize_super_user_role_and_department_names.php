@@ -13,9 +13,9 @@ return new class extends Migration
 
     private const LEGACY_BOD_ROLE = 'Board of Directors';
 
-    private const SUPER_USER_DEPARTMENT = 'Super User';
+    private const TARGET_DEPARTMENT = 'Super Administrator';
 
-    private const LEGACY_SUPERUSER_DEPARTMENT = 'Superuser';
+    private const LEGACY_DEPARTMENT = 'Superuser';
 
     /**
      * Run the migrations.
@@ -36,7 +36,7 @@ return new class extends Migration
             $this->deleteRole(self::LEGACY_BOD_ROLE);
         }
 
-        $this->renameSuperuserDepartment($now);
+        $this->normalizeLegacyDepartment($now);
     }
 
     /**
@@ -52,18 +52,18 @@ return new class extends Migration
 
         if (Schema::hasTable('departments')) {
             DB::table('departments')
-                ->where('name', self::SUPER_USER_DEPARTMENT)
+                ->where('name', self::TARGET_DEPARTMENT)
                 ->update([
-                    'name' => self::LEGACY_SUPERUSER_DEPARTMENT,
+                    'name' => self::LEGACY_DEPARTMENT,
                     'updated_at' => $now,
                 ]);
         }
 
         if (Schema::hasTable('meta_data_divisions')) {
             DB::table('meta_data_divisions')
-                ->where('name', self::SUPER_USER_DEPARTMENT)
+                ->where('name', self::TARGET_DEPARTMENT)
                 ->update([
-                    'name' => self::LEGACY_SUPERUSER_DEPARTMENT,
+                    'name' => self::LEGACY_DEPARTMENT,
                     'updated_at' => $now,
                 ]);
         }
@@ -165,14 +165,14 @@ return new class extends Migration
         DB::table('roles')->where('uuid', $roleId)->delete();
     }
 
-    private function renameSuperuserDepartment(mixed $now): void
+    private function normalizeLegacyDepartment(mixed $now): void
     {
         if (Schema::hasTable('departments')) {
             $targetDepartmentId = DB::table('departments')
-                ->where('name', self::SUPER_USER_DEPARTMENT)
+                ->where('name', self::TARGET_DEPARTMENT)
                 ->value('id');
             $legacyDepartmentId = DB::table('departments')
-                ->where('name', self::LEGACY_SUPERUSER_DEPARTMENT)
+                ->where('name', self::LEGACY_DEPARTMENT)
                 ->value('id');
 
             if (is_string($targetDepartmentId) && trim($targetDepartmentId) !== '' && is_string($legacyDepartmentId) && trim($legacyDepartmentId) !== '') {
@@ -217,9 +217,9 @@ return new class extends Migration
                     ->delete();
             } else {
                 DB::table('departments')
-                    ->where('name', self::LEGACY_SUPERUSER_DEPARTMENT)
+                    ->where('name', self::LEGACY_DEPARTMENT)
                     ->update([
-                        'name' => self::SUPER_USER_DEPARTMENT,
+                        'name' => self::TARGET_DEPARTMENT,
                         'updated_at' => $now,
                     ]);
             }
@@ -227,15 +227,15 @@ return new class extends Migration
 
         if (Schema::hasTable('meta_data_divisions')) {
             $updatedRows = DB::table('meta_data_divisions')
-                ->where('name', self::LEGACY_SUPERUSER_DEPARTMENT)
+                ->where('name', self::LEGACY_DEPARTMENT)
                 ->update([
-                    'name' => self::SUPER_USER_DEPARTMENT,
+                    'name' => self::TARGET_DEPARTMENT,
                     'updated_at' => $now,
                 ]);
 
-            if ($updatedRows === 0 && ! DB::table('meta_data_divisions')->where('name', self::SUPER_USER_DEPARTMENT)->exists()) {
+            if ($updatedRows === 0 && ! DB::table('meta_data_divisions')->where('name', self::TARGET_DEPARTMENT)->exists()) {
                 DB::table('meta_data_divisions')->insert([
-                    'name' => self::SUPER_USER_DEPARTMENT,
+                    'name' => self::TARGET_DEPARTMENT,
                     'is_active' => true,
                     'created_at' => $now,
                     'updated_at' => $now,

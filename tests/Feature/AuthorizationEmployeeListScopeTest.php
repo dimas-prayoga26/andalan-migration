@@ -344,7 +344,7 @@ class AuthorizationEmployeeListScopeTest extends TestCase
     {
         $rnbCompany = Company::query()->create(['name' => 'RNB']);
         $otherCompany = Company::query()->create(['name' => 'ABG']);
-        $superuserDepartment = $this->createDepartment('Super User');
+        $superuserDepartment = $this->createDepartment('Super Administrator');
         $operationsDepartment = $this->createDepartment('Operations');
         $staffPosition = Position::query()->create(['name' => 'Staff']);
         $superAdministratorPosition = Position::query()->create(['name' => 'Super Administrator']);

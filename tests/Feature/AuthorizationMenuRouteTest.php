@@ -262,7 +262,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString("'employee_code' => \$this->generateEmployeeCode(\$user)", $controller);
         $this->assertStringContainsString('private function dataEmployeePositions(?Employee $employee = null): Collection', $controller);
         $this->assertStringContainsString("->where('name', '<>', 'Super Administrator')", $controller);
-        $this->assertStringContainsString("->whereNotIn('name', ['Superuser', 'Super User'])", $controller);
+        $this->assertStringContainsString("->whereNotIn('name', ['Superuser', 'Super User', 'Super Usesr', 'Super Administrator'])", $controller);
         $this->assertStringContainsString('Rule::in($assignablePositionIds)', $controller);
         $this->assertStringContainsString('Employee has been added successfully.', $controller);
         $this->assertStringContainsString('Employee has been updated successfully.', $controller);

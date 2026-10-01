@@ -883,8 +883,8 @@ class AuthorizationController extends Controller
     private function dataEmployeeDepartments(?Employee $employee = null): Collection
     {
         return Department::query()
-            ->when(! $this->employeeUsesAnyDepartment($employee, ['Superuser', 'Super User']), function (Builder $query): void {
-                $query->whereNotIn('name', ['Superuser', 'Super User']);
+            ->when(! $this->employeeUsesAnyDepartment($employee, ['Superuser', 'Super User', 'Super Usesr', 'Super Administrator']), function (Builder $query): void {
+                $query->whereNotIn('name', ['Superuser', 'Super User', 'Super Usesr', 'Super Administrator']);
             })
             ->orderBy('name')
             ->get(['id', 'name']);

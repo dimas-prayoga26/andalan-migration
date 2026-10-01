@@ -204,7 +204,7 @@
         </div>
 
         <div class="card-footer d-flex justify-content-between">
-            <a href="{{ route('authorization') }}" class="btn btn-light">Close</a>
+            <a href="{{ route('authorization') }}" class="btn btn-light">Kembali</a>
             <button type="submit" class="btn btn-success">
                 <i class="fa-regular fa-floppy-disk me-1"></i>{{ $isEdit ? 'Update Employee' : 'Add Employee' }}
             </button>

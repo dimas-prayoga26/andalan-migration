@@ -242,7 +242,6 @@
                         <th>Position</th>
                         <th>Company</th>
                         <th>PIC</th>
-                        <th>Event Admin</th>
                         <th>Status</th>
                         <th class="text-end">Action</th>
                     </tr>
@@ -269,24 +268,6 @@
                             <td>{{ $user['position'] }}</td>
                             <td>{{ $user['company'] }}</td>
                             <td>{{ $user['pic'] }}</td>
-                            <td>
-                                @if ($canManageDataEmployee)
-                                    <form method="POST" action="{{ route('employee_data.event-project-admin.update', ['employee' => $user['id']]) }}" class="m-0 js-authorization-event-admin-form">
-                                        @csrf
-                                        @method('PATCH')
-                                        <select name="is_event_project_admin" class="form-select form-select-sm js-authorization-event-admin-select" aria-label="Event admin status for {{ $user['name'] }}">
-                                            <option value="0" @selected(! $user['is_event_project_admin'])>Off</option>
-                                            <option value="1" @selected($user['is_event_project_admin'])>On</option>
-                                        </select>
-                                    </form>
-                                @else
-                                    @if ($user['is_event_project_admin'])
-                                        <span class="badge badge-sm light badge-primary">On</span>
-                                    @else
-                                        <span class="badge badge-sm light badge-secondary">Off</span>
-                                    @endif
-                                @endif
-                            </td>
                             <td>
                                 @php
                                     $statusClass = match ($user['status']) {
@@ -366,14 +347,6 @@
     <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
-        document.addEventListener('change', function (event) {
-            if (! event.target.matches('.js-authorization-event-admin-select')) {
-                return;
-            }
-
-            event.target.closest('form')?.submit();
-        });
-
         document.addEventListener('submit', function (event) {
             if (! event.target.matches('[data-authorization-delete-form]')) {
                 return;

@@ -44,10 +44,6 @@
                 <p class="mb-1"><span class="text-muted">Phone:</span> {{ $employee->user?->phone ?? '-' }}</p>
                 <p class="mb-1"><span class="text-muted">Status:</span> {{ $employee->status ?? '-' }}</p>
                 <p class="mb-1">
-                    <span class="text-muted">Event Project Admin:</span>
-                    {{ $employee->is_event_project_admin ? 'Yes' : 'No' }}
-                </p>
-                <p class="mb-1">
                     <span class="text-muted">Core Staff:</span>
                     {{ $employee->is_core_staff ? 'Yes' : 'No' }}
                 </p>

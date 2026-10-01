@@ -108,27 +108,34 @@
             margin-top: 0.1rem;
         }
 
-        .applicant-rating-buttons {
+        .applicant-rating-widget {
+            text-align: right;
+        }
+
+        .applicant-rating-widget .rating-stars ul {
             display: inline-flex;
-            gap: 0.25rem;
+            gap: 0.2rem;
+            align-items: center;
+            padding: 0;
+            margin: 0;
+            list-style-type: none;
+            user-select: none;
         }
 
-        .applicant-rating-button {
-            width: 32px;
-            height: 32px;
-            border: 1px solid #d9dce5;
-            border-radius: 0.45rem;
-            background: #fff;
-            color: #475569;
+        .applicant-rating-widget .rating-stars ul > li.star {
+            display: inline-flex;
+            color: #d7dce8;
             cursor: default;
-            font-size: 0.82rem;
-            font-weight: 800;
         }
 
-        .applicant-rating-button.active {
-            border-color: #2448c7;
-            background: #2448c7;
-            color: #fff;
+        .applicant-rating-widget .rating-stars ul > li.star > i.fa {
+            color: currentColor;
+            font-size: 1.28rem;
+            line-height: 1;
+        }
+
+        .applicant-rating-widget .rating-stars ul > li.star.selected > i.fa {
+            color: #ff912c;
         }
 
         .applicant-assessment-upload {
@@ -234,6 +241,13 @@
         ['label' => 'Pengalaman', 'weight' => '20%', 'selected' => 3],
         ['label' => 'Kesanggupan', 'weight' => '15%', 'selected' => 4],
     ];
+    $ratingLabels = [
+        1 => 'Sangat Kurang',
+        2 => 'Kurang',
+        3 => 'Cukup',
+        4 => 'Baik',
+        5 => 'Sangat Baik',
+    ];
 @endphp
 
 <div class="page-title">
@@ -292,10 +306,16 @@
                                     <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
                                     <div class="applicant-rating-weight">Bobot {{ $criteria['weight'] }}</div>
                                 </div>
-                                <div class="applicant-rating-buttons" aria-label="{{ $criteria['label'] }}">
-                                    @for ($rating = 1; $rating <= 5; $rating++)
-                                        <button type="button" class="applicant-rating-button {{ $rating === $criteria['selected'] ? 'active' : '' }}" title="{{ $rating === 1 ? 'Sangat Kurang' : ($rating === 5 ? 'Sangat Baik' : 'Nilai '.$rating) }}">{{ $rating }}</button>
-                                    @endfor
+                                <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $criteria['label'] }}">
+                                    <div class="rating-stars">
+                                        <ul>
+                                            @for ($rating = 1; $rating <= 5; $rating++)
+                                                <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}">
+                                                    <i class="fa fa-star fa-fw"></i>
+                                                </li>
+                                            @endfor
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         @endforeach
@@ -320,10 +340,16 @@
                                     <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
                                     <div class="applicant-rating-weight">Bobot {{ $criteria['weight'] }}</div>
                                 </div>
-                                <div class="applicant-rating-buttons" aria-label="{{ $criteria['label'] }}">
-                                    @for ($rating = 1; $rating <= 5; $rating++)
-                                        <button type="button" class="applicant-rating-button {{ $rating === $criteria['selected'] ? 'active' : '' }}" title="{{ $rating === 1 ? 'Sangat Kurang' : ($rating === 5 ? 'Sangat Baik' : 'Nilai '.$rating) }}">{{ $rating }}</button>
-                                    @endfor
+                                <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $criteria['label'] }}">
+                                    <div class="rating-stars">
+                                        <ul>
+                                            @for ($rating = 1; $rating <= 5; $rating++)
+                                                <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}">
+                                                    <i class="fa fa-star fa-fw"></i>
+                                                </li>
+                                            @endfor
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         @endforeach
@@ -339,10 +365,16 @@
                                     <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
                                     <div class="applicant-rating-weight">Bobot {{ $criteria['weight'] }}</div>
                                 </div>
-                                <div class="applicant-rating-buttons" aria-label="{{ $criteria['label'] }}">
-                                    @for ($rating = 1; $rating <= 5; $rating++)
-                                        <button type="button" class="applicant-rating-button {{ $rating === $criteria['selected'] ? 'active' : '' }}" title="{{ $rating === 1 ? 'Sangat Kurang' : ($rating === 5 ? 'Sangat Baik' : 'Nilai '.$rating) }}">{{ $rating }}</button>
-                                    @endfor
+                                <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $criteria['label'] }}">
+                                    <div class="rating-stars">
+                                        <ul>
+                                            @for ($rating = 1; $rating <= 5; $rating++)
+                                                <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}">
+                                                    <i class="fa fa-star fa-fw"></i>
+                                                </li>
+                                            @endfor
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         @endforeach

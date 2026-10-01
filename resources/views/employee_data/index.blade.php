@@ -361,7 +361,6 @@
                                     <th class="mw-220">Name</th>
                                     <th class="mw-280">Position</th>
                                     <th class="mw-220">Perusahaan</th>
-                                    <th class="mw-180">Event Admin</th>
                                     <th class="mw-160">Action</th>
                                 </tr>
                                 </thead>
@@ -385,16 +384,6 @@
                                             <td>{{ $employee['position'] }}</td>
                                             <td>{{ $employee['company'] }}</td>
                                             <td>
-                                                <form method="POST" action="{{ route('employee_data.event-project-admin.update', ['employee' => $employee['id']]) }}" class="m-0 js-event-project-admin-form">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <input type="hidden" name="is_event_project_admin" value="0">
-                                                    <div class="form-check form-switch mb-0">
-                                                        <input class="form-check-input js-event-project-admin-switch" type="checkbox" role="switch" name="is_event_project_admin" value="1" @checked($employee['is_event_project_admin']) aria-label="Set {{ $employee['name'] }} as Event Project Admin">
-                                                    </div>
-                                                </form>
-                                            </td>
-                                            <td>
                                                 <div class="applicant-action-group">
                                                     <button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>
                                                     <a href="{{ route('authorization.edit', ['employee' => $employee['id']]) }}" class="applicant-action-btn edit" aria-label="Update {{ $employee['name'] }}"><i class="bi bi-pencil"></i></a>
@@ -404,7 +393,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="8" class="text-center text-muted py-4">No employee data available.</td>
+                                            <td colspan="7" class="text-center text-muted py-4">No employee data available.</td>
                                         </tr>
                                     @endforelse
                                 @else
@@ -584,8 +573,6 @@
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
-        var csrfToken = @json(csrf_token());
-        var employeeEventAdminUpdateUrlTemplate = @json(route('employee_data.event-project-admin.update', ['employee' => '__EMPLOYEE_ID__']));
         var employeeEditUrlTemplate = @json(route('authorization.edit', ['employee' => '__EMPLOYEE_ID__']));
 
         function escapeHtml(value) {
@@ -602,17 +589,6 @@
             }
 
             return '<span class="employee-photo">' + escapeHtml(employee.initials || 'E') + '</span>';
-        }
-
-        function renderEmployeeEventAdmin(employee) {
-            return '<form method="POST" action="' + employeeUrl(employeeEventAdminUpdateUrlTemplate, employee.id) + '" class="m-0 js-event-project-admin-form">'
-                + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
-                + '<input type="hidden" name="_method" value="PATCH">'
-                + '<input type="hidden" name="is_event_project_admin" value="0">'
-                + '<div class="form-check form-switch mb-0">'
-                + '<input class="form-check-input js-event-project-admin-switch" type="checkbox" role="switch" name="is_event_project_admin" value="1"' + (employee.is_event_project_admin ? ' checked' : '') + ' aria-label="Set ' + escapeHtml(employee.name) + ' as Event Project Admin">'
-                + '</div>'
-                + '</form>';
         }
 
         function renderEmployeeAction(employee) {
@@ -664,28 +640,16 @@
                         searchable: false,
                         orderable: false,
                         render: function (data, type, row) {
-                            return renderEmployeeEventAdmin(row);
-                        }
-                    },
-                    {
-                        data: null,
-                        searchable: false,
-                        orderable: false,
-                        render: function (data, type, row) {
                             return renderEmployeeAction(row);
                         }
                     }
                 ],
                 columnDefs: [
                     {
-                        targets: [0, 1, 6, 7],
+                        targets: [0, 1, 6],
                         orderable: false
                     }
                 ]
-            });
-
-            $(document).on('change', '.js-event-project-admin-switch', function () {
-                $(this).closest('form').trigger('submit');
             });
         });
     </script>

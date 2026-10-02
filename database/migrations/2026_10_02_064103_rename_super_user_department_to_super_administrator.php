@@ -48,7 +48,9 @@ return new class extends Migration
 
         $sourceRows = DB::table('departments')
             ->whereIn('name', $sourceNames)
-            ->get(['id', 'name']);
+            ->get(['id', 'name'])
+            ->sortBy(static fn (object $sourceRow): int => (int) array_search($sourceRow->name, $sourceNames, true))
+            ->values();
 
         if ((! is_string($targetId) || trim($targetId) === '') && $sourceRows->isNotEmpty()) {
             $targetRow = $sourceRows->first();

@@ -64,16 +64,35 @@
 
 @section('content')
 
+@php
+    $folder = $folder ?? 'inbox';
+    $isSentFolder = $folder === 'sent';
+    $folderQuery = $isSentFolder ? ['folder' => 'sent'] : [];
+@endphp
+
 @include('layouts.breadcrumb', [
     'title' => 'Email',
     'current' => 'Read',
     'homeRoute' => 'dashboard',
 ])
 
+@if ($message)
+    <form method="POST" action="{{ route('applicant.email.destroy') }}" id="mail-delete-form" class="d-none"
+        data-delete-confirmation-form
+        data-delete-title="Hapus Email"
+        data-delete-message="Email ini akan dihapus. Lanjutkan?"
+        data-delete-confirm-button="Hapus"
+        data-delete-cancel-button="Batal">
+        @csrf
+        <input type="hidden" name="folder" value="{{ $folder }}">
+        <input type="hidden" name="uids[]" value="{{ $message['uid'] }}">
+    </form>
+@endif
+
 <div class="card border-0 mb-0 h-auto">
     <div class="card-body p-0">
         <div class="row gx-0">
-            @include('mail.partials.sidebar', ['active' => 'read'])
+            @include('mail.partials.sidebar', ['active' => $isSentFolder ? 'sent' : 'read'])
 
             <div class="col-xxl-10 col-xl-9 col-lg-8">
                 <div class="email-right-column">
@@ -81,7 +100,7 @@
                         <div class="d-flex gap-1">
                             <button type="button" class="btn btn-square btn-sm tp-btn-light btn-primary"><i class="fa fa-archive"></i></button>
                             <button type="button" class="btn btn-square btn-sm tp-btn-light btn-primary"><i class="fa fa-exclamation-circle"></i></button>
-                            <button type="button" class="btn btn-square btn-sm tp-btn-light btn-danger"><i class="fa fa-trash"></i></button>
+                            <button type="submit" form="mail-delete-form" class="btn btn-square btn-sm tp-btn-light btn-danger" title="Hapus email" @disabled(! $message)><i class="fa fa-trash"></i></button>
                             <button type="button" class="btn btn-square btn-sm tp-btn-light btn-warning"><i class="fa fa-folder"></i></button>
                             <div class="dropdown">
                                 <button type="button" class="btn btn-square btn-sm tp-btn-light btn-primary" data-bs-toggle="dropdown" aria-expanded="false">
@@ -121,13 +140,13 @@
                                     <div class="clearfix mb-3">
                                         <button type="button" class="btn btn-square btn-primary btn-sm light" data-mail-reply-toggle><i class="fa fa-reply"></i></button>
                                         <button type="button" class="btn btn-square btn-primary btn-sm light"><i class="fas fa-arrow-right"></i></button>
-                                        <button type="button" class="btn btn-square btn-danger btn-sm light"><i class="fa fa-trash"></i></button>
+                                        <button type="submit" form="mail-delete-form" class="btn btn-square btn-danger btn-sm light" title="Hapus email" @disabled(! $message)><i class="fa fa-trash"></i></button>
                                     </div>
                                 </div>
                                 <div class="mb-2 mt-3">
                                     <span>{{ $message['time'] ?? '' }}</span>
                                     <h5 class="my-1 text-primary">{{ $message['subject'] ?? 'Email tidak tersedia' }}</h5>
-                                    <p>To: <a>{{ $account->email }}</a></p>
+                                    <p>To: <a>{{ $isSentFolder ? ($message['to'] ?? '') : $account->email }}</a></p>
                                 </div>
                                 <div class="read-content-body">
                                     @if ($readError)
@@ -143,7 +162,7 @@
                                             @foreach ($message['attachments'] as $attachment)
                                                 <div class="mail-attachment-item">
                                                     @if ($attachment['is_image'])
-                                                        <img src="{{ route('applicant.email.attachment', [$message['uid'], $attachment['id'], 'inline' => 1]) }}" alt="{{ $attachment['filename'] }}" class="mail-attachment-preview mb-2">
+                                                        <img src="{{ route('applicant.email.attachment', [$message['uid'], $attachment['id'], 'inline' => 1, ...$folderQuery]) }}" alt="{{ $attachment['filename'] }}" class="mail-attachment-preview mb-2">
                                                     @else
                                                         <div class="d-flex align-items-center justify-content-center bg-light rounded mb-2" style="height: 120px;">
                                                             <i class="fa-regular fa-file fs-1 text-primary"></i>
@@ -151,7 +170,7 @@
                                                     @endif
                                                     <div class="fw-semibold text-break">{{ $attachment['filename'] }}</div>
                                                     <div class="small text-muted mb-2">{{ $attachment['content_type'] }} · {{ number_format($attachment['size'] / 1024, 1) }} KB</div>
-                                                    <a href="{{ route('applicant.email.attachment', [$message['uid'], $attachment['id']]) }}" class="btn btn-primary btn-sm w-100">
+                                                    <a href="{{ route('applicant.email.attachment', [$message['uid'], $attachment['id'], ...$folderQuery]) }}" class="btn btn-primary btn-sm w-100">
                                                         <i class="fa fa-download me-1"></i> Download
                                                     </a>
                                                 </div>
@@ -164,7 +183,7 @@
                                     <button type="button" class="btn btn-secondary btn-sm" data-mail-reply-toggle><i class="fa-solid fa-reply"></i> Reply</button>
                                 </div>
                                 @if ($message)
-                                    <form action="{{ route('applicant.email.reply', $message['uid']) }}" method="POST" enctype="multipart/form-data" id="mailReplyForm" class="{{ old('body') ? '' : 'd-none' }}">
+                                    <form action="{{ route('applicant.email.reply', [$message['uid'], ...$folderQuery]) }}" method="POST" enctype="multipart/form-data" id="mailReplyForm" class="{{ old('body') ? '' : 'd-none' }}">
                                         @csrf
                                         <div class="mail-reply-editor mb-3">
                                             <div class="mail-reply-target d-flex align-items-start gap-2">
@@ -197,7 +216,10 @@
 
 @endsection
 
+@include('settings.partials.delete-confirmation-swal')
+
 @section('script')
+    @stack('scripts')
     <script>
         document.querySelectorAll('[data-mail-reply-toggle]').forEach((button) => {
             button.addEventListener('click', () => {

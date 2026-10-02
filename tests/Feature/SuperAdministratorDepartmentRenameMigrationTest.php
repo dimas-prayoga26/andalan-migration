@@ -90,7 +90,12 @@ class SuperAdministratorDepartmentRenameMigrationTest extends TestCase
 
         DB::table('employees')->insert([
             'id' => $employeeId,
-            'user_id' => User::factory()->create()->getKey(),
+            'user_id' => User::query()->create([
+                'username' => 'user_'.uniqid(),
+                'email' => uniqid().'@example.test',
+                'password' => 'password',
+                'is_active' => true,
+            ])->getKey(),
             'status' => 'Active',
             'created_at' => now(),
             'updated_at' => now(),

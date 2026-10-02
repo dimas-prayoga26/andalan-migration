@@ -8,7 +8,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Mail\SentMessage;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Throwable;
 
@@ -84,36 +86,46 @@ class MailController extends Controller
 
     public function inbox(Request $request, MailInboxService $mailInbox): View|RedirectResponse
     {
+        return $this->mailboxView($request, $mailInbox, MailInboxService::FOLDER_INBOX);
+    }
+
+    public function sent(Request $request, MailInboxService $mailInbox): View|RedirectResponse
+    {
+        return $this->mailboxView($request, $mailInbox, MailInboxService::FOLDER_SENT);
+    }
+
+    public function destroy(Request $request, MailInboxService $mailInbox): RedirectResponse
+    {
         $account = $this->currentAccount($request);
 
         if ($account === null) {
             return redirect()->route('applicant.email.index');
         }
 
-        $messages = [];
-        $inboxError = null;
-        $searchQuery = trim((string) $request->query('search', ''));
+        $validated = $request->validate([
+            'folder' => ['required', 'string', Rule::in(MailInboxService::FOLDERS)],
+            'uids' => ['required', 'array', 'min:1', 'max:100'],
+            'uids.*' => ['required', 'string', 'regex:/^[0-9]+$/'],
+        ], [
+            'uids.required' => 'Pilih minimal satu email yang akan dihapus.',
+        ]);
+
+        $folder = (string) $validated['folder'];
+        $uids = array_values(array_unique(array_map('strval', $validated['uids'])));
 
         try {
-            $messages = $mailInbox->messagesFor($account->email);
+            $mailInbox->deleteMessages($account->email, $uids, $folder);
         } catch (Throwable $exception) {
             report($exception);
-            $inboxError = 'Inbox belum bisa diambil. Pastikan IMAP aktif untuk email ini.';
+
+            return redirect()
+                ->route($this->folderRouteName($folder))
+                ->withErrors(['mail' => 'Email belum bisa dihapus. Coba refresh lalu ulangi.']);
         }
 
-        $totalInboxCount = count($messages);
-
-        if ($searchQuery !== '') {
-            $messages = $this->filterMessages($messages, $searchQuery);
-        }
-
-        return view('mail.inbox', [
-            'account' => $account,
-            'inboxError' => $inboxError,
-            'messages' => $messages,
-            'searchQuery' => $searchQuery,
-            'totalInboxCount' => $totalInboxCount,
-        ]);
+        return redirect()
+            ->route($this->folderRouteName($folder))
+            ->with('mail_status', count($uids).' email berhasil dihapus.');
     }
 
     public function compose(Request $request): View|RedirectResponse
@@ -129,7 +141,7 @@ class MailController extends Controller
         ]);
     }
 
-    public function send(Request $request): RedirectResponse
+    public function send(Request $request, MailInboxService $mailInbox): RedirectResponse
     {
         $account = $this->currentAccount($request);
 
@@ -146,7 +158,7 @@ class MailController extends Controller
         ]);
 
         try {
-            $this->sendOutgoingMail(
+            $sentMessage = $this->sendOutgoingMail(
                 $account,
                 (string) $validated['to'],
                 (string) $validated['subject'],
@@ -161,8 +173,10 @@ class MailController extends Controller
                 ->withInput();
         }
 
+        $this->storeSentCopy($mailInbox, $account, $sentMessage);
+
         return redirect()
-            ->route('applicant.email.inbox')
+            ->route('applicant.email.sent')
             ->with('mail_status', 'Email berhasil dikirim.');
     }
 
@@ -174,15 +188,17 @@ class MailController extends Controller
             return redirect()->route('applicant.email.index');
         }
 
+        $folder = $this->folderFromRequest($request);
+
         if ($uid === null) {
-            return redirect()->route('applicant.email.inbox');
+            return redirect()->route($this->folderRouteName($folder));
         }
 
         $message = null;
         $readError = null;
 
         try {
-            $message = $mailInbox->messageFor($account->email, $uid);
+            $message = $mailInbox->messageFor($account->email, $uid, $folder);
         } catch (Throwable $exception) {
             report($exception);
             $readError = 'Pesan email belum bisa dibuka. Coba refresh inbox lalu klik ulang pesan.';
@@ -190,9 +206,10 @@ class MailController extends Controller
 
         return view('mail.read', [
             'account' => $account,
+            'folder' => $folder,
             'message' => $message,
             'readError' => $readError,
-            'replyTo' => $message ? $this->emailAddressFromHeader((string) ($message['from'] ?? '')) : null,
+            'replyTo' => $message ? $this->replyRecipient($message, $folder) : null,
         ]);
     }
 
@@ -210,9 +227,11 @@ class MailController extends Controller
             'attachments.*' => ['file', 'max:10240'],
         ]);
 
+        $folder = $this->folderFromRequest($request);
+
         try {
-            $message = $mailInbox->messageFor($account->email, $uid);
-            $recipient = $this->emailAddressFromHeader((string) ($message['from'] ?? ''));
+            $message = $mailInbox->messageFor($account->email, $uid, $folder);
+            $recipient = $this->replyRecipient($message, $folder);
 
             if ($recipient === null) {
                 return back()
@@ -220,7 +239,7 @@ class MailController extends Controller
                     ->withInput();
             }
 
-            $this->sendOutgoingMail(
+            $sentMessage = $this->sendOutgoingMail(
                 $account,
                 $recipient,
                 $this->replySubject((string) ($message['subject'] ?? 'Email')),
@@ -239,8 +258,10 @@ class MailController extends Controller
                 ->withInput();
         }
 
+        $this->storeSentCopy($mailInbox, $account, $sentMessage);
+
         return redirect()
-            ->route('applicant.email.read', $uid)
+            ->route('applicant.email.read', $this->readRouteParameters($uid, $folder))
             ->with('mail_status', 'Balasan berhasil dikirim.');
     }
 
@@ -253,7 +274,7 @@ class MailController extends Controller
         }
 
         try {
-            $file = $mailInbox->attachmentFor($account->email, $uid, $attachment);
+            $file = $mailInbox->attachmentFor($account->email, $uid, $attachment, $this->folderFromRequest($request));
         } catch (Throwable $exception) {
             report($exception);
 
@@ -328,13 +349,100 @@ class MailController extends Controller
         ));
     }
 
+    private function mailboxView(Request $request, MailInboxService $mailInbox, string $folder): View|RedirectResponse
+    {
+        $account = $this->currentAccount($request);
+
+        if ($account === null) {
+            return redirect()->route('applicant.email.index');
+        }
+
+        $messages = [];
+        $inboxError = null;
+        $searchQuery = trim((string) $request->query('search', ''));
+
+        try {
+            $messages = $mailInbox->messagesFor($account->email, folder: $folder);
+        } catch (Throwable $exception) {
+            report($exception);
+            $inboxError = $folder === MailInboxService::FOLDER_SENT
+                ? 'Email terkirim belum bisa diambil. Pastikan IMAP aktif untuk email ini.'
+                : 'Inbox belum bisa diambil. Pastikan IMAP aktif untuk email ini.';
+        }
+
+        $totalInboxCount = count($messages);
+
+        if ($searchQuery !== '') {
+            $messages = $this->filterMessages($messages, $searchQuery);
+        }
+
+        return view('mail.inbox', [
+            'account' => $account,
+            'folder' => $folder,
+            'inboxError' => $inboxError,
+            'messages' => $messages,
+            'searchQuery' => $searchQuery,
+            'totalInboxCount' => $totalInboxCount,
+        ]);
+    }
+
+    private function folderFromRequest(Request $request): string
+    {
+        $folder = (string) $request->input('folder', MailInboxService::FOLDER_INBOX);
+
+        return in_array($folder, MailInboxService::FOLDERS, true) ? $folder : MailInboxService::FOLDER_INBOX;
+    }
+
+    private function folderRouteName(string $folder): string
+    {
+        return $folder === MailInboxService::FOLDER_SENT ? 'applicant.email.sent' : 'applicant.email.inbox';
+    }
+
+    /**
+     * @return array{uid: string, folder?: string}
+     */
+    private function readRouteParameters(string $uid, string $folder): array
+    {
+        return $folder === MailInboxService::FOLDER_SENT
+            ? ['uid' => $uid, 'folder' => $folder]
+            : ['uid' => $uid];
+    }
+
+    /**
+     * Replies to a sent message go back to its recipient instead of the account itself.
+     *
+     * @param  array<string, mixed>  $message
+     */
+    private function replyRecipient(array $message, string $folder): ?string
+    {
+        $header = $folder === MailInboxService::FOLDER_SENT ? 'to' : 'from';
+
+        return $this->emailAddressFromHeader((string) ($message[$header] ?? ''));
+    }
+
+    /**
+     * Saving to the Sent mailbox is best-effort: the email itself was already delivered.
+     */
+    private function storeSentCopy(MailInboxService $mailInbox, MailAccessAccount $account, ?SentMessage $sentMessage): void
+    {
+        if ($sentMessage === null) {
+            return;
+        }
+
+        try {
+            $mailInbox->storeSentMessage($account->email, $sentMessage->toString());
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+    }
+
     /**
      * @param  list<UploadedFile>  $attachments
      * @param  array{message_id?: string, references?: string}  $replyHeaders
      */
-    private function sendOutgoingMail(MailAccessAccount $account, string $to, string $subject, string $body, array $attachments, array $replyHeaders = []): void
+    private function sendOutgoingMail(MailAccessAccount $account, string $to, string $subject, string $body, array $attachments, array $replyHeaders = []): ?SentMessage
     {
-        Mail::mailer($this->mailerForAccount($account))->html($this->outgoingHtmlBody($body), function ($message) use ($account, $attachments, $replyHeaders, $subject, $to): void {
+        return Mail::mailer($this->mailerForAccount($account))->html($this->outgoingHtmlBody($body), function ($message) use ($account, $attachments, $replyHeaders, $subject, $to): void {
             $message
                 ->from($account->email, $account->email)
                 ->to($to)

@@ -104,6 +104,8 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/applicant/email/check', [MailController::class, 'checkEmail'])->name('applicant.email.check');
         Route::post('/applicant/email/login', [MailController::class, 'authenticate'])->name('applicant.email.login');
         Route::get('/applicant/email/inbox', [MailController::class, 'inbox'])->name('applicant.email.inbox');
+        Route::get('/applicant/email/sent', [MailController::class, 'sent'])->name('applicant.email.sent');
+        Route::post('/applicant/email/delete', [MailController::class, 'destroy'])->name('applicant.email.destroy');
         Route::get('/applicant/email/compose', [MailController::class, 'compose'])->name('applicant.email.compose');
         Route::post('/applicant/email/send', [MailController::class, 'send'])->name('applicant.email.send');
         Route::get('/applicant/email/read/{uid}/attachments/{attachment}', [MailController::class, 'attachment'])->whereNumber('uid')->whereNumber('attachment')->name('applicant.email.attachment');

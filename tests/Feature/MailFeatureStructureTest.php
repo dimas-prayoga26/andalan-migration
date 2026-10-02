@@ -16,6 +16,8 @@ class MailFeatureStructureTest extends TestCase
             'applicant.email.check' => 'applicant/email/check',
             'applicant.email.login' => 'applicant/email/login',
             'applicant.email.inbox' => 'applicant/email/inbox',
+            'applicant.email.sent' => 'applicant/email/sent',
+            'applicant.email.destroy' => 'applicant/email/delete',
             'applicant.email.compose' => 'applicant/email/compose',
             'applicant.email.send' => 'applicant/email/send',
             'applicant.email.attachment' => 'applicant/email/read/{uid}/attachments/{attachment}',
@@ -35,6 +37,8 @@ class MailFeatureStructureTest extends TestCase
         $this->assertSame(MailController::class.'@checkEmail', Route::getRoutes()->getByName('applicant.email.check')?->getActionName());
         $this->assertSame(MailController::class.'@authenticate', Route::getRoutes()->getByName('applicant.email.login')?->getActionName());
         $this->assertSame(MailController::class.'@inbox', Route::getRoutes()->getByName('applicant.email.inbox')?->getActionName());
+        $this->assertSame(MailController::class.'@sent', Route::getRoutes()->getByName('applicant.email.sent')?->getActionName());
+        $this->assertSame(MailController::class.'@destroy', Route::getRoutes()->getByName('applicant.email.destroy')?->getActionName());
         $this->assertSame(MailController::class.'@compose', Route::getRoutes()->getByName('applicant.email.compose')?->getActionName());
         $this->assertSame(MailController::class.'@send', Route::getRoutes()->getByName('applicant.email.send')?->getActionName());
         $this->assertSame(MailController::class.'@attachment', Route::getRoutes()->getByName('applicant.email.attachment')?->getActionName());
@@ -62,8 +66,11 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString('mail-pin-grid', $loginView);
         $this->assertStringContainsString('Socials', $inboxView);
         $this->assertStringContainsString('Promotion', $inboxView);
-        $this->assertStringContainsString("route('applicant.email.read', \$mail['uid'])", $inboxView);
-        $this->assertStringContainsString("route('applicant.email.inbox')", $inboxView);
+        $this->assertStringContainsString("route('applicant.email.read', \$readRouteParameters)", $inboxView);
+        $this->assertStringContainsString('route($folderRoute)', $inboxView);
+        $this->assertStringContainsString("route('applicant.email.destroy')", $inboxView);
+        $this->assertStringContainsString('data-delete-confirmation-form', $inboxView);
+        $this->assertStringContainsString('Belum ada email terkirim.', $inboxView);
         $this->assertStringContainsString('name="search"', $inboxView);
         $this->assertStringContainsString('Tidak ada email yang cocok dengan pencarian.', $inboxView);
         $this->assertStringContainsString('mail-list-clean', $inboxView);
@@ -94,13 +101,15 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString("route('applicant.email.logout')", $mailSidebarView);
         $this->assertStringContainsString("route('applicant.email.compose')", $mailSidebarView);
         $this->assertStringContainsString("route('applicant.email.inbox')", $mailSidebarView);
+        $this->assertStringContainsString("route('applicant.email.sent')", $mailSidebarView);
+        $this->assertStringContainsString("route('applicant.email.destroy')", $readView);
         $this->assertStringNotContainsString('Categories', $mailSidebarView);
         $this->assertStringContainsString('MailInboxService $mailInbox', $controller);
         $this->assertStringContainsString('$request->query(\'search\', \'\')', $controller);
         $this->assertStringContainsString('filterMessages($messages, $searchQuery)', $controller);
-        $this->assertStringContainsString('messageFor($account->email, $uid)', $controller);
-        $this->assertStringContainsString("'replyTo' => \$message ? \$this->emailAddressFromHeader", $controller);
-        $this->assertStringContainsString('attachmentFor($account->email, $uid, $attachment)', $controller);
+        $this->assertStringContainsString('messageFor($account->email, $uid, $folder)', $controller);
+        $this->assertStringContainsString("'replyTo' => \$message ? \$this->replyRecipient(\$message, \$folder)", $controller);
+        $this->assertStringContainsString('attachmentFor($account->email, $uid, $attachment, $this->folderFromRequest($request))', $controller);
         $this->assertStringContainsString("'attachments.*' => ['file', 'max:10240']", $controller);
         $this->assertStringContainsString('Mail::mailer($this->mailerForAccount($account))->html', $controller);
         $this->assertStringContainsString('outgoingHtmlBody($body)', $controller);

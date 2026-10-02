@@ -67,32 +67,52 @@
 
 @section('content')
 
-@include('layouts.breadcrumb', [
-    'title' => 'Email',
-    'current' => 'Inbox',
-    'homeRoute' => 'dashboard',
-])
-
 @php
+    $folder = $folder ?? 'inbox';
+    $isSentFolder = $folder === 'sent';
+    $folderRoute = $isSentFolder ? 'applicant.email.sent' : 'applicant.email.inbox';
+    $folderLabel = $isSentFolder ? 'Sent' : 'Inbox';
     $messages = $messages ?? [];
     $searchQuery = $searchQuery ?? '';
     $totalInboxCount = $totalInboxCount ?? count($messages);
-    $unreadCount = collect($messages)->where('unread', true)->count();
+    $unreadCount = $isSentFolder ? null : collect($messages)->where('unread', true)->count();
 @endphp
+
+@include('layouts.breadcrumb', [
+    'title' => 'Email',
+    'current' => $folderLabel,
+    'homeRoute' => 'dashboard',
+])
+
+<form method="POST" action="{{ route('applicant.email.destroy') }}" id="mail-bulk-delete-form" class="d-none"
+    data-delete-confirmation-form
+    data-delete-title="Hapus Email"
+    data-delete-message="Email yang dipilih akan dihapus. Lanjutkan?"
+    data-delete-confirm-button="Hapus"
+    data-delete-cancel-button="Batal">
+    @csrf
+    <input type="hidden" name="folder" value="{{ $folder }}">
+</form>
 
 <div class="card border-0 mb-0 h-auto">
     <div class="card-body p-0">
         <div class="row gx-0">
-            @include('mail.partials.sidebar', ['active' => 'inbox', 'unreadCount' => $unreadCount])
+            @include('mail.partials.sidebar', ['active' => $folder, 'unreadCount' => $unreadCount])
 
             <div class="col-xxl-10 col-xl-9 col-lg-8">
                 <div class="email-right-column check-wrapper">
+                    @include('partials.swal-alert', ['type' => 'success', 'message' => session('mail_status')])
+
+                    @if ($errors->any())
+                        @include('partials.swal-alert', ['type' => 'error', 'message' => implode("\n", $errors->all())])
+                    @endif
+
                     <div class="d-sm-flex align-items-center justify-content-between gap-3 flex-wrap px-3 border-bottom">
                         <div class="d-flex justify-content-between py-3 py-sm-2 order-2 order-sm-3">
                             <div class="d-flex gap-1">
                                 <button type="button" class="btn btn-square btn-sm tp-btn-light btn-primary"><i class="fa fa-archive"></i></button>
                                 <button type="button" class="btn btn-square btn-sm tp-btn-light btn-primary"><i class="fa fa-exclamation-circle"></i></button>
-                                <button type="button" class="btn btn-square btn-sm tp-btn-light btn-danger"><i class="fa fa-trash"></i></button>
+                                <button type="submit" form="mail-bulk-delete-form" class="btn btn-square btn-sm tp-btn-light btn-danger" title="Hapus email terpilih" data-mail-bulk-delete disabled><i class="fa fa-trash"></i></button>
                                 <button type="button" class="btn btn-square btn-sm tp-btn-light btn-warning"><i class="fa fa-folder"></i></button>
                                 <div class="dropdown">
                                     <button type="button" class="btn btn-square btn-sm tp-btn-light btn-primary" data-bs-toggle="dropdown" aria-expanded="false">
@@ -134,14 +154,14 @@
                                 </li>
                             </ul>
                         </div>
-                        <form method="GET" action="{{ route('applicant.email.inbox') }}" class="mail-search-form order-3 order-sm-2 flex-grow-1 py-2 ms-sm-auto">
+                        <form method="GET" action="{{ route($folderRoute) }}" class="mail-search-form order-3 order-sm-2 flex-grow-1 py-2 ms-sm-auto">
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text border-end-0">
                                     <i class="fa fa-search"></i>
                                 </span>
                                 <input type="search" name="search" value="{{ $searchQuery }}" class="form-control border-start-0" placeholder="Search email" aria-label="Search email">
                                 @if ($searchQuery !== '')
-                                    <a href="{{ route('applicant.email.inbox') }}" class="btn btn-outline-secondary" aria-label="Clear search">
+                                    <a href="{{ route($folderRoute) }}" class="btn btn-outline-secondary" aria-label="Clear search">
                                         <i class="fa fa-times"></i>
                                     </a>
                                 @endif
@@ -159,18 +179,21 @@
                                 @endif
 
                                 @forelse ($messages as $mail)
+                                    @php
+                                        $readRouteParameters = $isSentFolder ? ['uid' => $mail['uid'], 'folder' => 'sent'] : ['uid' => $mail['uid']];
+                                    @endphp
                                     <div class="message {{ $mail['unread'] ? 'unread' : '' }}">
                                         <div class="message-single">
                                             <div class="email-checkbox form-check custom-checkbox">
-                                                <input type="checkbox" class="form-check-input check-input">
+                                                <input type="checkbox" name="uids[]" value="{{ $mail['uid'] }}" form="mail-bulk-delete-form" class="form-check-input check-input" aria-label="Pilih email">
                                             </div>
                                             <label class="bookmark-btn">
                                                 <input type="checkbox">
                                                 <span class="checkmark"></span>
                                             </label>
                                         </div>
-                                        <a href="{{ route('applicant.email.read', $mail['uid']) }}" class="col-mail col-mail-2">
-                                            <div class="email-hader">{{ $mail['from'] }}</div>
+                                        <a href="{{ route('applicant.email.read', $readRouteParameters) }}" class="col-mail col-mail-2">
+                                            <div class="email-hader">{{ $isSentFolder ? 'To: '.($mail['to'] ?: '-') : $mail['from'] }}</div>
                                             <div class="email-subject">
                                                 {{ $mail['subject'] }} <span>{{ $mail['date'] }}</span>
                                             </div>
@@ -179,13 +202,27 @@
                                         <div class="on-hover">
                                             <a><i class="fa fa-archive"></i></a>
                                             <a class="ms-2"><i class="fa-regular fa-clock"></i></a>
-                                            <a class="ms-2"><i class="fa fa-trash"></i></a>
+                                            <form method="POST" action="{{ route('applicant.email.destroy') }}" class="d-inline ms-2"
+                                                data-delete-confirmation-form
+                                                data-delete-title="Hapus Email"
+                                                data-delete-message="Hapus email &quot;{{ $mail['subject'] }}&quot;?"
+                                                data-delete-confirm-button="Hapus"
+                                                data-delete-cancel-button="Batal">
+                                                @csrf
+                                                <input type="hidden" name="folder" value="{{ $folder }}">
+                                                <input type="hidden" name="uids[]" value="{{ $mail['uid'] }}">
+                                                <button type="submit" class="btn btn-link p-0 text-danger" title="Hapus email"><i class="fa fa-trash"></i></button>
+                                            </form>
                                         </div>
                                     </div>
                                 @empty
                                     @if (! $inboxError)
                                         <div class="p-4 text-center text-muted">
-                                            {{ $searchQuery !== '' ? 'Tidak ada email yang cocok dengan pencarian.' : 'Inbox kosong.' }}
+                                            @if ($searchQuery !== '')
+                                                Tidak ada email yang cocok dengan pencarian.
+                                            @else
+                                                {{ $isSentFolder ? 'Belum ada email terkirim.' : 'Inbox kosong.' }}
+                                            @endif
                                         </div>
                                     @endif
                                 @endforelse
@@ -218,9 +255,9 @@
                     <div class="d-flex justify-content-between align-items-center bg-light px-3 py-2">
                         <small>
                             @if ($searchQuery !== '')
-                                Showing {{ count($messages) }} result for "{{ $searchQuery }}" from {{ $totalInboxCount }} inbox email
+                                Showing {{ count($messages) }} result for "{{ $searchQuery }}" from {{ $totalInboxCount }} {{ strtolower($folderLabel) }} email
                             @else
-                                Showing {{ count($messages) }} inbox email
+                                Showing {{ count($messages) }} {{ strtolower($folderLabel) }} email
                             @endif
                         </small>
                         <nav aria-label="Email Inbox Pagination">
@@ -241,6 +278,29 @@
 
 @endsection
 
-@section('script')
+@include('settings.partials.delete-confirmation-swal')
 
+@section('script')
+    @stack('scripts')
+    <script>
+        (function () {
+            var bulkDeleteButton = document.querySelector('[data-mail-bulk-delete]');
+
+            if (!bulkDeleteButton) {
+                return;
+            }
+
+            function syncBulkDeleteButton() {
+                bulkDeleteButton.disabled = document.querySelectorAll('input[name="uids[]"][form="mail-bulk-delete-form"]:checked').length === 0;
+            }
+
+            document.addEventListener('change', function (event) {
+                if (event.target.matches('.check-input, .check-all')) {
+                    window.setTimeout(syncBulkDeleteButton, 0);
+                }
+            });
+
+            syncBulkDeleteButton();
+        })();
+    </script>
 @endsection

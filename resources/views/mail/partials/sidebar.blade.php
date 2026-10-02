@@ -1,7 +1,8 @@
 @php
     $active = $active ?? 'inbox';
-    $unreadCount = $unreadCount ?? 0;
+    $unreadCount = $unreadCount ?? null;
     $inboxIsActive = in_array($active, ['inbox', 'read'], true);
+    $sentIsActive = $active === 'sent';
 @endphp
 
 <div class="col-xxl-2 col-xl-3 col-lg-4 email-left-body">
@@ -14,9 +15,11 @@
         <div class="mail-list-group">
             <a href="{{ route('applicant.email.inbox') }}" class="list-group-item {{ $inboxIsActive ? 'active' : '' }}">
                 <i class="fa-regular fa-envelope"></i> Inbox
-                <span class="badge badge-purple badge-sm float-end rounded">{{ $unreadCount }}</span>
+                @if ($unreadCount !== null)
+                    <span class="badge badge-purple badge-sm float-end rounded">{{ $unreadCount }}</span>
+                @endif
             </a>
-            <a class="list-group-item">
+            <a href="{{ route('applicant.email.sent') }}" class="list-group-item {{ $sentIsActive ? 'active' : '' }}">
                 <i class="fa-regular fa-paper-plane"></i> Sent
             </a>
             <a class="list-group-item">

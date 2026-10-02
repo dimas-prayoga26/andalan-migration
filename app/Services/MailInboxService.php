@@ -6,68 +6,104 @@ use RuntimeException;
 
 class MailInboxService
 {
+    public const FOLDER_INBOX = 'inbox';
+
+    public const FOLDER_SENT = 'sent';
+
+    public const FOLDERS = [self::FOLDER_INBOX, self::FOLDER_SENT];
+
+    private const SENT_MAILBOX_NAMES = ['Sent', 'Sent Items', 'Sent Messages', 'Sent Mail'];
+
+    private const TRASH_MAILBOX_NAMES = ['Trash', 'Deleted Items', 'Deleted Messages'];
+
     /**
-     * @return list<array{uid: string, from: string, subject: string, date: string, time: string, unread: bool}>
+     * @return list<array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool}>
      */
-    public function messagesFor(string $email, int $limit = 20): array
+    public function messagesFor(string $email, int $limit = 20, string $folder = self::FOLDER_INBOX): array
     {
-        $account = $this->accountFor($email);
+        return $this->withClient($email, function (SimpleImapClient $client) use ($folder, $limit): array {
+            $mailbox = $this->mailboxFor($client, $folder);
 
-        if ($account === null) {
-            throw new RuntimeException('Konfigurasi inbox untuk email ini belum tersedia.');
-        }
+            if ($mailbox === null) {
+                return [];
+            }
 
-        $client = new SimpleImapClient(
-            host: (string) $account['host'],
-            port: (int) $account['port'],
-            encryption: (string) $account['encryption'],
-            username: (string) $account['username'],
-            password: (string) $account['password'],
-        );
-
-        try {
-            $client->login();
-            $client->selectInbox();
+            $client->selectMailbox($mailbox);
 
             return $client->latestMessages($limit);
-        } finally {
-            $client->logout();
-        }
+        });
     }
 
     /**
-     * @return array{uid: string, from: string, subject: string, date: string, time: string, unread: bool, body: string, attachments: list<array{id: string, filename: string, content_type: string, size: int, is_image: bool}>, message_id: string, references: string}
+     * @return array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool, body: string, attachments: list<array{id: string, filename: string, content_type: string, size: int, is_image: bool}>, message_id: string, references: string}
      */
-    public function messageFor(string $email, string $uid): array
+    public function messageFor(string $email, string $uid, string $folder = self::FOLDER_INBOX): array
     {
-        $account = $this->accountFor($email);
-
-        if ($account === null) {
-            throw new RuntimeException('Konfigurasi inbox untuk email ini belum tersedia.');
-        }
-
-        $client = new SimpleImapClient(
-            host: (string) $account['host'],
-            port: (int) $account['port'],
-            encryption: (string) $account['encryption'],
-            username: (string) $account['username'],
-            password: (string) $account['password'],
-        );
-
-        try {
-            $client->login();
-            $client->selectInbox();
+        return $this->withClient($email, function (SimpleImapClient $client) use ($folder, $uid): array {
+            $client->selectMailbox($this->existingMailboxFor($client, $folder));
 
             return $client->message($uid);
-        } finally {
-            $client->logout();
-        }
+        });
     }
 
     /**
      * @return array{id: string, filename: string, content_type: string, size: int, is_image: bool, content: string}
      */
-    public function attachmentFor(string $email, string $uid, string $attachmentId): array
+    public function attachmentFor(string $email, string $uid, string $attachmentId, string $folder = self::FOLDER_INBOX): array
+    {
+        return $this->withClient($email, function (SimpleImapClient $client) use ($attachmentId, $folder, $uid): array {
+            $client->selectMailbox($this->existingMailboxFor($client, $folder));
+
+            return $client->attachment($uid, $attachmentId);
+        });
+    }
+
+    /**
+     * Move the given messages to Trash, or delete them permanently when no Trash mailbox exists.
+     *
+     * @param  list<string>  $uids
+     */
+    public function deleteMessages(string $email, array $uids, string $folder = self::FOLDER_INBOX): void
+    {
+        $uids = array_values(array_filter($uids, static fn (string $uid): bool => ctype_digit($uid)));
+
+        if ($uids === []) {
+            return;
+        }
+
+        $this->withClient($email, function (SimpleImapClient $client) use ($folder, $uids): void {
+            $mailbox = $this->existingMailboxFor($client, $folder);
+            $trashMailbox = $client->specialMailbox('\\Trash', self::TRASH_MAILBOX_NAMES);
+
+            $client->selectMailbox($mailbox);
+            $client->deleteMessages($uids, $trashMailbox === $mailbox ? null : $trashMailbox);
+        });
+    }
+
+    /**
+     * Save a copy of an outgoing message into the Sent mailbox, creating it when missing.
+     */
+    public function storeSentMessage(string $email, string $rawMessage): void
+    {
+        $this->withClient($email, function (SimpleImapClient $client) use ($rawMessage): void {
+            $sentMailbox = $client->specialMailbox('\\Sent', self::SENT_MAILBOX_NAMES);
+
+            if ($sentMailbox === null) {
+                $sentMailbox = $client->defaultMailboxName('Sent');
+                $client->createMailbox($sentMailbox);
+            }
+
+            $client->appendMessage($sentMailbox, $rawMessage);
+        });
+    }
+
+    /**
+     * @template TResult
+     *
+     * @param  callable(SimpleImapClient): TResult  $callback
+     * @return TResult
+     */
+    private function withClient(string $email, callable $callback): mixed
     {
         $account = $this->accountFor($email);
 
@@ -85,12 +121,25 @@ class MailInboxService
 
         try {
             $client->login();
-            $client->selectInbox();
 
-            return $client->attachment($uid, $attachmentId);
+            return $callback($client);
         } finally {
             $client->logout();
         }
+    }
+
+    private function mailboxFor(SimpleImapClient $client, string $folder): ?string
+    {
+        return match ($folder) {
+            self::FOLDER_SENT => $client->specialMailbox('\\Sent', self::SENT_MAILBOX_NAMES),
+            default => 'INBOX',
+        };
+    }
+
+    private function existingMailboxFor(SimpleImapClient $client, string $folder): string
+    {
+        return $this->mailboxFor($client, $folder)
+            ?? throw new RuntimeException('Folder email tidak ditemukan.');
     }
 
     /**
@@ -155,11 +204,86 @@ class SimpleImapClient
 
     public function selectInbox(): void
     {
-        $this->command('SELECT INBOX');
+        $this->selectMailbox('INBOX');
+    }
+
+    public function selectMailbox(string $mailbox): void
+    {
+        $this->command('SELECT '.$this->quote($mailbox));
     }
 
     /**
-     * @return list<array{uid: string, from: string, subject: string, date: string, time: string, unread: bool}>
+     * Find a mailbox by its special-use attribute (RFC 6154), falling back to common folder names.
+     *
+     * @param  list<string>  $fallbackNames
+     */
+    public function specialMailbox(string $attribute, array $fallbackNames): ?string
+    {
+        return $this->matchSpecialMailbox($this->mailboxes(), $attribute, $fallbackNames);
+    }
+
+    /**
+     * Build a top-level mailbox name that follows the server namespace, e.g. "INBOX.Sent" on cPanel.
+     */
+    public function defaultMailboxName(string $name): string
+    {
+        foreach ($this->mailboxes() as $mailbox) {
+            $delimiter = $mailbox['delimiter'];
+
+            if ($delimiter !== '' && str_starts_with(mb_strtoupper($mailbox['name']), 'INBOX'.$delimiter)) {
+                return 'INBOX'.$delimiter.$name;
+            }
+        }
+
+        return $name;
+    }
+
+    public function createMailbox(string $mailbox): void
+    {
+        $this->command('CREATE '.$this->quote($mailbox));
+        $this->command('SUBSCRIBE '.$this->quote($mailbox), false);
+    }
+
+    public function appendMessage(string $mailbox, string $rawMessage): void
+    {
+        $rawMessage = preg_replace("/\r?\n/", "\r\n", $rawMessage) ?? $rawMessage;
+        $tag = $this->nextTag();
+
+        $this->write(sprintf("%s APPEND %s (\\Seen) {%d}\r\n", $tag, $this->quote($mailbox), strlen($rawMessage)));
+
+        while (($line = $this->readLine()) !== null) {
+            if (str_starts_with($line, '+')) {
+                break;
+            }
+
+            if (str_starts_with($line, "{$tag} ")) {
+                throw new RuntimeException('Perintah IMAP gagal: '.$line);
+            }
+        }
+
+        $this->write($rawMessage."\r\n");
+        $this->readTaggedResponse($tag, true);
+    }
+
+    /**
+     * Delete messages from the selected mailbox, copying them to Trash first when given.
+     *
+     * @param  list<string>  $uids
+     */
+    public function deleteMessages(array $uids, ?string $trashMailbox): void
+    {
+        $uidSet = implode(',', $uids);
+
+        if ($trashMailbox !== null) {
+            $this->command(sprintf('UID COPY %s %s', $uidSet, $this->quote($trashMailbox)));
+        }
+
+        $this->command(sprintf('UID STORE %s +FLAGS.SILENT (\\Deleted)', $uidSet));
+        $this->command($this->hasCapability('UIDPLUS') ? "UID EXPUNGE {$uidSet}" : 'EXPUNGE');
+    }
+
+    /**
+     * @return list<array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool}>
      */
     public function latestMessages(int $limit): array
     {
@@ -185,7 +309,7 @@ class SimpleImapClient
     }
 
     /**
-     * @return array{uid: string, from: string, subject: string, date: string, time: string, unread: bool, body: string, attachments: list<array{id: string, filename: string, content_type: string, size: int, is_image: bool}>, message_id: string, references: string}
+     * @return array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool, body: string, attachments: list<array{id: string, filename: string, content_type: string, size: int, is_image: bool}>, message_id: string, references: string}
      */
     public function message(string $uid): array
     {
@@ -198,6 +322,7 @@ class SimpleImapClient
         return [
             'uid' => $uid,
             'from' => $this->decodeHeader($this->headerValue($rawHeaders, 'From') ?: 'Unknown Sender'),
+            'to' => $this->decodeHeader($this->headerValue($rawHeaders, 'To') ?: ''),
             'subject' => $this->decodeHeader($this->headerValue($rawHeaders, 'Subject') ?: '(No Subject)'),
             'date' => $date,
             'time' => $this->formatDate($date),
@@ -242,16 +367,17 @@ class SimpleImapClient
     }
 
     /**
-     * @return array{uid: string, from: string, subject: string, date: string, time: string, unread: bool}
+     * @return array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool}
      */
     private function fetchHeader(string $uid): array
     {
-        $lines = $this->command(sprintf('UID FETCH %s (UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)])', $uid));
+        $lines = $this->command(sprintf('UID FETCH %s (UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM TO SUBJECT DATE)])', $uid));
         $raw = implode("\n", $lines);
 
         return [
             'uid' => $uid,
             'from' => $this->decodeHeader($this->headerValue($raw, 'From') ?: 'Unknown Sender'),
+            'to' => $this->decodeHeader($this->headerValue($raw, 'To') ?: ''),
             'subject' => $this->decodeHeader($this->headerValue($raw, 'Subject') ?: '(No Subject)'),
             'date' => $this->headerValue($raw, 'Date') ?: '',
             'time' => $this->formatDate($this->headerValue($raw, 'Date') ?: ''),
@@ -463,9 +589,17 @@ class SimpleImapClient
             throw new RuntimeException('Koneksi IMAP belum terbuka.');
         }
 
-        $tag = 'A'.str_pad((string) $this->tagNumber++, 4, '0', STR_PAD_LEFT);
-        fwrite($this->stream, "{$tag} {$command}\r\n");
+        $tag = $this->nextTag();
+        $this->write("{$tag} {$command}\r\n");
 
+        return $this->readTaggedResponse($tag, $failOnError);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function readTaggedResponse(string $tag, bool $failOnError): array
+    {
         $lines = [];
 
         while (($line = $this->readLine()) !== null) {
@@ -481,6 +615,99 @@ class SimpleImapClient
         }
 
         return $lines;
+    }
+
+    private function nextTag(): string
+    {
+        return 'A'.str_pad((string) $this->tagNumber++, 4, '0', STR_PAD_LEFT);
+    }
+
+    private function write(string $data): void
+    {
+        if ($this->stream === null) {
+            throw new RuntimeException('Koneksi IMAP belum terbuka.');
+        }
+
+        while ($data !== '') {
+            $written = fwrite($this->stream, $data);
+
+            if ($written === false || $written === 0) {
+                throw new RuntimeException('Gagal mengirim data ke IMAP server.');
+            }
+
+            $data = substr($data, $written);
+        }
+    }
+
+    private function hasCapability(string $capability): bool
+    {
+        foreach ($this->command('CAPABILITY') as $line) {
+            if (str_starts_with($line, '* CAPABILITY') && in_array(mb_strtoupper($capability), explode(' ', mb_strtoupper($line)), true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<array{name: string, delimiter: string, attributes: list<string>}>
+     */
+    private function mailboxes(): array
+    {
+        return $this->parseMailboxList($this->command('LIST "" "*"'));
+    }
+
+    /**
+     * @param  list<string>  $lines
+     * @return list<array{name: string, delimiter: string, attributes: list<string>}>
+     */
+    private function parseMailboxList(array $lines): array
+    {
+        $mailboxes = [];
+
+        foreach ($lines as $line) {
+            if (preg_match('/^\* LIST \(([^)]*)\) (?:"((?:[^"\\\\]|\\\\.)*)"|NIL) (?:"((?:[^"\\\\]|\\\\.)*)"|(\S+))$/i', $line, $matches) !== 1) {
+                continue;
+            }
+
+            $name = ($matches[4] ?? '') !== '' ? $matches[4] : stripslashes($matches[3]);
+
+            $mailboxes[] = [
+                'name' => $name,
+                'delimiter' => stripslashes($matches[2]),
+                'attributes' => array_values(array_filter(explode(' ', $matches[1]))),
+            ];
+        }
+
+        return $mailboxes;
+    }
+
+    /**
+     * @param  list<array{name: string, delimiter: string, attributes: list<string>}>  $mailboxes
+     * @param  list<string>  $fallbackNames
+     */
+    private function matchSpecialMailbox(array $mailboxes, string $attribute, array $fallbackNames): ?string
+    {
+        foreach ($mailboxes as $mailbox) {
+            foreach ($mailbox['attributes'] as $mailboxAttribute) {
+                if (strcasecmp($mailboxAttribute, $attribute) === 0) {
+                    return $mailbox['name'];
+                }
+            }
+        }
+
+        foreach ($fallbackNames as $fallbackName) {
+            foreach ($mailboxes as $mailbox) {
+                $segments = $mailbox['delimiter'] === '' ? [$mailbox['name']] : explode($mailbox['delimiter'], $mailbox['name']);
+
+                if (strcasecmp((string) end($segments), $fallbackName) === 0) {
+                    return $mailbox['name'];
+                }
+            }
+        }
+
+        return null;
     }
 
     private function readLine(): ?string

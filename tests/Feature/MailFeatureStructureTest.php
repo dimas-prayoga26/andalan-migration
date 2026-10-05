@@ -63,6 +63,7 @@ class MailFeatureStructureTest extends TestCase
         $mailAccessSeeder = File::get(database_path('seeders/MailAccessAccountSeeder.php'));
         $mailAccessTypeMigration = File::get(database_path('migrations/2026_10_05_150204_add_type_to_mail_access_accounts_table.php'));
         $mailAccessCompanyMigration = File::get(database_path('migrations/2026_10_05_160923_add_company_id_to_mail_access_accounts_table.php'));
+        $mailAccessApplicantSenderMigration = File::get(database_path('migrations/2026_10_05_164646_add_is_applicant_mail_sender_to_mail_access_accounts_table.php'));
 
         $this->assertStringContainsString("route('applicant.email.check')", $loginView);
         $this->assertStringContainsString("route('applicant.email.login')", $loginView);
@@ -132,13 +133,18 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString('filenameFromHeaders', $inboxService);
         $this->assertStringContainsString('MailAccessAccountSeeder::class', $databaseSeeder);
         $this->assertStringContainsString("config('mail_inboxes.accounts', [])", $mailAccessSeeder);
+        $this->assertStringContainsString('seedHrAccessAccounts', $mailAccessSeeder);
+        $this->assertStringContainsString("['email' => 'hr@'.\$domain]", $mailAccessSeeder);
         $this->assertStringContainsString('seedDepartmentAccounts', $mailAccessSeeder);
         $this->assertStringContainsString("'type' => MailAccessAccount::TYPE_DEPARTMENT", $mailAccessSeeder);
+        $this->assertStringContainsString("'is_applicant_mail_sender' => true", $mailAccessSeeder);
         $this->assertStringContainsString("'company_id' => \$this->companyIdForBrand", $mailAccessSeeder);
         $this->assertStringContainsString("env('MAIL_ACCESS_DEFAULT_PIN', '0000')", $mailAccessSeeder);
         $this->assertStringContainsString('CATCHALL_MAIL_USERNAME', $mailConfig);
         $this->assertStringContainsString('CATCHALL_MAIL_PASSWORD', $mailConfig);
-        $this->assertStringContainsString('recruitment@rnb.co.id', $mailConfig);
+        $this->assertStringContainsString("\$catchAllUsername('rnb.co.id')", $mailConfig);
+        $this->assertStringNotContainsString('RNB_MAIL_USERNAME', $mailConfig);
+        $this->assertStringNotContainsString('recruitment@rnb.co.id', $mailConfig);
         $this->assertStringContainsString("'andalanku' => [", $mailInboxConfig);
         foreach (['RNB', 'ANDALANKU', 'NISKALA', 'TMS', 'RNE', 'TRAH', 'KMA'] as $brandKey) {
             $this->assertStringContainsString("env('{$brandKey}_IMAP_HOST'", $mailInboxConfig);
@@ -148,6 +154,10 @@ class MailFeatureStructureTest extends TestCase
         }
         $this->assertStringContainsString("string('type', 30)", $mailAccessTypeMigration);
         $this->assertStringContainsString("->default('personal')", $mailAccessTypeMigration);
+        $this->assertStringContainsString('is_applicant_mail_sender', $mailAccessSeeder);
+        $this->assertStringContainsString("boolean('is_applicant_mail_sender')", $mailAccessApplicantSenderMigration);
+        $this->assertStringContainsString('->default(false)', $mailAccessApplicantSenderMigration);
+        $this->assertStringContainsString('->index()', $mailAccessApplicantSenderMigration);
         $this->assertStringContainsString("foreignUuid('company_id')", $mailAccessCompanyMigration);
         $this->assertStringContainsString("->constrained('companies', 'id')", $mailAccessCompanyMigration);
         $this->assertStringContainsString('->nullOnDelete()', $mailAccessCompanyMigration);

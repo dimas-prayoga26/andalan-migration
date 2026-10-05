@@ -168,6 +168,7 @@ class TalentAcquisitionController extends Controller
         $applicant->loadMissing([
             'jobVacancy:id,company_id,name',
             'jobVacancy.company:id,name,website',
+            'jobVacancy.company.applicantMailSenderAccounts:id,company_id,email,type,is_active,is_applicant_mail_sender',
             'jobVacancy.company.departmentMailAccessAccounts:id,company_id,email,type,is_active',
         ]);
 
@@ -210,6 +211,20 @@ class TalentAcquisitionController extends Controller
 
         if (! $company instanceof Company) {
             return null;
+        }
+
+        if ($company->relationLoaded('applicantMailSenderAccounts')) {
+            $applicantMailSenderAccount = $company->applicantMailSenderAccounts->first();
+
+            if ($applicantMailSenderAccount instanceof MailAccessAccount) {
+                return $applicantMailSenderAccount;
+            }
+        } else {
+            $applicantMailSenderAccount = $company->applicantMailSenderAccounts()->first();
+
+            if ($applicantMailSenderAccount instanceof MailAccessAccount) {
+                return $applicantMailSenderAccount;
+            }
         }
 
         if ($company->relationLoaded('departmentMailAccessAccounts')) {

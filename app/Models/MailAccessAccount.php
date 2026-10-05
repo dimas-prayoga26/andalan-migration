@@ -18,11 +18,13 @@ class MailAccessAccount extends Model
 
     protected $attributes = [
         'type' => self::TYPE_PERSONAL,
+        'is_applicant_mail_sender' => false,
     ];
 
     protected function casts(): array
     {
         return [
+            'is_applicant_mail_sender' => 'boolean',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
         ];
@@ -41,6 +43,11 @@ class MailAccessAccount extends Model
     public function scopeDepartment(Builder $query): Builder
     {
         return $query->where('type', self::TYPE_DEPARTMENT);
+    }
+
+    public function scopeApplicantMailSender(Builder $query): Builder
+    {
+        return $query->where('is_applicant_mail_sender', true);
     }
 
     /**

@@ -88,6 +88,7 @@ class CareerBrandTest extends TestCase
         $departmentMailAccount = new MailAccessAccount([
             'email' => 'recruitment@tims.co.id',
             'type' => MailAccessAccount::TYPE_DEPARTMENT,
+            'is_applicant_mail_sender' => true,
             'is_active' => true,
         ]);
 
@@ -95,7 +96,8 @@ class CareerBrandTest extends TestCase
             'name' => 'TMS',
             'website' => 'https://www.tims.co.id/',
         ]);
-        $company->setRelation('departmentMailAccessAccounts', Collection::make([$departmentMailAccount]));
+        $company->setRelation('applicantMailSenderAccounts', Collection::make([$departmentMailAccount]));
+        $company->setRelation('departmentMailAccessAccounts', Collection::make([]));
 
         $jobVacancy = new JobVacancy([
             'name' => 'Programmer',

@@ -21,6 +21,7 @@ class MailAccessAccountSeeder extends Seeder
         $legacyAccessAccounts = $this->legacyAccessAccounts();
 
         $this->seedDepartmentAccounts();
+        $this->seedHrAccessAccounts();
 
         foreach (config('mail_inboxes.accounts', []) as $accountKey => $account) {
             $email = mb_strtolower(trim((string) ($account['username'] ?? '')));
@@ -53,6 +54,37 @@ class MailAccessAccountSeeder extends Seeder
         }
     }
 
+    private function seedHrAccessAccounts(): void
+    {
+        foreach (config('career_brands.brands', []) as $brandKey => $brand) {
+            if (! is_array($brand)) {
+                continue;
+            }
+
+            $domain = $this->emailDomain((string) ($brand['email'] ?? ''));
+
+            if ($domain === '') {
+                continue;
+            }
+
+            $accountData = [
+                'pin' => Hash::make($this->pinFor((string) $brandKey)),
+                'type' => MailAccessAccount::TYPE_PERSONAL,
+                'is_applicant_mail_sender' => false,
+                'is_active' => true,
+            ];
+
+            if (Schema::hasColumn((new MailAccessAccount)->getTable(), 'company_id')) {
+                $accountData['company_id'] = null;
+            }
+
+            MailAccessAccount::query()->updateOrCreate(
+                ['email' => 'hr@'.$domain],
+                $accountData,
+            );
+        }
+    }
+
     private function seedDepartmentAccounts(): void
     {
         if (! Schema::hasColumn((new MailAccessAccount)->getTable(), 'company_id')) {
@@ -79,6 +111,7 @@ class MailAccessAccountSeeder extends Seeder
                     'company_id' => $this->companyIdForBrand((string) $brandKey, $brand, $companies),
                     'pin' => Hash::make($this->pinFor((string) $brandKey)),
                     'type' => MailAccessAccount::TYPE_DEPARTMENT,
+                    'is_applicant_mail_sender' => true,
                     'is_active' => true,
                 ],
             );
@@ -150,6 +183,17 @@ class MailAccessAccountSeeder extends Seeder
         $host = parse_url($website, PHP_URL_HOST);
 
         return preg_replace('/^www\./', '', mb_strtolower((string) $host)) ?? '';
+    }
+
+    private function emailDomain(string $email): string
+    {
+        $parts = explode('@', mb_strtolower(trim($email)));
+
+        if (count($parts) !== 2) {
+            return '';
+        }
+
+        return preg_replace('/^www\./', '', $parts[1]) ?? '';
     }
 
     private function normalizedText(string $value): string

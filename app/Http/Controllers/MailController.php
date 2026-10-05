@@ -317,6 +317,17 @@ class MailController extends Controller
         return mb_strtolower(trim($email));
     }
 
+    private function emailDomain(string $email): string
+    {
+        $parts = explode('@', $this->normalizeEmail($email));
+
+        if (count($parts) !== 2) {
+            return '';
+        }
+
+        return preg_replace('/^www\./', '', $parts[1]) ?? '';
+    }
+
     private function mailFailureMessage(Throwable $exception, string $prefix): string
     {
         $message = $prefix.' Pastikan konfigurasi SMTP akun ini sudah benar.';
@@ -490,6 +501,16 @@ class MailController extends Controller
     {
         foreach (config('mail_inboxes.accounts', []) as $key => $inboxAccount) {
             if ($this->normalizeEmail((string) ($inboxAccount['username'] ?? '')) === $account->email) {
+                return array_key_exists($key, config('mail.mailers', []))
+                    ? (string) $key
+                    : (string) config('mail.default', 'smtp');
+            }
+        }
+
+        $accountDomain = $this->emailDomain((string) $account->email);
+
+        foreach (config('mail_inboxes.accounts', []) as $key => $inboxAccount) {
+            if ($accountDomain !== '' && $this->emailDomain((string) ($inboxAccount['username'] ?? '')) === $accountDomain) {
                 return array_key_exists($key, config('mail.mailers', []))
                     ? (string) $key
                     : (string) config('mail.default', 'smtp');

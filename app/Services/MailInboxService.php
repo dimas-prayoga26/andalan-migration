@@ -117,6 +117,7 @@ class MailInboxService
             encryption: (string) $account['encryption'],
             username: (string) $account['username'],
             password: (string) $account['password'],
+            verifySsl: filter_var($account['verify_ssl'] ?? true, FILTER_VALIDATE_BOOLEAN),
         );
 
         try {
@@ -143,7 +144,7 @@ class MailInboxService
     }
 
     /**
-     * @return array{host: string|null, port: int|string, encryption: string, username: string|null, password: string|null}|null
+     * @return array{host: string|null, port: int|string, encryption: string, username: string|null, password: string|null, verify_ssl?: bool|string}|null
      */
     private function accountFor(string $email): ?array
     {
@@ -161,7 +162,32 @@ class MailInboxService
             return $account;
         }
 
+        $emailDomain = $this->emailDomain($email);
+
+        foreach (config('mail_inboxes.accounts', []) as $account) {
+            if ($emailDomain === '' || $this->emailDomain((string) ($account['username'] ?? '')) !== $emailDomain) {
+                continue;
+            }
+
+            if (blank($account['host'] ?? null) || blank($account['username'] ?? null) || blank($account['password'] ?? null)) {
+                return null;
+            }
+
+            return $account;
+        }
+
         return null;
+    }
+
+    private function emailDomain(string $email): string
+    {
+        $parts = explode('@', mb_strtolower(trim($email)));
+
+        if (count($parts) !== 2) {
+            return '';
+        }
+
+        return preg_replace('/^www\./', '', $parts[1]) ?? '';
     }
 }
 
@@ -178,13 +204,21 @@ class SimpleImapClient
         private readonly string $encryption,
         private readonly string $username,
         private readonly string $password,
+        private readonly bool $verifySsl = true,
     ) {}
 
     public function login(): void
     {
         $scheme = $this->encryption === 'ssl' ? 'ssl' : 'tcp';
         $target = sprintf('%s://%s:%d', $scheme, $this->host, $this->port);
-        $stream = @stream_socket_client($target, $errno, $error, 15);
+        $context = stream_context_create([
+            'ssl' => [
+                'verify_peer' => $this->verifySsl,
+                'verify_peer_name' => $this->verifySsl,
+                'peer_name' => $this->host,
+            ],
+        ]);
+        $stream = @stream_socket_client($target, $errno, $error, 15, STREAM_CLIENT_CONNECT, $context);
 
         if ($stream === false) {
             throw new RuntimeException("Tidak bisa konek ke IMAP server: {$error}");

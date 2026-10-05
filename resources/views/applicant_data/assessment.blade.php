@@ -297,116 +297,146 @@
                         </div>
                     </div>
 
-                    <div class="applicant-assessment-panel">
-                        <div class="applicant-assessment-panel-title">Form Interview HR</div>
-                        <div class="applicant-assessment-panel-subtitle">Evaluasi dasar, komunikasi, motivasi, dan culture fit.</div>
-                        @foreach ($hrCriteria as $criteria)
-                            <div class="applicant-rating-row">
-                                <div>
-                                    <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
-                                    <div class="applicant-rating-weight">Bobot {{ $criteria['weight'] }}</div>
-                                </div>
-                                <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $criteria['label'] }}">
-                                    <div class="rating-stars">
-                                        <ul>
-                                            @for ($rating = 1; $rating <= 5; $rating++)
-                                                <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}">
-                                                    <i class="fa fa-star fa-fw"></i>
-                                                </li>
-                                            @endfor
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
+                    <ul class="nav nav-pills nav-pills-sm nav-pills-bg gap-2 flex-wrap" id="applicantAssessmentTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="hr-interview-tab" data-bs-toggle="tab" data-bs-target="#hr-interview-pane" type="button" role="tab" aria-controls="hr-interview-pane" aria-selected="true">Form Interview HR</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="assessment-test-tab" data-bs-toggle="tab" data-bs-target="#assessment-test-pane" type="button" role="tab" aria-controls="assessment-test-pane" aria-selected="false">Assessment Test</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="technical-test-tab" data-bs-toggle="tab" data-bs-target="#technical-test-pane" type="button" role="tab" aria-controls="technical-test-pane" aria-selected="false">Technical Test</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="user-interview-tab" data-bs-toggle="tab" data-bs-target="#user-interview-pane" type="button" role="tab" aria-controls="user-interview-pane" aria-selected="false">Interview User</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="final-assessment-tab" data-bs-toggle="tab" data-bs-target="#final-assessment-pane" type="button" role="tab" aria-controls="final-assessment-pane" aria-selected="false">Penilaian Akhir</button>
+                        </li>
+                    </ul>
 
-                    <div class="applicant-assessment-panel">
-                        <div class="applicant-assessment-panel-title">Assessment Test</div>
-                        <div class="applicant-assessment-panel-subtitle">Area lampiran hasil tes administrasi atau psikologi dasar.</div>
-                        <div class="applicant-assessment-upload">
-                            <i class="bi bi-cloud-arrow-up fs-3 d-block mb-2"></i>
-                            <div class="fw-semibold">Upload hasil assessment</div>
-                            <div class="small">Preview gambar akan tampil di area ini.</div>
+                    <div class="tab-content" id="applicantAssessmentTabContent">
+                        <div class="tab-pane fade show active" id="hr-interview-pane" role="tabpanel" aria-labelledby="hr-interview-tab" tabindex="0">
+                            <div class="applicant-assessment-panel">
+                                <div class="applicant-assessment-panel-title">Form Interview HR</div>
+                                <div class="applicant-assessment-panel-subtitle">Evaluasi dasar, komunikasi, motivasi, dan culture fit.</div>
+                                @foreach ($hrCriteria as $criteria)
+                                    <div class="applicant-rating-row">
+                                        <div>
+                                            <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
+                                            <div class="applicant-rating-weight">Bobot {{ $criteria['weight'] }}</div>
+                                        </div>
+                                        <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $criteria['label'] }}">
+                                            <div class="rating-stars">
+                                                <ul>
+                                                    @for ($rating = 1; $rating <= 5; $rating++)
+                                                        <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}">
+                                                            <i class="fa fa-star fa-fw"></i>
+                                                        </li>
+                                                    @endfor
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="applicant-assessment-panel">
-                        <div class="applicant-assessment-panel-title">Technical Test</div>
-                        <div class="applicant-assessment-panel-subtitle">Contoh kriteria dinamis sesuai posisi yang dilamar.</div>
-                        @foreach ($technicalCriteria as $criteria)
-                            <div class="applicant-rating-row">
-                                <div>
-                                    <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
-                                    <div class="applicant-rating-weight">Bobot {{ $criteria['weight'] }}</div>
-                                </div>
-                                <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $criteria['label'] }}">
-                                    <div class="rating-stars">
-                                        <ul>
-                                            @for ($rating = 1; $rating <= 5; $rating++)
-                                                <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}">
-                                                    <i class="fa fa-star fa-fw"></i>
-                                                </li>
-                                            @endfor
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                        <div class="applicant-assessment-note-box mt-3">Catatan reviewer technical test akan ditampilkan di sini.</div>
-                    </div>
-
-                    <div class="applicant-assessment-panel">
-                        <div class="applicant-assessment-panel-title">Interview User</div>
-                        <div class="applicant-assessment-panel-subtitle">Evaluasi teknis lanjutan oleh atasan divisi atau user terkait.</div>
-                        @foreach ($userCriteria as $criteria)
-                            <div class="applicant-rating-row">
-                                <div>
-                                    <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
-                                    <div class="applicant-rating-weight">Bobot {{ $criteria['weight'] }}</div>
-                                </div>
-                                <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $criteria['label'] }}">
-                                    <div class="rating-stars">
-                                        <ul>
-                                            @for ($rating = 1; $rating <= 5; $rating++)
-                                                <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}">
-                                                    <i class="fa fa-star fa-fw"></i>
-                                                </li>
-                                            @endfor
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    <div class="applicant-assessment-summary-grid">
-                        <div class="applicant-assessment-note-box">
-                            <strong>Summary Matrix</strong>
-                            <div class="applicant-summary-field-grid">
-                                <div class="applicant-summary-field">
-                                    <label for="summarySkill">Skill</label>
-                                    <input type="text" id="summarySkill" value="Kuat di visual composition, perlu rapikan file final." readonly>
-                                </div>
-                                <div class="applicant-summary-field">
-                                    <label for="summaryCommunication">Komunikasi</label>
-                                    <input type="text" id="summaryCommunication" value="Presentasi jelas, responsif saat menerima feedback." readonly>
-                                </div>
-                                <div class="applicant-summary-field">
-                                    <label for="summaryExperience">Kesesuaian Pengalaman</label>
-                                    <input type="text" id="summaryExperience" value="Portofolio cukup relevan dengan kebutuhan brand." readonly>
-                                </div>
-                                <div class="applicant-summary-field">
-                                    <label for="summaryTools">Tools</label>
-                                    <input type="text" id="summaryTools" value="Adobe Illustrator, Photoshop, Figma." readonly>
+                        <div class="tab-pane fade" id="assessment-test-pane" role="tabpanel" aria-labelledby="assessment-test-tab" tabindex="0">
+                            <div class="applicant-assessment-panel">
+                                <div class="applicant-assessment-panel-title">Assessment Test</div>
+                                <div class="applicant-assessment-panel-subtitle">Area lampiran hasil tes administrasi atau psikologi dasar.</div>
+                                <div class="applicant-assessment-upload">
+                                    <i class="bi bi-cloud-arrow-up fs-3 d-block mb-2"></i>
+                                    <div class="fw-semibold">Upload hasil assessment</div>
+                                    <div class="small">Preview gambar akan tampil di area ini.</div>
                                 </div>
                             </div>
                         </div>
-                        <div class="applicant-assessment-note-box">
-                            <strong>Final Verdict</strong>
-                            <div class="applicant-assessment-verdict-badge">Recommended</div>
-                            <div class="mt-2">
-                                Kandidat memenuhi standar komunikasi dan interview user. Technical test masih perlu review minor pada kerapian dokumentasi.
+
+                        <div class="tab-pane fade" id="technical-test-pane" role="tabpanel" aria-labelledby="technical-test-tab" tabindex="0">
+                            <div class="applicant-assessment-panel">
+                                <div class="applicant-assessment-panel-title">Technical Test</div>
+                                <div class="applicant-assessment-panel-subtitle">Contoh kriteria dinamis sesuai posisi yang dilamar.</div>
+                                @foreach ($technicalCriteria as $criteria)
+                                    <div class="applicant-rating-row">
+                                        <div>
+                                            <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
+                                            <div class="applicant-rating-weight">Bobot {{ $criteria['weight'] }}</div>
+                                        </div>
+                                        <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $criteria['label'] }}">
+                                            <div class="rating-stars">
+                                                <ul>
+                                                    @for ($rating = 1; $rating <= 5; $rating++)
+                                                        <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}">
+                                                            <i class="fa fa-star fa-fw"></i>
+                                                        </li>
+                                                    @endfor
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                                <div class="applicant-assessment-note-box mt-3">Catatan reviewer technical test akan ditampilkan di sini.</div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="user-interview-pane" role="tabpanel" aria-labelledby="user-interview-tab" tabindex="0">
+                            <div class="applicant-assessment-panel">
+                                <div class="applicant-assessment-panel-title">Interview User</div>
+                                <div class="applicant-assessment-panel-subtitle">Evaluasi teknis lanjutan oleh atasan divisi atau user terkait.</div>
+                                @foreach ($userCriteria as $criteria)
+                                    <div class="applicant-rating-row">
+                                        <div>
+                                            <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
+                                            <div class="applicant-rating-weight">Bobot {{ $criteria['weight'] }}</div>
+                                        </div>
+                                        <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $criteria['label'] }}">
+                                            <div class="rating-stars">
+                                                <ul>
+                                                    @for ($rating = 1; $rating <= 5; $rating++)
+                                                        <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}">
+                                                            <i class="fa fa-star fa-fw"></i>
+                                                        </li>
+                                                    @endfor
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="final-assessment-pane" role="tabpanel" aria-labelledby="final-assessment-tab" tabindex="0">
+                            <div class="applicant-assessment-summary-grid">
+                                <div class="applicant-assessment-note-box">
+                                    <strong>Summary Matrix</strong>
+                                    <div class="applicant-summary-field-grid">
+                                        <div class="applicant-summary-field">
+                                            <label for="summarySkill">Skill</label>
+                                            <input type="text" id="summarySkill" value="Kuat di visual composition, perlu rapikan file final." readonly>
+                                        </div>
+                                        <div class="applicant-summary-field">
+                                            <label for="summaryCommunication">Komunikasi</label>
+                                            <input type="text" id="summaryCommunication" value="Presentasi jelas, responsif saat menerima feedback." readonly>
+                                        </div>
+                                        <div class="applicant-summary-field">
+                                            <label for="summaryExperience">Kesesuaian Pengalaman</label>
+                                            <input type="text" id="summaryExperience" value="Portofolio cukup relevan dengan kebutuhan brand." readonly>
+                                        </div>
+                                        <div class="applicant-summary-field">
+                                            <label for="summaryTools">Tools</label>
+                                            <input type="text" id="summaryTools" value="Adobe Illustrator, Photoshop, Figma." readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="applicant-assessment-note-box">
+                                    <strong>Final Verdict</strong>
+                                    <div class="applicant-assessment-verdict-badge">Recommended</div>
+                                    <div class="mt-2">
+                                        Kandidat memenuhi standar komunikasi dan interview user. Technical test masih perlu review minor pada kerapian dokumentasi.
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

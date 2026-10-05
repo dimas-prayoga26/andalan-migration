@@ -90,7 +90,7 @@
                     @csrf
                     <div class="form-group mb-4">
                         <label class="form-label"><strong>Email</strong></label>
-                        <input type="email" name="email" value="{{ old('email') }}" class="form-control form-control-lg" placeholder="hr@rnb.co.id" required autofocus>
+                        <input type="email" name="email" value="{{ old('email') }}" class="form-control form-control-lg" placeholder="recruitment@rnb.co.id" required autofocus>
                     </div>
                     <button type="submit" class="btn btn-primary btn-lg w-100">Lanjut</button>
                 </form>

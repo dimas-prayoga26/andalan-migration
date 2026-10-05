@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Mail\ApplicantStatusMail;
 use App\Models\Applicant;
 use App\Models\ApplicantStatus;
+use App\Models\Company;
 use App\Models\JobVacancy;
+use App\Models\MailAccessAccount;
 use App\Support\CareerBrand;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
@@ -43,11 +46,11 @@ class TalentAcquisitionController extends Controller
                 'job_vacancy_id',
                 'applicant_status_id',
                 'full_name',
-                'photo',
                 'created_at',
             ])
             ->with([
                 'applicantStatus:id,value,name',
+                'documents:id,applicant_id,document_type,file_path',
                 'jobVacancy:id,name',
             ])
             ->latest('created_at')
@@ -55,7 +58,7 @@ class TalentAcquisitionController extends Controller
             ->map(fn (Applicant $applicant): array => [
                 'id' => (string) $applicant->id,
                 'full_name' => (string) $applicant->full_name,
-                'photo' => (string) ($applicant->photo ?? ''),
+                'photo' => basename((string) parse_url($applicant->photoUrl() ?? '', PHP_URL_PATH)),
                 'photo_url' => $applicant->photoUrl(),
                 'job_vacancy_name' => (string) ($applicant->jobVacancy?->name ?? '-'),
                 'applicant_status_id' => (string) ($applicant->applicant_status_id ?? ''),
@@ -78,6 +81,7 @@ class TalentAcquisitionController extends Controller
     public function jobVacanciesDatatable(): JsonResponse
     {
         $jobVacancies = JobVacancy::query()
+            ->with('company:id,name')
             ->withCount('applicants')
             ->orderByRaw('CASE WHEN status = 1 THEN 0 ELSE 1 END')
             ->orderBy('name')
@@ -85,6 +89,7 @@ class TalentAcquisitionController extends Controller
             ->map(fn (JobVacancy $jobVacancy): array => [
                 'id' => (string) $jobVacancy->id,
                 'name' => (string) $jobVacancy->name,
+                'company_name' => (string) ($jobVacancy->company?->name ?? '-'),
                 'status' => (int) $jobVacancy->status,
                 'status_css_class' => $jobVacancy->statusCssClass(),
                 'applicants_count' => (int) $jobVacancy->applicants_count,
@@ -106,6 +111,7 @@ class TalentAcquisitionController extends Controller
             'maritalStatus:id,name',
             'educations:id,applicant_id,education_level_id,sequence,institution,gpa,department,start_period,graduate_period',
             'educations.educationLevel:id,name',
+            'documents:id,applicant_id,document_type,file_path',
             'workExperiences:id,applicant_id,sequence,company_name,role,company_location,start_period,end_period',
         ]);
 
@@ -159,7 +165,13 @@ class TalentAcquisitionController extends Controller
             return true;
         }
 
-        $brand = CareerBrand::brand($applicant->brand_key);
+        $applicant->loadMissing([
+            'jobVacancy:id,company_id,name',
+            'jobVacancy.company:id,name,website',
+            'jobVacancy.company.departmentMailAccessAccounts:id,company_id,email,type,is_active',
+        ]);
+
+        $brand = $this->brandForApplicantStatusMail($applicant);
 
         try {
             Mail::mailer($this->mailerForBrand($brand))
@@ -172,6 +184,99 @@ class TalentAcquisitionController extends Controller
         }
 
         return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function brandForApplicantStatusMail(Applicant $applicant): array
+    {
+        $brand = CareerBrand::brand($applicant->brand_key);
+        $departmentMailAccount = $this->departmentMailAccessAccountForApplicant($applicant);
+
+        if (! $departmentMailAccount instanceof MailAccessAccount) {
+            return $brand;
+        }
+
+        return [
+            ...$this->brandForDepartmentMailAccount($departmentMailAccount, $brand),
+            'email' => (string) $departmentMailAccount->email,
+        ];
+    }
+
+    private function departmentMailAccessAccountForApplicant(Applicant $applicant): ?MailAccessAccount
+    {
+        $company = $applicant->jobVacancy?->company;
+
+        if (! $company instanceof Company) {
+            return null;
+        }
+
+        if ($company->relationLoaded('departmentMailAccessAccounts')) {
+            return $company->departmentMailAccessAccounts->first();
+        }
+
+        return $company->departmentMailAccessAccounts()->first();
+    }
+
+    /**
+     * @param  array<string, mixed>  $fallbackBrand
+     * @return array<string, mixed>
+     */
+    private function brandForDepartmentMailAccount(MailAccessAccount $mailAccessAccount, array $fallbackBrand): array
+    {
+        $mailDomain = $this->emailDomain((string) $mailAccessAccount->email);
+
+        if ($mailDomain === '') {
+            return $fallbackBrand;
+        }
+
+        foreach (config('career_brands.brands', []) as $brandKey => $brand) {
+            if (is_array($brand) && $this->brandMatchesMailDomain($brand, $mailDomain)) {
+                return CareerBrand::brand((string) $brandKey);
+            }
+        }
+
+        return $fallbackBrand;
+    }
+
+    /**
+     * @param  array<string, mixed>  $brand
+     */
+    private function brandMatchesMailDomain(array $brand, string $mailDomain): bool
+    {
+        return in_array($mailDomain, array_filter([
+            $this->emailDomain((string) ($brand['email'] ?? '')),
+            $this->websiteDomain((string) ($brand['website'] ?? '')),
+        ]), true);
+    }
+
+    private function emailDomain(string $email): string
+    {
+        $parts = explode('@', mb_strtolower(trim($email)));
+
+        if (count($parts) !== 2) {
+            return '';
+        }
+
+        return preg_replace('/^www\./', '', $parts[1]) ?? '';
+    }
+
+    private function websiteDomain(string $website): string
+    {
+        $website = trim($website);
+
+        if ($website === '') {
+            return '';
+        }
+
+        if (! str_contains($website, '://')) {
+            $website = 'https://'.$website;
+        }
+
+        $host = parse_url($website, PHP_URL_HOST);
+
+        return preg_replace('/^www\./', '', mb_strtolower((string) $host)) ?? '';
     }
 
     /**
@@ -220,6 +325,7 @@ class TalentAcquisitionController extends Controller
         return view('applicant_data.job_vacancy_form', [
             'jobVacancy' => new JobVacancy(['status' => JobVacancy::STATUS_INACTIVE]),
             'jobVacancyStatuses' => JobVacancy::statusOptions(),
+            'companyOptions' => $this->companyOptions(),
             'technicalCriteria' => collect([
                 ['name' => '', 'weight' => ''],
             ]),
@@ -236,6 +342,7 @@ class TalentAcquisitionController extends Controller
 
         DB::transaction(function () use ($validated): void {
             $jobVacancy = JobVacancy::query()->create([
+                'company_id' => $validated['company_id'],
                 'name' => $validated['name'],
                 'status' => JobVacancy::statusValueFor((int) $validated['status']),
             ]);
@@ -253,6 +360,7 @@ class TalentAcquisitionController extends Controller
         return view('applicant_data.job_vacancy_form', [
             'jobVacancy' => $jobVacancy,
             'jobVacancyStatuses' => JobVacancy::statusOptions(),
+            'companyOptions' => $this->companyOptions(),
             'technicalCriteria' => $jobVacancy->technicalCriteria
                 ->map(fn ($criterion): array => [
                     'name' => (string) $criterion->name,
@@ -271,6 +379,7 @@ class TalentAcquisitionController extends Controller
 
         DB::transaction(function () use ($jobVacancy, $validated): void {
             $jobVacancy->update([
+                'company_id' => $validated['company_id'],
                 'name' => $validated['name'],
                 'status' => JobVacancy::statusValueFor((int) $validated['status']),
             ]);
@@ -289,16 +398,21 @@ class TalentAcquisitionController extends Controller
     }
 
     /**
-     * @return array{name: string, status: int|string, technical_criteria: array<int, array{name: string, weight: int|string}>}
+     * @return array{company_id: string, name: string, status: int|string, technical_criteria: array<int, array{name: string, weight: int|string}>}
      */
     private function validateJobVacancy(Request $request, ?JobVacancy $jobVacancy = null): array
     {
+        $companyId = (string) $request->input('company_id', '');
+
         $validated = $request->validate([
+            'company_id' => ['required', 'string', Rule::exists((new Company)->getTable(), 'id')],
             'name' => [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique((new JobVacancy)->getTable(), 'name')->ignore($jobVacancy?->getKey()),
+                Rule::unique((new JobVacancy)->getTable(), 'name')
+                    ->where(fn ($query) => $query->where('company_id', $companyId))
+                    ->ignore($jobVacancy?->getKey()),
             ],
             'status' => ['required', 'integer', Rule::in(JobVacancy::statuses())],
             'technical_criteria' => ['required', 'array', 'min:1'],
@@ -315,6 +429,20 @@ class TalentAcquisitionController extends Controller
         }
 
         return $validated;
+    }
+
+    /**
+     * @return Collection<int, array{id: string, name: string}>
+     */
+    private function companyOptions(): Collection
+    {
+        return Company::query()
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Company $company): array => [
+                'id' => (string) $company->id,
+                'name' => (string) $company->name,
+            ]);
     }
 
     /**

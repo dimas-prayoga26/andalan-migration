@@ -11,7 +11,7 @@
     <style>
         .job-vacancy-form-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 220px;
+            grid-template-columns: minmax(0, 1fr) minmax(220px, 280px) 220px;
             gap: 1rem;
         }
 
@@ -150,6 +150,18 @@
                             required
                         >
                         @error('name')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="jobVacancyCompany" class="form-label">Company</label>
+                        <select name="company_id" id="jobVacancyCompany" class="form-control @error('company_id') is-invalid @enderror" required>
+                            <option value="">Select company</option>
+                            @foreach ($companyOptions as $companyOption)
+                                <option value="{{ $companyOption['id'] }}" @selected((string) old('company_id', $jobVacancy->company_id) === $companyOption['id'])>{{ $companyOption['name'] }}</option>
+                            @endforeach
+                        </select>
+                        @error('company_id')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                     </div>

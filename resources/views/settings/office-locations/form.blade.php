@@ -61,7 +61,7 @@
         <div class="card-header border-0">
             <div>
                 <h4 class="card-title mb-1">{{ $pageTitle }}</h4>
-                <p class="mb-0 text-muted fs-13">Manage office name, address, coordinates, and active status.</p>
+                <p class="mb-0 text-muted fs-13">Manage work location name, address, coordinates, and active status.</p>
             </div>
         </div>
         <div class="card-body">
@@ -75,7 +75,7 @@
 
             <div class="row g-3">
                 <div class="col-md-4">
-                    <label class="form-label">Office Name</label>
+                    <label class="form-label">Location Name</label>
                     <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $officeLocation?->name) }}" required autofocus>
                     @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
@@ -99,7 +99,7 @@
                     <input type="hidden" name="is_active" value="0">
                     <div class="form-check form-switch mt-2">
                         <input class="form-check-input" type="checkbox" role="switch" id="officeLocationIsActive" name="is_active" value="1" @checked((bool) old('is_active', $officeLocation?->is_active ?? true))>
-                        <label class="form-check-label fw-semibold" for="officeLocationIsActive">Active Office</label>
+                        <label class="form-check-label fw-semibold" for="officeLocationIsActive">Active Location</label>
                     </div>
                     @error('is_active')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                 </div>
@@ -108,7 +108,7 @@
         <div class="card-footer d-flex justify-content-between">
             <a href="{{ route('settings.office-locations.index') }}" class="btn btn-light">Close</a>
             <button type="submit" class="btn btn-success">
-                <i class="fa-regular fa-floppy-disk me-1"></i>{{ $isEdit ? 'Update' : 'Add' }} Office
+                <i class="fa-regular fa-floppy-disk me-1"></i>{{ $isEdit ? 'Update' : 'Add' }} Location
             </button>
         </div>
     </div>

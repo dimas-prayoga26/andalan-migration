@@ -2,11 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Models\Company;
 use App\Models\MailAccessAccount;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class MailAccessAccountSeeder extends Seeder
@@ -17,6 +19,8 @@ class MailAccessAccountSeeder extends Seeder
     public function run(): void
     {
         $legacyAccessAccounts = $this->legacyAccessAccounts();
+
+        $this->seedDepartmentAccounts();
 
         foreach (config('mail_inboxes.accounts', []) as $accountKey => $account) {
             $email = mb_strtolower(trim((string) ($account['username'] ?? '')));
@@ -29,6 +33,7 @@ class MailAccessAccountSeeder extends Seeder
                 ['email' => $email],
                 [
                     'pin' => Hash::make($this->pinFor((string) $accountKey)),
+                    'type' => MailAccessAccount::TYPE_PERSONAL,
                     'is_active' => $legacyAccessAccounts[$email] ?? true,
                 ],
             );
@@ -41,10 +46,81 @@ class MailAccessAccountSeeder extends Seeder
                 ['email' => $email],
                 [
                     'pin' => Hash::make($this->pinFor('default')),
+                    'type' => MailAccessAccount::TYPE_PERSONAL,
                     'is_active' => $isActive,
                 ],
             );
         }
+    }
+
+    private function seedDepartmentAccounts(): void
+    {
+        if (! Schema::hasColumn((new MailAccessAccount)->getTable(), 'company_id')) {
+            return;
+        }
+
+        $companies = Company::query()
+            ->get(['id', 'name', 'legal_name', 'website']);
+
+        foreach (config('career_brands.brands', []) as $brandKey => $brand) {
+            if (! is_array($brand)) {
+                continue;
+            }
+
+            $email = mb_strtolower(trim((string) ($brand['email'] ?? '')));
+
+            if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+                continue;
+            }
+
+            MailAccessAccount::query()->updateOrCreate(
+                ['email' => $email],
+                [
+                    'company_id' => $this->companyIdForBrand((string) $brandKey, $brand, $companies),
+                    'pin' => Hash::make($this->pinFor((string) $brandKey)),
+                    'type' => MailAccessAccount::TYPE_DEPARTMENT,
+                    'is_active' => true,
+                ],
+            );
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $brand
+     * @param  Collection<int, Company>  $companies
+     */
+    private function companyIdForBrand(string $brandKey, array $brand, Collection $companies): ?string
+    {
+        $brandDomain = $this->websiteDomain((string) ($brand['website'] ?? ''));
+        $brandNames = array_filter([
+            $this->normalizedText($brandKey),
+            $this->normalizedText((string) ($brand['name'] ?? '')),
+        ]);
+
+        $company = $companies->first(function (Company $company) use ($brandDomain, $brandNames): bool {
+            $companyDomain = $this->websiteDomain((string) $company->website);
+
+            if ($brandDomain !== '' && $companyDomain === $brandDomain) {
+                return true;
+            }
+
+            $companyNames = array_filter([
+                $this->normalizedText((string) $company->name),
+                $this->normalizedText((string) $company->legal_name),
+            ]);
+
+            foreach ($companyNames as $companyName) {
+                foreach ($brandNames as $brandName) {
+                    if ($companyName === $brandName || str_contains($brandName, $companyName)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        });
+
+        return $company?->id;
     }
 
     private function pinFor(string $accountKey): string
@@ -57,6 +133,28 @@ class MailAccessAccountSeeder extends Seeder
         }
 
         return $pin;
+    }
+
+    private function websiteDomain(string $website): string
+    {
+        $website = trim($website);
+
+        if ($website === '') {
+            return '';
+        }
+
+        if (! str_contains($website, '://')) {
+            $website = 'https://'.$website;
+        }
+
+        $host = parse_url($website, PHP_URL_HOST);
+
+        return preg_replace('/^www\./', '', mb_strtolower((string) $host)) ?? '';
+    }
+
+    private function normalizedText(string $value): string
+    {
+        return preg_replace('/[^a-z0-9]+/', '', mb_strtolower($value)) ?? '';
     }
 
     /**

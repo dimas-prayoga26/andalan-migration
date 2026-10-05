@@ -18,7 +18,7 @@ class CareerBrand
             'mailer' => 'rnb',
             'logo_url' => 'https://raw.githubusercontent.com/dimas-prayoga26/web_careers_company/main/public/images/Logo%20RNB.png',
             'website' => 'https://rnb.co.id/',
-            'email' => 'hr@rnb.co.id',
+            'email' => 'recruitment@rnb.co.id',
             'primary_color' => '#b01020',
             'accent_color' => '#8c6d00',
             'header_background_color' => '#fff8e6',

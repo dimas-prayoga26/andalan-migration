@@ -57,8 +57,12 @@ class MailFeatureStructureTest extends TestCase
         $sidebarView = File::get(resource_path('views/layouts/sidebar.blade.php'));
         $controller = File::get(app_path('Http/Controllers/MailController.php'));
         $inboxService = File::get(app_path('Services/MailInboxService.php'));
+        $mailConfig = File::get(config_path('mail.php'));
+        $mailInboxConfig = File::get(config_path('mail_inboxes.php'));
         $databaseSeeder = File::get(database_path('seeders/DatabaseSeeder.php'));
         $mailAccessSeeder = File::get(database_path('seeders/MailAccessAccountSeeder.php'));
+        $mailAccessTypeMigration = File::get(database_path('migrations/2026_10_05_150204_add_type_to_mail_access_accounts_table.php'));
+        $mailAccessCompanyMigration = File::get(database_path('migrations/2026_10_05_160923_add_company_id_to_mail_access_accounts_table.php'));
 
         $this->assertStringContainsString("route('applicant.email.check')", $loginView);
         $this->assertStringContainsString("route('applicant.email.login')", $loginView);
@@ -108,6 +112,7 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString('$request->query(\'search\', \'\')', $controller);
         $this->assertStringContainsString('filterMessages($messages, $searchQuery)', $controller);
         $this->assertStringContainsString('messageFor($account->email, $uid, $folder)', $controller);
+        $this->assertStringContainsString('emailDomain((string) $account->email)', $controller);
         $this->assertStringContainsString("'replyTo' => \$message ? \$this->replyRecipient(\$message, \$folder)", $controller);
         $this->assertStringContainsString('attachmentFor($account->email, $uid, $attachment, $this->folderFromRequest($request))', $controller);
         $this->assertStringContainsString("'attachments.*' => ['file', 'max:10240']", $controller);
@@ -117,12 +122,35 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString("addTextHeader('In-Reply-To'", $controller);
         $this->assertStringContainsString('sendOutgoingMail(', $controller);
         $this->assertStringContainsString('UID SEARCH ALL', $inboxService);
+        $this->assertStringContainsString('verifySsl:', $inboxService);
+        $this->assertStringContainsString('stream_context_create', $inboxService);
+        $this->assertStringContainsString("'verify_peer' => \$this->verifySsl", $inboxService);
+        $this->assertStringContainsString('$emailDomain = $this->emailDomain($email)', $inboxService);
+        $this->assertStringContainsString('$this->emailDomain((string) ($account[\'username\'] ?? \'\')) !== $emailDomain', $inboxService);
         $this->assertStringContainsString('BODY.PEEK[]', $inboxService);
         $this->assertStringContainsString("'message_id' => \$this->headerValue(\$rawHeaders, 'Message-ID')", $inboxService);
         $this->assertStringContainsString('filenameFromHeaders', $inboxService);
         $this->assertStringContainsString('MailAccessAccountSeeder::class', $databaseSeeder);
         $this->assertStringContainsString("config('mail_inboxes.accounts', [])", $mailAccessSeeder);
+        $this->assertStringContainsString('seedDepartmentAccounts', $mailAccessSeeder);
+        $this->assertStringContainsString("'type' => MailAccessAccount::TYPE_DEPARTMENT", $mailAccessSeeder);
+        $this->assertStringContainsString("'company_id' => \$this->companyIdForBrand", $mailAccessSeeder);
         $this->assertStringContainsString("env('MAIL_ACCESS_DEFAULT_PIN', '0000')", $mailAccessSeeder);
+        $this->assertStringContainsString('CATCHALL_MAIL_USERNAME', $mailConfig);
+        $this->assertStringContainsString('CATCHALL_MAIL_PASSWORD', $mailConfig);
+        $this->assertStringContainsString('recruitment@rnb.co.id', $mailConfig);
+        $this->assertStringContainsString("'andalanku' => [", $mailInboxConfig);
+        foreach (['RNB', 'ANDALANKU', 'NISKALA', 'TMS', 'RNE', 'TRAH', 'KMA'] as $brandKey) {
+            $this->assertStringContainsString("env('{$brandKey}_IMAP_HOST'", $mailInboxConfig);
+            $this->assertStringContainsString("env('{$brandKey}_IMAP_USERNAME'", $mailInboxConfig);
+            $this->assertStringContainsString("env('{$brandKey}_IMAP_PASSWORD'", $mailInboxConfig);
+            $this->assertStringContainsString("env('{$brandKey}_IMAP_VERIFY_SSL'", $mailInboxConfig);
+        }
+        $this->assertStringContainsString("string('type', 30)", $mailAccessTypeMigration);
+        $this->assertStringContainsString("->default('personal')", $mailAccessTypeMigration);
+        $this->assertStringContainsString("foreignUuid('company_id')", $mailAccessCompanyMigration);
+        $this->assertStringContainsString("->constrained('companies', 'id')", $mailAccessCompanyMigration);
+        $this->assertStringContainsString('->nullOnDelete()', $mailAccessCompanyMigration);
         $this->assertStringContainsString("route('applicant.email.index')", $sidebarView);
         $this->assertStringNotContainsString("route('mail.index')", $sidebarView);
     }

@@ -29,7 +29,7 @@ class OfficeLocationController extends Controller
         return view('settings.office-locations.index', [
             'officeLocations' => $officeLocations,
             'search' => $search,
-            'pageTitle' => 'Office Locations',
+            'pageTitle' => 'Work Locations',
         ]);
     }
 
@@ -38,7 +38,7 @@ class OfficeLocationController extends Controller
         return view('settings.office-locations.form', [
             'officeLocation' => null,
             'mode' => 'create',
-            'pageTitle' => 'Add Office Location',
+            'pageTitle' => 'Add Work Location',
         ]);
     }
 
@@ -48,7 +48,7 @@ class OfficeLocationController extends Controller
 
         return redirect()
             ->route('settings.office-locations.index')
-            ->with('status', 'Office location has been added.');
+            ->with('status', 'Work location has been added.');
     }
 
     public function edit(OfficeLocation $officeLocation): View
@@ -56,7 +56,7 @@ class OfficeLocationController extends Controller
         return view('settings.office-locations.form', [
             'officeLocation' => $officeLocation,
             'mode' => 'edit',
-            'pageTitle' => 'Update Office Location',
+            'pageTitle' => 'Update Work Location',
         ]);
     }
 
@@ -66,7 +66,7 @@ class OfficeLocationController extends Controller
 
         return redirect()
             ->route('settings.office-locations.index')
-            ->with('status', 'Office location has been updated.');
+            ->with('status', 'Work location has been updated.');
     }
 
     public function destroy(OfficeLocation $officeLocation): RedirectResponse
@@ -80,14 +80,14 @@ class OfficeLocationController extends Controller
             ->exists();
 
         if ($isUsedByDeployment || $isUsedByAttendanceRule) {
-            return back()->with('error', 'Office location is still used by employee deployment or attendance rule data.');
+            return back()->with('error', 'Work location is still used by employee deployment or attendance rule data.');
         }
 
         $officeLocation->delete();
 
         return redirect()
             ->route('settings.office-locations.index')
-            ->with('status', 'Office location has been deleted.');
+            ->with('status', 'Work location has been deleted.');
     }
 
     /**

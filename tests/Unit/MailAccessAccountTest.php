@@ -27,4 +27,15 @@ class MailAccessAccountTest extends TestCase
         $this->assertTrue($account->pinMatches('123456'));
         $this->assertFalse($account->pinMatches('654321'));
     }
+
+    public function test_type_defaults_to_personal_and_exposes_supported_options(): void
+    {
+        $account = new MailAccessAccount;
+
+        $this->assertSame(MailAccessAccount::TYPE_PERSONAL, $account->type);
+        $this->assertSame([
+            MailAccessAccount::TYPE_PERSONAL => 'Personal',
+            MailAccessAccount::TYPE_DEPARTMENT => 'Department',
+        ], MailAccessAccount::typeOptions());
+    }
 }

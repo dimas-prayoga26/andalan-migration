@@ -66,6 +66,16 @@ class Applicant extends Model
         return $this->hasMany(ApplicantWorkExperience::class, 'applicant_id', 'id')->orderBy('sequence');
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(ApplicantDocument::class, 'applicant_id', 'id');
+    }
+
+    public function uploadRequests(): HasMany
+    {
+        return $this->hasMany(ApplicantUploadRequest::class, 'applicant_id', 'id');
+    }
+
     public function statusLabel(): string
     {
         return (string) ($this->applicantStatus?->name ?? 'Submitted');
@@ -90,7 +100,7 @@ class Applicant extends Model
 
     public function cvDownloadUrl(): ?string
     {
-        $cvFile = trim((string) $this->cv);
+        $cvFile = $this->documentFilePath(ApplicantDocument::TYPE_CV);
 
         if ($cvFile === '') {
             return null;
@@ -106,7 +116,7 @@ class Applicant extends Model
 
     public function photoUrl(): ?string
     {
-        $photoFile = trim((string) $this->photo);
+        $photoFile = $this->documentFilePath(ApplicantDocument::TYPE_PHOTO_PROFILE);
 
         if ($photoFile === '') {
             return null;
@@ -118,6 +128,29 @@ class Applicant extends Model
             (string) config('applicant_files.photo_base_url'),
             (string) config('applicant_files.fallback_photo_base_url', self::FALLBACK_PHOTO_BASE_URL),
         );
+    }
+
+    private function documentFilePath(string $documentType): string
+    {
+        $documentFilePath = null;
+
+        if ($this->relationLoaded('documents')) {
+            $documentFilePath = $this->documents
+                ->firstWhere('document_type', $documentType)
+                ?->file_path;
+        } elseif ($this->exists) {
+            $documentFilePath = $this->documents()
+                ->where('document_type', $documentType)
+                ->value('file_path');
+        }
+
+        $documentFilePath = trim((string) $documentFilePath);
+
+        if ($documentFilePath !== '') {
+            return $documentFilePath;
+        }
+
+        return '';
     }
 
     private function uploadedFileUrl(string $filename, string $directory, string $baseUrl, string $fallbackBaseUrl): string

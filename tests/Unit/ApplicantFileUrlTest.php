@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Models\Applicant;
+use App\Models\ApplicantDocument;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
@@ -22,7 +23,7 @@ class ApplicantFileUrlTest extends TestCase
             'applicant_files.fallback_photo_base_url' => 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/',
         ]);
 
-        $applicant = new Applicant(['photo' => 'profile photo.png']);
+        $applicant = $this->applicantWithDocument(ApplicantDocument::TYPE_PHOTO_PROFILE, 'profile photo.png');
 
         $this->assertSame(
             'https://careers.rnb.co.id/files/photo/profile%20photo.png',
@@ -40,7 +41,7 @@ class ApplicantFileUrlTest extends TestCase
             'applicant_files.fallback_cv_base_url' => 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/cv/',
         ]);
 
-        $applicant = new Applicant(['cv' => 'old cv.pdf']);
+        $applicant = $this->applicantWithDocument(ApplicantDocument::TYPE_CV, 'old cv.pdf');
 
         $this->assertSame(
             'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/cv/old%20cv.pdf',
@@ -55,11 +56,54 @@ class ApplicantFileUrlTest extends TestCase
             'applicant_files.fallback_photo_base_url' => 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/',
         ]);
 
-        $applicant = new Applicant(['photo' => 'files/photo/profile photo.png']);
+        $applicant = $this->applicantWithDocument(ApplicantDocument::TYPE_PHOTO_PROFILE, 'files/photo/profile photo.png');
 
         $this->assertSame(
             'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/profile%20photo.png',
             $applicant->photoUrl(),
         );
+    }
+
+    public function test_it_uses_applicant_document_paths(): void
+    {
+        $applicant = new Applicant;
+        $applicant->setRelation('documents', collect([
+            new ApplicantDocument([
+                'document_type' => ApplicantDocument::TYPE_CV,
+                'file_path' => 'document cv.pdf',
+            ]),
+            new ApplicantDocument([
+                'document_type' => ApplicantDocument::TYPE_PHOTO_PROFILE,
+                'file_path' => 'document photo.jpg',
+            ]),
+        ]));
+
+        $this->assertSame(
+            'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/cv/document%20cv.pdf',
+            $applicant->cvDownloadUrl(),
+        );
+
+        $this->assertSame(
+            'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/document%20photo.jpg',
+            $applicant->photoUrl(),
+        );
+    }
+
+    private function applicantWithDocument(string $documentType, ?string $filePath): Applicant
+    {
+        $applicant = new Applicant;
+
+        $documents = $filePath === null
+            ? collect()
+            : collect([
+                new ApplicantDocument([
+                    'document_type' => $documentType,
+                    'file_path' => $filePath,
+                ]),
+            ]);
+
+        $applicant->setRelation('documents', $documents);
+
+        return $applicant;
     }
 }

@@ -5,7 +5,11 @@ namespace Tests\Unit;
 use App\Http\Controllers\TalentAcquisitionController;
 use App\Mail\ApplicantStatusMail;
 use App\Models\Applicant;
+use App\Models\Company;
+use App\Models\JobVacancy;
+use App\Models\MailAccessAccount;
 use App\Support\CareerBrand;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 use ReflectionMethod;
 use RuntimeException;
@@ -22,7 +26,7 @@ class CareerBrandTest extends TestCase
 
             $this->assertSame('rnb', $brand['key']);
             $this->assertSame('RNB Management', $brand['name']);
-            $this->assertSame('hr@rnb.co.id', $brand['email']);
+            $this->assertSame('recruitment@rnb.co.id', $brand['email']);
             $this->assertSame('rnb', $brand['mailer']);
         }
     }
@@ -33,6 +37,7 @@ class CareerBrandTest extends TestCase
 
         $this->assertSame('tms', $brand['key']);
         $this->assertSame('TMS', $brand['name']);
+        $this->assertSame('recruitment@tims.co.id', $brand['email']);
         $this->assertSame('tms', $brand['mailer']);
     }
 
@@ -57,7 +62,7 @@ class CareerBrandTest extends TestCase
 
         $this->assertSame('rnb', $brand['key']);
         $this->assertSame('RNB Management', $brand['name']);
-        $this->assertSame('hr@rnb.co.id', $brand['email']);
+        $this->assertSame('recruitment@rnb.co.id', $brand['email']);
         $this->assertSame('rnb', $brand['mailer']);
         $this->assertSame('https://rnb.co.id/', $brand['website']);
     }
@@ -74,8 +79,43 @@ class CareerBrandTest extends TestCase
         $envelope = $mail->envelope();
 
         $this->assertSame('Status Lamaran Anda: Submitted - RNB Management', $envelope->subject);
-        $this->assertSame('hr@rnb.co.id', $envelope->from->address);
+        $this->assertSame('recruitment@rnb.co.id', $envelope->from->address);
         $this->assertSame('RNB Management', $envelope->from->name);
+    }
+
+    public function test_applicant_status_mail_brand_uses_department_email_from_applicant_company(): void
+    {
+        $departmentMailAccount = new MailAccessAccount([
+            'email' => 'recruitment@tims.co.id',
+            'type' => MailAccessAccount::TYPE_DEPARTMENT,
+            'is_active' => true,
+        ]);
+
+        $company = new Company([
+            'name' => 'TMS',
+            'website' => 'https://www.tims.co.id/',
+        ]);
+        $company->setRelation('departmentMailAccessAccounts', Collection::make([$departmentMailAccount]));
+
+        $jobVacancy = new JobVacancy([
+            'name' => 'Programmer',
+        ]);
+        $jobVacancy->setRelation('company', $company);
+
+        $applicant = new Applicant([
+            'full_name' => 'John Doe',
+            'email' => 'john@example.com',
+            'brand_key' => null,
+        ]);
+        $applicant->setRelation('jobVacancy', $jobVacancy);
+
+        $method = new ReflectionMethod(TalentAcquisitionController::class, 'brandForApplicantStatusMail');
+        $brand = $method->invoke(new TalentAcquisitionController, $applicant);
+
+        $this->assertSame('tms', $brand['key']);
+        $this->assertSame('TMS', $brand['name']);
+        $this->assertSame('tms', $brand['mailer']);
+        $this->assertSame('recruitment@tims.co.id', $brand['email']);
     }
 
     public function test_missing_brand_mailer_config_falls_back_to_default_mailer(): void

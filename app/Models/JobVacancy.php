@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class JobVacancy extends Model
@@ -46,6 +47,11 @@ class JobVacancy extends Model
     public function applicants(): HasMany
     {
         return $this->hasMany(Applicant::class, 'job_vacancy_id', 'id');
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 
     public function technicalCriteria(): HasMany

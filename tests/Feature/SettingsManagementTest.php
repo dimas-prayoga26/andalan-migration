@@ -43,7 +43,7 @@ class SettingsManagementTest extends TestCase
         $this->assertStringContainsString("route('settings.attendance-rules.index')", $sidebar);
         $this->assertStringContainsString("route('settings.office-locations.index')", $settingsNav);
         $this->assertStringContainsString("route('settings.attendance-rules.index')", $settingsNav);
-        $this->assertStringContainsString('Office Locations', $settingsNav);
+        $this->assertStringContainsString('Work Locations', $settingsNav);
         $this->assertStringContainsString('Attendance Rules', $settingsNav);
 
         $authorizationController = file_get_contents(app_path('Http/Controllers/AuthorizationController.php'));
@@ -92,7 +92,7 @@ class SettingsManagementTest extends TestCase
         $this->assertStringContainsString("DB::table('rules_of_attendaces')", $officeLocationController);
         $this->assertStringContainsString("'latitude' => ['required', 'numeric', 'between:-90,90']", $officeLocationController);
         $this->assertStringContainsString("'longitude' => ['required', 'numeric', 'between:-180,180']", $officeLocationController);
-        $this->assertStringContainsString('Manage office master data for attendance rules and employee deployment.', $officeLocationIndexView);
+        $this->assertStringContainsString('Manage work location master data for attendance rules and employee deployment.', $officeLocationIndexView);
         $this->assertStringContainsString('name="latitude"', $officeLocationFormView);
         $this->assertStringContainsString('name="longitude"', $officeLocationFormView);
         $this->assertStringContainsString('name="address"', $officeLocationFormView);

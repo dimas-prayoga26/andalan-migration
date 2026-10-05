@@ -22,6 +22,7 @@ class MailAccessAccountSeederTest extends TestCase
         $this->assertStringContainsString("base_path('employees.sql')", $seeder);
         $this->assertStringContainsString('$this->legacyUserIsActive($user, $employeesByUserId)', $seeder);
         $this->assertStringContainsString('Hash::make($this->pinFor((string) $accountKey))', $seeder);
+        $this->assertStringContainsString("'type' => MailAccessAccount::TYPE_PERSONAL", $seeder);
         $this->assertStringContainsString("env('MAIL_ACCESS_DEFAULT_PIN', '0000')", $seeder);
         $this->assertStringContainsString('/^[0-9]{4}$/', $seeder);
         $this->assertStringContainsString('MailAccessAccountSeeder::class', $databaseSeeder);

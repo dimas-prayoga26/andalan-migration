@@ -285,6 +285,7 @@
                         <tr>
                             <th class="mw-80">No</th>
                             <th class="mw-300">Lowongan Pekerjaan</th>
+                            <th class="mw-220">Company</th>
                             <th class="mw-160">Status</th>
                             <th class="mw-160">Total Pelamar</th>
                             <th class="mw-180">Created At</th>
@@ -376,6 +377,7 @@
                         }
                     },
                     { data: 'name' },
+                    { data: 'company_name' },
                     {
                         data: null,
                         render: function (data, type, row) {
@@ -394,7 +396,7 @@
                     }
                 ],
                 columnDefs: [
-                    { targets: [0, 5], orderable: false }
+                    { targets: [0, 6], orderable: false }
                 ]
             });
         });

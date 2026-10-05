@@ -8,7 +8,7 @@
                 <a class="nav-link py-3 px-1 {{ request()->routeIs('settings.positions*') ? 'active' : '' }}" href="{{ route('settings.positions.index') }}">Position</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link py-3 px-1 {{ request()->routeIs('settings.office-locations*') ? 'active' : '' }}" href="{{ route('settings.office-locations.index') }}">Office Locations</a>
+                <a class="nav-link py-3 px-1 {{ request()->routeIs('settings.office-locations*') ? 'active' : '' }}" href="{{ route('settings.office-locations.index') }}">Work Locations</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link py-3 px-1 {{ request()->routeIs('settings.attendance-rules*') ? 'active' : '' }}" href="{{ route('settings.attendance-rules.index') }}">Attendance Rules</a>

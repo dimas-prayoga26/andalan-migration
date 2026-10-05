@@ -4,7 +4,6 @@
     $applicantName = $applicant->full_name ?? 'Kandidat';
     $positionName = $applicant->jobVacancy?->name ?? 'Posisi yang dilamar';
     $submittedAt = $applicant->created_at;
-    $contactEmail = $brand['email'];
     $logoSource = $brand['logo_url'];
     $primaryColor = $brand['primary_color'] ?? '#304767';
     $accentColor = $brand['accent_color'] ?? '#2563eb';
@@ -110,11 +109,7 @@
 
                     <tr>
                         <td style="padding: 22px 32px; background: #f8fafc; border-top: 1px solid #dbe3ee;">
-                            <p style="margin: 0; color: #48566d; font-size: 13px; line-height: 1.7;">
-                                Jika ada pertanyaan, silakan hubungi kami melalui
-                                <a href="mailto:{{ $contactEmail }}" style="color: {{ $accentColor }}; text-decoration: none;">{{ $contactEmail }}</a>.
-                            </p>
-                            <p style="margin: 16px 0 0; color: #94a3b8; font-size: 12px; line-height: 1.6;">
+                            <p style="margin: 0; color: #94a3b8; font-size: 12px; line-height: 1.6;">
                                 Email ini dikirim otomatis oleh sistem rekrutmen {{ $brand['name'] }}. Mohon tidak membalas langsung email ini.
                             </p>
                         </td>

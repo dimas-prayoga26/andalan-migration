@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Applicant;
+use App\Models\ApplicantDocument;
 use App\Models\JobVacancy;
 use Tests\TestCase;
 
@@ -32,30 +33,30 @@ class ApplicantSupportTest extends TestCase
     {
         $this->assertSame(
             'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/cv/saktian%20cv.pdf',
-            (new Applicant(['cv' => 'saktian cv.pdf']))->cvDownloadUrl()
+            $this->applicantWithDocument(ApplicantDocument::TYPE_CV, 'saktian cv.pdf')->cvDownloadUrl()
         );
 
         $this->assertSame(
             'https://example.com/cv.pdf',
-            (new Applicant(['cv' => 'https://example.com/cv.pdf']))->cvDownloadUrl()
+            $this->applicantWithDocument(ApplicantDocument::TYPE_CV, 'https://example.com/cv.pdf')->cvDownloadUrl()
         );
 
-        $this->assertNull((new Applicant(['cv' => null]))->cvDownloadUrl());
+        $this->assertNull($this->applicantWithDocument(ApplicantDocument::TYPE_CV, null)->cvDownloadUrl());
     }
 
     public function test_photo_url_points_to_archived_upload_folder_when_local_file_is_missing(): void
     {
         $this->assertSame(
             'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/saktian%20photo.jpg',
-            (new Applicant(['photo' => 'saktian photo.jpg']))->photoUrl()
+            $this->applicantWithDocument(ApplicantDocument::TYPE_PHOTO_PROFILE, 'saktian photo.jpg')->photoUrl()
         );
 
         $this->assertSame(
             'https://example.com/photo.jpg',
-            (new Applicant(['photo' => 'https://example.com/photo.jpg']))->photoUrl()
+            $this->applicantWithDocument(ApplicantDocument::TYPE_PHOTO_PROFILE, 'https://example.com/photo.jpg')->photoUrl()
         );
 
-        $this->assertNull((new Applicant(['photo' => null]))->photoUrl());
+        $this->assertNull($this->applicantWithDocument(ApplicantDocument::TYPE_PHOTO_PROFILE, null)->photoUrl());
     }
 
     public function test_job_vacancy_status_uses_current_values(): void
@@ -66,5 +67,23 @@ class ApplicantSupportTest extends TestCase
             JobVacancy::STATUS_ACTIVE => 'Active',
             JobVacancy::STATUS_INACTIVE => 'Non Active',
         ], JobVacancy::statusOptions());
+    }
+
+    private function applicantWithDocument(string $documentType, ?string $filePath): Applicant
+    {
+        $applicant = new Applicant;
+
+        $documents = $filePath === null
+            ? collect()
+            : collect([
+                new ApplicantDocument([
+                    'document_type' => $documentType,
+                    'file_path' => $filePath,
+                ]),
+            ]);
+
+        $applicant->setRelation('documents', $documents);
+
+        return $applicant;
     }
 }

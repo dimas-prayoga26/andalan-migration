@@ -109,12 +109,12 @@
     <div class="card-header border-0 flex-wrap gap-3">
         <div>
             <h4 class="card-title mb-1">{{ $pageTitle }}</h4>
-            <p class="mb-0 text-muted fs-13">Manage office master data for attendance rules and employee deployment.</p>
+            <p class="mb-0 text-muted fs-13">Manage work location master data for attendance rules and employee deployment.</p>
         </div>
         <div class="settings-list-actions">
             <form method="GET" action="{{ route('settings.office-locations.index') }}" class="mb-0">
                 <div class="input-group">
-                    <button type="submit" class="input-group-text bg-white" aria-label="Search office locations">
+                    <button type="submit" class="input-group-text bg-white" aria-label="Search work locations">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </button>
                     <input
@@ -122,14 +122,14 @@
                         type="search"
                         class="form-control"
                         value="{{ $search }}"
-                        placeholder="Search office locations"
+                        placeholder="Search work locations"
                         autocomplete="off"
-                        aria-label="Search office locations"
+                        aria-label="Search work locations"
                     >
                 </div>
             </form>
             <a href="{{ route('settings.office-locations.create') }}" class="btn btn-primary btn-sm">
-                <i class="fa-solid fa-plus me-1"></i>Add Office
+                <i class="fa-solid fa-plus me-1"></i>Add Location
             </a>
         </div>
     </div>
@@ -170,8 +170,8 @@
                                         action="{{ route('settings.office-locations.destroy', ['officeLocation' => $officeLocation]) }}"
                                         method="POST"
                                         data-settings-delete-form
-                                        data-delete-title="Delete Office Location"
-                                        data-delete-message="Delete {{ $officeLocation->name }} from office location data?"
+                                        data-delete-title="Delete Work Location"
+                                        data-delete-message="Delete {{ $officeLocation->name }} from work location data?"
                                     >
                                         @csrf
                                         @method('DELETE')
@@ -183,7 +183,7 @@
                     @empty
                         <tr>
                             <td colspan="6" class="text-center text-muted py-4">
-                                {{ $search !== '' ? 'No matching office location found.' : 'No office location data available.' }}
+                                {{ $search !== '' ? 'No matching work location found.' : 'No work location data available.' }}
                             </td>
                         </tr>
                     @endforelse

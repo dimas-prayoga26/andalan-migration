@@ -30,6 +30,24 @@ class Company extends Model
         return $this->hasMany(User::class);
     }
 
+    public function jobVacancies(): HasMany
+    {
+        return $this->hasMany(JobVacancy::class, 'company_id', 'id');
+    }
+
+    public function mailAccessAccounts(): HasMany
+    {
+        return $this->hasMany(MailAccessAccount::class, 'company_id', 'id');
+    }
+
+    public function departmentMailAccessAccounts(): HasMany
+    {
+        return $this->hasMany(MailAccessAccount::class, 'company_id', 'id')
+            ->department()
+            ->active()
+            ->orderBy('email');
+    }
+
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class, 'company_id', 'id');

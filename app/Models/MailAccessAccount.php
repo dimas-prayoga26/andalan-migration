@@ -2,13 +2,23 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Hash;
 
 class MailAccessAccount extends Model
 {
+    public const TYPE_PERSONAL = 'personal';
+
+    public const TYPE_DEPARTMENT = 'department';
+
     protected $guarded = [];
+
+    protected $attributes = [
+        'type' => self::TYPE_PERSONAL,
+    ];
 
     protected function casts(): array
     {
@@ -16,6 +26,21 @@ class MailAccessAccount extends Model
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
         ];
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'company_id', 'id');
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeDepartment(Builder $query): Builder
+    {
+        return $query->where('type', self::TYPE_DEPARTMENT);
     }
 
     /**
@@ -48,5 +73,16 @@ class MailAccessAccount extends Model
         $this->forceFill([
             'pin' => Hash::make($pin),
         ])->save();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function typeOptions(): array
+    {
+        return [
+            self::TYPE_PERSONAL => 'Personal',
+            self::TYPE_DEPARTMENT => 'Department',
+        ];
     }
 }

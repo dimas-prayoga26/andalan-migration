@@ -172,6 +172,6 @@ class AttendanceRuleController extends Controller
             return $name.' - '.$address;
         }
 
-        return $name !== '' ? $name : ($address !== '' ? $address : 'Unnamed Office Location');
+        return $name !== '' ? $name : ($address !== '' ? $address : 'Unnamed Work Location');
     }
 }

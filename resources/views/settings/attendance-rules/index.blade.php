@@ -153,7 +153,7 @@
             <table class="table table-sm mb-0 table-bottom-borderless table-striped align-middle">
                 <thead>
                     <tr>
-                        <th>Office Location</th>
+                        <th>Work Location</th>
                         <th>IP Range</th>
                         <th>Radius</th>
                         <th>Type</th>
@@ -202,7 +202,7 @@
                                         method="POST"
                                         data-settings-delete-form
                                         data-delete-title="Delete Attendance Rule"
-                                        data-delete-message="Delete the attendance rule for {{ $attendanceRule->officeLocation?->name ?? 'this office location' }}?"
+                                        data-delete-message="Delete the attendance rule for {{ $attendanceRule->officeLocation?->name ?? 'this work location' }}?"
                                     >
                                         @csrf
                                         @method('DELETE')

@@ -116,7 +116,10 @@ class Applicant extends Model
 
     public function photoUrl(): ?string
     {
-        $photoFile = $this->documentFilePath(ApplicantDocument::TYPE_PHOTO_PROFILE);
+        $photoFile = $this->documentFilePath([
+            ApplicantDocument::TYPE_PHOTO_PROFILE,
+            ApplicantDocument::TYPE_PHOTO,
+        ]);
 
         if ($photoFile === '') {
             return null;
@@ -130,17 +133,21 @@ class Applicant extends Model
         );
     }
 
-    private function documentFilePath(string $documentType): string
+    /**
+     * @param  string|array<int, string>  $documentType
+     */
+    private function documentFilePath(string|array $documentType): string
     {
+        $documentTypes = (array) $documentType;
         $documentFilePath = null;
 
         if ($this->relationLoaded('documents')) {
             $documentFilePath = $this->documents
-                ->firstWhere('document_type', $documentType)
+                ->first(fn (ApplicantDocument $document): bool => in_array($document->document_type, $documentTypes, true))
                 ?->file_path;
         } elseif ($this->exists) {
             $documentFilePath = $this->documents()
-                ->where('document_type', $documentType)
+                ->whereIn('document_type', $documentTypes)
                 ->value('file_path');
         }
 

@@ -14,6 +14,8 @@ class ApplicantDocument extends Model
 
     public const TYPE_PHOTO_PROFILE = 'photo_profile';
 
+    public const TYPE_PHOTO = 'photo';
+
     public const TYPE_ASSESSMENT_TEST = 'assessment_test';
 
     protected $fillable = [

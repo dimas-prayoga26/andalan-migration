@@ -89,6 +89,16 @@ class ApplicantFileUrlTest extends TestCase
         );
     }
 
+    public function test_it_supports_legacy_photo_document_type(): void
+    {
+        $applicant = $this->applicantWithDocument(ApplicantDocument::TYPE_PHOTO, 'legacy photo.jpg');
+
+        $this->assertSame(
+            'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/legacy%20photo.jpg',
+            $applicant->photoUrl(),
+        );
+    }
+
     private function applicantWithDocument(string $documentType, ?string $filePath): Applicant
     {
         $applicant = new Applicant;

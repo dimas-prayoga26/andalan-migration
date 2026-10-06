@@ -28,7 +28,7 @@ class DivisionController extends Controller
             'search' => $search,
             'pageTitle' => 'Division',
             'resourceLabel' => 'Division',
-            'routePrefix' => 'settings.divisions',
+            'routePrefix' => 'settings.divisions',s
             'routeParameter' => 'division',
         ]);
     }

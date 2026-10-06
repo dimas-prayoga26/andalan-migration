@@ -2,8 +2,10 @@
 
 namespace Tests\Unit;
 
+use App\Http\Controllers\MailController;
 use App\Models\MailAccessAccount;
 use Illuminate\Support\Facades\Hash;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class MailAccessAccountTest extends TestCase
@@ -38,5 +40,27 @@ class MailAccessAccountTest extends TestCase
             MailAccessAccount::TYPE_DEPARTMENT => 'Department',
             MailAccessAccount::TYPE_APPLICANT_NOTIFICATION => 'Applicant Notification',
         ], MailAccessAccount::typeOptions());
+    }
+
+    public function test_mail_controller_uses_exact_hr_mailer_before_domain_catchall_fallback(): void
+    {
+        config([
+            'mail_inboxes.accounts.rnb.username' => 'catchall-temp@rnb.co.id',
+            'mail_inboxes.accounts.rnb_hr.username' => 'hr@rnb.co.id',
+            'mail.mailers.rnb' => ['transport' => 'smtp'],
+            'mail.mailers.rnb_hr' => ['transport' => 'smtp'],
+        ]);
+
+        $method = new ReflectionMethod(MailController::class, 'mailerForAccount');
+
+        $this->assertSame('rnb_hr', $method->invoke(
+            new MailController,
+            new MailAccessAccount(['email' => 'hr@rnb.co.id']),
+        ));
+
+        $this->assertSame('rnb', $method->invoke(
+            new MailController,
+            new MailAccessAccount(['email' => 'recruitment@rnb.co.id']),
+        ));
     }
 }

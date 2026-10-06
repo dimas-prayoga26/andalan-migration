@@ -3,7 +3,6 @@
     $statusName = $applicant->statusLabel();
     $applicantName = $applicant->full_name ?? 'Kandidat';
     $positionName = $applicant->jobVacancy?->name ?? 'Posisi yang dilamar';
-    $submittedAt = $applicant->created_at;
     $logoSource = $brand['logo_url'];
     $primaryColor = $brand['primary_color'] ?? '#304767';
     $accentColor = $brand['accent_color'] ?? '#2563eb';
@@ -99,7 +98,7 @@
                                     <td style="padding: 16px 18px; border-bottom: 1px solid #dbe3ee;">
                                         <p style="margin: 0; color: #64748b; font-size: 12px;">Tanggal Submit</p>
                                         <p style="margin: 6px 0 0; color: #172033; font-size: 15px; font-weight: 700;">
-                                            {{ $submittedAt ? \Illuminate\Support\Carbon::parse($submittedAt)->translatedFormat('d F Y, H:i') : '-' }}
+                                            {{ $submittedAtLabel }}
                                         </p>
                                     </td>
                                 </tr>

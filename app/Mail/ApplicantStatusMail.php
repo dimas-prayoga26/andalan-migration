@@ -10,6 +10,7 @@ use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Carbon;
 
 class ApplicantStatusMail extends Mailable
 {
@@ -51,6 +52,7 @@ class ApplicantStatusMail extends Mailable
             with: [
                 'applicant' => $this->applicant,
                 'brand' => $this->brand,
+                'submittedAtLabel' => $this->submittedAtLabel(),
             ],
         );
     }
@@ -75,5 +77,18 @@ class ApplicantStatusMail extends Mailable
     private function brandName(): string
     {
         return (string) ($this->brand['name'] ?? CareerBrand::fallbackBrand()['name']);
+    }
+
+    private function submittedAtLabel(): string
+    {
+        $submittedAt = $this->applicant->created_at;
+
+        if (! $submittedAt) {
+            return '-';
+        }
+
+        return Carbon::parse($submittedAt)
+            ->setTimezone('Asia/Jakarta')
+            ->format('d F Y, H:i').' WIB';
     }
 }

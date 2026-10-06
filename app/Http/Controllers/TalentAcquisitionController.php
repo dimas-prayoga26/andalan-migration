@@ -428,7 +428,11 @@ class TalentAcquisitionController extends Controller
         $isUpdate = $jobVacancy instanceof JobVacancy;
 
         $validated = $request->validate([
-            'company_id' => ['required', 'string', Rule::exists((new Company)->getTable(), 'id')],
+            'company_id' => [
+                'required',
+                'string',
+                Rule::exists((new Company)->getTable(), 'id')->where('is_active', true),
+            ],
             'name' => [
                 'required',
                 'string',
@@ -509,6 +513,7 @@ class TalentAcquisitionController extends Controller
     private function companyOptions(): Collection
     {
         return Company::query()
+            ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn (Company $company): array => [

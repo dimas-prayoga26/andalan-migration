@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\JobVacancy;
 use App\Models\MailAccessAccount;
 use App\Support\CareerBrand;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 use ReflectionMethod;
@@ -81,6 +82,28 @@ class CareerBrandTest extends TestCase
         $this->assertSame('Status Lamaran Anda: Submitted - RNB Management', $envelope->subject);
         $this->assertSame('recruitment@rnb.co.id', $envelope->from->address);
         $this->assertSame('RNB Management', $envelope->from->name);
+    }
+
+    public function test_applicant_status_mail_formats_submitted_at_in_jakarta_time(): void
+    {
+        $originalAppTimezone = config('app.timezone');
+        $originalPhpTimezone = date_default_timezone_get();
+
+        config(['app.timezone' => 'UTC']);
+        date_default_timezone_set('UTC');
+
+        try {
+            $mail = new ApplicantStatusMail(new Applicant([
+                'full_name' => 'John Doe',
+                'created_at' => Carbon::parse('2026-10-05 20:15:00', 'UTC'),
+            ]), CareerBrand::brand('rnb'));
+
+            $mail->assertSeeInHtml('06 October 2026, 03:15 WIB');
+            $mail->assertDontSeeInHtml('05 October 2026, 20:15');
+        } finally {
+            config(['app.timezone' => $originalAppTimezone]);
+            date_default_timezone_set($originalPhpTimezone);
+        }
     }
 
     public function test_applicant_status_mail_brand_uses_department_email_from_applicant_company(): void

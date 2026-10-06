@@ -146,7 +146,8 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('Company::query()', $controller);
         $this->assertStringContainsString("'companyOptions' => \$this->companyOptions()", $controller);
         $this->assertStringContainsString("'company_id' => (string) (\$jobVacancy->company_id ?? '')", $controller);
-        $this->assertStringContainsString("'company_id' => ['required', 'string', Rule::exists((new Company)->getTable(), 'id')]", $controller);
+        $this->assertStringContainsString("Rule::exists((new Company)->getTable(), 'id')->where('is_active', true)", $controller);
+        $this->assertStringContainsString("->where('is_active', true)", $controller);
         $this->assertStringContainsString("->where(fn (\$query) => \$query->where('company_id', \$companyId))", $controller);
         $this->assertStringContainsString("'company_id' => \$validated['company_id']", $controller);
         $this->assertStringContainsString("'company_name' => (string) (\$jobVacancy->company?->name ?? '-')", $controller);

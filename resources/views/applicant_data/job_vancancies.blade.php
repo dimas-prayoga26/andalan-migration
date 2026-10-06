@@ -43,6 +43,38 @@
             font-weight: 700;
         }
 
+        .talent-company-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+            padding-bottom: 0.15rem;
+            scrollbar-width: thin;
+            white-space: nowrap;
+        }
+
+        .talent-company-tab {
+            align-items: center;
+            background: #fff;
+            border: 1px solid #d9dce5;
+            border-radius: 0.45rem;
+            color: #596579;
+            cursor: pointer;
+            display: inline-flex;
+            font-size: 0.86rem;
+            font-weight: 700;
+            min-height: 36px;
+            padding: 0.45rem 0.9rem;
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+
+        .talent-company-tab.active,
+        .talent-company-tab:hover {
+            background: #eef3ff;
+            border-color: #2447c6;
+            color: #2447c6;
+        }
+
         .talent-vacancy-status-form {
             align-items: center;
             display: inline-flex;
@@ -279,6 +311,15 @@
                     </a>
                 </div>
 
+                <div class="talent-company-tabs" aria-label="Filter company">
+                    <button type="button" class="talent-company-tab active" data-company-filter="">Semua Company</button>
+                    @foreach ($companyOptions as $companyOption)
+                        <button type="button" class="talent-company-tab" data-company-filter="{{ $companyOption['id'] }}">
+                            {{ $companyOption['name'] }}
+                        </button>
+                    @endforeach
+                </div>
+
                 <div class="table-responsive">
                     <table id="jobVacanciesTable" class="display table">
                         <thead>
@@ -362,7 +403,24 @@
         }
 
         $(function () {
-            var jobVacancyTable = $('#jobVacanciesTable').DataTable({
+            var selectedCompanyId = '';
+            var jobVacancyTable = null;
+
+            $.fn.dataTable.ext.search.push(function (settings, data, dataIndex, rowData) {
+                if (settings.nTable.id !== 'jobVacanciesTable') {
+                    return true;
+                }
+
+                if (selectedCompanyId === '') {
+                    return true;
+                }
+
+                var jobVacancy = rowData || (jobVacancyTable ? jobVacancyTable.row(dataIndex).data() : null);
+
+                return String((jobVacancy && jobVacancy.company_id) || '') === selectedCompanyId;
+            });
+
+            jobVacancyTable = $('#jobVacanciesTable').DataTable({
                 ajax: {
                     url: "{{ route('applicant.job_vacancies.datatable') }}",
                     dataSrc: 'data'
@@ -398,6 +456,18 @@
                 columnDefs: [
                     { targets: [0, 6], orderable: false }
                 ]
+            });
+
+            document.querySelectorAll('[data-company-filter]').forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    document.querySelectorAll('[data-company-filter]').forEach(function (item) {
+                        item.classList.remove('active');
+                    });
+
+                    tab.classList.add('active');
+                    selectedCompanyId = String(tab.getAttribute('data-company-filter') || '');
+                    jobVacancyTable.draw();
+                });
             });
         });
     </script>

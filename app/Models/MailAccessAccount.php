@@ -14,17 +14,17 @@ class MailAccessAccount extends Model
 
     public const TYPE_DEPARTMENT = 'department';
 
+    public const TYPE_APPLICANT_NOTIFICATION = 'applicant_notification';
+
     protected $guarded = [];
 
     protected $attributes = [
         'type' => self::TYPE_PERSONAL,
-        'is_applicant_mail_sender' => false,
     ];
 
     protected function casts(): array
     {
         return [
-            'is_applicant_mail_sender' => 'boolean',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
         ];
@@ -45,9 +45,9 @@ class MailAccessAccount extends Model
         return $query->where('type', self::TYPE_DEPARTMENT);
     }
 
-    public function scopeApplicantMailSender(Builder $query): Builder
+    public function scopeApplicantNotification(Builder $query): Builder
     {
-        return $query->where('is_applicant_mail_sender', true);
+        return $query->where('type', self::TYPE_APPLICANT_NOTIFICATION);
     }
 
     /**
@@ -90,6 +90,7 @@ class MailAccessAccount extends Model
         return [
             self::TYPE_PERSONAL => 'Personal',
             self::TYPE_DEPARTMENT => 'Department',
+            self::TYPE_APPLICANT_NOTIFICATION => 'Applicant Notification',
         ];
     }
 }

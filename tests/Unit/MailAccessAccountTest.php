@@ -33,10 +33,10 @@ class MailAccessAccountTest extends TestCase
         $account = new MailAccessAccount;
 
         $this->assertSame(MailAccessAccount::TYPE_PERSONAL, $account->type);
-        $this->assertFalse($account->is_applicant_mail_sender);
         $this->assertSame([
             MailAccessAccount::TYPE_PERSONAL => 'Personal',
             MailAccessAccount::TYPE_DEPARTMENT => 'Department',
+            MailAccessAccount::TYPE_APPLICANT_NOTIFICATION => 'Applicant Notification',
         ], MailAccessAccount::typeOptions());
     }
 }

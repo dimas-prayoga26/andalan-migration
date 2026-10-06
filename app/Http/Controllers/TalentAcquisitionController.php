@@ -75,6 +75,7 @@ class TalentAcquisitionController extends Controller
     {
         return view('applicant_data.job_vancancies', [
             'jobVacancyStatuses' => JobVacancy::statusOptions(),
+            'companyOptions' => $this->companyOptions(),
         ]);
     }
 
@@ -88,6 +89,7 @@ class TalentAcquisitionController extends Controller
             ->get()
             ->map(fn (JobVacancy $jobVacancy): array => [
                 'id' => (string) $jobVacancy->id,
+                'company_id' => (string) ($jobVacancy->company_id ?? ''),
                 'name' => (string) $jobVacancy->name,
                 'company_name' => (string) ($jobVacancy->company?->name ?? '-'),
                 'status' => (int) $jobVacancy->status,
@@ -168,7 +170,7 @@ class TalentAcquisitionController extends Controller
         $applicant->loadMissing([
             'jobVacancy:id,company_id,name',
             'jobVacancy.company:id,name,website',
-            'jobVacancy.company.applicantMailSenderAccounts:id,company_id,email,type,is_active,is_applicant_mail_sender',
+            'jobVacancy.company.applicantNotificationMailAccessAccounts:id,company_id,email,type,is_active',
             'jobVacancy.company.departmentMailAccessAccounts:id,company_id,email,type,is_active',
         ]);
 
@@ -193,7 +195,7 @@ class TalentAcquisitionController extends Controller
     private function brandForApplicantStatusMail(Applicant $applicant): array
     {
         $brand = CareerBrand::brand($applicant->brand_key);
-        $departmentMailAccount = $this->departmentMailAccessAccountForApplicant($applicant);
+        $departmentMailAccount = $this->applicantNotificationMailAccessAccountForApplicant($applicant);
 
         if (! $departmentMailAccount instanceof MailAccessAccount) {
             return $brand;
@@ -205,7 +207,7 @@ class TalentAcquisitionController extends Controller
         ];
     }
 
-    private function departmentMailAccessAccountForApplicant(Applicant $applicant): ?MailAccessAccount
+    private function applicantNotificationMailAccessAccountForApplicant(Applicant $applicant): ?MailAccessAccount
     {
         $company = $applicant->jobVacancy?->company;
 
@@ -213,25 +215,28 @@ class TalentAcquisitionController extends Controller
             return null;
         }
 
-        if ($company->relationLoaded('applicantMailSenderAccounts')) {
-            $applicantMailSenderAccount = $company->applicantMailSenderAccounts->first();
+        if ($company->relationLoaded('applicantNotificationMailAccessAccounts')) {
+            $applicantMailAccount = $company->applicantNotificationMailAccessAccounts->first();
 
-            if ($applicantMailSenderAccount instanceof MailAccessAccount) {
-                return $applicantMailSenderAccount;
+            if ($applicantMailAccount instanceof MailAccessAccount) {
+                return $applicantMailAccount;
             }
         } else {
-            $applicantMailSenderAccount = $company->applicantMailSenderAccounts()->first();
+            $applicantMailAccount = $company->applicantNotificationMailAccessAccounts()->first();
 
-            if ($applicantMailSenderAccount instanceof MailAccessAccount) {
-                return $applicantMailSenderAccount;
+            if ($applicantMailAccount instanceof MailAccessAccount) {
+                return $applicantMailAccount;
             }
         }
 
         if ($company->relationLoaded('departmentMailAccessAccounts')) {
-            return $company->departmentMailAccessAccounts->first();
+            return $company->departmentMailAccessAccounts
+                ->first(fn (MailAccessAccount $mailAccessAccount): bool => str_starts_with((string) $mailAccessAccount->email, 'recruitment@'));
         }
 
-        return $company->departmentMailAccessAccounts()->first();
+        return $company->departmentMailAccessAccounts()
+            ->where('email', 'like', 'recruitment@%')
+            ->first();
     }
 
     /**
@@ -399,7 +404,9 @@ class TalentAcquisitionController extends Controller
                 'status' => JobVacancy::statusValueFor((int) $validated['status']),
             ]);
 
-            $this->syncJobVacancyTechnicalCriteria($jobVacancy, $validated['technical_criteria']);
+            if ($validated['technical_criteria'] !== []) {
+                $this->syncJobVacancyTechnicalCriteria($jobVacancy, $validated['technical_criteria']);
+            }
         });
 
         return redirect()->route('applicant.job_vacancies')->with('status', 'Lowongan berhasil diperbarui.');
@@ -418,6 +425,7 @@ class TalentAcquisitionController extends Controller
     private function validateJobVacancy(Request $request, ?JobVacancy $jobVacancy = null): array
     {
         $companyId = (string) $request->input('company_id', '');
+        $isUpdate = $jobVacancy instanceof JobVacancy;
 
         $validated = $request->validate([
             'company_id' => ['required', 'string', Rule::exists((new Company)->getTable(), 'id')],
@@ -430,12 +438,33 @@ class TalentAcquisitionController extends Controller
                     ->ignore($jobVacancy?->getKey()),
             ],
             'status' => ['required', 'integer', Rule::in(JobVacancy::statuses())],
-            'technical_criteria' => ['required', 'array', 'min:1'],
-            'technical_criteria.*.name' => ['required', 'string', 'max:255'],
-            'technical_criteria.*.weight' => ['required', 'integer', 'min:1', 'max:100'],
+            'technical_criteria' => [$isUpdate ? 'nullable' : 'required', 'array'],
+            'technical_criteria.*' => ['array'],
+            'technical_criteria.*.name' => [$isUpdate ? 'nullable' : 'required', 'string', 'max:255'],
+            'technical_criteria.*.weight' => [$isUpdate ? 'nullable' : 'required', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $totalWeight = collect($validated['technical_criteria'])->sum(fn (array $criterion): int => (int) $criterion['weight']);
+        $technicalCriteria = $this->filledTechnicalCriteria($validated['technical_criteria'] ?? []);
+
+        if ($technicalCriteria === []) {
+            if ($isUpdate) {
+                $validated['technical_criteria'] = [];
+
+                return $validated;
+            }
+
+            throw ValidationException::withMessages([
+                'technical_criteria' => 'Total bobot kriteria tes teknis harus tepat 100%.',
+            ]);
+        }
+
+        if ($this->hasIncompleteTechnicalCriteria($technicalCriteria)) {
+            throw ValidationException::withMessages([
+                'technical_criteria' => 'Lengkapi nama dan bobot kriteria tes teknis.',
+            ]);
+        }
+
+        $totalWeight = collect($technicalCriteria)->sum(fn (array $criterion): int => (int) $criterion['weight']);
 
         if ($totalWeight !== 100) {
             throw ValidationException::withMessages([
@@ -443,7 +472,35 @@ class TalentAcquisitionController extends Controller
             ]);
         }
 
+        $validated['technical_criteria'] = $technicalCriteria;
+
         return $validated;
+    }
+
+    /**
+     * @param  array<int, array{name?: mixed, weight?: mixed}>  $criteria
+     * @return array<int, array{name: string, weight: int|string}>
+     */
+    private function filledTechnicalCriteria(array $criteria): array
+    {
+        return collect($criteria)
+            ->map(fn (array $criterion): array => [
+                'name' => trim((string) ($criterion['name'] ?? '')),
+                'weight' => $criterion['weight'] ?? '',
+            ])
+            ->filter(fn (array $criterion): bool => $criterion['name'] !== '' || trim((string) $criterion['weight']) !== '')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<int, array{name: string, weight: int|string}>  $criteria
+     */
+    private function hasIncompleteTechnicalCriteria(array $criteria): bool
+    {
+        return collect($criteria)->contains(
+            fn (array $criterion): bool => $criterion['name'] === '' || trim((string) $criterion['weight']) === '',
+        );
     }
 
     /**

@@ -19,8 +19,7 @@ class MailAccessAccountSeederTest extends TestCase
         $this->assertStringContainsString("config('mail_inboxes.accounts', [])", $seeder);
         $this->assertStringContainsString('seedHrAccessAccounts', $seeder);
         $this->assertStringContainsString("['email' => 'hr@'.\$domain]", $seeder);
-        $this->assertStringContainsString("'is_applicant_mail_sender' => false", $seeder);
-        $this->assertStringContainsString("'is_applicant_mail_sender' => true", $seeder);
+        $this->assertStringContainsString("'type' => MailAccessAccount::TYPE_APPLICANT_NOTIFICATION", $seeder);
         $this->assertStringContainsString('$legacyAccessAccounts = $this->legacyAccessAccounts();', $seeder);
         $this->assertStringContainsString("base_path('users.sql')", $seeder);
         $this->assertStringContainsString("base_path('employees.sql')", $seeder);

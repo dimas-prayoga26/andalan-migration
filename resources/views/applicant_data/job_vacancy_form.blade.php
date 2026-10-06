@@ -101,6 +101,7 @@
 @section('content')
 @php
     $criteriaRows = old('technical_criteria', collect($technicalCriteria)->values()->all());
+    $criteriaRequired = $formMethod === 'POST';
 
     if (! is_array($criteriaRows) || count($criteriaRows) === 0) {
         $criteriaRows = [['name' => '', 'weight' => '']];
@@ -181,7 +182,9 @@
                 <div class="job-vacancy-criteria-header">
                     <div>
                         <div class="job-vacancy-criteria-title">Kriteria Tes Teknis</div>
-                        <p class="job-vacancy-criteria-subtitle">Total bobot wajib tepat 100% sebelum lowongan bisa disimpan.</p>
+                        <p class="job-vacancy-criteria-subtitle">
+                            {{ $criteriaRequired ? 'Total bobot wajib tepat 100% sebelum lowongan bisa disimpan.' : 'Kriteria boleh dikosongkan saat update. Jika diisi, total bobot wajib tepat 100%.' }}
+                        </p>
                     </div>
                     <div class="d-flex flex-wrap align-items-center gap-2">
                         <span class="job-vacancy-total-box" data-criteria-total>Total 0%</span>
@@ -206,7 +209,7 @@
                                 value="{{ $criterion['name'] ?? '' }}"
                                 placeholder="Contoh: Clean Code"
                                 data-criterion-name
-                                required
+                                @required($criteriaRequired)
                             >
                             <input
                                 type="number"
@@ -217,7 +220,7 @@
                                 max="100"
                                 placeholder="Bobot %"
                                 data-criterion-weight
-                                required
+                                @required($criteriaRequired)
                             >
                             <button type="button" class="job-vacancy-remove-criteria" title="Hapus kriteria" data-remove-criterion>
                                 <i class="bi bi-trash"></i>
@@ -241,6 +244,7 @@
             var list = document.querySelector('[data-criteria-list]');
             var totalBadge = document.querySelector('[data-criteria-total]');
             var addButton = document.querySelector('[data-add-criterion]');
+            var criteriaRequired = @json($criteriaRequired);
 
             if (!list || !totalBadge || !addButton) {
                 return;
@@ -276,8 +280,8 @@
                 row.className = 'job-vacancy-criteria-row';
                 row.setAttribute('data-criterion-row', '');
                 row.innerHTML = ''
-                    + '<input type="text" class="form-control" placeholder="Contoh: Clean Code" data-criterion-name required>'
-                    + '<input type="number" class="form-control" min="1" max="100" placeholder="Bobot %" data-criterion-weight required>'
+                    + '<input type="text" class="form-control" placeholder="Contoh: Clean Code" data-criterion-name' + (criteriaRequired ? ' required' : '') + '>'
+                    + '<input type="number" class="form-control" min="1" max="100" placeholder="Bobot %" data-criterion-weight' + (criteriaRequired ? ' required' : '') + '>'
                     + '<button type="button" class="job-vacancy-remove-criteria" title="Hapus kriteria" data-remove-criterion><i class="bi bi-trash"></i></button>';
 
                 return row;

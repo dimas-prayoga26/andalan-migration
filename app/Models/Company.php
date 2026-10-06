@@ -48,11 +48,10 @@ class Company extends Model
             ->orderBy('email');
     }
 
-    public function applicantMailSenderAccounts(): HasMany
+    public function applicantNotificationMailAccessAccounts(): HasMany
     {
         return $this->hasMany(MailAccessAccount::class, 'company_id', 'id')
-            ->department()
-            ->applicantMailSender()
+            ->applicantNotification()
             ->active()
             ->orderBy('email');
     }

@@ -70,7 +70,6 @@ class MailAccessAccountSeeder extends Seeder
             $accountData = [
                 'pin' => Hash::make($this->pinFor((string) $brandKey)),
                 'type' => MailAccessAccount::TYPE_PERSONAL,
-                'is_applicant_mail_sender' => false,
                 'is_active' => true,
             ];
 
@@ -110,8 +109,7 @@ class MailAccessAccountSeeder extends Seeder
                 [
                     'company_id' => $this->companyIdForBrand((string) $brandKey, $brand, $companies),
                     'pin' => Hash::make($this->pinFor((string) $brandKey)),
-                    'type' => MailAccessAccount::TYPE_DEPARTMENT,
-                    'is_applicant_mail_sender' => true,
+                    'type' => MailAccessAccount::TYPE_APPLICANT_NOTIFICATION,
                     'is_active' => true,
                 ],
             );

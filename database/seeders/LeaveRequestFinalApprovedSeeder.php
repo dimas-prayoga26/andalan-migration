@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\LeaveRequest;
 use App\Models\LeaveRequestHistory;
 use App\Models\LeaveType;
+use App\Models\Position;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -67,10 +68,10 @@ class LeaveRequestFinalApprovedSeeder extends Seeder
                 ->where(function ($query): void {
                     $query
                         ->whereHas('employee.deployment.position', function ($positionQuery): void {
-                            $positionQuery->whereIn('name', ['Chief Operating Officer', 'Director']);
+                            $positionQuery->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS);
                         })
                         ->orWhereHas('employee.deployment.positions', function ($positionQuery): void {
-                            $positionQuery->whereIn('positions.name', ['Chief Operating Officer', 'Director']);
+                            $positionQuery->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS);
                         });
                 })
                 ->orderBy('username')

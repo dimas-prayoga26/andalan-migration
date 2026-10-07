@@ -41,6 +41,7 @@
 @section('content')
 @php
     $isEdit = $mode === 'edit';
+    $isProtectedPosition = $resourceLabel === 'Position' && (bool) ($item?->is_protected ?? false);
 @endphp
 
 @include('layouts.breadcrumb', [
@@ -83,9 +84,16 @@
                     <label class="form-label">Status</label>
                     <select name="status" class="default-select form-control @error('status') is-invalid @enderror">
                         @foreach (['active' => 'Active', 'inactive' => 'Inactive'] as $statusValue => $statusLabel)
-                            <option value="{{ $statusValue }}" @selected(old('status', strtolower((string) ($item?->status ?? 'active'))) === $statusValue)>{{ $statusLabel }}</option>
+                            <option
+                                value="{{ $statusValue }}"
+                                @selected(old('status', strtolower((string) ($item?->status ?? 'active'))) === $statusValue)
+                                @disabled($isProtectedPosition && $statusValue !== 'active')
+                            >{{ $statusLabel }}</option>
                         @endforeach
                     </select>
+                    @if ($isProtectedPosition)
+                        <div class="form-text">Protected positions are required by system access rules.</div>
+                    @endif
                     @error('status')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>

@@ -115,10 +115,10 @@ class PositionPermissionSeeder extends Seeder
         ];
 
         $positionPermissions = [
-            'Administrator' => $allPermissionsWithoutPic,
-            'Chief Operating Officer' => $directorPermissions,
-            'Director' => $directorPermissions,
-            'Finance and Administration Coordinator' => [
+            Position::KEY_ADMINISTRATOR => $allPermissionsWithoutPic,
+            Position::KEY_CHIEF_OPERATING_OFFICER => $directorPermissions,
+            Position::KEY_DIRECTOR => $directorPermissions,
+            Position::KEY_FINANCE_ADMINISTRATION_COORDINATOR => [
                 'view-dashboard',
                 'view-calendar',
                 'view-attendance',
@@ -126,7 +126,7 @@ class PositionPermissionSeeder extends Seeder
                 'view-meeting',
                 'view-employee-services',
             ],
-            'Accounting and Taxation' => [
+            Position::KEY_ACCOUNTING_TAXATION => [
                 'view-dashboard',
                 'view-calendar',
                 'view-attendance',
@@ -134,27 +134,28 @@ class PositionPermissionSeeder extends Seeder
                 'view-meeting',
                 'view-employee-services',
             ],
-            'Operations Coordinator' => $baseStaffPermissions,
-            'Supervisor' => array_merge($baseStaffPermissions, ['view-pic-attendance']),
-            'Interior Design' => $baseStaffPermissions,
-            'Architecture Design' => $baseStaffPermissions,
-            'Web Developer' => $baseStaffPermissions,
-            'Documentation Event and Editor Video' => $baseStaffPermissions,
-            'Graphic Design' => array_merge($baseStaffPermissions, ['view-talent-acquisition']),
-            'Branding Designer' => array_merge($baseStaffPermissions, ['view-talent-acquisition']),
-            'Driver' => $baseStaffPermissions,
+            Position::KEY_OPERATIONS_COORDINATOR => $baseStaffPermissions,
+            Position::KEY_SUPERVISOR => array_merge($baseStaffPermissions, ['view-pic-attendance']),
+            Position::KEY_INTERIOR_DESIGN => $baseStaffPermissions,
+            Position::KEY_ARCHITECTURE_DESIGN => $baseStaffPermissions,
+            Position::KEY_WEB_DEVELOPER => $baseStaffPermissions,
+            Position::KEY_DOCUMENTATION_EVENT_EDITOR_VIDEO => $baseStaffPermissions,
+            Position::KEY_DIGITAL_MARKETING => $baseStaffPermissions,
+            Position::KEY_GRAPHIC_DESIGN => array_merge($baseStaffPermissions, ['view-talent-acquisition']),
+            Position::KEY_BRANDING_DESIGNER => array_merge($baseStaffPermissions, ['view-talent-acquisition']),
+            Position::KEY_DRIVER => $baseStaffPermissions,
         ];
 
         Position::query()
-            ->where('name', 'Super Administrator')
+            ->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR)
             ->get()
             ->each(static fn (Position $position): mixed => $position->permissions()->detach());
 
         Position::query()
-            ->whereIn('name', array_keys($positionPermissions))
+            ->whereIn('system_key', array_keys($positionPermissions))
             ->get()
             ->each(function (Position $position) use ($positionPermissions, $permissions): void {
-                $permissionIds = collect($positionPermissions[$position->name] ?? [])
+                $permissionIds = collect($positionPermissions[$position->system_key] ?? [])
                     ->map(static fn (string $permissionName): ?string => $permissions->get($permissionName)?->uuid)
                     ->filter()
                     ->values()

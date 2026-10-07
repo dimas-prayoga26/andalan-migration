@@ -82,6 +82,7 @@ class UserPrimaryPositionPermissionTest extends TestCase
         $position = new Position([
             'id' => $id,
             'name' => $name,
+            'system_key' => Position::systemKeyForName($name),
         ]);
 
         $position->setRelation(

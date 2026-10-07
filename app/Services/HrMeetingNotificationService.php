@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AppNotification;
 use App\Models\Employee;
 use App\Models\HrMeeting;
+use App\Models\Position;
 use App\Models\User;
 use App\Support\Branding\HostBrandingResolver;
 use Illuminate\Support\Collection;
@@ -107,10 +108,10 @@ class HrMeetingNotificationService
                 $query->whereRaw('LOWER(name) = ?', ['staff']);
             })
             ->whereDoesntHave('deployment.position', function ($query): void {
-                $query->where('name', 'Super Administrator');
+                $query->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR);
             })
             ->whereDoesntHave('deployment.positions', function ($query): void {
-                $query->where('name', 'Super Administrator');
+                $query->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR);
             });
     }
 
@@ -129,6 +130,6 @@ class HrMeetingNotificationService
 
     private function bodPositionFilter($query): void
     {
-        $query->where('name', 'like', '%Supervisor%');
+        $query->whereSystemKey(Position::KEY_SUPERVISOR);
     }
 }

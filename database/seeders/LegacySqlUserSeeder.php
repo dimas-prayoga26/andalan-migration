@@ -293,7 +293,7 @@ class LegacySqlUserSeeder extends Seeder
             'employee_id' => $employee->id,
             'current_department_id' => DB::table('departments')->where('name', 'Information and Communications Technology')->value('id')
                 ?? DB::table('departments')->orderBy('name')->value('id'),
-            'current_position_id' => DB::table('positions')->where('name', 'Web Developer')->value('id')
+            'current_position_id' => DB::table('positions')->where('system_key', Position::KEY_WEB_DEVELOPER)->value('id')
                 ?? DB::table('positions')->orderBy('name')->value('id'),
             'current_company_id' => $this->currentSqlCompanyId($currentUser),
             'join_date' => $this->normalizeDate($currentUser['created_at'] ?? null),
@@ -482,18 +482,28 @@ class LegacySqlUserSeeder extends Seeder
     {
         $legacyPositions->each(function (array $legacyPosition): void {
             $legacyId = (int) $legacyPosition['id'];
+            $positionName = $this->normalizePositionName((string) $legacyPosition['name']);
+            $systemKey = $this->positionSystemKeyForName($positionName);
             $position = Position::query()->updateOrCreate(
-                ['name' => $this->normalizePositionName((string) $legacyPosition['name'])],
-                ['status' => 'active'],
+                ['name' => $positionName],
+                array_filter([
+                    'system_key' => $systemKey,
+                    'is_protected' => $systemKey !== null && in_array($systemKey, Position::PROTECTED_SYSTEM_KEYS, true),
+                    'status' => 'active',
+                ], static fn (mixed $value): bool => $value !== null),
             );
 
             $this->positionIdsByLegacyId[$legacyId] = (string) $position->id;
         });
 
-        foreach (['Administrator', 'Chief Operating Officer', 'Director', 'Supervisor'] as $positionName) {
+        foreach ($this->corePositionSystemKeys() as $systemKey => $positionName) {
             Position::query()->updateOrCreate(
-                ['name' => $positionName],
-                ['status' => 'active'],
+                ['system_key' => $systemKey],
+                [
+                    'name' => $positionName,
+                    'status' => 'active',
+                    'is_protected' => in_array($systemKey, Position::PROTECTED_SYSTEM_KEYS, true),
+                ],
             );
         }
     }
@@ -1020,7 +1030,7 @@ class LegacySqlUserSeeder extends Seeder
         }
 
         Position::query()
-            ->whereIn('name', ['Chief Operating Officer', 'Director'])
+            ->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS)
             ->get()
             ->each(function (Position $position) use ($adminAttendancePermissionId, $directorAttendancePermissionId): void {
                 $permissionIds = $position->permissions()
@@ -1157,14 +1167,19 @@ class LegacySqlUserSeeder extends Seeder
             return;
         }
 
-        $positionNames = $this->additionalPositionNamesForLegacyUser($legacyUser);
+        $positionSystemKeys = $this->additionalPositionSystemKeysForLegacyUser($legacyUser);
         $positionIds = DB::table('positions')
-            ->whereIn('name', $positionNames)
+            ->whereIn('system_key', $positionSystemKeys)
             ->pluck('id')
             ->filter(static fn (mixed $positionId): bool => is_string($positionId) && trim($positionId) !== '')
             ->values();
         $managedPositionIds = DB::table('positions')
-            ->whereIn('name', ['Administrator', 'Accounting and Taxation', 'Director', 'Supervisor'])
+            ->whereIn('system_key', [
+                Position::KEY_ADMINISTRATOR,
+                Position::KEY_ACCOUNTING_TAXATION,
+                Position::KEY_DIRECTOR,
+                Position::KEY_SUPERVISOR,
+            ])
             ->pluck('id');
 
         DB::table('employee_deployment_positions')
@@ -1215,19 +1230,19 @@ class LegacySqlUserSeeder extends Seeder
     /**
      * @return array<int, string>
      */
-    private function additionalPositionNamesForLegacyUser(array $legacyUser): array
+    private function additionalPositionSystemKeysForLegacyUser(array $legacyUser): array
     {
         $email = strtolower(trim((string) ($legacyUser['email'] ?? '')));
 
         return match ($email) {
-            'halloerlin@gmail.com' => ['Administrator', 'Accounting and Taxation'],
-            'diktanamira@gmail.com' => ['Administrator', 'Accounting and Taxation'],
-            'msyafiq.dev@gmail.com' => ['Supervisor'],
-            'rexy@andalanbersama.com' => ['Supervisor'],
-            'fuadmfahrudin@gmail.com' => ['Supervisor'],
-            'fahmil@andalanbersama.com' => ['Supervisor'],
-            'lukman@rnbmanagement.com' => ['Director', 'Supervisor'],
-            'leonieputri7@gmail.com' => ['Administrator', 'Supervisor'],
+            'halloerlin@gmail.com' => [Position::KEY_ADMINISTRATOR, Position::KEY_ACCOUNTING_TAXATION],
+            'diktanamira@gmail.com' => [Position::KEY_ADMINISTRATOR, Position::KEY_ACCOUNTING_TAXATION],
+            'msyafiq.dev@gmail.com' => [Position::KEY_SUPERVISOR],
+            'rexy@andalanbersama.com' => [Position::KEY_SUPERVISOR],
+            'fuadmfahrudin@gmail.com' => [Position::KEY_SUPERVISOR],
+            'fahmil@andalanbersama.com' => [Position::KEY_SUPERVISOR],
+            'lukman@rnbmanagement.com' => [Position::KEY_DIRECTOR, Position::KEY_SUPERVISOR],
+            'leonieputri7@gmail.com' => [Position::KEY_ADMINISTRATOR, Position::KEY_SUPERVISOR],
             default => [],
         };
     }
@@ -1530,6 +1545,25 @@ class LegacySqlUserSeeder extends Seeder
         };
     }
 
+    private function positionSystemKeyForName(string $name): ?string
+    {
+        return Position::systemKeyForName($this->normalizePositionName($name));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function corePositionSystemKeys(): array
+    {
+        return [
+            Position::KEY_ADMINISTRATOR => 'Administrator',
+            Position::KEY_CHIEF_OPERATING_OFFICER => 'Chief Operating Officer',
+            Position::KEY_DIRECTOR => 'Director',
+            Position::KEY_SUPERVISOR => 'Supervisor',
+            Position::KEY_ACCOUNTING_TAXATION => 'Accounting and Taxation',
+        ];
+    }
+
     private function normalizeRoleName(string $name): string
     {
         return match (trim($name)) {
@@ -1627,7 +1661,7 @@ class LegacySqlUserSeeder extends Seeder
             ->value('id')
             ?? Company::query()->orderBy('name')->value('id');
         $departmentId = DB::table('departments')->where('name', 'Administrator')->value('id');
-        $positionId = DB::table('positions')->where('name', 'Super Administrator')->value('id');
+        $positionId = DB::table('positions')->where('system_key', Position::KEY_SUPER_ADMINISTRATOR)->value('id');
 
         if (! is_string($positionId) || trim($positionId) === '') {
             throw new RuntimeException('Position Super Administrator tidak ditemukan.');

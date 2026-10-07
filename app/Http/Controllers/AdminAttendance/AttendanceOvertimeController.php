@@ -5,6 +5,7 @@ namespace App\Http\Controllers\AdminAttendance;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceOvertime;
 use App\Models\OvertimeLifecycleLog;
+use App\Models\Position;
 use App\Models\ProjectTask;
 use App\Models\User;
 use App\Support\Attendance\OvertimeReviewTableBuilder;
@@ -487,31 +488,16 @@ class AttendanceOvertimeController extends Controller
             return $preferredDirector;
         }
 
-        $directorNames = [
-            'Board of Directors',
-            'board of directors',
-            'board_of_directors',
-            'board_of_director',
-            'board_of_rector',
-            'board of directur',
-            'board_of_directur',
-            'Director',
-            'director',
-        ];
-
         return User::query()
             ->select(['id', 'username', 'email'])
             ->with('employee.profile')
-            ->where(function (Builder $query) use ($directorNames): void {
+            ->where(function (Builder $query): void {
                 $query
-                    ->whereHas('roles', function (Builder $query) use ($directorNames): void {
-                        $query->whereIn('name', $directorNames);
+                    ->whereHas('employee.deployment.position', function (Builder $query): void {
+                        $query->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS);
                     })
-                    ->orWhereHas('employee.deployment.position', function (Builder $query) use ($directorNames): void {
-                        $query->whereIn('name', $directorNames);
-                    })
-                    ->orWhereHas('employee.deployment.positions', function (Builder $query) use ($directorNames): void {
-                        $query->whereIn('positions.name', $directorNames);
+                    ->orWhereHas('employee.deployment.positions', function (Builder $query): void {
+                        $query->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS);
                     });
             })
             ->orderBy('username')

@@ -63,7 +63,7 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString("->where('late_minutes', '<=', 0)->orderBy('clock_in')->limit(5)", $overviewController);
         $this->assertStringContainsString("->where('late_minutes', '>', 0)->orderByDesc('clock_in')->limit(5)", $overviewController);
         $this->assertStringContainsString("->whereDoesntHave('deployment.position'", $overviewController);
-        $this->assertStringContainsString("->where('name', 'Super Administrator')", $overviewController);
+        $this->assertStringContainsString('->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR)', $overviewController);
         $this->assertStringContainsString("->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS)", $overviewController);
         $this->assertStringContainsString("->whereRaw('LOWER(COALESCE(workplace, \"\")) <> ?', ['rnb jakarta'])", $overviewController);
         $this->assertStringNotContainsString('currentCompanyIdFor', $overviewController);
@@ -169,7 +169,7 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringNotContainsString('$this->currentCompanyIdFor($authenticatedUser)', $overtimeController);
         $this->assertStringContainsString('private function resolveOvertimeDirectorApprover(AttendanceOvertime $overtime): ?User', $overtimeController);
         $this->assertStringContainsString("->whereRaw('LOWER(email) = ?', ['lukman@rnbmanagement.com'])", $overtimeController);
-        $this->assertStringContainsString("->orWhereHas('employee.deployment.position'", $overtimeController);
+        $this->assertStringContainsString("->whereHas('employee.deployment.position'", $overtimeController);
         $this->assertStringContainsString("->orWhereHas('employee.deployment.positions'", $overtimeController);
         $this->assertStringNotContainsString("['label' => \$plannedTimeLabel, 'strike' => true]", $overtimeController);
         $this->assertStringNotContainsString('$companyId = $overtime->employee?->deployment?->current_company_id;', $overtimeController);

@@ -103,8 +103,8 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringNotContainsString('Business Trip', $navigation);
         $this->assertStringContainsString('Overtime', $navigation);
         $this->assertStringContainsString("'view-pic-attendance'", $permissionSeeder);
-        $this->assertStringContainsString("'Supervisor' => array_merge", $permissionSeeder);
-        $this->assertStringContainsString("'Administrator' => \$allPermissionsWithoutPic", $permissionSeeder);
+        $this->assertStringContainsString('Position::KEY_SUPERVISOR => array_merge', $permissionSeeder);
+        $this->assertStringContainsString('Position::KEY_ADMINISTRATOR => $allPermissionsWithoutPic', $permissionSeeder);
         $this->assertStringNotContainsString("'System Administrator' =>", $permissionSeeder);
         $this->assertStringContainsString("'view-pic-attendance', 'view-director-attendance'", $permissionSeeder);
         $this->assertStringContainsString("'view-pic-attendance' => ['section' => 'PIC Management', 'label' => 'PIC']", $authorizationController);

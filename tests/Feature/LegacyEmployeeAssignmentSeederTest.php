@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Position;
 use Database\Seeders\LegacySqlUserSeeder;
 use ReflectionMethod;
 use Tests\TestCase;
@@ -11,22 +12,22 @@ class LegacyEmployeeAssignmentSeederTest extends TestCase
     public function test_legacy_user_position_configuration_is_registered(): void
     {
         $seeder = new LegacySqlUserSeeder;
-        $additionalPositions = new ReflectionMethod($seeder, 'additionalPositionNamesForLegacyUser');
+        $additionalPositions = new ReflectionMethod($seeder, 'additionalPositionSystemKeysForLegacyUser');
         $isExcludedLegacyUser = new ReflectionMethod($seeder, 'isExcludedLegacyUser');
 
-        $this->assertSame(['Director', 'Supervisor'], $additionalPositions->invoke($seeder, [
+        $this->assertSame([Position::KEY_DIRECTOR, Position::KEY_SUPERVISOR], $additionalPositions->invoke($seeder, [
             'email' => 'lukman@rnbmanagement.com',
         ]));
-        $this->assertSame(['Supervisor'], $additionalPositions->invoke($seeder, [
+        $this->assertSame([Position::KEY_SUPERVISOR], $additionalPositions->invoke($seeder, [
             'email' => 'rexy@andalanbersama.com',
         ]));
-        $this->assertSame(['Supervisor'], $additionalPositions->invoke($seeder, [
+        $this->assertSame([Position::KEY_SUPERVISOR], $additionalPositions->invoke($seeder, [
             'email' => 'fuadmfahrudin@gmail.com',
         ]));
-        $this->assertSame(['Supervisor'], $additionalPositions->invoke($seeder, [
+        $this->assertSame([Position::KEY_SUPERVISOR], $additionalPositions->invoke($seeder, [
             'email' => 'fahmil@andalanbersama.com',
         ]));
-        $this->assertSame(['Administrator', 'Supervisor'], $additionalPositions->invoke($seeder, [
+        $this->assertSame([Position::KEY_ADMINISTRATOR, Position::KEY_SUPERVISOR], $additionalPositions->invoke($seeder, [
             'email' => 'leonieputri7@gmail.com',
         ]));
         $this->assertTrue($isExcludedLegacyUser->invoke($seeder, [

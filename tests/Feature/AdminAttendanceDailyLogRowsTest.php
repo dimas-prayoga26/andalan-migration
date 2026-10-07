@@ -163,7 +163,7 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
         $employee->forceFill(['id' => 'admin-driver-effective-work-hours']);
         $employee->setRelation('profile', new EmployeeProfile(['name' => 'Driver Jam Efektif']));
 
-        $driverPosition = new Position(['name' => 'Driver']);
+        $driverPosition = new Position(['name' => 'Driver', 'system_key' => Position::KEY_DRIVER]);
         $deployment = new EmployeeDeployment;
         $deployment->setRelation('position', $driverPosition);
         $deployment->setRelation('positions', new EloquentCollection([$driverPosition]));
@@ -193,7 +193,7 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
         $employee->forceFill(['id' => 'admin-executive-assistant-effective-work-hours']);
         $employee->setRelation('profile', new EmployeeProfile(['name' => 'Executive Assistant Jam Efektif']));
 
-        $executiveAssistantPosition = new Position(['name' => 'Executive Assistant']);
+        $executiveAssistantPosition = new Position(['name' => 'Executive Assistant', 'system_key' => Position::KEY_EXECUTIVE_ASSISTANT]);
         $deployment = new EmployeeDeployment;
         $deployment->setRelation('position', $executiveAssistantPosition);
         $deployment->setRelation('positions', new EloquentCollection([$executiveAssistantPosition]));
@@ -235,7 +235,7 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
         $controller = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceRecapController.php'));
 
         $this->assertStringContainsString("->whereDoesntHave('deployment.position'", $controller);
-        $this->assertStringContainsString("->where('name', 'Super Administrator')", $controller);
+        $this->assertStringContainsString('->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR)', $controller);
         $this->assertStringContainsString("->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS)", $controller);
         $this->assertStringContainsString("->whereRaw('LOWER(COALESCE(workplace, \"\")) <> ?', ['rnb jakarta'])", $controller);
 

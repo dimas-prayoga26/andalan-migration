@@ -12,8 +12,8 @@ class UserSeederAdministratorTest extends TestCase
         $userSeeder = File::get(database_path('seeders/UserSeeder.php'));
 
         $this->assertStringContainsString("DB::table('departments')->where('name', 'Administrator')->value('id')", $userSeeder);
-        $this->assertStringContainsString("DB::table('positions')->where('name', 'Administrator')->value('id')", $userSeeder);
-        $this->assertStringContainsString("DB::table('positions')->where('name', 'Super Administrator')->value('id')", $userSeeder);
+        $this->assertStringContainsString("DB::table('positions')->where('system_key', Position::KEY_ADMINISTRATOR)->value('id')", $userSeeder);
+        $this->assertStringContainsString("DB::table('positions')->where('system_key', Position::KEY_SUPER_ADMINISTRATOR)->value('id')", $userSeeder);
         $this->assertStringContainsString("['email' => 'superadmin@andalanbersama.com']", $userSeeder);
         $this->assertStringContainsString("'username' => 'superadmin'", $userSeeder);
         $this->assertStringNotContainsString("['email' => 'superuser@gmail.com']", $userSeeder);

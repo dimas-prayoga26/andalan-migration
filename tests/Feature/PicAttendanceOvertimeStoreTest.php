@@ -228,7 +228,7 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('private function formatActualEndDateTime(AttendanceOvertime $overtime): string', $controller);
         $this->assertStringContainsString('private function resolveOvertimeDirectorApprover(AttendanceOvertime $overtime): ?User', $controller);
         $this->assertStringContainsString("->whereRaw('LOWER(email) = ?', ['lukman@rnbmanagement.com'])", $controller);
-        $this->assertStringContainsString("->orWhereHas('employee.deployment.position'", $controller);
+        $this->assertStringContainsString("->whereHas('employee.deployment.position'", $controller);
         $this->assertStringContainsString("->orWhereHas('employee.deployment.positions'", $controller);
         $this->assertStringNotContainsString("['label' => \$plannedTimeLabel, 'strike' => true]", $controller);
         $this->assertStringNotContainsString('$companyId = $overtime->employee?->deployment?->current_company_id;', $controller);

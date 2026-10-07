@@ -159,6 +159,9 @@
                     <tr>
                         <th>Name</th>
                         <th>Status</th>
+                        @if ($resourceLabel === 'Position')
+                            <th>Type</th>
+                        @endif
                         <th class="text-end">Action</th>
                     </tr>
                 </thead>
@@ -173,26 +176,39 @@
                             <td>
                                 <span class="badge badge-sm light {{ $statusClass }}">{{ ucfirst($status) }}</span>
                             </td>
+                            @if ($resourceLabel === 'Position')
+                                <td>
+                                    @if ((bool) ($item->is_protected ?? false))
+                                        <span class="badge badge-sm light badge-primary">Protected</span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                            @endif
                             <td class="text-end">
                                 <div class="d-inline-flex gap-1">
                                     <a href="{{ route($routePrefix.'.edit', [$routeParameter => $item]) }}" class="btn btn-primary light btn-sm">Update</a>
-                                    <form
-                                        action="{{ route($routePrefix.'.destroy', [$routeParameter => $item]) }}"
-                                        method="POST"
-                                        data-settings-delete-form
-                                        data-delete-title="Delete {{ $resourceLabel }}"
-                                        data-delete-message="Delete {{ $item->name }} from {{ strtolower($resourceLabel) }} data?"
-                                    >
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger light btn-sm">Delete</button>
-                                    </form>
+                                    @if (! (bool) ($item->is_protected ?? false))
+                                        <form
+                                            action="{{ route($routePrefix.'.destroy', [$routeParameter => $item]) }}"
+                                            method="POST"
+                                            data-settings-delete-form
+                                            data-delete-title="Delete {{ $resourceLabel }}"
+                                            data-delete-message="Delete {{ $item->name }} from {{ strtolower($resourceLabel) }} data?"
+                                        >
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-danger light btn-sm">Delete</button>
+                                        </form>
+                                    @else
+                                        <button type="button" class="btn btn-danger light btn-sm" disabled>Delete</button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="3" class="text-center text-muted py-4">
+                            <td colspan="{{ $resourceLabel === 'Position' ? 4 : 3 }}" class="text-center text-muted py-4">
                                 {{ $search !== '' ? 'No matching '.$resourceLabel.' found.' : 'No '.$resourceLabel.' data available.' }}
                             </td>
                         </tr>

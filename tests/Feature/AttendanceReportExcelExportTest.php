@@ -221,7 +221,7 @@ class AttendanceReportExcelExportTest extends TestCase
         $this->assertSame('4 hours', $formatWorkHoursLabel->invoke($controller, '08:00', '12:00', null));
 
         $employee = new Employee;
-        $driverPosition = new Position(['name' => 'Driver']);
+        $driverPosition = new Position(['name' => 'Driver', 'system_key' => Position::KEY_DRIVER]);
         $deployment = new EmployeeDeployment;
         $deployment->setRelation('position', $driverPosition);
         $deployment->setRelation('positions', new EloquentCollection([$driverPosition]));
@@ -230,7 +230,7 @@ class AttendanceReportExcelExportTest extends TestCase
         $this->assertSame('9 hours', $formatWorkHoursLabel->invoke($controller, '08:00', '17:00', 9, $employee));
 
         $employee = new Employee;
-        $executiveAssistantPosition = new Position(['name' => 'Executive Assistant']);
+        $executiveAssistantPosition = new Position(['name' => 'Executive Assistant', 'system_key' => Position::KEY_EXECUTIVE_ASSISTANT]);
         $deployment = new EmployeeDeployment;
         $deployment->setRelation('position', $executiveAssistantPosition);
         $deployment->setRelation('positions', new EloquentCollection([$executiveAssistantPosition]));

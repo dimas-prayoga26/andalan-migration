@@ -10,6 +10,7 @@ use App\Models\EmployeeProfile;
 use App\Models\LeaveRequest;
 use App\Models\LeaveRequestHistory;
 use App\Models\LeaveType;
+use App\Models\Position;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -45,8 +46,8 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
                     'employee_code' => 'EMP-RNB-MEVIA',
                     'company_id' => (string) $rnbCompany->id,
                     'department_name' => 'Administration, Finance and Legal',
-                    'position_name' => 'Finance and Administration Coordinator',
-                    'additional_position_names' => ['Administrator', 'Accounting and Taxation'],
+                    'position_system_key' => Position::KEY_FINANCE_ADMINISTRATION_COORDINATOR,
+                    'additional_position_system_keys' => [Position::KEY_ADMINISTRATOR, Position::KEY_ACCOUNTING_TAXATION],
                     'workplace' => 'RNB Jogja',
                     'phone' => '081300000031',
                 ], $now);
@@ -59,8 +60,8 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
                     'employee_code' => 'EMP-RNB-ERLIN',
                     'company_id' => (string) $rnbCompany->id,
                     'department_name' => 'Administration, Finance and Legal',
-                    'position_name' => 'Finance and Administration Coordinator',
-                    'additional_position_names' => ['Administrator', 'Accounting and Taxation'],
+                    'position_system_key' => Position::KEY_FINANCE_ADMINISTRATION_COORDINATOR,
+                    'additional_position_system_keys' => [Position::KEY_ADMINISTRATOR, Position::KEY_ACCOUNTING_TAXATION],
                     'workplace' => 'RNB Jogja',
                     'phone' => '081300000032',
                 ], $now);
@@ -73,8 +74,8 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
                     'employee_code' => 'EMP-NISKALA-LEONIE',
                     'company_id' => (string) $niskalaCompany->id,
                     'department_name' => 'Operations',
-                    'position_name' => 'Supervisor',
-                    'additional_position_names' => ['Administrator', 'Supervisor'],
+                    'position_system_key' => Position::KEY_SUPERVISOR,
+                    'additional_position_system_keys' => [Position::KEY_ADMINISTRATOR, Position::KEY_SUPERVISOR],
                     'workplace' => 'Niskala',
                     'phone' => '081300000041',
                 ], $now);
@@ -146,8 +147,8 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
      *     employee_code:string,
      *     company_id:string,
      *     department_name:string,
-     *     position_name:string,
-     *     additional_position_names?:array<int, string>,
+     *     position_system_key:string,
+     *     additional_position_system_keys?:array<int, string>,
      *     workplace:string,
      *     phone:string
      * }  $data
@@ -211,7 +212,7 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
             [
                 'current_company_id' => $data['company_id'],
                 'current_department_id' => $this->tableIdByName('departments', $data['department_name']),
-                'current_position_id' => $this->tableIdByName('positions', $data['position_name']),
+                'current_position_id' => $this->positionIdBySystemKey($data['position_system_key']),
                 'join_date' => $now->copy()->subYear()->toDateString(),
                 'resignation_date' => null,
                 'workplace' => $data['workplace'],
@@ -220,7 +221,7 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
         );
 
         $this->syncDeploymentPosition($deployment, $deployment->current_position_id, $deployment->join_date?->toDateString());
-        $this->syncAdditionalDeploymentPositions($deployment, $data['additional_position_names'] ?? [], $deployment->join_date?->toDateString());
+        $this->syncAdditionalDeploymentPositions($deployment, $data['additional_position_system_keys'] ?? [], $deployment->join_date?->toDateString());
 
         return $employee->fresh(['user']) ?? $employee;
     }
@@ -248,12 +249,12 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
     }
 
     /**
-     * @param  array<int, string>  $positionNames
+     * @param  array<int, string>  $positionSystemKeys
      */
-    private function syncAdditionalDeploymentPositions(EmployeeDeployment $deployment, array $positionNames, ?string $joinDate): void
+    private function syncAdditionalDeploymentPositions(EmployeeDeployment $deployment, array $positionSystemKeys, ?string $joinDate): void
     {
-        foreach ($positionNames as $positionName) {
-            $positionId = $this->tableIdByName('positions', $positionName);
+        foreach ($positionSystemKeys as $positionSystemKey) {
+            $positionId = $this->positionIdBySystemKey($positionSystemKey);
 
             if ($positionId === null) {
                 continue;
@@ -420,6 +421,15 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
     {
         $id = DB::table($table)
             ->where('name', $name)
+            ->value('id');
+
+        return is_string($id) && trim($id) !== '' ? trim($id) : null;
+    }
+
+    private function positionIdBySystemKey(string $systemKey): ?string
+    {
+        $id = DB::table('positions')
+            ->where('system_key', $systemKey)
             ->value('id');
 
         return is_string($id) && trim($id) !== '' ? trim($id) : null;

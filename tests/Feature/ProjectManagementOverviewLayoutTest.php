@@ -346,7 +346,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('private function projectStaffOptions(): Collection', $projectController);
         $this->assertStringContainsString('private function employeeProjectOptionLabel(Employee $employee): string', $projectController);
         $this->assertStringContainsString('private function authenticatedEmployeeIsSupervisor(?User $authenticatedUser): bool', $projectController);
-        $this->assertStringContainsString("hasPositionName('Supervisor')", $projectController);
+        $this->assertStringContainsString('hasPositionSystemKey(Position::KEY_SUPERVISOR)', $projectController);
         $this->assertStringContainsString("'projectStoreUrl' => route('project_management.projects.store')", $projectController);
         $this->assertStringContainsString('public function updateProject(Request $request, Project $project): JsonResponse', $projectController);
         $this->assertStringContainsString('public function destroyProject(Project $project): JsonResponse', $projectController);

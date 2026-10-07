@@ -72,7 +72,7 @@ class RulesOfAttendacesSeeder extends Seeder
             }
 
             $jakartaOfficeLocation = OfficeLocation::query()->where('name', 'Jakarta')->first(['id']);
-            $driverPosition = Position::query()->where('name', 'Driver')->first(['id']);
+            $driverPosition = Position::query()->whereSystemKey(Position::KEY_DRIVER)->first(['id']);
             if ($jakartaOfficeLocation instanceof OfficeLocation && $driverPosition instanceof Position) {
                 $driverAttendanceRule = RulesOfAttendace::query()->updateOrCreate(
                     [

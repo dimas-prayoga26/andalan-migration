@@ -67,7 +67,15 @@ class PositionController extends Controller
 
     public function update(Request $request, Position $position): RedirectResponse
     {
-        $position->update($this->validatedData($request, $position));
+        $validated = $this->validatedData($request, $position);
+
+        if ($position->is_protected && $validated['status'] !== 'active') {
+            return back()
+                ->with('error', 'Protected position cannot be set inactive.')
+                ->withInput();
+        }
+
+        $position->update($validated);
 
         return redirect()
             ->route('settings.positions.index')
@@ -76,6 +84,10 @@ class PositionController extends Controller
 
     public function destroy(Position $position): RedirectResponse
     {
+        if ($position->is_protected) {
+            return back()->with('error', 'Protected position cannot be deleted because it is required by the system.');
+        }
+
         $isUsedByDeployment = DB::table('employee_deployments')
             ->where('current_position_id', $position->id)
             ->exists();

@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\EmployeeDeployment;
 use App\Models\EmployeeIdentity;
 use App\Models\EmployeeProfile;
+use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -95,23 +96,21 @@ class UserSeeder extends Seeder
                     ?? DB::table('departments')->where('name', 'Information and Communications Technology')->value('id'),
             );
             $adminDivisionId = $this->toNullableString(DB::table('departments')->where('name', 'Administrator')->value('id'));
-            $directorPositionId = $this->toNullableString(DB::table('positions')->where('name', 'Director')->value('id'));
+            $directorPositionId = $this->toNullableString(DB::table('positions')->where('system_key', Position::KEY_DIRECTOR)->value('id'));
             $staffPositionId = $this->toNullableString(
-                DB::table('positions')->where('name', 'Web Developer')->value('id')
+                DB::table('positions')->where('system_key', Position::KEY_WEB_DEVELOPER)->value('id')
                     ?? DB::table('positions')->orderBy('name')->value('id'),
             );
             $supervisorPositionId = $this->toNullableString(
-                DB::table('positions')->where('name', 'Supervisor')->value('id')
-                    ?? DB::table('positions')->where('name', 'Team Lead')->value('id')
-                    ?? DB::table('positions')->where('name', 'Manager')->value('id')
+                DB::table('positions')->where('system_key', Position::KEY_SUPERVISOR)->value('id')
                     ?? DB::table('positions')->orderBy('name')->value('id'),
             );
             $administratorPositionId = $this->toNullableString(
-                DB::table('positions')->where('name', 'Administrator')->value('id')
+                DB::table('positions')->where('system_key', Position::KEY_ADMINISTRATOR)->value('id')
                     ?? DB::table('positions')->orderBy('name')->value('id'),
             );
             $superAdministratorPositionId = $this->toNullableString(
-                DB::table('positions')->where('name', 'Super Administrator')->value('id')
+                DB::table('positions')->where('system_key', Position::KEY_SUPER_ADMINISTRATOR)->value('id')
                     ?? DB::table('positions')->orderBy('name')->value('id'),
             );
             $jakartaDomicileId = $this->toNullableInt(DB::table('meta_data_domicili')->where('name', 'Jakarta')->value('id'));

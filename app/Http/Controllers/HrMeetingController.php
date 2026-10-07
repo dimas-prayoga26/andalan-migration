@@ -6,6 +6,7 @@ use App\Models\AppNotification;
 use App\Models\Employee;
 use App\Models\HrMeeting;
 use App\Models\HrMeetingTask;
+use App\Models\Position;
 use App\Models\ProjectTask;
 use App\Services\HrMeetingNotificationService;
 use Illuminate\Contracts\View\View;
@@ -749,10 +750,10 @@ class HrMeetingController extends Controller
                 $query->whereRaw('LOWER(name) = ?', ['staff']);
             })
             ->whereDoesntHave('deployment.position', function ($query): void {
-                $query->where('name', 'Super Administrator');
+                $query->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR);
             })
             ->whereDoesntHave('deployment.positions', function ($query): void {
-                $query->where('name', 'Super Administrator');
+                $query->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR);
             });
     }
 
@@ -1160,11 +1161,11 @@ class HrMeetingController extends Controller
 
     private function employeeHasSupervisorPosition(Employee $employee): bool
     {
-        $positionNames = collect([$employee->deployment?->position?->name])
-            ->merge($employee->deployment?->positions?->pluck('name') ?? collect());
+        $positionSystemKeys = collect([$employee->deployment?->position?->system_key])
+            ->merge($employee->deployment?->positions?->pluck('system_key') ?? collect());
 
-        return $positionNames
+        return $positionSystemKeys
             ->filter()
-            ->contains(fn (mixed $positionName): bool => str_contains(strtolower((string) $positionName), 'supervisor'));
+            ->contains(Position::KEY_SUPERVISOR);
     }
 }

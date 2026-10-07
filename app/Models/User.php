@@ -82,14 +82,16 @@ class User extends Authenticatable
     public function hasAnyPositionPermission(array $permissionNames): bool
     {
         $this->loadMissing([
+            'employee.deployment.position:id,name,system_key',
             'employee.deployment.position.permissions:uuid,name',
+            'employee.deployment.positions:id,name,system_key',
             'employee.deployment.positions.permissions:uuid,name',
         ]);
 
         $deployment = $this->employee?->deployment;
         $permissionPositions = $this->permissionPositionsForDeployment($deployment);
 
-        if ($permissionPositions->contains('name', 'Super Administrator')) {
+        if ($permissionPositions->contains('system_key', Position::KEY_SUPER_ADMINISTRATOR)) {
             return true;
         }
 
@@ -103,12 +105,12 @@ class User extends Authenticatable
     public function isSuperAdministrator(): bool
     {
         $this->loadMissing([
-            'employee.deployment.position:id,name',
-            'employee.deployment.positions:id,name',
+            'employee.deployment.position:id,name,system_key',
+            'employee.deployment.positions:id,name,system_key',
         ]);
 
         return $this->permissionPositionsForDeployment($this->employee?->deployment)
-            ->contains('name', 'Super Administrator');
+            ->contains('system_key', Position::KEY_SUPER_ADMINISTRATOR);
     }
 
     /**

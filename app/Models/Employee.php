@@ -16,11 +16,6 @@ class Employee extends Model
     use GeneratesCustomSequenceUuid;
     use SoftDeletes;
 
-    private const ATTENDANCE_REST_DEDUCTION_EXEMPT_POSITION_NAMES = [
-        'Driver',
-        'Executive Assistant',
-    ];
-
     protected $table = 'employees';
 
     protected $guarded = [];
@@ -125,6 +120,11 @@ class Employee extends Model
         return $this->hasAnyPositionName([$positionName]);
     }
 
+    public function hasPositionSystemKey(string $systemKey): bool
+    {
+        return $this->hasAnyPositionSystemKey([$systemKey]);
+    }
+
     /**
      * @param  iterable<string>  $positionNames
      */
@@ -144,9 +144,9 @@ class Employee extends Model
         }
 
         if (! $this->relationLoaded('deployment')) {
-            $this->loadMissing('deployment.position', 'deployment.positions');
+            $this->loadMissing('deployment.position:id,name,system_key', 'deployment.positions:id,name,system_key');
         } elseif ($this->deployment !== null) {
-            $this->deployment->loadMissing('position', 'positions');
+            $this->deployment->loadMissing('position:id,name,system_key', 'positions:id,name,system_key');
         }
 
         $positionNames = new Collection;
@@ -166,13 +166,54 @@ class Employee extends Model
             ->contains(fn (mixed $name): bool => $normalizedPositionNames->contains(strtolower(trim((string) $name))));
     }
 
+    /**
+     * @param  iterable<string>  $systemKeys
+     */
+    public function hasAnyPositionSystemKey(iterable $systemKeys): bool
+    {
+        $normalizedSystemKeys = (new Collection($systemKeys))
+            ->map(fn (mixed $systemKey): string => strtolower(trim((string) $systemKey)))
+            ->filter()
+            ->values();
+
+        if ($normalizedSystemKeys->isEmpty()) {
+            return false;
+        }
+
+        if (! $this->exists && ! $this->relationLoaded('deployment')) {
+            return false;
+        }
+
+        if (! $this->relationLoaded('deployment')) {
+            $this->loadMissing('deployment.position:id,name,system_key', 'deployment.positions:id,name,system_key');
+        } elseif ($this->deployment !== null) {
+            $this->deployment->loadMissing('position:id,name,system_key', 'positions:id,name,system_key');
+        }
+
+        $positionSystemKeys = new Collection;
+
+        if ($this->deployment?->position !== null) {
+            $positionSystemKeys->push((string) $this->deployment->position->system_key);
+        }
+
+        if ($this->deployment?->positions !== null) {
+            $positionSystemKeys = $positionSystemKeys->merge(
+                $this->deployment->positions->pluck('system_key')
+            );
+        }
+
+        return $positionSystemKeys
+            ->filter()
+            ->contains(fn (mixed $systemKey): bool => $normalizedSystemKeys->contains(strtolower(trim((string) $systemKey))));
+    }
+
     public function isExemptFromAttendanceRestDeduction(): bool
     {
-        return $this->hasAnyPositionName(self::ATTENDANCE_REST_DEDUCTION_EXEMPT_POSITION_NAMES);
+        return $this->hasAnyPositionSystemKey(Position::ATTENDANCE_REST_DEDUCTION_EXEMPT_SYSTEM_KEYS);
     }
 
     public function isEligibleForTwelveHourAutoOvertime(): bool
     {
-        return $this->hasAnyPositionName(self::ATTENDANCE_REST_DEDUCTION_EXEMPT_POSITION_NAMES);
+        return $this->hasAnyPositionSystemKey(Position::ATTENDANCE_REST_DEDUCTION_EXEMPT_SYSTEM_KEYS);
     }
 }

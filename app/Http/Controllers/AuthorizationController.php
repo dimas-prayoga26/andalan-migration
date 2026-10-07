@@ -334,8 +334,8 @@ class AuthorizationController extends Controller
             ->with([
                 'profile:id,employee_id,name',
                 'deployment:id,employee_id,current_position_id',
-                'deployment.position:id,name',
-                'deployment.positions:id,name',
+                'deployment.position:id,name,system_key',
+                'deployment.positions:id,name,system_key',
             ])
             ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
             ->orderBy('employee_code')
@@ -422,9 +422,9 @@ class AuthorizationController extends Controller
     private function authorizationPositions(): Collection
     {
         return Position::query()
-            ->where('name', '<>', 'Super Administrator')
+            ->whereNotSystemKey(Position::KEY_SUPER_ADMINISTRATOR)
             ->orderBy('name')
-            ->get(['id', 'name'])
+            ->get(['id', 'name', 'system_key'])
             ->map(fn (Position $position): array => [
                 'id' => (string) $position->id,
                 'name' => (string) $position->name,
@@ -440,7 +440,7 @@ class AuthorizationController extends Controller
         $menuPermissionMetadata = $this->menuPermissionMetadata();
 
         return Permission::query()
-            ->with(['positions' => fn ($query) => $query->where('name', '<>', 'Super Administrator')->select(['positions.id', 'positions.name'])])
+            ->with(['positions' => fn ($query) => $query->whereNotSystemKey(Position::KEY_SUPER_ADMINISTRATOR)->select(['positions.id', 'positions.name', 'positions.system_key'])])
             ->orderBy('name')
             ->get(['uuid', 'name'])
             ->map(function (Permission $permission) use ($menuPermissionMetadata): array {
@@ -503,8 +503,8 @@ class AuthorizationController extends Controller
         $viewer->loadMissing([
             'roles:uuid,name',
             'employee.deployment.company:id,name',
-            'employee.deployment.position:id,name',
-            'employee.deployment.positions:id,name',
+            'employee.deployment.position:id,name,system_key',
+            'employee.deployment.positions:id,name,system_key',
         ]);
 
         $query = User::query()
@@ -520,17 +520,17 @@ class AuthorizationController extends Controller
                 'employee.identity:id,employee_id,nik',
                 'employee.deployment:id,employee_id,current_company_id,current_position_id,status',
                 'employee.deployment.company:id,name',
-                'employee.deployment.position:id,name',
-                'employee.deployment.positions:id,name',
+                'employee.deployment.position:id,name,system_key',
+                'employee.deployment.positions:id,name,system_key',
                 'employee.picAssignment',
                 'employee.picAssignment.supervisor:id',
                 'employee.picAssignment.supervisor.profile:id,employee_id,name',
             ])
             ->whereDoesntHave('employee.deployment.position', function (Builder $positionQuery): void {
-                $positionQuery->where('name', 'Super Administrator');
+                $positionQuery->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR);
             })
             ->whereDoesntHave('employee.deployment.positions', function (Builder $positionQuery): void {
-                $positionQuery->where('name', 'Super Administrator');
+                $positionQuery->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR);
             })
             ->whereHas('employee');
 
@@ -666,14 +666,8 @@ class AuthorizationController extends Controller
 
     private function isAdministratorEmployee(User $user): bool
     {
-        return $this->positionNamesFor($user->employee)
-            ->contains(fn (string $positionName): bool => $this->containsAdministrator($positionName));
-    }
-
-    private function containsAdministrator(?string $value): bool
-    {
-        return is_string($value)
-            && Str::of($value)->lower()->contains('administrator');
+        return $this->positionSystemKeysFor($user->employee)
+            ->contains(Position::KEY_ADMINISTRATOR);
     }
 
     private function isSuperuser(User $user): bool
@@ -683,8 +677,8 @@ class AuthorizationController extends Controller
 
     private function isChiefOperatingOfficerEmployee(User $user): bool
     {
-        return $this->positionNamesFor($user->employee)
-            ->contains(static fn (string $positionName): bool => strtolower(trim($positionName)) === 'chief operating officer');
+        return $this->positionSystemKeysFor($user->employee)
+            ->contains(Position::KEY_CHIEF_OPERATING_OFFICER);
     }
 
     private function canManageAuthorization(User $user): bool
@@ -760,8 +754,8 @@ class AuthorizationController extends Controller
             'deployment.company:id,name',
             'deployment.officeLocation:id,name,address',
             'deployment.department:id,name',
-            'deployment.position:id,name',
-            'deployment.positions:id,name',
+            'deployment.position:id,name,system_key',
+            'deployment.positions:id,name,system_key',
             'picAssignment',
             'picAssignment.supervisor:id',
             'picAssignment.supervisor.profile:id,employee_id,name',
@@ -896,11 +890,11 @@ class AuthorizationController extends Controller
     private function dataEmployeePositions(?Employee $employee = null): Collection
     {
         return Position::query()
-            ->when(! $this->employeeUsesPosition($employee, 'Super Administrator'), function (Builder $query): void {
-                $query->where('name', '<>', 'Super Administrator');
+            ->when(! $this->employeeUsesPositionSystemKey($employee, Position::KEY_SUPER_ADMINISTRATOR), function (Builder $query): void {
+                $query->whereNotSystemKey(Position::KEY_SUPER_ADMINISTRATOR);
             })
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'system_key', 'is_protected']);
     }
 
     /**
@@ -913,13 +907,13 @@ class AuthorizationController extends Controller
         return in_array((string) ($employee?->deployment?->department?->name ?? ''), $departmentNames, true);
     }
 
-    private function employeeUsesPosition(?Employee $employee, string $positionName): bool
+    private function employeeUsesPositionSystemKey(?Employee $employee, string $systemKey): bool
     {
-        $employee?->loadMissing('deployment.position:id,name', 'deployment.positions:id,name');
+        $employee?->loadMissing('deployment.position:id,name,system_key', 'deployment.positions:id,name,system_key');
 
-        return collect([$employee?->deployment?->position?->name])
-            ->merge($employee?->deployment?->positions?->pluck('name') ?? collect())
-            ->contains($positionName);
+        return collect([$employee?->deployment?->position?->system_key])
+            ->merge($employee?->deployment?->positions?->pluck('system_key') ?? collect())
+            ->contains($systemKey);
     }
 
     private function shortNumericToken(string $value, string $salt): string
@@ -1114,6 +1108,38 @@ class AuthorizationController extends Controller
 
         return $positionNames
             ->map(fn (string $positionName): string => trim($positionName))
+            ->filter()
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function positionSystemKeysFor(?Employee $employee): Collection
+    {
+        $deployment = $employee?->deployment;
+
+        if ($deployment === null) {
+            return collect();
+        }
+
+        $positionSystemKeys = collect();
+
+        if ($deployment->position !== null) {
+            $positionSystemKeys->push((string) $deployment->position->system_key);
+        }
+
+        if ($deployment->positions !== null) {
+            $positionSystemKeys = $positionSystemKeys->merge(
+                $deployment->positions
+                    ->pluck('system_key')
+                    ->map(fn (mixed $systemKey): string => (string) $systemKey)
+            );
+        }
+
+        return $positionSystemKeys
+            ->map(fn (string $systemKey): string => trim($systemKey))
             ->filter()
             ->unique()
             ->values();

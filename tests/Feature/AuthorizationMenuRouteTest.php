@@ -100,7 +100,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('authorizationUsersFor', $controller);
         $this->assertStringContainsString("->where('is_active', true)", $controller);
         $this->assertStringContainsString("->whereDoesntHave('employee.deployment.position'", $controller);
-        $this->assertStringContainsString("->where('name', 'Super Administrator')", $controller);
+        $this->assertStringContainsString('->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR)', $controller);
         $this->assertStringContainsString("'authorization_company_name' => \$this->authorizationCompanyNameSubquery()", $controller);
         $this->assertStringContainsString("'authorization_pic_name' => \$this->authorizationPicNameSubquery()", $controller);
         $this->assertStringContainsString("->orderBy('authorization_company_name')", $controller);
@@ -261,7 +261,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('private function generateEmployeeCode(User $user): string', $controller);
         $this->assertStringContainsString("'employee_code' => \$this->generateEmployeeCode(\$user)", $controller);
         $this->assertStringContainsString('private function dataEmployeePositions(?Employee $employee = null): Collection', $controller);
-        $this->assertStringContainsString("->where('name', '<>', 'Super Administrator')", $controller);
+        $this->assertStringContainsString('->whereNotSystemKey(Position::KEY_SUPER_ADMINISTRATOR)', $controller);
         $this->assertStringContainsString("->whereNotIn('name', ['Superuser', 'Super User', 'Super Usesr', 'Super Administrator'])", $controller);
         $this->assertStringContainsString('Rule::in($assignablePositionIds)', $controller);
         $this->assertStringContainsString('Employee has been added successfully.', $controller);
@@ -341,7 +341,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString("Route::has('authorization.event-divisions')", $authorizationIndex);
         $this->assertStringContainsString('private function viewerCompanyId(User $user): ?string', $authorizationController);
         $this->assertStringContainsString('private function canManagePositionPermissions(User $user): bool', $authorizationController);
-        $this->assertStringContainsString("=== 'chief operating officer'", $authorizationController);
+        $this->assertStringContainsString('Position::KEY_CHIEF_OPERATING_OFFICER', $authorizationController);
         $this->assertStringNotContainsString('private function administratorCompanyId(User $user): ?string', $authorizationController);
     }
 
@@ -453,10 +453,10 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString("'label' => 'Activity Calendar'", $authorizationController);
         $this->assertStringContainsString('data-i18n="Activity Calendar">Activity Calendar', $sidebar);
         $this->assertStringNotContainsString('Google Calendar', $positionPermissionSeeder.$authorizationController.$sidebar);
-        $this->assertStringContainsString("'Administrator' => \$allPermissionsWithoutPic", $positionPermissionSeeder);
-        $this->assertStringContainsString("'Web Developer' => \$baseStaffPermissions", $positionPermissionSeeder);
-        $this->assertStringNotContainsString("'Web Developer' => array_merge(\$baseStaffPermissions, ['view-authorization'])", $positionPermissionSeeder);
-        $this->assertStringContainsString("->where('name', 'Super Administrator')", $positionPermissionSeeder);
+        $this->assertStringContainsString('Position::KEY_ADMINISTRATOR => $allPermissionsWithoutPic', $positionPermissionSeeder);
+        $this->assertStringContainsString('Position::KEY_WEB_DEVELOPER => $baseStaffPermissions', $positionPermissionSeeder);
+        $this->assertStringNotContainsString("Position::KEY_WEB_DEVELOPER => array_merge(\$baseStaffPermissions, ['view-authorization'])", $positionPermissionSeeder);
+        $this->assertStringContainsString('->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR)', $positionPermissionSeeder);
         $this->assertStringContainsString('->permissions()->detach()', $positionPermissionSeeder);
         $this->assertStringNotContainsString("'System Administrator' =>", $positionPermissionSeeder);
     }

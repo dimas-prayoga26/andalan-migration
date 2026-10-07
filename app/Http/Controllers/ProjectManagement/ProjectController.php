@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\EventDivision;
+use App\Models\Position;
 use App\Models\Project;
 use App\Models\ProjectDivisionEvent;
 use App\Models\ProjectMember;
@@ -509,9 +510,9 @@ class ProjectController extends Controller
             return false;
         }
 
-        $authenticatedUser->loadMissing('employee.deployment.position', 'employee.deployment.positions');
+        $authenticatedUser->loadMissing('employee.deployment.position:id,name,system_key', 'employee.deployment.positions:id,name,system_key');
 
-        return $authenticatedUser->employee?->hasPositionName('Supervisor') ?? false;
+        return $authenticatedUser->employee?->hasPositionSystemKey(Position::KEY_SUPERVISOR) ?? false;
     }
 
     private function employeeCanViewProject(Project $project, string $employeeId, ?string $userId = null, bool $canManageEventProjects = false): bool

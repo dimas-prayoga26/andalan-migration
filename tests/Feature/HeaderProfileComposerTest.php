@@ -36,6 +36,8 @@ class HeaderProfileComposerTest extends TestCase
         $this->assertStringContainsString('data-header-notification-meeting-id="{{ $notification->meeting_id ?? \'\' }}"', $header);
         $this->assertStringContainsString('data-dashboard-incoming-meeting-id', $header);
         $this->assertStringContainsString('data-dashboard-incoming-meeting-link', $header);
+        $this->assertStringContainsString('header-notification-count-badge', $header);
+        $this->assertStringContainsString('background: #dc3545 !important;', $header);
         $this->assertStringContainsString('data-header-notification-count', $header);
         $this->assertStringContainsString('data-count-value="{{ (int) ($headerUnreadNotificationsCount ?? 0) }}"', $header);
         $this->assertStringContainsString("notificationCount.textContent = nextCount > 99 ? '99+' : String(nextCount);", $header);

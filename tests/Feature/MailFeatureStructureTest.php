@@ -197,7 +197,9 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString('availableAccountQuery($request)', $controller);
         $this->assertStringContainsString("'mailAccounts' => \$this->availableAccountQuery(\$request)", $controller);
         $this->assertStringContainsString("'selectedMailAccountId' => \$selectedAccount?->id", $controller);
+        $this->assertStringContainsString('$this->isAdminOrSuperAdministrator($user)', $controller);
         $this->assertStringContainsString("where('type', MailAccessAccount::TYPE_PERSONAL)", $controller);
+        $this->assertStringNotContainsString('if ($user instanceof User && $this->isAdminOrSuperAdministrator($user))', $controller);
         $this->assertStringContainsString("where('employee_id', \$employeeId)", $controller);
         $this->assertStringContainsString("where('type', '!=', MailAccessAccount::TYPE_PERSONAL)", $controller);
         $this->assertStringContainsString("hasAnyPositionPermission(['view-business-email'])", $controller);
@@ -289,7 +291,8 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString("route('business-email.index')", $sidebarView);
         $this->assertStringContainsString('Business Email', $sidebarView);
         $this->assertStringContainsString("canViewSidebarMenu('view-business-email')", $sidebarView);
-        $this->assertStringContainsString('! $isAdminOrSuperAdministrator', $sidebarView);
+        $this->assertStringNotContainsString('$businessEmailHref', $sidebarView);
+        $this->assertStringNotContainsString('! $isAdminOrSuperAdministrator', $sidebarView);
         $this->assertStringContainsString("'name' => 'view-business-email'", $businessEmailPermissionMigration);
         $this->assertStringContainsString('KEY_ADMINISTRATOR', $businessEmailPermissionMigration);
         $this->assertStringContainsString('KEY_SUPER_ADMINISTRATOR', $businessEmailPermissionMigration);

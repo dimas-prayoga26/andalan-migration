@@ -31,11 +31,7 @@
 						$canViewAuthorizationMenu = $canViewSidebarMenu('view-authorization');
 						$canViewTalentAcquisitionMenu = $canViewSidebarMenu('view-talent-acquisition');
 						$canViewSettingsMenu = $canViewSidebarMenu('view-settings');
-						$sidebarUser = auth()->user();
-						$sidebarEmployee = $sidebarUser?->employee;
-						$isAdminOrSuperAdministrator = ($sidebarUser?->isSuperAdministrator() ?? false)
-							|| ($sidebarEmployee?->hasAnyPositionSystemKey([\App\Models\Position::KEY_ADMINISTRATOR]) ?? false);
-						$canViewBusinessEmailMenu = $canViewSidebarMenu('view-business-email') && ! $isAdminOrSuperAdministrator;
+						$canViewBusinessEmailMenu = $canViewSidebarMenu('view-business-email');
 						$useDirectorManagementMenu = $canViewDirectorAttendanceMenu;
 						$showAdminAuthorizationMenu = $canViewAuthorizationMenu && ! $useDirectorManagementMenu;
 						$showAdminTalentAcquisitionMenu = $canViewTalentAcquisitionMenu && ! $useDirectorManagementMenu;

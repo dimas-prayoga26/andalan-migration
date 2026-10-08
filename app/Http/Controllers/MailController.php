@@ -386,9 +386,11 @@ class MailController extends Controller
 
         if ($this->isBusinessEmailRoute($request)) {
             abort_unless(
-                ! $this->isAdminOrSuperAdministrator($user)
-                && $user->employee !== null
-                && $user->hasAnyPositionPermission(['view-business-email']),
+                $this->isAdminOrSuperAdministrator($user)
+                || (
+                    $user->employee !== null
+                    && $user->hasAnyPositionPermission(['view-business-email'])
+                ),
                 403
             );
 

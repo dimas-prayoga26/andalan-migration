@@ -21,8 +21,8 @@ class MailAccessAccountSeeder extends Seeder
         $legacyAccessAccounts = $this->legacyAccessAccounts();
 
         $this->deleteCatchAllAccessAccounts();
+        $this->deleteHrAccessAccounts();
         $this->seedDepartmentAccounts();
-        $this->seedHrAccessAccounts();
 
         foreach ($legacyAccessAccounts as $email => $isActive) {
             MailAccessAccount::query()->updateOrCreate(
@@ -49,34 +49,13 @@ class MailAccessAccountSeeder extends Seeder
             ->delete();
     }
 
-    private function seedHrAccessAccounts(): void
+    private function deleteHrAccessAccounts(): void
     {
-        foreach (config('career_brands.brands', []) as $brandKey => $brand) {
-            if (! is_array($brand)) {
-                continue;
-            }
+        $hrEmailPattern = 'hr'.'@%';
 
-            $domain = $this->emailDomain((string) ($brand['email'] ?? ''));
-
-            if ($domain === '') {
-                continue;
-            }
-
-            $accountData = [
-                'pin' => Hash::make($this->pinFor((string) $brandKey)),
-                'type' => MailAccessAccount::TYPE_PERSONAL,
-                'is_active' => true,
-            ];
-
-            if (Schema::hasColumn((new MailAccessAccount)->getTable(), 'company_id')) {
-                $accountData['company_id'] = null;
-            }
-
-            MailAccessAccount::query()->updateOrCreate(
-                ['email' => 'hr@'.$domain],
-                $accountData,
-            );
-        }
+        MailAccessAccount::query()
+            ->where('email', 'like', $hrEmailPattern)
+            ->delete();
     }
 
     private function seedDepartmentAccounts(): void

@@ -29,7 +29,7 @@
                                 <form method="POST" action="{{ route($mailRoutePrefix.'.select') }}">
                                     @csrf
                                     <input type="hidden" name="folder" value="{{ $mailSummaryFolder }}">
-                                    <select name="mail_access_account_id" class="form-control mail-account-select2 js-skip-selectpicker" data-placeholder="Cari email account" aria-label="Pilih email account">
+                                    <select name="mail_business_account_id" class="form-control mail-account-select2 js-skip-selectpicker" data-placeholder="Cari email account" aria-label="Pilih email account">
                                         <option value=""></option>
                                         @foreach ($mailAccounts as $mailAccountOption)
                                             <option value="{{ $mailAccountOption->id }}" @selected((string) $selectedMailAccountId === (string) $mailAccountOption->id)>

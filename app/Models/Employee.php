@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -215,5 +216,13 @@ class Employee extends Model
     public function isEligibleForTwelveHourAutoOvertime(): bool
     {
         return $this->hasAnyPositionSystemKey(Position::ATTENDANCE_REST_DEDUCTION_EXEMPT_SYSTEM_KEYS);
+    }
+
+    public function scopeActiveForMailManagement(Builder $query): Builder
+    {
+        return $query
+            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+            ->whereHas('user', fn (Builder $query): Builder => $query->where('is_active', true))
+            ->whereHas('deployment', fn (Builder $query): Builder => $query->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']));
     }
 }

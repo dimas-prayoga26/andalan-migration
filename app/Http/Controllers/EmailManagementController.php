@@ -52,6 +52,7 @@ class EmailManagementController extends Controller
                 'mailAccessAccount',
                 fn (Builder $query): Builder => $this->constrainVisibleMailAccessAccountQuery($query, $request),
             )
+            ->whereHas('targetEmployee', fn (Builder $query): Builder => $query->activeForMailManagement())
             ->with([
                 'mailAccessAccount:id,email,employee_id',
                 'sourceEmployee:id,user_id,status',
@@ -86,6 +87,7 @@ class EmailManagementController extends Controller
             ->all();
 
         $employees = Employee::query()
+            ->activeForMailManagement()
             ->with([
                 'profile:id,employee_id,name,nickname',
                 'user:id,username,email',
@@ -101,7 +103,7 @@ class EmailManagementController extends Controller
             'accounts' => $accounts,
             'accountOptions' => $accountOptions,
             'takeovers' => $takeovers,
-            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'companies' => Company::query()->activeForMailManagement()->orderBy('name')->get(['id', 'name']),
             'employeeOptions' => $employeeOptions,
             'takeoverEmployeeOptions' => $takeoverEmployeeOptions,
             'mailTypeLabels' => MailAccessAccount::typeOptions(),
@@ -114,6 +116,12 @@ class EmailManagementController extends Controller
     public function storeAccount(StoreMailAccessAccountRequest $request): RedirectResponse
     {
         $data = $this->mailAccessAccountData($request->validated());
+
+        if (! $this->mailAccessAccountOwnerIsAvailable($data)) {
+            return back()
+                ->withInput()
+                ->with('error', 'Company atau owner staff tidak aktif.');
+        }
 
         if (! $this->canManageSensitiveMailAccounts($request) && $data['type'] !== MailAccessAccount::TYPE_PERSONAL) {
             return back()
@@ -134,6 +142,12 @@ class EmailManagementController extends Controller
     public function updateAccount(UpdateMailAccessAccountRequest $request, MailAccessAccount $mailAccessAccount): RedirectResponse
     {
         $data = $this->mailAccessAccountData($request->validated());
+
+        if (! $this->mailAccessAccountOwnerIsAvailable($data)) {
+            return back()
+                ->withInput()
+                ->with('error', 'Company atau owner staff tidak aktif.');
+        }
 
         if (! $this->canManageMailAccessAccount($request, $mailAccessAccount, $data['type'])) {
             return back()
@@ -175,7 +189,14 @@ class EmailManagementController extends Controller
     public function storeTakeover(StoreMailAccountTakeoverRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $mailAccessAccount = $this->visibleMailAccessAccountQuery($request)->findOrFail($data['mail_access_account_id']);
+
+        if (! $this->takeoverTargetEmployeeIsAvailable((string) $data['target_employee_id'])) {
+            return back()
+                ->withInput()
+                ->with('error', 'Target employee tidak aktif.');
+        }
+
+        $mailAccessAccount = $this->visibleMailAccessAccountQuery($request)->findOrFail($data['mail_business_account_id']);
         $sourceEmployeeId = $mailAccessAccount->employee_id;
 
         if ($sourceEmployeeId !== null && $sourceEmployeeId === $data['target_employee_id']) {
@@ -186,7 +207,7 @@ class EmailManagementController extends Controller
 
         $alreadyReadable = MailAccountTakeover::query()
             ->readable()
-            ->where('mail_access_account_id', $mailAccessAccount->id)
+            ->where('mail_business_account_id', $mailAccessAccount->id)
             ->where('target_employee_id', $data['target_employee_id'])
             ->exists();
 
@@ -197,7 +218,7 @@ class EmailManagementController extends Controller
         }
 
         MailAccountTakeover::query()->create([
-            'mail_access_account_id' => $mailAccessAccount->id,
+            'mail_business_account_id' => $mailAccessAccount->id,
             'source_employee_id' => $sourceEmployeeId,
             'target_employee_id' => $data['target_employee_id'],
             'assigned_by_employee_id' => $this->currentEmployeeId($request),
@@ -215,7 +236,14 @@ class EmailManagementController extends Controller
     public function updateTakeover(StoreMailAccountTakeoverRequest $request, MailAccountTakeover $mailAccountTakeover): RedirectResponse
     {
         $data = $request->validated();
-        $mailAccessAccount = $this->visibleMailAccessAccountQuery($request)->findOrFail($data['mail_access_account_id']);
+
+        if (! $this->takeoverTargetEmployeeIsAvailable((string) $data['target_employee_id'])) {
+            return back()
+                ->withInput()
+                ->with('error', 'Target employee tidak aktif.');
+        }
+
+        $mailAccessAccount = $this->visibleMailAccessAccountQuery($request)->findOrFail($data['mail_business_account_id']);
         $sourceEmployeeId = $mailAccessAccount->employee_id;
 
         if ($sourceEmployeeId !== null && $sourceEmployeeId === $data['target_employee_id']) {
@@ -227,7 +255,7 @@ class EmailManagementController extends Controller
         $alreadyReadable = MailAccountTakeover::query()
             ->readable()
             ->whereKeyNot($mailAccountTakeover->id)
-            ->where('mail_access_account_id', $mailAccessAccount->id)
+            ->where('mail_business_account_id', $mailAccessAccount->id)
             ->where('target_employee_id', $data['target_employee_id'])
             ->exists();
 
@@ -238,7 +266,7 @@ class EmailManagementController extends Controller
         }
 
         $mailAccountTakeover->update([
-            'mail_access_account_id' => $mailAccessAccount->id,
+            'mail_business_account_id' => $mailAccessAccount->id,
             'source_employee_id' => $sourceEmployeeId,
             'target_employee_id' => $data['target_employee_id'],
             'can_read' => true,
@@ -414,8 +442,37 @@ class EmailManagementController extends Controller
     {
         $query->visibleForMailAccess();
         $query->whereIn('type', array_keys($this->mailTypeOptions($request)));
+        $query->where(function (Builder $query): void {
+            $query
+                ->whereNull('company_id')
+                ->orWhereHas('company', fn (Builder $query): Builder => $query->activeForMailManagement());
+        });
+        $query->where(function (Builder $query): void {
+            $query
+                ->whereNull('employee_id')
+                ->orWhereHas('employee', fn (Builder $query): Builder => $query->activeForMailManagement());
+        });
 
         return $query;
+    }
+
+    /**
+     * @param  array{email:string,type:string,company_id:?string,employee_id:?string}  $data
+     */
+    private function mailAccessAccountOwnerIsAvailable(array $data): bool
+    {
+        if ($data['type'] === MailAccessAccount::TYPE_PERSONAL) {
+            return is_string($data['employee_id'])
+                && Employee::query()->activeForMailManagement()->whereKey($data['employee_id'])->exists();
+        }
+
+        return is_string($data['company_id'])
+            && Company::query()->activeForMailManagement()->whereKey($data['company_id'])->exists();
+    }
+
+    private function takeoverTargetEmployeeIsAvailable(string $employeeId): bool
+    {
+        return Employee::query()->activeForMailManagement()->whereKey($employeeId)->exists();
     }
 
     private function canManageSensitiveMailAccounts(Request $request): bool
@@ -459,15 +516,7 @@ class EmailManagementController extends Controller
     {
         $brandEmails = collect(config('career_brands.brands', []))
             ->filter(fn (mixed $brand): bool => is_array($brand))
-            ->flatMap(function (array $brand): array {
-                $brandEmail = $this->normalizeEmail((string) ($brand['email'] ?? ''));
-                $brandDomain = $this->emailDomain($brandEmail);
-
-                return [
-                    $brandEmail,
-                    $brandDomain !== '' ? 'hr@'.$brandDomain : '',
-                ];
-            });
+            ->map(fn (array $brand): string => $this->normalizeEmail((string) ($brand['email'] ?? '')));
 
         return MailAccessAccount::configuredInboxEmails()
             ->merge($brandEmails)
@@ -479,16 +528,5 @@ class EmailManagementController extends Controller
     private function normalizeEmail(string $email): string
     {
         return mb_strtolower(trim($email));
-    }
-
-    private function emailDomain(string $email): string
-    {
-        $parts = explode('@', $this->normalizeEmail($email));
-
-        if (count($parts) !== 2) {
-            return '';
-        }
-
-        return preg_replace('/^www\./', '', $parts[1]) ?? '';
     }
 }

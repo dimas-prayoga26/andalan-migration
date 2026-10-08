@@ -112,6 +112,10 @@
     </div>
 @endif
 
+@php
+    $showTakeoverAccess = false;
+@endphp
+
 <div class="card email-management-table-card">
     <div class="card-header border-0 flex-wrap gap-3">
         <div>
@@ -195,6 +199,7 @@
     </div>
 </div>
 
+@if ($showTakeoverAccess)
 <div class="card email-management-table-card">
     <div class="card-header border-0 flex-wrap gap-3">
         <div>
@@ -268,6 +273,7 @@
         @include('settings.partials.pagination', ['items' => $takeovers])
     </div>
 </div>
+@endif
 
 <div class="modal fade" id="createMailAccountModal" tabindex="-1" aria-labelledby="createMailAccountModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -293,6 +299,7 @@
     </div>
 </div>
 
+@if ($showTakeoverAccess)
 <div class="modal fade" id="createTakeoverModal" tabindex="-1" aria-labelledby="createTakeoverModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <form method="POST" action="{{ route('email-management.takeovers.store') }}" class="modal-content">
@@ -315,6 +322,7 @@
         </form>
     </div>
 </div>
+@endif
 
 @foreach ($accounts as $account)
     @php
@@ -369,6 +377,7 @@
     @endif
 @endforeach
 
+@if ($showTakeoverAccess)
 @foreach ($takeovers as $takeover)
     <div class="modal fade" id="editTakeoverModal{{ $takeover->id }}" tabindex="-1" aria-labelledby="editTakeoverModalLabel{{ $takeover->id }}" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -414,6 +423,7 @@
         </div>
     </div>
 @endforeach
+@endif
 @endsection
 
 @section('script')

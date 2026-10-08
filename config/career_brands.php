@@ -37,17 +37,6 @@ return [
             'header_background_color' => '#fff8e6',
             'header_text_color' => '#172033',
         ],
-        'andalanku' => [
-            'name' => 'AndalanKu',
-            'mailer' => 'andalanku',
-            'logo_url' => 'https://raw.githubusercontent.com/dimas-prayoga26/web_careers_company/main/public/images/Logo%20AndalanKu.png',
-            'website' => 'https://andalanku.com/',
-            'email' => 'recruitment@andalanku.com',
-            'primary_color' => '#900000',
-            'accent_color' => '#d02020',
-            'header_background_color' => '#fff5f5',
-            'header_text_color' => '#172033',
-        ],
         'kma' => [
             'name' => 'KMA',
             'mailer' => 'kma',

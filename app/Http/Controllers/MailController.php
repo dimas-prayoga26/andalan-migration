@@ -19,13 +19,13 @@ use Throwable;
 
 class MailController extends Controller
 {
-    private const SESSION_KEY = 'mail_access_account_id';
+    private const SESSION_KEY = 'mail_business_account_id';
 
-    private const SESSION_SELECTED_KEY = 'mail_access_account_selected';
+    private const SESSION_SELECTED_KEY = 'mail_business_account_selected';
 
-    private const BUSINESS_SESSION_KEY = 'business_mail_access_account_id';
+    private const BUSINESS_SESSION_KEY = 'business_mail_business_account_id';
 
-    private const BUSINESS_SESSION_SELECTED_KEY = 'business_mail_access_account_selected';
+    private const BUSINESS_SESSION_SELECTED_KEY = 'business_mail_business_account_selected';
 
     private const OPERATIONAL_ROUTE_PREFIX = 'applicant.email';
 
@@ -44,12 +44,12 @@ class MailController extends Controller
         $this->authorizeMailFeatureAccess($request);
 
         $validated = $request->validate([
-            'mail_access_account_id' => ['required', 'integer'],
+            'mail_business_account_id' => ['required', 'integer'],
             'folder' => ['nullable', 'string', Rule::in(MailInboxService::FOLDERS)],
         ]);
 
         $account = $this->availableAccountQuery($request)
-            ->whereKey((int) $validated['mail_access_account_id'])
+            ->whereKey((int) $validated['mail_business_account_id'])
             ->first();
 
         if ($account === null) {

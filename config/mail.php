@@ -6,7 +6,6 @@ $catchAllUsername = fn (string $domain): string => str_replace(
     env('CATCHALL_MAIL_USERNAME', 'catchall-temp@{domain}'),
 );
 $catchAllPassword = env('CATCHALL_MAIL_PASSWORD');
-$hrPassword = env('HR_MAIL_PASSWORD', $catchAllPassword);
 
 return [
 
@@ -67,29 +66,6 @@ return [
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', 'rnb.co.id'),
         ],
-
-        'rnb_hr' => [
-            'transport' => 'smtp',
-            'scheme' => env('RNB_HR_MAIL_SCHEME', env('RNB_MAIL_SCHEME', 'smtps')),
-            'host' => env('RNB_HR_MAIL_HOST', env('RNB_MAIL_HOST', 'mail.rnb.co.id')),
-            'port' => env('RNB_HR_MAIL_PORT', env('RNB_MAIL_PORT', 465)),
-            'username' => env('RNB_HR_MAIL_USERNAME', 'hr@rnb.co.id'),
-            'password' => env('RNB_HR_MAIL_PASSWORD', $hrPassword),
-            'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', 'rnb.co.id'),
-        ],
-
-        'andalanku' => [
-            'transport' => 'smtp',
-            'scheme' => env('ANDALANKU_MAIL_SCHEME', 'smtps'),
-            'host' => env('ANDALANKU_MAIL_HOST', 'mail.andalanku.com'),
-            'port' => env('ANDALANKU_MAIL_PORT', 465),
-            'username' => $catchAllUsername('andalanku.com'),
-            'password' => $catchAllPassword,
-            'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', 'andalanku.com'),
-        ],
-
         'kma' => [
             'transport' => 'smtp',
             'scheme' => env('KMA_MAIL_SCHEME', 'smtps'),
@@ -97,17 +73,6 @@ return [
             'port' => env('KMA_MAIL_PORT', 465),
             'username' => $catchAllUsername('karpetmerah.id'),
             'password' => $catchAllPassword,
-            'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', 'karpetmerah.id'),
-        ],
-
-        'kma_hr' => [
-            'transport' => 'smtp',
-            'scheme' => env('KMA_HR_MAIL_SCHEME', env('KMA_MAIL_SCHEME', 'smtps')),
-            'host' => env('KMA_HR_MAIL_HOST', env('KMA_MAIL_HOST', 'mail.karpetmerah.id')),
-            'port' => env('KMA_HR_MAIL_PORT', env('KMA_MAIL_PORT', 465)),
-            'username' => env('KMA_HR_MAIL_USERNAME', 'hr@karpetmerah.id'),
-            'password' => env('KMA_HR_MAIL_PASSWORD', $hrPassword),
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', 'karpetmerah.id'),
         ],
@@ -123,17 +88,6 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', 'coffeeniskala.com'),
         ],
 
-        'niskala_hr' => [
-            'transport' => 'smtp',
-            'scheme' => env('NISKALA_HR_MAIL_SCHEME', env('NISKALA_MAIL_SCHEME', 'smtps')),
-            'host' => env('NISKALA_HR_MAIL_HOST', env('NISKALA_MAIL_HOST', 'mail.coffeeniskala.com')),
-            'port' => env('NISKALA_HR_MAIL_PORT', env('NISKALA_MAIL_PORT', 465)),
-            'username' => env('NISKALA_HR_MAIL_USERNAME', 'hr@coffeeniskala.com'),
-            'password' => env('NISKALA_HR_MAIL_PASSWORD', $hrPassword),
-            'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', 'coffeeniskala.com'),
-        ],
-
         'rne' => [
             'transport' => 'smtp',
             'scheme' => env('RNE_MAIL_SCHEME', 'smtps'),
@@ -141,17 +95,6 @@ return [
             'port' => env('RNE_MAIL_PORT', 465),
             'username' => $catchAllUsername('rne.co.id'),
             'password' => $catchAllPassword,
-            'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', 'rne.co.id'),
-        ],
-
-        'rne_hr' => [
-            'transport' => 'smtp',
-            'scheme' => env('RNE_HR_MAIL_SCHEME', env('RNE_MAIL_SCHEME', 'smtps')),
-            'host' => env('RNE_HR_MAIL_HOST', env('RNE_MAIL_HOST', 'mail.rne.co.id')),
-            'port' => env('RNE_HR_MAIL_PORT', env('RNE_MAIL_PORT', 465)),
-            'username' => env('RNE_HR_MAIL_USERNAME', 'hr@rne.co.id'),
-            'password' => env('RNE_HR_MAIL_PASSWORD', $hrPassword),
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', 'rne.co.id'),
         ],
@@ -167,17 +110,6 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', 'tims.co.id'),
         ],
 
-        'tms_hr' => [
-            'transport' => 'smtp',
-            'scheme' => env('TMS_HR_MAIL_SCHEME', env('TMS_MAIL_SCHEME', 'smtps')),
-            'host' => env('TMS_HR_MAIL_HOST', env('TMS_MAIL_HOST', 'mail.tims.co.id')),
-            'port' => env('TMS_HR_MAIL_PORT', env('TMS_MAIL_PORT', 465)),
-            'username' => env('TMS_HR_MAIL_USERNAME', 'hr@tims.co.id'),
-            'password' => env('TMS_HR_MAIL_PASSWORD', $hrPassword),
-            'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', 'tims.co.id'),
-        ],
-
         'trah' => [
             'transport' => 'smtp',
             'scheme' => env('TRAH_MAIL_SCHEME', 'smtps'),
@@ -185,17 +117,6 @@ return [
             'port' => env('TRAH_MAIL_PORT', 465),
             'username' => $catchAllUsername('trah.co.id'),
             'password' => $catchAllPassword,
-            'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', 'trah.co.id'),
-        ],
-
-        'trah_hr' => [
-            'transport' => 'smtp',
-            'scheme' => env('TRAH_HR_MAIL_SCHEME', env('TRAH_MAIL_SCHEME', 'smtps')),
-            'host' => env('TRAH_HR_MAIL_HOST', env('TRAH_MAIL_HOST', 'mail.trah.co.id')),
-            'port' => env('TRAH_HR_MAIL_PORT', env('TRAH_MAIL_PORT', 465)),
-            'username' => env('TRAH_HR_MAIL_USERNAME', 'hr@trah.co.id'),
-            'password' => env('TRAH_HR_MAIL_PASSWORD', $hrPassword),
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', 'trah.co.id'),
         ],

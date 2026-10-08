@@ -48,29 +48,24 @@ class MailAccessAccountTest extends TestCase
     {
         config([
             'mail_inboxes.accounts.rnb.username' => 'catchall-temp@rnb.co.id',
-            'mail_inboxes.accounts.rnb_hr.username' => 'hr@rnb.co.id',
         ]);
 
         $this->assertContains('catchall-temp@rnb.co.id', MailAccessAccount::catchAllInboxEmails()->all());
-        $this->assertNotContains('hr@rnb.co.id', MailAccessAccount::catchAllInboxEmails()->all());
         $this->assertContains('catchall-temp@rnb.co.id', MailAccessAccount::configuredInboxEmails()->all());
-        $this->assertContains('hr@rnb.co.id', MailAccessAccount::configuredInboxEmails()->all());
     }
 
-    public function test_mail_controller_uses_exact_hr_mailer_before_domain_catchall_fallback(): void
+    public function test_mail_controller_uses_domain_catchall_mailer_for_same_domain_accounts(): void
     {
         config([
             'mail_inboxes.accounts.rnb.username' => 'catchall-temp@rnb.co.id',
-            'mail_inboxes.accounts.rnb_hr.username' => 'hr@rnb.co.id',
             'mail.mailers.rnb' => ['transport' => 'smtp'],
-            'mail.mailers.rnb_hr' => ['transport' => 'smtp'],
         ]);
 
         $method = new ReflectionMethod(MailController::class, 'mailerForAccount');
 
-        $this->assertSame('rnb_hr', $method->invoke(
+        $this->assertSame('rnb', $method->invoke(
             new MailController,
-            new MailAccessAccount(['email' => 'hr@rnb.co.id']),
+            new MailAccessAccount(['email' => 'support@rnb.co.id']),
         ));
 
         $this->assertSame('rnb', $method->invoke(

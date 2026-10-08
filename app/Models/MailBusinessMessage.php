@@ -35,9 +35,14 @@ class MailBusinessMessage extends Model
         ];
     }
 
+    public function mailBusinessAccount(): BelongsTo
+    {
+        return $this->belongsTo(MailAccessAccount::class, 'mail_business_account_id', 'id');
+    }
+
     public function mailAccessAccount(): BelongsTo
     {
-        return $this->belongsTo(MailAccessAccount::class, 'mail_access_account_id', 'id');
+        return $this->mailBusinessAccount();
     }
 
     public function attachments(): HasMany

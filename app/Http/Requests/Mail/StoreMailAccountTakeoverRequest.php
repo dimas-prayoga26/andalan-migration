@@ -28,7 +28,7 @@ class StoreMailAccountTakeoverRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'mail_access_account_id' => ['required', 'integer', Rule::exists((new MailAccessAccount)->getTable(), 'id')],
+            'mail_business_account_id' => ['required', 'integer', Rule::exists((new MailAccessAccount)->getTable(), 'id')],
             'target_employee_id' => ['required', 'string', Rule::exists((new Employee)->getTable(), 'id')],
         ];
     }

@@ -21,8 +21,10 @@ class MailAccessAccountSeederTest extends TestCase
         $this->assertStringNotContainsString('$configuredInboxEmails->contains($email)', $seeder);
         $this->assertStringContainsString('deleteCatchAllAccessAccounts', $seeder);
         $this->assertStringContainsString('MailAccessAccount::catchAllInboxEmails()', $seeder);
-        $this->assertStringContainsString('seedHrAccessAccounts', $seeder);
-        $this->assertStringContainsString("['email' => 'hr@'.\$domain]", $seeder);
+        $this->assertStringContainsString('deleteHrAccessAccounts', $seeder);
+        $this->assertStringNotContainsString('seedHrAccessAccounts', $seeder);
+        $this->assertStringContainsString("\$hrEmailPattern = 'hr'.'@%';", $seeder);
+        $this->assertStringContainsString("->where('email', 'like', \$hrEmailPattern)", $seeder);
         $this->assertStringContainsString("'type' => MailAccessAccount::TYPE_APPLICANT_NOTIFICATION", $seeder);
         $this->assertStringContainsString('$legacyAccessAccounts = $this->legacyAccessAccounts();', $seeder);
         $this->assertStringContainsString("base_path('users.sql')", $seeder);

@@ -64,6 +64,8 @@ class EmailManagementTest extends TestCase
     public function test_email_management_controller_models_requests_and_view_are_wired(): void
     {
         $controller = File::get(app_path('Http/Controllers/EmailManagementController.php'));
+        $companyModel = File::get(app_path('Models/Company.php'));
+        $employeeModel = File::get(app_path('Models/Employee.php'));
         $mailAccessAccountModel = File::get(app_path('Models/MailAccessAccount.php'));
         $mailAccountTakeoverModel = File::get(app_path('Models/MailAccountTakeover.php'));
         $storeAccountRequest = File::get(app_path('Http/Requests/Mail/StoreMailAccessAccountRequest.php'));
@@ -87,6 +89,13 @@ class EmailManagementTest extends TestCase
         $this->assertStringContainsString('mailAccessAccountStaffLabel', $controller);
         $this->assertStringContainsString('employeeBusinessEmailLabel', $controller);
         $this->assertStringContainsString('staffEmailLabel', $controller);
+        $this->assertStringContainsString('mailAccessAccountOwnerIsAvailable', $controller);
+        $this->assertStringContainsString('takeoverTargetEmployeeIsAvailable', $controller);
+        $this->assertStringContainsString('Company::query()->activeForMailManagement()->orderBy', $controller);
+        $this->assertStringContainsString('Employee::query()'."\n            ->activeForMailManagement()", $controller);
+        $this->assertStringContainsString("orWhereHas('company', fn (Builder \$query): Builder => \$query->activeForMailManagement())", $controller);
+        $this->assertStringContainsString("orWhereHas('employee', fn (Builder \$query): Builder => \$query->activeForMailManagement())", $controller);
+        $this->assertStringContainsString("whereHas('targetEmployee', fn (Builder \$query): Builder => \$query->activeForMailManagement())", $controller);
         $this->assertStringContainsString("whereIn('type', array_keys(\$this->mailTypeOptions(\$request)))", $controller);
         $this->assertStringContainsString('MailAccessAccount::TYPE_DEPARTMENT', $controller);
         $this->assertStringNotContainsString('return MailAccessAccount::typeOptions();', $controller);
@@ -110,6 +119,14 @@ class EmailManagementTest extends TestCase
         $this->assertStringContainsString('public function employee(): BelongsTo', $mailAccessAccountModel);
         $this->assertStringContainsString('public function takeovers(): HasMany', $mailAccessAccountModel);
         $this->assertStringContainsString("protected \$hidden = [\n        'pin'", $mailAccessAccountModel);
+        $this->assertStringContainsString('public function scopeActiveForMailManagement(Builder $query): Builder', $companyModel);
+        $this->assertStringContainsString("->where('is_active', true)", $companyModel);
+        $this->assertStringContainsString('LOWER(COALESCE(name, "")) NOT LIKE', $companyModel);
+        $this->assertStringContainsString('LOWER(COALESCE(legal_name, "")) NOT LIKE', $companyModel);
+        $this->assertStringContainsString('public function scopeActiveForMailManagement(Builder $query): Builder', $employeeModel);
+        $this->assertStringContainsString('LOWER(COALESCE(status, "")) = ?', $employeeModel);
+        $this->assertStringContainsString("whereHas('user', fn (Builder \$query): Builder => \$query->where('is_active', true))", $employeeModel);
+        $this->assertStringContainsString("whereHas('deployment', fn (Builder \$query): Builder => \$query->whereRaw('LOWER(COALESCE(status, \"\")) = ?', ['active']))", $employeeModel);
         $this->assertStringContainsString('public function scopeReadable(Builder $query): Builder', $mailAccountTakeoverModel);
         $this->assertStringContainsString("hasAnyPositionPermission(['view-email-management'])", $storeAccountRequest);
         $this->assertStringContainsString("hasAnyPositionPermission(['view-email-management'])", $updateAccountRequest);

@@ -58,7 +58,7 @@ class SyncMailBusinessMessages extends Command
     {
         $state = MailBusinessAccountSyncState::query()->updateOrCreate(
             [
-                'mail_access_account_id' => $account->id,
+                'mail_business_account_id' => $account->id,
                 'folder' => $folder,
             ],
             [
@@ -113,7 +113,7 @@ class SyncMailBusinessMessages extends Command
         $attachments = $message['attachments'] ?? [];
         $mailBusinessMessage = MailBusinessMessage::query()->updateOrCreate(
             [
-                'mail_access_account_id' => $account->id,
+                'mail_business_account_id' => $account->id,
                 'folder' => $folder,
                 'uid' => $uid,
             ],

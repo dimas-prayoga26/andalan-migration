@@ -33,7 +33,7 @@ class MailSentAndDeleteTest extends TestCase
         $this->app->instance(MailInboxService::class, $this->mailInbox);
 
         $this->mailAccount = MailAccessAccount::query()->create([
-            'email' => 'hr@example.test',
+            'email' => 'department@example.test',
             'type' => MailAccessAccount::TYPE_DEPARTMENT,
             'pin' => Hash::make('1234'),
             'is_active' => true,
@@ -43,7 +43,7 @@ class MailSentAndDeleteTest extends TestCase
     public function test_sent_page_lists_messages_from_sent_folder(): void
     {
         $this->mailInbox->messages = [
-            ['uid' => '7', 'from' => 'hr@example.test', 'to' => 'candidate@example.test', 'subject' => 'Interview Invitation', 'date' => 'Fri, 02 Oct 2026 10:00:00 +0700', 'time' => 'Oct 02, 10:00', 'unread' => false],
+            ['uid' => '7', 'from' => 'department@example.test', 'to' => 'candidate@example.test', 'subject' => 'Interview Invitation', 'date' => 'Fri, 02 Oct 2026 10:00:00 +0700', 'time' => 'Oct 02, 10:00', 'unread' => false],
         ];
 
         $response = $this->actingAsMailUser()->get(route('applicant.email.sent'));
@@ -52,7 +52,7 @@ class MailSentAndDeleteTest extends TestCase
         $response->assertSee('To: candidate@example.test');
         $response->assertSee('Interview Invitation');
         $response->assertSee(route('applicant.email.read', ['uid' => '7', 'folder' => 'sent']), false);
-        $this->assertSame([['messagesFor', 'hr@example.test', 'sent']], $this->mailInbox->calls);
+        $this->assertSame([['messagesFor', 'department@example.test', 'sent']], $this->mailInbox->calls);
     }
 
     public function test_sent_page_shows_empty_state(): void
@@ -69,7 +69,7 @@ class MailSentAndDeleteTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Inbox kosong.');
-        $this->assertSame([['messagesFor', 'hr@example.test', 'inbox']], $this->mailInbox->calls);
+        $this->assertSame([['messagesFor', 'department@example.test', 'inbox']], $this->mailInbox->calls);
     }
 
     public function test_selected_messages_can_be_deleted(): void
@@ -81,7 +81,7 @@ class MailSentAndDeleteTest extends TestCase
 
         $response->assertRedirect(route('applicant.email.inbox'));
         $response->assertSessionHas('mail_status', '2 email berhasil dihapus.');
-        $this->assertSame([['deleteMessages', 'hr@example.test', ['12', '15'], 'inbox']], $this->mailInbox->calls);
+        $this->assertSame([['deleteMessages', 'department@example.test', ['12', '15'], 'inbox']], $this->mailInbox->calls);
     }
 
     public function test_sent_messages_can_be_deleted(): void
@@ -92,7 +92,7 @@ class MailSentAndDeleteTest extends TestCase
         ]);
 
         $response->assertRedirect(route('applicant.email.sent'));
-        $this->assertSame([['deleteMessages', 'hr@example.test', ['3'], 'sent']], $this->mailInbox->calls);
+        $this->assertSame([['deleteMessages', 'department@example.test', ['3'], 'sent']], $this->mailInbox->calls);
     }
 
     public function test_delete_rejects_invalid_input(): void
@@ -144,7 +144,7 @@ class MailSentAndDeleteTest extends TestCase
         $response->assertRedirect(route('applicant.email.sent'));
         $response->assertSessionHas('mail_status', 'Email berhasil dikirim.');
         $this->assertCount(1, $this->mailInbox->storedSentMessages);
-        $this->assertSame('hr@example.test', $this->mailInbox->storedSentMessages[0]['email']);
+        $this->assertSame('department@example.test', $this->mailInbox->storedSentMessages[0]['email']);
         $this->assertStringContainsString('Subject: Offering Letter', $this->mailInbox->storedSentMessages[0]['raw']);
         $this->assertStringContainsString('To: candidate@example.test', $this->mailInbox->storedSentMessages[0]['raw']);
     }
@@ -172,7 +172,7 @@ class MailSentAndDeleteTest extends TestCase
         $response->assertSee('Reply akan dikirim ke candidate@example.test');
         $response->assertSee('id="mail-delete-form"', false);
         $response->assertSee(route('applicant.email.reply', ['9', 'folder' => 'sent']), false);
-        $this->assertSame([['messageFor', 'hr@example.test', '9', 'sent']], $this->mailInbox->calls);
+        $this->assertSame([['messageFor', 'department@example.test', '9', 'sent']], $this->mailInbox->calls);
     }
 
     public function test_reply_from_sent_message_is_sent_to_recipient_and_stored(): void
@@ -189,7 +189,7 @@ class MailSentAndDeleteTest extends TestCase
 
     public function test_special_mailbox_is_resolved_from_imap_list(): void
     {
-        $client = new SimpleImapClient('localhost', 993, 'ssl', 'hr@example.test', 'secret');
+        $client = new SimpleImapClient('localhost', 993, 'ssl', 'department@example.test', 'secret');
         $parse = new ReflectionMethod($client, 'parseMailboxList');
         $match = new ReflectionMethod($client, 'matchSpecialMailbox');
 
@@ -215,7 +215,7 @@ class MailSentAndDeleteTest extends TestCase
     private function actingAsMailUser(): static
     {
         return $this->actingAs($this->createSuperAdministratorUser())
-            ->withSession(['mail_access_account_id' => $this->mailAccount->id]);
+            ->withSession(['mail_business_account_id' => $this->mailAccount->id]);
     }
 
     private function createSuperAdministratorUser(): User
@@ -268,7 +268,7 @@ class FakeMailInboxService extends MailInboxService
 
         return [
             'uid' => $uid,
-            'from' => 'HR <hr@example.test>',
+            'from' => 'Department <department@example.test>',
             'to' => 'Candidate <candidate@example.test>',
             'subject' => 'Interview Invitation',
             'date' => 'Fri, 02 Oct 2026 10:00:00 +0700',

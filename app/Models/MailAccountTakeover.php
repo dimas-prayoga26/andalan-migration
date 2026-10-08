@@ -11,7 +11,7 @@ class MailAccountTakeover extends Model
     protected $table = 'mail_business_account_takeovers';
 
     protected $fillable = [
-        'mail_access_account_id',
+        'mail_business_account_id',
         'source_employee_id',
         'target_employee_id',
         'assigned_by_employee_id',
@@ -37,9 +37,14 @@ class MailAccountTakeover extends Model
         ];
     }
 
+    public function mailBusinessAccount(): BelongsTo
+    {
+        return $this->belongsTo(MailAccessAccount::class, 'mail_business_account_id', 'id');
+    }
+
     public function mailAccessAccount(): BelongsTo
     {
-        return $this->belongsTo(MailAccessAccount::class, 'mail_access_account_id', 'id');
+        return $this->mailBusinessAccount();
     }
 
     public function sourceEmployee(): BelongsTo

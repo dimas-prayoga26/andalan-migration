@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -15,6 +16,13 @@ class Company extends Model
     protected $keyType = 'string';
 
     public $incrementing = false;
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
 
     protected static function booted(): void
     {
@@ -59,5 +67,13 @@ class Company extends Model
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class, 'company_id', 'id');
+    }
+
+    public function scopeActiveForMailManagement(Builder $query): Builder
+    {
+        return $query
+            ->where('is_active', true)
+            ->whereRaw('LOWER(COALESCE(name, "")) NOT LIKE ?', ['%andalan%'])
+            ->whereRaw('LOWER(COALESCE(legal_name, "")) NOT LIKE ?', ['%andalan%']);
     }
 }

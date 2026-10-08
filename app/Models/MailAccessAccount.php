@@ -18,6 +18,8 @@ class MailAccessAccount extends Model
 
     public const TYPE_APPLICANT_NOTIFICATION = 'applicant_notification';
 
+    protected $table = 'mail_business_accounts';
+
     protected $fillable = [
         'company_id',
         'employee_id',
@@ -56,7 +58,7 @@ class MailAccessAccount extends Model
 
     public function takeovers(): HasMany
     {
-        return $this->hasMany(MailAccountTakeover::class, 'mail_access_account_id', 'id');
+        return $this->hasMany(MailAccountTakeover::class, 'mail_business_account_id', 'id');
     }
 
     public function scopeActive(Builder $query): Builder

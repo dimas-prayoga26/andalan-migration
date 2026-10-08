@@ -1,13 +1,13 @@
 @php
     $takeoverId = $takeover?->id ?? 'create';
-    $selectedAccountId = (string) old('mail_access_account_id', $takeover?->mail_access_account_id ?? '');
+    $selectedAccountId = (string) old('mail_business_account_id', $takeover?->mail_business_account_id ?? '');
     $selectedEmployeeId = (string) old('target_employee_id', $takeover?->target_employee_id ?? '');
 @endphp
 
 <div class="row g-3">
     <div class="col-12">
-        <label class="form-label" for="mail-access-account-id-{{ $takeoverId }}">Staff Lama</label>
-        <select id="mail-access-account-id-{{ $takeoverId }}" name="mail_access_account_id" class="form-select" required>
+        <label class="form-label" for="mail-business-account-id-{{ $takeoverId }}">Staff Lama</label>
+        <select id="mail-business-account-id-{{ $takeoverId }}" name="mail_business_account_id" class="form-select" required>
             <option value="">Choose staff</option>
             @foreach ($accountOptions as $account)
                 <option value="{{ $account['id'] }}" @selected($selectedAccountId === $account['id'])>{{ $account['label'] }}</option>

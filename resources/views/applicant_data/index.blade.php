@@ -625,8 +625,14 @@
             var applicantsTable = $('#applicantsTable').DataTable({
                 ajax: {
                     url: "{{ route('applicant.datatable') }}",
+                    data: function (requestData) {
+                        requestData.status_value = selectedApplicantStatus;
+                        requestData.job_vacancy_name = $('#positionFilter').val();
+                    },
                     dataSrc: 'data'
                 },
+                processing: true,
+                serverSide: true,
                 order: [],
                 columns: [
                     {
@@ -675,16 +681,6 @@
                 ]
             });
 
-            $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
-                if (settings.nTable.id !== 'applicantsTable' || !selectedApplicantStatus) {
-                    return true;
-                }
-
-                var applicant = settings.aoData[dataIndex] ? settings.aoData[dataIndex]._aData : null;
-
-                return applicant && String(applicant.applicant_status_value) === selectedApplicantStatus;
-            });
-
             $('.talent-status-tab').on('click', function () {
                 var $tab = $(this);
                 var statusValue = String($tab.data('status-value'));
@@ -700,17 +696,11 @@
                     $tab.addClass('active').attr('aria-selected', 'true');
                 } 
 
-                applicantsTable.draw();
+                applicantsTable.ajax.reload();
             });
 
             $('#positionFilter').on('change', function () {
-                var selectedPosition = $(this).val();
-                var escapedPosition = $.fn.dataTable.util.escapeRegex(selectedPosition);
-
-                applicantsTable
-                    .column(3)
-                    .search(selectedPosition ? '^' + escapedPosition + '$' : '', true, false)
-                    .draw();
+                applicantsTable.ajax.reload();
             });
         });
     </script>

@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Yajra\DataTables\Facades\DataTables;
 use ZipArchive;
 
 class AttendanceReportController extends Controller
@@ -191,12 +192,12 @@ class AttendanceReportController extends Controller
                 ->find(Auth::id());
 
             if (! $staffUser) {
-                return response()->json(['data' => []]);
+                return DataTables::collection(collect())->toJson();
             }
 
             $staffEmployeeId = $staffUser->employee?->id;
             if (! is_string($staffEmployeeId) || trim($staffEmployeeId) === '') {
-                return response()->json(['data' => []]);
+                return DataTables::collection(collect())->toJson();
             }
 
             $employmentStartMonth = $this->resolveStaffEmploymentStartMonth($staffEmployeeId, $nowJakarta);
@@ -542,9 +543,7 @@ class AttendanceReportController extends Controller
                 ]);
             }
 
-            return response()->json([
-                'data' => $tableRows->sortByDesc('attendance_date_iso')->values(),
-            ]);
+            return DataTables::collection($tableRows->sortByDesc('attendance_date_iso')->values())->toJson();
         }
 
         $tableUsersQuery = User::query()
@@ -686,9 +685,7 @@ class AttendanceReportController extends Controller
             ];
         })->values();
 
-        return response()->json([
-            'data' => $tableRows,
-        ]);
+        return DataTables::collection($tableRows)->toJson();
     }
 
     public function exportReport(Request $request): Response

@@ -365,6 +365,8 @@
                         params.year = $('#meetingYearFilter').val();
                     }
                 },
+                processing: true,
+                serverSide: true,
                 columns: [
                     {
                         data: null,

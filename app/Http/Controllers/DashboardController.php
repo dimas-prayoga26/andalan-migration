@@ -5,17 +5,20 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Attendance\AttendanceIndexRequest;
 use App\Http\Requests\Attendance\StoreAttendanceRequest;
 use App\Http\Requests\Attendance\UpdateAttendanceRequest;
+use App\Models\AppNotification;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\EmployeePicAssignment;
+use App\Models\HrMeeting;
+use App\Models\Position;
 use App\Models\Project;
 use App\Models\ProjectTask;
 use App\Models\User;
 use App\Services\Attendance\AttendanceCardsViewDataService;
 use App\Services\Attendance\AttendanceMutationService;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -39,7 +42,8 @@ class DashboardController extends Controller
 
         return view('dashboard', array_merge(
             $attendanceCardsData,
-            $this->dashboardTaskData($authenticatedUser instanceof User ? $authenticatedUser : null)
+            $this->dashboardTaskData($authenticatedUser instanceof User ? $authenticatedUser : null),
+            $this->dashboardIncomingMeetingData($authenticatedUser instanceof User ? $authenticatedUser : null)
         ));
     }
 
@@ -144,6 +148,174 @@ class DashboardController extends Controller
         $employeeId = trim((string) ($authenticatedUser->employee?->id ?? ''));
 
         return $employeeId !== '' ? $employeeId : null;
+    }
+
+    /**
+     * @return array{dashboardIncomingMeeting:array{id:string,notification_id:string,title:string,time_label:string,join_url:string}|null}
+     */
+    private function dashboardIncomingMeetingData(?User $authenticatedUser): array
+    {
+        $employeeId = $this->authenticatedEmployeeId($authenticatedUser);
+
+        if ($employeeId === null) {
+            return ['dashboardIncomingMeeting' => null];
+        }
+
+        $employee = Employee::query()
+            ->with(['deployment.position:id,name,system_key', 'deployment.positions:id,name,system_key'])
+            ->find($employeeId);
+
+        if (! $employee instanceof Employee || ! (bool) $employee->is_core_staff) {
+            return ['dashboardIncomingMeeting' => null];
+        }
+
+        $meetingNotifications = $this->dashboardMeetingNotifications($authenticatedUser, $employeeId);
+
+        if ($meetingNotifications->isEmpty()) {
+            return ['dashboardIncomingMeeting' => null];
+        }
+
+        $now = CarbonImmutable::now('Asia/Jakarta');
+        $meeting = HrMeeting::query()
+            ->select(['id', 'title', 'meeting_date', 'meeting_time', 'meeting_link', 'status'])
+            ->whereIn('id', $meetingNotifications->keys()->all())
+            ->where('status', 'scheduled')
+            ->where(function (Builder $query) use ($now): void {
+                $query
+                    ->whereDate('meeting_date', '>', $now->toDateString())
+                    ->orWhere(function (Builder $todayQuery) use ($now): void {
+                        $todayQuery
+                            ->whereDate('meeting_date', $now->toDateString())
+                            ->whereTime('meeting_time', '>=', $now->format('H:i:s'));
+                    });
+            })
+            ->whereHas('participants', function (Builder $participantQuery) use ($employee): void {
+                $participantQuery
+                    ->where('employee_id', $employee->id)
+                    ->orWhere(function (Builder $allStaffQuery): void {
+                        $allStaffQuery
+                            ->whereNull('employee_id')
+                            ->where('participant_type', 'all_staff');
+                    });
+
+                if ($employee->hasPositionSystemKey(Position::KEY_SUPERVISOR)) {
+                    $participantQuery->orWhere(function (Builder $bodQuery): void {
+                        $bodQuery
+                            ->whereNull('employee_id')
+                            ->where('participant_type', 'bod');
+                    });
+                }
+            })
+            ->orderBy('meeting_date')
+            ->orderBy('meeting_time')
+            ->first();
+
+        if (! $meeting instanceof HrMeeting) {
+            return ['dashboardIncomingMeeting' => null];
+        }
+
+        $notification = $meetingNotifications->get((string) $meeting->id);
+
+        if (! $notification instanceof AppNotification) {
+            return ['dashboardIncomingMeeting' => null];
+        }
+
+        return [
+            'dashboardIncomingMeeting' => [
+                'id' => (string) $meeting->id,
+                'notification_id' => (string) $notification->id,
+                'title' => trim((string) $meeting->title),
+                'time_label' => $this->incomingMeetingTimeLabel($this->incomingMeetingDateTime($meeting), $now),
+                'join_url' => route('notifications.open', $notification),
+            ],
+        ];
+    }
+
+    /**
+     * @return Collection<string, AppNotification>
+     */
+    private function dashboardMeetingNotifications(User $authenticatedUser, string $employeeId): Collection
+    {
+        $notifications = AppNotification::query()
+            ->select(['id', 'user_id', 'employee_id', 'type', 'url', 'read_at', 'created_at'])
+            ->where('type', 'hr_meeting_scheduled')
+            ->whereNull('read_at')
+            ->where(function (Builder $query) use ($authenticatedUser, $employeeId): void {
+                $query
+                    ->where('user_id', $authenticatedUser->id)
+                    ->orWhere('employee_id', $employeeId);
+            })
+            ->orderByDesc('created_at')
+            ->get();
+
+        $meetingNotifications = collect();
+
+        $notifications->each(function (AppNotification $notification) use ($meetingNotifications): void {
+            $meetingId = $this->meetingIdFromNotificationUrl($notification->url);
+
+            if ($meetingId === null || $meetingNotifications->has($meetingId)) {
+                return;
+            }
+
+            $meetingNotifications->put($meetingId, $notification);
+        });
+
+        return $meetingNotifications;
+    }
+
+    private function meetingIdFromNotificationUrl(?string $url): ?string
+    {
+        if (! is_string($url) || trim($url) === '') {
+            return null;
+        }
+
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        $segments = array_reverse(array_filter(explode('/', trim($path, '/'))));
+
+        foreach ($segments as $segment) {
+            if (! preg_match('/^[A-Za-z0-9-]{16,}$/', $segment)) {
+                continue;
+            }
+
+            return $segment;
+        }
+
+        return null;
+    }
+
+    private function incomingMeetingDateTime(HrMeeting $meeting): CarbonImmutable
+    {
+        $meetingDate = $meeting->meeting_date instanceof \DateTimeInterface
+            ? $meeting->meeting_date->format('Y-m-d')
+            : (string) $meeting->meeting_date;
+        $meetingTime = trim((string) $meeting->meeting_time);
+
+        if (preg_match('/^\d{2}:\d{2}$/', $meetingTime)) {
+            $meetingTime .= ':00';
+        }
+
+        return CarbonImmutable::parse(trim($meetingDate.' '.$meetingTime), 'Asia/Jakarta');
+    }
+
+    private function incomingMeetingTimeLabel(CarbonImmutable $meetingAt, CarbonImmutable $now): string
+    {
+        $minutesUntilMeeting = max(0, (int) $now->diffInMinutes($meetingAt, false));
+
+        if ($minutesUntilMeeting === 0) {
+            return 'Now';
+        }
+
+        if ($minutesUntilMeeting < 60) {
+            return 'In '.$minutesUntilMeeting.' Minutes';
+        }
+
+        if ($minutesUntilMeeting < 1440) {
+            $hoursUntilMeeting = (int) ceil($minutesUntilMeeting / 60);
+
+            return 'In '.$hoursUntilMeeting.' Hours';
+        }
+
+        return $meetingAt->format('d M Y, H:i').' WIB';
     }
 
     private function projectTaskQueryForEmployee(string $employeeId): Builder

@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Throwable;
+use Yajra\DataTables\Facades\DataTables;
 
 class TalentAcquisitionController extends Controller
 {
@@ -38,7 +39,7 @@ class TalentAcquisitionController extends Controller
         ]);
     }
 
-    public function applicantsDatatable(): JsonResponse
+    public function applicantsDatatable(Request $request): JsonResponse
     {
         $applicants = Applicant::query()
             ->select([
@@ -53,6 +54,16 @@ class TalentAcquisitionController extends Controller
                 'documents:id,applicant_id,document_type,file_path',
                 'jobVacancy:id,name',
             ])
+            ->when($request->filled('status_value'), function ($query) use ($request): void {
+                $query->whereHas('applicantStatus', function ($statusQuery) use ($request): void {
+                    $statusQuery->where('value', $request->integer('status_value'));
+                });
+            })
+            ->when($request->filled('job_vacancy_name'), function ($query) use ($request): void {
+                $query->whereHas('jobVacancy', function ($jobVacancyQuery) use ($request): void {
+                    $jobVacancyQuery->where('name', (string) $request->query('job_vacancy_name'));
+                });
+            })
             ->latest('created_at')
             ->get()
             ->map(fn (Applicant $applicant): array => [
@@ -66,9 +77,7 @@ class TalentAcquisitionController extends Controller
             ])
             ->values();
 
-        return response()->json([
-            'data' => $applicants,
-        ]);
+        return DataTables::collection($applicants)->toJson();
     }
 
     public function jobVacancies(): View
@@ -79,11 +88,14 @@ class TalentAcquisitionController extends Controller
         ]);
     }
 
-    public function jobVacanciesDatatable(): JsonResponse
+    public function jobVacanciesDatatable(Request $request): JsonResponse
     {
         $jobVacancies = JobVacancy::query()
             ->with('company:id,name')
             ->withCount('applicants')
+            ->when($request->filled('company_id'), function ($query) use ($request): void {
+                $query->where('company_id', (string) $request->query('company_id'));
+            })
             ->orderByRaw('CASE WHEN status = 1 THEN 0 ELSE 1 END')
             ->orderBy('name')
             ->get()
@@ -99,9 +111,7 @@ class TalentAcquisitionController extends Controller
             ])
             ->values();
 
-        return response()->json([
-            'data' => $jobVacancies,
-        ]);
+        return DataTables::collection($jobVacancies)->toJson();
     }
 
     public function showApplicant(Applicant $applicant): View

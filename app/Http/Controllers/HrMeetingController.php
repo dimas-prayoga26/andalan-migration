@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Yajra\DataTables\Facades\DataTables;
 
 class HrMeetingController extends Controller
 {
@@ -223,10 +224,9 @@ class HrMeetingController extends Controller
             ])
             ->values();
 
-        return response()->json([
-            'meetings' => $meetings,
-            'data' => $meetings,
-        ]);
+        return DataTables::collection($meetings)
+            ->with('meetings', $meetings)
+            ->toJson();
     }
 
     public function create(): View

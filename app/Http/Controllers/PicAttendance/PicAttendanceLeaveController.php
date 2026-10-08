@@ -20,6 +20,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Yajra\DataTables\Facades\DataTables;
 
 class PicAttendanceLeaveController extends Controller
 {
@@ -563,9 +564,7 @@ class PicAttendanceLeaveController extends Controller
         $periodEnd = $periodStart->copy()->endOfMonth()->startOfDay();
 
         if ($activeEmployeeIds->isEmpty()) {
-            return response()->json([
-                'data' => [],
-            ]);
+            return DataTables::collection(collect())->toJson();
         }
 
         $query = $this->baseLeaveRequestQuery($activeEmployeeIds)
@@ -602,9 +601,7 @@ class PicAttendanceLeaveController extends Controller
                 'detail_url' => route('pic-attendance.leave.detail', ['uid' => $leaveRequest->id]),
             ]);
 
-        return response()->json([
-            'data' => $rows,
-        ]);
+        return DataTables::collection($rows)->toJson();
     }
 
     private function applySupervisorApprovedReviewFilter(Builder $query): Builder

@@ -5,31 +5,35 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Models\Position;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Yajra\DataTables\Facades\DataTables;
 
 class PositionController extends Controller
 {
-    public function index(Request $request): View
+    public function index(): View
     {
-        $search = trim((string) $request->query('search', ''));
-
-        $items = Position::query()
-            ->when($search !== '', fn ($query) => $query->where('name', 'like', "%{$search}%"))
-            ->orderBy('name')
-            ->paginate(10)
-            ->withQueryString();
-
         return view('settings.index', [
-            'items' => $items,
-            'search' => $search,
             'pageTitle' => 'Position',
             'resourceLabel' => 'Position',
             'routePrefix' => 'settings.positions',
             'routeParameter' => 'position',
+            'datatableRoute' => 'settings.positions.datatable',
+            'tableId' => 'positionsTable',
+            'searchPlaceholder' => 'Search position',
         ]);
+    }
+
+    public function datatable(): JsonResponse
+    {
+        $query = Position::query()
+            ->select(['id', 'name', 'status', 'is_protected']);
+
+        return DataTables::eloquent($query)
+            ->toJson();
     }
 
     public function create(): View

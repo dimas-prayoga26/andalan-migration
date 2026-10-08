@@ -71,8 +71,8 @@
             opacity: .35;
         }
 
-        #attendanceRulesTable_wrapper .dataTables_filter,
-        #attendanceRulesTable_wrapper .dataTables_length {
+        #companiesTable_wrapper .dataTables_filter,
+        #companiesTable_wrapper .dataTables_length {
             display: none;
         }
 
@@ -115,7 +115,7 @@
     <div class="card-header border-0 flex-wrap gap-3">
         <div>
             <h4 class="card-title mb-1">{{ $pageTitle }}</h4>
-            <p class="mb-0 text-muted fs-13">Manage attendance time, IP, and location radius rules.</p>
+            <p class="mb-0 text-muted fs-13">Manage company master data.</p>
         </div>
         <div class="settings-list-actions">
             <div class="input-group">
@@ -123,16 +123,16 @@
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </span>
                 <input
-                    id="attendanceRulesTableSearch"
+                    id="companyTableSearch"
                     type="search"
                     class="form-control"
-                    placeholder="Search attendance rules"
+                    placeholder="Search company"
                     autocomplete="off"
-                    aria-label="Search attendance rules"
+                    aria-label="Search company"
                 >
             </div>
-            <a href="{{ route('settings.attendance-rules.create') }}" class="btn btn-primary btn-sm">
-                <i class="fa-solid fa-plus me-1"></i>Add Rule
+            <a href="{{ route('settings.companies.create') }}" class="btn btn-primary btn-sm">
+                <i class="fa-solid fa-plus me-1"></i>Add Company
             </a>
         </div>
     </div>
@@ -143,16 +143,12 @@
 
     <div class="card-body table-card-body p-0">
         <div class="table-responsive">
-            <table id="attendanceRulesTable" class="table table-sm mb-0 table-bottom-borderless table-striped align-middle w-100">
+            <table id="companiesTable" class="table table-sm mb-0 table-bottom-borderless table-striped align-middle w-100">
                 <thead>
                     <tr>
-                        <th>Work Location</th>
-                        <th>IP Range</th>
-                        <th>Radius</th>
-                        <th>Type</th>
-                        <th>Positions</th>
-                        <th>Clock In</th>
-                        <th>Clock Out</th>
+                        <th>Name</th>
+                        <th>Legal Name</th>
+                        <th>Website</th>
                         <th>Status</th>
                         <th class="text-end">Action</th>
                     </tr>
@@ -179,8 +175,8 @@
                 return;
             }
 
-            var editUrlTemplate = @json(route('settings.attendance-rules.edit', ['attendanceRule' => '__ID__']));
-            var deleteUrlTemplate = @json(route('settings.attendance-rules.destroy', ['attendanceRule' => '__ID__']));
+            var editUrlTemplate = @json(route('settings.companies.edit', ['company' => '__ID__']));
+            var deleteUrlTemplate = @json(route('settings.companies.destroy', ['company' => '__ID__']));
             var csrfToken = @json(csrf_token());
 
             function escapeHtml(value) {
@@ -200,34 +196,6 @@
                 return value === true || value === 1 || value === '1' || value === 'true';
             }
 
-            function workLocationLabel(row) {
-                var name = escapeHtml(row.office_location_name || '-');
-                var address = escapeHtml(row.office_location_address || '');
-                var html = '<span class="fw-semibold text-black">' + name + '</span>';
-
-                if (address) {
-                    html += '<br><span class="text-muted fs-12">' + address + '</span>';
-                }
-
-                return html;
-            }
-
-            function attendanceTypeBadge(type) {
-                var normalizedType = String(type || 'fixed').toLowerCase();
-                var badgeClass = normalizedType === 'flexible' ? 'badge-info' : 'badge-primary';
-                var label = normalizedType.charAt(0).toUpperCase() + normalizedType.slice(1);
-
-                return '<span class="badge badge-sm light ' + badgeClass + '">' + escapeHtml(label) + '</span>';
-            }
-
-            function positionsLabel(value) {
-                if (!value) {
-                    return '<span class="text-muted">Fallback office rule</span>';
-                }
-
-                return '<span class="text-black">' + escapeHtml(value) + '</span>';
-            }
-
             function statusBadge(isActive) {
                 var active = isTruthy(isActive);
                 var statusClass = active ? 'badge-success' : 'badge-danger';
@@ -239,12 +207,12 @@
             function actionButtons(row) {
                 var editUrl = routeFor(editUrlTemplate, row.id);
                 var deleteUrl = routeFor(deleteUrlTemplate, row.id);
-                var name = escapeHtml(row.office_location_name || 'this work location');
+                var name = escapeHtml(row.name || 'this company');
 
                 return '' +
                     '<div class="d-inline-flex gap-1">' +
                         '<a href="' + editUrl + '" class="btn btn-primary light btn-sm">Update</a>' +
-                        '<form action="' + deleteUrl + '" method="POST" data-settings-delete-form data-delete-title="Delete Attendance Rule" data-delete-message="Delete the attendance rule for ' + name + '?">' +
+                        '<form action="' + deleteUrl + '" method="POST" data-settings-delete-form data-delete-title="Delete Company" data-delete-message="Delete ' + name + ' from company data?">' +
                             '<input type="hidden" name="_token" value="' + csrfToken + '">' +
                             '<input type="hidden" name="_method" value="DELETE">' +
                             '<button type="submit" class="btn btn-danger light btn-sm">Delete</button>' +
@@ -252,56 +220,31 @@
                     '</div>';
             }
 
-            var attendanceRulesTable = jQuery('#attendanceRulesTable').DataTable({
-                ajax: '{{ route('settings.attendance-rules.datatable') }}',
+            var companyTable = jQuery('#companiesTable').DataTable({
+                ajax: '{{ route('settings.companies.datatable') }}',
                 autoWidth: false,
-                order: [],
+                order: [[0, 'asc']],
                 pageLength: 10,
                 processing: true,
                 serverSide: true,
                 columns: [
                     {
-                        data: null,
-                        name: 'officeLocation.name',
-                        orderable: false,
-                        render: function (data, type, row) {
-                            return workLocationLabel(row);
-                        }
+                        data: 'name',
+                        name: 'name',
+                        className: 'fw-semibold text-black'
                     },
                     {
-                        data: 'ip_range',
-                        name: 'ip_range'
+                        data: 'legal_name',
+                        name: 'legal_name'
                     },
                     {
-                        data: 'radius',
-                        name: 'radius'
-                    },
-                    {
-                        data: 'attendance_type',
-                        name: 'attendance_type',
-                        render: function (data) {
-                            return attendanceTypeBadge(data);
-                        }
-                    },
-                    {
-                        data: 'positions_label',
-                        name: 'positions.name',
-                        orderable: false,
-                        render: function (data) {
-                            return positionsLabel(data);
-                        }
-                    },
-                    {
-                        data: 'office_start_time',
-                        name: 'office_start_time'
-                    },
-                    {
-                        data: 'office_end_time',
-                        name: 'office_end_time'
+                        data: 'website',
+                        name: 'website'
                     },
                     {
                         data: 'is_active',
                         name: 'is_active',
+                        orderable: true,
                         searchable: false,
                         render: function (data) {
                             return statusBadge(data);
@@ -319,16 +262,16 @@
                     }
                 ],
                 language: {
-                    emptyTable: 'No attendance rule data available.',
+                    emptyTable: 'No company data available.',
                     info: 'Showing _START_ to _END_ of _TOTAL_ entries',
                     infoEmpty: 'Showing 0 to 0 of 0 entries',
                     infoFiltered: '(filtered from _MAX_ total entries)',
                     processing: 'Loading...',
-                    zeroRecords: 'No matching attendance rule found.'
+                    zeroRecords: 'No matching company found.'
                 }
             });
 
-            var searchInput = document.getElementById('attendanceRulesTableSearch');
+            var searchInput = document.getElementById('companyTableSearch');
             var searchTimeout = null;
 
             if (searchInput) {
@@ -336,7 +279,7 @@
                     window.clearTimeout(searchTimeout);
 
                     searchTimeout = window.setTimeout(function () {
-                        attendanceRulesTable.search(searchInput.value).draw();
+                        companyTable.search(searchInput.value).draw();
                     }, 400);
                 });
             }

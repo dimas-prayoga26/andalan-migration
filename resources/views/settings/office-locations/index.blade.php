@@ -10,6 +10,7 @@
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
     <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/datatables/js/jquery.dataTables.min.css') }}">
     <style>
         .settings-nav-card,
         .settings-table-card {
@@ -70,6 +71,11 @@
             opacity: .35;
         }
 
+        #officeLocationsTable_wrapper .dataTables_filter,
+        #officeLocationsTable_wrapper .dataTables_length {
+            display: none;
+        }
+
         @media (max-width: 767.98px) {
             .settings-table-footer.dataTables_wrapper {
                 flex-direction: column;
@@ -112,22 +118,19 @@
             <p class="mb-0 text-muted fs-13">Manage work location master data for attendance rules and employee deployment.</p>
         </div>
         <div class="settings-list-actions">
-            <form method="GET" action="{{ route('settings.office-locations.index') }}" class="mb-0">
-                <div class="input-group">
-                    <button type="submit" class="input-group-text bg-white" aria-label="Search work locations">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </button>
-                    <input
-                        name="search"
-                        type="search"
-                        class="form-control"
-                        value="{{ $search }}"
-                        placeholder="Search work locations"
-                        autocomplete="off"
-                        aria-label="Search work locations"
-                    >
-                </div>
-            </form>
+            <div class="input-group">
+                <span class="input-group-text bg-white" aria-hidden="true">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input
+                    id="officeLocationsTableSearch"
+                    type="search"
+                    class="form-control"
+                    placeholder="Search work locations"
+                    autocomplete="off"
+                    aria-label="Search work locations"
+                >
+            </div>
             <a href="{{ route('settings.office-locations.create') }}" class="btn btn-primary btn-sm">
                 <i class="fa-solid fa-plus me-1"></i>Add Location
             </a>
@@ -140,7 +143,7 @@
 
     <div class="card-body table-card-body p-0">
         <div class="table-responsive">
-            <table class="table table-sm mb-0 table-bottom-borderless table-striped align-middle">
+            <table id="officeLocationsTable" class="table table-sm mb-0 table-bottom-borderless table-striped align-middle w-100">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -151,47 +154,9 @@
                         <th class="text-end">Action</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @forelse ($officeLocations as $officeLocation)
-                        <tr>
-                            <td class="fw-semibold text-black">{{ $officeLocation->name }}</td>
-                            <td>{{ $officeLocation->address ?: '-' }}</td>
-                            <td>{{ number_format((float) $officeLocation->latitude, 7, '.', '') }}</td>
-                            <td>{{ number_format((float) $officeLocation->longitude, 7, '.', '') }}</td>
-                            <td>
-                                <span class="badge badge-sm light {{ $officeLocation->is_active ? 'badge-success' : 'badge-danger' }}">
-                                    {{ $officeLocation->is_active ? 'Active' : 'Inactive' }}
-                                </span>
-                            </td>
-                            <td class="text-end">
-                                <div class="d-inline-flex gap-1">
-                                    <a href="{{ route('settings.office-locations.edit', ['officeLocation' => $officeLocation]) }}" class="btn btn-primary light btn-sm">Update</a>
-                                    <form
-                                        action="{{ route('settings.office-locations.destroy', ['officeLocation' => $officeLocation]) }}"
-                                        method="POST"
-                                        data-settings-delete-form
-                                        data-delete-title="Delete Work Location"
-                                        data-delete-message="Delete {{ $officeLocation->name }} from work location data?"
-                                    >
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger light btn-sm">Delete</button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
-                                {{ $search !== '' ? 'No matching work location found.' : 'No work location data available.' }}
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
-
-        @include('settings.partials.pagination', ['items' => $officeLocations])
     </div>
 </div>
 
@@ -203,6 +168,126 @@
         $dashboardJsPath = public_path('assets/js/dashboard.js');
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
+    <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script>
+        (function () {
+            if (!window.jQuery || !jQuery.fn.DataTable) {
+                return;
+            }
+
+            var editUrlTemplate = @json(route('settings.office-locations.edit', ['officeLocation' => '__ID__']));
+            var deleteUrlTemplate = @json(route('settings.office-locations.destroy', ['officeLocation' => '__ID__']));
+            var csrfToken = @json(csrf_token());
+
+            function escapeHtml(value) {
+                return String(value === null || value === undefined ? '' : value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function routeFor(template, id) {
+                return template.replace('__ID__', encodeURIComponent(id));
+            }
+
+            function isTruthy(value) {
+                return value === true || value === 1 || value === '1' || value === 'true';
+            }
+
+            function statusBadge(isActive) {
+                var active = isTruthy(isActive);
+                var statusClass = active ? 'badge-success' : 'badge-danger';
+                var statusLabel = active ? 'Active' : 'Inactive';
+
+                return '<span class="badge badge-sm light ' + statusClass + '">' + statusLabel + '</span>';
+            }
+
+            function actionButtons(row) {
+                var editUrl = routeFor(editUrlTemplate, row.id);
+                var deleteUrl = routeFor(deleteUrlTemplate, row.id);
+                var name = escapeHtml(row.name || 'this work location');
+
+                return '' +
+                    '<div class="d-inline-flex gap-1">' +
+                        '<a href="' + editUrl + '" class="btn btn-primary light btn-sm">Update</a>' +
+                        '<form action="' + deleteUrl + '" method="POST" data-settings-delete-form data-delete-title="Delete Work Location" data-delete-message="Delete ' + name + ' from work location data?">' +
+                            '<input type="hidden" name="_token" value="' + csrfToken + '">' +
+                            '<input type="hidden" name="_method" value="DELETE">' +
+                            '<button type="submit" class="btn btn-danger light btn-sm">Delete</button>' +
+                        '</form>' +
+                    '</div>';
+            }
+
+            var officeLocationsTable = jQuery('#officeLocationsTable').DataTable({
+                ajax: '{{ route('settings.office-locations.datatable') }}',
+                autoWidth: false,
+                order: [[0, 'asc']],
+                pageLength: 10,
+                processing: true,
+                serverSide: true,
+                columns: [
+                    {
+                        data: 'name',
+                        name: 'name',
+                        className: 'fw-semibold text-black'
+                    },
+                    {
+                        data: 'address',
+                        name: 'address'
+                    },
+                    {
+                        data: 'latitude',
+                        name: 'latitude'
+                    },
+                    {
+                        data: 'longitude',
+                        name: 'longitude'
+                    },
+                    {
+                        data: 'is_active',
+                        name: 'is_active',
+                        searchable: false,
+                        render: function (data) {
+                            return statusBadge(data);
+                        }
+                    },
+                    {
+                        data: null,
+                        name: 'action',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-end',
+                        render: function (data, type, row) {
+                            return actionButtons(row);
+                        }
+                    }
+                ],
+                language: {
+                    emptyTable: 'No work location data available.',
+                    info: 'Showing _START_ to _END_ of _TOTAL_ entries',
+                    infoEmpty: 'Showing 0 to 0 of 0 entries',
+                    infoFiltered: '(filtered from _MAX_ total entries)',
+                    processing: 'Loading...',
+                    zeroRecords: 'No matching work location found.'
+                }
+            });
+
+            var searchInput = document.getElementById('officeLocationsTableSearch');
+            var searchTimeout = null;
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    window.clearTimeout(searchTimeout);
+
+                    searchTimeout = window.setTimeout(function () {
+                        officeLocationsTable.search(searchInput.value).draw();
+                    }, 400);
+                });
+            }
+        })();
+    </script>
     @stack('scripts')
 @endsection

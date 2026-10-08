@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Yajra\DataTables\Facades\DataTables;
 
 class PicAttendanceController extends Controller
 {
@@ -59,10 +60,9 @@ class PicAttendanceController extends Controller
             : null;
         $monthlyData = $this->recapMonthlyData($request, $companyId);
 
-        return response()->json([
-            'data' => $monthlyData['recapMonthlyRows'],
-            'period_label' => $monthlyData['recapMonthlyPeriodLabel'],
-        ]);
+        return DataTables::collection($monthlyData['recapMonthlyRows'])
+            ->with('period_label', $monthlyData['recapMonthlyPeriodLabel'])
+            ->toJson();
     }
 
     public function employeeDetails(Request $request, string $employee): View
@@ -98,10 +98,9 @@ class PicAttendanceController extends Controller
             $detailContext['period_end'],
         );
 
-        return response()->json([
-            'data' => $detailData['recapDetailAttendanceRows'],
-            'period_label' => $detailData['recapDetailPeriodLabel'],
-        ]);
+        return DataTables::collection($detailData['recapDetailAttendanceRows'])
+            ->with('period_label', $detailData['recapDetailPeriodLabel'])
+            ->toJson();
     }
 
     /**

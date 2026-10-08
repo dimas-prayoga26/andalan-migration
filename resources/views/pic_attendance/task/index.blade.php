@@ -170,6 +170,8 @@
                         dataSrc: 'data'
                     },
                     autoWidth: false,
+                    processing: true,
+                    serverSide: true,
                     searching: false,
                     pageLength: 10,
                     lengthChange: false,

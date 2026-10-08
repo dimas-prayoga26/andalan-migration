@@ -406,25 +406,16 @@
             var selectedCompanyId = '';
             var jobVacancyTable = null;
 
-            $.fn.dataTable.ext.search.push(function (settings, data, dataIndex, rowData) {
-                if (settings.nTable.id !== 'jobVacanciesTable') {
-                    return true;
-                }
-
-                if (selectedCompanyId === '') {
-                    return true;
-                }
-
-                var jobVacancy = rowData || (jobVacancyTable ? jobVacancyTable.row(dataIndex).data() : null);
-
-                return String((jobVacancy && jobVacancy.company_id) || '') === selectedCompanyId;
-            });
-
             jobVacancyTable = $('#jobVacanciesTable').DataTable({
                 ajax: {
                     url: "{{ route('applicant.job_vacancies.datatable') }}",
+                    data: function (requestData) {
+                        requestData.company_id = selectedCompanyId;
+                    },
                     dataSrc: 'data'
                 },
+                processing: true,
+                serverSide: true,
                 columns: [
                     {
                         data: null,
@@ -466,7 +457,7 @@
 
                     tab.classList.add('active');
                     selectedCompanyId = String(tab.getAttribute('data-company-filter') || '');
-                    jobVacancyTable.draw();
+                    jobVacancyTable.ajax.reload();
                 });
             });
         });

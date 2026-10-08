@@ -622,6 +622,8 @@
                     url: "{{ route('employee_data.authorization.datatable') }}",
                     dataSrc: 'data'
                 },
+                processing: true,
+                serverSide: true,
                 columns: [
                     {
                         data: null,
@@ -641,8 +643,9 @@
                     },
                     { data: 'menu' },
                     {
-                        data: null,
+                        data: 'departments',
                         orderable: false,
+                        searchable: false,
                         render: function (data, type, row) {
                             return renderAuthorizationDepartments(row);
                         }

@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Yajra\DataTables\Facades\DataTables;
 
 class AttendanceOvertimeController extends Controller
 {
@@ -270,7 +271,7 @@ class AttendanceOvertimeController extends Controller
             });
         } elseif (! $isAdminUser) {
             if (! is_string($authenticatedEmployeeId) || trim($authenticatedEmployeeId) === '') {
-                return response()->json(['data' => []]);
+                return DataTables::collection(collect())->toJson();
             }
             $overtimesQuery
                 ->where('employee_id', $authenticatedEmployeeId)
@@ -309,9 +310,7 @@ class AttendanceOvertimeController extends Controller
             ];
         })->values();
 
-        return response()->json([
-            'data' => $tableRows,
-        ]);
+        return DataTables::collection($tableRows)->toJson();
     }
 
     /**

@@ -9,6 +9,7 @@
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
     <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/datatables/js/jquery.dataTables.min.css') }}">
     <style>
         .settings-nav-card,
         .settings-table-card {
@@ -82,6 +83,11 @@
             opacity: .35;
         }
 
+        #{{ $tableId }}_wrapper .dataTables_filter,
+        #{{ $tableId }}_wrapper .dataTables_length {
+            display: none;
+        }
+
         @media (max-width: 767.98px) {
             .settings-table-footer.dataTables_wrapper {
                 flex-direction: column;
@@ -126,22 +132,19 @@
             <p class="mb-0 text-muted fs-13">Manage {{ strtolower($resourceLabel) }} master data.</p>
         </div>
         <div class="settings-list-actions">
-            <form method="GET" action="{{ route($routePrefix.'.index') }}" class="mb-0">
-                <div class="input-group">
-                    <button type="submit" class="input-group-text bg-white" aria-label="Search {{ strtolower($resourceLabel) }}">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </button>
-                    <input
-                        name="search"
-                        type="search"
-                        class="form-control"
-                        value="{{ $search }}"
-                        placeholder="Search {{ strtolower($resourceLabel) }}"
-                        autocomplete="off"
-                        aria-label="Search {{ strtolower($resourceLabel) }}"
-                    >
-                </div>
-            </form>
+            <div class="input-group">
+                <span class="input-group-text bg-white" aria-hidden="true">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input
+                    id="{{ $tableId }}Search"
+                    type="search"
+                    class="form-control"
+                    placeholder="{{ $searchPlaceholder }}"
+                    autocomplete="off"
+                    aria-label="{{ $searchPlaceholder }}"
+                >
+            </div>
             <a href="{{ route($routePrefix.'.create') }}" class="btn btn-primary btn-sm">
                 <i class="fa-solid fa-plus me-1"></i>Add {{ $resourceLabel }}
             </a>
@@ -154,7 +157,7 @@
 
     <div class="card-body table-card-body p-0">
         <div class="table-responsive">
-            <table class="table table-sm mb-0 table-bottom-borderless table-striped align-middle">
+            <table id="{{ $tableId }}" class="table table-sm mb-0 table-bottom-borderless table-striped align-middle w-100">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -165,59 +168,9 @@
                         <th class="text-end">Action</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @forelse ($items as $item)
-                        @php
-                            $status = strtolower((string) ($item->status ?? 'inactive'));
-                            $statusClass = $status === 'active' ? 'badge-success' : 'badge-danger';
-                        @endphp
-                        <tr>
-                            <td class="fw-semibold text-black">{{ $item->name }}</td>
-                            <td>
-                                <span class="badge badge-sm light {{ $statusClass }}">{{ ucfirst($status) }}</span>
-                            </td>
-                            @if ($resourceLabel === 'Position')
-                                <td>
-                                    @if ((bool) ($item->is_protected ?? false))
-                                        <span class="badge badge-sm light badge-primary">Protected</span>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                            @endif
-                            <td class="text-end">
-                                <div class="d-inline-flex gap-1">
-                                    <a href="{{ route($routePrefix.'.edit', [$routeParameter => $item]) }}" class="btn btn-primary light btn-sm">Update</a>
-                                    @if (! (bool) ($item->is_protected ?? false))
-                                        <form
-                                            action="{{ route($routePrefix.'.destroy', [$routeParameter => $item]) }}"
-                                            method="POST"
-                                            data-settings-delete-form
-                                            data-delete-title="Delete {{ $resourceLabel }}"
-                                            data-delete-message="Delete {{ $item->name }} from {{ strtolower($resourceLabel) }} data?"
-                                        >
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-danger light btn-sm">Delete</button>
-                                        </form>
-                                    @else
-                                        <button type="button" class="btn btn-danger light btn-sm" disabled>Delete</button>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="{{ $resourceLabel === 'Position' ? 4 : 3 }}" class="text-center text-muted py-4">
-                                {{ $search !== '' ? 'No matching '.$resourceLabel.' found.' : 'No '.$resourceLabel.' data available.' }}
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
-
-        @include('settings.partials.pagination', ['items' => $items])
     </div>
 </div>
 
@@ -229,6 +182,148 @@
         $dashboardJsPath = public_path('assets/js/dashboard.js');
         $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     @endphp
+    <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script>
+        (function () {
+            if (!window.jQuery || !jQuery.fn.DataTable) {
+                return;
+            }
+
+            var editUrlTemplate = @json(route($routePrefix.'.edit', [$routeParameter => '__ID__']));
+            var deleteUrlTemplate = @json(route($routePrefix.'.destroy', [$routeParameter => '__ID__']));
+            var csrfToken = @json(csrf_token());
+            var resourceLabel = @json($resourceLabel);
+            var resourceName = @json(strtolower($resourceLabel));
+            var isPositionTable = @json($resourceLabel === 'Position');
+
+            function escapeHtml(value) {
+                return String(value === null || value === undefined ? '' : value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function routeFor(template, id) {
+                return template.replace('__ID__', encodeURIComponent(id));
+            }
+
+            function isTruthy(value) {
+                return value === true || value === 1 || value === '1' || value === 'true';
+            }
+
+            function statusBadge(status) {
+                var normalizedStatus = String(status || 'inactive').toLowerCase();
+                var statusClass = normalizedStatus === 'active' ? 'badge-success' : 'badge-danger';
+                var statusLabel = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
+
+                return '<span class="badge badge-sm light ' + statusClass + '">' + escapeHtml(statusLabel) + '</span>';
+            }
+
+            function typeBadge(isProtected) {
+                if (isTruthy(isProtected)) {
+                    return '<span class="badge badge-sm light badge-primary">Protected</span>';
+                }
+
+                return '<span class="text-muted">-</span>';
+            }
+
+            function actionButtons(row) {
+                var editUrl = routeFor(editUrlTemplate, row.id);
+
+                if (isPositionTable && isTruthy(row.is_protected)) {
+                    return '' +
+                        '<div class="d-inline-flex gap-1">' +
+                            '<a href="' + editUrl + '" class="btn btn-primary light btn-sm">Update</a>' +
+                            '<button type="button" class="btn btn-danger light btn-sm" disabled>Delete</button>' +
+                        '</div>';
+                }
+
+                var deleteUrl = routeFor(deleteUrlTemplate, row.id);
+                var name = escapeHtml(row.name || ('this ' + resourceName));
+
+                return '' +
+                    '<div class="d-inline-flex gap-1">' +
+                        '<a href="' + editUrl + '" class="btn btn-primary light btn-sm">Update</a>' +
+                        '<form action="' + deleteUrl + '" method="POST" data-settings-delete-form data-delete-title="Delete ' + escapeHtml(resourceLabel) + '" data-delete-message="Delete ' + name + ' from ' + escapeHtml(resourceName) + ' data?">' +
+                            '<input type="hidden" name="_token" value="' + csrfToken + '">' +
+                            '<input type="hidden" name="_method" value="DELETE">' +
+                            '<button type="submit" class="btn btn-danger light btn-sm">Delete</button>' +
+                        '</form>' +
+                    '</div>';
+            }
+
+            var columns = [
+                {
+                    data: 'name',
+                    name: 'name',
+                    className: 'fw-semibold text-black'
+                },
+                {
+                    data: 'status',
+                    name: 'status',
+                    render: function (data) {
+                        return statusBadge(data);
+                    }
+                }
+            ];
+
+            if (isPositionTable) {
+                columns.push({
+                    data: 'is_protected',
+                    name: 'is_protected',
+                    orderable: true,
+                    searchable: false,
+                    render: function (data) {
+                        return typeBadge(data);
+                    }
+                });
+            }
+
+            columns.push({
+                data: null,
+                name: 'action',
+                orderable: false,
+                searchable: false,
+                className: 'text-end',
+                render: function (data, type, row) {
+                    return actionButtons(row);
+                }
+            });
+
+            var settingsTable = jQuery('#{{ $tableId }}').DataTable({
+                ajax: '{{ route($datatableRoute) }}',
+                autoWidth: false,
+                order: [[0, 'asc']],
+                pageLength: 10,
+                processing: true,
+                serverSide: true,
+                columns: columns,
+                language: {
+                    emptyTable: 'No {{ strtolower($resourceLabel) }} data available.',
+                    info: 'Showing _START_ to _END_ of _TOTAL_ entries',
+                    infoEmpty: 'Showing 0 to 0 of 0 entries',
+                    infoFiltered: '(filtered from _MAX_ total entries)',
+                    processing: 'Loading...',
+                    zeroRecords: 'No matching {{ strtolower($resourceLabel) }} found.'
+                }
+            });
+
+            var searchInput = document.getElementById('{{ $tableId }}Search');
+            var searchTimeout = null;
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    window.clearTimeout(searchTimeout);
+
+                    searchTimeout = window.setTimeout(function () {
+                        settingsTable.search(searchInput.value).draw();
+                    }, 400);
+                });
+            }
+        })();
+    </script>
     @stack('scripts')
 @endsection

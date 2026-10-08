@@ -171,6 +171,10 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('.talent-photo img', $applicantsView);
         $this->assertStringContainsString("route('applicant.datatable')", $applicantsView);
         $this->assertStringContainsString("dataSrc: 'data'", $applicantsView);
+        $this->assertStringContainsString('processing: true', $applicantsView);
+        $this->assertStringContainsString('serverSide: true', $applicantsView);
+        $this->assertStringContainsString('requestData.status_value = selectedApplicantStatus;', $applicantsView);
+        $this->assertStringContainsString("requestData.job_vacancy_name = $('#positionFilter').val();", $applicantsView);
         $this->assertStringContainsString('columns: [', $applicantsView);
         $this->assertStringContainsString("data: 'full_name'", $applicantsView);
         $this->assertStringContainsString("data: 'job_vacancy_name'", $applicantsView);
@@ -188,7 +192,8 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('talent-status-tab', $applicantsView);
         $this->assertStringContainsString('data-status-value="{{ $applicantStatus->value }}"', $applicantsView);
         $this->assertStringContainsString('selectedApplicantStatus', $applicantsView);
-        $this->assertStringContainsString('$.fn.dataTable.ext.search.push', $applicantsView);
+        $this->assertStringNotContainsString('$.fn.dataTable.ext.search.push', $applicantsView);
+        $this->assertStringContainsString('applicantsTable.ajax.reload();', $applicantsView);
         $this->assertStringContainsString('applicant.applicant_status_value', $applicantsView);
         $this->assertStringContainsString('.talent-status-select.status-value-0', $applicantsView);
         $this->assertStringContainsString('.talent-status-select.status-value-1', $applicantsView);
@@ -238,8 +243,11 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('Semua Company', $jobVacanciesView);
         $this->assertStringContainsString('$companyOptions as $companyOption', $jobVacanciesView);
         $this->assertStringContainsString('selectedCompanyId', $jobVacanciesView);
-        $this->assertStringContainsString('rowData || (jobVacancyTable ? jobVacancyTable.row(dataIndex).data() : null)', $jobVacanciesView);
-        $this->assertStringContainsString('jobVacancyTable.draw()', $jobVacanciesView);
+        $this->assertStringContainsString('requestData.company_id = selectedCompanyId;', $jobVacanciesView);
+        $this->assertStringContainsString('processing: true', $jobVacanciesView);
+        $this->assertStringContainsString('serverSide: true', $jobVacanciesView);
+        $this->assertStringContainsString('jobVacancyTable.ajax.reload();', $jobVacanciesView);
+        $this->assertStringNotContainsString('$.fn.dataTable.ext.search.push', $jobVacanciesView);
         $this->assertStringContainsString('<th class="mw-220">Company</th>', $jobVacanciesView);
         $this->assertStringContainsString("data: 'company_name'", $jobVacanciesView);
         $this->assertStringContainsString("data: 'applicants_count'", $jobVacanciesView);

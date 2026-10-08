@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Yajra\DataTables\Facades\DataTables;
 
 class EmployeeDataController extends Controller
 {
@@ -21,9 +22,7 @@ class EmployeeDataController extends Controller
 
     public function datatable(): JsonResponse
     {
-        return response()->json([
-            'data' => $this->employeeRows(),
-        ]);
+        return DataTables::collection($this->employeeRows())->toJson();
     }
 
     public function authorization(): View
@@ -33,9 +32,7 @@ class EmployeeDataController extends Controller
 
     public function authorizationDatatable(): JsonResponse
     {
-        return response()->json([
-            'data' => $this->authorizationRows(),
-        ]);
+        return DataTables::collection($this->authorizationRows())->toJson();
     }
 
     public function updateEventProjectAdmin(Request $request, Employee $employee): RedirectResponse

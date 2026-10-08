@@ -28,6 +28,44 @@
             cursor: not-allowed;
             pointer-events: auto;
         }
+
+        .dashboard-incoming-meeting {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            padding: 18px 24px;
+            border: 1px dashed rgba(36, 68, 193, 0.35);
+            border-radius: 12px;
+            background: #eef3ff;
+            color: #071739;
+        }
+
+        .dashboard-incoming-meeting__icon {
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--bs-primary);
+            flex: 0 0 28px;
+            margin-top: 2px;
+        }
+
+        .dashboard-incoming-meeting__title {
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .dashboard-incoming-meeting__body,
+        .dashboard-incoming-meeting__meta {
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        .dashboard-incoming-meeting__meta a {
+            color: var(--bs-primary);
+            font-weight: 600;
+        }
     </style>
 @endsection
 
@@ -224,6 +262,30 @@
                 @endif
 
             </div>
+
+            @if (! empty($dashboardIncomingMeeting))
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="dashboard-incoming-meeting" data-dashboard-incoming-meeting-id="{{ $dashboardIncomingMeeting['id'] }}">
+                            <span class="dashboard-incoming-meeting__icon">
+                                <i class="fa-solid fa-video-camera"></i>
+                            </span>
+                            <div>
+                                <div class="dashboard-incoming-meeting__title">
+                                    Incoming Meeting: {{ $dashboardIncomingMeeting['title'] }}
+                                </div>
+                                <div class="dashboard-incoming-meeting__body">
+                                    Time to sync up and get aligned. The waiting room is open!
+                                </div>
+                                <div class="dashboard-incoming-meeting__meta">
+                                    Time: {{ $dashboardIncomingMeeting['time_label'] }} | Link:
+                                    <a href="{{ $dashboardIncomingMeeting['join_url'] }}" target="_blank" rel="noopener noreferrer" data-dashboard-incoming-meeting-link>Join Zoom Meeting</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             <div class="row">
                 <div class="col-12 mb-3">

@@ -26,6 +26,7 @@ use App\Http\Controllers\ProjectManagement\OverviewController as ProjectManageme
 use App\Http\Controllers\ProjectManagement\ProjectController as ProjectManagementProjectController;
 use App\Http\Controllers\ProjectManagement\TaskListController as ProjectManagementTaskListController;
 use App\Http\Controllers\Settings\AttendanceRuleController as SettingsAttendanceRuleController;
+use App\Http\Controllers\Settings\CompanyController as SettingsCompanyController;
 use App\Http\Controllers\Settings\DivisionController as SettingsDivisionController;
 use App\Http\Controllers\Settings\OfficeLocationController as SettingsOfficeLocationController;
 use App\Http\Controllers\Settings\PositionController as SettingsPositionController;
@@ -187,6 +188,12 @@ Route::middleware('auth')->group(function (): void {
     // Settings
     Route::middleware('position.permission:view-settings')->prefix('settings')->name('settings.')->group(function (): void {
         Route::get('/', fn () => redirect()->route('settings.divisions.index'))->name('index');
+        Route::get('companies/datatable', [SettingsCompanyController::class, 'datatable'])->name('companies.datatable');
+        Route::get('divisions/datatable', [SettingsDivisionController::class, 'datatable'])->name('divisions.datatable');
+        Route::get('positions/datatable', [SettingsPositionController::class, 'datatable'])->name('positions.datatable');
+        Route::get('office-locations/datatable', [SettingsOfficeLocationController::class, 'datatable'])->name('office-locations.datatable');
+        Route::get('attendance-rules/datatable', [SettingsAttendanceRuleController::class, 'datatable'])->name('attendance-rules.datatable');
+        Route::resource('companies', SettingsCompanyController::class)->except(['show']);
         Route::resource('office-locations', SettingsOfficeLocationController::class)
             ->except(['show'])
             ->parameters(['office-locations' => 'officeLocation']);

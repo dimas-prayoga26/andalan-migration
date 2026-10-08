@@ -223,6 +223,9 @@
 						</a>
 						<ul aria-expanded="{{ $isSettingsMenu ? 'true' : 'false' }}" class="{{ $isSettingsMenu ? 'mm-show' : '' }}">
 							<li>
+								<a class="{{ request()->routeIs('settings.companies*') ? 'active' : '' }}" href="{{ route('settings.companies.index') }}">Company</a>
+							</li>
+							<li>
 								<a class="{{ request()->routeIs('settings.divisions*') ? 'active' : '' }}" href="{{ route('settings.divisions.index') }}">Division</a>
 							</li>
 							<li>

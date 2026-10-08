@@ -614,6 +614,8 @@
                     url: "{{ route('employee_data.datatable') }}",
                     dataSrc: 'data'
                 },
+                processing: true,
+                serverSide: true,
                 columns: [
                     {
                         data: null,

@@ -244,8 +244,8 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringContainsString("'status_class' => \$isCompleted ? 'success' : 'warning'", $directorTaskController);
         $this->assertStringContainsString("'view-director-attendance'", $permissionSeeder);
         $this->assertStringContainsString('$directorPermissions = [', $permissionSeeder);
-        $this->assertStringContainsString("'Chief Operating Officer' => \$directorPermissions", $permissionSeeder);
-        $this->assertStringContainsString("'Director' => \$directorPermissions", $permissionSeeder);
+        $this->assertStringContainsString('Position::KEY_CHIEF_OPERATING_OFFICER => $directorPermissions', $permissionSeeder);
+        $this->assertStringContainsString('Position::KEY_DIRECTOR => $directorPermissions', $permissionSeeder);
         $this->assertStringContainsString('syncDirectorAttendancePositionPermissions', $legacySeeder);
         $this->assertStringContainsString('push($directorAttendancePermissionId)', $legacySeeder);
         $this->assertStringContainsString('$permissionId !== $adminAttendancePermissionId', $legacySeeder);
@@ -259,8 +259,8 @@ class DirectorAttendanceModuleTest extends TestCase
         );
         $this->assertStringNotContainsString("where('name', 'Board of Directors')", $permissionSeeder);
         $this->assertStringNotContainsString("where('name', 'Board of Directors')", $legacySeeder);
-        $this->assertStringContainsString("'Chief Operating Officer' => \$directorPermissions", $permissionSeeder);
-        $this->assertStringContainsString("'Director' => \$directorPermissions", $permissionSeeder);
+        $this->assertStringContainsString('Position::KEY_CHIEF_OPERATING_OFFICER => $directorPermissions', $permissionSeeder);
+        $this->assertStringContainsString('Position::KEY_DIRECTOR => $directorPermissions', $permissionSeeder);
         $this->assertStringContainsString("'view-director-attendance' => ['section' => 'Director Management', 'label' => 'Director']", $authorizationController);
     }
 

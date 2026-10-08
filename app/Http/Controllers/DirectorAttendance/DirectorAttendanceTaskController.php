@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
+use Yajra\DataTables\Facades\DataTables;
 
 class DirectorAttendanceTaskController extends Controller
 {
@@ -39,7 +40,7 @@ class DirectorAttendanceTaskController extends Controller
         );
         $selectedStaffIds = $this->selectedStaffEmployeeIds($request, $staffEmployeeIds);
         if ($selectedStaffIds === false || $selectedStaffIds->isEmpty()) {
-            return response()->json(['data' => []]);
+            return DataTables::collection(collect())->toJson();
         }
 
         $currentMonthStart = now('Asia/Jakarta')->startOfMonth()->toDateString();
@@ -78,7 +79,7 @@ class DirectorAttendanceTaskController extends Controller
             ])
             ->map(fn (ProjectTask $projectTask): array => $this->taskRow($projectTask));
 
-        return response()->json(['data' => $tasks]);
+        return DataTables::collection($tasks)->toJson();
     }
 
     /**

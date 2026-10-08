@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
+use Yajra\DataTables\Facades\DataTables;
 
 class PicAttendanceTaskController extends Controller
 {
@@ -27,19 +28,19 @@ class PicAttendanceTaskController extends Controller
         $authenticatedUser = $request->user();
         $supervisorEmployeeId = $this->authenticatedEmployeeId($authenticatedUser);
         if ($supervisorEmployeeId === null) {
-            return response()->json(['data' => []]);
+            return DataTables::collection(collect())->toJson();
         }
 
         $staffEmployeeIds = $this->supervisedStaffEmployeeIds($supervisorEmployeeId);
         $selectedStaffId = $this->selectedStaffEmployeeId($request, $staffEmployeeIds);
         if ($selectedStaffId === false || $selectedStaffId === null) {
-            return response()->json(['data' => []]);
+            return DataTables::collection(collect())->toJson();
         }
 
         $visibleEmployeeIds = collect([$selectedStaffId]);
 
         if ($visibleEmployeeIds->isEmpty()) {
-            return response()->json(['data' => []]);
+            return DataTables::collection(collect())->toJson();
         }
 
         $currentMonthStart = now('Asia/Jakarta')->startOfMonth()->toDateString();
@@ -76,7 +77,7 @@ class PicAttendanceTaskController extends Controller
             ])
             ->map(fn (ProjectTask $projectTask): array => $this->taskRow($projectTask));
 
-        return response()->json(['data' => $tasks]);
+        return DataTables::collection($tasks)->toJson();
     }
 
     /**

@@ -20,27 +20,9 @@ class MailAccessAccountSeeder extends Seeder
     {
         $legacyAccessAccounts = $this->legacyAccessAccounts();
 
+        $this->deleteCatchAllAccessAccounts();
         $this->seedDepartmentAccounts();
         $this->seedHrAccessAccounts();
-
-        foreach (config('mail_inboxes.accounts', []) as $accountKey => $account) {
-            $email = mb_strtolower(trim((string) ($account['username'] ?? '')));
-
-            if ($email === '') {
-                continue;
-            }
-
-            MailAccessAccount::query()->updateOrCreate(
-                ['email' => $email],
-                [
-                    'pin' => Hash::make($this->pinFor((string) $accountKey)),
-                    'type' => MailAccessAccount::TYPE_PERSONAL,
-                    'is_active' => $legacyAccessAccounts[$email] ?? true,
-                ],
-            );
-
-            unset($legacyAccessAccounts[$email]);
-        }
 
         foreach ($legacyAccessAccounts as $email => $isActive) {
             MailAccessAccount::query()->updateOrCreate(
@@ -52,6 +34,19 @@ class MailAccessAccountSeeder extends Seeder
                 ],
             );
         }
+    }
+
+    private function deleteCatchAllAccessAccounts(): void
+    {
+        $catchAllEmails = MailAccessAccount::catchAllInboxEmails();
+
+        if ($catchAllEmails->isEmpty()) {
+            return;
+        }
+
+        MailAccessAccount::query()
+            ->whereIn('email', $catchAllEmails->all())
+            ->delete();
     }
 
     private function seedHrAccessAccounts(): void

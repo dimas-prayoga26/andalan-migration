@@ -7,8 +7,10 @@
 						$isCalendarMenu = request()->routeIs('activity-schadule*');
 						$isAttendanceMenu = request()->routeIs('attendance*') || request()->is('attendance*');
 						$isZoomMeetingMenu = request()->routeIs('zoom-meeting*') || request()->is('zoom-meeting*');
+						$isBusinessEmailMenu = request()->routeIs('business-email*') || request()->is('business-email*');
 						$isAdminAttendanceMenu = request()->routeIs('admin-attendance*') || request()->is('admin-attendance*');
 						$isHrMeetingMenu = request()->routeIs('hr-meetings*') || request()->is('hr-meetings*');
+						$isEmailManagementMenu = request()->routeIs('email-management*') || request()->is('email-management*');
 						$isPicAttendanceMenu = request()->routeIs('pic-attendance*') || request()->is('pic-attendance*');
 						$isDirectorAttendanceMenu = request()->routeIs('director-attendance*') || request()->is('director-attendance*');
 						$isReportingMenu = request()->routeIs('project_management', 'project_management.detail') || request()->is('project-management*');
@@ -23,17 +25,23 @@
 						$canViewMeetingMenu = $canViewSidebarMenu('view-meeting');
 						$canViewAdminAttendanceMenu = $canViewSidebarMenu('view-admin-attendance');
 						$canViewHrMeetingsMenu = $canViewAdminAttendanceMenu;
+						$canViewEmailManagementMenu = $canViewSidebarMenu('view-email-management');
 						$canViewPicAttendanceMenu = $canViewSidebarMenu('view-pic-attendance');
 						$canViewDirectorAttendanceMenu = $canViewSidebarMenu('view-director-attendance');
 						$canViewAuthorizationMenu = $canViewSidebarMenu('view-authorization');
 						$canViewTalentAcquisitionMenu = $canViewSidebarMenu('view-talent-acquisition');
 						$canViewSettingsMenu = $canViewSidebarMenu('view-settings');
+						$sidebarUser = auth()->user();
+						$sidebarEmployee = $sidebarUser?->employee;
+						$isAdminOrSuperAdministrator = ($sidebarUser?->isSuperAdministrator() ?? false)
+							|| ($sidebarEmployee?->hasAnyPositionSystemKey([\App\Models\Position::KEY_ADMINISTRATOR]) ?? false);
+						$canViewBusinessEmailMenu = $canViewSidebarMenu('view-business-email') && ! $isAdminOrSuperAdministrator;
 						$useDirectorManagementMenu = $canViewDirectorAttendanceMenu;
 						$showAdminAuthorizationMenu = $canViewAuthorizationMenu && ! $useDirectorManagementMenu;
 						$showAdminTalentAcquisitionMenu = $canViewTalentAcquisitionMenu && ! $useDirectorManagementMenu;
 						$showDirectorAuthorizationMenu = $canViewAuthorizationMenu && $useDirectorManagementMenu;
 						$showDirectorTalentAcquisitionMenu = $canViewTalentAcquisitionMenu && $useDirectorManagementMenu;
-						$showAdminManagementMenu = $canViewAdminAttendanceMenu || $canViewHrMeetingsMenu || $showAdminAuthorizationMenu || $showAdminTalentAcquisitionMenu;
+						$showAdminManagementMenu = $canViewAdminAttendanceMenu || $canViewHrMeetingsMenu || $canViewEmailManagementMenu || $showAdminAuthorizationMenu || $showAdminTalentAcquisitionMenu;
 						$showPicManagementMenu = $canViewPicAttendanceMenu;
 						$showDirectorManagementMenu = $canViewDirectorAttendanceMenu || $showDirectorAuthorizationMenu || $showDirectorTalentAcquisitionMenu;
 					@endphp
@@ -58,7 +66,7 @@
 						</a>
 					</li>
 					@endif
-					@if ($canViewAttendanceMenu || $canViewTimesheetReportingMenu || $canViewMeetingMenu)
+					@if ($canViewAttendanceMenu || $canViewTimesheetReportingMenu || $canViewMeetingMenu || $canViewBusinessEmailMenu)
 					<div class="copyright mt-1">
 						<p class="mb-1"><strong>Siap</strong> </p>
 					</div>
@@ -76,6 +84,14 @@
 						<a class="{{ $isReportingMenu ? 'active' : '' }}" href="{{ route('project_management') }}" aria-expanded="{{ $isReportingMenu ? 'true' : 'false' }}">
 							<i class="fa-regular fa-file-lines"></i>
 							<span class="nav-text" data-i18n="Timesheet & Reporting">Timesheet & Reporting </span>
+						</a>
+					</li>
+					@endif
+					@if ($canViewBusinessEmailMenu)
+					<li class="{{ $isBusinessEmailMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isBusinessEmailMenu ? 'active' : '' }}" href="{{ route('business-email.index') }}" aria-expanded="{{ $isBusinessEmailMenu ? 'true' : 'false' }}">
+							<i class="fa-regular fa-envelope"></i>
+							<span class="nav-text" data-i18n="Business Email">Business Email </span>
 						</a>
 					</li>
 					@endif
@@ -107,6 +123,14 @@
 						</a>
 					</li>
 					@endif
+					@if ($canViewEmailManagementMenu)
+					<li class="{{ $isEmailManagementMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isEmailManagementMenu ? 'active' : '' }}" href="{{ route('email-management.index') }}" aria-expanded="{{ $isEmailManagementMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-envelope-open-text"></i>
+							<span class="nav-text" data-i18n="Email Management">Email Management </span>
+						</a>
+					</li>
+					@endif
 					@if ($showAdminAuthorizationMenu)
 					<li class="{{ $isAuthorizationMenu ? 'mm-active' : '' }}">
 						<a class="{{ $isAuthorizationMenu ? 'active' : '' }}" href="{{ route('authorization') }}" aria-expanded="{{ $isAuthorizationMenu ? 'true' : 'false' }}">
@@ -128,9 +152,11 @@
 							<li>
 								<a class="{{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}" href="{{ route('applicant.job_vacancies') }}">Job Vacancies</a>
 							</li>
+							@if ($canViewEmailManagementMenu)
 							<li>
 								<a class="{{ request()->routeIs('applicant.email*') ? 'active' : '' }}" href="{{ route('applicant.email.index') }}">Email</a>
 							</li>
+							@endif
 						</ul>
 					</li>
 					@endif
@@ -181,9 +207,11 @@
 							<li>
 								<a class="{{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}" href="{{ route('applicant.job_vacancies') }}">Job Vacancies</a>
 							</li>
+							@if ($canViewEmailManagementMenu)
 							<li>
 								<a class="{{ request()->routeIs('applicant.email*') ? 'active' : '' }}" href="{{ route('applicant.email.index') }}">Email</a>
 							</li>
+							@endif
 						</ul>
 					</li>
 					@endif

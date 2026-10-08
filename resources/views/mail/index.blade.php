@@ -1,8 +1,9 @@
 @extends('layouts.main')
 
-@section('title', 'Email Login')
+@section('title', ($mailFeatureTitle ?? 'Email').' Login')
 
 @section('css')
+    @include('mail.partials.account-selector-styles')
     <style>
         .mail-access-card {
             max-width: 520px;
@@ -55,19 +56,23 @@
     </style>
 @endsection
 
-@section('navbarTitle', 'Email')
+@section('navbarTitle', $mailFeatureTitle ?? 'Email')
 
 @section('content')
 
 @php
     $pendingEmail = $pendingEmail ?? null;
+    $mailFeatureTitle = $mailFeatureTitle ?? 'Email';
+    $mailRoutePrefix = $mailRoutePrefix ?? 'applicant.email';
 @endphp
 
 @include('layouts.breadcrumb', [
-    'title' => 'Email',
+    'title' => $mailFeatureTitle,
     'current' => 'Login',
     'homeRoute' => 'dashboard',
 ])
+
+@include('mail.partials.summary-cards')
 
 <div class="card border-0 mb-0 h-auto">
     <div class="card-body py-5">
@@ -79,14 +84,14 @@
             </div>
 
             @if (! $pendingEmail)
-                <h4 class="text-center mb-2">Email Access</h4>
+                <h4 class="text-center mb-2">{{ $mailFeatureTitle }} Access</h4>
                 <p class="text-center text-muted mb-4">Masukkan email yang sudah terdaftar.</p>
 
                 @if ($errors->any())
                     @include('partials.swal-alert', ['type' => 'error', 'message' => $errors->first()])
                 @endif
 
-                <form method="POST" action="{{ route('applicant.email.check') }}">
+                <form method="POST" action="{{ route($mailRoutePrefix.'.check') }}">
                     @csrf
                     <div class="form-group mb-4">
                         <label class="form-label"><strong>Email</strong></label>
@@ -103,7 +108,7 @@
                     @include('partials.swal-alert', ['type' => 'error', 'message' => $errors->first()])
                 @endif
 
-                <form method="POST" action="{{ route('applicant.email.login') }}">
+                <form method="POST" action="{{ route($mailRoutePrefix.'.login') }}">
                     @csrf
                     <input type="hidden" name="email" value="{{ $pendingEmail }}">
                     <div class="form-group mb-4">
@@ -116,7 +121,7 @@
                     </div>
                     <button type="submit" class="btn btn-primary btn-lg w-100">Masuk ke Email</button>
                 </form>
-                <a href="{{ route('applicant.email.index') }}" class="btn btn-light w-100 mt-3">Ganti Email</a>
+                <a href="{{ route($mailRoutePrefix.'.index') }}" class="btn btn-light w-100 mt-3">Ganti Email</a>
             @endif
         </div>
     </div>
@@ -125,6 +130,7 @@
 @endsection
 
 @section('script')
+@include('mail.partials.account-selector-script')
 <script>
     document.querySelectorAll('.mail-pin-input').forEach(function (input, index, inputs) {
         input.addEventListener('input', function () {

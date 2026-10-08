@@ -19,7 +19,7 @@ class UserSeederAdministratorTest extends TestCase
         $this->assertStringNotContainsString("['email' => 'superuser@gmail.com']", $userSeeder);
         $this->assertStringContainsString("['email' => \"admin{\$directorNumber}@gmail.com\"]", $userSeeder);
         $this->assertStringContainsString("'username' => \"admin{\$directorNumber}\"", $userSeeder);
-        $this->assertStringContainsString("'business_email' => \"admin{\$directorNumber}@{\$this->resolveCompanyEmailDomain((string) \$company->name)}\"", $userSeeder);
+        $this->assertStringNotContainsString('business_email', $userSeeder);
         $this->assertStringContainsString('$administrator->syncRoles([\'Staff\']);', $userSeeder);
         $this->assertStringContainsString('divisionId: $adminDivisionId', $userSeeder);
         $this->assertStringContainsString('positionId: $administratorPositionId', $userSeeder);

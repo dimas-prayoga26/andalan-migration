@@ -21,7 +21,7 @@ class MailInboxService
      */
     public function messagesFor(string $email, int $limit = 20, string $folder = self::FOLDER_INBOX): array
     {
-        return $this->withClient($email, function (SimpleImapClient $client) use ($folder, $limit): array {
+        return $this->withClient($email, function (SimpleImapClient $client, ?string $accountEmailFilter) use ($folder, $limit): array {
             $mailbox = $this->mailboxFor($client, $folder);
 
             if ($mailbox === null) {
@@ -30,7 +30,7 @@ class MailInboxService
 
             $client->selectMailbox($mailbox);
 
-            return $client->latestMessages($limit);
+            return $client->latestMessages($limit, $accountEmailFilter, $this->accountEmailFilterMode($folder));
         });
     }
 
@@ -39,10 +39,10 @@ class MailInboxService
      */
     public function messageFor(string $email, string $uid, string $folder = self::FOLDER_INBOX): array
     {
-        return $this->withClient($email, function (SimpleImapClient $client) use ($folder, $uid): array {
+        return $this->withClient($email, function (SimpleImapClient $client, ?string $accountEmailFilter) use ($folder, $uid): array {
             $client->selectMailbox($this->existingMailboxFor($client, $folder));
 
-            return $client->message($uid);
+            return $client->message($uid, $accountEmailFilter, $this->accountEmailFilterMode($folder));
         });
     }
 
@@ -51,10 +51,10 @@ class MailInboxService
      */
     public function attachmentFor(string $email, string $uid, string $attachmentId, string $folder = self::FOLDER_INBOX): array
     {
-        return $this->withClient($email, function (SimpleImapClient $client) use ($attachmentId, $folder, $uid): array {
+        return $this->withClient($email, function (SimpleImapClient $client, ?string $accountEmailFilter) use ($attachmentId, $folder, $uid): array {
             $client->selectMailbox($this->existingMailboxFor($client, $folder));
 
-            return $client->attachment($uid, $attachmentId);
+            return $client->attachment($uid, $attachmentId, $accountEmailFilter, $this->accountEmailFilterMode($folder));
         });
     }
 
@@ -71,12 +71,12 @@ class MailInboxService
             return;
         }
 
-        $this->withClient($email, function (SimpleImapClient $client) use ($folder, $uids): void {
+        $this->withClient($email, function (SimpleImapClient $client, ?string $accountEmailFilter) use ($folder, $uids): void {
             $mailbox = $this->existingMailboxFor($client, $folder);
             $trashMailbox = $client->specialMailbox('\\Trash', self::TRASH_MAILBOX_NAMES);
 
             $client->selectMailbox($mailbox);
-            $client->deleteMessages($uids, $trashMailbox === $mailbox ? null : $trashMailbox);
+            $client->deleteMessages($uids, $trashMailbox === $mailbox ? null : $trashMailbox, $accountEmailFilter, $this->accountEmailFilterMode($folder));
         });
     }
 
@@ -100,11 +100,12 @@ class MailInboxService
     /**
      * @template TResult
      *
-     * @param  callable(SimpleImapClient): TResult  $callback
+     * @param  callable(SimpleImapClient, string|null): TResult  $callback
      * @return TResult
      */
     private function withClient(string $email, callable $callback): mixed
     {
+        $email = mb_strtolower(trim($email));
         $account = $this->accountFor($email);
 
         if ($account === null) {
@@ -123,7 +124,7 @@ class MailInboxService
         try {
             $client->login();
 
-            return $callback($client);
+            return $callback($client, $this->recipientFilterFor($email, $account));
         } finally {
             $client->logout();
         }
@@ -189,10 +190,42 @@ class MailInboxService
 
         return preg_replace('/^www\./', '', $parts[1]) ?? '';
     }
+
+    /**
+     * When the configured IMAP username is a catchall account for the same domain,
+     * restrict visible messages to the business email that logged in.
+     *
+     * @param  array{username: string|null}  $account
+     */
+    private function recipientFilterFor(string $email, array $account): ?string
+    {
+        $username = mb_strtolower(trim((string) ($account['username'] ?? '')));
+
+        return $username !== $email ? $email : null;
+    }
+
+    private function accountEmailFilterMode(string $folder): string
+    {
+        return $folder === self::FOLDER_SENT ? SimpleImapClient::EMAIL_FILTER_SENDER : SimpleImapClient::EMAIL_FILTER_RECIPIENT;
+    }
 }
 
 class SimpleImapClient
 {
+    public const EMAIL_FILTER_RECIPIENT = 'recipient';
+
+    public const EMAIL_FILTER_SENDER = 'sender';
+
+    private const RECIPIENT_HEADERS = [
+        'To',
+        'Cc',
+        'Bcc',
+        'Delivered-To',
+        'X-Original-To',
+        'Envelope-To',
+        'Apparently-To',
+    ];
+
     /** @var resource|null */
     private $stream = null;
 
@@ -304,8 +337,19 @@ class SimpleImapClient
      *
      * @param  list<string>  $uids
      */
-    public function deleteMessages(array $uids, ?string $trashMailbox): void
+    public function deleteMessages(array $uids, ?string $trashMailbox, ?string $accountEmailFilter = null, string $accountEmailFilterMode = self::EMAIL_FILTER_RECIPIENT): void
     {
+        if ($accountEmailFilter !== null) {
+            $uids = array_values(array_filter(
+                $uids,
+                fn (string $uid): bool => $this->messageUidBelongsToEmail($uid, $accountEmailFilter, $accountEmailFilterMode),
+            ));
+        }
+
+        if ($uids === []) {
+            return;
+        }
+
         $uidSet = implode(',', $uids);
 
         if ($trashMailbox !== null) {
@@ -319,7 +363,7 @@ class SimpleImapClient
     /**
      * @return list<array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool}>
      */
-    public function latestMessages(int $limit): array
+    public function latestMessages(int $limit, ?string $accountEmailFilter = null, string $accountEmailFilterMode = self::EMAIL_FILTER_RECIPIENT): array
     {
         $searchLines = $this->command('UID SEARCH ALL');
         $uids = [];
@@ -332,11 +376,21 @@ class SimpleImapClient
             $uids = array_values(array_filter(preg_split('/\s+/', trim($matches[1] ?? '')) ?: []));
         }
 
-        $uids = array_slice(array_reverse($uids), 0, $limit);
+        $uids = array_reverse($uids);
         $messages = [];
 
         foreach ($uids as $uid) {
-            $messages[] = $this->fetchHeader($uid);
+            $message = $this->fetchHeader($uid, $accountEmailFilter, $accountEmailFilterMode);
+
+            if ($message === null) {
+                continue;
+            }
+
+            $messages[] = $message;
+
+            if (count($messages) >= $limit) {
+                break;
+            }
         }
 
         return $messages;
@@ -345,10 +399,14 @@ class SimpleImapClient
     /**
      * @return array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool, body: string, attachments: list<array{id: string, filename: string, content_type: string, size: int, is_image: bool}>, message_id: string, references: string}
      */
-    public function message(string $uid): array
+    public function message(string $uid, ?string $accountEmailFilter = null, string $accountEmailFilterMode = self::EMAIL_FILTER_RECIPIENT): array
     {
         $rawMessage = $this->fetchRawMessage($uid);
         [$rawHeaders, $rawBody] = $this->splitRawMessage($rawMessage);
+
+        if ($accountEmailFilter !== null && ! $this->messageBelongsToEmail($rawHeaders, $accountEmailFilter, $accountEmailFilterMode)) {
+            throw new RuntimeException('Pesan email tidak ditemukan.');
+        }
 
         $date = $this->headerValue($rawHeaders, 'Date') ?: '';
         $content = $this->messageContent($rawHeaders, $rawBody);
@@ -371,10 +429,15 @@ class SimpleImapClient
     /**
      * @return array{id: string, filename: string, content_type: string, size: int, is_image: bool, content: string}
      */
-    public function attachment(string $uid, string $attachmentId): array
+    public function attachment(string $uid, string $attachmentId, ?string $accountEmailFilter = null, string $accountEmailFilterMode = self::EMAIL_FILTER_RECIPIENT): array
     {
         $rawMessage = $this->fetchRawMessage($uid);
         [$rawHeaders, $rawBody] = $this->splitRawMessage($rawMessage);
+
+        if ($accountEmailFilter !== null && ! $this->messageBelongsToEmail($rawHeaders, $accountEmailFilter, $accountEmailFilterMode)) {
+            throw new RuntimeException('Attachment tidak ditemukan.');
+        }
+
         $content = $this->messageContent($rawHeaders, $rawBody, true);
 
         foreach ($content['attachments'] as $attachment) {
@@ -403,10 +466,14 @@ class SimpleImapClient
     /**
      * @return array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool}
      */
-    private function fetchHeader(string $uid): array
+    private function fetchHeader(string $uid, ?string $accountEmailFilter = null, string $accountEmailFilterMode = self::EMAIL_FILTER_RECIPIENT): ?array
     {
-        $lines = $this->command(sprintf('UID FETCH %s (UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM TO SUBJECT DATE)])', $uid));
+        $lines = $this->command(sprintf('UID FETCH %s (UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM TO CC BCC DELIVERED-TO X-ORIGINAL-TO ENVELOPE-TO APPARENTLY-TO SUBJECT DATE)])', $uid));
         $raw = implode("\n", $lines);
+
+        if ($accountEmailFilter !== null && ! $this->messageBelongsToEmail($raw, $accountEmailFilter, $accountEmailFilterMode)) {
+            return null;
+        }
 
         return [
             'uid' => $uid,
@@ -417,6 +484,18 @@ class SimpleImapClient
             'time' => $this->formatDate($this->headerValue($raw, 'Date') ?: ''),
             'unread' => ! str_contains($raw, '\\Seen'),
         ];
+    }
+
+    private function messageUidBelongsToEmail(string $uid, string $email, string $mode): bool
+    {
+        try {
+            $rawMessage = $this->fetchRawMessage($uid);
+            [$rawHeaders] = $this->splitRawMessage($rawMessage);
+
+            return $this->messageBelongsToEmail($rawHeaders, $email, $mode);
+        } catch (RuntimeException) {
+            return false;
+        }
     }
 
     private function fetchRawMessage(string $uid): string
@@ -771,6 +850,53 @@ class SimpleImapClient
         }
 
         return trim(preg_replace('/\n[ \t]+/', ' ', $matches[1]));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function headerValues(string $raw, string $header): array
+    {
+        if (preg_match_all('/^'.preg_quote($header, '/').':\s*(.+(?:\n[ \t].+)*)/mi', $raw, $matches) !== false) {
+            return array_values(array_map(
+                static fn (string $value): string => trim(preg_replace('/\n[ \t]+/', ' ', $value) ?? $value),
+                $matches[1] ?? [],
+            ));
+        }
+
+        return [];
+    }
+
+    private function messageBelongsToEmail(string $rawHeaders, string $email, string $mode): bool
+    {
+        $email = mb_strtolower(trim($email));
+
+        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return false;
+        }
+
+        $headers = $mode === self::EMAIL_FILTER_SENDER ? ['From'] : self::RECIPIENT_HEADERS;
+
+        foreach ($headers as $header) {
+            foreach ($this->headerValues($rawHeaders, $header) as $headerValue) {
+                if ($this->headerContainsEmail($headerValue, $email)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function headerContainsEmail(string $headerValue, string $email): bool
+    {
+        if (preg_match_all('/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i', $headerValue, $matches) === false) {
+            return false;
+        }
+
+        return collect($matches[0] ?? [])
+            ->map(static fn (string $matchedEmail): string => mb_strtolower(trim($matchedEmail)))
+            ->contains($email);
     }
 
     private function decodeHeader(string $value): string

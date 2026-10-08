@@ -1,8 +1,9 @@
 @extends('layouts.main')
 
-@section('title', 'Email Compose')
+@section('title', ($mailFeatureTitle ?? 'Email').' Compose')
 
 @section('css')
+    @include('mail.partials.account-selector-styles')
     <style>
         .mail-selected-files {
             border: 1px solid var(--bs-border-color);
@@ -18,15 +19,22 @@
     </style>
 @endsection
 
-@section('navbarTitle', 'Email')
+@section('navbarTitle', $mailFeatureTitle ?? 'Email')
 
 @section('content')
 
+@php
+    $mailFeatureTitle = $mailFeatureTitle ?? 'Email';
+    $mailRoutePrefix = $mailRoutePrefix ?? 'applicant.email';
+@endphp
+
 @include('layouts.breadcrumb', [
-    'title' => 'Email',
+    'title' => $mailFeatureTitle,
     'current' => 'Compose',
     'homeRoute' => 'dashboard',
 ])
+
+@include('mail.partials.summary-cards')
 
 <div class="card border-0 mb-0 h-auto">
     <div class="card-body p-0">
@@ -49,7 +57,7 @@
                                 @include('partials.swal-alert', ['type' => 'error', 'message' => implode("\n", $errors->all())])
                             @endif
 
-                            <form action="{{ route('applicant.email.send') }}" method="POST" enctype="multipart/form-data">
+                            <form action="{{ route($mailRoutePrefix.'.send') }}" method="POST" enctype="multipart/form-data">
                                 @csrf
                                 <div class="row">
                                     <div class="col-sm-12 mb-3">
@@ -67,7 +75,7 @@
                                         <div class="mail-selected-files d-none mt-2" data-mail-attachment-list></div>
                                     </div>
                                     <div class="col-sm-12 mt-2">
-                                        <a href="{{ route('applicant.email.inbox') }}" class="btn btn-danger light"><i class="fa fa-times"></i> Discard</a>
+                                        <a href="{{ route($mailRoutePrefix.'.inbox') }}" class="btn btn-danger light"><i class="fa fa-times"></i> Discard</a>
                                         <button class="btn btn-primary ms-2" type="submit"><i class="fa fa-paper-plane"></i> Send</button>
                                     </div>
                                 </div>
@@ -83,6 +91,7 @@
 @endsection
 
 @section('script')
+    @include('mail.partials.account-selector-script')
     <script>
         document.querySelectorAll('[data-mail-attachment-input]').forEach((input) => {
             const form = input.closest('form');

@@ -206,7 +206,7 @@ class RnbStaffSeederTest extends TestCase
             ->get([
                 'companies.name as company_name',
                 'users.username',
-                'users.business_email',
+                'users.email',
             ]);
 
         $this->assertCount(7, $administratorRows);
@@ -215,7 +215,7 @@ class RnbStaffSeederTest extends TestCase
             ->mapWithKeys(fn (object $assignment): array => [
                 (string) $assignment->company_name => [
                     'username' => (string) $assignment->username,
-                    'business_email' => (string) $assignment->business_email,
+                    'email' => (string) $assignment->email,
                 ],
             ])
             ->all();
@@ -223,31 +223,31 @@ class RnbStaffSeederTest extends TestCase
         $this->assertSame([
             'AndalanKu' => [
                 'username' => 'admin1',
-                'business_email' => 'admin1@andalanku.local',
+                'email' => 'admin1@gmail.com',
             ],
             'KMA' => [
                 'username' => 'admin2',
-                'business_email' => 'admin2@kma.local',
+                'email' => 'admin2@gmail.com',
             ],
             'Niskala' => [
                 'username' => 'admin4',
-                'business_email' => 'admin4@niskala.local',
+                'email' => 'admin4@gmail.com',
             ],
             'RNB' => [
                 'username' => 'admin3',
-                'business_email' => 'admin3@rnb.local',
+                'email' => 'admin3@gmail.com',
             ],
             'RNE' => [
                 'username' => 'admin5',
-                'business_email' => 'admin5@rne.local',
+                'email' => 'admin5@gmail.com',
             ],
             'TMS' => [
                 'username' => 'admin6',
-                'business_email' => 'admin6@tms.local',
+                'email' => 'admin6@gmail.com',
             ],
             'Trah' => [
                 'username' => 'admin7',
-                'business_email' => 'admin7@trah.local',
+                'email' => 'admin7@gmail.com',
             ],
         ], $administratorAssignments);
     }

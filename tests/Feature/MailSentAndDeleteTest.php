@@ -34,6 +34,7 @@ class MailSentAndDeleteTest extends TestCase
 
         $this->mailAccount = MailAccessAccount::query()->create([
             'email' => 'hr@example.test',
+            'type' => MailAccessAccount::TYPE_DEPARTMENT,
             'pin' => Hash::make('1234'),
             'is_active' => true,
         ]);
@@ -123,11 +124,11 @@ class MailSentAndDeleteTest extends TestCase
         $response->assertSessionHasErrors(['mail' => 'Email belum bisa dihapus. Coba refresh lalu ulangi.']);
     }
 
-    public function test_delete_requires_mail_login(): void
+    public function test_delete_requires_selected_mail_account(): void
     {
         $this->actingAs($this->createSuperAdministratorUser())
             ->post(route('applicant.email.destroy'), ['folder' => 'inbox', 'uids' => ['5']])
-            ->assertRedirect(route('applicant.email.index'));
+            ->assertRedirect(route('applicant.email.inbox'));
 
         $this->assertSame([], $this->mailInbox->calls);
     }

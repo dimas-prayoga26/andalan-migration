@@ -1,8 +1,9 @@
 @extends('layouts.main')
 
-@section('title', 'Email Read')
+@section('title', ($mailFeatureTitle ?? 'Email').' Read')
 
 @section('css')
+    @include('mail.partials.account-selector-styles')
     <style>
         .mail-attachments {
             display: grid;
@@ -60,24 +61,28 @@
     </style>
 @endsection
 
-@section('navbarTitle', 'Email')
+@section('navbarTitle', $mailFeatureTitle ?? 'Email')
 
 @section('content')
 
 @php
     $folder = $folder ?? 'inbox';
+    $mailFeatureTitle = $mailFeatureTitle ?? 'Email';
+    $mailRoutePrefix = $mailRoutePrefix ?? 'applicant.email';
     $isSentFolder = $folder === 'sent';
     $folderQuery = $isSentFolder ? ['folder' => 'sent'] : [];
 @endphp
 
 @include('layouts.breadcrumb', [
-    'title' => 'Email',
+    'title' => $mailFeatureTitle,
     'current' => 'Read',
     'homeRoute' => 'dashboard',
 ])
 
+@include('mail.partials.summary-cards')
+
 @if ($message)
-    <form method="POST" action="{{ route('applicant.email.destroy') }}" id="mail-delete-form" class="d-none"
+    <form method="POST" action="{{ route($mailRoutePrefix.'.destroy') }}" id="mail-delete-form" class="d-none"
         data-delete-confirmation-form
         data-delete-title="Hapus Email"
         data-delete-message="Email ini akan dihapus. Lanjutkan?"
@@ -162,7 +167,7 @@
                                             @foreach ($message['attachments'] as $attachment)
                                                 <div class="mail-attachment-item">
                                                     @if ($attachment['is_image'])
-                                                        <img src="{{ route('applicant.email.attachment', [$message['uid'], $attachment['id'], 'inline' => 1, ...$folderQuery]) }}" alt="{{ $attachment['filename'] }}" class="mail-attachment-preview mb-2">
+                                                        <img src="{{ route($mailRoutePrefix.'.attachment', [$message['uid'], $attachment['id'], 'inline' => 1, ...$folderQuery]) }}" alt="{{ $attachment['filename'] }}" class="mail-attachment-preview mb-2">
                                                     @else
                                                         <div class="d-flex align-items-center justify-content-center bg-light rounded mb-2" style="height: 120px;">
                                                             <i class="fa-regular fa-file fs-1 text-primary"></i>
@@ -170,7 +175,7 @@
                                                     @endif
                                                     <div class="fw-semibold text-break">{{ $attachment['filename'] }}</div>
                                                     <div class="small text-muted mb-2">{{ $attachment['content_type'] }} · {{ number_format($attachment['size'] / 1024, 1) }} KB</div>
-                                                    <a href="{{ route('applicant.email.attachment', [$message['uid'], $attachment['id'], ...$folderQuery]) }}" class="btn btn-primary btn-sm w-100">
+                                                    <a href="{{ route($mailRoutePrefix.'.attachment', [$message['uid'], $attachment['id'], ...$folderQuery]) }}" class="btn btn-primary btn-sm w-100">
                                                         <i class="fa fa-download me-1"></i> Download
                                                     </a>
                                                 </div>
@@ -183,7 +188,7 @@
                                     <button type="button" class="btn btn-secondary btn-sm" data-mail-reply-toggle><i class="fa-solid fa-reply"></i> Reply</button>
                                 </div>
                                 @if ($message)
-                                    <form action="{{ route('applicant.email.reply', [$message['uid'], ...$folderQuery]) }}" method="POST" enctype="multipart/form-data" id="mailReplyForm" class="{{ old('body') ? '' : 'd-none' }}">
+                                    <form action="{{ route($mailRoutePrefix.'.reply', [$message['uid'], ...$folderQuery]) }}" method="POST" enctype="multipart/form-data" id="mailReplyForm" class="{{ old('body') ? '' : 'd-none' }}">
                                         @csrf
                                         <div class="mail-reply-editor mb-3">
                                             <div class="mail-reply-target d-flex align-items-start gap-2">
@@ -220,6 +225,7 @@
 
 @section('script')
     @stack('scripts')
+    @include('mail.partials.account-selector-script')
     <script>
         document.querySelectorAll('[data-mail-reply-toggle]').forEach((button) => {
             button.addEventListener('click', () => {

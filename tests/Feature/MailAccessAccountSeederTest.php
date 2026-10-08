@@ -10,13 +10,17 @@ use Tests\TestCase;
 
 class MailAccessAccountSeederTest extends TestCase
 {
-    public function test_mail_access_accounts_are_seeded_from_inbox_config(): void
+    public function test_mail_access_accounts_are_seeded_without_backend_inbox_accounts(): void
     {
         $seeder = File::get(database_path('seeders/MailAccessAccountSeeder.php'));
         $databaseSeeder = File::get(database_path('seeders/DatabaseSeeder.php'));
 
         $this->assertStringContainsString('MailAccessAccount::query()->updateOrCreate', $seeder);
-        $this->assertStringContainsString("config('mail_inboxes.accounts', [])", $seeder);
+        $this->assertStringNotContainsString("config('mail_inboxes.accounts', [])", $seeder);
+        $this->assertStringNotContainsString('$configuredInboxEmails = MailAccessAccount::configuredInboxEmails();', $seeder);
+        $this->assertStringNotContainsString('$configuredInboxEmails->contains($email)', $seeder);
+        $this->assertStringContainsString('deleteCatchAllAccessAccounts', $seeder);
+        $this->assertStringContainsString('MailAccessAccount::catchAllInboxEmails()', $seeder);
         $this->assertStringContainsString('seedHrAccessAccounts', $seeder);
         $this->assertStringContainsString("['email' => 'hr@'.\$domain]", $seeder);
         $this->assertStringContainsString("'type' => MailAccessAccount::TYPE_APPLICANT_NOTIFICATION", $seeder);
@@ -24,7 +28,7 @@ class MailAccessAccountSeederTest extends TestCase
         $this->assertStringContainsString("base_path('users.sql')", $seeder);
         $this->assertStringContainsString("base_path('employees.sql')", $seeder);
         $this->assertStringContainsString('$this->legacyUserIsActive($user, $employeesByUserId)', $seeder);
-        $this->assertStringContainsString('Hash::make($this->pinFor((string) $accountKey))', $seeder);
+        $this->assertStringContainsString("Hash::make(\$this->pinFor('default'))", $seeder);
         $this->assertStringContainsString("'type' => MailAccessAccount::TYPE_PERSONAL", $seeder);
         $this->assertStringContainsString("env('MAIL_ACCESS_DEFAULT_PIN', '0000')", $seeder);
         $this->assertStringContainsString('/^[0-9]{4}$/', $seeder);

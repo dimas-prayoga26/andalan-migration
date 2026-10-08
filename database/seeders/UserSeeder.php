@@ -121,7 +121,6 @@ class UserSeeder extends Seeder
                 ['email' => 'superadmin@andalanbersama.com'],
                 [
                     'username' => 'superadmin',
-                    'business_email' => 'superadmin@andalanbersama.com',
                     'is_active' => true,
                     'password' => Hash::make('password'),
                 ],
@@ -150,7 +149,6 @@ class UserSeeder extends Seeder
                     ['email' => "director{$directorNumber}@gmail.com"],
                     [
                         'username' => "director{$directorNumber}",
-                        'business_email' => "director{$directorNumber}@{$this->resolveCompanyEmailDomain((string) $company->name)}",
                         'is_active' => true,
                         'password' => Hash::make('password'),
                     ],
@@ -170,7 +168,6 @@ class UserSeeder extends Seeder
                     ['email' => "supervisor{$directorNumber}@gmail.com"],
                     [
                         'username' => "supervisor{$directorNumber}",
-                        'business_email' => "supervisor{$directorNumber}@{$this->resolveCompanyEmailDomain((string) $company->name)}",
                         'is_active' => true,
                         'password' => Hash::make('password'),
                     ],
@@ -190,7 +187,6 @@ class UserSeeder extends Seeder
                     ['email' => "admin{$directorNumber}@gmail.com"],
                     [
                         'username' => "admin{$directorNumber}",
-                        'business_email' => "admin{$directorNumber}@{$this->resolveCompanyEmailDomain((string) $company->name)}",
                         'is_active' => true,
                         'password' => Hash::make('password'),
                     ],
@@ -215,7 +211,6 @@ class UserSeeder extends Seeder
                         ['email' => "staff{$directorNumber}{$staffIndex}@gmail.com"],
                         [
                             'username' => "staff{$directorNumber}{$staffIndex}",
-                            'business_email' => "staff{$directorNumber}{$staffIndex}@{$this->resolveCompanyEmailDomain((string) $company->name)}",
                             'is_active' => true,
                             'password' => Hash::make('password'),
                         ],

@@ -212,7 +212,6 @@ class LegacySqlUserSeeder extends Seeder
                 'company_id' => $this->currentSqlCompanyId($currentUser),
                 'username' => $this->nullIfEmpty($currentUser['username'] ?? null),
                 'phone' => $this->nullIfEmpty($currentUser['phone'] ?? null),
-                'business_email' => $this->nullIfEmpty($currentUser['business_email'] ?? null),
                 'email_token' => $this->nullIfEmpty($currentUser['email_token'] ?? null),
                 'password_token' => $this->nullIfEmpty($currentUser['password_token'] ?? null),
                 'email_verified_at' => $this->normalizeTimestamp($currentUser['email_verified_at'] ?? null),
@@ -310,7 +309,6 @@ class LegacySqlUserSeeder extends Seeder
         foreach ($this->currentSqlUserStatuses() as $email => $isActive) {
             User::query()
                 ->whereRaw('LOWER(email) = ?', [$email])
-                ->orWhereRaw('LOWER(COALESCE(business_email, "")) = ?', [$email])
                 ->get()
                 ->each(function (User $user) use ($isActive): void {
                     $user->forceFill(['is_active' => $isActive])->save();
@@ -594,7 +592,6 @@ class LegacySqlUserSeeder extends Seeder
                     'company_id' => $companyId,
                     'username' => $this->uniqueUsername($legacyUser),
                     'phone' => $this->nullIfEmpty($legacyUser['phone']),
-                    'business_email' => $email,
                     'password' => Hash::make('password'),
                     'is_active' => $isActive,
                     'created_at' => $this->normalizeTimestamp($legacyUser['created_at']) ?? $now,
@@ -670,7 +667,6 @@ class LegacySqlUserSeeder extends Seeder
                 [
                     'company_id' => $companyId,
                     'username' => $userData['username'],
-                    'business_email' => $userData['email'],
                     'password' => Hash::make('password'),
                     'is_active' => true,
                     'deleted_at' => null,
@@ -1677,7 +1673,6 @@ class LegacySqlUserSeeder extends Seeder
             [
                 'company_id' => $companyId,
                 'username' => 'superadmin',
-                'business_email' => 'superadmin@andalanbersama.com',
                 'password' => Hash::make('password'),
                 'is_active' => true,
                 'deleted_at' => null,
@@ -1817,6 +1812,7 @@ class LegacySqlUserSeeder extends Seeder
             'view-talent-acquisition',
             'view-settings',
             'view-meeting',
+            'view-business-email',
         ];
     }
 
@@ -1861,6 +1857,7 @@ class LegacySqlUserSeeder extends Seeder
                 'view-attendance',
                 'view-timesheet-reporting',
                 'view-meeting',
+                'view-business-email',
             ]);
     }
 }

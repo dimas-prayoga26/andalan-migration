@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\MailAccessAccount;
+use App\Models\Position;
+use App\Models\User;
 use App\Services\MailInboxService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -18,33 +21,67 @@ class MailController extends Controller
 {
     private const SESSION_KEY = 'mail_access_account_id';
 
+    private const SESSION_SELECTED_KEY = 'mail_access_account_selected';
+
+    private const BUSINESS_SESSION_KEY = 'business_mail_access_account_id';
+
+    private const BUSINESS_SESSION_SELECTED_KEY = 'business_mail_access_account_selected';
+
+    private const OPERATIONAL_ROUTE_PREFIX = 'applicant.email';
+
+    private const BUSINESS_ROUTE_PREFIX = 'business-email';
+
     public function index(Request $request): View|RedirectResponse
     {
-        if ($this->currentAccount($request) !== null) {
-            return redirect()->route('applicant.email.inbox');
+        $this->authorizeMailFeatureAccess($request);
+        $this->forgetSelectedAccount($request);
+
+        return redirect()->route($this->routeName($request, 'inbox'));
+    }
+
+    public function selectAccount(Request $request): RedirectResponse
+    {
+        $this->authorizeMailFeatureAccess($request);
+
+        $validated = $request->validate([
+            'mail_access_account_id' => ['required', 'integer'],
+            'folder' => ['nullable', 'string', Rule::in(MailInboxService::FOLDERS)],
+        ]);
+
+        $account = $this->availableAccountQuery($request)
+            ->whereKey((int) $validated['mail_access_account_id'])
+            ->first();
+
+        if ($account === null) {
+            return back()->withErrors(['mail' => 'Email account tidak bisa diakses.']);
         }
 
-        return view('mail.index', [
-            'pendingEmail' => session('mail_pending_email'),
-        ]);
+        $account->forceFill(['last_login_at' => now()])->save();
+        $request->session()->put($this->sessionKey($request), $account->id);
+        $request->session()->put($this->selectionSessionKey($request), true);
+
+        $folder = (string) ($validated['folder'] ?? MailInboxService::FOLDER_INBOX);
+
+        return redirect()->route($this->folderRouteName($request, $folder));
     }
 
     public function checkEmail(Request $request): RedirectResponse
     {
+        $this->authorizeMailFeatureAccess($request);
+
         $validated = $request->validate([
             'email' => ['required', 'email', 'max:255'],
         ]);
 
         $email = $this->normalizeEmail((string) $validated['email']);
 
-        $accountExists = MailAccessAccount::query()
+        $accountExists = $this->availableAccountQuery($request)
             ->where('email', $email)
-            ->where('is_active', true)
             ->exists();
 
         if (! $accountExists) {
             return back()
-                ->withErrors(['email' => 'Email tidak terdaftar atau belum aktif.'])
+                ->withErrors(['email' => 'Email tidak terdaftar.'])
                 ->withInput(['email' => $email]);
         }
 
@@ -55,6 +92,8 @@ class MailController extends Controller
 
     public function authenticate(Request $request): RedirectResponse
     {
+        $this->authorizeMailFeatureAccess($request);
+
         $validated = $request->validate([
             'email' => ['required', 'email', 'max:255'],
             'pin_digits' => ['required', 'array', 'size:4'],
@@ -64,9 +103,8 @@ class MailController extends Controller
         $email = $this->normalizeEmail((string) $validated['email']);
         $pin = implode('', $validated['pin_digits']);
 
-        $account = MailAccessAccount::query()
+        $account = $this->availableAccountQuery($request)
             ->where('email', $email)
-            ->where('is_active', true)
             ->first();
 
         if (! $account?->pinMatches($pin)) {
@@ -79,9 +117,10 @@ class MailController extends Controller
         $account->ensurePinIsHashed($pin);
         $account->forceFill(['last_login_at' => now()])->save();
 
-        $request->session()->put(self::SESSION_KEY, $account->id);
+        $request->session()->put($this->sessionKey($request), $account->id);
+        $request->session()->put($this->selectionSessionKey($request), true);
 
-        return redirect()->route('applicant.email.inbox');
+        return redirect()->route($this->routeName($request, 'inbox'));
     }
 
     public function inbox(Request $request, MailInboxService $mailInbox): View|RedirectResponse
@@ -96,10 +135,14 @@ class MailController extends Controller
 
     public function destroy(Request $request, MailInboxService $mailInbox): RedirectResponse
     {
+        $this->authorizeMailFeatureAccess($request);
+
         $account = $this->currentAccount($request);
 
         if ($account === null) {
-            return redirect()->route('applicant.email.index');
+            return redirect()
+                ->route($this->routeName($request, 'inbox'))
+                ->withErrors(['mail' => 'Pilih email account terlebih dahulu.']);
         }
 
         $validated = $request->validate([
@@ -119,34 +162,42 @@ class MailController extends Controller
             report($exception);
 
             return redirect()
-                ->route($this->folderRouteName($folder))
+                ->route($this->folderRouteName($request, $folder))
                 ->withErrors(['mail' => 'Email belum bisa dihapus. Coba refresh lalu ulangi.']);
         }
 
         return redirect()
-            ->route($this->folderRouteName($folder))
+            ->route($this->folderRouteName($request, $folder))
             ->with('mail_status', count($uids).' email berhasil dihapus.');
     }
 
     public function compose(Request $request): View|RedirectResponse
     {
+        $this->authorizeMailFeatureAccess($request);
+
         $account = $this->currentAccount($request);
 
         if ($account === null) {
-            return redirect()->route('applicant.email.index');
+            return redirect()
+                ->route($this->routeName($request, 'inbox'))
+                ->withErrors(['mail' => 'Pilih email account terlebih dahulu sebelum compose.']);
         }
 
-        return view('mail.compose', [
+        return view('mail.compose', $this->mailViewData($request, [
             'account' => $account,
-        ]);
+        ]));
     }
 
     public function send(Request $request, MailInboxService $mailInbox): RedirectResponse
     {
+        $this->authorizeMailFeatureAccess($request);
+
         $account = $this->currentAccount($request);
 
         if ($account === null) {
-            return redirect()->route('applicant.email.index');
+            return redirect()
+                ->route($this->routeName($request, 'inbox'))
+                ->withErrors(['mail' => 'Pilih email account terlebih dahulu sebelum mengirim email.']);
         }
 
         $validated = $request->validate([
@@ -176,22 +227,26 @@ class MailController extends Controller
         $this->storeSentCopy($mailInbox, $account, $sentMessage);
 
         return redirect()
-            ->route('applicant.email.sent')
+            ->route($this->routeName($request, 'sent'))
             ->with('mail_status', 'Email berhasil dikirim.');
     }
 
     public function read(Request $request, MailInboxService $mailInbox, ?string $uid = null): View|RedirectResponse
     {
+        $this->authorizeMailFeatureAccess($request);
+
         $account = $this->currentAccount($request);
 
         if ($account === null) {
-            return redirect()->route('applicant.email.index');
+            return redirect()
+                ->route($this->routeName($request, 'inbox'))
+                ->withErrors(['mail' => 'Pilih email account terlebih dahulu.']);
         }
 
         $folder = $this->folderFromRequest($request);
 
         if ($uid === null) {
-            return redirect()->route($this->folderRouteName($folder));
+            return redirect()->route($this->folderRouteName($request, $folder));
         }
 
         $message = null;
@@ -204,21 +259,25 @@ class MailController extends Controller
             $readError = 'Pesan email belum bisa dibuka. Coba refresh inbox lalu klik ulang pesan.';
         }
 
-        return view('mail.read', [
+        return view('mail.read', $this->mailViewData($request, [
             'account' => $account,
             'folder' => $folder,
             'message' => $message,
             'readError' => $readError,
             'replyTo' => $message ? $this->replyRecipient($message, $folder) : null,
-        ]);
+        ]));
     }
 
     public function reply(Request $request, MailInboxService $mailInbox, string $uid): RedirectResponse
     {
+        $this->authorizeMailFeatureAccess($request);
+
         $account = $this->currentAccount($request);
 
         if ($account === null) {
-            return redirect()->route('applicant.email.index');
+            return redirect()
+                ->route($this->routeName($request, 'inbox'))
+                ->withErrors(['mail' => 'Pilih email account terlebih dahulu sebelum membalas email.']);
         }
 
         $validated = $request->validate([
@@ -261,16 +320,20 @@ class MailController extends Controller
         $this->storeSentCopy($mailInbox, $account, $sentMessage);
 
         return redirect()
-            ->route('applicant.email.read', $this->readRouteParameters($uid, $folder))
+            ->route($this->routeName($request, 'read'), $this->readRouteParameters($uid, $folder))
             ->with('mail_status', 'Balasan berhasil dikirim.');
     }
 
     public function attachment(Request $request, MailInboxService $mailInbox, string $uid, string $attachment): Response|RedirectResponse
     {
+        $this->authorizeMailFeatureAccess($request);
+
         $account = $this->currentAccount($request);
 
         if ($account === null) {
-            return redirect()->route('applicant.email.index');
+            return redirect()
+                ->route($this->routeName($request, 'inbox'))
+                ->withErrors(['mail' => 'Pilih email account terlebih dahulu.']);
         }
 
         try {
@@ -293,23 +356,136 @@ class MailController extends Controller
 
     public function logout(Request $request): RedirectResponse
     {
-        $request->session()->forget(self::SESSION_KEY);
+        $this->forgetSelectedAccount($request);
 
-        return redirect()->route('applicant.email.index');
+        return redirect()->route($this->routeName($request, 'index'));
     }
 
     private function currentAccount(Request $request): ?MailAccessAccount
     {
-        $accountId = $request->session()->get(self::SESSION_KEY);
+        if ($request->session()->get($this->selectionSessionKey($request), false) !== true) {
+            return null;
+        }
+
+        $accountId = $request->session()->get($this->sessionKey($request));
 
         if (! is_numeric($accountId)) {
             return null;
         }
 
-        return MailAccessAccount::query()
+        return $this->availableAccountQuery($request)
             ->whereKey((int) $accountId)
-            ->where('is_active', true)
             ->first();
+    }
+
+    private function authorizeMailFeatureAccess(Request $request): void
+    {
+        $user = $request->user();
+
+        abort_unless($user instanceof User, 403);
+
+        if ($this->isBusinessEmailRoute($request)) {
+            abort_unless(
+                ! $this->isAdminOrSuperAdministrator($user)
+                && $user->employee !== null
+                && $user->hasAnyPositionPermission(['view-business-email']),
+                403
+            );
+
+            return;
+        }
+
+        abort_unless($user->hasAnyPositionPermission(['view-email-management']), 403);
+    }
+
+    private function availableAccountQuery(Request $request): Builder
+    {
+        $query = MailAccessAccount::query()
+            ->visibleForMailAccess()
+            ->active();
+
+        if ($this->isBusinessEmailRoute($request)) {
+            $employeeId = $request->user()?->employee?->id;
+
+            return $query
+                ->where('type', MailAccessAccount::TYPE_PERSONAL)
+                ->where('employee_id', $employeeId);
+        }
+
+        return $query->where('type', '!=', MailAccessAccount::TYPE_PERSONAL);
+    }
+
+    private function isBusinessEmailRoute(Request $request): bool
+    {
+        return $request->routeIs(self::BUSINESS_ROUTE_PREFIX.'.*');
+    }
+
+    private function routePrefix(Request $request): string
+    {
+        return $this->isBusinessEmailRoute($request)
+            ? self::BUSINESS_ROUTE_PREFIX
+            : self::OPERATIONAL_ROUTE_PREFIX;
+    }
+
+    private function routeName(Request $request, string $name): string
+    {
+        return $this->routePrefix($request).'.'.$name;
+    }
+
+    private function sessionKey(Request $request): string
+    {
+        return $this->isBusinessEmailRoute($request)
+            ? self::BUSINESS_SESSION_KEY
+            : self::SESSION_KEY;
+    }
+
+    private function selectionSessionKey(Request $request): string
+    {
+        return $this->isBusinessEmailRoute($request)
+            ? self::BUSINESS_SESSION_SELECTED_KEY
+            : self::SESSION_SELECTED_KEY;
+    }
+
+    private function forgetSelectedAccount(Request $request): void
+    {
+        $request->session()->forget([
+            $this->sessionKey($request),
+            $this->selectionSessionKey($request),
+        ]);
+    }
+
+    private function mailFeatureTitle(Request $request): string
+    {
+        return $this->isBusinessEmailRoute($request) ? 'Business Email' : 'Email';
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function mailViewData(Request $request, array $data = []): array
+    {
+        $selectedAccount = ($data['account'] ?? null) instanceof MailAccessAccount
+            ? $data['account']
+            : $this->currentAccount($request);
+
+        return array_merge($data, [
+            'mailFeatureTitle' => $this->mailFeatureTitle($request),
+            'mailRoutePrefix' => $this->routePrefix($request),
+            'mailAccounts' => $this->availableAccountQuery($request)
+                ->orderBy('email')
+                ->get(['id', 'email', 'type', 'company_id', 'employee_id']),
+            'selectedMailAccountId' => $selectedAccount?->id,
+        ]);
+    }
+
+    private function isAdminOrSuperAdministrator(User $user): bool
+    {
+        if ($user->isSuperAdministrator()) {
+            return true;
+        }
+
+        return $user->employee?->hasAnyPositionSystemKey([Position::KEY_ADMINISTRATOR]) ?? false;
     }
 
     private function normalizeEmail(string $email): string
@@ -362,23 +538,23 @@ class MailController extends Controller
 
     private function mailboxView(Request $request, MailInboxService $mailInbox, string $folder): View|RedirectResponse
     {
-        $account = $this->currentAccount($request);
+        $this->authorizeMailFeatureAccess($request);
 
-        if ($account === null) {
-            return redirect()->route('applicant.email.index');
-        }
+        $account = $this->currentAccount($request);
 
         $messages = [];
         $inboxError = null;
         $searchQuery = trim((string) $request->query('search', ''));
 
-        try {
-            $messages = $mailInbox->messagesFor($account->email, folder: $folder);
-        } catch (Throwable $exception) {
-            report($exception);
-            $inboxError = $folder === MailInboxService::FOLDER_SENT
-                ? 'Email terkirim belum bisa diambil. Pastikan IMAP aktif untuk email ini.'
-                : 'Inbox belum bisa diambil. Pastikan IMAP aktif untuk email ini.';
+        if ($account !== null) {
+            try {
+                $messages = $mailInbox->messagesFor($account->email, folder: $folder);
+            } catch (Throwable $exception) {
+                report($exception);
+                $inboxError = $folder === MailInboxService::FOLDER_SENT
+                    ? 'Email terkirim belum bisa diambil. Pastikan IMAP aktif untuk email ini.'
+                    : 'Inbox belum bisa diambil. Pastikan IMAP aktif untuk email ini.';
+            }
         }
 
         $totalInboxCount = count($messages);
@@ -387,14 +563,14 @@ class MailController extends Controller
             $messages = $this->filterMessages($messages, $searchQuery);
         }
 
-        return view('mail.inbox', [
+        return view('mail.inbox', $this->mailViewData($request, [
             'account' => $account,
             'folder' => $folder,
             'inboxError' => $inboxError,
             'messages' => $messages,
             'searchQuery' => $searchQuery,
             'totalInboxCount' => $totalInboxCount,
-        ]);
+        ]));
     }
 
     private function folderFromRequest(Request $request): string
@@ -404,9 +580,11 @@ class MailController extends Controller
         return in_array($folder, MailInboxService::FOLDERS, true) ? $folder : MailInboxService::FOLDER_INBOX;
     }
 
-    private function folderRouteName(string $folder): string
+    private function folderRouteName(Request $request, string $folder): string
     {
-        return $folder === MailInboxService::FOLDER_SENT ? 'applicant.email.sent' : 'applicant.email.inbox';
+        return $folder === MailInboxService::FOLDER_SENT
+            ? $this->routeName($request, 'sent')
+            : $this->routeName($request, 'inbox');
     }
 
     /**

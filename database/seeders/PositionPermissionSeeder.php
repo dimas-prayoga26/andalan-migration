@@ -51,7 +51,9 @@ class PositionPermissionSeeder extends Seeder
             ['section' => 'Siap', 'label' => 'Attendance', 'permission' => 'view-attendance'],
             ['section' => 'Siap', 'label' => 'Timesheet & Reporting', 'permission' => 'view-timesheet-reporting'],
             ['section' => 'Siap', 'label' => 'Zoom Meeting', 'permission' => 'view-meeting'],
+            ['section' => 'Siap', 'label' => 'Business Email', 'permission' => 'view-business-email'],
             ['section' => 'HR Management', 'label' => 'Admin Attendance', 'permission' => 'view-admin-attendance'],
+            ['section' => 'HR Management', 'label' => 'Email Management', 'permission' => 'view-email-management'],
             ['section' => 'HR Management', 'label' => 'PIC', 'permission' => 'view-pic-attendance'],
             ['section' => 'HR Management', 'label' => 'Director', 'permission' => 'view-director-attendance'],
             ['section' => 'HR Management', 'label' => 'Organization', 'permission' => 'view-organization'],
@@ -92,6 +94,7 @@ class PositionPermissionSeeder extends Seeder
             'view-attendance',
             'view-timesheet-reporting',
             'view-meeting',
+            'view-business-email',
         ];
 
         $allPermissionsWithoutPic = $permissions
@@ -106,6 +109,7 @@ class PositionPermissionSeeder extends Seeder
             'view-attendance',
             'view-timesheet-reporting',
             'view-meeting',
+            'view-business-email',
             'view-organization',
             'view-authorization',
             'view-employee-database',

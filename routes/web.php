@@ -12,6 +12,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceOvertimeController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceTaskController;
+use App\Http\Controllers\EmailManagementController;
 use App\Http\Controllers\EmployeeDataController;
 use App\Http\Controllers\GoogleDriveOAuthController;
 use App\Http\Controllers\HrMeetingController;
@@ -100,23 +101,45 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/applicant/job-vacancies/{jobVacancy}/edit', [TalentAcquisitionController::class, 'editJobVacancy'])->name('applicant.job_vacancies.edit');
         Route::patch('/applicant/job-vacancies/{jobVacancy}', [TalentAcquisitionController::class, 'updateJobVacancy'])->name('applicant.job_vacancies.update');
         Route::delete('/applicant/job-vacancies/{jobVacancy}', [TalentAcquisitionController::class, 'destroyJobVacancy'])->name('applicant.job_vacancies.destroy');
-        Route::get('/applicant/email', [MailController::class, 'index'])->name('applicant.email.index');
-        Route::post('/applicant/email/check', [MailController::class, 'checkEmail'])->name('applicant.email.check');
-        Route::post('/applicant/email/login', [MailController::class, 'authenticate'])->name('applicant.email.login');
-        Route::get('/applicant/email/inbox', [MailController::class, 'inbox'])->name('applicant.email.inbox');
-        Route::get('/applicant/email/sent', [MailController::class, 'sent'])->name('applicant.email.sent');
-        Route::post('/applicant/email/delete', [MailController::class, 'destroy'])->name('applicant.email.destroy');
-        Route::get('/applicant/email/compose', [MailController::class, 'compose'])->name('applicant.email.compose');
-        Route::post('/applicant/email/send', [MailController::class, 'send'])->name('applicant.email.send');
-        Route::get('/applicant/email/read/{uid}/attachments/{attachment}', [MailController::class, 'attachment'])->whereNumber('uid')->whereNumber('attachment')->name('applicant.email.attachment');
-        Route::post('/applicant/email/read/{uid}/reply', [MailController::class, 'reply'])->whereNumber('uid')->name('applicant.email.reply');
-        Route::get('/applicant/email/read/{uid?}', [MailController::class, 'read'])->whereNumber('uid')->name('applicant.email.read');
-        Route::post('/applicant/email/logout', [MailController::class, 'logout'])->name('applicant.email.logout');
+        Route::middleware('position.permission:view-email-management')->group(function (): void {
+            Route::get('/applicant/email', [MailController::class, 'index'])->name('applicant.email.index');
+            Route::post('/applicant/email/select', [MailController::class, 'selectAccount'])->name('applicant.email.select');
+            Route::post('/applicant/email/check', [MailController::class, 'checkEmail'])->name('applicant.email.check');
+            Route::post('/applicant/email/login', [MailController::class, 'authenticate'])->name('applicant.email.login');
+            Route::get('/applicant/email/inbox', [MailController::class, 'inbox'])->name('applicant.email.inbox');
+            Route::get('/applicant/email/sent', [MailController::class, 'sent'])->name('applicant.email.sent');
+            Route::post('/applicant/email/delete', [MailController::class, 'destroy'])->name('applicant.email.destroy');
+            Route::get('/applicant/email/compose', [MailController::class, 'compose'])->name('applicant.email.compose');
+            Route::post('/applicant/email/send', [MailController::class, 'send'])->name('applicant.email.send');
+            Route::get('/applicant/email/read/{uid}/attachments/{attachment}', [MailController::class, 'attachment'])->whereNumber('uid')->whereNumber('attachment')->name('applicant.email.attachment');
+            Route::post('/applicant/email/read/{uid}/reply', [MailController::class, 'reply'])->whereNumber('uid')->name('applicant.email.reply');
+            Route::get('/applicant/email/read/{uid?}', [MailController::class, 'read'])->whereNumber('uid')->name('applicant.email.read');
+            Route::post('/applicant/email/logout', [MailController::class, 'logout'])->name('applicant.email.logout');
+        });
         Route::patch('/applicant/{applicant}/status', [TalentAcquisitionController::class, 'updateApplicantStatus'])->name('applicant.status.update');
         Route::get('/applicant/{applicant}/assessment', [TalentAcquisitionController::class, 'showApplicantAssessment'])->name('applicant.assessment');
         Route::get('/applicant/{applicant}', [TalentAcquisitionController::class, 'showApplicant'])->name('applicant.show');
         Route::delete('/applicant/{applicant}', [TalentAcquisitionController::class, 'destroyApplicant'])->name('applicant.destroy');
     });
+
+    Route::middleware('position.permission:view-business-email')
+        ->prefix('business-email')
+        ->name('business-email.')
+        ->group(function (): void {
+            Route::get('/', [MailController::class, 'index'])->name('index');
+            Route::post('/select', [MailController::class, 'selectAccount'])->name('select');
+            Route::post('/check', [MailController::class, 'checkEmail'])->name('check');
+            Route::post('/login', [MailController::class, 'authenticate'])->name('login');
+            Route::get('/inbox', [MailController::class, 'inbox'])->name('inbox');
+            Route::get('/sent', [MailController::class, 'sent'])->name('sent');
+            Route::post('/delete', [MailController::class, 'destroy'])->name('destroy');
+            Route::get('/compose', [MailController::class, 'compose'])->name('compose');
+            Route::post('/send', [MailController::class, 'send'])->name('send');
+            Route::get('/read/{uid}/attachments/{attachment}', [MailController::class, 'attachment'])->whereNumber('uid')->whereNumber('attachment')->name('attachment');
+            Route::post('/read/{uid}/reply', [MailController::class, 'reply'])->whereNumber('uid')->name('reply');
+            Route::get('/read/{uid?}', [MailController::class, 'read'])->whereNumber('uid')->name('read');
+            Route::post('/logout', [MailController::class, 'logout'])->name('logout');
+        });
 
     // Employee
     Route::middleware('position.permission:view-organization,view-employee-database')->group(function (): void {
@@ -145,6 +168,21 @@ Route::middleware('auth')->group(function (): void {
         Route::delete('/authorization/{employee}', [AuthorizationController::class, 'destroy'])->name('authorization.destroy');
 
     });
+
+    // Email Management
+    Route::middleware('position.permission:view-email-management')
+        ->prefix('email-management')
+        ->name('email-management.')
+        ->group(function (): void {
+            Route::get('/', [EmailManagementController::class, 'index'])->name('index');
+            Route::post('/accounts', [EmailManagementController::class, 'storeAccount'])->name('accounts.store');
+            Route::patch('/accounts/{mailAccessAccount}', [EmailManagementController::class, 'updateAccount'])->name('accounts.update');
+            Route::delete('/accounts/{mailAccessAccount}', [EmailManagementController::class, 'destroyAccount'])->name('accounts.destroy');
+            Route::post('/takeovers', [EmailManagementController::class, 'storeTakeover'])->name('takeovers.store');
+            Route::patch('/takeovers/{mailAccountTakeover}', [EmailManagementController::class, 'updateTakeover'])->name('takeovers.update');
+            Route::patch('/takeovers/{mailAccountTakeover}/revoke', [EmailManagementController::class, 'revokeTakeover'])->name('takeovers.revoke');
+            Route::delete('/takeovers/{mailAccountTakeover}', [EmailManagementController::class, 'destroyTakeover'])->name('takeovers.destroy');
+        });
 
     // Settings
     Route::middleware('position.permission:view-settings')->prefix('settings')->name('settings.')->group(function (): void {

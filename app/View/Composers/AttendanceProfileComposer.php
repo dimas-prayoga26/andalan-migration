@@ -138,9 +138,7 @@ class AttendanceProfileComposer
             $profileData['profilePicturePath'] = $profilePicturePath;
         }
 
-        if (is_string($authenticatedUser->business_email) && trim($authenticatedUser->business_email) !== '') {
-            $profileData['profileBusinessEmail'] = trim($authenticatedUser->business_email);
-        } elseif (is_string($authenticatedUser->email) && trim($authenticatedUser->email) !== '') {
+        if (is_string($authenticatedUser->email) && trim($authenticatedUser->email) !== '') {
             $profileData['profileBusinessEmail'] = trim($authenticatedUser->email);
         }
 

@@ -1,8 +1,9 @@
 @extends('layouts.main')
 
-@section('title', 'Email')
+@section('title', $mailFeatureTitle ?? 'Email')
 
 @section('css')
+    @include('mail.partials.account-selector-styles')
     <style>
         .mail-list-clean .message {
             min-height: 56px;
@@ -41,6 +42,18 @@
             background: #f8f9fa;
         }
 
+        .mail-empty-info {
+            align-items: center;
+            display: inline-flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .mail-empty-info i {
+            color: var(--bs-primary);
+            font-size: 16px;
+        }
+
         @media (max-width: 991.98px) {
             .mail-list-clean .message .email-hader,
             .mail-list-clean .message .email-subject,
@@ -63,28 +76,36 @@
     </style>
 @endsection
 
-@section('navbarTitle', 'Email')
+@section('navbarTitle', $mailFeatureTitle ?? 'Email')
 
 @section('content')
 
 @php
+    $account = $account ?? null;
     $folder = $folder ?? 'inbox';
+    $mailFeatureTitle = $mailFeatureTitle ?? 'Email';
+    $mailRoutePrefix = $mailRoutePrefix ?? 'applicant.email';
     $isSentFolder = $folder === 'sent';
-    $folderRoute = $isSentFolder ? 'applicant.email.sent' : 'applicant.email.inbox';
+    $folderRoute = $isSentFolder ? $mailRoutePrefix.'.sent' : $mailRoutePrefix.'.inbox';
     $folderLabel = $isSentFolder ? 'Sent' : 'Inbox';
+    $inboxError = $inboxError ?? null;
     $messages = $messages ?? [];
+    $mailAccounts = collect($mailAccounts ?? []);
+    $hasAvailableMailAccounts = $mailAccounts->isNotEmpty();
     $searchQuery = $searchQuery ?? '';
     $totalInboxCount = $totalInboxCount ?? count($messages);
-    $unreadCount = $isSentFolder ? null : collect($messages)->where('unread', true)->count();
+    $unreadCount = $account === null || $isSentFolder ? null : collect($messages)->where('unread', true)->count();
 @endphp
 
 @include('layouts.breadcrumb', [
-    'title' => 'Email',
+    'title' => $mailFeatureTitle,
     'current' => $folderLabel,
     'homeRoute' => 'dashboard',
 ])
 
-<form method="POST" action="{{ route('applicant.email.destroy') }}" id="mail-bulk-delete-form" class="d-none"
+@include('mail.partials.summary-cards')
+
+<form method="POST" action="{{ route($mailRoutePrefix.'.destroy') }}" id="mail-bulk-delete-form" class="d-none"
     data-delete-confirmation-form
     data-delete-title="Hapus Email"
     data-delete-message="Email yang dipilih akan dihapus. Lanjutkan?"
@@ -110,12 +131,12 @@
                     <div class="d-sm-flex align-items-center justify-content-between gap-3 flex-wrap px-3 border-bottom">
                         <div class="d-flex justify-content-between py-3 py-sm-2 order-2 order-sm-3">
                             <div class="d-flex gap-1">
-                                <button type="button" class="btn btn-square btn-sm tp-btn-light btn-primary"><i class="fa fa-archive"></i></button>
-                                <button type="button" class="btn btn-square btn-sm tp-btn-light btn-primary"><i class="fa fa-exclamation-circle"></i></button>
+                                <button type="button" class="btn btn-square btn-sm tp-btn-light btn-primary" @disabled($account === null)><i class="fa fa-archive"></i></button>
+                                <button type="button" class="btn btn-square btn-sm tp-btn-light btn-primary" @disabled($account === null)><i class="fa fa-exclamation-circle"></i></button>
                                 <button type="submit" form="mail-bulk-delete-form" class="btn btn-square btn-sm tp-btn-light btn-danger" title="Hapus email terpilih" data-mail-bulk-delete disabled><i class="fa fa-trash"></i></button>
-                                <button type="button" class="btn btn-square btn-sm tp-btn-light btn-warning"><i class="fa fa-folder"></i></button>
+                                <button type="button" class="btn btn-square btn-sm tp-btn-light btn-warning" @disabled($account === null)><i class="fa fa-folder"></i></button>
                                 <div class="dropdown">
-                                    <button type="button" class="btn btn-square btn-sm tp-btn-light btn-primary" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button type="button" class="btn btn-square btn-sm tp-btn-light btn-primary" data-bs-toggle="dropdown" aria-expanded="false" @disabled($account === null)>
                                         <i class="fa-solid fa-ellipsis-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
@@ -134,7 +155,7 @@
                         </div>
                         <div class="d-flex order-1">
                             <div class="form-check custom-checkbox align-self-center mt-2">
-                                <input type="checkbox" class="form-check-input check-all">
+                                <input type="checkbox" class="form-check-input check-all" @disabled($account === null)>
                             </div>
                             <ul class="nav nav-underline ms-2 ms-sm-3 gap-3" id="pills-tab" role="tablist">
                                 <li class="nav-item" role="presentation">
@@ -159,7 +180,7 @@
                                 <span class="input-group-text border-end-0">
                                     <i class="fa fa-search"></i>
                                 </span>
-                                <input type="search" name="search" value="{{ $searchQuery }}" class="form-control border-start-0" placeholder="Search email" aria-label="Search email">
+                                <input type="search" name="search" value="{{ $searchQuery }}" class="form-control border-start-0" placeholder="Search email" aria-label="Search email" @disabled($account === null)>
                                 @if ($searchQuery !== '')
                                     <a href="{{ route($folderRoute) }}" class="btn btn-outline-secondary" aria-label="Clear search">
                                         <i class="fa fa-times"></i>
@@ -192,7 +213,7 @@
                                                 <span class="checkmark"></span>
                                             </label>
                                         </div>
-                                        <a href="{{ route('applicant.email.read', $readRouteParameters) }}" class="col-mail col-mail-2">
+                                        <a href="{{ route($mailRoutePrefix.'.read', $readRouteParameters) }}" class="col-mail col-mail-2">
                                             <div class="email-hader">{{ $isSentFolder ? 'To: '.($mail['to'] ?: '-') : $mail['from'] }}</div>
                                             <div class="email-subject">
                                                 {{ $mail['subject'] }} <span>{{ $mail['date'] }}</span>
@@ -202,7 +223,7 @@
                                         <div class="on-hover">
                                             <a><i class="fa fa-archive"></i></a>
                                             <a class="ms-2"><i class="fa-regular fa-clock"></i></a>
-                                            <form method="POST" action="{{ route('applicant.email.destroy') }}" class="d-inline ms-2"
+                                            <form method="POST" action="{{ route($mailRoutePrefix.'.destroy') }}" class="d-inline ms-2"
                                                 data-delete-confirmation-form
                                                 data-delete-title="Hapus Email"
                                                 data-delete-message="Hapus email &quot;{{ $mail['subject'] }}&quot;?"
@@ -218,7 +239,16 @@
                                 @empty
                                     @if (! $inboxError)
                                         <div class="p-4 text-center text-muted">
-                                            @if ($searchQuery !== '')
+                                            @if ($account === null)
+                                                @if ($hasAvailableMailAccounts)
+                                                    Pilih email account terlebih dahulu.
+                                                @else
+                                                    <span class="mail-empty-info">
+                                                        <i class="fa-solid fa-circle-info"></i>
+                                                        <span>Hubungi administrator untuk mendapatkan akses email personal business</span>
+                                                    </span>
+                                                @endif
+                                            @elseif ($searchQuery !== '')
                                                 Tidak ada email yang cocok dengan pencarian.
                                             @else
                                                 {{ $isSentFolder ? 'Belum ada email terkirim.' : 'Inbox kosong.' }}
@@ -231,7 +261,7 @@
                         <div class="tab-pane fade" id="pills-socials" role="tabpanel">
                             <div class="email-list mail-list-clean dz-scroll">
                                 <div class="message">
-                                    <a href="{{ route('applicant.email.inbox') }}" class="col-mail col-mail-2">
+                                    <a href="{{ route($mailRoutePrefix.'.inbox') }}" class="col-mail col-mail-2">
                                         <div class="email-hader">Socials</div>
                                         <div class="email-subject">Belum ada email social.</div>
                                         <div class="email-date">Now</div>
@@ -242,7 +272,7 @@
                         <div class="tab-pane fade" id="pills-promotion" role="tabpanel">
                             <div class="email-list mail-list-clean dz-scroll">
                                 <div class="message">
-                                    <a href="{{ route('applicant.email.inbox') }}" class="col-mail col-mail-2">
+                                    <a href="{{ route($mailRoutePrefix.'.inbox') }}" class="col-mail col-mail-2">
                                         <div class="email-hader">Promotion</div>
                                         <div class="email-subject">Belum ada email promotion.</div>
                                         <div class="email-date">Now</div>
@@ -282,6 +312,7 @@
 
 @section('script')
     @stack('scripts')
+    @include('mail.partials.account-selector-script')
     <script>
         (function () {
             var bulkDeleteButton = document.querySelector('[data-mail-bulk-delete]');

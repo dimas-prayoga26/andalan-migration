@@ -13,6 +13,7 @@ class MailFeatureStructureTest extends TestCase
     {
         $routes = [
             'applicant.email.index' => 'applicant/email',
+            'applicant.email.select' => 'applicant/email/select',
             'applicant.email.check' => 'applicant/email/check',
             'applicant.email.login' => 'applicant/email/login',
             'applicant.email.inbox' => 'applicant/email/inbox',
@@ -24,6 +25,19 @@ class MailFeatureStructureTest extends TestCase
             'applicant.email.reply' => 'applicant/email/read/{uid}/reply',
             'applicant.email.read' => 'applicant/email/read/{uid?}',
             'applicant.email.logout' => 'applicant/email/logout',
+            'business-email.index' => 'business-email',
+            'business-email.select' => 'business-email/select',
+            'business-email.check' => 'business-email/check',
+            'business-email.login' => 'business-email/login',
+            'business-email.inbox' => 'business-email/inbox',
+            'business-email.sent' => 'business-email/sent',
+            'business-email.destroy' => 'business-email/delete',
+            'business-email.compose' => 'business-email/compose',
+            'business-email.send' => 'business-email/send',
+            'business-email.attachment' => 'business-email/read/{uid}/attachments/{attachment}',
+            'business-email.reply' => 'business-email/read/{uid}/reply',
+            'business-email.read' => 'business-email/read/{uid?}',
+            'business-email.logout' => 'business-email/logout',
         ];
 
         foreach ($routes as $routeName => $uri) {
@@ -34,6 +48,7 @@ class MailFeatureStructureTest extends TestCase
         }
 
         $this->assertSame(MailController::class.'@index', Route::getRoutes()->getByName('applicant.email.index')?->getActionName());
+        $this->assertSame(MailController::class.'@selectAccount', Route::getRoutes()->getByName('applicant.email.select')?->getActionName());
         $this->assertSame(MailController::class.'@checkEmail', Route::getRoutes()->getByName('applicant.email.check')?->getActionName());
         $this->assertSame(MailController::class.'@authenticate', Route::getRoutes()->getByName('applicant.email.login')?->getActionName());
         $this->assertSame(MailController::class.'@inbox', Route::getRoutes()->getByName('applicant.email.inbox')?->getActionName());
@@ -45,6 +60,10 @@ class MailFeatureStructureTest extends TestCase
         $this->assertSame(MailController::class.'@reply', Route::getRoutes()->getByName('applicant.email.reply')?->getActionName());
         $this->assertSame(MailController::class.'@read', Route::getRoutes()->getByName('applicant.email.read')?->getActionName());
         $this->assertSame(MailController::class.'@logout', Route::getRoutes()->getByName('applicant.email.logout')?->getActionName());
+        $this->assertSame(MailController::class.'@index', Route::getRoutes()->getByName('business-email.index')?->getActionName());
+        $this->assertSame(MailController::class.'@selectAccount', Route::getRoutes()->getByName('business-email.select')?->getActionName());
+        $this->assertContains('position.permission:view-email-management', Route::getRoutes()->getByName('applicant.email.index')?->gatherMiddleware() ?? []);
+        $this->assertContains('position.permission:view-business-email', Route::getRoutes()->getByName('business-email.index')?->gatherMiddleware() ?? []);
     }
 
     public function test_mail_views_are_wired_to_routes(): void
@@ -53,6 +72,9 @@ class MailFeatureStructureTest extends TestCase
         $inboxView = File::get(resource_path('views/mail/inbox.blade.php'));
         $composeView = File::get(resource_path('views/mail/compose.blade.php'));
         $readView = File::get(resource_path('views/mail/read.blade.php'));
+        $mailSummaryCardsView = File::get(resource_path('views/mail/partials/summary-cards.blade.php'));
+        $mailAccountSelectorStyles = File::get(resource_path('views/mail/partials/account-selector-styles.blade.php'));
+        $mailAccountSelectorScript = File::get(resource_path('views/mail/partials/account-selector-script.blade.php'));
         $mailSidebarView = File::get(resource_path('views/mail/partials/sidebar.blade.php'));
         $sidebarView = File::get(resource_path('views/layouts/sidebar.blade.php'));
         $controller = File::get(app_path('Http/Controllers/MailController.php'));
@@ -65,25 +87,42 @@ class MailFeatureStructureTest extends TestCase
         $mailAccessCompanyMigration = File::get(database_path('migrations/2026_10_05_160923_add_company_id_to_mail_access_accounts_table.php'));
         $mailAccessApplicantTypeMigration = File::get(database_path('migrations/2026_10_06_085102_update_applicant_mail_sender_type_on_mail_access_accounts_table.php'));
         $mailAccessDropApplicantSenderMigration = File::get(database_path('migrations/2026_10_06_085103_drop_is_applicant_mail_sender_from_mail_access_accounts_table.php'));
+        $businessEmailPermissionMigration = File::get(database_path('migrations/2026_10_07_143106_add_view_business_email_permission.php'));
+        $positionPermissionSeeder = File::get(database_path('seeders/PositionPermissionSeeder.php'));
+        $authorizationController = File::get(app_path('Http/Controllers/AuthorizationController.php'));
 
-        $this->assertStringContainsString("route('applicant.email.check')", $loginView);
-        $this->assertStringContainsString("route('applicant.email.login')", $loginView);
+        $this->assertStringContainsString('redirect()->route($this->routeName($request, \'inbox\'))', $controller);
+        $this->assertStringContainsString('$this->forgetSelectedAccount($request);', $controller);
+        $this->assertStringContainsString('selectAccount(Request $request)', $controller);
+        $this->assertStringContainsString("'mail_access_account_id' => ['required', 'integer']", $controller);
+        $this->assertStringContainsString('$request->session()->put($this->sessionKey($request), $account->id)', $controller);
+        $this->assertStringContainsString('$request->session()->put($this->selectionSessionKey($request), true)', $controller);
+        $this->assertStringContainsString("route(\$mailRoutePrefix.'.check')", $loginView);
+        $this->assertStringContainsString("route(\$mailRoutePrefix.'.login')", $loginView);
+        $this->assertStringContainsString("@include('mail.partials.summary-cards')", $loginView);
         $this->assertStringContainsString('name="pin_digits[]"', $loginView);
         $this->assertStringContainsString('mail-pin-grid', $loginView);
         $this->assertStringContainsString('Socials', $inboxView);
         $this->assertStringContainsString('Promotion', $inboxView);
-        $this->assertStringContainsString("route('applicant.email.read', \$readRouteParameters)", $inboxView);
+        $this->assertStringContainsString("route(\$mailRoutePrefix.'.read', \$readRouteParameters)", $inboxView);
         $this->assertStringContainsString('route($folderRoute)', $inboxView);
-        $this->assertStringContainsString("route('applicant.email.destroy')", $inboxView);
+        $this->assertStringContainsString("route(\$mailRoutePrefix.'.destroy')", $inboxView);
         $this->assertStringContainsString('data-delete-confirmation-form', $inboxView);
         $this->assertStringContainsString('Belum ada email terkirim.', $inboxView);
         $this->assertStringContainsString('name="search"', $inboxView);
         $this->assertStringContainsString('Tidak ada email yang cocok dengan pencarian.', $inboxView);
+        $this->assertStringContainsString('Pilih email account terlebih dahulu.', $inboxView);
+        $this->assertStringContainsString('$hasAvailableMailAccounts = $mailAccounts->isNotEmpty();', $inboxView);
+        $this->assertStringContainsString('mail-empty-info', $inboxView);
+        $this->assertStringContainsString('fa-circle-info', $inboxView);
+        $this->assertStringContainsString('Hubungi administrator untuk mendapatkan akses email personal business', $inboxView);
         $this->assertStringContainsString('mail-list-clean', $inboxView);
+        $this->assertStringContainsString("@include('mail.partials.summary-cards')", $inboxView);
         $this->assertStringContainsString('@forelse ($messages as $mail)', $inboxView);
         $this->assertStringContainsString('Inbox kosong.', $inboxView);
         $this->assertStringContainsString('compose-wrapper', $composeView);
-        $this->assertStringContainsString("route('applicant.email.send')", $composeView);
+        $this->assertStringContainsString("@include('mail.partials.summary-cards')", $composeView);
+        $this->assertStringContainsString("route(\$mailRoutePrefix.'.send')", $composeView);
         $this->assertStringContainsString('enctype="multipart/form-data"', $composeView);
         $this->assertStringContainsString('name="attachments[]"', $composeView);
         $this->assertStringContainsString('data-mail-attachment-input', $composeView);
@@ -91,10 +130,11 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString('mail-selected-file', $composeView);
         $this->assertStringNotContainsString('Socials', $composeView);
         $this->assertStringContainsString('read-wapper', $readView);
+        $this->assertStringContainsString("@include('mail.partials.summary-cards')", $readView);
         $this->assertStringContainsString('$message[\'body\']', $readView);
         $this->assertStringContainsString('mail-attachments', $readView);
-        $this->assertStringContainsString("route('applicant.email.attachment'", $readView);
-        $this->assertStringContainsString("route('applicant.email.reply'", $readView);
+        $this->assertStringContainsString("route(\$mailRoutePrefix.'.attachment'", $readView);
+        $this->assertStringContainsString("route(\$mailRoutePrefix.'.reply'", $readView);
         $this->assertStringContainsString('name="attachments[]"', $readView);
         $this->assertStringContainsString('name="body"', $readView);
         $this->assertStringContainsString('data-mail-attachment-input', $readView);
@@ -104,13 +144,67 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString('mail-reply-target', $readView);
         $this->assertStringContainsString('Reply akan dikirim ke', $readView);
         $this->assertStringContainsString('$replyTo ?? $message[\'from\']', $readView);
-        $this->assertStringContainsString("route('applicant.email.logout')", $mailSidebarView);
-        $this->assertStringContainsString("route('applicant.email.compose')", $mailSidebarView);
-        $this->assertStringContainsString("route('applicant.email.inbox')", $mailSidebarView);
-        $this->assertStringContainsString("route('applicant.email.sent')", $mailSidebarView);
-        $this->assertStringContainsString("route('applicant.email.destroy')", $readView);
+        $this->assertStringContainsString('Email Account', $mailSummaryCardsView);
+        $this->assertStringContainsString('Storage Email', $mailSummaryCardsView);
+        $this->assertStringContainsString("route(\$mailRoutePrefix.'.select')", $mailSummaryCardsView);
+        $this->assertStringContainsString('name="mail_access_account_id"', $mailSummaryCardsView);
+        $this->assertStringContainsString('data-mail-account-trigger', $mailSummaryCardsView);
+        $this->assertStringContainsString('data-mail-account-menu', $mailSummaryCardsView);
+        $this->assertStringContainsString('mail-account-select2', $mailSummaryCardsView);
+        $this->assertStringContainsString('Cari email account', $mailSummaryCardsView);
+        $this->assertStringContainsString('$mailSummaryEmail', $mailSummaryCardsView);
+        $this->assertStringContainsString('$mailSummaryStorage', $mailSummaryCardsView);
+        $this->assertStringNotContainsString('10MB / 100MB', $mailSummaryCardsView);
+        $this->assertStringNotContainsString('effect bg-success', $mailSummaryCardsView);
+        $this->assertStringNotContainsString('effect bg-secondary', $mailSummaryCardsView);
+        $this->assertStringNotContainsString('progress-bar-striped', $mailSummaryCardsView);
+        $this->assertStringNotContainsString('repeating-linear-gradient', $mailSummaryCardsView);
+        $this->assertStringContainsString('style="width: 100%; height:5px;" aria-label="Email account active"', $mailSummaryCardsView);
+        $this->assertStringContainsString('style="width: 100%; height:5px;" aria-label="Email storage usage"', $mailSummaryCardsView);
+        $this->assertStringNotContainsString('$mailSummaryAccount ? \'100\' : \'0\'', $mailSummaryCardsView);
+        $this->assertStringContainsString("asset('assets/vendor/select2/css/select2.min.css')", $mailAccountSelectorStyles);
+        $this->assertStringContainsString('.mail-account-picker.is-open .mail-account-trigger i', $mailAccountSelectorStyles);
+        $this->assertStringNotContainsString('.mail-account-menu::before', $mailAccountSelectorStyles);
+        $this->assertStringNotContainsString('linear-gradient(90deg, #22c55e', $mailAccountSelectorStyles);
+        $this->assertStringContainsString('.mail-account-menu .selection', $mailAccountSelectorStyles);
+        $this->assertStringContainsString('display: none !important;', $mailAccountSelectorStyles);
+        $this->assertStringContainsString('.mail-account-menu .select2-search--dropdown .select2-search__field', $mailAccountSelectorStyles);
+        $this->assertStringContainsString('.mail-account-menu .select2-results__option--highlighted[aria-selected]', $mailAccountSelectorStyles);
+        $this->assertStringContainsString("asset('assets/vendor/select2/js/select2.full.min.js')", $mailAccountSelectorScript);
+        $this->assertStringContainsString('selectElement.select2({', $mailAccountSelectorScript);
+        $this->assertStringContainsString("dropdownCssClass: 'mail-account-select2-dropdown'", $mailAccountSelectorScript);
+        $this->assertStringContainsString('minimumResultsForSearch: 0', $mailAccountSelectorScript);
+        $this->assertStringContainsString("picker.toggleClass('is-open'", $mailAccountSelectorScript);
+        $this->assertStringContainsString('selectElement.select2(\'open\')', $mailAccountSelectorScript);
+        $this->assertStringNotContainsString('onchange=', $mailSummaryCardsView);
+        $this->assertStringNotContainsString('Login sebagai', $mailSidebarView);
+        $this->assertStringNotContainsString('Keluar Email', $mailSidebarView);
+        $this->assertStringContainsString("route(\$mailRoutePrefix.'.compose')", $mailSidebarView);
+        $this->assertStringContainsString("route(\$mailRoutePrefix.'.inbox')", $mailSidebarView);
+        $this->assertStringContainsString("route(\$mailRoutePrefix.'.sent')", $mailSidebarView);
+        $this->assertStringContainsString("route(\$mailRoutePrefix.'.destroy')", $readView);
         $this->assertStringNotContainsString('Categories', $mailSidebarView);
         $this->assertStringContainsString('MailInboxService $mailInbox', $controller);
+        $this->assertStringContainsString("private const BUSINESS_ROUTE_PREFIX = 'business-email';", $controller);
+        $this->assertStringContainsString("private const BUSINESS_SESSION_KEY = 'business_mail_access_account_id';", $controller);
+        $this->assertStringContainsString("private const SESSION_SELECTED_KEY = 'mail_access_account_selected';", $controller);
+        $this->assertStringContainsString("private const BUSINESS_SESSION_SELECTED_KEY = 'business_mail_access_account_selected';", $controller);
+        $this->assertStringContainsString('selectionSessionKey(Request $request): string', $controller);
+        $this->assertStringContainsString('forgetSelectedAccount(Request $request): void', $controller);
+        $this->assertStringContainsString('$request->session()->get($this->selectionSessionKey($request), false) !== true', $controller);
+        $this->assertStringNotContainsString('session()->boolean(', $controller);
+        $this->assertStringContainsString('authorizeMailFeatureAccess($request)', $controller);
+        $this->assertStringContainsString('availableAccountQuery($request)', $controller);
+        $this->assertStringContainsString("'mailAccounts' => \$this->availableAccountQuery(\$request)", $controller);
+        $this->assertStringContainsString("'selectedMailAccountId' => \$selectedAccount?->id", $controller);
+        $this->assertStringContainsString("where('type', MailAccessAccount::TYPE_PERSONAL)", $controller);
+        $this->assertStringContainsString("where('employee_id', \$employeeId)", $controller);
+        $this->assertStringContainsString("where('type', '!=', MailAccessAccount::TYPE_PERSONAL)", $controller);
+        $this->assertStringContainsString("hasAnyPositionPermission(['view-business-email'])", $controller);
+        $this->assertStringContainsString("hasAnyPositionPermission(['view-email-management'])", $controller);
+        $this->assertStringContainsString('isAdminOrSuperAdministrator', $controller);
+        $this->assertStringContainsString("'mailFeatureTitle' => \$this->mailFeatureTitle(\$request)", $controller);
+        $this->assertStringContainsString("'mailRoutePrefix' => \$this->routePrefix(\$request)", $controller);
         $this->assertStringContainsString('$request->query(\'search\', \'\')', $controller);
         $this->assertStringContainsString('filterMessages($messages, $searchQuery)', $controller);
         $this->assertStringContainsString('messageFor($account->email, $uid, $folder)', $controller);
@@ -129,11 +223,16 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString("'verify_peer' => \$this->verifySsl", $inboxService);
         $this->assertStringContainsString('$emailDomain = $this->emailDomain($email)', $inboxService);
         $this->assertStringContainsString('$this->emailDomain((string) ($account[\'username\'] ?? \'\')) !== $emailDomain', $inboxService);
+        $this->assertStringContainsString('recipientFilterFor', $inboxService);
+        $this->assertStringContainsString('accountEmailFilterMode', $inboxService);
+        $this->assertStringContainsString('messageBelongsToEmail', $inboxService);
+        $this->assertStringContainsString('Delivered-To', $inboxService);
+        $this->assertStringContainsString('X-Original-To', $inboxService);
         $this->assertStringContainsString('BODY.PEEK[]', $inboxService);
         $this->assertStringContainsString("'message_id' => \$this->headerValue(\$rawHeaders, 'Message-ID')", $inboxService);
         $this->assertStringContainsString('filenameFromHeaders', $inboxService);
         $this->assertStringContainsString('MailAccessAccountSeeder::class', $databaseSeeder);
-        $this->assertStringContainsString("config('mail_inboxes.accounts', [])", $mailAccessSeeder);
+        $this->assertStringNotContainsString("config('mail_inboxes.accounts', [])", $mailAccessSeeder);
         $this->assertStringContainsString('seedHrAccessAccounts', $mailAccessSeeder);
         $this->assertStringContainsString("['email' => 'hr@'.\$domain]", $mailAccessSeeder);
         $this->assertStringContainsString('seedDepartmentAccounts', $mailAccessSeeder);
@@ -187,19 +286,39 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString("->constrained('companies', 'id')", $mailAccessCompanyMigration);
         $this->assertStringContainsString('->nullOnDelete()', $mailAccessCompanyMigration);
         $this->assertStringContainsString("route('applicant.email.index')", $sidebarView);
+        $this->assertStringContainsString("route('business-email.index')", $sidebarView);
+        $this->assertStringContainsString('Business Email', $sidebarView);
+        $this->assertStringContainsString("canViewSidebarMenu('view-business-email')", $sidebarView);
+        $this->assertStringContainsString('! $isAdminOrSuperAdministrator', $sidebarView);
+        $this->assertStringContainsString("'name' => 'view-business-email'", $businessEmailPermissionMigration);
+        $this->assertStringContainsString('KEY_ADMINISTRATOR', $businessEmailPermissionMigration);
+        $this->assertStringContainsString('KEY_SUPER_ADMINISTRATOR', $businessEmailPermissionMigration);
+        $this->assertStringContainsString("'permission' => 'view-business-email'", $positionPermissionSeeder);
+        $this->assertStringContainsString("'view-business-email' => ['section' => 'Siap', 'label' => 'Business Email']", $authorizationController);
         $this->assertStringNotContainsString("route('mail.index')", $sidebarView);
     }
 
-    public function test_mail_login_uses_two_step_email_then_pin_flow(): void
+    public function test_mail_account_is_selected_from_summary_card_without_mail_login(): void
     {
-        $loginView = File::get(resource_path('views/mail/index.blade.php'));
+        $summaryCardsView = File::get(resource_path('views/mail/partials/summary-cards.blade.php'));
+        $mailAccountSelectorScript = File::get(resource_path('views/mail/partials/account-selector-script.blade.php'));
+        $mailSidebarView = File::get(resource_path('views/mail/partials/sidebar.blade.php'));
+        $inboxView = File::get(resource_path('views/mail/inbox.blade.php'));
         $controller = File::get(app_path('Http/Controllers/MailController.php'));
 
-        $this->assertStringContainsString('! $pendingEmail', $loginView);
-        $this->assertStringContainsString('Masukkan email yang sudah terdaftar.', $loginView);
-        $this->assertStringContainsString('Masukkan PIN', $loginView);
-        $this->assertStringContainsString("with('mail_pending_email', \$email)", $controller);
-        $this->assertStringContainsString("withErrors(['email' => 'Email tidak terdaftar atau belum aktif.'])", $controller);
-        $this->assertStringContainsString("withErrors(['pin' => 'PIN tidak valid.'])", $controller);
+        $this->assertStringContainsString('selectAccount(Request $request)', $controller);
+        $this->assertStringContainsString("'mail_access_account_id' => ['required', 'integer']", $controller);
+        $this->assertStringContainsString('if ($account !== null) {', $controller);
+        $this->assertStringContainsString("route(\$mailRoutePrefix.'.select')", $summaryCardsView);
+        $this->assertStringContainsString('data-mail-account-trigger', $summaryCardsView);
+        $this->assertStringContainsString('mail-account-select2', $summaryCardsView);
+        $this->assertStringNotContainsString('onchange=', $summaryCardsView);
+        $this->assertStringContainsString('selectElement.select2(\'open\')', $mailAccountSelectorScript);
+        $this->assertStringContainsString('this.form.submit();', $mailAccountSelectorScript);
+        $this->assertStringContainsString('Pilih email account', $summaryCardsView);
+        $this->assertStringContainsString('Pilih email account terlebih dahulu.', $inboxView);
+        $this->assertStringNotContainsString('Login sebagai', $mailSidebarView);
+        $this->assertStringNotContainsString('Keluar Email', $mailSidebarView);
+        $this->assertStringContainsString('->visibleForMailAccess()', $controller);
     }
 }

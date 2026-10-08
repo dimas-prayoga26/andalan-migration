@@ -41,7 +41,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
                 $mevia = $this->employeeByEmail('diktanamira@gmail.com') ?? $this->seedEmployeeAccount([
                     'username' => 'staff-rnb-mevia',
                     'email' => 'diktanamira@gmail.com',
-                    'business_email' => 'mevia.dikta@rnb.local',
                     'name' => 'Mevia Dikta Namira',
                     'employee_code' => 'EMP-RNB-MEVIA',
                     'company_id' => (string) $rnbCompany->id,
@@ -55,7 +54,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
                 $erlin = $this->employeeByEmail('halloerlin@gmail.com') ?? $this->seedEmployeeAccount([
                     'username' => 'staff-rnb-erlin',
                     'email' => 'halloerlin@gmail.com',
-                    'business_email' => 'erlin.tsabita@rnb.local',
                     'name' => 'Tsabita Anisa Eriliana',
                     'employee_code' => 'EMP-RNB-ERLIN',
                     'company_id' => (string) $rnbCompany->id,
@@ -69,7 +67,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
                 $leonie = $this->employeeByEmail('leonieputri7@gmail.com') ?? $this->seedEmployeeAccount([
                     'username' => 'staff-niskala-leonie',
                     'email' => 'leonieputri7@gmail.com',
-                    'business_email' => 'leonie.putri@niskala.local',
                     'name' => 'Leonie Putri Andhari',
                     'employee_code' => 'EMP-NISKALA-LEONIE',
                     'company_id' => (string) $niskalaCompany->id,
@@ -142,7 +139,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
      * @param  array{
      *     username:string,
      *     email:string,
-     *     business_email:string,
      *     name:string,
      *     employee_code:string,
      *     company_id:string,
@@ -159,7 +155,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
             ['email' => $data['email']],
             [
                 'username' => $data['username'],
-                'business_email' => $data['business_email'],
                 'company_id' => $data['company_id'],
                 'phone' => $data['phone'],
                 'is_active' => true,

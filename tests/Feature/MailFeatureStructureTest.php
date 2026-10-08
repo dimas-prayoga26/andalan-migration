@@ -163,6 +163,9 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString('style="width: 100%; height:5px;" aria-label="Email storage usage"', $mailSummaryCardsView);
         $this->assertStringNotContainsString('$mailSummaryAccount ? \'100\' : \'0\'', $mailSummaryCardsView);
         $this->assertStringContainsString("asset('assets/vendor/select2/css/select2.min.css')", $mailAccountSelectorStyles);
+        $this->assertStringNotContainsString('z-index: 5;', $mailAccountSelectorStyles);
+        $this->assertStringContainsString('.mail-account-picker.is-open', $mailAccountSelectorStyles);
+        $this->assertStringContainsString('z-index: 1060;', $mailAccountSelectorStyles);
         $this->assertStringContainsString('.mail-account-picker.is-open .mail-account-trigger i', $mailAccountSelectorStyles);
         $this->assertStringNotContainsString('.mail-account-menu::before', $mailAccountSelectorStyles);
         $this->assertStringNotContainsString('linear-gradient(90deg, #22c55e', $mailAccountSelectorStyles);

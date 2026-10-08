@@ -120,7 +120,6 @@
     <div class="card-header border-0 flex-wrap gap-3">
         <div>
             <h4 class="card-title mb-1">Mail Access Accounts</h4>
-            <p class="mb-0 text-muted fs-13">Kelola akun email yang bisa dipakai dan ditakeover.</p>
         </div>
         <div class="email-management-list-actions">
             <form method="GET" action="{{ route('email-management.index') }}" class="mb-0">

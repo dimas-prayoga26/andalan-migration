@@ -157,6 +157,7 @@ class EmailManagementTest extends TestCase
         $this->assertStringContainsString('$protectedMailAccountEmails->contains', $view);
         $this->assertStringContainsString('@if (! $isConfigManagedAccount)', $view);
         $this->assertStringContainsString('email-management-table-card', $view);
+        $this->assertStringNotContainsString('Kelola akun email yang bisa dipakai dan ditakeover.', $view);
         $this->assertStringContainsString('table table-sm mb-0 table-bottom-borderless table-striped align-middle', $view);
         $this->assertStringContainsString("@include('settings.partials.pagination'", $view);
         $this->assertStringContainsString('Create Takeover Access', $view);

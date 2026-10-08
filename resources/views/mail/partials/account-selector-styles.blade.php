@@ -3,13 +3,11 @@
     .mail-account-card {
         overflow: visible !important;
         position: relative;
-        z-index: 5;
     }
 
     .mail-account-card .card-body {
         overflow: visible;
         position: relative;
-        z-index: 2;
     }
 
     .mail-account-card .effect {
@@ -21,6 +19,10 @@
     .mail-account-picker {
         max-width: 100%;
         position: relative;
+    }
+
+    .mail-account-picker.is-open {
+        z-index: 1060;
     }
 
     .mail-account-trigger {

@@ -64,6 +64,14 @@
             font-weight: 800;
         }
 
+        .applicant-assessment-metric-value.is-uploaded {
+            color: #047857;
+        }
+
+        .applicant-assessment-metric-value.is-not-uploaded {
+            color: #dc2626;
+        }
+
         .applicant-assessment-panel {
             padding: 1rem;
         }
@@ -73,6 +81,26 @@
             font-size: 0.96rem;
             font-weight: 800;
             margin-bottom: 0.2rem;
+        }
+
+        .applicant-assessment-panel-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .applicant-assessment-panel-header .applicant-assessment-panel-subtitle {
+            margin-bottom: 0;
+        }
+
+        .applicant-assessment-panel-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 0.5rem;
         }
 
         .applicant-assessment-panel-subtitle {
@@ -128,6 +156,19 @@
             cursor: default;
         }
 
+        .applicant-rating-row[data-assessment-rating] .rating-stars ul > li.star {
+            cursor: pointer;
+        }
+
+        .applicant-rating-row.is-saving {
+            opacity: 0.65;
+            pointer-events: none;
+        }
+
+        .applicant-rating-row.is-save-error .applicant-rating-label {
+            color: #dc2626;
+        }
+
         .applicant-rating-widget .rating-stars ul > li.star > i.fa {
             color: currentColor;
             font-size: 1.28rem;
@@ -147,14 +188,6 @@
             text-align: center;
         }
 
-        .applicant-assessment-upload-actions {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 0.5rem;
-            margin-top: 0.85rem;
-        }
-
         .applicant-assessment-preview {
             display: flex;
             justify-content: center;
@@ -168,25 +201,6 @@
             border-radius: 0.5rem;
             background: #fff;
             object-fit: contain;
-        }
-
-        .applicant-assessment-link-box {
-            display: grid;
-            gap: 0.5rem;
-            margin-top: 0.85rem;
-            text-align: left;
-        }
-
-        .applicant-assessment-link-input {
-            min-height: 38px;
-            width: 100%;
-            border: 1px solid #d9dce5;
-            border-radius: 0.5rem;
-            background: #fff;
-            color: #172033;
-            font-size: 0.82rem;
-            font-weight: 600;
-            padding: 0.4rem 0.65rem;
         }
 
         .applicant-assessment-summary-grid {
@@ -203,6 +217,31 @@
             padding: 0.8rem;
         }
 
+        .applicant-assessment-note-input {
+            display: block;
+            width: 100%;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background: #fff;
+            color: #334155;
+            font-family: inherit;
+            font-size: 0.86rem;
+            min-height: 72px;
+            padding: 0.8rem;
+            pointer-events: auto;
+            resize: vertical;
+            user-select: text;
+            cursor: text;
+        }
+
+        .applicant-assessment-note-input.is-saving {
+            opacity: 0.65;
+        }
+
+        .applicant-assessment-note-input.is-save-error {
+            border-color: #dc2626;
+        }
+
         .applicant-assessment-verdict-badge {
             display: inline-flex;
             align-items: center;
@@ -215,10 +254,44 @@
             padding: 0.35rem 0.6rem;
         }
 
+        .applicant-final-layout {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .applicant-final-section {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.65rem;
+            background: #fff;
+        }
+
+        .applicant-final-content-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+            gap: 0.75rem;
+        }
+
+        .applicant-final-section {
+            padding: 0.9rem;
+        }
+
+        .applicant-final-section-title {
+            color: #111827;
+            font-size: 0.9rem;
+            font-weight: 900;
+            margin-bottom: 0.2rem;
+        }
+
+        .applicant-final-section-subtitle {
+            color: #64748b;
+            font-size: 0.8rem;
+            margin-bottom: 0.75rem;
+        }
+
         .applicant-summary-field-grid {
             display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 0.75rem;
-            margin-top: 0.65rem;
         }
 
         .applicant-summary-field {
@@ -233,8 +306,8 @@
             margin-bottom: 0;
         }
 
-        .applicant-summary-field input {
-            min-height: 38px;
+        .applicant-summary-field textarea,
+        .applicant-final-note {
             border: 1px solid #d9dce5;
             border-radius: 0.5rem;
             background: #fff;
@@ -242,10 +315,62 @@
             font-size: 0.86rem;
             font-weight: 600;
             padding: 0.4rem 0.65rem;
+            resize: vertical;
+        }
+
+        .applicant-summary-field textarea {
+            min-height: 74px;
+        }
+
+        .applicant-final-decision-group {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 0.9rem;
+        }
+
+        .applicant-final-decision-option {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            border: 1px solid #d9dce5;
+            border-radius: 0.55rem;
+            background: #fff;
+            color: #172033;
+            font-size: 0.85rem;
+            font-weight: 800;
+            min-height: 38px;
+            padding: 0.4rem 0.75rem;
+        }
+
+        .applicant-final-decision-option input {
+            accent-color: #2846c7;
+        }
+
+        .applicant-final-decision-option.is-hired {
+            border-color: #86efac;
+            background: #f0fdf4;
+        }
+
+        .applicant-final-decision-option.is-keep {
+            border-color: #fde68a;
+            background: #fffbeb;
+        }
+
+        .applicant-final-decision-option.is-rejected {
+            border-color: #fecaca;
+            background: #fef2f2;
+        }
+
+        .applicant-final-note {
+            min-height: 150px;
+            width: 100%;
         }
 
         @media only screen and (max-width: 767.98px) {
             .applicant-assessment-overview,
+            .applicant-final-content-grid,
+            .applicant-final-decision-group,
             .applicant-assessment-summary-grid {
                 grid-template-columns: 1fr;
             }
@@ -261,28 +386,14 @@
 
 @section('content')
 @php
-    $hrCriteria = [
-        ['label' => 'Kemampuan Komunikasi', 'weight' => '20%', 'selected' => 4],
-        ['label' => 'Kepercayaan Diri', 'weight' => '10%', 'selected' => 3],
-        ['label' => 'Motivasi Kerja', 'weight' => '10%', 'selected' => 4],
-        ['label' => 'Kesesuaian Pengalaman', 'weight' => '15%', 'selected' => 3],
-        ['label' => 'Pemahaman Posisi', 'weight' => '15%', 'selected' => 4],
-        ['label' => 'Kedisiplinan & Profesionalisme', 'weight' => '10%', 'selected' => 5],
-        ['label' => 'Culture Fit & Problem Solving', 'weight' => '20%', 'selected' => 4],
-    ];
-    $technicalCriteria = [
-        ['label' => 'Clean Output / Kualitas Hasil', 'weight' => '30%', 'selected' => 4],
-        ['label' => 'Pemahaman Brief', 'weight' => '25%', 'selected' => 3],
-        ['label' => 'Ketepatan Waktu', 'weight' => '20%', 'selected' => 4],
-        ['label' => 'Kerapian File / Dokumentasi', 'weight' => '25%', 'selected' => 3],
-    ];
-    $userCriteria = [
-        ['label' => 'Skill Teknis', 'weight' => '25%', 'selected' => 4],
-        ['label' => 'Kreativitas', 'weight' => '20%', 'selected' => 4],
-        ['label' => 'Penggunaan Tools', 'weight' => '20%', 'selected' => 3],
-        ['label' => 'Pengalaman', 'weight' => '20%', 'selected' => 3],
-        ['label' => 'Kesanggupan', 'weight' => '15%', 'selected' => 4],
-    ];
+    $hrCriteria = $hrCriteria ?? [];
+    $hrInterviewScoreDisplay = number_format((float) ($hrInterviewScore ?? 0), 0) . ' / 100';
+    $technicalCriteria = $technicalCriteria ?? [];
+    $technicalTestScoreDisplay = number_format((float) ($technicalTestScore ?? 0), 0) . ' / 100';
+    $userCriteria = $userCriteria ?? [];
+    $userInterviewScoreDisplay = number_format((float) ($userInterviewScore ?? 0), 0) . ' / 100';
+    $technicalTestNotes = $technicalTestNotes ?? '';
+    $userInterviewNotes = $userInterviewNotes ?? '';
     $ratingLabels = [
         1 => 'Sangat Kurang',
         2 => 'Kurang',
@@ -325,19 +436,21 @@
                     <div class="applicant-assessment-overview">
                         <div class="applicant-assessment-metric">
                             <div class="applicant-assessment-metric-label">HR Interview</div>
-                            <div class="applicant-assessment-metric-value">82 / 100</div>
+                            <div class="applicant-assessment-metric-value" data-assessment-score="hr-interview">{{ $hrInterviewScoreDisplay }}</div>
                         </div>
                         <div class="applicant-assessment-metric">
                             <div class="applicant-assessment-metric-label">Assessment Test</div>
-                            <div class="applicant-assessment-metric-value">{{ $assessmentUploaded ? 'Sudah Upload' : 'Belum Upload' }}</div>
+                            <div class="applicant-assessment-metric-value {{ $assessmentUploaded ? 'is-uploaded' : 'is-not-uploaded' }}">
+                                {{ $assessmentUploaded ? 'Sudah Upload' : 'Belum Upload' }}
+                            </div>
                         </div>
                         <div class="applicant-assessment-metric">
                             <div class="applicant-assessment-metric-label">Technical Test</div>
-                            <div class="applicant-assessment-metric-value">76 / 100</div>
+                            <div class="applicant-assessment-metric-value" data-assessment-score="technical-test">{{ $technicalTestScoreDisplay }}</div>
                         </div>
                         <div class="applicant-assessment-metric">
-                            <div class="applicant-assessment-metric-label">Final Verdict</div>
-                            <div class="applicant-assessment-metric-value">Keep in View</div>
+                            <div class="applicant-assessment-metric-label">Interview User</div>
+                            <div class="applicant-assessment-metric-value" data-assessment-score="user-interview">{{ $userInterviewScoreDisplay }}</div>
                         </div>
                     </div>
 
@@ -365,16 +478,16 @@
                                 <div class="applicant-assessment-panel-title">Form Interview HR</div>
                                 <div class="applicant-assessment-panel-subtitle">Evaluasi dasar, komunikasi, motivasi, dan culture fit.</div>
                                 @foreach ($hrCriteria as $criteria)
-                                    <div class="applicant-rating-row">
+                                    <div class="applicant-rating-row" data-assessment-rating data-score-target="hr-interview" data-store-url="{{ route('applicant.assessment.hr-interview-score.store', $applicant) }}" data-criterion-key="{{ $criteria['key'] }}">
                                         <div>
                                             <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
-                                            <div class="applicant-rating-weight">Bobot {{ $criteria['weight'] }}</div>
+                                            <div class="applicant-rating-weight">Bobot {{ $criteria['weight_label'] ?? $criteria['weight'].'%' }}</div>
                                         </div>
                                         <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $criteria['label'] }}">
                                             <div class="rating-stars">
                                                 <ul>
                                                     @for ($rating = 1; $rating <= 5; $rating++)
-                                                        <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}">
+                                                        <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}" role="button" tabindex="0">
                                                             <i class="fa fa-star fa-fw"></i>
                                                         </li>
                                                     @endfor
@@ -388,8 +501,27 @@
 
                         <div class="tab-pane fade" id="assessment-test-pane" role="tabpanel" aria-labelledby="assessment-test-tab" tabindex="0">
                             <div class="applicant-assessment-panel">
-                                <div class="applicant-assessment-panel-title">Assessment Test</div>
-                                <div class="applicant-assessment-panel-subtitle">Area lampiran hasil tes administrasi atau psikologi dasar.</div>
+                                <div class="applicant-assessment-panel-header">
+                                    <div>
+                                        <div class="applicant-assessment-panel-title">Assessment Test</div>
+                                        <div class="applicant-assessment-panel-subtitle">Area lampiran hasil tes administrasi atau psikologi dasar.</div>
+                                    </div>
+                                    <div class="applicant-assessment-panel-actions">
+                                        <form method="POST" action="{{ route('applicant.assessment.upload-request.store', $applicant) }}">
+                                            @csrf
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <i class="bi bi-link-45deg me-1"></i>
+                                                Generate Link Upload
+                                            </button>
+                                        </form>
+                                        @if ($generatedAssessmentUploadUrl)
+                                            <button type="button" class="btn btn-primary light btn-sm" data-copy-assessment-link data-copy-value="{{ $generatedAssessmentUploadUrl }}">
+                                                <i class="bi bi-copy me-1"></i>
+                                                Copy Link
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
                                 <div class="applicant-assessment-upload">
                                     @if ($assessmentUploaded)
                                         <div class="applicant-assessment-preview">
@@ -404,28 +536,6 @@
                                         <div class="fw-semibold">Upload hasil assessment</div>
                                         <div class="small">Generate link khusus brand {{ $assessmentUploadBrand['name'] ?? 'RNB Management' }} untuk kandidat ini.</div>
                                     @endif
-                                    <div class="applicant-assessment-upload-actions">
-                                        <form method="POST" action="{{ route('applicant.assessment.upload-request.store', $applicant) }}">
-                                            @csrf
-                                            <button type="submit" class="btn btn-primary btn-sm">
-                                                <i class="bi bi-link-45deg me-1"></i>
-                                                Generate Link Upload
-                                            </button>
-                                        </form>
-                                        @if ($generatedAssessmentUploadUrl)
-                                            <a href="{{ $generatedAssessmentUploadUrl }}" target="_blank" rel="noopener" class="btn btn-primary light btn-sm">
-                                                <i class="bi bi-box-arrow-up-right me-1"></i>
-                                                Buka Link
-                                            </a>
-                                        @endif
-                                    </div>
-                                    @if ($generatedAssessmentUploadUrl)
-                                        <div class="applicant-assessment-link-box">
-                                            <label for="assessmentUploadUrl" class="small fw-semibold mb-0">Link Upload Assessment</label>
-                                            <input id="assessmentUploadUrl" class="applicant-assessment-link-input" type="text" value="{{ $generatedAssessmentUploadUrl }}" readonly>
-                                            <button type="button" class="btn btn-primary light btn-sm" data-copy-assessment-link data-target="assessmentUploadUrl">Copy Link</button>
-                                        </div>
-                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -433,18 +543,18 @@
                         <div class="tab-pane fade" id="technical-test-pane" role="tabpanel" aria-labelledby="technical-test-tab" tabindex="0">
                             <div class="applicant-assessment-panel">
                                 <div class="applicant-assessment-panel-title">Technical Test</div>
-                                <div class="applicant-assessment-panel-subtitle">Contoh kriteria dinamis sesuai posisi yang dilamar.</div>
-                                @foreach ($technicalCriteria as $criteria)
-                                    <div class="applicant-rating-row">
+                                <div class="applicant-assessment-panel-subtitle">Kriteria Tes Teknis mengikuti bobot dari lowongan yang dilamar.</div>
+                                @forelse ($technicalCriteria as $criteria)
+                                    <div class="applicant-rating-row" data-assessment-rating data-score-target="technical-test" data-store-url="{{ route('applicant.assessment.technical-test-score.store', $applicant) }}" data-criterion-key="{{ $criteria['key'] }}">
                                         <div>
                                             <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
-                                            <div class="applicant-rating-weight">Bobot {{ $criteria['weight'] }}</div>
+                                            <div class="applicant-rating-weight">Bobot {{ $criteria['weight_label'] ?? $criteria['weight'].'%' }}</div>
                                         </div>
                                         <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $criteria['label'] }}">
                                             <div class="rating-stars">
                                                 <ul>
                                                     @for ($rating = 1; $rating <= 5; $rating++)
-                                                        <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}">
+                                                        <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}" role="button" tabindex="0">
                                                             <i class="fa fa-star fa-fw"></i>
                                                         </li>
                                                     @endfor
@@ -452,8 +562,12 @@
                                             </div>
                                         </div>
                                     </div>
-                                @endforeach
-                                <div class="applicant-assessment-note-box mt-3">Catatan reviewer technical test akan ditampilkan di sini.</div>
+                                @empty
+                                    <div class="applicant-assessment-note-box">
+                                        Kriteria Tes Teknis belum diset pada lowongan ini.
+                                    </div>
+                                @endforelse
+                                <textarea class="form-control applicant-assessment-note-input mt-3" name="technical_test_notes" rows="3" data-assessment-note data-store-url="{{ route('applicant.assessment.notes.store', [$applicant, 'technical_test']) }}" placeholder="Tulis catatan reviewer technical test.">{{ $technicalTestNotes }}</textarea>
                             </div>
                         </div>
 
@@ -462,16 +576,16 @@
                                 <div class="applicant-assessment-panel-title">Interview User</div>
                                 <div class="applicant-assessment-panel-subtitle">Evaluasi teknis lanjutan oleh atasan divisi atau user terkait.</div>
                                 @foreach ($userCriteria as $criteria)
-                                    <div class="applicant-rating-row">
+                                    <div class="applicant-rating-row" data-assessment-rating data-score-target="user-interview" data-store-url="{{ route('applicant.assessment.user-interview-score.store', $applicant) }}" data-criterion-key="{{ $criteria['key'] }}">
                                         <div>
                                             <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
-                                            <div class="applicant-rating-weight">Bobot {{ $criteria['weight'] }}</div>
+                                            <div class="applicant-rating-weight">Bobot {{ $criteria['weight_label'] ?? $criteria['weight'].'%' }}</div>
                                         </div>
                                         <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $criteria['label'] }}">
                                             <div class="rating-stars">
                                                 <ul>
                                                     @for ($rating = 1; $rating <= 5; $rating++)
-                                                        <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}">
+                                                        <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}" role="button" tabindex="0">
                                                             <i class="fa fa-star fa-fw"></i>
                                                         </li>
                                                     @endfor
@@ -480,37 +594,61 @@
                                         </div>
                                     </div>
                                 @endforeach
+                                <textarea class="form-control applicant-assessment-note-input mt-3" name="interview_user_notes" rows="3" data-assessment-note data-store-url="{{ route('applicant.assessment.notes.store', [$applicant, 'interview_user']) }}" placeholder="Tulis catatan reviewer interview user.">{{ $userInterviewNotes }}</textarea>
                             </div>
                         </div>
 
                         <div class="tab-pane fade" id="final-assessment-pane" role="tabpanel" aria-labelledby="final-assessment-tab" tabindex="0">
-                            <div class="applicant-assessment-summary-grid">
-                                <div class="applicant-assessment-note-box">
-                                    <strong>Summary Matrix</strong>
-                                    <div class="applicant-summary-field-grid">
-                                        <div class="applicant-summary-field">
-                                            <label for="summarySkill">Skill</label>
-                                            <input type="text" id="summarySkill" value="Kuat di visual composition, perlu rapikan file final." readonly>
-                                        </div>
-                                        <div class="applicant-summary-field">
-                                            <label for="summaryCommunication">Komunikasi</label>
-                                            <input type="text" id="summaryCommunication" value="Presentasi jelas, responsif saat menerima feedback." readonly>
-                                        </div>
-                                        <div class="applicant-summary-field">
-                                            <label for="summaryExperience">Kesesuaian Pengalaman</label>
-                                            <input type="text" id="summaryExperience" value="Portofolio cukup relevan dengan kebutuhan brand." readonly>
-                                        </div>
-                                        <div class="applicant-summary-field">
-                                            <label for="summaryTools">Tools</label>
-                                            <input type="text" id="summaryTools" value="Adobe Illustrator, Photoshop, Figma." readonly>
+                            <div class="applicant-assessment-panel applicant-final-layout">
+                                <div>
+                                    <div class="applicant-assessment-panel-title">Penilaian Akhir</div>
+                                    <div class="applicant-assessment-panel-subtitle">Ringkasan nilai, summary matrix, dan keputusan akhir kandidat.</div>
+                                </div>
+
+                                <div class="applicant-final-content-grid">
+                                    <div class="applicant-final-section">
+                                        <div class="applicant-final-section-title">Summary Matrix</div>
+                                        <div class="applicant-final-section-subtitle">Rangkum poin penting kandidat tanpa mengulang detail skor.</div>
+                                        <div class="applicant-summary-field-grid">
+                                            <div class="applicant-summary-field">
+                                                <label for="summarySkill">Skill</label>
+                                                <textarea id="summarySkill" placeholder="Kekuatan skill utama kandidat."></textarea>
+                                            </div>
+                                            <div class="applicant-summary-field">
+                                                <label for="summaryCommunication">Komunikasi</label>
+                                                <textarea id="summaryCommunication" placeholder="Cara kandidat menjelaskan ide dan menerima feedback."></textarea>
+                                            </div>
+                                            <div class="applicant-summary-field">
+                                                <label for="summaryExperience">Kesesuaian Pengalaman</label>
+                                                <textarea id="summaryExperience" placeholder="Kesesuaian pengalaman dengan kebutuhan posisi."></textarea>
+                                            </div>
+                                            <div class="applicant-summary-field">
+                                                <label for="summaryTools">Tools</label>
+                                                <textarea id="summaryTools" placeholder="Tools yang dikuasai dan catatan workflow."></textarea>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="applicant-assessment-note-box">
-                                    <strong>Final Verdict</strong>
-                                    <div class="applicant-assessment-verdict-badge">Recommended</div>
-                                    <div class="mt-2">
-                                        Kandidat memenuhi standar komunikasi dan interview user. Technical test masih perlu review minor pada kerapian dokumentasi.
+
+                                    <div class="applicant-final-section">
+                                        <div class="applicant-final-section-title">Keputusan Akhir</div>
+                                        <div class="applicant-final-section-subtitle">Pilih keputusan akhir kandidat.</div>
+                                        <div class="applicant-final-decision-group" role="group" aria-label="Keputusan Akhir">
+                                            <label class="applicant-final-decision-option is-hired" for="finalVerdictHired">
+                                                <input type="radio" id="finalVerdictHired" name="final_verdict" value="hired" required>
+                                                <span>Hired</span>
+                                            </label>
+                                            <label class="applicant-final-decision-option is-keep" for="finalVerdictKeep">
+                                                <input type="radio" id="finalVerdictKeep" name="final_verdict" value="keep_in_view" required>
+                                                <span>Keep in View</span>
+                                            </label>
+                                            <label class="applicant-final-decision-option is-rejected" for="finalVerdictRejected">
+                                                <input type="radio" id="finalVerdictRejected" name="final_verdict" value="rejected" required>
+                                                <span>Rejected</span>
+                                            </label>
+                                        </div>
+
+                                        <label for="finalAssessmentNote" class="applicant-final-section-title d-block">Catatan Final</label>
+                                        <textarea id="finalAssessmentNote" class="applicant-final-note" placeholder="Tulis rangkuman akhir, catatan risiko, atau next step kandidat."></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -527,22 +665,148 @@
     <script>
         document.querySelectorAll('[data-copy-assessment-link]').forEach((button) => {
             button.addEventListener('click', async () => {
-                const target = document.getElementById(button.dataset.target);
+                const value = button.dataset.copyValue || '';
 
-                if (!target) {
+                if (!value) {
                     return;
                 }
 
-                target.select();
-                target.setSelectionRange(0, target.value.length);
-
                 try {
-                    await navigator.clipboard.writeText(target.value);
+                    await navigator.clipboard.writeText(value);
                     button.textContent = 'Copied';
                 } catch (error) {
+                    const temporaryInput = document.createElement('input');
+                    temporaryInput.value = value;
+                    temporaryInput.style.position = 'fixed';
+                    temporaryInput.style.opacity = '0';
+                    document.body.appendChild(temporaryInput);
+                    temporaryInput.select();
                     document.execCommand('copy');
+                    temporaryInput.remove();
                     button.textContent = 'Copied';
                 }
+            });
+        });
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        const selectedRatingValue = (row) => {
+            const selectedStars = Array.from(row.querySelectorAll('.star.selected'));
+            const lastSelectedStar = selectedStars[selectedStars.length - 1];
+
+            return Number(lastSelectedStar?.dataset.value || 0);
+        };
+
+        const paintStars = (row, value) => {
+            row.querySelectorAll('.star').forEach((star) => {
+                star.classList.toggle('selected', Number(star.dataset.value) <= value);
+            });
+        };
+
+        const storeRating = async (row, star) => {
+            const rating = Number(star.dataset.value || 0);
+            const previousRating = selectedRatingValue(row);
+
+            if (!rating || row.classList.contains('is-saving')) {
+                return;
+            }
+
+            row.classList.remove('is-save-error');
+            row.classList.add('is-saving');
+            paintStars(row, rating);
+
+            try {
+                const response = await fetch(row.dataset.storeUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({
+                        criterion_key: row.dataset.criterionKey,
+                        rating,
+                    }),
+                });
+                const payload = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    throw new Error(payload.message || 'Nilai gagal disimpan.');
+                }
+
+                paintStars(row, Number(payload.rating || rating));
+
+                const scoreTarget = row.dataset.scoreTarget || '';
+                const scoreElement = document.querySelector(`[data-assessment-score="${scoreTarget}"]`);
+
+                if (scoreElement && payload.display_score) {
+                    scoreElement.textContent = payload.display_score;
+                }
+            } catch (error) {
+                paintStars(row, previousRating);
+                row.classList.add('is-save-error');
+                alert(error.message || 'Nilai gagal disimpan.');
+            } finally {
+                row.classList.remove('is-saving');
+            }
+        };
+
+        document.querySelectorAll('[data-assessment-rating]').forEach((row) => {
+            row.querySelectorAll('.star').forEach((star) => {
+                star.addEventListener('click', () => storeRating(row, star));
+                star.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        storeRating(row, star);
+                    }
+                });
+            });
+        });
+
+        const storeNote = async (textarea) => {
+            if (textarea.classList.contains('is-saving')) {
+                return;
+            }
+
+            textarea.classList.remove('is-save-error');
+            textarea.classList.add('is-saving');
+
+            try {
+                const response = await fetch(textarea.dataset.storeUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({
+                        notes: textarea.value,
+                    }),
+                });
+                const payload = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    throw new Error(payload.message || 'Catatan gagal disimpan.');
+                }
+            } catch (error) {
+                textarea.classList.add('is-save-error');
+                alert(error.message || 'Catatan gagal disimpan.');
+            } finally {
+                textarea.classList.remove('is-saving');
+            }
+        };
+
+        document.querySelectorAll('[data-assessment-note]').forEach((textarea) => {
+            let saveTimeout;
+
+            textarea.addEventListener('blur', () => {
+                window.clearTimeout(saveTimeout);
+                storeNote(textarea);
+            });
+
+            textarea.addEventListener('change', () => {
+                window.clearTimeout(saveTimeout);
+                saveTimeout = window.setTimeout(() => storeNote(textarea), 250);
             });
         });
     </script>

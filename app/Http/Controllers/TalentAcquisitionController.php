@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Mail\ApplicantStatusMail;
 use App\Models\Applicant;
+use App\Models\ApplicantAssessment;
 use App\Models\ApplicantDocument;
 use App\Models\ApplicantStatus;
 use App\Models\ApplicantUploadRequest;
 use App\Models\Company;
 use App\Models\JobVacancy;
 use App\Models\MailAccessAccount;
+use App\Models\User;
+use App\Services\ApplicantAssessmentScoreService;
 use App\Services\ApplicantAssessmentUploadLinkService;
 use App\Support\CareerBrand;
 use Illuminate\Contracts\View\View;
@@ -135,10 +138,14 @@ class TalentAcquisitionController extends Controller
         ]);
     }
 
-    public function showApplicantAssessment(Applicant $applicant, ApplicantAssessmentUploadLinkService $uploadLinkService): View
-    {
+    public function showApplicantAssessment(
+        Applicant $applicant,
+        ApplicantAssessmentUploadLinkService $uploadLinkService,
+        ApplicantAssessmentScoreService $assessmentScoreService
+    ): View {
         $applicant->load([
             'jobVacancy:id,name',
+            'jobVacancy.technicalCriteria:id,job_vacancy_id,name,weight,sort_order',
             'applicantStatus:id,value,name',
             'documents' => fn ($query) => $query
                 ->select(['id', 'applicant_id', 'document_type', 'file_path', 'original_name', 'mime_type'])
@@ -148,6 +155,9 @@ class TalentAcquisitionController extends Controller
         $assessmentUploadRequest = $uploadLinkService->latestUsableRequest($applicant);
         $assessmentDocument = $applicant->documents
             ->firstWhere('document_type', ApplicantDocument::TYPE_ASSESSMENT_TEST);
+        $hrCriteria = $assessmentScoreService->hrCriteriaForView($applicant);
+        $technicalCriteria = $assessmentScoreService->technicalCriteriaForView($applicant);
+        $userCriteria = $assessmentScoreService->userCriteriaForView($applicant);
 
         return view('applicant_data.assessment', [
             'applicant' => $applicant,
@@ -160,6 +170,130 @@ class TalentAcquisitionController extends Controller
             'assessmentUploadUrl' => $assessmentUploadRequest instanceof ApplicantUploadRequest
                 ? $uploadLinkService->urlFor($applicant)
                 : null,
+            'hrCriteria' => $hrCriteria,
+            'hrInterviewScore' => $assessmentScoreService->scoreForSection(
+                $applicant,
+                ApplicantAssessment::SECTION_HR_INTERVIEW,
+                $assessmentScoreService->calculateTotalScore($hrCriteria)
+            ),
+            'technicalCriteria' => $technicalCriteria,
+            'technicalTestScore' => $assessmentScoreService->scoreForSection(
+                $applicant,
+                ApplicantAssessment::SECTION_TECHNICAL_TEST,
+                $assessmentScoreService->calculateTotalScore($technicalCriteria)
+            ),
+            'technicalTestNotes' => $assessmentScoreService->notesForSection(
+                $applicant,
+                ApplicantAssessment::SECTION_TECHNICAL_TEST
+            ),
+            'userCriteria' => $userCriteria,
+            'userInterviewScore' => $assessmentScoreService->scoreForSection(
+                $applicant,
+                ApplicantAssessment::SECTION_INTERVIEW_USER,
+                $assessmentScoreService->calculateTotalScore($userCriteria)
+            ),
+            'userInterviewNotes' => $assessmentScoreService->notesForSection(
+                $applicant,
+                ApplicantAssessment::SECTION_INTERVIEW_USER
+            ),
+        ]);
+    }
+
+    public function storeApplicantHrInterviewScore(
+        Request $request,
+        Applicant $applicant,
+        ApplicantAssessmentScoreService $assessmentScoreService
+    ): JsonResponse {
+        $validated = $request->validate([
+            'criterion_key' => ['required', 'string'],
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+        ]);
+
+        $assessment = $assessmentScoreService->storeHrInterviewRating(
+            $applicant,
+            $validated['criterion_key'],
+            (int) $validated['rating'],
+            $request->user() instanceof User ? $request->user() : null
+        );
+
+        return response()->json([
+            'criterion_key' => $validated['criterion_key'],
+            'rating' => (int) $validated['rating'],
+            'total_score' => (float) $assessment->total_score,
+            'display_score' => number_format((float) $assessment->total_score, 0).' / 100',
+        ]);
+    }
+
+    public function storeApplicantTechnicalTestScore(
+        Request $request,
+        Applicant $applicant,
+        ApplicantAssessmentScoreService $assessmentScoreService
+    ): JsonResponse {
+        $validated = $request->validate([
+            'criterion_key' => ['required', 'string'],
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+        ]);
+
+        $assessment = $assessmentScoreService->storeTechnicalTestRating(
+            $applicant,
+            $validated['criterion_key'],
+            (int) $validated['rating'],
+            $request->user() instanceof User ? $request->user() : null
+        );
+
+        return response()->json([
+            'criterion_key' => $validated['criterion_key'],
+            'rating' => (int) $validated['rating'],
+            'total_score' => (float) $assessment->total_score,
+            'display_score' => number_format((float) $assessment->total_score, 0).' / 100',
+        ]);
+    }
+
+    public function storeApplicantUserInterviewScore(
+        Request $request,
+        Applicant $applicant,
+        ApplicantAssessmentScoreService $assessmentScoreService
+    ): JsonResponse {
+        $validated = $request->validate([
+            'criterion_key' => ['required', 'string'],
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+        ]);
+
+        $assessment = $assessmentScoreService->storeUserInterviewRating(
+            $applicant,
+            $validated['criterion_key'],
+            (int) $validated['rating'],
+            $request->user() instanceof User ? $request->user() : null
+        );
+
+        return response()->json([
+            'criterion_key' => $validated['criterion_key'],
+            'rating' => (int) $validated['rating'],
+            'total_score' => (float) $assessment->total_score,
+            'display_score' => number_format((float) $assessment->total_score, 0).' / 100',
+        ]);
+    }
+
+    public function storeApplicantAssessmentNotes(
+        Request $request,
+        Applicant $applicant,
+        string $section,
+        ApplicantAssessmentScoreService $assessmentScoreService
+    ): JsonResponse {
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $assessment = $assessmentScoreService->storeSectionNotes(
+            $applicant,
+            $section,
+            $validated['notes'] ?? null,
+            $request->user() instanceof User ? $request->user() : null
+        );
+
+        return response()->json([
+            'section' => $section,
+            'notes' => (string) ($assessment->notes ?? ''),
         ]);
     }
 

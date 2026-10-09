@@ -76,6 +76,11 @@ class Applicant extends Model
         return $this->hasMany(ApplicantUploadRequest::class, 'applicant_id', 'id');
     }
 
+    public function assessments(): HasMany
+    {
+        return $this->hasMany(ApplicantAssessment::class, 'applicant_id', 'id');
+    }
+
     public function statusLabel(): string
     {
         return (string) ($this->applicantStatus?->name ?? 'Submitted');

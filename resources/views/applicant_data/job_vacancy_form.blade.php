@@ -182,9 +182,9 @@
                 <div class="job-vacancy-criteria-header">
                     <div>
                         <div class="job-vacancy-criteria-title">Kriteria Tes Teknis</div>
-                        <p class="job-vacancy-criteria-subtitle">
-                            {{ $criteriaRequired ? 'Total bobot wajib tepat 100% sebelum lowongan bisa disimpan.' : 'Kriteria boleh dikosongkan saat update. Jika diisi, total bobot wajib tepat 100%.' }}
-                        </p>
+                        @if ($criteriaRequired)
+                            <p class="job-vacancy-criteria-subtitle">Total bobot wajib tepat 100% sebelum lowongan bisa disimpan.</p>
+                        @endif
                     </div>
                     <div class="d-flex flex-wrap align-items-center gap-2">
                         <span class="job-vacancy-total-box" data-criteria-total>Total 0%</span>

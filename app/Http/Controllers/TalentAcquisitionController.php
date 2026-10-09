@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Mail\ApplicantStatusMail;
 use App\Models\Applicant;
 use App\Models\ApplicantStatus;
+use App\Models\ApplicantUploadRequest;
 use App\Models\Company;
 use App\Models\JobVacancy;
 use App\Models\MailAccessAccount;
+use App\Services\ApplicantAssessmentUploadLinkService;
 use App\Support\CareerBrand;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -132,16 +134,35 @@ class TalentAcquisitionController extends Controller
         ]);
     }
 
-    public function showApplicantAssessment(Applicant $applicant): View
+    public function showApplicantAssessment(Applicant $applicant, ApplicantAssessmentUploadLinkService $uploadLinkService): View
     {
         $applicant->load([
             'jobVacancy:id,name',
             'applicantStatus:id,value,name',
         ]);
 
+        $assessmentUploadRequest = $uploadLinkService->latestUsableRequest($applicant);
+
         return view('applicant_data.assessment', [
             'applicant' => $applicant,
+            'assessmentUploadBrand' => CareerBrand::brand($applicant->brand_key),
+            'assessmentUploadRequest' => $assessmentUploadRequest,
+            'assessmentUploadUrl' => $assessmentUploadRequest instanceof ApplicantUploadRequest
+                ? $uploadLinkService->urlFor($applicant)
+                : null,
         ]);
+    }
+
+    public function storeApplicantAssessmentUploadRequest(
+        Request $request,
+        Applicant $applicant,
+        ApplicantAssessmentUploadLinkService $uploadLinkService
+    ): RedirectResponse {
+        $uploadLink = $uploadLinkService->create($applicant, $request->user());
+
+        return back()
+            ->with('status', 'Link upload assessment berhasil dibuat.')
+            ->with('assessment_upload_url', $uploadLink['url']);
     }
 
     public function updateApplicantStatus(Request $request, Applicant $applicant): RedirectResponse

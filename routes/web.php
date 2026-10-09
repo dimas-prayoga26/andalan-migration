@@ -118,6 +118,7 @@ Route::middleware('auth')->group(function (): void {
             Route::post('/applicant/email/logout', [MailController::class, 'logout'])->name('applicant.email.logout');
         });
         Route::patch('/applicant/{applicant}/status', [TalentAcquisitionController::class, 'updateApplicantStatus'])->name('applicant.status.update');
+        Route::post('/applicant/{applicant}/assessment/upload-request', [TalentAcquisitionController::class, 'storeApplicantAssessmentUploadRequest'])->name('applicant.assessment.upload-request.store');
         Route::get('/applicant/{applicant}/assessment', [TalentAcquisitionController::class, 'showApplicantAssessment'])->name('applicant.assessment');
         Route::get('/applicant/{applicant}', [TalentAcquisitionController::class, 'showApplicant'])->name('applicant.show');
         Route::delete('/applicant/{applicant}', [TalentAcquisitionController::class, 'destroyApplicant'])->name('applicant.destroy');

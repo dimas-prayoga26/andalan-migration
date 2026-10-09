@@ -147,6 +147,33 @@
             text-align: center;
         }
 
+        .applicant-assessment-upload-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 0.85rem;
+        }
+
+        .applicant-assessment-link-box {
+            display: grid;
+            gap: 0.5rem;
+            margin-top: 0.85rem;
+            text-align: left;
+        }
+
+        .applicant-assessment-link-input {
+            min-height: 38px;
+            width: 100%;
+            border: 1px solid #d9dce5;
+            border-radius: 0.5rem;
+            background: #fff;
+            color: #172033;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 0.4rem 0.65rem;
+        }
+
         .applicant-assessment-summary-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -248,6 +275,7 @@
         4 => 'Baik',
         5 => 'Sangat Baik',
     ];
+    $generatedAssessmentUploadUrl = session('assessment_upload_url', $assessmentUploadUrl);
 @endphp
 
 <div class="page-title">
@@ -349,7 +377,29 @@
                                 <div class="applicant-assessment-upload">
                                     <i class="bi bi-cloud-arrow-up fs-3 d-block mb-2"></i>
                                     <div class="fw-semibold">Upload hasil assessment</div>
-                                    <div class="small">Preview gambar akan tampil di area ini.</div>
+                                    <div class="small">Generate link khusus brand {{ $assessmentUploadBrand['name'] ?? 'RNB Management' }} untuk kandidat ini.</div>
+                                    <div class="applicant-assessment-upload-actions">
+                                        <form method="POST" action="{{ route('applicant.assessment.upload-request.store', $applicant) }}">
+                                            @csrf
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <i class="bi bi-link-45deg me-1"></i>
+                                                Generate Link Upload
+                                            </button>
+                                        </form>
+                                        @if ($generatedAssessmentUploadUrl)
+                                            <a href="{{ $generatedAssessmentUploadUrl }}" target="_blank" rel="noopener" class="btn btn-primary light btn-sm">
+                                                <i class="bi bi-box-arrow-up-right me-1"></i>
+                                                Buka Link
+                                            </a>
+                                        @endif
+                                    </div>
+                                    @if ($generatedAssessmentUploadUrl)
+                                        <div class="applicant-assessment-link-box">
+                                            <label for="assessmentUploadUrl" class="small fw-semibold mb-0">Link Upload Assessment</label>
+                                            <input id="assessmentUploadUrl" class="applicant-assessment-link-input" type="text" value="{{ $generatedAssessmentUploadUrl }}" readonly>
+                                            <button type="button" class="btn btn-primary light btn-sm" data-copy-assessment-link data-target="assessmentUploadUrl">Copy Link</button>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -445,4 +495,29 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('script')
+    <script>
+        document.querySelectorAll('[data-copy-assessment-link]').forEach((button) => {
+            button.addEventListener('click', async () => {
+                const target = document.getElementById(button.dataset.target);
+
+                if (!target) {
+                    return;
+                }
+
+                target.select();
+                target.setSelectionRange(0, target.value.length);
+
+                try {
+                    await navigator.clipboard.writeText(target.value);
+                    button.textContent = 'Copied';
+                } catch (error) {
+                    document.execCommand('copy');
+                    button.textContent = 'Copied';
+                }
+            });
+        });
+    </script>
 @endsection

@@ -155,6 +155,21 @@
             margin-top: 0.85rem;
         }
 
+        .applicant-assessment-preview {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 0.85rem;
+        }
+
+        .applicant-assessment-preview img {
+            width: min(100%, 620px);
+            max-height: 420px;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background: #fff;
+            object-fit: contain;
+        }
+
         .applicant-assessment-link-box {
             display: grid;
             gap: 0.5rem;
@@ -276,6 +291,7 @@
         5 => 'Sangat Baik',
     ];
     $generatedAssessmentUploadUrl = session('assessment_upload_url', $assessmentUploadUrl);
+    $assessmentUploaded = filled($assessmentFileUrl);
 @endphp
 
 <div class="page-title">
@@ -313,7 +329,7 @@
                         </div>
                         <div class="applicant-assessment-metric">
                             <div class="applicant-assessment-metric-label">Assessment Test</div>
-                            <div class="applicant-assessment-metric-value">Belum Upload</div>
+                            <div class="applicant-assessment-metric-value">{{ $assessmentUploaded ? 'Sudah Upload' : 'Belum Upload' }}</div>
                         </div>
                         <div class="applicant-assessment-metric">
                             <div class="applicant-assessment-metric-label">Technical Test</div>
@@ -375,9 +391,19 @@
                                 <div class="applicant-assessment-panel-title">Assessment Test</div>
                                 <div class="applicant-assessment-panel-subtitle">Area lampiran hasil tes administrasi atau psikologi dasar.</div>
                                 <div class="applicant-assessment-upload">
-                                    <i class="bi bi-cloud-arrow-up fs-3 d-block mb-2"></i>
-                                    <div class="fw-semibold">Upload hasil assessment</div>
-                                    <div class="small">Generate link khusus brand {{ $assessmentUploadBrand['name'] ?? 'RNB Management' }} untuk kandidat ini.</div>
+                                    @if ($assessmentUploaded)
+                                        <div class="applicant-assessment-preview">
+                                            <a href="{{ $assessmentFileUrl }}" target="_blank" rel="noopener">
+                                                <img src="{{ $assessmentFileUrl }}" alt="Hasil assessment {{ $applicant->full_name }}">
+                                            </a>
+                                        </div>
+                                        <div class="fw-semibold">Hasil assessment sudah diupload</div>
+                                        <div class="small">{{ $assessmentDocument?->original_name ?: basename((string) $assessmentDocument?->file_path) }}</div>
+                                    @else
+                                        <i class="bi bi-cloud-arrow-up fs-3 d-block mb-2"></i>
+                                        <div class="fw-semibold">Upload hasil assessment</div>
+                                        <div class="small">Generate link khusus brand {{ $assessmentUploadBrand['name'] ?? 'RNB Management' }} untuk kandidat ini.</div>
+                                    @endif
                                     <div class="applicant-assessment-upload-actions">
                                         <form method="POST" action="{{ route('applicant.assessment.upload-request.store', $applicant) }}">
                                             @csrf

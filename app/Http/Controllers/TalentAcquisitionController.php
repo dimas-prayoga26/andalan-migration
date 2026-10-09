@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\ApplicantStatusMail;
 use App\Models\Applicant;
+use App\Models\ApplicantDocument;
 use App\Models\ApplicantStatus;
 use App\Models\ApplicantUploadRequest;
 use App\Models\Company;
@@ -139,12 +140,21 @@ class TalentAcquisitionController extends Controller
         $applicant->load([
             'jobVacancy:id,name',
             'applicantStatus:id,value,name',
+            'documents' => fn ($query) => $query
+                ->select(['id', 'applicant_id', 'document_type', 'file_path', 'original_name', 'mime_type'])
+                ->where('document_type', ApplicantDocument::TYPE_ASSESSMENT_TEST),
         ]);
 
         $assessmentUploadRequest = $uploadLinkService->latestUsableRequest($applicant);
+        $assessmentDocument = $applicant->documents
+            ->firstWhere('document_type', ApplicantDocument::TYPE_ASSESSMENT_TEST);
 
         return view('applicant_data.assessment', [
             'applicant' => $applicant,
+            'assessmentDocument' => $assessmentDocument,
+            'assessmentFileUrl' => $assessmentDocument instanceof ApplicantDocument
+                ? $uploadLinkService->assessmentFileUrlFor($applicant)
+                : null,
             'assessmentUploadBrand' => CareerBrand::brand($applicant->brand_key),
             'assessmentUploadRequest' => $assessmentUploadRequest,
             'assessmentUploadUrl' => $assessmentUploadRequest instanceof ApplicantUploadRequest

@@ -54,6 +54,13 @@ class ApplicantAssessmentUploadLinkService
             .'/upload-file/verify-applicant';
     }
 
+    public function assessmentFileUrlFor(Applicant $applicant): string
+    {
+        return rtrim($this->baseUrlFor($applicant), '/')
+            .'/'.$applicant->getKey()
+            .'/assessment-file';
+    }
+
     private function baseUrlFor(Applicant $applicant): string
     {
         $brandKey = $this->brandKeyFor($applicant);

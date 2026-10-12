@@ -23,6 +23,25 @@
             margin-bottom: 0.75rem;
         }
 
+        .job-vacancy-criteria-tabs {
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .job-vacancy-criteria-tabs .nav-link {
+            min-height: 38px;
+            border-radius: 0.55rem;
+            background: #eef2ff;
+            color: #1d4ed8;
+            font-weight: 700;
+            padding: 0.5rem 0.9rem;
+        }
+
+        .job-vacancy-criteria-tabs .nav-link.active {
+            background: #2445c2;
+            color: #fff;
+        }
+
         .job-vacancy-criteria-title {
             color: #111827;
             font-size: 1rem;
@@ -101,11 +120,21 @@
 @section('content')
 @php
     $criteriaRows = old('technical_criteria', collect($technicalCriteria)->values()->all());
+    $skillRows = old('skill_criteria', collect($skillCriteria)->values()->all());
     $criteriaRequired = $formMethod === 'POST';
 
     if (! is_array($criteriaRows) || count($criteriaRows) === 0) {
         $criteriaRows = [['name' => '', 'weight' => '']];
     }
+
+    if (! is_array($skillRows) || count($skillRows) === 0) {
+        $skillRows = [['name' => '', 'weight' => '']];
+    }
+
+    $hasSkillCriteriaErrors = $errors->has('skill_criteria')
+        || $errors->has('skill_criteria.*')
+        || $errors->has('skill_criteria.*.name')
+        || $errors->has('skill_criteria.*.weight');
 @endphp
 
 <div class="page-title">
@@ -179,54 +208,118 @@
                     </div>
                 </div>
 
-                <div class="job-vacancy-criteria-header">
-                    <div>
-                        <div class="job-vacancy-criteria-title">Kriteria Tes Teknis</div>
-                        @if ($criteriaRequired)
-                            <p class="job-vacancy-criteria-subtitle">Total bobot wajib tepat 100% sebelum lowongan bisa disimpan.</p>
-                        @endif
-                    </div>
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        <span class="job-vacancy-total-box" data-criteria-total>Total 0%</span>
-                        <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center justify-content-center gap-1" data-add-criterion>
-                            <i class="bi bi-plus-lg"></i>
-                            <span>Tambah Kriteria</span>
+                <ul class="nav nav-pills job-vacancy-criteria-tabs" id="jobVacancyCriteriaTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="technicalCriteriaTab" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#technicalCriteriaPane" aria-controls="technicalCriteriaPane" aria-selected="true">
+                            Kriteria Tes Teknis
                         </button>
-                    </div>
-                </div>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="skillCriteriaTab" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#skillCriteriaPane" aria-controls="skillCriteriaPane" aria-selected="false">
+                            Kriteria Tes Skill
+                        </button>
+                    </li>
+                </ul>
 
-                @error('technical_criteria')
-                    @include('partials.swal-alert', ['type' => 'error', 'message' => $message])
-                @enderror
-
-                <div class="job-vacancy-criteria-list" data-criteria-list>
-                    @foreach ($criteriaRows as $index => $criterion)
-                        <div class="job-vacancy-criteria-row" data-criterion-row>
-                            <input
-                                type="text"
-                                name="technical_criteria[{{ $index }}][name]"
-                                class="form-control"
-                                value="{{ $criterion['name'] ?? '' }}"
-                                placeholder="Contoh: Clean Code"
-                                data-criterion-name
-                                @required($criteriaRequired)
-                            >
-                            <input
-                                type="number"
-                                name="technical_criteria[{{ $index }}][weight]"
-                                class="form-control"
-                                value="{{ $criterion['weight'] ?? '' }}"
-                                min="1"
-                                max="100"
-                                placeholder="Bobot %"
-                                data-criterion-weight
-                                @required($criteriaRequired)
-                            >
-                            <button type="button" class="job-vacancy-remove-criteria" title="Hapus kriteria" data-remove-criterion>
-                                <i class="bi bi-trash"></i>
-                            </button>
+                <div class="tab-content" id="jobVacancyCriteriaTabContent">
+                    <div class="tab-pane fade show active" id="technicalCriteriaPane" role="tabpanel" aria-labelledby="technicalCriteriaTab" tabindex="0" data-criteria-pane>
+                        <div class="job-vacancy-criteria-header">
+                            <div>
+                                <div class="job-vacancy-criteria-title">Kriteria Tes Teknis</div>
+                                @if ($criteriaRequired)
+                                    <p class="job-vacancy-criteria-subtitle">Total bobot wajib tepat 100% sebelum lowongan bisa disimpan.</p>
+                                @endif
+                            </div>
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <span class="job-vacancy-total-box" data-criteria-total>Total 0%</span>
+                                <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center justify-content-center gap-1" data-add-criterion>
+                                    <i class="bi bi-plus-lg"></i>
+                                    <span>Tambah Kriteria</span>
+                                </button>
+                            </div>
                         </div>
-                    @endforeach
+
+                        @error('technical_criteria')
+                            @include('partials.swal-alert', ['type' => 'error', 'message' => $message])
+                        @enderror
+
+                        <div class="job-vacancy-criteria-list" data-criteria-list data-criteria-prefix="technical_criteria" data-criteria-required="{{ $criteriaRequired ? 'true' : 'false' }}" data-criteria-placeholder="Contoh: Clean Code">
+                            @foreach ($criteriaRows as $index => $criterion)
+                                <div class="job-vacancy-criteria-row" data-criterion-row>
+                                    <input
+                                        type="text"
+                                        name="technical_criteria[{{ $index }}][name]"
+                                        class="form-control"
+                                        value="{{ $criterion['name'] ?? '' }}"
+                                        placeholder="Contoh: Clean Code"
+                                        data-criterion-name
+                                        @required($criteriaRequired)
+                                    >
+                                    <input
+                                        type="number"
+                                        name="technical_criteria[{{ $index }}][weight]"
+                                        class="form-control"
+                                        value="{{ $criterion['weight'] ?? '' }}"
+                                        min="1"
+                                        max="100"
+                                        placeholder="Bobot %"
+                                        data-criterion-weight
+                                        @required($criteriaRequired)
+                                    >
+                                    <button type="button" class="job-vacancy-remove-criteria" title="Hapus kriteria" data-remove-criterion>
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="skillCriteriaPane" role="tabpanel" aria-labelledby="skillCriteriaTab" tabindex="0" data-criteria-pane>
+                        <div class="job-vacancy-criteria-header">
+                            <div>
+                                <div class="job-vacancy-criteria-title">Kriteria Tes Skill</div>
+                            </div>
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <span class="job-vacancy-total-box" data-criteria-total>Total 0%</span>
+                                <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center justify-content-center gap-1" data-add-criterion>
+                                    <i class="bi bi-plus-lg"></i>
+                                    <span>Tambah Kriteria</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        @error('skill_criteria')
+                            @include('partials.swal-alert', ['type' => 'error', 'message' => $message])
+                        @enderror
+
+                        <div class="job-vacancy-criteria-list" data-criteria-list data-criteria-prefix="skill_criteria" data-criteria-required="false" data-criteria-placeholder="Contoh: Desain Grafis">
+                            @foreach ($skillRows as $index => $criterion)
+                                <div class="job-vacancy-criteria-row" data-criterion-row>
+                                    <input
+                                        type="text"
+                                        name="skill_criteria[{{ $index }}][name]"
+                                        class="form-control"
+                                        value="{{ $criterion['name'] ?? '' }}"
+                                        placeholder="Contoh: Desain Grafis"
+                                        data-criterion-name
+                                    >
+                                    <input
+                                        type="number"
+                                        name="skill_criteria[{{ $index }}][weight]"
+                                        class="form-control"
+                                        value="{{ $criterion['weight'] ?? '' }}"
+                                        min="1"
+                                        max="100"
+                                        placeholder="Bobot %"
+                                        data-criterion-weight
+                                    >
+                                    <button type="button" class="job-vacancy-remove-criteria" title="Hapus kriteria" data-remove-criterion>
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="card-footer d-flex flex-wrap justify-content-between gap-2">
@@ -241,78 +334,107 @@
 @section('script')
     <script>
         (function () {
-            var list = document.querySelector('[data-criteria-list]');
-            var totalBadge = document.querySelector('[data-criteria-total]');
-            var addButton = document.querySelector('[data-add-criterion]');
-            var criteriaRequired = @json($criteriaRequired);
+            var activeCriteriaPane = @json($hasSkillCriteriaErrors ? '#skillCriteriaPane' : '#technicalCriteriaPane');
 
-            if (!list || !totalBadge || !addButton) {
-                return;
-            }
-
-            function updateIndexes() {
+            function updateIndexes(list, prefix) {
                 Array.from(list.querySelectorAll('[data-criterion-row]')).forEach(function (row, index) {
                     var nameInput = row.querySelector('[data-criterion-name]');
                     var weightInput = row.querySelector('[data-criterion-weight]');
 
                     if (nameInput) {
-                        nameInput.name = 'technical_criteria[' + index + '][name]';
+                        nameInput.name = prefix + '[' + index + '][name]';
                     }
 
                     if (weightInput) {
-                        weightInput.name = 'technical_criteria[' + index + '][weight]';
+                        weightInput.name = prefix + '[' + index + '][weight]';
                     }
                 });
             }
 
-            function updateTotal() {
-                var total = Array.from(list.querySelectorAll('[data-criterion-weight]')).reduce(function (sum, input) {
+            function updateTotal(list, totalBadge, criteriaRequired) {
+                if (!totalBadge) {
+                    return;
+                }
+
+                var rows = Array.from(list.querySelectorAll('[data-criterion-row]'));
+                var hasFilledRow = rows.some(function (row) {
+                    var nameInput = row.querySelector('[data-criterion-name]');
+                    var weightInput = row.querySelector('[data-criterion-weight]');
+
+                    return String(nameInput ? nameInput.value : '').trim() !== ''
+                        || String(weightInput ? weightInput.value : '').trim() !== '';
+                });
+                var total = rows.reduce(function (sum, row) {
+                    var input = row.querySelector('[data-criterion-weight]');
+
                     return sum + Number(input.value || 0);
                 }, 0);
+                var shouldValidateTotal = criteriaRequired || hasFilledRow;
 
                 totalBadge.textContent = 'Total ' + total + '%';
-                totalBadge.classList.toggle('is-valid', total === 100);
-                totalBadge.classList.toggle('is-invalid', total !== 100);
+                totalBadge.classList.toggle('is-valid', shouldValidateTotal && total === 100);
+                totalBadge.classList.toggle('is-invalid', shouldValidateTotal && total !== 100);
             }
 
-            function createRow() {
+            function createRow(placeholder, criteriaRequired) {
                 var row = document.createElement('div');
                 row.className = 'job-vacancy-criteria-row';
                 row.setAttribute('data-criterion-row', '');
                 row.innerHTML = ''
-                    + '<input type="text" class="form-control" placeholder="Contoh: Clean Code" data-criterion-name' + (criteriaRequired ? ' required' : '') + '>'
+                    + '<input type="text" class="form-control" placeholder="' + placeholder + '" data-criterion-name' + (criteriaRequired ? ' required' : '') + '>'
                     + '<input type="number" class="form-control" min="1" max="100" placeholder="Bobot %" data-criterion-weight' + (criteriaRequired ? ' required' : '') + '>'
                     + '<button type="button" class="job-vacancy-remove-criteria" title="Hapus kriteria" data-remove-criterion><i class="bi bi-trash"></i></button>';
 
                 return row;
             }
 
-            addButton.addEventListener('click', function () {
-                list.appendChild(createRow());
-                updateIndexes();
-                updateTotal();
-            });
+            document.querySelectorAll('[data-criteria-list]').forEach(function (list) {
+                var pane = list.closest('[data-criteria-pane]');
+                var totalBadge = pane ? pane.querySelector('[data-criteria-total]') : null;
+                var addButton = pane ? pane.querySelector('[data-add-criterion]') : null;
+                var prefix = list.dataset.criteriaPrefix || 'technical_criteria';
+                var criteriaRequired = list.dataset.criteriaRequired === 'true';
+                var placeholder = list.dataset.criteriaPlaceholder || 'Contoh: Clean Code';
 
-            list.addEventListener('input', function (event) {
-                if (event.target.matches('[data-criterion-weight]')) {
-                    updateTotal();
-                }
-            });
-
-            list.addEventListener('click', function (event) {
-                var removeButton = event.target.closest('[data-remove-criterion]');
-
-                if (!removeButton || list.querySelectorAll('[data-criterion-row]').length <= 1) {
+                if (!pane || !addButton) {
                     return;
                 }
 
-                removeButton.closest('[data-criterion-row]').remove();
-                updateIndexes();
-                updateTotal();
+                addButton.addEventListener('click', function () {
+                    list.appendChild(createRow(placeholder, criteriaRequired));
+                    updateIndexes(list, prefix);
+                    updateTotal(list, totalBadge, criteriaRequired);
+                });
+
+                list.addEventListener('input', function (event) {
+                    if (event.target.matches('[data-criterion-name], [data-criterion-weight]')) {
+                        updateTotal(list, totalBadge, criteriaRequired);
+                    }
+                });
+
+                list.addEventListener('click', function (event) {
+                    var removeButton = event.target.closest('[data-remove-criterion]');
+
+                    if (!removeButton || list.querySelectorAll('[data-criterion-row]').length <= 1) {
+                        return;
+                    }
+
+                    removeButton.closest('[data-criterion-row]').remove();
+                    updateIndexes(list, prefix);
+                    updateTotal(list, totalBadge, criteriaRequired);
+                });
+
+                updateIndexes(list, prefix);
+                updateTotal(list, totalBadge, criteriaRequired);
             });
 
-            updateIndexes();
-            updateTotal();
+            if (activeCriteriaPane !== '#technicalCriteriaPane' && window.bootstrap && bootstrap.Tab) {
+                var activeTab = document.querySelector('[data-bs-target="' + activeCriteriaPane + '"]');
+
+                if (activeTab) {
+                    bootstrap.Tab.getOrCreateInstance(activeTab).show();
+                }
+            }
         })();
     </script>
 @endsection

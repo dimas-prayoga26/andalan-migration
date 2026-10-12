@@ -6,6 +6,7 @@ use App\Mail\ApplicantStatusMail;
 use App\Models\Applicant;
 use App\Models\ApplicantAssessment;
 use App\Models\ApplicantDocument;
+use App\Models\ApplicantFinalAssessment;
 use App\Models\ApplicantStatus;
 use App\Models\ApplicantUploadRequest;
 use App\Models\Company;
@@ -14,6 +15,7 @@ use App\Models\MailAccessAccount;
 use App\Models\User;
 use App\Services\ApplicantAssessmentScoreService;
 use App\Services\ApplicantAssessmentUploadLinkService;
+use App\Services\ApplicantFinalAssessmentService;
 use App\Support\CareerBrand;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -141,7 +143,8 @@ class TalentAcquisitionController extends Controller
     public function showApplicantAssessment(
         Applicant $applicant,
         ApplicantAssessmentUploadLinkService $uploadLinkService,
-        ApplicantAssessmentScoreService $assessmentScoreService
+        ApplicantAssessmentScoreService $assessmentScoreService,
+        ApplicantFinalAssessmentService $finalAssessmentService
     ): View {
         $applicant->load([
             'jobVacancy:id,name',
@@ -196,6 +199,7 @@ class TalentAcquisitionController extends Controller
                 $applicant,
                 ApplicantAssessment::SECTION_INTERVIEW_USER
             ),
+            'finalAssessment' => $finalAssessmentService->finalAssessmentForView($applicant),
         ]);
     }
 
@@ -265,12 +269,23 @@ class TalentAcquisitionController extends Controller
             (int) $validated['rating'],
             $request->user() instanceof User ? $request->user() : null
         );
+        $storedScore = $assessment->scores->firstWhere('criterion_key', $validated['criterion_key']);
+        $parentScore = filled($storedScore?->parent_key)
+            ? $assessment->scores->firstWhere('criterion_key', $storedScore->parent_key)
+            : null;
 
         return response()->json([
             'criterion_key' => $validated['criterion_key'],
             'rating' => (int) $validated['rating'],
             'total_score' => (float) $assessment->total_score,
             'display_score' => number_format((float) $assessment->total_score, 0).' / 100',
+            'parent_key' => $storedScore?->parent_key,
+            'parent_raw_score' => $parentScore ? (float) $parentScore->raw_score : null,
+            'parent_raw_score_display' => $parentScore ? number_format((float) $parentScore->raw_score, 2).' / 5' : null,
+            'parent_weighted_score' => $parentScore ? (float) $parentScore->weighted_score : null,
+            'parent_weighted_score_display' => $parentScore
+                ? $assessmentScoreService->weightedScoreDisplay((float) $parentScore->weighted_score, (float) $parentScore->weight)
+                : null,
         ]);
     }
 
@@ -297,6 +312,36 @@ class TalentAcquisitionController extends Controller
         ]);
     }
 
+    public function storeApplicantFinalAssessment(
+        Request $request,
+        Applicant $applicant,
+        ApplicantFinalAssessmentService $finalAssessmentService
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'skill_note' => ['required', 'string', 'not_regex:/^\s*$/', 'max:5000'],
+            'communication_note' => ['required', 'string', 'not_regex:/^\s*$/', 'max:5000'],
+            'experience_note' => ['required', 'string', 'not_regex:/^\s*$/', 'max:5000'],
+            'tools_note' => ['required', 'string', 'not_regex:/^\s*$/', 'max:5000'],
+            'final_note' => ['required', 'string', 'not_regex:/^\s*$/', 'max:5000'],
+            'final_decision' => [
+                'required',
+                Rule::in([
+                    ApplicantFinalAssessment::DECISION_HIRED,
+                    ApplicantFinalAssessment::DECISION_KEEP_IN_VIEW,
+                    ApplicantFinalAssessment::DECISION_REJECTED,
+                ]),
+            ],
+        ]);
+
+        $finalAssessmentService->store(
+            $applicant,
+            $validated,
+            $request->user() instanceof User ? $request->user() : null
+        );
+
+        return back()->with('status', 'Penilaian akhir berhasil disimpan.');
+    }
+
     public function storeApplicantAssessmentUploadRequest(
         Request $request,
         Applicant $applicant,
@@ -307,6 +352,20 @@ class TalentAcquisitionController extends Controller
         return back()
             ->with('status', 'Link upload assessment berhasil dibuat.')
             ->with('assessment_upload_url', $uploadLink['url']);
+    }
+
+    public function revokeApplicantAssessmentUploadRequest(
+        Applicant $applicant,
+        ApplicantAssessmentUploadLinkService $uploadLinkService
+    ): RedirectResponse {
+        $isRevoked = $uploadLinkService->revokeLatestUsableRequest($applicant);
+
+        return back()->with(
+            $isRevoked ? 'status' : 'error',
+            $isRevoked
+                ? 'Link upload assessment berhasil direvoke.'
+                : 'Tidak ada link upload assessment aktif untuk direvoke.'
+        );
     }
 
     public function updateApplicantStatus(Request $request, Applicant $applicant): RedirectResponse
@@ -524,6 +583,9 @@ class TalentAcquisitionController extends Controller
             'technicalCriteria' => collect([
                 ['name' => '', 'weight' => ''],
             ]),
+            'skillCriteria' => collect([
+                ['name' => '', 'weight' => ''],
+            ]),
             'formAction' => route('applicant.job_vacancies.store'),
             'formMethod' => 'POST',
             'formTitle' => 'Create Job',
@@ -543,6 +605,7 @@ class TalentAcquisitionController extends Controller
             ]);
 
             $this->syncJobVacancyTechnicalCriteria($jobVacancy, $validated['technical_criteria']);
+            $this->syncJobVacancySkillCriteria($jobVacancy, $validated['skill_criteria']);
         });
 
         return redirect()->route('applicant.job_vacancies')->with('status', 'Lowongan berhasil dibuat.');
@@ -550,13 +613,18 @@ class TalentAcquisitionController extends Controller
 
     public function editJobVacancy(JobVacancy $jobVacancy): View
     {
-        $jobVacancy->load('technicalCriteria');
+        $jobVacancy->load(['technicalCriteria', 'skillCriteria']);
 
         return view('applicant_data.job_vacancy_form', [
             'jobVacancy' => $jobVacancy,
             'jobVacancyStatuses' => JobVacancy::statusOptions(),
             'companyOptions' => $this->companyOptions(),
             'technicalCriteria' => $jobVacancy->technicalCriteria
+                ->map(fn ($criterion): array => [
+                    'name' => (string) $criterion->name,
+                    'weight' => (int) $criterion->weight,
+                ]),
+            'skillCriteria' => $jobVacancy->skillCriteria
                 ->map(fn ($criterion): array => [
                     'name' => (string) $criterion->name,
                     'weight' => (int) $criterion->weight,
@@ -582,6 +650,8 @@ class TalentAcquisitionController extends Controller
             if ($validated['technical_criteria'] !== []) {
                 $this->syncJobVacancyTechnicalCriteria($jobVacancy, $validated['technical_criteria']);
             }
+
+            $this->syncJobVacancySkillCriteria($jobVacancy, $validated['skill_criteria']);
         });
 
         return redirect()->route('applicant.job_vacancies')->with('status', 'Lowongan berhasil diperbarui.');
@@ -595,7 +665,7 @@ class TalentAcquisitionController extends Controller
     }
 
     /**
-     * @return array{company_id: string, name: string, status: int|string, technical_criteria: array<int, array{name: string, weight: int|string}>}
+     * @return array{company_id: string, name: string, status: int|string, technical_criteria: array<int, array{name: string, weight: int|string}>, skill_criteria: array<int, array{name: string, weight: int|string}>}
      */
     private function validateJobVacancy(Request $request, ?JobVacancy $jobVacancy = null): array
     {
@@ -621,9 +691,32 @@ class TalentAcquisitionController extends Controller
             'technical_criteria.*' => ['array'],
             'technical_criteria.*.name' => [$isUpdate ? 'nullable' : 'required', 'string', 'max:255'],
             'technical_criteria.*.weight' => [$isUpdate ? 'nullable' : 'required', 'integer', 'min:1', 'max:100'],
+            'skill_criteria' => ['nullable', 'array'],
+            'skill_criteria.*' => ['array'],
+            'skill_criteria.*.name' => ['nullable', 'string', 'max:255'],
+            'skill_criteria.*.weight' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $technicalCriteria = $this->filledTechnicalCriteria($validated['technical_criteria'] ?? []);
+        $technicalCriteria = $this->filledCriteria($validated['technical_criteria'] ?? []);
+        $skillCriteria = $this->filledCriteria($validated['skill_criteria'] ?? []);
+
+        $validated['skill_criteria'] = $skillCriteria;
+
+        if ($skillCriteria !== []) {
+            if ($this->hasIncompleteCriteria($skillCriteria)) {
+                throw ValidationException::withMessages([
+                    'skill_criteria' => 'Lengkapi nama dan bobot kriteria tes skill.',
+                ]);
+            }
+
+            $skillTotalWeight = collect($skillCriteria)->sum(fn (array $criterion): int => (int) $criterion['weight']);
+
+            if ($skillTotalWeight !== 100) {
+                throw ValidationException::withMessages([
+                    'skill_criteria' => 'Total bobot kriteria tes skill harus tepat 100%.',
+                ]);
+            }
+        }
 
         if ($technicalCriteria === []) {
             if ($isUpdate) {
@@ -637,7 +730,7 @@ class TalentAcquisitionController extends Controller
             ]);
         }
 
-        if ($this->hasIncompleteTechnicalCriteria($technicalCriteria)) {
+        if ($this->hasIncompleteCriteria($technicalCriteria)) {
             throw ValidationException::withMessages([
                 'technical_criteria' => 'Lengkapi nama dan bobot kriteria tes teknis.',
             ]);
@@ -660,7 +753,7 @@ class TalentAcquisitionController extends Controller
      * @param  array<int, array{name?: mixed, weight?: mixed}>  $criteria
      * @return array<int, array{name: string, weight: int|string}>
      */
-    private function filledTechnicalCriteria(array $criteria): array
+    private function filledCriteria(array $criteria): array
     {
         return collect($criteria)
             ->map(fn (array $criterion): array => [
@@ -675,7 +768,7 @@ class TalentAcquisitionController extends Controller
     /**
      * @param  array<int, array{name: string, weight: int|string}>  $criteria
      */
-    private function hasIncompleteTechnicalCriteria(array $criteria): bool
+    private function hasIncompleteCriteria(array $criteria): bool
     {
         return collect($criteria)->contains(
             fn (array $criterion): bool => $criterion['name'] === '' || trim((string) $criterion['weight']) === '',
@@ -706,6 +799,22 @@ class TalentAcquisitionController extends Controller
 
         foreach (array_values($criteria) as $index => $criterion) {
             $jobVacancy->technicalCriteria()->create([
+                'name' => $criterion['name'],
+                'weight' => (int) $criterion['weight'],
+                'sort_order' => $index,
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<int, array{name: string, weight: int|string}>  $criteria
+     */
+    private function syncJobVacancySkillCriteria(JobVacancy $jobVacancy, array $criteria): void
+    {
+        $jobVacancy->skillCriteria()->delete();
+
+        foreach (array_values($criteria) as $index => $criterion) {
+            $jobVacancy->skillCriteria()->create([
                 'name' => $criterion['name'],
                 'weight' => (int) $criterion['weight'],
                 'sort_order' => $index,

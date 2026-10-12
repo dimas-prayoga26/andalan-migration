@@ -6,8 +6,11 @@
     @php
         $dashboardCssPath = public_path('assets/css/dashboard.css');
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
+        $sweetAlertCssPath = public_path('assets/vendor/sweetalert2/sweetalert2.min.css');
+        $sweetAlertCssVersion = file_exists($sweetAlertCssPath) ? filemtime($sweetAlertCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}?v={{ $sweetAlertCssVersion }}">
     <style>
         .applicant-assessment-header {
             display: flex;
@@ -158,6 +161,31 @@
 
         .applicant-rating-row[data-assessment-rating] .rating-stars ul > li.star {
             cursor: pointer;
+        }
+
+        .applicant-rating-row.is-nested-parent {
+            background: #f8fafc;
+        }
+
+        .applicant-rating-row.is-nested-child {
+            padding-left: 1.25rem;
+        }
+
+        .applicant-rating-row.is-nested-child .applicant-rating-label::before {
+            content: "";
+            display: inline-block;
+            width: 0.45rem;
+            height: 0.45rem;
+            margin-right: 0.5rem;
+            border-radius: 999px;
+            background: #cbd5e1;
+            vertical-align: middle;
+        }
+
+        .applicant-nested-score {
+            color: #475569;
+            font-size: 0.86rem;
+            font-weight: 800;
         }
 
         .applicant-rating-row.is-saving {
@@ -394,6 +422,15 @@
     $userInterviewScoreDisplay = number_format((float) ($userInterviewScore ?? 0), 0) . ' / 100';
     $technicalTestNotes = $technicalTestNotes ?? '';
     $userInterviewNotes = $userInterviewNotes ?? '';
+    $finalAssessment = $finalAssessment ?? [
+        'skill_note' => '',
+        'communication_note' => '',
+        'experience_note' => '',
+        'tools_note' => '',
+        'final_note' => '',
+        'final_decision' => '',
+    ];
+    $finalDecision = old('final_decision', $finalAssessment['final_decision'] ?? '');
     $ratingLabels = [
         1 => 'Sangat Kurang',
         2 => 'Kurang',
@@ -432,6 +469,18 @@
                 </div>
             </div>
             <div class="card-body">
+                @if (session('status'))
+                    @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
+                @endif
+
+                @if (session('error'))
+                    @include('partials.swal-alert', ['type' => 'error', 'message' => session('error')])
+                @endif
+
+                @if ($errors->any())
+                    @include('partials.swal-alert', ['type' => 'error', 'message' => $errors->first()])
+                @endif
+
                 <div class="applicant-assessment-shell">
                     <div class="applicant-assessment-overview">
                         <div class="applicant-assessment-metric">
@@ -520,6 +569,16 @@
                                                 Copy Link
                                             </button>
                                         @endif
+                                        @if ($assessmentUploadRequest instanceof \App\Models\ApplicantUploadRequest)
+                                            <form method="POST" action="{{ route('applicant.assessment.upload-request.revoke', $applicant) }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-danger light btn-sm">
+                                                    <i class="bi bi-x-circle me-1"></i>
+                                                    Revoke Link
+                                                </button>
+                                            </form>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="applicant-assessment-upload">
@@ -576,30 +635,63 @@
                                 <div class="applicant-assessment-panel-title">Interview User</div>
                                 <div class="applicant-assessment-panel-subtitle">Evaluasi teknis lanjutan oleh atasan divisi atau user terkait.</div>
                                 @foreach ($userCriteria as $criteria)
-                                    <div class="applicant-rating-row" data-assessment-rating data-score-target="user-interview" data-store-url="{{ route('applicant.assessment.user-interview-score.store', $applicant) }}" data-criterion-key="{{ $criteria['key'] }}">
-                                        <div>
-                                            <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
-                                            <div class="applicant-rating-weight">Bobot {{ $criteria['weight_label'] ?? $criteria['weight'].'%' }}</div>
-                                        </div>
-                                        <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $criteria['label'] }}">
-                                            <div class="rating-stars">
-                                                <ul>
-                                                    @for ($rating = 1; $rating <= 5; $rating++)
-                                                        <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}" role="button" tabindex="0">
-                                                            <i class="fa fa-star fa-fw"></i>
-                                                        </li>
-                                                    @endfor
-                                                </ul>
+                                    @if (($criteria['is_nested'] ?? false) && ! empty($criteria['children']))
+                                        <div class="applicant-rating-row is-nested-parent">
+                                            <div>
+                                                <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
+                                                <div class="applicant-rating-weight">Bobot {{ $criteria['weight_label'] ?? $criteria['weight'].'%' }}</div>
+                                            </div>
+                                            <div class="applicant-nested-score">
+                                                <span data-nested-parent-score="{{ $criteria['key'] }}">{{ $criteria['weighted_score_display'] ?? '0.00 / '.$criteria['weight'] }}</span> poin
                                             </div>
                                         </div>
-                                    </div>
+
+                                        @foreach ($criteria['children'] as $childCriteria)
+                                            <div class="applicant-rating-row is-nested-child" data-assessment-rating data-score-target="user-interview" data-store-url="{{ route('applicant.assessment.user-interview-score.store', $applicant) }}" data-criterion-key="{{ $childCriteria['key'] }}" data-parent-key="{{ $criteria['key'] }}">
+                                                <div>
+                                                    <div class="applicant-rating-label">{{ $childCriteria['label'] }}</div>
+                                                    <div class="applicant-rating-weight">Bobot {{ $childCriteria['weight_label'] ?? $childCriteria['weight'].'%' }}</div>
+                                                </div>
+                                                <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $childCriteria['label'] }}">
+                                                    <div class="rating-stars">
+                                                        <ul>
+                                                            @for ($rating = 1; $rating <= 5; $rating++)
+                                                                <li class="star {{ $rating <= $childCriteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}" role="button" tabindex="0">
+                                                                    <i class="fa fa-star fa-fw"></i>
+                                                                </li>
+                                                            @endfor
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    @else
+                                        <div class="applicant-rating-row" data-assessment-rating data-score-target="user-interview" data-store-url="{{ route('applicant.assessment.user-interview-score.store', $applicant) }}" data-criterion-key="{{ $criteria['key'] }}">
+                                            <div>
+                                                <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
+                                                <div class="applicant-rating-weight">Bobot {{ $criteria['weight_label'] ?? $criteria['weight'].'%' }}</div>
+                                            </div>
+                                            <div class="rating-widget applicant-rating-widget mb-0" aria-label="{{ $criteria['label'] }}">
+                                                <div class="rating-stars">
+                                                    <ul>
+                                                        @for ($rating = 1; $rating <= 5; $rating++)
+                                                            <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}" role="button" tabindex="0">
+                                                                <i class="fa fa-star fa-fw"></i>
+                                                            </li>
+                                                        @endfor
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
                                 @endforeach
                                 <textarea class="form-control applicant-assessment-note-input mt-3" name="interview_user_notes" rows="3" data-assessment-note data-store-url="{{ route('applicant.assessment.notes.store', [$applicant, 'interview_user']) }}" placeholder="Tulis catatan reviewer interview user.">{{ $userInterviewNotes }}</textarea>
                             </div>
                         </div>
 
                         <div class="tab-pane fade" id="final-assessment-pane" role="tabpanel" aria-labelledby="final-assessment-tab" tabindex="0">
-                            <div class="applicant-assessment-panel applicant-final-layout">
+                            <form method="POST" action="{{ route('applicant.assessment.final.store', $applicant) }}" class="applicant-assessment-panel applicant-final-layout">
+                                @csrf
                                 <div>
                                     <div class="applicant-assessment-panel-title">Penilaian Akhir</div>
                                     <div class="applicant-assessment-panel-subtitle">Ringkasan nilai, summary matrix, dan keputusan akhir kandidat.</div>
@@ -612,19 +704,19 @@
                                         <div class="applicant-summary-field-grid">
                                             <div class="applicant-summary-field">
                                                 <label for="summarySkill">Skill</label>
-                                                <textarea id="summarySkill" placeholder="Kekuatan skill utama kandidat."></textarea>
+                                                <textarea id="summarySkill" name="skill_note" required placeholder="Kekuatan skill utama kandidat.">{{ old('skill_note', $finalAssessment['skill_note'] ?? '') }}</textarea>
                                             </div>
                                             <div class="applicant-summary-field">
                                                 <label for="summaryCommunication">Komunikasi</label>
-                                                <textarea id="summaryCommunication" placeholder="Cara kandidat menjelaskan ide dan menerima feedback."></textarea>
+                                                <textarea id="summaryCommunication" name="communication_note" required placeholder="Cara kandidat menjelaskan ide dan menerima feedback.">{{ old('communication_note', $finalAssessment['communication_note'] ?? '') }}</textarea>
                                             </div>
                                             <div class="applicant-summary-field">
                                                 <label for="summaryExperience">Kesesuaian Pengalaman</label>
-                                                <textarea id="summaryExperience" placeholder="Kesesuaian pengalaman dengan kebutuhan posisi."></textarea>
+                                                <textarea id="summaryExperience" name="experience_note" required placeholder="Kesesuaian pengalaman dengan kebutuhan posisi.">{{ old('experience_note', $finalAssessment['experience_note'] ?? '') }}</textarea>
                                             </div>
                                             <div class="applicant-summary-field">
                                                 <label for="summaryTools">Tools</label>
-                                                <textarea id="summaryTools" placeholder="Tools yang dikuasai dan catatan workflow."></textarea>
+                                                <textarea id="summaryTools" name="tools_note" required placeholder="Tools yang dikuasai dan catatan workflow.">{{ old('tools_note', $finalAssessment['tools_note'] ?? '') }}</textarea>
                                             </div>
                                         </div>
                                     </div>
@@ -634,24 +726,31 @@
                                         <div class="applicant-final-section-subtitle">Pilih keputusan akhir kandidat.</div>
                                         <div class="applicant-final-decision-group" role="group" aria-label="Keputusan Akhir">
                                             <label class="applicant-final-decision-option is-hired" for="finalVerdictHired">
-                                                <input type="radio" id="finalVerdictHired" name="final_verdict" value="hired" required>
+                                                <input type="radio" id="finalVerdictHired" name="final_decision" value="hired" required @checked($finalDecision === 'hired')>
                                                 <span>Hired</span>
                                             </label>
                                             <label class="applicant-final-decision-option is-keep" for="finalVerdictKeep">
-                                                <input type="radio" id="finalVerdictKeep" name="final_verdict" value="keep_in_view" required>
+                                                <input type="radio" id="finalVerdictKeep" name="final_decision" value="keep_in_view" required @checked($finalDecision === 'keep_in_view')>
                                                 <span>Keep in View</span>
                                             </label>
                                             <label class="applicant-final-decision-option is-rejected" for="finalVerdictRejected">
-                                                <input type="radio" id="finalVerdictRejected" name="final_verdict" value="rejected" required>
+                                                <input type="radio" id="finalVerdictRejected" name="final_decision" value="rejected" required @checked($finalDecision === 'rejected')>
                                                 <span>Rejected</span>
                                             </label>
                                         </div>
 
                                         <label for="finalAssessmentNote" class="applicant-final-section-title d-block">Catatan Final</label>
-                                        <textarea id="finalAssessmentNote" class="applicant-final-note" placeholder="Tulis rangkuman akhir, catatan risiko, atau next step kandidat."></textarea>
+                                        <textarea id="finalAssessmentNote" name="final_note" class="applicant-final-note" required placeholder="Tulis rangkuman akhir, catatan risiko, atau next step kandidat.">{{ old('final_note', $finalAssessment['final_note'] ?? '') }}</textarea>
+
+                                        <div class="d-flex justify-content-end mt-3">
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <i class="bi bi-save me-1"></i>
+                                                Save Penilaian Akhir
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -689,7 +788,6 @@
         });
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
         const selectedRatingValue = (row) => {
             const selectedStars = Array.from(row.querySelectorAll('.star.selected'));
             const lastSelectedStar = selectedStars[selectedStars.length - 1];
@@ -741,6 +839,14 @@
 
                 if (scoreElement && payload.display_score) {
                     scoreElement.textContent = payload.display_score;
+                }
+
+                if (payload.parent_key && payload.parent_weighted_score_display) {
+                    const parentScoreElement = document.querySelector(`[data-nested-parent-score="${payload.parent_key}"]`);
+
+                    if (parentScoreElement) {
+                        parentScoreElement.textContent = payload.parent_weighted_score_display;
+                    }
                 }
             } catch (error) {
                 paintStars(row, previousRating);
@@ -809,5 +915,13 @@
                 saveTimeout = window.setTimeout(() => storeNote(textarea), 250);
             });
         });
+
+        @if ($errors->any() || session('status') === 'Penilaian akhir berhasil disimpan.')
+            const finalAssessmentTab = document.getElementById('final-assessment-tab');
+
+            if (finalAssessmentTab && window.bootstrap?.Tab) {
+                window.bootstrap.Tab.getOrCreateInstance(finalAssessmentTab).show();
+            }
+        @endif
     </script>
 @endsection

@@ -62,6 +62,7 @@ return [
                 'weight' => 25,
                 'default_rating' => 0,
                 'sort_order' => 1,
+                'uses_skill_criteria' => true,
             ],
             [
                 'key' => 'creativity',

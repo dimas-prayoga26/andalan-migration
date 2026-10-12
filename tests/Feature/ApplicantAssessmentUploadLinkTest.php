@@ -38,13 +38,18 @@ class ApplicantAssessmentUploadLinkTest extends TestCase
         $view = File::get(resource_path('views/applicant_data/assessment.blade.php'));
 
         $this->assertStringContainsString('applicant.assessment.upload-request.store', $routes);
+        $this->assertStringContainsString('applicant.assessment.upload-request.revoke', $routes);
         $this->assertStringContainsString('storeApplicantAssessmentUploadRequest', $controller);
+        $this->assertStringContainsString('revokeApplicantAssessmentUploadRequest', $controller);
         $this->assertStringContainsString('ApplicantAssessmentUploadLinkService', $controller);
         $this->assertStringContainsString('ApplicantDocument::TYPE_ASSESSMENT_TEST', $controller);
         $this->assertStringContainsString('assessmentFileUrlFor', $service);
+        $this->assertStringContainsString('revokeLatestUsableRequest', $service);
         $this->assertStringContainsString("'revoked_at' => now()", $service);
         $this->assertStringContainsString("'token_hash' => \$this->uniqueTokenHash()", $service);
         $this->assertStringContainsString('Generate Link Upload', $view);
+        $this->assertStringContainsString('Revoke Link', $view);
+        $this->assertStringContainsString("@method('PATCH')", $view);
         $this->assertStringContainsString('assessmentUploadUrl', $view);
         $this->assertStringContainsString('assessmentFileUrl', $view);
         $this->assertStringContainsString('Sudah Upload', $view);

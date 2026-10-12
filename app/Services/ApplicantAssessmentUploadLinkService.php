@@ -47,6 +47,19 @@ class ApplicantAssessmentUploadLinkService
             ->first();
     }
 
+    public function revokeLatestUsableRequest(Applicant $applicant): bool
+    {
+        $uploadRequest = $this->latestUsableRequest($applicant);
+
+        if (! $uploadRequest instanceof ApplicantUploadRequest) {
+            return false;
+        }
+
+        return $uploadRequest->forceFill([
+            'revoked_at' => now(),
+        ])->save();
+    }
+
     public function urlFor(Applicant $applicant): string
     {
         return rtrim($this->baseUrlFor($applicant), '/')

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Applicant;
 use App\Models\ApplicantAssessment;
 use App\Models\ApplicantAssessmentScore;
+use App\Models\JobVacancySkillCriterion;
 use App\Models\JobVacancyTechnicalCriterion;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -22,7 +23,7 @@ class ApplicantAssessmentScoreService
     }
 
     /**
-     * @return array<int, array{key: string, label: string, weight: int|float, default_rating: int, sort_order: int}>
+     * @return array<int, array{key: string, label: string, weight: int|float, default_rating: int, sort_order: int, uses_skill_criteria?: bool}>
      */
     public function userCriteria(): array
     {
@@ -64,7 +65,9 @@ class ApplicantAssessmentScoreService
     }
 
     /**
-     * @return array<int, array{key: string, label: string, weight: int|float, weight_label: string, selected: int}>
+     * Skill Teknis is expanded into the job vacancy skill criteria when the vacancy defines them.
+     *
+     * @return array<int, array{key: string, label: string, weight: int|float, weight_label: string, selected: int, is_nested?: bool, raw_score?: float, raw_score_label?: string, children?: array<int, array{key: string, label: string, weight: int|float, weight_label: string, selected: int}>}>
      */
     public function userCriteriaForView(Applicant $applicant): array
     {
@@ -72,21 +75,29 @@ class ApplicantAssessmentScoreService
         $scoresByCriterion = $assessment instanceof ApplicantAssessment
             ? $assessment->scores->keyBy('criterion_key')
             : collect();
+        $skillCriteria = $this->skillCriteriaFor($applicant);
 
         return array_map(
-            fn (array $criterion): array => $this->criterionForView($criterion, $scoresByCriterion),
+            fn (array $criterion): array => $this->usesSkillCriteria($criterion) && $skillCriteria->isNotEmpty()
+                ? $this->nestedSkillCriterionForView($criterion, $skillCriteria, $scoresByCriterion)
+                : $this->criterionForView($criterion, $scoresByCriterion),
             $this->userCriteria()
         );
     }
 
     /**
-     * @param  array<int, array{weight: int|float, selected?: int, default_rating?: int}>  $criteria
+     * @param  array<int, array{weight: int|float, selected?: int, default_rating?: int, is_nested?: bool, children?: array<int, array{weight: int|float, selected?: int}>}>  $criteria
      */
     public function calculateTotalScore(array $criteria): float
     {
         return round(array_reduce($criteria, function (float $total, array $criterion): float {
-            $rating = (int) ($criterion['selected'] ?? $criterion['default_rating'] ?? 0);
             $weight = (float) $criterion['weight'];
+
+            if (($criterion['is_nested'] ?? false) === true && isset($criterion['children']) && is_array($criterion['children'])) {
+                return $total + $this->weightedScoreFromRaw($this->nestedRawScore($criterion['children']), $weight);
+            }
+
+            $rating = (int) ($criterion['selected'] ?? $criterion['default_rating'] ?? 0);
 
             return $total + $this->weightedScore($rating, $weight);
         }, 0.0), 2);
@@ -242,8 +253,12 @@ class ApplicantAssessmentScoreService
         $criterion = $this->userCriterion($criterionKey);
 
         if ($criterion === null) {
+            return $this->storeUserInterviewSkillRating($applicant, $criterionKey, $rating, $assessor);
+        }
+
+        if ($this->usesSkillCriteria($criterion) && $this->skillCriteriaFor($applicant)->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'criterion_key' => 'Kriteria interview user tidak valid.',
+                'criterion_key' => 'Skill Teknis dinilai melalui sub-kriteria skill lowongan.',
             ]);
         }
 
@@ -261,7 +276,7 @@ class ApplicantAssessmentScoreService
                 ]
             );
 
-            $this->ensureUserScores($assessment);
+            $this->ensureUserScores($assessment, $applicant);
 
             $assessment->scores()->updateOrCreate(
                 ['criterion_key' => $criterion['key']],
@@ -269,7 +284,7 @@ class ApplicantAssessmentScoreService
             );
 
             $assessment->forceFill([
-                'total_score' => (float) $assessment->scores()->sum('weighted_score'),
+                'total_score' => $this->topLevelTotalScore($assessment),
                 'status' => ApplicantAssessment::STATUS_SUBMITTED,
                 'assessed_by' => $assessor?->id,
                 'assessed_at' => now(),
@@ -286,12 +301,117 @@ class ApplicantAssessmentScoreService
     }
 
     /**
+     * Formats a weighted score against its maximum points, e.g. "17.50 / 25".
+     */
+    public function weightedScoreDisplay(float $weightedScore, float $weight): string
+    {
+        return number_format($weightedScore, 2).' / '.$this->numberLabel($weight);
+    }
+
+    private function storeUserInterviewSkillRating(
+        Applicant $applicant,
+        string $criterionId,
+        int $rating,
+        ?User $assessor
+    ): ApplicantAssessment {
+        $skillCriteria = $this->skillCriteriaFor($applicant);
+        $skillCriterion = $skillCriteria->first(
+            fn (JobVacancySkillCriterion $skillCriterion): bool => (string) $skillCriterion->id === $criterionId
+        );
+        $parentCriterion = $this->skillParentUserCriterion();
+
+        if (! $skillCriterion instanceof JobVacancySkillCriterion || $parentCriterion === null) {
+            throw ValidationException::withMessages([
+                'criterion_key' => 'Kriteria interview user tidak valid.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($applicant, $assessor, $parentCriterion, $rating, $skillCriteria, $skillCriterion): ApplicantAssessment {
+            $assessment = ApplicantAssessment::query()->updateOrCreate(
+                [
+                    'applicant_id' => $applicant->id,
+                    'section' => ApplicantAssessment::SECTION_INTERVIEW_USER,
+                ],
+                [
+                    'status' => ApplicantAssessment::STATUS_SUBMITTED,
+                    'assessed_by' => $assessor?->id,
+                    'assessed_at' => now(),
+                    'submitted_at' => now(),
+                ]
+            );
+
+            $this->ensureUserScores($assessment, $applicant);
+
+            $assessment->scores()->updateOrCreate(
+                ['criterion_key' => (string) $skillCriterion->id],
+                $this->skillScorePayload($parentCriterion, $skillCriterion, $rating)
+            );
+
+            $this->refreshNestedSkillScore($assessment, $parentCriterion, $skillCriteria);
+
+            $assessment->forceFill([
+                'total_score' => $this->topLevelTotalScore($assessment),
+                'status' => ApplicantAssessment::STATUS_SUBMITTED,
+                'assessed_by' => $assessor?->id,
+                'assessed_at' => now(),
+                'submitted_at' => $assessment->submitted_at ?? now(),
+            ])->save();
+
+            return $assessment->refresh()->load('scores');
+        });
+    }
+
+    /**
      * @param  Collection<string, ApplicantAssessmentScore>  $scoresBySourceId
      * @return array{key: string, label: string, weight: int|float, weight_label: string, selected: int}
      */
     private function technicalCriterionForView(JobVacancyTechnicalCriterion $criterion, Collection $scoresBySourceId): array
     {
         $score = $scoresBySourceId->get((string) $criterion->id);
+
+        return [
+            'key' => (string) $criterion->id,
+            'label' => (string) $criterion->name,
+            'weight' => (float) $criterion->weight,
+            'weight_label' => $this->weightLabel((float) $criterion->weight),
+            'selected' => $score instanceof ApplicantAssessmentScore ? (int) $score->rating : 0,
+        ];
+    }
+
+    /**
+     * @param  array{key: string, label: string, weight: int|float, default_rating: int}  $criterion
+     * @param  Collection<int, JobVacancySkillCriterion>  $skillCriteria
+     * @param  Collection<string, ApplicantAssessmentScore>  $scoresByCriterion
+     * @return array{key: string, label: string, weight: int|float, weight_label: string, selected: int, is_nested: bool, raw_score: float, raw_score_label: string, weighted_score: float, weighted_score_display: string, children: array<int, array{key: string, label: string, weight: int|float, weight_label: string, selected: int}>}
+     */
+    private function nestedSkillCriterionForView(array $criterion, Collection $skillCriteria, Collection $scoresByCriterion): array
+    {
+        $children = $skillCriteria
+            ->map(fn (JobVacancySkillCriterion $skillCriterion): array => $this->skillCriterionForView($skillCriterion, $scoresByCriterion))
+            ->values()
+            ->all();
+        $rawScore = $this->nestedRawScore($children);
+        $weightedScore = $this->weightedScoreFromRaw($rawScore, (float) $criterion['weight']);
+
+        return [
+            ...$this->criterionForView($criterion, $scoresByCriterion),
+            'selected' => 0,
+            'is_nested' => true,
+            'raw_score' => $rawScore,
+            'raw_score_label' => number_format($rawScore, 2),
+            'weighted_score' => $weightedScore,
+            'weighted_score_display' => $this->weightedScoreDisplay($weightedScore, (float) $criterion['weight']),
+            'children' => $children,
+        ];
+    }
+
+    /**
+     * @param  Collection<string, ApplicantAssessmentScore>  $scoresByCriterion
+     * @return array{key: string, label: string, weight: int|float, weight_label: string, selected: int}
+     */
+    private function skillCriterionForView(JobVacancySkillCriterion $criterion, Collection $scoresByCriterion): array
+    {
+        $score = $scoresByCriterion->get((string) $criterion->id);
 
         return [
             'key' => (string) $criterion->id,
@@ -347,7 +467,7 @@ class ApplicantAssessmentScoreService
     }
 
     /**
-     * @return array{key: string, label: string, weight: int|float, default_rating: int, sort_order: int}|null
+     * @return array{key: string, label: string, weight: int|float, default_rating: int, sort_order: int, uses_skill_criteria?: bool}|null
      */
     private function userCriterion(string $criterionKey): ?array
     {
@@ -360,6 +480,38 @@ class ApplicantAssessmentScoreService
         return null;
     }
 
+    /**
+     * @return array{key: string, label: string, weight: int|float, default_rating: int, sort_order: int, uses_skill_criteria: bool}|null
+     */
+    private function skillParentUserCriterion(): ?array
+    {
+        foreach ($this->userCriteria() as $criterion) {
+            if ($this->usesSkillCriteria($criterion)) {
+                return $criterion;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array{uses_skill_criteria?: bool}  $criterion
+     */
+    private function usesSkillCriteria(array $criterion): bool
+    {
+        return (bool) ($criterion['uses_skill_criteria'] ?? false);
+    }
+
+    /**
+     * @return Collection<int, JobVacancySkillCriterion>
+     */
+    private function skillCriteriaFor(Applicant $applicant): Collection
+    {
+        $applicant->loadMissing('jobVacancy.skillCriteria');
+
+        return $applicant->jobVacancy?->skillCriteria ?? collect();
+    }
+
     private function ensureHrScores(ApplicantAssessment $assessment): void
     {
         foreach ($this->hrCriteria() as $criterion) {
@@ -370,13 +522,34 @@ class ApplicantAssessmentScoreService
         }
     }
 
-    private function ensureUserScores(ApplicantAssessment $assessment): void
+    private function ensureUserScores(ApplicantAssessment $assessment, Applicant $applicant): void
     {
+        $skillCriteria = $this->skillCriteriaFor($applicant);
+
         foreach ($this->userCriteria() as $criterion) {
             $assessment->scores()->firstOrCreate(
                 ['criterion_key' => $criterion['key']],
                 $this->scorePayload($criterion, (int) $criterion['default_rating'], ApplicantAssessmentScore::SOURCE_FIXED_USER)
             );
+
+            if (! $this->usesSkillCriteria($criterion)) {
+                continue;
+            }
+
+            $this->deleteStaleSkillScores($assessment, $criterion, $skillCriteria);
+
+            if ($skillCriteria->isEmpty()) {
+                continue;
+            }
+
+            foreach ($skillCriteria as $skillCriterion) {
+                $assessment->scores()->firstOrCreate(
+                    ['criterion_key' => (string) $skillCriterion->id],
+                    $this->skillScorePayload($criterion, $skillCriterion, 0)
+                );
+            }
+
+            $this->refreshNestedSkillScore($assessment, $criterion, $skillCriteria);
         }
     }
 
@@ -431,6 +604,114 @@ class ApplicantAssessmentScoreService
         ];
     }
 
+    /**
+     * @param  array{key: string, sort_order: int}  $parentCriterion
+     * @return array<string, mixed>
+     */
+    private function skillScorePayload(array $parentCriterion, JobVacancySkillCriterion $criterion, int $rating): array
+    {
+        $weight = (float) $criterion->weight;
+
+        return [
+            'criterion_label' => (string) $criterion->name,
+            'parent_key' => $parentCriterion['key'],
+            'source_type' => ApplicantAssessmentScore::SOURCE_JOB_VACANCY_SKILL_CRITERION,
+            'source_id' => null,
+            'weight' => $weight,
+            'rating' => $rating,
+            'raw_score' => $rating,
+            'weighted_score' => $this->weightedScore($rating, $weight),
+            'sort_order' => ((int) $parentCriterion['sort_order'] * 100) + (int) $criterion->sort_order,
+        ];
+    }
+
+    /**
+     * Recalculates the parent row from the vacancy's current skill criteria only, so ratings left behind by
+     * removed sub-criteria never affect the score.
+     *
+     * @param  array{key: string, label: string, weight: int|float, sort_order: int}  $parentCriterion
+     * @param  Collection<int, JobVacancySkillCriterion>  $skillCriteria
+     */
+    private function refreshNestedSkillScore(ApplicantAssessment $assessment, array $parentCriterion, Collection $skillCriteria): void
+    {
+        $this->deleteStaleSkillScores($assessment, $parentCriterion, $skillCriteria);
+
+        $ratingsByCriterion = $assessment->scores()
+            ->where('parent_key', $parentCriterion['key'])
+            ->whereIn('criterion_key', $skillCriteria->map(fn (JobVacancySkillCriterion $criterion): string => (string) $criterion->id))
+            ->pluck('rating', 'criterion_key');
+        $rawScore = $this->nestedRawScore($skillCriteria
+            ->map(fn (JobVacancySkillCriterion $criterion): array => [
+                'selected' => (int) ($ratingsByCriterion[(string) $criterion->id] ?? 0),
+                'weight' => (float) $criterion->weight,
+            ])
+            ->all());
+
+        $assessment->scores()->updateOrCreate(
+            ['criterion_key' => $parentCriterion['key']],
+            [
+                ...$this->scorePayload($parentCriterion, 0, ApplicantAssessmentScore::SOURCE_FIXED_USER),
+                'rating' => null,
+                'raw_score' => $rawScore,
+                'weighted_score' => $this->weightedScoreFromRaw($rawScore, (float) $parentCriterion['weight']),
+            ]
+        );
+    }
+
+    /**
+     * @param  array{key: string}  $parentCriterion
+     * @param  Collection<int, JobVacancySkillCriterion>  $skillCriteria
+     */
+    private function deleteStaleSkillScores(ApplicantAssessment $assessment, array $parentCriterion, Collection $skillCriteria): void
+    {
+        $activeSkillCriterionIds = $skillCriteria
+            ->map(fn (JobVacancySkillCriterion $criterion): string => (string) $criterion->id)
+            ->all();
+
+        $staleScores = $assessment->scores()
+            ->where('parent_key', $parentCriterion['key'])
+            ->where('source_type', ApplicantAssessmentScore::SOURCE_JOB_VACANCY_SKILL_CRITERION);
+
+        if ($activeSkillCriterionIds !== []) {
+            $staleScores->whereNotIn('criterion_key', $activeSkillCriterionIds);
+        }
+
+        $staleScores->delete();
+    }
+
+    /**
+     * Weighted average of the sub-criteria ratings on the 1-5 scale.
+     *
+     * @param  array<int, array{weight: int|float, selected?: int}>  $children
+     */
+    private function nestedRawScore(array $children): float
+    {
+        $totalWeight = array_sum(array_map(fn (array $child): float => (float) $child['weight'], $children));
+
+        if ($totalWeight <= 0) {
+            return 0.0;
+        }
+
+        $weightedRatings = array_sum(array_map(
+            fn (array $child): float => (int) ($child['selected'] ?? 0) * (float) $child['weight'],
+            $children
+        ));
+
+        return round($weightedRatings / $totalWeight, 2);
+    }
+
+    private function weightedScoreFromRaw(float $rawScore, float $weight): float
+    {
+        return round(($rawScore / 5) * $weight, 2);
+    }
+
+    private function topLevelTotalScore(ApplicantAssessment $assessment): float
+    {
+        return round((float) $assessment->scores()
+            ->whereNull('parent_key')
+            ->sum('weighted_score'), 2);
+    }
+
     private function technicalCriterion(Applicant $applicant, string $criterionId): ?JobVacancyTechnicalCriterion
     {
         $applicant->loadMissing('jobVacancy');
@@ -447,6 +728,11 @@ class ApplicantAssessmentScoreService
 
     private function weightLabel(float $weight): string
     {
-        return rtrim(rtrim(number_format($weight, 2), '0'), '.').'%';
+        return $this->numberLabel($weight).'%';
+    }
+
+    private function numberLabel(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 2), '0'), '.');
     }
 }

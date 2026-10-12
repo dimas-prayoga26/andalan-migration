@@ -6,6 +6,7 @@ use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -79,6 +80,11 @@ class Applicant extends Model
     public function assessments(): HasMany
     {
         return $this->hasMany(ApplicantAssessment::class, 'applicant_id', 'id');
+    }
+
+    public function finalAssessment(): HasOne
+    {
+        return $this->hasOne(ApplicantFinalAssessment::class, 'applicant_id', 'id');
     }
 
     public function statusLabel(): string

@@ -16,6 +16,8 @@ class ApplicantAssessmentScore extends Model
 
     public const SOURCE_JOB_VACANCY_TECHNICAL_CRITERION = 'job_vacancy_technical_criterion';
 
+    public const SOURCE_JOB_VACANCY_SKILL_CRITERION = 'job_vacancy_skill_criterion';
+
     protected $fillable = [
         'applicant_assessment_id',
         'criterion_key',
@@ -63,5 +65,10 @@ class ApplicantAssessmentScore extends Model
     public function technicalCriterion(): BelongsTo
     {
         return $this->belongsTo(JobVacancyTechnicalCriterion::class, 'source_id', 'id');
+    }
+
+    public function skillCriterion(): BelongsTo
+    {
+        return $this->belongsTo(JobVacancySkillCriterion::class, 'criterion_key', 'id');
     }
 }

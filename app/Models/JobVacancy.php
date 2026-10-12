@@ -61,6 +61,13 @@ class JobVacancy extends Model
             ->orderBy('name');
     }
 
+    public function skillCriteria(): HasMany
+    {
+        return $this->hasMany(JobVacancySkillCriterion::class, 'job_vacancy_id', 'id')
+            ->orderBy('sort_order')
+            ->orderBy('name');
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_ACTIVE);

@@ -109,7 +109,9 @@ class TalentAcquisitionStructureTest extends TestCase
         $jobVacancyModel = File::get(app_path('Models/JobVacancy.php'));
         $companyModel = File::get(app_path('Models/Company.php'));
         $jobVacancyTechnicalCriterionModel = File::get(app_path('Models/JobVacancyTechnicalCriterion.php'));
+        $jobVacancySkillCriterionModel = File::get(app_path('Models/JobVacancySkillCriterion.php'));
         $jobVacancyCriteriaMigration = File::get(database_path('migrations/2026_09_24_000002_create_job_vacancy_technical_criteria_table.php'));
+        $jobVacancySkillCriteriaMigration = File::get($this->migrationPath('create_job_vacancy_skill_criteria_table'));
         $jobVacancyCompanyMigration = File::get(database_path('migrations/2026_10_05_134303_add_company_id_to_job_vacancies_table.php'));
         $applicantStatusModel = File::get(app_path('Models/ApplicantStatus.php'));
         $applicantStatusWorkflowMigration = File::get(database_path('migrations/2026_09_14_142825_update_applicant_statuses_to_full_workflow.php'));
@@ -136,11 +138,15 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('destroyJobVacancy', $controller);
         $this->assertStringContainsString('validateJobVacancy', $controller);
         $this->assertStringContainsString('syncJobVacancyTechnicalCriteria', $controller);
-        $this->assertStringContainsString('filledTechnicalCriteria', $controller);
-        $this->assertStringContainsString('hasIncompleteTechnicalCriteria', $controller);
+        $this->assertStringContainsString('syncJobVacancySkillCriteria', $controller);
+        $this->assertStringContainsString('filledCriteria', $controller);
+        $this->assertStringContainsString('hasIncompleteCriteria', $controller);
         $this->assertStringContainsString('Total bobot kriteria tes teknis harus tepat 100%.', $controller);
+        $this->assertStringContainsString('Total bobot kriteria tes skill harus tepat 100%.', $controller);
         $this->assertStringContainsString("'technical_criteria' => [\$isUpdate ? 'nullable' : 'required', 'array']", $controller);
+        $this->assertStringContainsString("'skill_criteria' => ['nullable', 'array']", $controller);
         $this->assertStringContainsString("if (\$validated['technical_criteria'] !== [])", $controller);
+        $this->assertStringContainsString("\$this->syncJobVacancySkillCriteria(\$jobVacancy, \$validated['skill_criteria']);", $controller);
         $this->assertStringContainsString('JobVacancy::statusOptions()', $controller);
         $this->assertStringContainsString('JobVacancy::statusValueFor', $controller);
         $this->assertStringContainsString('Company::query()', $controller);
@@ -265,26 +271,43 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('updateJobVacancyStatusColor', $jobVacanciesView);
         $this->assertStringContainsString("route('applicant.job_vacancies.status.update'", $jobVacanciesView);
         $this->assertStringContainsString('Kriteria Tes Teknis', $jobVacancyFormView);
+        $this->assertStringContainsString('Kriteria Tes Skill', $jobVacancyFormView);
+        $this->assertStringContainsString('id="jobVacancyCriteriaTabs"', $jobVacancyFormView);
+        $this->assertStringContainsString('data-bs-target="#technicalCriteriaPane"', $jobVacancyFormView);
+        $this->assertStringContainsString('data-bs-target="#skillCriteriaPane"', $jobVacancyFormView);
         $this->assertStringContainsString('name="company_id"', $jobVacancyFormView);
         $this->assertStringContainsString('$companyOptions as $companyOption', $jobVacancyFormView);
         $this->assertStringContainsString('technical_criteria[{{ $index }}][name]', $jobVacancyFormView);
         $this->assertStringContainsString('technical_criteria[{{ $index }}][weight]', $jobVacancyFormView);
+        $this->assertStringContainsString('skill_criteria[{{ $index }}][name]', $jobVacancyFormView);
+        $this->assertStringContainsString('skill_criteria[{{ $index }}][weight]', $jobVacancyFormView);
         $this->assertStringContainsString('data-add-criterion', $jobVacancyFormView);
+        $this->assertStringContainsString('data-criteria-prefix="skill_criteria"', $jobVacancyFormView);
         $this->assertStringContainsString('data-criteria-total', $jobVacancyFormView);
         $this->assertStringContainsString('Total bobot wajib tepat 100%', $jobVacancyFormView);
+        $this->assertStringNotContainsString('Sub-kriteria yang muncul saat menilai Skill Teknis pada Technical Test.', $jobVacancyFormView);
+        $this->assertStringNotContainsString('Opsional. Jika diisi, total bobot wajib tepat 100%.', $jobVacancyFormView);
         $this->assertStringContainsString('$criteriaRequired = $formMethod === \'POST\'', $jobVacancyFormView);
         $this->assertStringContainsString('@required($criteriaRequired)', $jobVacancyFormView);
         $this->assertStringNotContainsString('Kriteria boleh dikosongkan saat update', $jobVacancyFormView);
         $this->assertStringContainsString('technicalCriteria', $jobVacancyModel);
+        $this->assertStringContainsString('skillCriteria', $jobVacancyModel);
         $this->assertStringContainsString('public function company(): BelongsTo', $jobVacancyModel);
         $this->assertStringContainsString('Company::class', $jobVacancyModel);
         $this->assertStringContainsString('public function jobVacancies(): HasMany', $companyModel);
         $this->assertStringContainsString('JobVacancy::class', $companyModel);
         $this->assertStringContainsString('JobVacancyTechnicalCriterion::class', $jobVacancyModel);
+        $this->assertStringContainsString('JobVacancySkillCriterion::class', $jobVacancyModel);
         $this->assertStringContainsString('job_vacancy_technical_criteria', $jobVacancyTechnicalCriterionModel);
+        $this->assertStringContainsString('job_vacancy_skill_criteria', $jobVacancySkillCriterionModel);
+        $this->assertStringContainsString('public function jobVacancy(): BelongsTo', $jobVacancySkillCriterionModel);
         $this->assertStringContainsString("Schema::create('job_vacancy_technical_criteria'", $jobVacancyCriteriaMigration);
         $this->assertStringContainsString("foreignUuid('job_vacancy_id')", $jobVacancyCriteriaMigration);
         $this->assertStringContainsString("unsignedTinyInteger('weight')", $jobVacancyCriteriaMigration);
+        $this->assertStringContainsString("Schema::create('job_vacancy_skill_criteria'", $jobVacancySkillCriteriaMigration);
+        $this->assertStringContainsString("foreignUuid('job_vacancy_id')", $jobVacancySkillCriteriaMigration);
+        $this->assertStringContainsString("unsignedTinyInteger('weight')", $jobVacancySkillCriteriaMigration);
+        $this->assertStringContainsString("unsignedSmallInteger('sort_order')->default(0)", $jobVacancySkillCriteriaMigration);
         $this->assertStringContainsString("foreignUuid('company_id')", $jobVacancyCompanyMigration);
         $this->assertStringContainsString("->constrained('companies', 'id')", $jobVacancyCompanyMigration);
         $this->assertStringContainsString('->nullOnDelete()', $jobVacancyCompanyMigration);
@@ -329,6 +352,9 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('Interview User', $applicantAssessmentView);
         $this->assertStringContainsString('Penilaian Akhir', $applicantAssessmentView);
         $this->assertStringContainsString('id="applicantAssessmentTabs"', $applicantAssessmentView);
+        $this->assertStringContainsString('applicant-assessment-track', $applicantAssessmentView);
+        $this->assertStringContainsString('is-track-complete', $applicantAssessmentView);
+        $this->assertStringContainsString('updateAssessmentTrack', $applicantAssessmentView);
         $this->assertStringContainsString('data-bs-toggle="tab"', $applicantAssessmentView);
         $this->assertStringContainsString('data-bs-target="#hr-interview-pane"', $applicantAssessmentView);
         $this->assertStringContainsString('data-bs-target="#assessment-test-pane"', $applicantAssessmentView);
@@ -356,7 +382,13 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringNotContainsString('data-final-score-total', $applicantAssessmentView);
         $this->assertStringNotContainsString('data-final-score-source', $applicantAssessmentView);
         $this->assertStringContainsString('type="radio"', $applicantAssessmentView);
-        $this->assertStringContainsString('name="final_verdict"', $applicantAssessmentView);
+        $this->assertStringContainsString('name="final_decision"', $applicantAssessmentView);
+        $this->assertStringContainsString('name="skill_note"', $applicantAssessmentView);
+        $this->assertStringContainsString('name="communication_note"', $applicantAssessmentView);
+        $this->assertStringContainsString('name="experience_note"', $applicantAssessmentView);
+        $this->assertStringContainsString('name="tools_note"', $applicantAssessmentView);
+        $this->assertStringContainsString('name="final_note"', $applicantAssessmentView);
+        $this->assertStringContainsString("route('applicant.assessment.final.store', \$applicant)", $applicantAssessmentView);
         $this->assertStringNotContainsString('applicant-final-decision-mark', $applicantAssessmentView);
         $this->assertStringContainsString('value="hired"', $applicantAssessmentView);
         $this->assertStringContainsString('Hired', $applicantAssessmentView);
@@ -394,5 +426,15 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString("self::VALUE_NOT_SUITABLE => 'Not Suitable'", $applicantStatusModel);
         $this->assertStringContainsString("4 => 'Offering'", $applicantStatusWorkflowMigration);
         $this->assertStringContainsString('moveAcceptedStatusToOffering', $applicantStatusWorkflowMigration);
+    }
+
+    private function migrationPath(string $migrationName): string
+    {
+        $paths = glob(database_path("migrations/*_{$migrationName}.php"));
+
+        $this->assertNotFalse($paths);
+        $this->assertNotEmpty($paths);
+
+        return $paths[0];
     }
 }

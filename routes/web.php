@@ -119,9 +119,11 @@ Route::middleware('auth')->group(function (): void {
         });
         Route::patch('/applicant/{applicant}/status', [TalentAcquisitionController::class, 'updateApplicantStatus'])->name('applicant.status.update');
         Route::post('/applicant/{applicant}/assessment/upload-request', [TalentAcquisitionController::class, 'storeApplicantAssessmentUploadRequest'])->name('applicant.assessment.upload-request.store');
+        Route::patch('/applicant/{applicant}/assessment/upload-request/revoke', [TalentAcquisitionController::class, 'revokeApplicantAssessmentUploadRequest'])->name('applicant.assessment.upload-request.revoke');
         Route::post('/applicant/{applicant}/assessment/hr-interview-score', [TalentAcquisitionController::class, 'storeApplicantHrInterviewScore'])->name('applicant.assessment.hr-interview-score.store');
         Route::post('/applicant/{applicant}/assessment/technical-test-score', [TalentAcquisitionController::class, 'storeApplicantTechnicalTestScore'])->name('applicant.assessment.technical-test-score.store');
         Route::post('/applicant/{applicant}/assessment/user-interview-score', [TalentAcquisitionController::class, 'storeApplicantUserInterviewScore'])->name('applicant.assessment.user-interview-score.store');
+        Route::post('/applicant/{applicant}/assessment/final', [TalentAcquisitionController::class, 'storeApplicantFinalAssessment'])->name('applicant.assessment.final.store');
         Route::post('/applicant/{applicant}/assessment/{section}/notes', [TalentAcquisitionController::class, 'storeApplicantAssessmentNotes'])->where('section', 'technical_test|interview_user')->name('applicant.assessment.notes.store');
         Route::get('/applicant/{applicant}/assessment', [TalentAcquisitionController::class, 'showApplicantAssessment'])->name('applicant.assessment');
         Route::get('/applicant/{applicant}', [TalentAcquisitionController::class, 'showApplicant'])->name('applicant.show');

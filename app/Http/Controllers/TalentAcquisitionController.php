@@ -13,6 +13,7 @@ use App\Models\Company;
 use App\Models\JobVacancy;
 use App\Models\MailAccessAccount;
 use App\Models\User;
+use App\Services\ApplicantAssessmentAccessService;
 use App\Services\ApplicantAssessmentScoreService;
 use App\Services\ApplicantAssessmentUploadLinkService;
 use App\Services\ApplicantFinalAssessmentService;
@@ -144,7 +145,9 @@ class TalentAcquisitionController extends Controller
         Applicant $applicant,
         ApplicantAssessmentUploadLinkService $uploadLinkService,
         ApplicantAssessmentScoreService $assessmentScoreService,
-        ApplicantFinalAssessmentService $finalAssessmentService
+        ApplicantFinalAssessmentService $finalAssessmentService,
+        ApplicantAssessmentAccessService $assessmentAccessService,
+        Request $request
     ): View {
         $applicant->load([
             'jobVacancy:id,name',
@@ -200,14 +203,24 @@ class TalentAcquisitionController extends Controller
                 ApplicantAssessment::SECTION_INTERVIEW_USER
             ),
             'finalAssessment' => $finalAssessmentService->finalAssessmentForView($applicant),
+            'assessmentPermissions' => $assessmentAccessService->permissionsFor(
+                $request->user() instanceof User ? $request->user() : null,
+                $applicant
+            ),
         ]);
     }
 
     public function storeApplicantHrInterviewScore(
         Request $request,
         Applicant $applicant,
-        ApplicantAssessmentScoreService $assessmentScoreService
+        ApplicantAssessmentScoreService $assessmentScoreService,
+        ApplicantAssessmentAccessService $assessmentAccessService
     ): JsonResponse {
+        abort_unless(
+            $assessmentAccessService->canEditHrInterview($request->user() instanceof User ? $request->user() : null, $applicant),
+            403
+        );
+
         $validated = $request->validate([
             'criterion_key' => ['required', 'string'],
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
@@ -231,8 +244,14 @@ class TalentAcquisitionController extends Controller
     public function storeApplicantTechnicalTestScore(
         Request $request,
         Applicant $applicant,
-        ApplicantAssessmentScoreService $assessmentScoreService
+        ApplicantAssessmentScoreService $assessmentScoreService,
+        ApplicantAssessmentAccessService $assessmentAccessService
     ): JsonResponse {
+        abort_unless(
+            $assessmentAccessService->canEditTechnicalTest($request->user() instanceof User ? $request->user() : null, $applicant),
+            403
+        );
+
         $validated = $request->validate([
             'criterion_key' => ['required', 'string'],
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
@@ -256,8 +275,14 @@ class TalentAcquisitionController extends Controller
     public function storeApplicantUserInterviewScore(
         Request $request,
         Applicant $applicant,
-        ApplicantAssessmentScoreService $assessmentScoreService
+        ApplicantAssessmentScoreService $assessmentScoreService,
+        ApplicantAssessmentAccessService $assessmentAccessService
     ): JsonResponse {
+        abort_unless(
+            $assessmentAccessService->canEditUserInterview($request->user() instanceof User ? $request->user() : null, $applicant),
+            403
+        );
+
         $validated = $request->validate([
             'criterion_key' => ['required', 'string'],
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
@@ -293,8 +318,18 @@ class TalentAcquisitionController extends Controller
         Request $request,
         Applicant $applicant,
         string $section,
-        ApplicantAssessmentScoreService $assessmentScoreService
+        ApplicantAssessmentScoreService $assessmentScoreService,
+        ApplicantAssessmentAccessService $assessmentAccessService
     ): JsonResponse {
+        abort_unless(
+            match ($section) {
+                ApplicantAssessment::SECTION_TECHNICAL_TEST => $assessmentAccessService->canEditTechnicalTest($request->user() instanceof User ? $request->user() : null, $applicant),
+                ApplicantAssessment::SECTION_INTERVIEW_USER => $assessmentAccessService->canEditUserInterview($request->user() instanceof User ? $request->user() : null, $applicant),
+                default => false,
+            },
+            403
+        );
+
         $validated = $request->validate([
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
@@ -315,8 +350,14 @@ class TalentAcquisitionController extends Controller
     public function storeApplicantFinalAssessment(
         Request $request,
         Applicant $applicant,
-        ApplicantFinalAssessmentService $finalAssessmentService
+        ApplicantFinalAssessmentService $finalAssessmentService,
+        ApplicantAssessmentAccessService $assessmentAccessService
     ): RedirectResponse {
+        abort_unless(
+            $assessmentAccessService->canEditFinalAssessment($request->user() instanceof User ? $request->user() : null, $applicant),
+            403
+        );
+
         $validated = $request->validate([
             'skill_note' => ['required', 'string', 'not_regex:/^\s*$/', 'max:5000'],
             'communication_note' => ['required', 'string', 'not_regex:/^\s*$/', 'max:5000'],
@@ -345,8 +386,14 @@ class TalentAcquisitionController extends Controller
     public function storeApplicantAssessmentUploadRequest(
         Request $request,
         Applicant $applicant,
-        ApplicantAssessmentUploadLinkService $uploadLinkService
+        ApplicantAssessmentUploadLinkService $uploadLinkService,
+        ApplicantAssessmentAccessService $assessmentAccessService
     ): RedirectResponse {
+        abort_unless(
+            $assessmentAccessService->canManageAssessmentTest($request->user() instanceof User ? $request->user() : null, $applicant),
+            403
+        );
+
         $uploadLink = $uploadLinkService->create($applicant, $request->user());
 
         return back()
@@ -355,9 +402,16 @@ class TalentAcquisitionController extends Controller
     }
 
     public function revokeApplicantAssessmentUploadRequest(
+        Request $request,
         Applicant $applicant,
-        ApplicantAssessmentUploadLinkService $uploadLinkService
+        ApplicantAssessmentUploadLinkService $uploadLinkService,
+        ApplicantAssessmentAccessService $assessmentAccessService
     ): RedirectResponse {
+        abort_unless(
+            $assessmentAccessService->canManageAssessmentTest($request->user() instanceof User ? $request->user() : null, $applicant),
+            403
+        );
+
         $isRevoked = $uploadLinkService->revokeLatestUsableRequest($applicant);
 
         return back()->with(

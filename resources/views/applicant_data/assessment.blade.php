@@ -422,6 +422,12 @@
     $userInterviewScoreDisplay = number_format((float) ($userInterviewScore ?? 0), 0) . ' / 100';
     $technicalTestNotes = $technicalTestNotes ?? '';
     $userInterviewNotes = $userInterviewNotes ?? '';
+    $assessmentPermissions = $assessmentPermissions ?? [];
+    $canEditHrInterview = (bool) ($assessmentPermissions['hr_interview'] ?? false);
+    $canManageAssessmentTest = (bool) ($assessmentPermissions['assessment_test'] ?? false);
+    $canEditTechnicalTest = (bool) ($assessmentPermissions['technical_test'] ?? false);
+    $canEditUserInterview = (bool) ($assessmentPermissions['user_interview'] ?? false);
+    $canEditFinalAssessment = (bool) ($assessmentPermissions['final_assessment'] ?? false);
     $finalAssessment = $finalAssessment ?? [
         'skill_note' => '',
         'communication_note' => '',
@@ -527,7 +533,7 @@
                                 <div class="applicant-assessment-panel-title">Form Interview HR</div>
                                 <div class="applicant-assessment-panel-subtitle">Evaluasi dasar, komunikasi, motivasi, dan culture fit.</div>
                                 @foreach ($hrCriteria as $criteria)
-                                    <div class="applicant-rating-row" data-assessment-rating data-score-target="hr-interview" data-store-url="{{ route('applicant.assessment.hr-interview-score.store', $applicant) }}" data-criterion-key="{{ $criteria['key'] }}">
+                                    <div class="applicant-rating-row" @if ($canEditHrInterview) data-assessment-rating data-score-target="hr-interview" data-store-url="{{ route('applicant.assessment.hr-interview-score.store', $applicant) }}" @endif data-criterion-key="{{ $criteria['key'] }}">
                                         <div>
                                             <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
                                             <div class="applicant-rating-weight">Bobot {{ $criteria['weight_label'] ?? $criteria['weight'].'%' }}</div>
@@ -536,7 +542,7 @@
                                             <div class="rating-stars">
                                                 <ul>
                                                     @for ($rating = 1; $rating <= 5; $rating++)
-                                                        <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}" role="button" tabindex="0">
+                                                        <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}" role="button" tabindex="{{ $canEditHrInterview ? 0 : -1 }}">
                                                             <i class="fa fa-star fa-fw"></i>
                                                         </li>
                                                     @endfor
@@ -555,6 +561,7 @@
                                         <div class="applicant-assessment-panel-title">Assessment Test</div>
                                         <div class="applicant-assessment-panel-subtitle">Area lampiran hasil tes administrasi atau psikologi dasar.</div>
                                     </div>
+                                    @if ($canManageAssessmentTest)
                                     <div class="applicant-assessment-panel-actions">
                                         <form method="POST" action="{{ route('applicant.assessment.upload-request.store', $applicant) }}">
                                             @csrf
@@ -580,6 +587,7 @@
                                             </form>
                                         @endif
                                     </div>
+                                    @endif
                                 </div>
                                 <div class="applicant-assessment-upload">
                                     @if ($assessmentUploaded)
@@ -604,7 +612,7 @@
                                 <div class="applicant-assessment-panel-title">Technical Test</div>
                                 <div class="applicant-assessment-panel-subtitle">Kriteria Tes Teknis mengikuti bobot dari lowongan yang dilamar.</div>
                                 @forelse ($technicalCriteria as $criteria)
-                                    <div class="applicant-rating-row" data-assessment-rating data-score-target="technical-test" data-store-url="{{ route('applicant.assessment.technical-test-score.store', $applicant) }}" data-criterion-key="{{ $criteria['key'] }}">
+                                    <div class="applicant-rating-row" @if ($canEditTechnicalTest) data-assessment-rating data-score-target="technical-test" data-store-url="{{ route('applicant.assessment.technical-test-score.store', $applicant) }}" @endif data-criterion-key="{{ $criteria['key'] }}">
                                         <div>
                                             <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
                                             <div class="applicant-rating-weight">Bobot {{ $criteria['weight_label'] ?? $criteria['weight'].'%' }}</div>
@@ -613,7 +621,7 @@
                                             <div class="rating-stars">
                                                 <ul>
                                                     @for ($rating = 1; $rating <= 5; $rating++)
-                                                        <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}" role="button" tabindex="0">
+                                                        <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}" role="button" tabindex="{{ $canEditTechnicalTest ? 0 : -1 }}">
                                                             <i class="fa fa-star fa-fw"></i>
                                                         </li>
                                                     @endfor
@@ -626,7 +634,7 @@
                                         Kriteria Tes Teknis belum diset pada lowongan ini.
                                     </div>
                                 @endforelse
-                                <textarea class="form-control applicant-assessment-note-input mt-3" name="technical_test_notes" rows="3" data-assessment-note data-store-url="{{ route('applicant.assessment.notes.store', [$applicant, 'technical_test']) }}" placeholder="Tulis catatan reviewer technical test.">{{ $technicalTestNotes }}</textarea>
+                                <textarea class="form-control applicant-assessment-note-input mt-3" name="technical_test_notes" rows="3" @if ($canEditTechnicalTest) data-assessment-note data-store-url="{{ route('applicant.assessment.notes.store', [$applicant, 'technical_test']) }}" @else readonly @endif placeholder="Tulis catatan reviewer technical test.">{{ $technicalTestNotes }}</textarea>
                             </div>
                         </div>
 
@@ -647,7 +655,7 @@
                                         </div>
 
                                         @foreach ($criteria['children'] as $childCriteria)
-                                            <div class="applicant-rating-row is-nested-child" data-assessment-rating data-score-target="user-interview" data-store-url="{{ route('applicant.assessment.user-interview-score.store', $applicant) }}" data-criterion-key="{{ $childCriteria['key'] }}" data-parent-key="{{ $criteria['key'] }}">
+                                            <div class="applicant-rating-row is-nested-child" @if ($canEditUserInterview) data-assessment-rating data-score-target="user-interview" data-store-url="{{ route('applicant.assessment.user-interview-score.store', $applicant) }}" @endif data-criterion-key="{{ $childCriteria['key'] }}" data-parent-key="{{ $criteria['key'] }}">
                                                 <div>
                                                     <div class="applicant-rating-label">{{ $childCriteria['label'] }}</div>
                                                     <div class="applicant-rating-weight">Bobot {{ $childCriteria['weight_label'] ?? $childCriteria['weight'].'%' }}</div>
@@ -656,7 +664,7 @@
                                                     <div class="rating-stars">
                                                         <ul>
                                                             @for ($rating = 1; $rating <= 5; $rating++)
-                                                                <li class="star {{ $rating <= $childCriteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}" role="button" tabindex="0">
+                                                                <li class="star {{ $rating <= $childCriteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}" role="button" tabindex="{{ $canEditUserInterview ? 0 : -1 }}">
                                                                     <i class="fa fa-star fa-fw"></i>
                                                                 </li>
                                                             @endfor
@@ -666,7 +674,7 @@
                                             </div>
                                         @endforeach
                                     @else
-                                        <div class="applicant-rating-row" data-assessment-rating data-score-target="user-interview" data-store-url="{{ route('applicant.assessment.user-interview-score.store', $applicant) }}" data-criterion-key="{{ $criteria['key'] }}">
+                                        <div class="applicant-rating-row" @if ($canEditUserInterview) data-assessment-rating data-score-target="user-interview" data-store-url="{{ route('applicant.assessment.user-interview-score.store', $applicant) }}" @endif data-criterion-key="{{ $criteria['key'] }}">
                                             <div>
                                                 <div class="applicant-rating-label">{{ $criteria['label'] }}</div>
                                                 <div class="applicant-rating-weight">Bobot {{ $criteria['weight_label'] ?? $criteria['weight'].'%' }}</div>
@@ -675,7 +683,7 @@
                                                 <div class="rating-stars">
                                                     <ul>
                                                         @for ($rating = 1; $rating <= 5; $rating++)
-                                                            <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}" role="button" tabindex="0">
+                                                            <li class="star {{ $rating <= $criteria['selected'] ? 'selected' : '' }}" title="{{ $ratingLabels[$rating] }}" data-value="{{ $rating }}" aria-label="{{ $ratingLabels[$rating] }}" role="button" tabindex="{{ $canEditUserInterview ? 0 : -1 }}">
                                                                 <i class="fa fa-star fa-fw"></i>
                                                             </li>
                                                         @endfor
@@ -685,7 +693,7 @@
                                         </div>
                                     @endif
                                 @endforeach
-                                <textarea class="form-control applicant-assessment-note-input mt-3" name="interview_user_notes" rows="3" data-assessment-note data-store-url="{{ route('applicant.assessment.notes.store', [$applicant, 'interview_user']) }}" placeholder="Tulis catatan reviewer interview user.">{{ $userInterviewNotes }}</textarea>
+                                <textarea class="form-control applicant-assessment-note-input mt-3" name="interview_user_notes" rows="3" @if ($canEditUserInterview) data-assessment-note data-store-url="{{ route('applicant.assessment.notes.store', [$applicant, 'interview_user']) }}" @else readonly @endif placeholder="Tulis catatan reviewer interview user.">{{ $userInterviewNotes }}</textarea>
                             </div>
                         </div>
 
@@ -704,19 +712,19 @@
                                         <div class="applicant-summary-field-grid">
                                             <div class="applicant-summary-field">
                                                 <label for="summarySkill">Skill</label>
-                                                <textarea id="summarySkill" name="skill_note" required placeholder="Kekuatan skill utama kandidat.">{{ old('skill_note', $finalAssessment['skill_note'] ?? '') }}</textarea>
+                                                <textarea id="summarySkill" name="skill_note" required placeholder="Kekuatan skill utama kandidat." @readonly(! $canEditFinalAssessment)>{{ old('skill_note', $finalAssessment['skill_note'] ?? '') }}</textarea>
                                             </div>
                                             <div class="applicant-summary-field">
                                                 <label for="summaryCommunication">Komunikasi</label>
-                                                <textarea id="summaryCommunication" name="communication_note" required placeholder="Cara kandidat menjelaskan ide dan menerima feedback.">{{ old('communication_note', $finalAssessment['communication_note'] ?? '') }}</textarea>
+                                                <textarea id="summaryCommunication" name="communication_note" required placeholder="Cara kandidat menjelaskan ide dan menerima feedback." @readonly(! $canEditFinalAssessment)>{{ old('communication_note', $finalAssessment['communication_note'] ?? '') }}</textarea>
                                             </div>
                                             <div class="applicant-summary-field">
                                                 <label for="summaryExperience">Kesesuaian Pengalaman</label>
-                                                <textarea id="summaryExperience" name="experience_note" required placeholder="Kesesuaian pengalaman dengan kebutuhan posisi.">{{ old('experience_note', $finalAssessment['experience_note'] ?? '') }}</textarea>
+                                                <textarea id="summaryExperience" name="experience_note" required placeholder="Kesesuaian pengalaman dengan kebutuhan posisi." @readonly(! $canEditFinalAssessment)>{{ old('experience_note', $finalAssessment['experience_note'] ?? '') }}</textarea>
                                             </div>
                                             <div class="applicant-summary-field">
                                                 <label for="summaryTools">Tools</label>
-                                                <textarea id="summaryTools" name="tools_note" required placeholder="Tools yang dikuasai dan catatan workflow.">{{ old('tools_note', $finalAssessment['tools_note'] ?? '') }}</textarea>
+                                                <textarea id="summaryTools" name="tools_note" required placeholder="Tools yang dikuasai dan catatan workflow." @readonly(! $canEditFinalAssessment)>{{ old('tools_note', $finalAssessment['tools_note'] ?? '') }}</textarea>
                                             </div>
                                         </div>
                                     </div>
@@ -726,28 +734,30 @@
                                         <div class="applicant-final-section-subtitle">Pilih keputusan akhir kandidat.</div>
                                         <div class="applicant-final-decision-group" role="group" aria-label="Keputusan Akhir">
                                             <label class="applicant-final-decision-option is-hired" for="finalVerdictHired">
-                                                <input type="radio" id="finalVerdictHired" name="final_decision" value="hired" required @checked($finalDecision === 'hired')>
+                                                <input type="radio" id="finalVerdictHired" name="final_decision" value="hired" required @checked($finalDecision === 'hired') @disabled(! $canEditFinalAssessment)>
                                                 <span>Hired</span>
                                             </label>
                                             <label class="applicant-final-decision-option is-keep" for="finalVerdictKeep">
-                                                <input type="radio" id="finalVerdictKeep" name="final_decision" value="keep_in_view" required @checked($finalDecision === 'keep_in_view')>
+                                                <input type="radio" id="finalVerdictKeep" name="final_decision" value="keep_in_view" required @checked($finalDecision === 'keep_in_view') @disabled(! $canEditFinalAssessment)>
                                                 <span>Keep in View</span>
                                             </label>
                                             <label class="applicant-final-decision-option is-rejected" for="finalVerdictRejected">
-                                                <input type="radio" id="finalVerdictRejected" name="final_decision" value="rejected" required @checked($finalDecision === 'rejected')>
+                                                <input type="radio" id="finalVerdictRejected" name="final_decision" value="rejected" required @checked($finalDecision === 'rejected') @disabled(! $canEditFinalAssessment)>
                                                 <span>Rejected</span>
                                             </label>
                                         </div>
 
                                         <label for="finalAssessmentNote" class="applicant-final-section-title d-block">Catatan Final</label>
-                                        <textarea id="finalAssessmentNote" name="final_note" class="applicant-final-note" required placeholder="Tulis rangkuman akhir, catatan risiko, atau next step kandidat.">{{ old('final_note', $finalAssessment['final_note'] ?? '') }}</textarea>
+                                        <textarea id="finalAssessmentNote" name="final_note" class="applicant-final-note" required placeholder="Tulis rangkuman akhir, catatan risiko, atau next step kandidat." @readonly(! $canEditFinalAssessment)>{{ old('final_note', $finalAssessment['final_note'] ?? '') }}</textarea>
 
-                                        <div class="d-flex justify-content-end mt-3">
-                                            <button type="submit" class="btn btn-primary btn-sm">
-                                                <i class="bi bi-save me-1"></i>
-                                                Save Penilaian Akhir
-                                            </button>
-                                        </div>
+                                        @if ($canEditFinalAssessment)
+                                            <div class="d-flex justify-content-end mt-3">
+                                                <button type="submit" class="btn btn-primary btn-sm">
+                                                    <i class="bi bi-save me-1"></i>
+                                                    Save Penilaian Akhir
+                                                </button>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                             </form>

@@ -101,6 +101,7 @@ class TalentAcquisitionStructureTest extends TestCase
         $sidebar = File::get(resource_path('views/layouts/sidebar.blade.php'));
         $routes = File::get(base_path('routes/web.php'));
         $controller = File::get(app_path('Http/Controllers/TalentAcquisitionController.php'));
+        $assessmentAccessService = File::get(app_path('Services/ApplicantAssessmentAccessService.php'));
         $applicantsView = File::get(resource_path('views/applicant_data/index.blade.php'));
         $applicantDetailView = File::get(resource_path('views/applicant_data/show.blade.php'));
         $applicantAssessmentView = File::get(resource_path('views/applicant_data/assessment.blade.php'));
@@ -115,6 +116,7 @@ class TalentAcquisitionStructureTest extends TestCase
         $jobVacancyCompanyMigration = File::get(database_path('migrations/2026_10_05_134303_add_company_id_to_job_vacancies_table.php'));
         $applicantStatusModel = File::get(app_path('Models/ApplicantStatus.php'));
         $applicantStatusWorkflowMigration = File::get(database_path('migrations/2026_09_14_142825_update_applicant_statuses_to_full_workflow.php'));
+        $positionPermissionSeeder = File::get(database_path('seeders/PositionPermissionSeeder.php'));
 
         $this->assertStringContainsString('Talent Acquisition', $sidebar);
         $this->assertStringContainsString('Applicants', $sidebar);
@@ -129,6 +131,23 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('jobVacanciesDatatable', $controller);
         $this->assertStringContainsString('updateApplicantStatus', $controller);
         $this->assertStringContainsString('showApplicantAssessment', $controller);
+        $this->assertStringContainsString('ApplicantAssessmentAccessService', $controller);
+        $this->assertStringContainsString('permissionsFor', $controller);
+        $this->assertStringContainsString('canEditHrInterview', $controller);
+        $this->assertStringContainsString('canManageAssessmentTest', $controller);
+        $this->assertStringContainsString('canEditTechnicalTest', $controller);
+        $this->assertStringContainsString('canEditUserInterview', $controller);
+        $this->assertStringContainsString('canEditFinalAssessment', $controller);
+        $this->assertStringContainsString('abort_unless', $controller);
+        $this->assertStringContainsString('canEditHrInterview', $assessmentAccessService);
+        $this->assertStringContainsString('canManageAssessmentTest', $assessmentAccessService);
+        $this->assertStringContainsString('canEditTechnicalTest', $assessmentAccessService);
+        $this->assertStringContainsString('canEditUserInterview', $assessmentAccessService);
+        $this->assertStringContainsString('canEditFinalAssessment', $assessmentAccessService);
+        $this->assertStringContainsString('ApplicantStatus::VALUE_HR_INTERVIEW', $assessmentAccessService);
+        $this->assertStringContainsString('ApplicantStatus::VALUE_TECHNICAL_TEST', $assessmentAccessService);
+        $this->assertStringContainsString('ApplicantStatus::VALUE_USER_INTERVIEW', $assessmentAccessService);
+        $this->assertStringContainsString("Position::KEY_SUPERVISOR => array_merge(\$baseStaffPermissions, ['view-pic-attendance', 'view-talent-acquisition'])", $positionPermissionSeeder);
         $this->assertStringContainsString('destroyApplicant', $controller);
         $this->assertStringContainsString('updateJobVacancyStatus', $controller);
         $this->assertStringContainsString('createJobVacancy', $controller);
@@ -352,9 +371,15 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('Interview User', $applicantAssessmentView);
         $this->assertStringContainsString('Penilaian Akhir', $applicantAssessmentView);
         $this->assertStringContainsString('id="applicantAssessmentTabs"', $applicantAssessmentView);
-        $this->assertStringContainsString('applicant-assessment-track', $applicantAssessmentView);
-        $this->assertStringContainsString('is-track-complete', $applicantAssessmentView);
-        $this->assertStringContainsString('updateAssessmentTrack', $applicantAssessmentView);
+        $this->assertStringNotContainsString('applicant-assessment-track', $applicantAssessmentView);
+        $this->assertStringNotContainsString('is-track-complete', $applicantAssessmentView);
+        $this->assertStringNotContainsString('updateAssessmentTrack', $applicantAssessmentView);
+        $this->assertStringContainsString('$assessmentPermissions = $assessmentPermissions ?? [];', $applicantAssessmentView);
+        $this->assertStringContainsString('$canEditHrInterview', $applicantAssessmentView);
+        $this->assertStringContainsString('$canManageAssessmentTest', $applicantAssessmentView);
+        $this->assertStringContainsString('$canEditTechnicalTest', $applicantAssessmentView);
+        $this->assertStringContainsString('$canEditUserInterview', $applicantAssessmentView);
+        $this->assertStringContainsString('$canEditFinalAssessment', $applicantAssessmentView);
         $this->assertStringContainsString('data-bs-toggle="tab"', $applicantAssessmentView);
         $this->assertStringContainsString('data-bs-target="#hr-interview-pane"', $applicantAssessmentView);
         $this->assertStringContainsString('data-bs-target="#assessment-test-pane"', $applicantAssessmentView);

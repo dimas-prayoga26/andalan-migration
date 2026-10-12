@@ -139,7 +139,7 @@ class PositionPermissionSeeder extends Seeder
                 'view-employee-services',
             ],
             Position::KEY_OPERATIONS_COORDINATOR => $baseStaffPermissions,
-            Position::KEY_SUPERVISOR => array_merge($baseStaffPermissions, ['view-pic-attendance']),
+            Position::KEY_SUPERVISOR => array_merge($baseStaffPermissions, ['view-pic-attendance', 'view-talent-acquisition']),
             Position::KEY_INTERIOR_DESIGN => $baseStaffPermissions,
             Position::KEY_ARCHITECTURE_DESIGN => $baseStaffPermissions,
             Position::KEY_WEB_DEVELOPER => $baseStaffPermissions,

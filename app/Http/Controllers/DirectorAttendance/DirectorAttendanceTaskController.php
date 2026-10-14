@@ -5,6 +5,7 @@ namespace App\Http\Controllers\DirectorAttendance;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\HrMeetingTask;
 use App\Models\Position;
 use App\Models\ProjectTask;
 use Carbon\CarbonInterface;
@@ -25,61 +26,47 @@ class DirectorAttendanceTaskController extends Controller
 
     public function index(Request $request): View
     {
+        $directorTaskCategoryCards = $this->directorTaskCategoryCards();
+        $selectedDirectorTaskCategory = $this->selectedDirectorTaskCategory($request, $directorTaskCategoryCards);
+        $directorTaskStaffOptions = $this->hrMeetingTaskStaffOptions();
+        $selectedDirectorTaskStaff = $this->selectedDirectorTaskStaff($request, $directorTaskStaffOptions);
+        $selectedDirectorTaskMonth = $this->selectedDirectorTaskMonth($request);
+        $selectedDirectorTaskYear = $this->selectedDirectorTaskYear($request);
+        $directorTaskBaseFilters = [
+            'month' => $selectedDirectorTaskMonth,
+            'year' => $selectedDirectorTaskYear,
+        ];
+
+        if ($selectedDirectorTaskStaff !== null) {
+            $directorTaskBaseFilters['staff'] = $selectedDirectorTaskStaff;
+        }
+
         return view('director_attendance.task.index', [
-            'directorTaskCompanyOptions' => $this->companyOptions(),
-            'directorTaskStaffOptions' => $this->staffOptions(),
+            'directorTaskCategoryCards' => $directorTaskCategoryCards,
+            'selectedDirectorTaskCategory' => $selectedDirectorTaskCategory,
+            'directorTaskStaffOptions' => $directorTaskStaffOptions,
+            'selectedDirectorTaskStaff' => $selectedDirectorTaskStaff,
+            'selectedDirectorTaskMonth' => $selectedDirectorTaskMonth,
+            'selectedDirectorTaskYear' => $selectedDirectorTaskYear,
+            'directorTaskMonthOptions' => $this->directorTaskMonthOptions(),
+            'directorTaskYearOptions' => $this->directorTaskYearOptions($selectedDirectorTaskYear),
+            'directorTaskBaseFilters' => $directorTaskBaseFilters,
+            'directorTaskFilterLabel' => $this->directorTaskFilterLabel($selectedDirectorTaskStaff, $directorTaskStaffOptions, $selectedDirectorTaskMonth, $selectedDirectorTaskYear),
         ]);
     }
 
     public function datatable(Request $request): JsonResponse
     {
-        $companyId = $request->string('company_id')->trim()->toString();
-        $staffEmployeeIds = $this->activeStaffEmployeeIds(
-            now('Asia/Jakarta')->startOfDay(),
-            $companyId !== '' ? $companyId : null,
-        );
-        $selectedStaffIds = $this->selectedStaffEmployeeIds($request, $staffEmployeeIds);
-        if ($selectedStaffIds === false || $selectedStaffIds->isEmpty()) {
-            return DataTables::collection(collect())->toJson();
-        }
+        $categoryCards = $this->directorTaskCategoryCards();
+        $staffOptions = $this->hrMeetingTaskStaffOptions();
+        $selectedCategory = $this->selectedDirectorTaskCategory($request, $categoryCards);
+        $selectedStaff = $this->selectedDirectorTaskStaff($request, $staffOptions);
+        $selectedMonth = $this->selectedDirectorTaskMonth($request);
+        $selectedYear = $this->selectedDirectorTaskYear($request);
 
-        $currentMonthStart = now('Asia/Jakarta')->startOfMonth()->toDateString();
-        $currentMonthEnd = now('Asia/Jakarta')->endOfMonth()->toDateString();
-
-        $tasks = ProjectTask::query()
-            ->with([
-                'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
-                'employee.user:id,username,email',
-                'employee.deployment:id,employee_id,current_company_id',
-                'employee.deployment.company:id,name',
-                'project:id,name',
-                'overtime:id,record_number',
-                'assignedBy:id,username,email',
-            ])
-            ->whereIn('employee_id', $selectedStaffIds->all())
-            ->whereRaw('DATE(COALESCE(due_date, start_date, created_at)) BETWEEN ? AND ?', [$currentMonthStart, $currentMonthEnd])
-            ->orderByRaw('COALESCE(due_date, start_date, created_at) DESC')
-            ->get([
-                'id',
-                'project_id',
-                'employee_id',
-                'assigned_by',
-                'overtime_id',
-                'title',
-                'description',
-                'blockers',
-                'attachment_path',
-                'status',
-                'priority',
-                'start_date',
-                'due_date',
-                'completed_at',
-                'created_at',
-            ])
-            ->map(fn (ProjectTask $projectTask): array => $this->taskRow($projectTask));
-
-        return DataTables::collection($tasks)->toJson();
+        return DataTables::collection(
+            $this->hrMeetingTaskRows($selectedCategory, $selectedStaff, $selectedMonth, $selectedYear, $categoryCards)
+        )->toJson();
     }
 
     /**
@@ -209,6 +196,201 @@ class DirectorAttendanceTaskController extends Controller
     }
 
     /**
+     * @return array<string,array{title:string,subtitle:string,color:string,icon:string}>
+     */
+    private function directorTaskCategoryCards(): array
+    {
+        return [
+            'administration' => [
+                'title' => 'Administration',
+                'subtitle' => 'Administrative operational support',
+                'color' => 'secondary',
+                'icon' => 'fa-clipboard-list',
+            ],
+            'event_management_kma' => [
+                'title' => 'Event Management (KMA)',
+                'subtitle' => 'Event Planning & Operations',
+                'color' => 'danger',
+                'icon' => 'fa-calendar-check',
+            ],
+            'property_construction_trah' => [
+                'title' => 'Property and Construction (TRAH)',
+                'subtitle' => 'Property & Construction Operations',
+                'color' => 'info',
+                'icon' => 'fa-building',
+            ],
+            'it_social_media_tms' => [
+                'title' => 'IT and Social Media (TMS)',
+                'subtitle' => 'Digital publication and IT operational support',
+                'color' => 'success',
+                'icon' => 'fa-laptop-code',
+            ],
+            'others' => [
+                'title' => 'Others',
+                'subtitle' => 'General & Miscellaneous Support',
+                'color' => 'warning',
+                'icon' => 'fa-layer-group',
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string,array{title:string,subtitle:string,color:string,icon:string}>  $categoryCards
+     */
+    private function selectedDirectorTaskCategory(Request $request, array $categoryCards): ?string
+    {
+        $category = $request->string('category')->trim()->toString();
+
+        return array_key_exists($category, $categoryCards) ? $category : null;
+    }
+
+    /**
+     * @return Collection<int,array{id:string,name:string}>
+     */
+    private function hrMeetingTaskStaffOptions(): Collection
+    {
+        return Employee::query()
+            ->with([
+                'profile:id,employee_id,name',
+                'user:id,username,email',
+            ])
+            ->whereHas('projectTasks.hrMeetingTasks')
+            ->get(['id', 'user_id'])
+            ->map(fn (Employee $employee): array => [
+                'id' => (string) $employee->id,
+                'name' => $this->employeeDisplayName($employee),
+            ])
+            ->sortBy('name')
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int,array{id:string,name:string}>  $staffOptions
+     */
+    private function selectedDirectorTaskStaff(Request $request, Collection $staffOptions): ?string
+    {
+        $staffId = $request->string('staff')->trim()->toString();
+
+        if ($staffId === '') {
+            return null;
+        }
+
+        return $staffOptions->contains(fn (array $staffOption): bool => $staffOption['id'] === $staffId)
+            ? $staffId
+            : null;
+    }
+
+    private function selectedDirectorTaskMonth(Request $request): int
+    {
+        $month = $request->integer('month', now('Asia/Jakarta')->month);
+
+        return $month >= 1 && $month <= 12 ? $month : now('Asia/Jakarta')->month;
+    }
+
+    private function selectedDirectorTaskYear(Request $request): int
+    {
+        $year = $request->integer('year', now('Asia/Jakarta')->year);
+
+        return $year >= 2000 && $year <= 2100 ? $year : now('Asia/Jakarta')->year;
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function directorTaskMonthOptions(): array
+    {
+        return collect(range(1, 12))
+            ->mapWithKeys(fn (int $month): array => [
+                $month => Carbon::create(2026, $month, 1, 0, 0, 0, 'Asia/Jakarta')->format('F'),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int,int>
+     */
+    private function directorTaskYearOptions(int $selectedYear): array
+    {
+        $currentYear = now('Asia/Jakarta')->year;
+
+        return range(min($selectedYear, $currentYear) - 2, max($selectedYear, $currentYear) + 2);
+    }
+
+    /**
+     * @param  Collection<int,array{id:string,name:string}>  $staffOptions
+     */
+    private function directorTaskFilterLabel(?string $selectedStaff, Collection $staffOptions, int $month, int $year): string
+    {
+        $staffLabel = $staffOptions
+            ->first(fn (array $staffOption): bool => $staffOption['id'] === $selectedStaff)['name']
+            ?? 'All Staff';
+
+        return $staffLabel.' | '.Carbon::create($year, $month, 1, 0, 0, 0, 'Asia/Jakarta')->format('F Y');
+    }
+
+    /**
+     * @param  array<string,array{title:string,subtitle:string,color:string,icon:string}>  $categoryCards
+     * @return Collection<int,array<string,string>>
+     */
+    private function hrMeetingTaskRows(?string $selectedCategory, ?string $selectedStaff, int $selectedMonth, int $selectedYear, array $categoryCards): Collection
+    {
+        $periodStart = Carbon::create($selectedYear, $selectedMonth, 1, 0, 0, 0, 'Asia/Jakarta')->startOfMonth()->toDateString();
+        $periodEnd = Carbon::create($selectedYear, $selectedMonth, 1, 0, 0, 0, 'Asia/Jakarta')->endOfMonth()->toDateString();
+
+        return HrMeetingTask::query()
+            ->with([
+                'meeting:id,title,meeting_date',
+                'projectTask:id,project_id,employee_id,assigned_by,title,description,blockers,attachment_path,status,priority,start_date,due_date,completed_at,created_at',
+                'projectTask.project:id,name',
+                'projectTask.employee:id,user_id',
+                'projectTask.employee.profile:id,employee_id,name,profile_picture_path',
+                'projectTask.employee.user:id,username,email',
+            ])
+            ->when($selectedCategory !== null, fn ($query) => $query->where('category', $selectedCategory))
+            ->whereHas('projectTask', function ($query) use ($selectedStaff, $periodStart, $periodEnd): void {
+                if ($selectedStaff !== null) {
+                    $query->where('employee_id', $selectedStaff);
+                }
+
+                $query->whereRaw('DATE(COALESCE(due_date, start_date, created_at)) BETWEEN ? AND ?', [$periodStart, $periodEnd]);
+            })
+            ->latest()
+            ->get(['id', 'hr_meeting_id', 'category', 'project_task_id', 'created_at'])
+            ->map(fn (HrMeetingTask $hrMeetingTask): array => $this->hrMeetingTaskRow($hrMeetingTask, $categoryCards))
+            ->values();
+    }
+
+    /**
+     * @param  array<string,array{title:string,subtitle:string,color:string,icon:string}>  $categoryCards
+     * @return array<string,string>
+     */
+    private function hrMeetingTaskRow(HrMeetingTask $hrMeetingTask, array $categoryCards): array
+    {
+        $projectTask = $hrMeetingTask->projectTask;
+        $category = trim((string) ($hrMeetingTask->category ?: 'others'));
+        $categoryCard = $categoryCards[$category] ?? $categoryCards['others'];
+        $assignee = $this->employeeDisplayName($projectTask?->employee);
+
+        return [
+            'id' => (string) $hrMeetingTask->id,
+            'category' => $category,
+            'category_label' => $categoryCard['title'],
+            'task' => trim((string) ($projectTask?->title ?? '-')) ?: '-',
+            'description' => trim((string) ($projectTask?->description ?? '')),
+            'blockers' => trim((string) ($projectTask?->blockers ?? '')),
+            'attachment_path' => trim((string) ($projectTask?->attachment_path ?? '')),
+            'project' => trim((string) ($projectTask?->project?->name ?? '')) ?: 'Daily Task',
+            'assignee' => $assignee,
+            'assignee_initial' => str($assignee)->trim()->substr(0, 1)->upper()->toString() ?: '-',
+            'priority' => $this->priorityLabel((string) ($projectTask?->priority ?? 'medium')),
+            'priority_class' => $this->priorityBadgeClass((string) ($projectTask?->priority ?? 'medium')),
+            'status' => $this->hrMeetingTaskStatusLabel((string) ($projectTask?->status ?? 'pending')),
+            'status_class' => $this->hrMeetingTaskStatusBadgeClass((string) ($projectTask?->status ?? 'pending')),
+            'due_date' => $this->dateRangeLabel($projectTask?->start_date, $projectTask?->due_date),
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
     private function taskRow(ProjectTask $projectTask): array
@@ -259,6 +441,35 @@ class DirectorAttendanceTaskController extends Controller
             'high' => 'High',
             'low' => 'Low',
             default => 'Medium',
+        };
+    }
+
+    private function priorityBadgeClass(string $priority): string
+    {
+        return match (strtolower(trim($priority))) {
+            'high' => 'danger',
+            'low' => 'success',
+            default => 'warning',
+        };
+    }
+
+    private function hrMeetingTaskStatusLabel(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            'completed' => 'Completed',
+            'in_progress' => 'On Progress',
+            'cancelled' => 'Cancelled',
+            default => 'To Do',
+        };
+    }
+
+    private function hrMeetingTaskStatusBadgeClass(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            'completed' => 'success',
+            'in_progress' => 'primary',
+            'cancelled' => 'danger',
+            default => 'warning',
         };
     }
 

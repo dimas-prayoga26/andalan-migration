@@ -303,6 +303,7 @@ class AuthorizationMenuRouteTest extends TestCase
 
         $this->assertStringContainsString('$isAuthorizationMenu', $sidebarView);
         $this->assertStringContainsString('$isPicTeamTasksMenu', $sidebarView);
+        $this->assertStringContainsString('$isDirectorTaskMenu', $sidebarView);
         $this->assertStringContainsString('$canViewAuthorizationMenu', $sidebarView);
         $this->assertStringContainsString("canViewSidebarMenu('view-authorization')", $sidebarView);
         $this->assertStringContainsString("canViewSidebarMenu('view-settings')", $sidebarView);
@@ -324,6 +325,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('Employee Data', $sidebarView);
         $this->assertStringContainsString('Zoom Meeting', $sidebarView);
         $this->assertStringContainsString('Team tasks', $sidebarView);
+        $this->assertStringContainsString('Task Management', $sidebarView);
         $this->assertStringNotContainsString('Employee Database', $sidebarView);
         $this->assertStringContainsString('Talent Acquisition', $sidebarView);
         $this->assertStringContainsString('Applicants', $sidebarView);
@@ -433,6 +435,7 @@ class AuthorizationMenuRouteTest extends TestCase
 
         $this->assertStringContainsString('Director Management', $directorSidebar);
         $this->assertStringContainsString('Director</span>', $directorSidebar);
+        $this->assertStringContainsString('Task Management</span>', $directorSidebar);
         $this->assertStringContainsString('Employee Data </span>', $directorSidebar);
         $this->assertStringContainsString('Talent Acquisition</span>', $directorSidebar);
         $this->assertStringNotContainsString('Admin Management', $directorSidebar);

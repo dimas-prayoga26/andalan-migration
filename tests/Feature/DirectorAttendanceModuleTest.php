@@ -7,8 +7,13 @@ use App\Http\Controllers\DirectorAttendance\DirectorAttendanceController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceOvertimeController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceTaskController;
 use App\Models\AttendanceOvertime;
+use App\Models\Employee;
+use App\Models\EmployeeProfile;
+use App\Models\HrMeetingTask;
 use App\Models\Project;
 use App\Models\ProjectTask;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
@@ -162,86 +167,132 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertTrue(View::exists('director_attendance.overtime.detail'));
         $this->assertTrue(View::exists('director_attendance.task.index'));
         $this->assertStringContainsString('view-director-attendance', $sidebar);
+        $this->assertStringContainsString('$isDirectorTaskMenu', $sidebar);
         $this->assertStringContainsString("route('director-attendance.attendance')", $sidebar);
+        $this->assertStringContainsString("route('director-attendance.task')", $sidebar);
+        $this->assertStringContainsString('Task Management</span>', $sidebar);
         $this->assertStringContainsString("route('director-attendance.attendance')", $navigation);
         $this->assertStringContainsString("route('director-attendance.overtime')", $navigation);
-        $this->assertStringContainsString("route('director-attendance.task')", $navigation);
-        $this->assertStringContainsString("request()->routeIs('director-attendance.task*')", $navigation);
+        $this->assertStringNotContainsString("route('director-attendance.task')", $navigation);
+        $this->assertStringNotContainsString("request()->routeIs('director-attendance.task*')", $navigation);
         $this->assertStringContainsString('Attendance', $navigation);
         $this->assertStringContainsString('Overtime', $navigation);
-        $this->assertStringContainsString('Task', $navigation);
         $this->assertStringNotContainsString('Leave', $navigation);
         $this->assertStringNotContainsString('Business Trip', $navigation);
-        $this->assertStringContainsString('Task Monitoring', $directorTaskView);
-        $this->assertStringContainsString('$directorTaskCompanyOptions', $directorTaskView);
-        $this->assertStringContainsString('id="directorTaskCompanyFilter"', $directorTaskView);
-        $this->assertStringContainsString('name="company_filter"', $directorTaskView);
-        $this->assertStringContainsString('Semua Company', $directorTaskView);
-        $this->assertStringContainsString('Tidak ada company', $directorTaskView);
-        $this->assertStringContainsString('id="directorTaskStaffFilter"', $directorTaskView);
-        $this->assertStringContainsString('name="staff_filter"', $directorTaskView);
-        $this->assertStringContainsString('data-company-id="{{ $staffOption[\'company_id\'] }}"', $directorTaskView);
-        $this->assertStringContainsString('Semua Staff', $directorTaskView);
-        $this->assertStringContainsString('Tidak ada staff', $directorTaskView);
-        $this->assertStringContainsString('$directorTaskStaffOptions', $directorTaskView);
-        $this->assertStringContainsString('id="directorTaskTable"', $directorTaskView);
-        $this->assertStringContainsString('<th>Staff</th>', $directorTaskView);
-        $this->assertStringContainsString('<th>Task</th>', $directorTaskView);
-        $this->assertStringContainsString('<th>Company</th>', $directorTaskView);
-        $this->assertStringContainsString('<th>Due Date</th>', $directorTaskView);
-        $this->assertStringContainsString('<th>Status</th>', $directorTaskView);
-        $this->assertStringContainsString('<th>Action</th>', $directorTaskView);
-        $this->assertStringContainsString('id="directorTaskDetailModal"', $directorTaskView);
-        $this->assertStringContainsString('Task Details', $directorTaskView);
-        $this->assertStringContainsString('id="directorTaskDetailTitle"', $directorTaskView);
+        $this->assertStringContainsString("@section('navbarTitle', 'Task Management')", $directorTaskView);
+        $this->assertStringNotContainsString("@include('director_attendance.layout.navbar')", $directorTaskView);
+        $this->assertStringContainsString('Task Management', $directorTaskView);
+        $this->assertStringContainsString('A comprehensive list of all tasks performed by the team.', $directorTaskView);
+        $this->assertStringContainsString('data-bs-target="#filterTaskAndStaff"', $directorTaskView);
+        $this->assertStringContainsString('$directorTaskFilterLabel', $directorTaskView);
+        $this->assertStringContainsString('@foreach ($directorTaskCategoryCards as $categoryKey => $categoryCard)', $directorTaskView);
+        $this->assertStringContainsString('$isSelectedCategory = $selectedDirectorTaskCategory === $categoryKey;', $directorTaskView);
+        $this->assertStringContainsString('class="text-decoration-none director-task-category-link"', $directorTaskView);
+        $this->assertStringContainsString('data-director-task-category="{{ $isSelectedCategory ? \'\' : $categoryKey }}"', $directorTaskView);
+        $this->assertStringContainsString('data-director-task-category-key="{{ $categoryKey }}"', $directorTaskView);
+        $this->assertStringContainsString("'bg-' . \$categoryColor", $directorTaskView);
+        $this->assertStringContainsString('$categoryCard[\'subtitle\']', $directorTaskView);
+        $this->assertStringContainsString('$categoryCard[\'title\']', $directorTaskView);
+        $this->assertStringContainsString('$categoryCard[\'icon\']', $directorTaskView);
+        $this->assertStringNotContainsString('Task Completion Rate', $directorTaskView);
+        $this->assertStringNotContainsString('Total Tasks', $directorTaskView);
+        $this->assertStringNotContainsString('In Progress', $directorTaskView);
+        $this->assertStringContainsString('<th class="mw-50">No</th>', $directorTaskView);
         $this->assertStringContainsString('Task Name', $directorTaskView);
-        $this->assertStringContainsString('Task Description', $directorTaskView);
-        $this->assertStringContainsString('Date - Due Date', $directorTaskView);
-        $this->assertStringContainsString('Assigned by', $directorTaskView);
-        $this->assertStringContainsString('id="directorTaskDetailAttachment"', $directorTaskView);
-        $this->assertStringContainsString('btn btn-danger light', $directorTaskView);
-        $this->assertStringContainsString("route('director-attendance.task.datatable')", $directorTaskView);
-        $this->assertStringContainsString('function initDirectorTaskTable()', $directorTaskView);
-        $this->assertStringContainsString('function refreshStaffOptions()', $directorTaskView);
-        $this->assertStringContainsString('var allStaffOptions = @js($directorTaskStaffOptions->values()->all());', $directorTaskView);
-        $this->assertStringContainsString('staffFilter.innerHTML =', $directorTaskView);
-        $this->assertStringContainsString("allStaffOption.textContent = 'Semua Staff';", $directorTaskView);
-        $this->assertStringContainsString('visibleStaffOptions.forEach(function (staffOption)', $directorTaskView);
-        $this->assertStringContainsString("option.setAttribute('data-company-id'", $directorTaskView);
-        $this->assertStringContainsString('refreshSelectPlugin(staffFilter);', $directorTaskView);
-        $this->assertStringContainsString('function renderAttachment(value)', $directorTaskView);
-        $this->assertStringContainsString('function statusTextClass(value)', $directorTaskView);
-        $this->assertStringContainsString('function assignedByText(value)', $directorTaskView);
-        $this->assertStringContainsString('function renderTaskContext(row)', $directorTaskView);
-        $this->assertStringContainsString('function renderTaskTitle(row)', $directorTaskView);
-        $this->assertStringContainsString('badge badge-info light ms-1 align-middle">Overtime</span>', $directorTaskView);
-        $this->assertStringContainsString('DataTable', $directorTaskView);
-        $this->assertStringContainsString('requestData.company_id = companyFilter ? companyFilter.value :', $directorTaskView);
+        $this->assertStringContainsString('Project', $directorTaskView);
+        $this->assertStringContainsString('Assignee', $directorTaskView);
+        $this->assertStringContainsString('Priority', $directorTaskView);
+        $this->assertStringContainsString('Due Date', $directorTaskView);
+        $this->assertStringContainsString('id="directorTaskTable"', $directorTaskView);
+        $this->assertStringContainsString('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js', $directorTaskView);
+        $this->assertStringContainsString('DataTable({', $directorTaskView);
+        $this->assertStringContainsString("url: \"{{ route('director-attendance.task.datatable') }}\"", $directorTaskView);
+        $this->assertStringContainsString('requestData.category = selectedCategory;', $directorTaskView);
+        $this->assertStringContainsString("requestData.staff = filterValue('#directorTaskStaffFilter');", $directorTaskView);
+        $this->assertStringContainsString("requestData.month = filterValue('#directorTaskMonthFilter');", $directorTaskView);
+        $this->assertStringContainsString("requestData.year = filterValue('#directorTaskYearFilter');", $directorTaskView);
+        $this->assertStringContainsString('var visibleTaskCategories = [];', $directorTaskView);
+        $this->assertStringContainsString('dataSrc: function (json)', $directorTaskView);
+        $this->assertStringContainsString('visibleTaskCategories = (json.data || [])', $directorTaskView);
+        $this->assertStringContainsString('return row.category || \'\';', $directorTaskView);
+        $this->assertStringContainsString('updateCategoryCards(visibleTaskCategories);', $directorTaskView);
+        $this->assertStringContainsString("selectedCategory === '' && categories.indexOf(category) !== -1", $directorTaskView);
+        $this->assertStringContainsString('selectedCategory = link.getAttribute(\'data-director-task-category\') || \'\';', $directorTaskView);
         $this->assertStringContainsString('taskTable.ajax.reload();', $directorTaskView);
-        $this->assertStringContainsString("'.director-task-detail-button'", $directorTaskView);
-        $this->assertStringContainsString("$('#directorTaskTable tbody td.dataTables_empty')", $directorTaskView);
         $this->assertStringContainsString('No task data available.', $directorTaskView);
-        $this->assertStringNotContainsString('<form', $directorTaskView);
+        $this->assertStringContainsString('id="filterTaskAndStaff"', $directorTaskView);
+        $this->assertStringContainsString('id="directorTaskFilterForm"', $directorTaskView);
+        $this->assertStringContainsString('id="directorTaskCategoryInput"', $directorTaskView);
+        $this->assertStringContainsString('name="staff"', $directorTaskView);
+        $this->assertStringContainsString('All Staff', $directorTaskView);
+        $this->assertStringContainsString('$directorTaskStaffOptions as $staffOption', $directorTaskView);
+        $this->assertStringContainsString('name="month"', $directorTaskView);
+        $this->assertStringContainsString('$directorTaskMonthOptions as $monthValue => $monthLabel', $directorTaskView);
+        $this->assertStringContainsString('name="year"', $directorTaskView);
+        $this->assertStringContainsString('$directorTaskYearOptions as $yearOption', $directorTaskView);
+        $this->assertStringContainsString('type="submit"', $directorTaskView);
+        $this->assertStringContainsString('btn btn-danger light', $directorTaskView);
+        $this->assertStringNotContainsString('$directorTaskCompanyOptions', $directorTaskView);
+        $this->assertStringNotContainsString('@forelse ($directorTaskRows as $taskRow)', $directorTaskView);
         $this->assertStringContainsString('use App\Models\Company;', $directorTaskController);
         $this->assertStringContainsString('private const EXCLUDED_TASK_EMPLOYEE_EMAILS', $directorTaskController);
         $this->assertStringContainsString('private function companyOptions(): Collection', $directorTaskController);
+        $this->assertStringContainsString('use App\Models\HrMeetingTask;', $directorTaskController);
+        $this->assertStringContainsString('public function index(Request $request): View', $directorTaskController);
+        $this->assertStringContainsString("'directorTaskCategoryCards' => \$directorTaskCategoryCards", $directorTaskController);
+        $this->assertStringContainsString("'selectedDirectorTaskCategory' => \$selectedDirectorTaskCategory", $directorTaskController);
+        $this->assertStringContainsString("'directorTaskStaffOptions' => \$directorTaskStaffOptions", $directorTaskController);
+        $this->assertStringContainsString("'selectedDirectorTaskStaff' => \$selectedDirectorTaskStaff", $directorTaskController);
+        $this->assertStringContainsString("'selectedDirectorTaskMonth' => \$selectedDirectorTaskMonth", $directorTaskController);
+        $this->assertStringContainsString("'selectedDirectorTaskYear' => \$selectedDirectorTaskYear", $directorTaskController);
+        $this->assertStringContainsString("'directorTaskMonthOptions' => \$this->directorTaskMonthOptions()", $directorTaskController);
+        $this->assertStringContainsString("'directorTaskYearOptions' => \$this->directorTaskYearOptions(\$selectedDirectorTaskYear)", $directorTaskController);
+        $this->assertStringContainsString("'directorTaskBaseFilters' => \$directorTaskBaseFilters", $directorTaskController);
+        $this->assertStringContainsString("'directorTaskFilterLabel' => \$this->directorTaskFilterLabel(", $directorTaskController);
+        $this->assertStringContainsString('public function datatable(Request $request): JsonResponse', $directorTaskController);
+        $this->assertStringContainsString('$this->hrMeetingTaskRows($selectedCategory, $selectedStaff, $selectedMonth, $selectedYear, $categoryCards)', $directorTaskController);
+        $this->assertStringContainsString('private function directorTaskCategoryCards(): array', $directorTaskController);
+        $this->assertStringContainsString("'administration' => [", $directorTaskController);
+        $this->assertStringContainsString("'title' => 'Administration'", $directorTaskController);
+        $this->assertStringContainsString("'subtitle' => 'Administrative operational support'", $directorTaskController);
+        $this->assertStringContainsString("'event_management_kma' => [", $directorTaskController);
+        $this->assertStringContainsString("'title' => 'Event Management (KMA)'", $directorTaskController);
+        $this->assertStringContainsString("'subtitle' => 'Event Planning & Operations'", $directorTaskController);
+        $this->assertStringContainsString("'property_construction_trah' => [", $directorTaskController);
+        $this->assertStringContainsString("'title' => 'Property and Construction (TRAH)'", $directorTaskController);
+        $this->assertStringContainsString("'subtitle' => 'Property & Construction Operations'", $directorTaskController);
+        $this->assertStringContainsString("'it_social_media_tms' => [", $directorTaskController);
+        $this->assertStringContainsString("'title' => 'IT and Social Media (TMS)'", $directorTaskController);
+        $this->assertStringContainsString("'subtitle' => 'Digital publication and IT operational support'", $directorTaskController);
+        $this->assertStringContainsString("'others' => [", $directorTaskController);
+        $this->assertStringContainsString("'title' => 'Others'", $directorTaskController);
+        $this->assertStringContainsString("'subtitle' => 'General & Miscellaneous Support'", $directorTaskController);
+        $this->assertStringContainsString('private function selectedDirectorTaskCategory(Request $request, array $categoryCards): ?string', $directorTaskController);
+        $this->assertStringContainsString('private function hrMeetingTaskStaffOptions(): Collection', $directorTaskController);
+        $this->assertStringContainsString('private function selectedDirectorTaskStaff(Request $request, Collection $staffOptions): ?string', $directorTaskController);
+        $this->assertStringContainsString('private function selectedDirectorTaskMonth(Request $request): int', $directorTaskController);
+        $this->assertStringContainsString('private function selectedDirectorTaskYear(Request $request): int', $directorTaskController);
+        $this->assertStringContainsString('private function directorTaskMonthOptions(): array', $directorTaskController);
+        $this->assertStringContainsString('private function directorTaskYearOptions(int $selectedYear): array', $directorTaskController);
+        $this->assertStringContainsString('private function directorTaskFilterLabel(?string $selectedStaff, Collection $staffOptions, int $month, int $year): string', $directorTaskController);
+        $this->assertStringContainsString('private function hrMeetingTaskRows(?string $selectedCategory, ?string $selectedStaff, int $selectedMonth, int $selectedYear, array $categoryCards): Collection', $directorTaskController);
+        $this->assertStringContainsString('HrMeetingTask::query()', $directorTaskController);
+        $this->assertStringContainsString("->when(\$selectedCategory !== null, fn (\$query) => \$query->where('category', \$selectedCategory))", $directorTaskController);
+        $this->assertStringContainsString('if ($selectedStaff !== null)', $directorTaskController);
+        $this->assertStringContainsString("->where('employee_id', \$selectedStaff)", $directorTaskController);
+        $this->assertStringContainsString('DATE(COALESCE(due_date, start_date, created_at)) BETWEEN ? AND ?', $directorTaskController);
+        $this->assertStringContainsString('private function hrMeetingTaskRow(HrMeetingTask $hrMeetingTask, array $categoryCards): array', $directorTaskController);
+        $this->assertStringContainsString("'project' => trim((string) (\$projectTask?->project?->name ?? '')) ?: 'Daily Task'", $directorTaskController);
+        $this->assertStringContainsString("'description' => trim((string) (\$projectTask?->description ?? ''))", $directorTaskController);
+        $this->assertStringContainsString("'blockers' => trim((string) (\$projectTask?->blockers ?? ''))", $directorTaskController);
+        $this->assertStringContainsString("'attachment_path' => trim((string) (\$projectTask?->attachment_path ?? ''))", $directorTaskController);
+        $this->assertStringContainsString("'priority' => \$this->priorityLabel((string) (\$projectTask?->priority ?? 'medium'))", $directorTaskController);
+        $this->assertStringContainsString("'status' => \$this->hrMeetingTaskStatusLabel((string) (\$projectTask?->status ?? 'pending'))", $directorTaskController);
         $this->assertStringContainsString('private function activeStaffEmployeeIds(Carbon $date, ?string $companyId = null): Collection', $directorTaskController);
         $this->assertStringContainsString("->whereRaw('LOWER(COALESCE(status, \"\")) = ?', ['active'])", $directorTaskController);
         $this->assertStringContainsString("if (\$companyId !== '')", $directorTaskController);
         $this->assertStringContainsString("->where('current_company_id', \$companyId)", $directorTaskController);
-        $this->assertStringContainsString("'overtime:id,record_number'", $directorTaskController);
         $this->assertStringNotContainsString("->whereNull('overtime_id')", $directorTaskController);
-        $this->assertStringContainsString("->whereIn('employee_id', \$selectedStaffIds->all())", $directorTaskController);
-        $this->assertStringContainsString("'company' => trim((string) (\$projectTask->employee?->deployment?->company?->name ?? '-'))", $directorTaskController);
-        $this->assertStringContainsString("'description' => trim((string) (\$projectTask->description ?? ''))", $directorTaskController);
-        $this->assertStringContainsString("'blockers' => trim((string) (\$projectTask->blockers ?? ''))", $directorTaskController);
-        $this->assertStringContainsString("'attachment_path' => trim((string) (\$projectTask->attachment_path ?? ''))", $directorTaskController);
-        $this->assertStringContainsString("'task_context' => \$taskContext", $directorTaskController);
-        $this->assertStringContainsString("'task_context_type' => \$isOvertimeTask ? 'overtime' : (\$projectTask->project_id !== null ? 'project' : 'daily')", $directorTaskController);
-        $this->assertStringContainsString("'due_date' => \$this->dateRangeLabel(\$projectTask->start_date, \$projectTask->due_date)", $directorTaskController);
-        $this->assertStringContainsString("'priority' => \$this->priorityLabel((string) \$projectTask->priority)", $directorTaskController);
-        $this->assertStringContainsString("'status' => \$this->statusLabel(", $directorTaskController);
-        $this->assertStringContainsString("'status_class' => \$isCompleted ? 'success' : 'warning'", $directorTaskController);
         $this->assertStringContainsString("'view-director-attendance'", $permissionSeeder);
         $this->assertStringContainsString('$directorPermissions = [', $permissionSeeder);
         $this->assertStringContainsString('Position::KEY_CHIEF_OPERATING_OFFICER => $directorPermissions', $permissionSeeder);
@@ -316,5 +367,97 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertSame('Daily Task', $dailyRow['task_context']);
         $this->assertSame('daily', $dailyRow['task_context_type']);
         $this->assertSame('Daily Task', $dailyRow['task_category']);
+    }
+
+    public function test_director_hr_meeting_task_row_uses_meeting_task_category_and_project_task_details(): void
+    {
+        $controller = app(DirectorAttendanceTaskController::class);
+        $categoryMethod = new ReflectionMethod(DirectorAttendanceTaskController::class, 'directorTaskCategoryCards');
+        $rowMethod = new ReflectionMethod(DirectorAttendanceTaskController::class, 'hrMeetingTaskRow');
+        $categoryMethod->setAccessible(true);
+        $rowMethod->setAccessible(true);
+
+        $employee = new Employee(['id' => 'employee-hr-task', 'user_id' => 'user-hr-task']);
+        $employee->setRelation('profile', new EmployeeProfile([
+            'employee_id' => 'employee-hr-task',
+            'name' => 'Rifka Febriza',
+        ]));
+        $employee->setRelation('user', new User([
+            'id' => 'user-hr-task',
+            'username' => 'rifka',
+            'email' => 'rifka@example.test',
+        ]));
+
+        $projectTask = new ProjectTask([
+            'id' => 'project-task-hr',
+            'employee_id' => 'employee-hr-task',
+            'title' => 'Membuat brief konten sosial media',
+            'description' => 'Konten mingguan',
+            'status' => 'in_progress',
+            'priority' => 'high',
+            'start_date' => Carbon::create(2026, 10, 9, 0, 0, 0, 'Asia/Jakarta'),
+            'due_date' => Carbon::create(2026, 10, 16, 0, 0, 0, 'Asia/Jakarta'),
+        ]);
+        $projectTask->setRelation('employee', $employee);
+
+        $meetingTask = new HrMeetingTask([
+            'id' => 'hr-meeting-task-row',
+            'category' => 'it_social_media_tms',
+            'project_task_id' => 'project-task-hr',
+        ]);
+        $meetingTask->setRelation('projectTask', $projectTask);
+
+        $row = $rowMethod->invoke($controller, $meetingTask, $categoryMethod->invoke($controller));
+
+        $this->assertSame('it_social_media_tms', $row['category']);
+        $this->assertSame('IT and Social Media (TMS)', $row['category_label']);
+        $this->assertSame('Membuat brief konten sosial media', $row['task']);
+        $this->assertSame('Daily Task', $row['project']);
+        $this->assertSame('Rifka Febriza', $row['assignee']);
+        $this->assertSame('R', $row['assignee_initial']);
+        $this->assertSame('High', $row['priority']);
+        $this->assertSame('danger', $row['priority_class']);
+        $this->assertSame('On Progress', $row['status']);
+        $this->assertSame('primary', $row['status_class']);
+        $this->assertSame('Jum\'at, 09 - Jum\'at, 16 Oct 2026', $row['due_date']);
+    }
+
+    public function test_director_task_filter_helpers_keep_month_year_and_staff_selection(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 10, 14, 10, 0, 0, 'Asia/Jakarta'));
+
+        $controller = app(DirectorAttendanceTaskController::class);
+        $staffMethod = new ReflectionMethod(DirectorAttendanceTaskController::class, 'selectedDirectorTaskStaff');
+        $monthMethod = new ReflectionMethod(DirectorAttendanceTaskController::class, 'selectedDirectorTaskMonth');
+        $yearMethod = new ReflectionMethod(DirectorAttendanceTaskController::class, 'selectedDirectorTaskYear');
+        $labelMethod = new ReflectionMethod(DirectorAttendanceTaskController::class, 'directorTaskFilterLabel');
+        $staffMethod->setAccessible(true);
+        $monthMethod->setAccessible(true);
+        $yearMethod->setAccessible(true);
+        $labelMethod->setAccessible(true);
+
+        $staffOptions = collect([
+            ['id' => 'employee-syafiq', 'name' => 'Muhammad Syafiq'],
+            ['id' => 'employee-rifka', 'name' => 'Rifka Febriza'],
+        ]);
+        $request = Request::create('/director-attendance/task', 'GET', [
+            'staff' => 'employee-syafiq',
+            'month' => '9',
+            'year' => '2026',
+        ]);
+
+        $selectedStaff = $staffMethod->invoke($controller, $request, $staffOptions);
+        $selectedMonth = $monthMethod->invoke($controller, $request);
+        $selectedYear = $yearMethod->invoke($controller, $request);
+
+        $this->assertSame('employee-syafiq', $selectedStaff);
+        $this->assertSame(9, $selectedMonth);
+        $this->assertSame(2026, $selectedYear);
+        $this->assertSame(
+            'Muhammad Syafiq | September 2026',
+            $labelMethod->invoke($controller, $selectedStaff, $staffOptions, $selectedMonth, $selectedYear),
+        );
+
+        Carbon::setTestNow();
     }
 }

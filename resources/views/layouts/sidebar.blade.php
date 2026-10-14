@@ -13,7 +13,8 @@
 						$isEmailManagementMenu = request()->routeIs('email-management*') || request()->is('email-management*');
 						$isPicAttendanceMenu = (request()->routeIs('pic-attendance*') || request()->is('pic-attendance*')) && ! request()->routeIs('pic-attendance.task*');
 						$isPicTeamTasksMenu = request()->routeIs('pic-attendance.task*');
-						$isDirectorAttendanceMenu = request()->routeIs('director-attendance*') || request()->is('director-attendance*');
+						$isDirectorTaskMenu = request()->routeIs('director-attendance.task*');
+						$isDirectorAttendanceMenu = (request()->routeIs('director-attendance*') || request()->is('director-attendance*')) && ! $isDirectorTaskMenu;
 						$isReportingMenu = request()->routeIs('project_management', 'project_management.detail') || request()->is('project-management*');
 						$isAuthorizationMenu = request()->routeIs('authorization*') || request()->is('authorization*');
 						$isApplicantMenu = request()->routeIs('applicant*') || request()->is('applicant*');
@@ -208,6 +209,12 @@
 						<a class="{{ $isDirectorAttendanceMenu ? 'active' : '' }}" href="{{ route('director-attendance.attendance') }}" aria-expanded="{{ $isDirectorAttendanceMenu ? 'true' : 'false' }}">
 							<i class="fa-solid fa-user-tie"></i>
 							<span class="nav-text" data-i18n="Director">Director</span>
+						</a>
+					</li>
+					<li class="{{ $isDirectorTaskMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isDirectorTaskMenu ? 'active' : '' }}" href="{{ route('director-attendance.task') }}" aria-expanded="{{ $isDirectorTaskMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-list-check"></i>
+							<span class="nav-text" data-i18n="Task Management">Task Management</span>
 						</a>
 					</li>
 					@endif

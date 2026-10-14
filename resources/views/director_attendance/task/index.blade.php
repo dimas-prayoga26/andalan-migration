@@ -1,120 +1,114 @@
 @extends('layouts.main')
 
-@section('title', 'Director Task')
+@section('title', 'Director Task Management')
 
-@section('navbarTitle', 'Task')
+@section('navbarTitle', 'Task Management')
 
 @section('content')
-    @php
-        $directorTaskCompanyOptions = collect($directorTaskCompanyOptions ?? []);
-        $directorTaskStaffOptions = collect($directorTaskStaffOptions ?? []);
-    @endphp
-
-    @include('director_attendance.layout.navbar')
-
-    <div class="card">
-        <div class="card-header border-0 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-            <h4 class="card-title mb-0">Task Monitoring</h4>
-            <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2">
-                <div class="d-flex align-items-center gap-2">
-                    <label for="directorTaskCompanyFilter" class="mb-0 text-muted fs-13">Company</label>
-                    <select id="directorTaskCompanyFilter" name="company_filter" class="form-select form-select-sm w-auto">
-                        <option value="" selected>Semua Company</option>
-                        @forelse ($directorTaskCompanyOptions as $companyOption)
-                            <option value="{{ $companyOption['id'] }}">{{ $companyOption['name'] }}</option>
-                        @empty
-                            <option value="" disabled>Tidak ada company</option>
-                        @endforelse
-                    </select>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <label for="directorTaskStaffFilter" class="mb-0 text-muted fs-13">Staff</label>
-                    <select id="directorTaskStaffFilter" name="staff_filter" class="form-select form-select-sm w-auto">
-                        <option value="" selected>Semua Staff</option>
-                        @forelse ($directorTaskStaffOptions as $staffOption)
-                            <option value="{{ $staffOption['id'] }}" data-company-id="{{ $staffOption['company_id'] }}">{{ $staffOption['name'] }}</option>
-                        @empty
-                            <option value="" disabled>Tidak ada staff</option>
-                        @endforelse
-                    </select>
-                </div>
+    <div class="row">
+        <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center d-block mb-4">
+            <div>
+                <h4 class="fw-bold text-black">Task Management</h4>
+                <p class="fs-13 mb-0 text-black">A comprehensive list of all tasks performed by the team.</p>
+            </div>
+            <div class="d-flex gap-3">
+                <a class="btn btn-lg btn-primary fw-bold rounded" data-bs-toggle="modal" data-bs-target="#filterTaskAndStaff" id="directorTaskFilterButton">
+                    <i class="fa-regular fa-calendar-days me-2"></i><span id="directorTaskFilterLabel">{{ $directorTaskFilterLabel }}</span>
+                </a>
             </div>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table id="directorTaskTable" class="table table-sm align-middle mb-0">
-                    <colgroup>
-                        <col style="width: 18%;">
-                        <col style="width: 34%;">
-                        <col style="width: 16%;">
-                        <col style="width: 14%;">
-                        <col style="width: 10%;">
-                        <col style="width: 8%;">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>Staff</th>
-                            <th>Task</th>
-                            <th>Company</th>
-                            <th>Due Date</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+
+        @foreach ($directorTaskCategoryCards as $categoryKey => $categoryCard)
+            @php
+                $isSelectedCategory = $selectedDirectorTaskCategory === $categoryKey;
+                $categoryColor = $categoryCard['color'];
+            @endphp
+            <div class="col-xl-4 col-md-6">
+                <a
+                    class="text-decoration-none director-task-category-link"
+                    href="javascript:void(0)"
+                    data-director-task-category="{{ $isSelectedCategory ? '' : $categoryKey }}"
+                    data-director-task-category-key="{{ $categoryKey }}"
+                    data-director-task-color="{{ $categoryColor }}"
+                >
+                    <div class="card overflow-hidden avtivity-card {{ $isSelectedCategory ? 'bg-' . $categoryColor : '' }}">
+                        <div class="card-body">
+                            <div class="d-flex gap-md-4 gap-3 align-items-center">
+                                <span class="avatar avatar-lg {{ $isSelectedCategory ? 'bg-white' : 'avatar-' . $categoryColor }} rounded-circle border-0">
+                                    <i class="fa-solid {{ $categoryCard['icon'] }} fs-28 text-{{ $categoryColor }}"></i>
+                                </span>
+                                <div>
+                                    <p class="fs-14 mb-2 {{ $isSelectedCategory ? 'text-white' : '' }}">{{ $categoryCard['subtitle'] }}</p>
+                                    <span class="title fs-18 fw-semibold {{ $isSelectedCategory ? 'text-white' : 'text-black' }}">{{ $categoryCard['title'] }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="effect bg-{{ $categoryColor }}"></div>
+                    </div>
+                </a>
             </div>
+        @endforeach
+    </div>
+
+    <div class="card overflow-hidden">
+        <div class="table-responsive check-wrapper">
+            <table id="directorTaskTable" class="table mb-0 table-bottom-borderless">
+                <thead>
+                    <tr>
+                        <th class="mw-50">No</th>
+                        <th class="mw-120">Task Name</th>
+                        <th class="mw-120">Project</th>
+                        <th class="mw-120">Assignee</th>
+                        <th class="mw-120">Priority</th>
+                        <th class="mw-120">Status</th>
+                        <th class="mw-120">Due Date</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </div>
 
-    <div class="modal fade" id="directorTaskDetailModal">
+    <div class="modal fade" id="filterTaskAndStaff" tabindex="-1" aria-labelledby="filterTaskAndStaffLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
+            <form class="modal-content" method="GET" action="{{ route('director-attendance.task') }}" id="directorTaskFilterForm">
+                <input type="hidden" name="category" id="directorTaskCategoryInput" value="{{ $selectedDirectorTaskCategory ?? '' }}">
                 <div class="modal-header">
-                    <h5 class="modal-title">Task Details</h5>
+                    <h5 class="modal-title" id="filterTaskAndStaffLabel">Filter Task</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row py-2">
-                        <div class="col-4"><span>Task Name</span></div>
-                        <div class="col-8"><span class="text-gray fw-semibold" id="directorTaskDetailTitle">-</span></div>
+                    <div class="mb-3">
+                        <label class="form-label">Staff</label>
+                        <select class="form-control default-select" name="staff" id="directorTaskStaffFilter">
+                            <option value="">All Staff</option>
+                            @foreach ($directorTaskStaffOptions as $staffOption)
+                                <option value="{{ $staffOption['id'] }}" @selected($selectedDirectorTaskStaff === $staffOption['id'])>{{ $staffOption['name'] }}</option>
+                            @endforeach
+                        </select>
                     </div>
-                    <div class="row py-2">
-                        <div class="col-4"><span>Task Description</span></div>
-                        <div class="col-8"><span class="text-gray fw-normal" id="directorTaskDetailDescription">-</span></div>
+                    <div class="mb-3">
+                        <label class="form-label">Month</label>
+                        <select class="form-control default-select" name="month" id="directorTaskMonthFilter">
+                            @foreach ($directorTaskMonthOptions as $monthValue => $monthLabel)
+                                <option value="{{ $monthValue }}" @selected($selectedDirectorTaskMonth === $monthValue)>{{ $monthLabel }}</option>
+                            @endforeach
+                        </select>
                     </div>
-                    <div class="row py-2">
-                        <div class="col-4"><span>Date - Due Date</span></div>
-                        <div class="col-8"><span class="text-gray fw-semibold" id="directorTaskDetailDueDate">-</span></div>
-                    </div>
-                    <div class="row py-2">
-                        <div class="col-4"><span>Attachment</span></div>
-                        <div class="col-8"><span class="text-gray fw-semibold" id="directorTaskDetailAttachment">No attachment</span></div>
-                    </div>
-                    <div class="row py-2">
-                        <div class="col-4"><span>Blockers</span></div>
-                        <div class="col-8"><span class="text-gray fw-normal" id="directorTaskDetailBlockers">-</span></div>
-                    </div>
-                    <div class="row py-2">
-                        <div class="col-4"><span>Task Category</span></div>
-                        <div class="col-8">
-                            <span class="text-gray fw-semibold" id="directorTaskDetailCategory">-</span><br>
-                            <span class="text-gray fw-normal" id="directorTaskDetailProject">-</span>
-                        </div>
-                    </div>
-                    <div class="row py-2">
-                        <div class="col-4"><span>Assigned by</span></div>
-                        <div class="col-8"><span class="text-primary fw-semibold" id="directorTaskDetailAssignedBy">-</span></div>
-                    </div>
-                    <div class="row py-2">
-                        <div class="col-4"><span>Task Status</span></div>
-                        <div class="col-8"><span class="fw-semibold" id="directorTaskDetailStatus">-</span></div>
+                    <div class="mb-3">
+                        <label class="form-label">Year</label>
+                        <select class="form-control default-select" name="year" id="directorTaskYearFilter">
+                            @foreach ($directorTaskYearOptions as $yearOption)
+                                <option value="{{ $yearOption }}" @selected($selectedDirectorTaskYear === $yearOption)>{{ $yearOption }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Apply</button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 @endsection
@@ -126,161 +120,206 @@
     @endphp
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
     <script>
-        function initDirectorTaskTable() {
-            if (!window.jQuery || !window.jQuery.fn.DataTable) {
-                return;
+        (function () {
+            var selectedCategory = @js($selectedDirectorTaskCategory ?? '');
+            var monthLabels = @js($directorTaskMonthOptions);
+            var staffNames = @js($directorTaskStaffOptions->pluck('name', 'id')->all());
+            var visibleTaskCategories = [];
+            var taskTable = null;
+
+            function escapeHtml(value) {
+                return String(value || '').replace(/[&<>"']/g, function (character) {
+                    return {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#039;'
+                    }[character];
+                });
             }
 
-            jQuery(function ($) {
-                var companyFilter = document.getElementById('directorTaskCompanyFilter');
-                var staffFilter = document.getElementById('directorTaskStaffFilter');
-                var allStaffOptions = @js($directorTaskStaffOptions->values()->all());
+            function filterValue(selector) {
+                var element = document.querySelector(selector);
 
-                function escapeHtml(value) {
-                    return String(value || '')
-                        .replace(/&/g, '&amp;')
-                        .replace(/</g, '&lt;')
-                        .replace(/>/g, '&gt;')
-                        .replace(/"/g, '&quot;')
-                        .replace(/'/g, '&#039;');
-                }
+                return element ? element.value : '';
+            }
 
-                function nullableText(value, fallback) {
-                    var normalizedValue = String(value || '').trim();
+            function updateUrl() {
+                var url = new URL(window.location.href);
+                var filters = {
+                    category: selectedCategory,
+                    staff: filterValue('#directorTaskStaffFilter'),
+                    month: filterValue('#directorTaskMonthFilter'),
+                    year: filterValue('#directorTaskYearFilter')
+                };
 
-                    return normalizedValue !== '' ? normalizedValue : (fallback || '-');
-                }
-
-                function renderAttachment(value) {
-                    var normalizedValue = String(value || '').trim();
-                    if (normalizedValue === '') {
-                        return 'No attachment';
-                    }
-
-                    return '<a href="' + escapeHtml(normalizedValue) + '" class="text-primary" target="_blank" rel="noopener noreferrer">Open attachment</a>';
-                }
-
-                function statusTextClass(value) {
-                    return value === 'success' ? 'text-success' : 'text-warning';
-                }
-
-                function assignedByText(value) {
-                    var normalizedValue = nullableText(value, 'self');
-
-                    return normalizedValue.charAt(0) === '@' ? normalizedValue : '@' + normalizedValue;
-                }
-
-                function renderTaskContext(row) {
-                    var contextLabel = nullableText(row.task_context || row.project);
-
-                    return '<div class="text-muted fs-13">' + escapeHtml(contextLabel) + '</div>';
-                }
-
-                function renderTaskTitle(row) {
-                    var title = '<span class="fw-semibold text-black">' + escapeHtml(row.task) + '</span>';
-
-                    if (row.task_context_type === 'overtime') {
-                        return title + ' <span class="badge badge-info light ms-1 align-middle">Overtime</span>';
-                    }
-
-                    return title;
-                }
-
-                function refreshSelectPlugin(selectElement) {
-                    var select = $(selectElement);
-
-                    if ($.fn.selectpicker && select.data('selectpicker')) {
-                        select.selectpicker('refresh');
-                    }
-                }
-
-                function refreshStaffOptions() {
-                    if (!companyFilter || !staffFilter) {
+                Object.keys(filters).forEach(function (key) {
+                    if (String(filters[key] || '').trim() === '') {
+                        url.searchParams.delete(key);
                         return;
                     }
 
-                    var selectedCompanyId = companyFilter.value || '';
-                    var selectedStaffId = staffFilter.value || '';
-                    var visibleStaffOptions = allStaffOptions.filter(function (staffOption) {
-                        return selectedCompanyId === '' || String(staffOption.company_id || '') === selectedCompanyId;
-                    });
+                    url.searchParams.set(key, filters[key]);
+                });
 
-                    staffFilter.innerHTML = '';
+                window.history.replaceState({}, '', url.toString());
+            }
 
-                    var allStaffOption = document.createElement('option');
-                    allStaffOption.value = '';
-                    allStaffOption.textContent = 'Semua Staff';
-                    staffFilter.appendChild(allStaffOption);
+            function updateFilterLabel() {
+                var staff = filterValue('#directorTaskStaffFilter');
+                var month = filterValue('#directorTaskMonthFilter');
+                var year = filterValue('#directorTaskYearFilter');
+                var label = (staffNames[staff] || 'All Staff') + ' | ' + (monthLabels[month] || '') + ' ' + year;
+                var labelElement = document.querySelector('#directorTaskFilterLabel');
 
-                    visibleStaffOptions.forEach(function (staffOption) {
-                        var option = document.createElement('option');
-                        option.value = String(staffOption.id || '');
-                        option.textContent = String(staffOption.name || 'Unknown Staff');
-                        option.setAttribute('data-company-id', String(staffOption.company_id || ''));
-                        staffFilter.appendChild(option);
-                    });
+                if (labelElement) {
+                    labelElement.textContent = label.trim();
+                }
+            }
 
-                    var selectedStaffIsVisible = visibleStaffOptions.some(function (staffOption) {
-                        return String(staffOption.id || '') === selectedStaffId;
-                    });
+            function updateCategoryCards(activeCategories) {
+                var categories = activeCategories || visibleTaskCategories;
 
-                    staffFilter.value = selectedStaffIsVisible ? selectedStaffId : '';
-                    refreshSelectPlugin(staffFilter);
+                document.querySelectorAll('.director-task-category-link').forEach(function (link) {
+                    var category = link.getAttribute('data-director-task-category-key') || '';
+                    var color = link.getAttribute('data-director-task-color') || 'primary';
+                    var isSelected = selectedCategory === category || (selectedCategory === '' && categories.indexOf(category) !== -1);
+                    var card = link.querySelector('.card');
+                    var avatar = link.querySelector('.avatar');
+                    var subtitle = link.querySelector('p');
+                    var title = link.querySelector('.title');
+
+                    link.setAttribute('data-director-task-category', isSelected ? '' : category);
+
+                    if (card) {
+                        card.classList.toggle('bg-' + color, isSelected);
+                    }
+
+                    if (avatar) {
+                        avatar.classList.toggle('bg-white', isSelected);
+                        avatar.classList.toggle('avatar-' + color, !isSelected);
+                    }
+
+                    if (subtitle) {
+                        subtitle.classList.toggle('text-white', isSelected);
+                    }
+
+                    if (title) {
+                        title.classList.toggle('text-white', isSelected);
+                        title.classList.toggle('text-black', !isSelected);
+                    }
+                });
+
+                var categoryInput = document.querySelector('#directorTaskCategoryInput');
+
+                if (categoryInput) {
+                    categoryInput.value = selectedCategory;
+                }
+            }
+
+            function reloadTaskTable() {
+                updateCategoryCards();
+                updateFilterLabel();
+                updateUrl();
+
+                if (taskTable) {
+                    taskTable.ajax.reload();
+                }
+            }
+
+            function closeFilterModal() {
+                var modalElement = document.querySelector('#filterTaskAndStaff');
+
+                if (!modalElement || typeof bootstrap === 'undefined') {
+                    return;
                 }
 
-                var taskTable = $('#directorTaskTable').DataTable({
-                    ajax: {
-                        url: @json(route('director-attendance.task.datatable')),
-                        data: function (requestData) {
-                            requestData.company_id = companyFilter ? companyFilter.value : '';
-                            requestData.staff = staffFilter ? staffFilter.value : '';
-                        },
-                        dataSrc: 'data'
-                    },
-                    autoWidth: false,
+                var modal = bootstrap.Modal.getInstance(modalElement);
+
+                if (modal) {
+                    modal.hide();
+                }
+            }
+
+            function initializeDirectorTaskTable() {
+                if (!window.jQuery || typeof window.jQuery.fn.DataTable === 'undefined') {
+                    return;
+                }
+
+                taskTable = window.jQuery('#directorTaskTable').DataTable({
                     processing: true,
-                    serverSide: true,
+                    serverSide: false,
                     searching: false,
-                    pageLength: 10,
                     lengthChange: false,
-                    paging: true,
-                    bInfo: true,
-                    order: [],
+                    ordering: false,
+                    pageLength: 10,
+                    ajax: {
+                        url: "{{ route('director-attendance.task.datatable') }}",
+                        data: function (requestData) {
+                            requestData.category = selectedCategory;
+                            requestData.staff = filterValue('#directorTaskStaffFilter');
+                            requestData.month = filterValue('#directorTaskMonthFilter');
+                            requestData.year = filterValue('#directorTaskYearFilter');
+                        },
+                        dataSrc: function (json) {
+                            visibleTaskCategories = (json.data || [])
+                                .map(function (row) {
+                                    return row.category || '';
+                                })
+                                .filter(function (category, index, categories) {
+                                    return category !== '' && categories.indexOf(category) === index;
+                                });
+                            updateCategoryCards(visibleTaskCategories);
+
+                            return json.data || [];
+                        }
+                    },
                     columns: [
                         {
-                            data: 'staff',
-                            render: function (data) {
-                                return '<span class="fw-semibold">' + escapeHtml(data) + '</span>';
-                            }
-                        },
-                        {
                             data: null,
-                            render: function (row) {
-                                return renderTaskTitle(row)
-                                    + renderTaskContext(row)
-                                    + '<div class="text-muted fs-13">Assign by : <span class="fw-semibold">' + escapeHtml(row.assigned_by) + '</span></div>';
+                            className: 'text-center',
+                            render: function (data, type, row, meta) {
+                                return (meta.row + 1) + '.';
                             }
                         },
                         {
-                            data: 'company',
-                            defaultContent: '-'
+                            data: 'task',
+                            render: function (data) {
+                                return '<span class="text-black fw-semibold">' + escapeHtml(data || '-') + '</span>';
+                            }
+                        },
+                        {
+                            data: 'project',
+                            render: function (data) {
+                                return escapeHtml(data || '-');
+                            }
+                        },
+                        {
+                            data: 'assignee',
+                            render: function (data, type, row) {
+                                return '<div class="d-flex align-items-center">'
+                                    + '<div class="avatar rounded-circle bg-primary text-white avatar-xs me-2">' + escapeHtml(row.assignee_initial || '-') + '</div>'
+                                    + '<h6 class="mb-0">' + escapeHtml(data || '-') + '</h6>'
+                                    + '</div>';
+                            }
+                        },
+                        {
+                            data: 'priority',
+                            render: function (data, type, row) {
+                                return '<span class="badge badge-sm badge-' + escapeHtml(row.priority_class || 'warning') + ' light fw-semibold">' + escapeHtml(data || '-') + '</span>';
+                            }
+                        },
+                        {
+                            data: 'status',
+                            render: function (data, type, row) {
+                                return '<span class="badge badge-sm badge-' + escapeHtml(row.status_class || 'warning') + ' light fw-semibold">' + escapeHtml(data || '-') + '</span>';
+                            }
                         },
                         {
                             data: 'due_date',
-                            defaultContent: '-'
-                        },
-                        {
-                            data: null,
-                            render: function (row) {
-                                return '<span class="badge badge-' + escapeHtml(row.status_class) + ' light">' + escapeHtml(row.status) + '</span>';
-                            }
-                        },
-                        {
-                            data: null,
-                            searchable: false,
-                            orderable: false,
-                            render: function () {
-                                return '<button type="button" class="btn btn-xs btn-primary light director-task-detail-button" data-bs-toggle="modal" data-bs-target="#directorTaskDetailModal">Detail</button>';
+                            render: function (data) {
+                                return escapeHtml(data || '-');
                             }
                         }
                     ],
@@ -292,44 +331,39 @@
                         }
                     },
                     drawCallback: function () {
-                        $('#directorTaskTable tbody td.dataTables_empty')
-                            .addClass('text-center py-4 text-muted');
+                        window.jQuery('#directorTaskTable tbody td.dataTables_empty').addClass('text-center py-4 text-muted');
                     }
                 });
+            }
 
-                $('#directorTaskTable tbody').on('click', '.director-task-detail-button', function () {
-                    var row = taskTable.row($(this).closest('tr')).data() || {};
-                    $('#directorTaskDetailTitle').text(nullableText(row.task));
-                    $('#directorTaskDetailDescription').text(nullableText(row.description));
-                    $('#directorTaskDetailCategory').text(nullableText(row.task_category));
-                    $('#directorTaskDetailProject').text(nullableText(row.task_context || row.project));
-                    $('#directorTaskDetailAssignedBy').text(assignedByText(row.assigned_by));
-                    $('#directorTaskDetailDueDate').text(nullableText(row.due_date));
-                    $('#directorTaskDetailBlockers').text(nullableText(row.blockers));
-                    $('#directorTaskDetailStatus')
-                        .removeClass('text-danger text-success text-warning')
-                        .addClass(statusTextClass(row.status_class))
-                        .text(nullableText(row.status));
-                    $('#directorTaskDetailAttachment').html(renderAttachment(row.attachment_path));
-                });
+            document.addEventListener('click', function (event) {
+                var link = event.target.closest('.director-task-category-link');
 
-                if (companyFilter) {
-                    companyFilter.addEventListener('change', function () {
-                        refreshStaffOptions();
-                        taskTable.ajax.reload();
-                    });
+                if (!link) {
+                    return;
                 }
 
-                if (staffFilter) {
-                    staffFilter.addEventListener('change', function () {
-                        taskTable.ajax.reload();
-                    });
-                }
-
-                refreshStaffOptions();
+                event.preventDefault();
+                selectedCategory = link.getAttribute('data-director-task-category') || '';
+                reloadTaskTable();
             });
-        }
 
-        initDirectorTaskTable();
+            document.addEventListener('submit', function (event) {
+                var form = event.target.closest('#directorTaskFilterForm');
+
+                if (!form) {
+                    return;
+                }
+
+                event.preventDefault();
+                selectedCategory = filterValue('#directorTaskCategoryInput');
+                closeFilterModal();
+                reloadTaskTable();
+            });
+
+            initializeDirectorTaskTable();
+            updateCategoryCards();
+            updateFilterLabel();
+        })();
     </script>
 @endsection

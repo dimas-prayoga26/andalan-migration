@@ -167,8 +167,8 @@
 					@if ($canViewPicAttendanceMenu)
 					<li class="{{ $isPicAttendanceMenu ? 'mm-active' : '' }}">
 						<a class="{{ $isPicAttendanceMenu ? 'active' : '' }}" href="{{ route('pic-attendance.attendance') }}" aria-expanded="{{ $isPicAttendanceMenu ? 'true' : 'false' }}">
-							<i class="fa-solid fa-user-check"></i>
-							<span class="nav-text" data-i18n="PIC">PIC</span>
+							<i class="fa-regular fa-clock"></i>
+							<span class="nav-text" data-i18n="Attendance">Attendance </span>
 						</a>
 					</li>
 					<li class="{{ $isPicTeamTasksMenu ? 'mm-active' : '' }}">
@@ -207,8 +207,8 @@
 					@if ($canViewDirectorAttendanceMenu)
 					<li class="{{ $isDirectorAttendanceMenu ? 'mm-active' : '' }}">
 						<a class="{{ $isDirectorAttendanceMenu ? 'active' : '' }}" href="{{ route('director-attendance.attendance') }}" aria-expanded="{{ $isDirectorAttendanceMenu ? 'true' : 'false' }}">
-							<i class="fa-solid fa-user-tie"></i>
-							<span class="nav-text" data-i18n="Director">Director</span>
+							<i class="fa-regular fa-clock"></i>
+							<span class="nav-text" data-i18n="Attendance">Attendance </span>
 						</a>
 					</li>
 					<li class="{{ $isDirectorTaskMenu ? 'mm-active' : '' }}">

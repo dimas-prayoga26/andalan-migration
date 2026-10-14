@@ -66,7 +66,7 @@ class DirectorAttendanceTaskController extends Controller
 
         return DataTables::collection(
             $this->hrMeetingTaskRows($selectedCategory, $selectedStaff, $selectedMonth, $selectedYear, $categoryCards)
-        )->toJson();
+        )->escapeColumns([])->toJson();
     }
 
     /**
@@ -386,7 +386,7 @@ class DirectorAttendanceTaskController extends Controller
             'priority_class' => $this->priorityBadgeClass((string) ($projectTask?->priority ?? 'medium')),
             'status' => $this->hrMeetingTaskStatusLabel((string) ($projectTask?->status ?? 'pending')),
             'status_class' => $this->hrMeetingTaskStatusBadgeClass((string) ($projectTask?->status ?? 'pending')),
-            'due_date' => $this->dateRangeLabel($projectTask?->start_date, $projectTask?->due_date),
+            'due_date' => $this->dueDateLabel($projectTask?->due_date),
         ];
     }
 
@@ -534,6 +534,11 @@ class DirectorAttendanceTaskController extends Controller
         }
 
         return $this->dateLabelWithDay($startDate).' - '.$this->dateLabelWithDay($dueDate);
+    }
+
+    private function dueDateLabel(?CarbonInterface $dueDate): string
+    {
+        return $dueDate !== null ? $this->dateLabelWithDay($dueDate) : '-';
     }
 
     private function dateLabelWithDay(CarbonInterface $date): string

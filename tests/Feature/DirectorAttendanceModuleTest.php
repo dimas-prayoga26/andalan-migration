@@ -223,6 +223,8 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('selectedCategory = link.getAttribute(\'data-director-task-category\') || \'\';', $directorTaskView);
         $this->assertStringContainsString('taskTable.ajax.reload();', $directorTaskView);
         $this->assertStringContainsString('No task data available.', $directorTaskView);
+        $this->assertStringContainsString("'<span class=\"text-black fw-semibold\">' + escapeHtml(data || '-') + '</span>'", $directorTaskView);
+        $this->assertStringContainsString("'<h6 class=\"mb-0\">' + escapeHtml(data || '-') + '</h6>'", $directorTaskView);
         $this->assertStringContainsString('id="filterTaskAndStaff"', $directorTaskView);
         $this->assertStringContainsString('id="directorTaskFilterForm"', $directorTaskView);
         $this->assertStringContainsString('id="directorTaskCategoryInput"', $directorTaskView);
@@ -254,6 +256,7 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringContainsString("'directorTaskFilterLabel' => \$this->directorTaskFilterLabel(", $directorTaskController);
         $this->assertStringContainsString('public function datatable(Request $request): JsonResponse', $directorTaskController);
         $this->assertStringContainsString('$this->hrMeetingTaskRows($selectedCategory, $selectedStaff, $selectedMonth, $selectedYear, $categoryCards)', $directorTaskController);
+        $this->assertStringContainsString(')->escapeColumns([])->toJson();', $directorTaskController);
         $this->assertStringContainsString('private function directorTaskCategoryCards(): array', $directorTaskController);
         $this->assertStringContainsString("'administration' => [", $directorTaskController);
         $this->assertStringContainsString("'title' => 'Administration'", $directorTaskController);
@@ -422,7 +425,12 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertSame('danger', $row['priority_class']);
         $this->assertSame('On Progress', $row['status']);
         $this->assertSame('primary', $row['status_class']);
-        $this->assertSame('Jum\'at, 09 - Jum\'at, 16 Oct 2026', $row['due_date']);
+        $this->assertSame('Jum\'at, 16 Oct 2026', $row['due_date']);
+
+        $projectTask->due_date = null;
+        $rowWithoutDueDate = $rowMethod->invoke($controller, $meetingTask, $categoryMethod->invoke($controller));
+
+        $this->assertSame('-', $rowWithoutDueDate['due_date']);
     }
 
     public function test_director_task_filter_helpers_keep_month_year_and_staff_selection(): void

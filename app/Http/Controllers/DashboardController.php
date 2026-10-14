@@ -188,8 +188,7 @@ class DashboardController extends Controller
                             ->whereDate('meeting_date', $now->toDateString())
                             ->whereTime('meeting_time', '>=', $now->format('H:i:s'));
                     });
-            })
-            ->whereHas('participants', function (Builder $participantQuery) use ($employee): void {
+            })->whereHas('participants', function (Builder $participantQuery) use ($employee): void {
                 $participantQuery
                     ->where('employee_id', $employee->id)
                     ->orWhere(function (Builder $allStaffQuery): void {

@@ -54,7 +54,6 @@ class DataTableYajraRefactorTest extends TestCase
             resource_path('views/pic_attendance/attendance/detail-employees.blade.php'),
             resource_path('views/staff_attendance/reports/index.blade.php'),
             resource_path('views/director_attendance/task/index.blade.php'),
-            resource_path('views/pic_attendance/task/index.blade.php'),
         ];
 
         foreach ($viewPaths as $viewPath) {

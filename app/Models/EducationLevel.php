@@ -31,4 +31,9 @@ class EducationLevel extends Model
     {
         return $this->hasMany(ApplicantEducation::class, 'education_level_id', 'id');
     }
+
+    public function employeeEducations(): HasMany
+    {
+        return $this->hasMany(EmployeeEducation::class, 'education_level_id', 'id');
+    }
 }

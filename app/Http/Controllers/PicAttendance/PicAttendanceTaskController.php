@@ -7,10 +7,12 @@ use App\Models\Employee;
 use App\Models\EmployeePicAssignment;
 use App\Models\ProjectTask;
 use App\Models\User;
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -18,8 +20,24 @@ class PicAttendanceTaskController extends Controller
 {
     public function index(Request $request): View
     {
+        $staffOptions = $this->staffOptionsFor($request->user());
+        // dd($request->user());
+        $selectedPeriod = $this->selectedPeriodFor($request);
+        $taskRows = $this->tasksForStaffEmployeeIds(
+            $staffOptions->pluck('id'),
+            $selectedPeriod['year'],
+            $selectedPeriod['month']
+        );
+
         return view('pic_attendance.task.index', [
-            'picTaskStaffOptions' => $this->staffOptionsFor($request->user()),
+            'picTaskStaffOptions' => $staffOptions,
+            'picTaskRows' => $taskRows,
+            'picTaskSummary' => $this->taskSummaryFor($taskRows),
+            'picTaskMonthLabel' => $this->monthYearLabel($selectedPeriod['year'], $selectedPeriod['month']),
+            'picTaskSelectedMonth' => $selectedPeriod['month'],
+            'picTaskSelectedYear' => $selectedPeriod['year'],
+            'picTaskMonthOptions' => $this->monthOptions(),
+            'picTaskYearOptions' => $this->yearOptions($selectedPeriod['year']),
         ]);
     }
 
@@ -43,13 +61,40 @@ class PicAttendanceTaskController extends Controller
             return DataTables::collection(collect())->toJson();
         }
 
-        $currentMonthStart = now('Asia/Jakarta')->startOfMonth()->toDateString();
-        $currentMonthEnd = now('Asia/Jakarta')->endOfMonth()->toDateString();
+        $selectedPeriod = $this->selectedPeriodFor($request);
+        $tasks = $this->tasksForStaffEmployeeIds(
+            $visibleEmployeeIds,
+            $selectedPeriod['year'],
+            $selectedPeriod['month']
+        );
 
-        $tasks = ProjectTask::query()
+        return DataTables::collection($tasks)->toJson();
+    }
+
+    /**
+     * @param  Collection<int, string>  $employeeIds
+     * @return Collection<int, array<string, string>>
+     */
+    private function tasksForStaffEmployeeIds(Collection $employeeIds, int $year, int $month): Collection
+    {
+        $visibleEmployeeIds = $employeeIds
+            ->filter(fn (mixed $employeeId): bool => is_string($employeeId) && trim($employeeId) !== '')
+            ->map(fn (string $employeeId): string => trim($employeeId))
+            ->unique()
+            ->values();
+
+        if ($visibleEmployeeIds->isEmpty()) {
+            return collect();
+        }
+
+        $selectedMonth = Carbon::create($year, $month, 1, 0, 0, 0, 'Asia/Jakarta');
+        $currentMonthStart = $selectedMonth->copy()->startOfMonth()->toDateString();
+        $currentMonthEnd = $selectedMonth->copy()->endOfMonth()->toDateString();
+
+        return ProjectTask::query()
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
+                'employee.profile:id,employee_id,name,profile_picture_path',
                 'employee.user:id,username,email',
                 'project:id,name',
                 'overtime:id,record_number',
@@ -76,8 +121,70 @@ class PicAttendanceTaskController extends Controller
                 'created_at',
             ])
             ->map(fn (ProjectTask $projectTask): array => $this->taskRow($projectTask));
+    }
 
-        return DataTables::collection($tasks)->toJson();
+    /**
+     * @return array{month:int,year:int}
+     */
+    private function selectedPeriodFor(Request $request): array
+    {
+        $today = now('Asia/Jakarta');
+
+        return [
+            'month' => $this->normalizeMonth($request->query('month'), (int) $today->month),
+            'year' => $this->normalizeYear($request->query('year'), (int) $today->year),
+        ];
+    }
+
+    private function normalizeMonth(mixed $month, int $fallbackMonth): int
+    {
+        $normalizedMonth = filter_var($month, FILTER_VALIDATE_INT);
+
+        return is_int($normalizedMonth) && $normalizedMonth >= 1 && $normalizedMonth <= 12
+            ? $normalizedMonth
+            : $fallbackMonth;
+    }
+
+    private function normalizeYear(mixed $year, int $fallbackYear): int
+    {
+        $normalizedYear = filter_var($year, FILTER_VALIDATE_INT);
+
+        return is_int($normalizedYear) && $normalizedYear >= 2000 && $normalizedYear <= 2100
+            ? $normalizedYear
+            : $fallbackYear;
+    }
+
+    private function monthYearLabel(int $year, int $month): string
+    {
+        return Carbon::create($year, $month, 1, 0, 0, 0, 'Asia/Jakarta')->format('F Y');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function monthOptions(): array
+    {
+        $monthOptions = [];
+
+        for ($month = 1; $month <= 12; $month++) {
+            $monthOptions[$month] = Carbon::create(2026, $month, 1, 0, 0, 0, 'Asia/Jakarta')->format('F');
+        }
+
+        return $monthOptions;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function yearOptions(int $selectedYear): array
+    {
+        $currentYear = (int) now('Asia/Jakarta')->year;
+        $years = range($currentYear - 2, $currentYear + 1);
+        $years[] = $selectedYear;
+        $years = array_values(array_unique($years));
+        sort($years);
+
+        return $years;
     }
 
     /**
@@ -105,6 +212,34 @@ class PicAttendanceTaskController extends Controller
                 'name' => $this->employeeDisplayName($employee),
             ])
             ->values();
+
+        // dd($employee);
+    }
+
+    /**
+     * @param  Collection<int, array<string, string>>  $taskRows
+     * @return array{completion_rate:int,total_tasks:int,in_progress_tasks:int,completed_tasks:int,total_progress:int,in_progress_progress:int,completed_progress:int}
+     */
+    private function taskSummaryFor(Collection $taskRows): array
+    {
+        $totalTasks = $taskRows->count();
+        $completedTasks = $taskRows
+            ->filter(fn (array $taskRow): bool => ($taskRow['status_class'] ?? '') === 'success')
+            ->count();
+        $inProgressTasks = $taskRows
+            ->filter(fn (array $taskRow): bool => ($taskRow['status_key'] ?? '') === 'in_progress')
+            ->count();
+        $completionRate = $totalTasks > 0 ? (int) round(($completedTasks / $totalTasks) * 100) : 0;
+
+        return [
+            'completion_rate' => $completionRate,
+            'total_tasks' => $totalTasks,
+            'in_progress_tasks' => $inProgressTasks,
+            'completed_tasks' => $completedTasks,
+            'total_progress' => $totalTasks > 0 ? 100 : 0,
+            'in_progress_progress' => $totalTasks > 0 ? (int) round(($inProgressTasks / $totalTasks) * 100) : 0,
+            'completed_progress' => $completionRate,
+        ];
     }
 
     /**
@@ -163,7 +298,9 @@ class PicAttendanceTaskController extends Controller
 
         return [
             'id' => (string) $projectTask->id,
+            'staff_id' => (string) ($projectTask->employee?->id ?? ''),
             'staff' => $this->employeeDisplayName($projectTask->employee),
+            'avatar_url' => $this->employeeAvatarUrl($projectTask->employee),
             'task' => trim((string) $projectTask->title),
             'description' => trim((string) ($projectTask->description ?? '')),
             'blockers' => trim((string) ($projectTask->blockers ?? '')),
@@ -174,8 +311,10 @@ class PicAttendanceTaskController extends Controller
             'task_context_type' => $isOvertimeTask ? 'overtime' : ($projectTask->project_id !== null ? 'project' : 'daily'),
             'assigned_by' => $this->assignedByLabel($projectTask),
             'due_date' => $this->dateRangeLabel($projectTask->start_date, $projectTask->due_date),
+            'short_due_date' => $this->shortDateRangeLabel($projectTask->start_date, $projectTask->due_date),
             'priority' => $this->priorityLabel((string) $projectTask->priority),
             'status' => $this->statusLabel((string) $projectTask->status, $isCompleted),
+            'status_key' => $this->statusKey((string) $projectTask->status, $isCompleted),
             'status_class' => $isCompleted ? 'success' : 'warning',
         ];
     }
@@ -183,13 +322,26 @@ class PicAttendanceTaskController extends Controller
     private function statusLabel(string $status, bool $isCompleted): string
     {
         if ($isCompleted) {
-            return 'Finished';
+            return 'Completed';
         }
 
         return match (strtolower(trim($status))) {
-            'in_progress' => 'On Progress',
+            'in_progress' => 'In Progress',
             'cancelled' => 'Cancelled',
             default => 'Pending',
+        };
+    }
+
+    private function statusKey(string $status, bool $isCompleted): string
+    {
+        if ($isCompleted) {
+            return 'completed';
+        }
+
+        return match (strtolower(trim($status))) {
+            'in_progress' => 'in_progress',
+            'cancelled' => 'cancelled',
+            default => 'pending',
         };
     }
 
@@ -204,22 +356,31 @@ class PicAttendanceTaskController extends Controller
 
     private function employeeDisplayName(?Employee $employee): string
     {
-        $profileName = $employee?->profile?->name;
-        if (is_string($profileName) && trim($profileName) !== '') {
-            return trim($profileName);
-        }
-
         $username = $employee?->user?->username;
         if (is_string($username) && trim($username) !== '') {
             return trim($username);
         }
 
-        $email = $employee?->user?->email;
-        if (is_string($email) && trim($email) !== '') {
-            return str($email)->before('@')->toString();
+        return 'Unknown Staff';
+    }
+
+    private function employeeAvatarUrl(?Employee $employee): string
+    {
+        $profilePicturePath = $employee?->profile?->profile_picture_path;
+        if (! is_string($profilePicturePath)) {
+            return asset('assets/default_user.jpg');
         }
 
-        return 'Unknown Staff';
+        $storagePath = trim($profilePicturePath);
+        if ($storagePath === '') {
+            return asset('assets/default_user.jpg');
+        }
+
+        if (Storage::disk('public')->exists($storagePath)) {
+            return asset('storage/'.$storagePath);
+        }
+
+        return asset('assets/default_user.jpg');
     }
 
     private function assignedByLabel(ProjectTask $projectTask): string
@@ -263,6 +424,27 @@ class PicAttendanceTaskController extends Controller
         }
 
         return $this->dateLabelWithDay($startDate).' - '.$this->dateLabelWithDay($dueDate);
+    }
+
+    private function shortDateRangeLabel(?CarbonInterface $startDate, ?CarbonInterface $dueDate): string
+    {
+        if ($startDate === null && $dueDate === null) {
+            return '-';
+        }
+
+        if ($startDate === null) {
+            return $dueDate !== null ? $dueDate->format('j M') : '-';
+        }
+
+        if ($dueDate === null || $startDate->isSameDay($dueDate)) {
+            return $startDate->format('j M');
+        }
+
+        if ($startDate->format('M Y') === $dueDate->format('M Y')) {
+            return $startDate->format('j').'-'.$dueDate->format('j M');
+        }
+
+        return $startDate->format('j M').' - '.$dueDate->format('j M');
     }
 
     private function dateLabelWithDay(CarbonInterface $date): string

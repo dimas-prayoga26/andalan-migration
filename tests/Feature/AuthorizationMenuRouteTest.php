@@ -302,6 +302,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $sidebarPermissionComposer = File::get(app_path('View/Composers/SidebarPermissionComposer.php'));
 
         $this->assertStringContainsString('$isAuthorizationMenu', $sidebarView);
+        $this->assertStringContainsString('$isPicTeamTasksMenu', $sidebarView);
         $this->assertStringContainsString('$canViewAuthorizationMenu', $sidebarView);
         $this->assertStringContainsString("canViewSidebarMenu('view-authorization')", $sidebarView);
         $this->assertStringContainsString("canViewSidebarMenu('view-settings')", $sidebarView);
@@ -315,12 +316,14 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString('$showPicManagementMenu', $sidebarView);
         $this->assertStringContainsString('$showDirectorManagementMenu', $sidebarView);
         $this->assertStringContainsString('$showAdminAuthorizationMenu', $sidebarView);
+        $this->assertStringContainsString('$showPicTalentAcquisitionMenu', $sidebarView);
         $this->assertStringContainsString('$showDirectorAuthorizationMenu', $sidebarView);
         $this->assertStringNotContainsString('HR Management', $sidebarView);
         $this->assertStringNotContainsString("route('authorization.access-menus')", $sidebarView);
         $this->assertStringNotContainsString('Assign Permission', $sidebarView);
         $this->assertStringContainsString('Employee Data', $sidebarView);
         $this->assertStringContainsString('Zoom Meeting', $sidebarView);
+        $this->assertStringContainsString('Team tasks', $sidebarView);
         $this->assertStringNotContainsString('Employee Database', $sidebarView);
         $this->assertStringContainsString('Talent Acquisition', $sidebarView);
         $this->assertStringContainsString('Applicants', $sidebarView);
@@ -383,10 +386,27 @@ class AuthorizationMenuRouteTest extends TestCase
 
         $this->assertStringContainsString('PIC Management', $picSidebar);
         $this->assertStringContainsString('PIC</span>', $picSidebar);
+        $this->assertStringContainsString('Team tasks</span>', $picSidebar);
         $this->assertStringNotContainsString('Admin Management', $picSidebar);
         $this->assertStringNotContainsString('Director Management', $picSidebar);
         $this->assertStringNotContainsString('Employee Data </span>', $picSidebar);
         $this->assertStringNotContainsString('Talent Acquisition</span>', $picSidebar);
+
+        $picTalentSidebar = Blade::render($sidebarView, [
+            'canViewSidebarMenu' => static fn (string $permissionName): bool => in_array($permissionName, [
+                'view-pic-attendance',
+                'view-talent-acquisition',
+            ], true),
+        ]);
+
+        $this->assertStringContainsString('PIC Management', $picTalentSidebar);
+        $this->assertStringContainsString('PIC</span>', $picTalentSidebar);
+        $this->assertStringContainsString('Team tasks</span>', $picTalentSidebar);
+        $this->assertStringContainsString('Talent Acquisition</span>', $picTalentSidebar);
+        $this->assertStringContainsString('Applicants', $picTalentSidebar);
+        $this->assertStringContainsString('Job Vacancies', $picTalentSidebar);
+        $this->assertStringNotContainsString('Admin Management', $picTalentSidebar);
+        $this->assertStringNotContainsString('Director Management', $picTalentSidebar);
 
         $adminSidebar = Blade::render($sidebarView, [
             'canViewSidebarMenu' => static fn (string $permissionName): bool => in_array($permissionName, [

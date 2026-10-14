@@ -79,6 +79,31 @@ class Employee extends Model
         return $this->hasMany(EmployeeAddress::class, 'employee_id', 'id');
     }
 
+    public function licenses(): HasMany
+    {
+        return $this->hasMany(EmployeeLicense::class, 'employee_id', 'id');
+    }
+
+    public function educations(): HasMany
+    {
+        return $this->hasMany(EmployeeEducation::class, 'employee_id', 'id');
+    }
+
+    public function certifications(): HasMany
+    {
+        return $this->hasMany(EmployeeCertification::class, 'employee_id', 'id');
+    }
+
+    public function workExperiences(): HasMany
+    {
+        return $this->hasMany(EmployeeWorkExperience::class, 'employee_id', 'id');
+    }
+
+    public function references(): HasMany
+    {
+        return $this->hasMany(EmployeeReference::class, 'employee_id', 'id');
+    }
+
     public function latestAddress(): HasOne
     {
         return $this->hasOne(EmployeeAddress::class, 'employee_id', 'id')->latestOfMany('created_at');

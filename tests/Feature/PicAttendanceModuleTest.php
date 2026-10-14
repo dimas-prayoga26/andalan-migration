@@ -7,8 +7,11 @@ use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
 use App\Http\Controllers\PicAttendance\PicAttendanceTaskController;
 use App\Models\AttendanceOvertime;
+use App\Models\Employee;
+use App\Models\EmployeeProfile;
 use App\Models\Project;
 use App\Models\ProjectTask;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
@@ -84,6 +87,7 @@ class PicAttendanceModuleTest extends TestCase
         $overtimeController = File::get(app_path('Http/Controllers/PicAttendance/PicAttendanceOvertimeController.php'));
         $overtimeView = File::get(resource_path('views/pic_attendance/overtime/index.blade.php'));
         $taskView = File::get(resource_path('views/pic_attendance/task/index.blade.php'));
+        $taskCardView = File::get(resource_path('views/pic_attendance/task/partials/task-card.blade.php'));
         $taskController = File::get(app_path('Http/Controllers/PicAttendance/PicAttendanceTaskController.php'));
 
         $this->assertTrue(View::exists('pic_attendance.attendance.index'));
@@ -95,11 +99,16 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertTrue(View::exists('pic_attendance.task.index'));
         $this->assertStringContainsString('view-pic-attendance', $sidebar);
         $this->assertStringContainsString("route('pic-attendance.attendance')", $sidebar);
+        $this->assertStringContainsString("route('pic-attendance.task')", $sidebar);
+        $this->assertStringContainsString('$isPicTeamTasksMenu', $sidebar);
+        $this->assertStringContainsString('Team tasks', $sidebar);
+        $this->assertStringContainsString('fa-solid fa-user-check', $sidebar);
+        $this->assertStringContainsString('fa-solid fa-list-check', $sidebar);
         $this->assertStringContainsString("route('pic-attendance.attendance')", $navigation);
         $this->assertStringContainsString("route('pic-attendance.leave')", $navigation);
         $this->assertStringContainsString("route('pic-attendance.overtime')", $navigation);
-        $this->assertStringContainsString("route('pic-attendance.task')", $navigation);
-        $this->assertStringContainsString("request()->routeIs('pic-attendance.task*')", $navigation);
+        $this->assertStringNotContainsString("route('pic-attendance.task')", $navigation);
+        $this->assertStringNotContainsString("request()->routeIs('pic-attendance.task*')", $navigation);
         $this->assertStringNotContainsString('Business Trip', $navigation);
         $this->assertStringContainsString('Overtime', $navigation);
         $this->assertStringContainsString("'view-pic-attendance'", $permissionSeeder);
@@ -228,41 +237,59 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringNotContainsString("->whereRaw('LOWER(COALESCE(status, \"\")) = ?', ['active'])", $summaryMetricBuilder);
         $this->assertStringNotContainsString("->whereDate('join_date', '<='", $summaryMetricBuilder);
         $this->assertStringNotContainsString("->orWhereDate('resignation_date', '>='", $summaryMetricBuilder);
-        $this->assertStringContainsString('Task Monitoring', $taskView);
-        $this->assertStringContainsString('id="picTaskStaffFilter"', $taskView);
-        $this->assertStringContainsString('name="staff_filter"', $taskView);
-        $this->assertStringNotContainsString('Semua Staff', $taskView);
-        $this->assertStringContainsString('Pilih Staff', $taskView);
-        $this->assertStringContainsString('<option value="" selected disabled>Pilih Staff</option>', $taskView);
-        $this->assertStringContainsString('Tidak ada staff', $taskView);
+        $this->assertStringContainsString("@section('navbarTitle', 'Task Tracker')", $taskView);
+        $this->assertStringNotContainsString("@include('pic_attendance.layout.navbar')", $taskView);
+        $this->assertStringContainsString('Task Management', $taskView);
+        $this->assertStringContainsString('Team Task List', $taskView);
+        $this->assertStringContainsString('Task Completion Rate', $taskView);
+        $this->assertStringContainsString('Total Tasks', $taskView);
+        $this->assertStringContainsString('In Progress', $taskView);
+        $this->assertStringContainsString('Completed', $taskView);
+        $this->assertStringContainsString('All Tasks', $taskView);
+        $this->assertStringContainsString('nav nav-pills menu-pill nav-pills-all gap-2', $taskView);
+        $this->assertStringContainsString('loadmore-content dz-scroll height750', $taskView);
+        $this->assertStringContainsString('pic_attendance.task.partials.task-card', $taskView);
+        $this->assertStringContainsString('fa-solid fa-chart-line', $taskView);
+        $this->assertStringContainsString('fa-solid fa-list-check', $taskView);
+        $this->assertStringContainsString('fa-solid fa-hourglass-half', $taskView);
+        $this->assertStringContainsString('fa-solid fa-circle-check', $taskView);
+        $this->assertStringContainsString('fa-regular fa-calendar-days me-2', $taskView);
+        $this->assertStringContainsString('fa-regular fa-calendar-days me-2', $taskCardView);
+        $this->assertStringContainsString('fa-solid fa-circle-check', $taskCardView);
+        $this->assertStringContainsString('fa-solid fa-hourglass-half', $taskCardView);
+        $this->assertStringNotContainsString('fa-solid fa-dumbbell', $taskView);
+        $this->assertStringNotContainsString('fa-solid fa-sliders', $taskView);
+        $this->assertStringNotContainsString('la-prescription-bottle', $taskCardView);
+        $this->assertStringNotContainsString('id="picTaskStaffFilter"', $taskView);
+        $this->assertStringNotContainsString('Pilih Staff', $taskView);
         $this->assertStringContainsString('$picTaskStaffOptions', $taskView);
-        $this->assertStringContainsString('id="picTaskTable"', $taskView);
-        $this->assertStringContainsString('<th>Staff</th>', $taskView);
-        $this->assertStringContainsString('<th>Task</th>', $taskView);
-        $this->assertStringContainsString('<th>Due Date</th>', $taskView);
-        $this->assertStringNotContainsString('<th>Priority</th>', $taskView);
-        $this->assertStringContainsString('<th>Status</th>', $taskView);
-        $this->assertStringContainsString('<th>Action</th>', $taskView);
-        $this->assertStringContainsString('picTaskDetailModal', $taskView);
-        $this->assertStringContainsString('Task Details', $taskView);
-        $this->assertStringContainsString('Task Name', $taskView);
-        $this->assertStringContainsString('Task Description', $taskView);
-        $this->assertStringContainsString('Date - Due Date', $taskView);
-        $this->assertStringContainsString('Assigned by', $taskView);
-        $this->assertStringContainsString('btn btn-danger light', $taskView);
-        $this->assertStringContainsString('pic-task-detail-button', $taskView);
-        $this->assertStringContainsString('renderAttachment', $taskView);
-        $this->assertStringContainsString('statusTextClass', $taskView);
-        $this->assertStringContainsString('assignedByText', $taskView);
-        $this->assertStringContainsString('row.description', $taskView);
-        $this->assertStringContainsString('row.status_class', $taskView);
-        $this->assertStringContainsString('row.status', $taskView);
-        $this->assertStringContainsString("route('pic-attendance.task.datatable')", $taskView);
-        $this->assertStringContainsString('DataTable', $taskView);
-        $this->assertStringContainsString('taskTable.ajax.reload();', $taskView);
-        $this->assertStringContainsString("$('#picTaskTable tbody td.dataTables_empty')", $taskView);
-        $this->assertStringContainsString("addClass('text-center py-4 text-muted')", $taskView);
+        $this->assertStringContainsString('$picTaskRows', $taskView);
+        $this->assertStringContainsString('$picTaskSummary', $taskView);
+        $this->assertStringContainsString('$picTaskMonthLabel', $taskView);
+        $this->assertStringContainsString('$picTaskMonthOptions', $taskView);
+        $this->assertStringContainsString('$picTaskYearOptions', $taskView);
+        $this->assertStringContainsString('$picTaskSelectedMonth', $taskView);
+        $this->assertStringContainsString('$picTaskSelectedYear', $taskView);
+        $this->assertStringContainsString('picTaskPeriodFilterModal', $taskView);
+        $this->assertStringContainsString("action=\"{{ route('pic-attendance.task') }}\"", $taskView);
+        $this->assertStringContainsString('name="month"', $taskView);
+        $this->assertStringContainsString('name="year"', $taskView);
+        $this->assertStringContainsString('Filter Period', $taskView);
+        $this->assertStringContainsString('Apply', $taskView);
+        $this->assertStringNotContainsString('data-bs-target="#exampleModal"', $taskView);
+        $this->assertStringNotContainsString('id="picTaskTable"', $taskView);
+        $this->assertStringNotContainsString('picTaskDetailModal', $taskView);
+        $this->assertStringNotContainsString('pic-task-detail-button', $taskView);
+        $this->assertStringNotContainsString('DataTable', $taskView);
         $this->assertStringContainsString('EmployeePicAssignment::query()', $taskController);
+        $this->assertStringContainsString('$selectedPeriod = $this->selectedPeriodFor($request);', $taskController);
+        $this->assertStringContainsString("'picTaskSelectedMonth' => \$selectedPeriod['month']", $taskController);
+        $this->assertStringContainsString("'picTaskSelectedYear' => \$selectedPeriod['year']", $taskController);
+        $this->assertStringContainsString('private function selectedPeriodFor(Request $request): array', $taskController);
+        $this->assertStringContainsString('private function normalizeMonth(mixed $month, int $fallbackMonth): int', $taskController);
+        $this->assertStringContainsString('private function normalizeYear(mixed $year, int $fallbackYear): int', $taskController);
+        $this->assertStringContainsString('private function monthOptions(): array', $taskController);
+        $this->assertStringContainsString('private function yearOptions(int $selectedYear): array', $taskController);
         $this->assertStringContainsString("->where('supervisor_employee_id', \$supervisorEmployeeId)", $taskController);
         $this->assertStringContainsString("->whereIn('employee_id', \$visibleEmployeeIds->all())", $taskController);
         $this->assertStringContainsString('$visibleEmployeeIds = collect([$selectedStaffId]);', $taskController);
@@ -273,17 +300,17 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString("'description' => trim((string) (\$projectTask->description ?? ''))", $taskController);
         $this->assertStringContainsString("'blockers' => trim((string) (\$projectTask->blockers ?? ''))", $taskController);
         $this->assertStringContainsString("'attachment_path' => trim((string) (\$projectTask->attachment_path ?? ''))", $taskController);
+        $this->assertStringContainsString("'avatar_url' => \$this->employeeAvatarUrl(\$projectTask->employee)", $taskController);
+        $this->assertStringContainsString("'short_due_date' => \$this->shortDateRangeLabel(\$projectTask->start_date, \$projectTask->due_date)", $taskController);
         $this->assertStringContainsString("'task_context' => \$taskContext", $taskController);
         $this->assertStringContainsString("'task_context_type' => \$isOvertimeTask ? 'overtime' : (\$projectTask->project_id !== null ? 'project' : 'daily')", $taskController);
-        $this->assertStringContainsString('renderTaskContext', $taskView);
-        $this->assertStringContainsString('renderTaskTitle', $taskView);
-        $this->assertStringContainsString('badge badge-info light ms-1 align-middle">Overtime</span>', $taskView);
         $this->assertStringContainsString("'priority' => \$this->priorityLabel((string) \$projectTask->priority)", $taskController);
         $this->assertStringContainsString("'status' => \$this->statusLabel(", $taskController);
+        $this->assertStringContainsString("'status_key' => \$this->statusKey((string) \$projectTask->status, \$isCompleted)", $taskController);
         $this->assertStringContainsString("'status_class' => \$isCompleted ? 'success' : 'warning'", $taskController);
         $this->assertStringNotContainsString('Staff Task List', $taskView);
         $this->assertStringContainsString('No task data available.', $taskView);
-        $this->assertStringNotContainsString('<form', $taskView);
+        $this->assertStringContainsString('<form class="modal-content" method="GET"', $taskView);
     }
 
     public function test_pic_task_monitoring_context_labels_follow_task_source(): void
@@ -314,6 +341,16 @@ class PicAttendanceModuleTest extends TestCase
             'id' => 'project-1',
             'name' => 'Muktamar PKB',
         ]));
+        $projectTask->setRelation('employee', tap(new Employee([
+            'id' => 'employee-1',
+        ]), function (Employee $employee): void {
+            $employee->setRelation('profile', new EmployeeProfile([
+                'name' => 'Profile Full Name',
+            ]));
+            $employee->setRelation('user', new User([
+                'username' => 'staff.username',
+            ]));
+        }));
 
         $dailyTask = new ProjectTask([
             'id' => 'task-daily',
@@ -333,6 +370,7 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertSame('project', $projectRow['task_context_type']);
         $this->assertSame('Task (Muktamar PKB)', $projectRow['task_category']);
         $this->assertSame('Senin, 21 - Rabu, 23 Sep 2026', $projectRow['due_date']);
+        $this->assertSame('staff.username', $projectRow['staff']);
 
         $this->assertSame('Daily Task', $dailyRow['task_context']);
         $this->assertSame('daily', $dailyRow['task_context_type']);

@@ -277,6 +277,7 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('Filter Period', $taskView);
         $this->assertStringContainsString('Apply', $taskView);
         $this->assertStringNotContainsString('data-bs-target="#exampleModal"', $taskView);
+        $this->assertSame(1, substr_count($taskView, 'data-bs-target="#picTaskPeriodFilterModal"'));
         $this->assertStringNotContainsString('id="picTaskTable"', $taskView);
         $this->assertStringNotContainsString('picTaskDetailModal', $taskView);
         $this->assertStringNotContainsString('pic-task-detail-button', $taskView);

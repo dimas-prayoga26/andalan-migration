@@ -138,11 +138,6 @@
                     <h4 class="card-title">Team Task List</h4>
                     <p class="fs-13 mb-0">A comprehensive list of all tasks performed by the team.</p>
                 </div>
-                <div class="d-flex gap-3">
-                    <a class="btn btn-lg btn-primary fw-bold rounded" data-bs-toggle="modal" data-bs-target="#picTaskPeriodFilterModal">
-                        <i class="fa-regular fa-calendar-days me-2"></i>{{ $picTaskMonthLabel ?? now('Asia/Jakarta')->format('F Y') }}
-                    </a>
-                </div>
             </div>
 
             <ul class="nav nav-pills menu-pill nav-pills-all gap-2" id="picTaskTabs" role="tablist">

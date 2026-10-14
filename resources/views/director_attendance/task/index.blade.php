@@ -180,17 +180,18 @@
 
             function updateCategoryCards(activeCategories) {
                 var categories = activeCategories || visibleTaskCategories;
+                var isAllStaff = filterValue('#directorTaskStaffFilter') === '';
 
                 document.querySelectorAll('.director-task-category-link').forEach(function (link) {
                     var category = link.getAttribute('data-director-task-category-key') || '';
                     var color = link.getAttribute('data-director-task-color') || 'primary';
-                    var isSelected = selectedCategory === category || (selectedCategory === '' && categories.indexOf(category) !== -1);
+                    var isSelected = selectedCategory === category || (selectedCategory === '' && !isAllStaff && categories.indexOf(category) !== -1);
                     var card = link.querySelector('.card');
                     var avatar = link.querySelector('.avatar');
                     var subtitle = link.querySelector('p');
                     var title = link.querySelector('.title');
 
-                    link.setAttribute('data-director-task-category', isSelected ? '' : category);
+                    link.setAttribute('data-director-task-category', selectedCategory === category ? '' : category);
 
                     if (card) {
                         card.classList.toggle('bg-' + color, isSelected);

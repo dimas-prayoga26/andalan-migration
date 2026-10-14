@@ -216,7 +216,10 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('visibleTaskCategories = (json.data || [])', $directorTaskView);
         $this->assertStringContainsString('return row.category || \'\';', $directorTaskView);
         $this->assertStringContainsString('updateCategoryCards(visibleTaskCategories);', $directorTaskView);
-        $this->assertStringContainsString("selectedCategory === '' && categories.indexOf(category) !== -1", $directorTaskView);
+        $this->assertStringContainsString("var isAllStaff = filterValue('#directorTaskStaffFilter') === '';", $directorTaskView);
+        $this->assertStringContainsString("selectedCategory === '' && !isAllStaff && categories.indexOf(category) !== -1", $directorTaskView);
+        $this->assertStringNotContainsString("(selectedCategory === '' && categories.indexOf(category) !== -1)", $directorTaskView);
+        $this->assertStringContainsString("link.setAttribute('data-director-task-category', selectedCategory === category ? '' : category);", $directorTaskView);
         $this->assertStringContainsString('selectedCategory = link.getAttribute(\'data-director-task-category\') || \'\';', $directorTaskView);
         $this->assertStringContainsString('taskTable.ajax.reload();', $directorTaskView);
         $this->assertStringContainsString('No task data available.', $directorTaskView);

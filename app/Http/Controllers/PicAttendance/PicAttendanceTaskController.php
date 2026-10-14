@@ -101,6 +101,14 @@ class PicAttendanceTaskController extends Controller
                 'assignedBy:id,username,email',
             ])
             ->whereIn('employee_id', $visibleEmployeeIds->all())
+            ->whereHas('employee', function ($query): void {
+                $query
+                    ->whereNull('deleted_at')
+                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+                    ->whereHas('user', function ($query): void {
+                        $query->where('is_active', true);
+                    });
+            })
             ->whereRaw('DATE(COALESCE(due_date, start_date, created_at)) BETWEEN ? AND ?', [$currentMonthStart, $currentMonthEnd])
             ->orderByRaw('COALESCE(due_date, start_date, created_at) DESC')
             ->get([
@@ -205,6 +213,11 @@ class PicAttendanceTaskController extends Controller
         return Employee::query()
             ->with(['profile:id,employee_id,name', 'user:id,username,email'])
             ->whereIn('id', $staffEmployeeIds->all())
+            ->whereNull('deleted_at')
+            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+            ->whereHas('user', function ($query): void {
+                $query->where('is_active', true);
+            })
             ->get(['id', 'user_id'])
             ->sortBy(fn (Employee $employee): int|false => $staffEmployeeIds->search((string) $employee->id))
             ->map(fn (Employee $employee): array => [

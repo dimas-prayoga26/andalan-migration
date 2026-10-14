@@ -294,6 +294,9 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString("->whereIn('employee_id', \$visibleEmployeeIds->all())", $taskController);
         $this->assertStringContainsString('$visibleEmployeeIds = collect([$selectedStaffId]);', $taskController);
         $this->assertStringNotContainsString('return $staffEmployeeIds->first();', $taskController);
+        $this->assertStringContainsString("->whereRaw('LOWER(COALESCE(status, \"\")) = ?', ['active'])", $taskController);
+        $this->assertStringContainsString("->whereNull('deleted_at')", $taskController);
+        $this->assertStringContainsString("->whereHas('user', function (\$query): void", $taskController);
         $this->assertStringContainsString("'overtime:id,record_number'", $taskController);
         $this->assertStringNotContainsString("->whereNull('overtime_id')", $taskController);
         $this->assertStringContainsString("'due_date' => \$this->dateRangeLabel(\$projectTask->start_date, \$projectTask->due_date)", $taskController);

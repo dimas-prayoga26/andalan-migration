@@ -25,7 +25,7 @@ class AssessmentTestProjectContractTest extends TestCase
         $this->assertStringContainsString("public const TYPE_ASSESSMENT_TEST = 'assessment_test';", $documentModel);
         $this->assertStringContainsString('/upload-file/verify-applicant', $service);
         $this->assertStringContainsString('/assessment-file', $service);
-        $this->assertStringContainsString("'trah' => 'https://technical-test.trah.co.id'", $assessmentConfig);
+        $this->assertStringContainsString("'trah' => 'https://assessment-test.trah.co.id'", $assessmentConfig);
 
         $this->assertStringContainsString('/{applicant}/upload-file/verify-applicant', $uploadRoutes);
         $this->assertStringContainsString('/{applicant}/assessment-file', $uploadRoutes);

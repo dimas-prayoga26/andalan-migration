@@ -21,11 +21,11 @@ class ApplicantAssessmentUploadLinkTest extends TestCase
         $assessmentFileUrl = $service->assessmentFileUrlFor($applicant);
 
         $this->assertSame(
-            'https://technical-test.coffeeniskala.com/'.$applicant->id.'/upload-file/verify-applicant',
+            'https://assessment-test.coffeeniskala.com/'.$applicant->id.'/upload-file/verify-applicant',
             $url,
         );
         $this->assertSame(
-            'https://technical-test.coffeeniskala.com/'.$applicant->id.'/assessment-file',
+            'https://assessment-test.coffeeniskala.com/'.$applicant->id.'/assessment-file',
             $assessmentFileUrl,
         );
     }

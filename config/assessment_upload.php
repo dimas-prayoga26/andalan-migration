@@ -6,11 +6,11 @@ return [
     'expires_in_days' => 7,
 
     'brand_base_urls' => [
-        'rnb' => 'https://technical-test.rnb.co.id',
-        'trah' => 'https://technical-test.trah.co.id',
-        'kma' => 'https://technical-test.karpetmerah.id',
-        'rne' => 'https://technical-test.rne.co.id',
-        'niskala' => 'https://technical-test.coffeeniskala.com',
-        'tms' => 'https://technical-test.tims.co.id',
+        'rnb' => 'https://assessment-test.rnb.co.id',
+        'trah' => 'https://assessment-test.trah.co.id',
+        'kma' => 'https://assessment-test.karpetmerah.id',
+        'rne' => 'https://assessment-test.rne.co.id',
+        'niskala' => 'https://assessment-test.coffeeniskala.com',
+        'tms' => 'https://assessment-test.tims.co.id',
     ],
 ];

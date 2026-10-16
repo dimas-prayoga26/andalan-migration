@@ -8,6 +8,7 @@ use App\Models\ApplicantAssessment;
 use App\Models\ApplicantDocument;
 use App\Models\ApplicantFinalAssessment;
 use App\Models\ApplicantStatus;
+use App\Models\ApplicantTechnicalTestUploadRequest;
 use App\Models\ApplicantUploadRequest;
 use App\Models\Company;
 use App\Models\JobVacancy;
@@ -17,6 +18,7 @@ use App\Services\ApplicantAssessmentAccessService;
 use App\Services\ApplicantAssessmentScoreService;
 use App\Services\ApplicantAssessmentUploadLinkService;
 use App\Services\ApplicantFinalAssessmentService;
+use App\Services\ApplicantTechnicalTestUploadLinkService;
 use App\Support\CareerBrand;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -144,6 +146,7 @@ class TalentAcquisitionController extends Controller
     public function showApplicantAssessment(
         Applicant $applicant,
         ApplicantAssessmentUploadLinkService $uploadLinkService,
+        ApplicantTechnicalTestUploadLinkService $technicalTestUploadLinkService,
         ApplicantAssessmentScoreService $assessmentScoreService,
         ApplicantFinalAssessmentService $finalAssessmentService,
         ApplicantAssessmentAccessService $assessmentAccessService,
@@ -155,12 +158,15 @@ class TalentAcquisitionController extends Controller
             'applicantStatus:id,value,name',
             'documents' => fn ($query) => $query
                 ->select(['id', 'applicant_id', 'document_type', 'file_path', 'original_name', 'mime_type'])
-                ->where('document_type', ApplicantDocument::TYPE_ASSESSMENT_TEST),
+                ->whereIn('document_type', [ApplicantDocument::TYPE_ASSESSMENT_TEST, ApplicantDocument::TYPE_TECHNICAL_TEST]),
         ]);
 
         $assessmentUploadRequest = $uploadLinkService->latestUsableRequest($applicant);
         $assessmentDocument = $applicant->documents
             ->firstWhere('document_type', ApplicantDocument::TYPE_ASSESSMENT_TEST);
+        $technicalTestUploadRequest = $technicalTestUploadLinkService->latestUsableRequest($applicant);
+        $technicalTestDocument = $applicant->documents
+            ->firstWhere('document_type', ApplicantDocument::TYPE_TECHNICAL_TEST);
         $hrCriteria = $assessmentScoreService->hrCriteriaForView($applicant);
         $technicalCriteria = $assessmentScoreService->technicalCriteriaForView($applicant);
         $userCriteria = $assessmentScoreService->userCriteriaForView($applicant);
@@ -171,10 +177,17 @@ class TalentAcquisitionController extends Controller
             'assessmentFileUrl' => $assessmentDocument instanceof ApplicantDocument
                 ? $uploadLinkService->assessmentFileUrlFor($applicant)
                 : null,
-            'assessmentUploadBrand' => CareerBrand::brand($applicant->brand_key),
             'assessmentUploadRequest' => $assessmentUploadRequest,
             'assessmentUploadUrl' => $assessmentUploadRequest instanceof ApplicantUploadRequest
                 ? $uploadLinkService->urlFor($applicant)
+                : null,
+            'technicalTestDocument' => $technicalTestDocument,
+            'technicalTestFileUrl' => $technicalTestDocument instanceof ApplicantDocument
+                ? $technicalTestUploadLinkService->technicalTestFileUrlFor($applicant)
+                : null,
+            'technicalTestUploadRequest' => $technicalTestUploadRequest,
+            'technicalTestUploadUrl' => $technicalTestUploadRequest instanceof ApplicantTechnicalTestUploadRequest
+                ? $technicalTestUploadLinkService->urlFor($applicant)
                 : null,
             'hrCriteria' => $hrCriteria,
             'hrInterviewScore' => $assessmentScoreService->scoreForSection(
@@ -420,6 +433,48 @@ class TalentAcquisitionController extends Controller
                 ? 'Link upload assessment berhasil direvoke.'
                 : 'Tidak ada link upload assessment aktif untuk direvoke.'
         );
+    }
+
+    public function storeApplicantTechnicalTestUploadRequest(
+        Request $request,
+        Applicant $applicant,
+        ApplicantTechnicalTestUploadLinkService $technicalTestUploadLinkService,
+        ApplicantAssessmentAccessService $assessmentAccessService
+    ): RedirectResponse {
+        abort_unless(
+            $assessmentAccessService->canEditTechnicalTest($request->user() instanceof User ? $request->user() : null, $applicant),
+            403
+        );
+
+        $uploadLink = $technicalTestUploadLinkService->create($applicant, $request->user());
+
+        return back()
+            ->with('status', 'Link upload technical test berhasil dibuat.')
+            ->with('technical_test_upload_url', $uploadLink['url'])
+            ->with('assessment_active_tab', 'technical-test-tab');
+    }
+
+    public function revokeApplicantTechnicalTestUploadRequest(
+        Request $request,
+        Applicant $applicant,
+        ApplicantTechnicalTestUploadLinkService $technicalTestUploadLinkService,
+        ApplicantAssessmentAccessService $assessmentAccessService
+    ): RedirectResponse {
+        abort_unless(
+            $assessmentAccessService->canEditTechnicalTest($request->user() instanceof User ? $request->user() : null, $applicant),
+            403
+        );
+
+        $isRevoked = $technicalTestUploadLinkService->revokeLatestUsableRequest($applicant);
+
+        return back()
+            ->with(
+                $isRevoked ? 'status' : 'error',
+                $isRevoked
+                    ? 'Link upload technical test berhasil direvoke.'
+                    : 'Tidak ada link upload technical test aktif untuk direvoke.'
+            )
+            ->with('assessment_active_tab', 'technical-test-tab');
     }
 
     public function updateApplicantStatus(Request $request, Applicant $applicant): RedirectResponse

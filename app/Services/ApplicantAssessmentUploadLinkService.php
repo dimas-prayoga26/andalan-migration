@@ -26,7 +26,7 @@ class ApplicantAssessmentUploadLinkService
 
             return $applicant->uploadRequests()->create([
                 'token_hash' => $this->uniqueTokenHash(),
-                'expires_at' => now()->addDays((int) config('assessment_upload.expires_in_days', 7)),
+                'expires_at' => now()->addDays((int) config('assessment_test_upload.expires_in_days', 7)),
                 'created_by' => $creator?->id,
             ]);
         });
@@ -79,21 +79,21 @@ class ApplicantAssessmentUploadLinkService
         $brandKey = $this->brandKeyFor($applicant);
 
         return (string) config(
-            "assessment_upload.brand_base_urls.{$brandKey}",
-            config('assessment_upload.brand_base_urls.rnb'),
+            "assessment_test_upload.brand_base_urls.{$brandKey}",
+            config('assessment_test_upload.brand_base_urls.rnb'),
         );
     }
 
     private function brandKeyFor(Applicant $applicant): string
     {
         $brandKey = Str::lower(trim((string) $applicant->brand_key));
-        $baseUrls = (array) config('assessment_upload.brand_base_urls', []);
+        $baseUrls = (array) config('assessment_test_upload.brand_base_urls', []);
 
         if ($brandKey !== '' && array_key_exists($brandKey, $baseUrls)) {
             return $brandKey;
         }
 
-        return (string) config('assessment_upload.default_brand', 'rnb');
+        return (string) config('assessment_test_upload.default_brand', 'rnb');
     }
 
     private function uniqueTokenHash(): string

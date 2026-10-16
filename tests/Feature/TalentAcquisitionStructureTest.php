@@ -367,6 +367,8 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('route(\'applicant.show\', $applicant)', $applicantAssessmentView);
         $this->assertStringContainsString('Form Interview HR', $applicantAssessmentView);
         $this->assertStringContainsString('Assessment Test', $applicantAssessmentView);
+        $this->assertStringContainsString('Upload hasil assessment', $applicantAssessmentView);
+        $this->assertStringNotContainsString('Generate link khusus brand', $applicantAssessmentView);
         $this->assertStringContainsString('Technical Test', $applicantAssessmentView);
         $this->assertStringContainsString('Interview User', $applicantAssessmentView);
         $this->assertStringContainsString('Penilaian Akhir', $applicantAssessmentView);

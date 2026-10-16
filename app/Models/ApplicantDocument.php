@@ -18,6 +18,8 @@ class ApplicantDocument extends Model
 
     public const TYPE_ASSESSMENT_TEST = 'assessment_test';
 
+    public const TYPE_TECHNICAL_TEST = 'technical_test';
+
     protected $fillable = [
         'applicant_id',
         'applicant_upload_request_id',

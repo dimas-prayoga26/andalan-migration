@@ -17,7 +17,7 @@ class AssessmentTestProjectContractTest extends TestCase
 
         $service = File::get(app_path('Services/ApplicantAssessmentUploadLinkService.php'));
         $documentModel = File::get(app_path('Models/ApplicantDocument.php'));
-        $assessmentConfig = File::get(config_path('assessment_upload.php'));
+        $assessmentConfig = File::get(config_path('assessment_test_upload.php'));
         $uploadRoutes = File::get($uploadProjectPath.DIRECTORY_SEPARATOR.'routes'.DIRECTORY_SEPARATOR.'web.php');
         $uploadAccess = File::get($uploadProjectPath.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR.'Support'.DIRECTORY_SEPARATOR.'AssessmentUploadAccess.php');
         $assessmentFileController = File::get($uploadProjectPath.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR.'Http'.DIRECTORY_SEPARATOR.'Controllers'.DIRECTORY_SEPARATOR.'AssessmentFileController.php');

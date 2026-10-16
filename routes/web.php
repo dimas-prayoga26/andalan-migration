@@ -120,6 +120,8 @@ Route::middleware('auth')->group(function (): void {
         Route::patch('/applicant/{applicant}/status', [TalentAcquisitionController::class, 'updateApplicantStatus'])->name('applicant.status.update');
         Route::post('/applicant/{applicant}/assessment/upload-request', [TalentAcquisitionController::class, 'storeApplicantAssessmentUploadRequest'])->name('applicant.assessment.upload-request.store');
         Route::patch('/applicant/{applicant}/assessment/upload-request/revoke', [TalentAcquisitionController::class, 'revokeApplicantAssessmentUploadRequest'])->name('applicant.assessment.upload-request.revoke');
+        Route::post('/applicant/{applicant}/technical-test/upload-request', [TalentAcquisitionController::class, 'storeApplicantTechnicalTestUploadRequest'])->name('applicant.technical-test.upload-request.store');
+        Route::patch('/applicant/{applicant}/technical-test/upload-request/revoke', [TalentAcquisitionController::class, 'revokeApplicantTechnicalTestUploadRequest'])->name('applicant.technical-test.upload-request.revoke');
         Route::post('/applicant/{applicant}/assessment/hr-interview-score', [TalentAcquisitionController::class, 'storeApplicantHrInterviewScore'])->name('applicant.assessment.hr-interview-score.store');
         Route::post('/applicant/{applicant}/assessment/technical-test-score', [TalentAcquisitionController::class, 'storeApplicantTechnicalTestScore'])->name('applicant.assessment.technical-test-score.store');
         Route::post('/applicant/{applicant}/assessment/user-interview-score', [TalentAcquisitionController::class, 'storeApplicantUserInterviewScore'])->name('applicant.assessment.user-interview-score.store');

@@ -11,6 +11,8 @@ class ApplicantUploadRequest extends Model
 {
     use GeneratesCustomSequenceUuid;
 
+    protected $table = 'applicant_assessment_test_upload_requests';
+
     protected $fillable = [
         'applicant_id',
         'token_hash',

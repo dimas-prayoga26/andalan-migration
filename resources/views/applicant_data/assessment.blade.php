@@ -446,6 +446,10 @@
     ];
     $generatedAssessmentUploadUrl = session('assessment_upload_url', $assessmentUploadUrl);
     $assessmentUploaded = filled($assessmentFileUrl);
+    $technicalTestUploadRequest = $technicalTestUploadRequest ?? null;
+    $generatedTechnicalTestUploadUrl = session('technical_test_upload_url', $technicalTestUploadUrl ?? null);
+    $technicalTestUploaded = filled($technicalTestFileUrl ?? null);
+    $technicalTestFileIsImage = str_starts_with((string) ($technicalTestDocument?->mime_type ?? ''), 'image/');
 @endphp
 
 <div class="page-title">
@@ -601,13 +605,68 @@
                                     @else
                                         <i class="bi bi-cloud-arrow-up fs-3 d-block mb-2"></i>
                                         <div class="fw-semibold">Upload hasil assessment</div>
-                                        <div class="small">Generate link khusus brand {{ $assessmentUploadBrand['name'] ?? 'RNB Management' }} untuk kandidat ini.</div>
                                     @endif
                                 </div>
                             </div>
                         </div>
 
                         <div class="tab-pane fade" id="technical-test-pane" role="tabpanel" aria-labelledby="technical-test-tab" tabindex="0">
+                            <div class="applicant-assessment-panel mb-3">
+                                <div class="applicant-assessment-panel-header">
+                                    <div>
+                                        <div class="applicant-assessment-panel-title">Lampiran Technical Test</div>
+                                        <div class="applicant-assessment-panel-subtitle">Area lampiran hasil pengerjaan tes teknis kandidat.</div>
+                                    </div>
+                                    @if ($canEditTechnicalTest)
+                                    <div class="applicant-assessment-panel-actions">
+                                        <form method="POST" action="{{ route('applicant.technical-test.upload-request.store', $applicant) }}">
+                                            @csrf
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <i class="bi bi-link-45deg me-1"></i>
+                                                Generate Link Upload
+                                            </button>
+                                        </form>
+                                        @if ($generatedTechnicalTestUploadUrl)
+                                            <button type="button" class="btn btn-primary light btn-sm" data-copy-assessment-link data-copy-value="{{ $generatedTechnicalTestUploadUrl }}">
+                                                <i class="bi bi-copy me-1"></i>
+                                                Copy Link
+                                            </button>
+                                        @endif
+                                        @if ($technicalTestUploadRequest instanceof \App\Models\ApplicantTechnicalTestUploadRequest)
+                                            <form method="POST" action="{{ route('applicant.technical-test.upload-request.revoke', $applicant) }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-danger light btn-sm">
+                                                    <i class="bi bi-x-circle me-1"></i>
+                                                    Revoke Link
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                    @endif
+                                </div>
+                                <div class="applicant-assessment-upload">
+                                    @if ($technicalTestUploaded)
+                                        @if ($technicalTestFileIsImage)
+                                            <div class="applicant-assessment-preview">
+                                                <a href="{{ $technicalTestFileUrl }}" target="_blank" rel="noopener">
+                                                    <img src="{{ $technicalTestFileUrl }}" alt="Hasil technical test {{ $applicant->full_name }}">
+                                                </a>
+                                            </div>
+                                        @else
+                                            <i class="bi bi-file-earmark-check fs-3 d-block mb-2"></i>
+                                        @endif
+                                        <div class="fw-semibold">Hasil technical test sudah diupload</div>
+                                        <div class="small">
+                                            <a href="{{ $technicalTestFileUrl }}" target="_blank" rel="noopener">{{ $technicalTestDocument?->original_name ?: basename((string) $technicalTestDocument?->file_path) }}</a>
+                                        </div>
+                                    @else
+                                        <i class="bi bi-cloud-arrow-up fs-3 d-block mb-2"></i>
+                                        <div class="fw-semibold">Upload hasil technical test</div>
+                                    @endif
+                                </div>
+                            </div>
+
                             <div class="applicant-assessment-panel">
                                 <div class="applicant-assessment-panel-title">Technical Test</div>
                                 <div class="applicant-assessment-panel-subtitle">Kriteria Tes Teknis mengikuti bobot dari lowongan yang dilamar.</div>
@@ -925,6 +984,14 @@
                 saveTimeout = window.setTimeout(() => storeNote(textarea), 250);
             });
         });
+
+        @if (session('assessment_active_tab') === 'technical-test-tab')
+            const technicalTestTab = document.getElementById('technical-test-tab');
+
+            if (technicalTestTab && window.bootstrap?.Tab) {
+                window.bootstrap.Tab.getOrCreateInstance(technicalTestTab).show();
+            }
+        @endif
 
         @if ($errors->any() || session('status') === 'Penilaian akhir berhasil disimpan.')
             const finalAssessmentTab = document.getElementById('final-assessment-tab');

@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use ReflectionMethod;
 use Tests\TestCase;
@@ -194,6 +195,10 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('$categoryCard[\'subtitle\']', $directorTaskView);
         $this->assertStringContainsString('$categoryCard[\'title\']', $directorTaskView);
         $this->assertStringContainsString('$categoryCard[\'icon\']', $directorTaskView);
+        $this->assertStringContainsString('id="directorTaskDetailModal"', $directorTaskView);
+        $this->assertStringContainsString("window.jQuery('#directorTaskTable tbody').on('click', 'tr.director-task-row'", $directorTaskView);
+        $this->assertStringContainsString('renderAssigneeAvatar(row)', $directorTaskView);
+        $this->assertStringContainsString('row.assignee_avatar_url', $directorTaskView);
         $this->assertStringNotContainsString('Task Completion Rate', $directorTaskView);
         $this->assertStringNotContainsString('Total Tasks', $directorTaskView);
         $this->assertStringNotContainsString('In Progress', $directorTaskView);
@@ -291,7 +296,7 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringContainsString("'project' => trim((string) (\$projectTask?->project?->name ?? '')) ?: 'Daily Task'", $directorTaskController);
         $this->assertStringContainsString("'description' => trim((string) (\$projectTask?->description ?? ''))", $directorTaskController);
         $this->assertStringContainsString("'blockers' => trim((string) (\$projectTask?->blockers ?? ''))", $directorTaskController);
-        $this->assertStringContainsString("'attachment_path' => trim((string) (\$projectTask?->attachment_path ?? ''))", $directorTaskController);
+        $this->assertStringContainsString("\$attachmentPath = trim((string) (\$projectTask?->attachment_path ?? ''));", $directorTaskController);
         $this->assertStringContainsString("'priority' => \$this->priorityLabel((string) (\$projectTask?->priority ?? 'medium'))", $directorTaskController);
         $this->assertStringContainsString("'status' => \$this->hrMeetingTaskStatusLabel((string) (\$projectTask?->status ?? 'pending'))", $directorTaskController);
         $this->assertStringContainsString('private function activeStaffEmployeeIds(Carbon $date, ?string $companyId = null): Collection', $directorTaskController);
@@ -426,11 +431,74 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertSame('On Progress', $row['status']);
         $this->assertSame('primary', $row['status_class']);
         $this->assertSame('Jum\'at, 16 Oct 2026', $row['due_date']);
+        $this->assertSame('Jum\'at, 09 - Jum\'at, 16 Oct 2026', $row['date_range']);
+        $this->assertSame('Digital publication and IT operational support', $row['category_subtitle']);
+        $this->assertSame('Self', $row['assigned_by']);
+        $this->assertNull($row['assignee_avatar_url']);
+        $this->assertNull($row['attachment_url']);
 
         $projectTask->due_date = null;
         $rowWithoutDueDate = $rowMethod->invoke($controller, $meetingTask, $categoryMethod->invoke($controller));
 
         $this->assertSame('-', $rowWithoutDueDate['due_date']);
+    }
+
+    public function test_director_hr_meeting_task_row_exposes_profile_photo_and_task_detail_fields(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('employee-profile-pictures/rifka.jpg', 'photo');
+
+        $controller = app(DirectorAttendanceTaskController::class);
+        $categoryMethod = new ReflectionMethod(DirectorAttendanceTaskController::class, 'directorTaskCategoryCards');
+        $rowMethod = new ReflectionMethod(DirectorAttendanceTaskController::class, 'hrMeetingTaskRow');
+
+        $employee = new Employee(['id' => 'employee-with-photo', 'user_id' => 'user-with-photo']);
+        $employee->setRelation('profile', new EmployeeProfile([
+            'employee_id' => 'employee-with-photo',
+            'name' => 'Rifka Febriza',
+            'profile_picture_path' => 'employee-profile-pictures/rifka.jpg',
+        ]));
+
+        $projectTask = new ProjectTask([
+            'id' => 'project-task-with-detail',
+            'employee_id' => 'employee-with-photo',
+            'title' => 'Membuat layout opsi untuk cafe kemang',
+            'description' => 'membuat layout opsi lain untuk cafe kemang',
+            'blockers' => 'Menunggu feedback klien',
+            'attachment_path' => 'https://drive.google.com/file/d/layout',
+            'status' => 'completed',
+            'priority' => 'medium',
+            'start_date' => Carbon::create(2026, 10, 12, 0, 0, 0, 'Asia/Jakarta'),
+            'due_date' => Carbon::create(2026, 10, 12, 0, 0, 0, 'Asia/Jakarta'),
+        ]);
+        $projectTask->setRelation('employee', $employee);
+        $projectTask->setRelation('assignedBy', new User(['username' => 'erlin', 'email' => 'erlin@example.test']));
+
+        $meetingTask = new HrMeetingTask([
+            'id' => 'hr-meeting-task-with-detail',
+            'category' => 'property_construction_trah',
+            'project_task_id' => 'project-task-with-detail',
+        ]);
+        $meetingTask->setRelation('projectTask', $projectTask);
+
+        $row = $rowMethod->invoke($controller, $meetingTask, $categoryMethod->invoke($controller));
+
+        $this->assertSame(asset('storage/employee-profile-pictures/rifka.jpg'), $row['assignee_avatar_url']);
+        $this->assertSame('R', $row['assignee_initial']);
+        $this->assertSame('erlin', $row['assigned_by']);
+        $this->assertSame('Senin, 12 Oct 2026', $row['date_range']);
+        $this->assertSame('Menunggu feedback klien', $row['blockers']);
+        $this->assertSame('https://drive.google.com/file/d/layout', $row['attachment_url']);
+        $this->assertSame('Completed', $row['status']);
+        $this->assertSame('success', $row['status_class']);
+
+        $employee->profile->profile_picture_path = 'employee-profile-pictures/missing.jpg';
+        $projectTask->attachment_path = 'javascript:alert(1)';
+        $rowWithMissingPhoto = $rowMethod->invoke($controller, $meetingTask, $categoryMethod->invoke($controller));
+
+        $this->assertNull($rowWithMissingPhoto['assignee_avatar_url']);
+        $this->assertNull($rowWithMissingPhoto['attachment_url']);
+        $this->assertSame('javascript:alert(1)', $rowWithMissingPhoto['attachment_path']);
     }
 
     public function test_director_task_filter_helpers_keep_month_year_and_staff_selection(): void

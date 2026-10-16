@@ -20,7 +20,7 @@ class LoginTest extends TestCase
 
     public function test_user_can_login_with_valid_credentials(): void
     {
-        $user = User::factory()->create([
+        $user = User::factory()->activeEmployee()->create([
             'password' => Hash::make('password'),
         ]);
 
@@ -35,7 +35,7 @@ class LoginTest extends TestCase
 
     public function test_user_cannot_login_with_invalid_credentials(): void
     {
-        $user = User::factory()->create([
+        $user = User::factory()->activeEmployee()->create([
             'password' => Hash::make('password'),
         ]);
 

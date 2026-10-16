@@ -27,10 +27,6 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
 
     protected function setUp(): void
     {
-        if (! extension_loaded('pdo_sqlite')) {
-            $this->markTestSkipped('pdo_sqlite extension is not available.');
-        }
-
         parent::setUp();
         config(['attendance.tracking_start_date' => null]);
     }

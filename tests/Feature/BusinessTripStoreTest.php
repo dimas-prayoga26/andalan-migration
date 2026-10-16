@@ -6,16 +6,16 @@ use App\Http\Controllers\StaffAttendance\AttendanceBusinessTripController;
 use App\Models\BusinessTrip;
 use App\Models\Employee;
 use App\Models\User;
-use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class BusinessTripStoreTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_business_trip_store_route_and_create_form_are_wired(): void
     {
         $storeRoute = Route::getRoutes()->getByName('attendance.business-trips.store');
@@ -68,12 +68,6 @@ class BusinessTripStoreTest extends TestCase
 
     public function test_staff_business_trip_create_also_stores_submitted_lifecycle_log(): void
     {
-        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
-            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
-        }
-
-        $this->createBusinessTripStoreTestSchema();
-
         [$user, $employee] = $this->createAuthenticatedUserWithEmployee('staff_business_trip');
 
         $response = $this
@@ -138,120 +132,15 @@ class BusinessTripStoreTest extends TestCase
         ]);
     }
 
-    private function createBusinessTripStoreTestSchema(): void
-    {
-        foreach ([
-            'business_trip_lifecycle_logs',
-            'business_trips',
-            'employee_pic_assignments',
-            'employee_profiles',
-            'employees',
-            'users',
-        ] as $table) {
-            Schema::dropIfExists($table);
-        }
-
-        Schema::create('users', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->string('username')->nullable()->unique();
-            $table->string('email')->unique();
-            $table->string('password');
-            $table->boolean('is_active')->default(true);
-            $table->rememberToken();
-            $table->timestamps();
-        });
-
-        Schema::create('employees', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('user_id')->unique()->constrained('users', 'id')->cascadeOnDelete();
-            $table->string('status')->default('Active');
-            $table->boolean('is_event_project_admin')->default(false);
-            $table->timestamps();
-        });
-
-        Schema::create('employee_profiles', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('employee_id')->unique()->constrained('employees', 'id')->cascadeOnDelete();
-            $table->string('name')->nullable();
-            $table->string('nickname')->nullable();
-            $table->string('profile_picture_path')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('employee_pic_assignments', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('supervisor_employee_id')->nullable()->constrained('employees', 'id')->cascadeOnDelete();
-            $table->foreignUuid('staff_employee_id')->nullable()->constrained('employees', 'id')->cascadeOnDelete();
-            $table->boolean('is_active')->default(true);
-            $table->softDeletes();
-            $table->timestamps();
-        });
-
-        Schema::create('business_trips', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('employee_id')->constrained('employees', 'id')->cascadeOnDelete();
-            $table->string('request_number', 50)->nullable()->unique();
-            $table->foreignUuid('supervisor_employee_id')->nullable()->constrained('employees', 'id')->nullOnDelete();
-            $table->date('start_date');
-            $table->date('end_date');
-            $table->unsignedInteger('total_days');
-            $table->string('destination_zone');
-            $table->string('province_destination')->nullable();
-            $table->string('city_destination');
-            $table->text('purpose');
-            $table->string('trip_type', 50)->nullable();
-            $table->string('transportation_arrangement', 50)->nullable();
-            $table->string('accommodation_arrangement', 50)->nullable();
-            $table->string('transportation_mode', 50)->nullable();
-            $table->date('departure_date')->nullable();
-            $table->string('departure_time_window', 50)->nullable();
-            $table->date('check_in_date')->nullable();
-            $table->date('check_out_date')->nullable();
-            $table->timestamp('submitted_at')->nullable();
-            $table->timestamp('approved_at')->nullable();
-            $table->timestamp('rejected_at')->nullable();
-            $table->decimal('daily_rate', 12, 2)->default(0);
-            $table->decimal('total_allowance', 12, 2)->default(0);
-            $table->string('approval_status')->default('pending');
-            $table->foreignUuid('approved_by')->nullable()->constrained('users', 'id')->nullOnDelete();
-            $table->string('payment_status')->default('pending');
-            $table->string('payment_reference')->nullable();
-            $table->softDeletes();
-            $table->timestamps();
-        });
-
-        Schema::create('business_trip_lifecycle_logs', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('business_trip_id')->constrained('business_trips', 'id')->cascadeOnDelete();
-            $table->string('phase', 100);
-            $table->string('event_key', 100);
-            $table->unsignedInteger('step_order');
-            $table->string('title');
-            $table->string('status', 50)->default('waiting');
-            $table->foreignUuid('actor_id')->nullable()->constrained('users', 'id')->nullOnDelete();
-            $table->timestamp('happened_at')->nullable();
-            $table->json('metadata')->nullable();
-            $table->timestamps();
-        });
-    }
-
     /**
      * @return array{0: User, 1: Employee}
      */
     private function createAuthenticatedUserWithEmployee(string $username): array
     {
-        $user = User::query()->create([
+        $user = User::factory()->activeEmployee(['view-attendance'])->create([
             'username' => $username,
-            'email' => $username.'@example.com',
-            'password' => Hash::make('password'),
-            'is_active' => true,
         ]);
 
-        $employee = Employee::query()->create([
-            'user_id' => $user->id,
-            'status' => 'Active',
-        ]);
-
-        return [$user, $employee];
+        return [$user, $user->employee];
     }
 }

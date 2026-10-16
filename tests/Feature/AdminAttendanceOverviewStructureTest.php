@@ -103,11 +103,11 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringNotContainsString("->get(['employee_id', 'overtime_date', 'calculated_hours'])", $recapController);
         $this->assertStringNotContainsString("->get(['calculated_hours'])", $recapController);
         $this->assertStringNotContainsString("'working_days' => \$attendedDateKeys->count().' / '.\$employeeWorkDays->count().' days'", $recapController);
-        $this->assertStringContainsString("'leaveOverviewStats' => \$this->leaveOverviewStatsFor(\$request)", $leaveController);
-        $this->assertStringContainsString("'leavePendingCards' => \$this->pendingLeaveCardsFor(\$request, \$selectedPeriod)", $leaveController);
-        $this->assertStringContainsString("'leaveGridPositionGroups' => \$this->leaveGridPositionGroupsFor(\$request, \$selectedPeriod)", $leaveController);
-        $this->assertStringContainsString('private function pendingLeaveCardsFor(Request $request, array $selectedPeriod): Collection', $leaveController);
-        $this->assertStringContainsString('private function leaveGridPositionGroupsFor(Request $request, array $selectedPeriod): Collection', $leaveController);
+        $this->assertStringContainsString("'leaveOverviewStats' => \$this->leaveOverviewStats()", $leaveController);
+        $this->assertStringContainsString("'leavePendingCards' => \$this->pendingLeaveCardsFor(\$selectedPeriod)", $leaveController);
+        $this->assertStringContainsString("'leaveGridPositionGroups' => \$this->leaveGridPositionGroupsFor(\$selectedPeriod)", $leaveController);
+        $this->assertStringContainsString('private function pendingLeaveCardsFor(array $selectedPeriod): Collection', $leaveController);
+        $this->assertStringContainsString('private function leaveGridPositionGroupsFor(array $selectedPeriod): Collection', $leaveController);
         $this->assertStringContainsString('current_position_id', $leaveController);
         $this->assertStringContainsString('pendingDatatable', $leaveController);
         $this->assertStringContainsString('approvedDatatable', $leaveController);
@@ -129,7 +129,8 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('countLeaveRequestsByType', $leaveController);
         $this->assertStringContainsString('supervisorApprovedLeaveRequestQuery', $leaveController);
         $this->assertStringContainsString('return (int) $this->supervisorApprovedLeaveRequestQuery($activeEmployeeIds)', $leaveController);
-        $this->assertStringContainsString('current_company_id', $leaveController);
+        $this->assertStringNotContainsString('currentCompanyIdFor', $leaveController);
+        $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $leaveController);
         $this->assertStringContainsString('$fallbackMonth = $request->query(\'month\');', $overtimeController);
         $this->assertStringContainsString('$cardMonth = $this->normalizeMonth($request->query(\'card_month\', $fallbackMonth));', $overtimeController);
         $this->assertStringContainsString('$request->query(\'pending_month\', $fallbackMonth)', $overtimeController);

@@ -7,7 +7,6 @@ use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AttendanceExceptionStoreTest extends TestCase
@@ -101,18 +100,10 @@ class AttendanceExceptionStoreTest extends TestCase
      */
     private function createAuthenticatedUserWithEmployee(string $username): array
     {
-        $user = User::query()->create([
+        $user = User::factory()->activeEmployee(['view-attendance'])->create([
             'username' => $username,
-            'email' => $username.'@example.com',
-            'password' => Hash::make('password'),
-            'is_active' => true,
         ]);
 
-        $employee = Employee::query()->create([
-            'user_id' => $user->id,
-            'status' => 'Active',
-        ]);
-
-        return [$user, $employee];
+        return [$user, $user->employee];
     }
 }

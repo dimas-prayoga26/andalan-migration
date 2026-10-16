@@ -13,6 +13,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -345,6 +348,7 @@ class DirectorAttendanceTaskController extends Controller
                 'projectTask.employee:id,user_id',
                 'projectTask.employee.profile:id,employee_id,name,profile_picture_path',
                 'projectTask.employee.user:id,username,email',
+                'projectTask.assignedBy:id,username,email',
             ])
             ->when($selectedCategory !== null, fn ($query) => $query->where('category', $selectedCategory))
             ->whereHas('projectTask', function ($query) use ($selectedStaff, $periodStart, $periodEnd): void {
@@ -362,7 +366,7 @@ class DirectorAttendanceTaskController extends Controller
 
     /**
      * @param  array<string,array{title:string,subtitle:string,color:string,icon:string}>  $categoryCards
-     * @return array<string,string>
+     * @return array<string,string|null>
      */
     private function hrMeetingTaskRow(HrMeetingTask $hrMeetingTask, array $categoryCards): array
     {
@@ -370,18 +374,24 @@ class DirectorAttendanceTaskController extends Controller
         $category = trim((string) ($hrMeetingTask->category ?: 'others'));
         $categoryCard = $categoryCards[$category] ?? $categoryCards['others'];
         $assignee = $this->employeeDisplayName($projectTask?->employee);
+        $attachmentPath = trim((string) ($projectTask?->attachment_path ?? ''));
 
         return [
             'id' => (string) $hrMeetingTask->id,
             'category' => $category,
             'category_label' => $categoryCard['title'],
+            'category_subtitle' => $categoryCard['subtitle'],
             'task' => trim((string) ($projectTask?->title ?? '-')) ?: '-',
             'description' => trim((string) ($projectTask?->description ?? '')),
             'blockers' => trim((string) ($projectTask?->blockers ?? '')),
-            'attachment_path' => trim((string) ($projectTask?->attachment_path ?? '')),
+            'attachment_path' => $attachmentPath,
+            'attachment_url' => Str::startsWith(strtolower($attachmentPath), ['http://', 'https://']) ? $attachmentPath : null,
             'project' => trim((string) ($projectTask?->project?->name ?? '')) ?: 'Daily Task',
             'assignee' => $assignee,
             'assignee_initial' => str($assignee)->trim()->substr(0, 1)->upper()->toString() ?: '-',
+            'assignee_avatar_url' => $this->profilePictureUrl($projectTask?->employee?->profile?->profile_picture_path),
+            'assigned_by' => $projectTask instanceof ProjectTask ? $this->assignedByLabel($projectTask) : 'Self',
+            'date_range' => $this->dateRangeLabel($projectTask?->start_date, $projectTask?->due_date),
             'priority' => $this->priorityLabel((string) ($projectTask?->priority ?? 'medium')),
             'priority_class' => $this->priorityBadgeClass((string) ($projectTask?->priority ?? 'medium')),
             'status' => $this->hrMeetingTaskStatusLabel((string) ($projectTask?->status ?? 'pending')),
@@ -491,6 +501,33 @@ class DirectorAttendanceTaskController extends Controller
         }
 
         return 'Unknown Staff';
+    }
+
+    /**
+     * Resolve a stored profile picture to a public URL, or null so the view can fall back to the initial.
+     */
+    private function profilePictureUrl(mixed $profilePicturePath): ?string
+    {
+        $profilePicturePath = trim((string) $profilePicturePath);
+
+        if ($profilePicturePath === '') {
+            return null;
+        }
+
+        if (Str::startsWith($profilePicturePath, ['http://', 'https://'])) {
+            return $profilePicturePath;
+        }
+
+        $publicPath = ltrim($profilePicturePath, '/');
+        $storagePath = Str::startsWith($publicPath, 'storage/')
+            ? Str::after($publicPath, 'storage/')
+            : $publicPath;
+
+        if (Storage::disk('public')->exists($storagePath)) {
+            return asset('storage/'.$storagePath);
+        }
+
+        return File::exists(public_path($publicPath)) ? asset($publicPath) : null;
     }
 
     private function assignedByLabel(ProjectTask $projectTask): string

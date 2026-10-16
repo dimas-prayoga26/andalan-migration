@@ -13,7 +13,7 @@ class UserActivityLogTest extends TestCase
 
     public function test_authenticated_user_can_record_attendance_activity_event(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->activeEmployee()->create();
 
         $this
             ->actingAs($user)
@@ -35,7 +35,7 @@ class UserActivityLogTest extends TestCase
 
     public function test_activity_event_must_be_known(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->activeEmployee()->create();
 
         $this
             ->actingAs($user)

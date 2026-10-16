@@ -111,6 +111,57 @@
             </form>
         </div>
     </div>
+
+    <div class="modal fade" id="directorTaskDetailModal" tabindex="-1" aria-labelledby="directorTaskDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="directorTaskDetailModalLabel">Task Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row py-2">
+                        <div class="col-4"><span>Task Name</span></div>
+                        <div class="col-8"><span class="text-gray fw-semibold" id="directorTaskDetailTitle">-</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Task Description</span></div>
+                        <div class="col-8"><span class="text-gray fw-normal" id="directorTaskDetailDescription">-</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Date - Due Date</span></div>
+                        <div class="col-8"><span class="text-gray fw-semibold" id="directorTaskDetailDate">-</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Attachment</span></div>
+                        <div class="col-8"><span class="text-gray fw-semibold text-break" id="directorTaskDetailAttachment">No attachment</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Blockers</span></div>
+                        <div class="col-8"><span class="text-gray fw-normal" id="directorTaskDetailBlockers">-</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Task Category</span></div>
+                        <div class="col-8">
+                            <span class="text-gray fw-semibold" id="directorTaskDetailCategory">-</span><br>
+                            <span class="text-gray fw-normal" id="directorTaskDetailCategoryDescription">-</span>
+                        </div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Assigned by</span></div>
+                        <div class="col-8"><span class="text-primary fw-semibold" id="directorTaskDetailAssignedBy">-</span></div>
+                    </div>
+                    <div class="row py-2">
+                        <div class="col-4"><span>Task Status</span></div>
+                        <div class="col-8"><span class="fw-semibold" id="directorTaskDetailStatus">-</span></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @section('script')
@@ -300,7 +351,7 @@
                             data: 'assignee',
                             render: function (data, type, row) {
                                 return '<div class="d-flex align-items-center">'
-                                    + '<div class="avatar rounded-circle bg-primary text-white avatar-xs me-2">' + escapeHtml(row.assignee_initial || '-') + '</div>'
+                                    + renderAssigneeAvatar(row)
                                     + '<h6 class="mb-0">' + escapeHtml(data || '-') + '</h6>'
                                     + '</div>';
                             }
@@ -331,10 +382,95 @@
                             previous: '<i class="fa-solid fa-angle-left"></i>'
                         }
                     },
+                    createdRow: function (rowElement) {
+                        rowElement.classList.add('director-task-row');
+                        rowElement.style.cursor = 'pointer';
+                    },
                     drawCallback: function () {
                         window.jQuery('#directorTaskTable tbody td.dataTables_empty').addClass('text-center py-4 text-muted');
                     }
                 });
+
+                window.jQuery('#directorTaskTable tbody').on('click', 'tr.director-task-row', function () {
+                    var row = taskTable.row(this).data();
+
+                    if (row) {
+                        showTaskDetail(row);
+                    }
+                });
+            }
+
+            function renderAssigneeAvatar(row) {
+                var initialAvatar = '<div class="avatar rounded-circle bg-primary text-white avatar-xs me-2"'
+                    + (row.assignee_avatar_url ? ' style="display: none;"' : '')
+                    + '>' + escapeHtml(row.assignee_initial || '-') + '</div>';
+
+                if (!row.assignee_avatar_url) {
+                    return initialAvatar;
+                }
+
+                return '<img src="' + escapeHtml(row.assignee_avatar_url) + '" alt="' + escapeHtml(row.assignee || 'Staff') + '"'
+                    + ' class="avatar avatar-xs rounded-circle me-2" style="object-fit: cover;" loading="lazy"'
+                    + ' onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'inline-flex\';">'
+                    + initialAvatar;
+            }
+
+            function setDetailText(elementId, value) {
+                var element = document.getElementById(elementId);
+                var text = String(value || '').trim();
+
+                if (element) {
+                    element.textContent = text !== '' ? text : '-';
+                }
+            }
+
+            function renderDetailAttachment(row) {
+                var element = document.getElementById('directorTaskDetailAttachment');
+
+                if (!element) {
+                    return;
+                }
+
+                element.textContent = '';
+
+                if (row.attachment_url) {
+                    var link = document.createElement('a');
+                    link.href = row.attachment_url;
+                    link.className = 'text-primary';
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    link.textContent = 'Open attachment';
+                    element.appendChild(link);
+
+                    return;
+                }
+
+                element.textContent = String(row.attachment_path || '').trim() || 'No attachment';
+            }
+
+            function showTaskDetail(row) {
+                var modalElement = document.getElementById('directorTaskDetailModal');
+                var statusElement = document.getElementById('directorTaskDetailStatus');
+
+                if (!modalElement || typeof bootstrap === 'undefined') {
+                    return;
+                }
+
+                setDetailText('directorTaskDetailTitle', row.task);
+                setDetailText('directorTaskDetailDescription', row.description);
+                setDetailText('directorTaskDetailDate', row.date_range);
+                renderDetailAttachment(row);
+                setDetailText('directorTaskDetailBlockers', row.blockers);
+                setDetailText('directorTaskDetailCategory', row.category_label);
+                setDetailText('directorTaskDetailCategoryDescription', row.category_subtitle);
+                setDetailText('directorTaskDetailAssignedBy', '@' + (String(row.assigned_by || '').trim() || 'self'));
+
+                if (statusElement) {
+                    statusElement.className = 'fw-semibold text-' + (row.status_class || 'warning');
+                    statusElement.textContent = row.status || 'To Do';
+                }
+
+                bootstrap.Modal.getOrCreateInstance(modalElement).show();
             }
 
             document.addEventListener('click', function (event) {

@@ -2,11 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Employee;
-use App\Models\EmployeeDeployment;
-use App\Models\EmployeeProfile;
 use App\Models\MailAccessAccount;
-use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\MailInboxService;
@@ -215,28 +211,16 @@ class MailSentAndDeleteTest extends TestCase
     private function actingAsMailUser(): static
     {
         return $this->actingAs($this->createSuperAdministratorUser())
-            ->withSession(['mail_business_account_id' => $this->mailAccount->id]);
+            ->withSession([
+                'mail_business_account_id' => $this->mailAccount->id,
+                'mail_business_account_selected' => true,
+            ]);
     }
 
     private function createSuperAdministratorUser(): User
     {
-        $user = User::query()->create([
-            'username' => 'superadmin_'.uniqid(),
-            'email' => uniqid().'@example.test',
-            'password' => Hash::make('password'),
-            'is_active' => true,
-        ]);
-
+        $user = User::factory()->superAdministrator()->create();
         $user->assignRole(Role::query()->firstOrCreate(['name' => 'Staff', 'guard_name' => 'web']));
-
-        $position = Position::query()->firstOrCreate(['name' => 'Super Administrator']);
-        $employee = Employee::query()->create(['user_id' => $user->id, 'status' => 'Active']);
-        EmployeeProfile::query()->create(['employee_id' => $employee->id, 'name' => 'Super Administrator']);
-        EmployeeDeployment::query()->create([
-            'employee_id' => $employee->id,
-            'current_position_id' => $position->id,
-            'status' => 'Active',
-        ]);
 
         return $user;
     }

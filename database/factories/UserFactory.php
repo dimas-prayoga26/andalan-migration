@@ -2,6 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Models\Employee;
+use App\Models\EmployeeDeployment;
+use App\Models\Position;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -26,7 +29,6 @@ class UserFactory extends Factory
     {
         return [
             'username' => fake()->unique()->userName(),
-            'name' => fake()->name(),
             'phone' => fake()->phoneNumber(),
             'email' => fake()->unique()->safeEmail(),
             'is_active' => true,
@@ -44,5 +46,47 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    /**
+     * Give the user an active employee and deployment so it passes User::canLogin(),
+     * holding a position that grants the given permissions.
+     *
+     * @param  list<string>  $permissionNames
+     */
+    public function activeEmployee(array $permissionNames = []): static
+    {
+        return $this->afterCreating(function (User $user) use ($permissionNames): void {
+            $this->createActiveDeploymentFor(
+                $user,
+                Position::factory()->withPermissions($permissionNames)->create()
+            );
+        });
+    }
+
+    /**
+     * Give the user an active employee holding the Super Administrator position.
+     */
+    public function superAdministrator(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            $this->createActiveDeploymentFor(
+                $user,
+                Position::query()->firstOrCreate(
+                    ['system_key' => Position::KEY_SUPER_ADMINISTRATOR],
+                    ['name' => 'Super Administrator', 'status' => 'active', 'is_protected' => true]
+                )
+            );
+        });
+    }
+
+    private function createActiveDeploymentFor(User $user, Position $position): void
+    {
+        EmployeeDeployment::factory()
+            ->for(Employee::factory()->for($user))
+            ->for($position)
+            ->create();
+
+        $user->unsetRelation('employee');
     }
 }

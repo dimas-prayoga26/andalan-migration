@@ -3,13 +3,18 @@
 namespace App\Models;
 
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
+use Database\Factories\PositionFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Position extends Model
 {
     use GeneratesCustomSequenceUuid;
+
+    /** @use HasFactory<PositionFactory> */
+    use HasFactory;
 
     public const KEY_ACCOUNTING_TAXATION = 'accounting_taxation';
 

@@ -2,29 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Models\Employee;
-use App\Models\EmployeeDeployment;
-use App\Models\EmployeeProfile;
 use App\Models\LeaveRequest;
-use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class LeaveRequestDestroyAuthorizationTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        if (! extension_loaded('pdo_sqlite')) {
-            $this->markTestSkipped('pdo_sqlite extension is not available.');
-        }
-
-        parent::setUp();
-    }
 
     public function test_super_administrator_can_delete_leave_request(): void
     {
@@ -85,12 +71,7 @@ class LeaveRequestDestroyAuthorizationTest extends TestCase
             'guard_name' => 'web',
         ]);
 
-        $user = User::query()->create([
-            'email' => strtolower($roleName).'.'.uniqid().'@example.com',
-            'password' => Hash::make('password'),
-            'is_active' => true,
-        ]);
-
+        $user = User::factory()->activeEmployee(['view-attendance'])->create();
         $user->assignRole($role);
 
         return $user;
@@ -98,34 +79,11 @@ class LeaveRequestDestroyAuthorizationTest extends TestCase
 
     private function createSuperAdministratorUser(): User
     {
-        $role = Role::query()->firstOrCreate([
+        $user = User::factory()->superAdministrator()->create();
+        $user->assignRole(Role::query()->firstOrCreate([
             'name' => 'Staff',
             'guard_name' => 'web',
-        ]);
-        $position = Position::query()->create([
-            'name' => 'Super Administrator',
-        ]);
-
-        $user = User::query()->create([
-            'email' => 'superadmin.'.uniqid().'@example.com',
-            'password' => Hash::make('password'),
-            'is_active' => true,
-        ]);
-        $user->assignRole($role);
-
-        $employee = Employee::query()->create([
-            'user_id' => $user->id,
-            'status' => 'Active',
-        ]);
-        EmployeeProfile::query()->create([
-            'employee_id' => $employee->id,
-            'name' => 'Super Administrator',
-        ]);
-        EmployeeDeployment::query()->create([
-            'employee_id' => $employee->id,
-            'current_position_id' => $position->id,
-            'status' => 'Active',
-        ]);
+        ]));
 
         return $user;
     }

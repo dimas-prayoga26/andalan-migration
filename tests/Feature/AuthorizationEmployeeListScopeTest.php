@@ -22,15 +22,6 @@ class AuthorizationEmployeeListScopeTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        if (! extension_loaded('pdo_sqlite')) {
-            $this->markTestSkipped('pdo_sqlite extension is not available.');
-        }
-
-        parent::setUp();
-    }
-
     public function test_administrator_sees_employee_list_from_all_companies(): void
     {
         $rnbCompany = Company::query()->create(['name' => 'RNB']);

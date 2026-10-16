@@ -22,15 +22,6 @@ class AdminAttendanceLeaveBalanceSyncTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        if (! extension_loaded('pdo_sqlite')) {
-            $this->markTestSkipped('pdo_sqlite extension is not available.');
-        }
-
-        parent::setUp();
-    }
-
     protected function tearDown(): void
     {
         Carbon::setTestNow();

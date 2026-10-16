@@ -16,15 +16,6 @@ class AuthorizationEmployeeStoreTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        if (! extension_loaded('pdo_sqlite')) {
-            $this->markTestSkipped('pdo_sqlite extension is not available.');
-        }
-
-        parent::setUp();
-    }
-
     public function test_created_employee_user_is_assigned_staff_role(): void
     {
         $manager = $this->createAuthorizationManager();

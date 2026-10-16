@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
+use Database\Factories\EmployeeDeploymentFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,6 +12,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class EmployeeDeployment extends Model
 {
     use GeneratesCustomSequenceUuid;
+
+    /** @use HasFactory<EmployeeDeploymentFactory> */
+    use HasFactory;
 
     protected $table = 'employee_deployments';
 

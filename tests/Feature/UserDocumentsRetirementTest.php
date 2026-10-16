@@ -17,15 +17,6 @@ class UserDocumentsRetirementTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        if (! extension_loaded('pdo_sqlite')) {
-            $this->markTestSkipped('pdo_sqlite extension is not available.');
-        }
-
-        parent::setUp();
-    }
-
     public function test_schema_uses_employee_identities_instead_of_user_documents(): void
     {
         $this->assertFalse(Schema::hasTable('user_documents'));

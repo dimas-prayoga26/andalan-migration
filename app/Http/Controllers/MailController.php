@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Mail\SentMessage;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -56,9 +57,7 @@ class MailController extends Controller
             return back()->withErrors(['mail' => 'Email account tidak bisa diakses.']);
         }
 
-        $account->forceFill(['last_login_at' => now()])->save();
-        $request->session()->put($this->sessionKey($request), $account->id);
-        $request->session()->put($this->selectionSessionKey($request), true);
+        $this->rememberSelectedAccount($request, $account);
 
         $folder = (string) ($validated['folder'] ?? MailInboxService::FOLDER_INBOX);
 
@@ -115,10 +114,7 @@ class MailController extends Controller
         }
 
         $account->ensurePinIsHashed($pin);
-        $account->forceFill(['last_login_at' => now()])->save();
-
-        $request->session()->put($this->sessionKey($request), $account->id);
-        $request->session()->put($this->selectionSessionKey($request), true);
+        $this->rememberSelectedAccount($request, $account);
 
         return redirect()->route($this->routeName($request, 'inbox'));
     }
@@ -364,18 +360,58 @@ class MailController extends Controller
     private function currentAccount(Request $request): ?MailAccessAccount
     {
         if ($request->session()->get($this->selectionSessionKey($request), false) !== true) {
-            return null;
+            return $this->selectDefaultAccount($request);
         }
 
         $accountId = $request->session()->get($this->sessionKey($request));
 
         if (! is_numeric($accountId)) {
-            return null;
+            return $this->selectDefaultAccount($request);
         }
 
         return $this->availableAccountQuery($request)
             ->whereKey((int) $accountId)
-            ->first();
+            ->first() ?? $this->selectDefaultAccount($request);
+    }
+
+    /**
+     * Business email selects the first account by email domain automatically, so users never pick one manually.
+     */
+    private function selectDefaultAccount(Request $request): ?MailAccessAccount
+    {
+        if (! $this->isBusinessEmailRoute($request)) {
+            return null;
+        }
+
+        $account = $this->orderedAvailableAccounts($request)->first();
+
+        if ($account instanceof MailAccessAccount) {
+            $this->rememberSelectedAccount($request, $account);
+        }
+
+        return $account;
+    }
+
+    private function rememberSelectedAccount(Request $request, MailAccessAccount $account): void
+    {
+        $account->forceFill(['last_login_at' => now()])->save();
+
+        $request->session()->put($this->sessionKey($request), $account->id);
+        $request->session()->put($this->selectionSessionKey($request), true);
+    }
+
+    /**
+     * @return Collection<int, MailAccessAccount>
+     */
+    private function orderedAvailableAccounts(Request $request): Collection
+    {
+        return $this->availableAccountQuery($request)
+            ->get()
+            ->sortBy([
+                fn (MailAccessAccount $first, MailAccessAccount $second): int => strcmp($this->emailDomain((string) $first->email), $this->emailDomain((string) $second->email)),
+                fn (MailAccessAccount $first, MailAccessAccount $second): int => strcmp($this->normalizeEmail((string) $first->email), $this->normalizeEmail((string) $second->email)),
+            ])
+            ->values();
     }
 
     private function authorizeMailFeatureAccess(Request $request): void
@@ -474,9 +510,7 @@ class MailController extends Controller
         return array_merge($data, [
             'mailFeatureTitle' => $this->mailFeatureTitle($request),
             'mailRoutePrefix' => $this->routePrefix($request),
-            'mailAccounts' => $this->availableAccountQuery($request)
-                ->orderBy('email')
-                ->get(['id', 'email', 'type', 'company_id', 'employee_id']),
+            'mailAccounts' => $this->orderedAvailableAccounts($request),
             'selectedMailAccountId' => $selectedAccount?->id,
         ]);
     }

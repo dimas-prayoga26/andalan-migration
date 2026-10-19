@@ -198,7 +198,8 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringNotContainsString('session()->boolean(', $controller);
         $this->assertStringContainsString('authorizeMailFeatureAccess($request)', $controller);
         $this->assertStringContainsString('availableAccountQuery($request)', $controller);
-        $this->assertStringContainsString("'mailAccounts' => \$this->availableAccountQuery(\$request)", $controller);
+        $this->assertStringContainsString("'mailAccounts' => \$this->orderedAvailableAccounts(\$request)", $controller);
+        $this->assertStringContainsString('private function selectDefaultAccount(Request $request): ?MailAccessAccount', $controller);
         $this->assertStringContainsString("'selectedMailAccountId' => \$selectedAccount?->id", $controller);
         $this->assertStringContainsString('$this->isAdminOrSuperAdministrator($user)', $controller);
         $this->assertStringContainsString("where('type', MailAccessAccount::TYPE_PERSONAL)", $controller);

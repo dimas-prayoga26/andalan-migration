@@ -216,6 +216,16 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('talent-status-tabs', $applicantsView);
         $this->assertStringContainsString('talent-status-tab', $applicantsView);
         $this->assertStringContainsString('data-status-value="{{ $applicantStatus->value }}"', $applicantsView);
+        $this->assertStringContainsString('<button type="button" class="talent-status-tab active" data-status-value="" role="tab" aria-selected="true">', $applicantsView);
+        $this->assertStringContainsString('data-status-count="all"', $applicantsView);
+        $this->assertStringContainsString('data-status-count="{{ $applicantStatus->value }}"', $applicantsView);
+        $this->assertStringContainsString('talent-status-dot', $applicantsView);
+        $this->assertStringContainsString("'talent-status-tab-end' => \$applicantStatus->value === \\App\\Models\\ApplicantStatus::VALUE_NOT_SUITABLE", $applicantsView);
+        $this->assertStringContainsString('.talent-status-tab.status-value-5', $applicantsView);
+        $this->assertStringContainsString("\$('#applicantsTable').on('xhr.dt'", $applicantsView);
+        $this->assertStringContainsString('updateApplicantStatusCounts', $applicantsView);
+        $this->assertStringContainsString("selectedApplicantStatus = \$tab.attr('data-status-value');", $applicantsView);
+        $this->assertStringContainsString('->with($this->applicantStatusCounts($request))', $controller);
         $this->assertStringContainsString('selectedApplicantStatus', $applicantsView);
         $this->assertStringNotContainsString('$.fn.dataTable.ext.search.push', $applicantsView);
         $this->assertStringContainsString('applicantsTable.ajax.reload();', $applicantsView);

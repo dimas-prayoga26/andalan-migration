@@ -26,14 +26,15 @@ class HrMeetingTaskAttachmentDisplayTest extends TestCase
         $this->assertStringContainsString('<i class="fa fa-paperclip me-1" aria-hidden="true"></i>Attachment', $taskScriptView);
         $this->assertStringContainsString('+ renderTaskAttachmentLink(task) +', $taskScriptView);
 
-        $this->assertStringContainsString("'tasks.projectTask:id,attachment_path'", $controller);
-        $this->assertStringContainsString('$meetingAttachmentUrl = trim((string) ($meeting->attachment_link ?? \'\'))', $controller);
-        $this->assertStringContainsString("'task_attachment_url' => \$taskAttachmentUrl", $controller);
-        $this->assertStringContainsString('$meeting[\'task_attachment_url\']', $staffIndexView);
+        $this->assertStringNotContainsString("'tasks.projectTask:id,attachment_path'", $controller);
+        $this->assertStringContainsString("'attachment_url' => trim((string) (\$meeting->attachment_link ?? ''))", $controller);
+        $this->assertStringNotContainsString('task_attachment_url', $controller);
+        $this->assertStringContainsString('$meeting[\'attachment_url\']', $staffIndexView);
+        $this->assertStringNotContainsString('task_attachment_url', $staffIndexView);
         $this->assertStringContainsString("{{ \$meeting['task_count'] }} Task", $staffIndexView);
         $this->assertStringContainsString('<span class="mx-1 text-muted">|</span>', $staffIndexView);
         $this->assertStringContainsString('<i class="fa fa-paperclip me-1" aria-hidden="true"></i>Attachment', $staffIndexView);
-        $this->assertStringNotContainsString('{{ $meeting[\'task_attachment_url\'] }}</a>', $staffIndexView);
+        $this->assertStringNotContainsString('{{ $meeting[\'attachment_url\'] }}</a>', $staffIndexView);
 
         $this->assertStringContainsString("Route::put('/zoom-meeting/{hrMeeting}/tasks/{hrMeetingTask}'", $routes);
         $this->assertStringContainsString('updateStaffTask', $controller);

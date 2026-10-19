@@ -70,9 +70,9 @@
                         <span>
                             <i class="bi bi-check2-circle me-1"></i>
                             {{ $meeting['task_count'] }} Task
-                            @if ($meeting['task_attachment_url'] ?? false)
+                            @if ($meeting['attachment_url'] ?? false)
                                 <span class="mx-1 text-muted">|</span>
-                                <a href="{{ $meeting['task_attachment_url'] }}" target="_blank" rel="noopener noreferrer" class="text-primary fw-semibold" title="{{ $meeting['task_attachment_url'] }}" aria-label="Open task attachment">
+                                <a href="{{ $meeting['attachment_url'] }}" target="_blank" rel="noopener noreferrer" class="text-primary fw-semibold" title="{{ $meeting['attachment_url'] }}" aria-label="Open meeting attachment">
                                     <i class="fa fa-paperclip me-1" aria-hidden="true"></i>Attachment
                                 </a>
                             @endif
@@ -134,9 +134,9 @@
                         <span>
                             <i class="bi bi-check2-circle me-1"></i>
                             {{ $meeting['task_count'] }} Task
-                            @if ($meeting['task_attachment_url'] ?? false)
+                            @if ($meeting['attachment_url'] ?? false)
                                 <span class="mx-1 text-muted">|</span>
-                                <a href="{{ $meeting['task_attachment_url'] }}" target="_blank" rel="noopener noreferrer" class="text-primary fw-semibold" title="{{ $meeting['task_attachment_url'] }}" aria-label="Open task attachment">
+                                <a href="{{ $meeting['attachment_url'] }}" target="_blank" rel="noopener noreferrer" class="text-primary fw-semibold" title="{{ $meeting['attachment_url'] }}" aria-label="Open meeting attachment">
                                     <i class="fa fa-paperclip me-1" aria-hidden="true"></i>Attachment
                                 </a>
                             @endif

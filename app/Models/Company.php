@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Company extends Model
 {
@@ -72,6 +73,21 @@ class Company extends Model
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class, 'company_id', 'id');
+    }
+
+    /**
+     * Brand keys from config/career_brands.php, which match company names case-insensitively.
+     *
+     * @return list<string>
+     */
+    public static function careerBrandKeys(): array
+    {
+        return array_keys((array) config('career_brands.brands', []));
+    }
+
+    public function scopeHasCareerBrand(Builder $query): Builder
+    {
+        return $query->whereIn(DB::raw('LOWER(name)'), static::careerBrandKeys());
     }
 
     public function scopeActiveForMailManagement(Builder $query): Builder

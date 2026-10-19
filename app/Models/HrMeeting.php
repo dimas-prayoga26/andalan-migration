@@ -49,11 +49,6 @@ class HrMeeting extends Model
         return $this->hasMany(HrMeetingTask::class, 'hr_meeting_id', 'id');
     }
 
-    public function attachments(): HasMany
-    {
-        return $this->hasMany(HrMeetingAttachment::class, 'hr_meeting_id', 'id');
-    }
-
     public function momExports(): HasMany
     {
         return $this->hasMany(HrMeetingMomExport::class, 'hr_meeting_id', 'id');

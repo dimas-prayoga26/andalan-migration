@@ -21,6 +21,7 @@ use App\Services\ApplicantFinalAssessmentService;
 use App\Services\ApplicantTechnicalTestUploadLinkService;
 use App\Support\CareerBrand;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -70,11 +71,7 @@ class TalentAcquisitionController extends Controller
                     $statusQuery->where('value', $request->integer('status_value'));
                 });
             })
-            ->when($request->filled('job_vacancy_name'), function ($query) use ($request): void {
-                $query->whereHas('jobVacancy', function ($jobVacancyQuery) use ($request): void {
-                    $jobVacancyQuery->where('name', (string) $request->query('job_vacancy_name'));
-                });
-            })
+            ->tap(fn ($query) => $this->filterApplicantsByJobVacancyName($query, $request))
             ->latest('created_at')
             ->get()
             ->map(fn (Applicant $applicant): array => [
@@ -88,7 +85,42 @@ class TalentAcquisitionController extends Controller
             ])
             ->values();
 
-        return DataTables::collection($applicants)->toJson();
+        return DataTables::collection($applicants)
+            ->with($this->applicantStatusCounts($request))
+            ->toJson();
+    }
+
+    /**
+     * Count applicants per status for the filter tabs, honoring the position filter but not the status filter.
+     *
+     * @return array{status_counts: array<string, int>, total_count: int}
+     */
+    private function applicantStatusCounts(Request $request): array
+    {
+        $statusCounts = ApplicantStatus::query()
+            ->withCount(['applicants' => fn ($query) => $this->filterApplicantsByJobVacancyName($query, $request)])
+            ->orderBy('value')
+            ->get(['id', 'value'])
+            ->mapWithKeys(fn (ApplicantStatus $applicantStatus): array => [
+                (string) $applicantStatus->value => (int) $applicantStatus->applicants_count,
+            ])
+            ->all();
+
+        return [
+            'status_counts' => $statusCounts,
+            'total_count' => Applicant::query()
+                ->tap(fn ($query) => $this->filterApplicantsByJobVacancyName($query, $request))
+                ->count(),
+        ];
+    }
+
+    private function filterApplicantsByJobVacancyName(Builder $query, Request $request): void
+    {
+        $query->when($request->filled('job_vacancy_name'), function (Builder $query) use ($request): void {
+            $query->whereHas('jobVacancy', function ($jobVacancyQuery) use ($request): void {
+                $jobVacancyQuery->where('name', (string) $request->query('job_vacancy_name'));
+            });
+        });
     }
 
     public function jobVacancies(): View
@@ -785,7 +817,8 @@ class TalentAcquisitionController extends Controller
             'company_id' => [
                 'required',
                 'string',
-                Rule::exists((new Company)->getTable(), 'id')->where('is_active', true),
+                Rule::exists((new Company)->getTable(), 'id')->where('is_active', true)
+                    ->where(fn ($query) => $query->whereIn(DB::raw('LOWER(name)'), Company::careerBrandKeys())),
             ],
             'name' => [
                 'required',
@@ -891,6 +924,7 @@ class TalentAcquisitionController extends Controller
     {
         return Company::query()
             ->where('is_active', true)
+            ->hasCareerBrand()
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn (Company $company): array => [

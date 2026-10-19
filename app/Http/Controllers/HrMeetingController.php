@@ -35,10 +35,6 @@ class HrMeetingController extends Controller
             $employee->loadMissing('deployment.position', 'deployment.positions');
 
             $baseQuery = HrMeeting::query()
-                ->with([
-                    'tasks:id,hr_meeting_id,project_task_id',
-                    'tasks.projectTask:id,attachment_path',
-                ])
                 ->withCount([
                     'participants as joined_count' => fn ($query) => $query->where('attendance_status', 'joined'),
                     'tasks',
@@ -257,14 +253,6 @@ class HrMeetingController extends Controller
 
             $this->syncParticipants($meeting, $validated['participant_group'] ?? 'all_staff', $validated['participant_ids'] ?? []);
 
-            if (! empty($validated['attachment_link'])) {
-                $meeting->attachments()->create([
-                    'type' => 'presentation',
-                    'name' => 'Presentation Link',
-                    'url' => $validated['attachment_link'],
-                ]);
-            }
-
             return $meeting;
         });
 
@@ -381,7 +369,6 @@ class HrMeetingController extends Controller
                 ->delete();
 
             $hrMeeting->participants()->delete();
-            $hrMeeting->attachments()->delete();
             $hrMeeting->momExports()->update(['hr_meeting_id' => null]);
             $hrMeeting->tasks()->delete();
 
@@ -1085,11 +1072,6 @@ class HrMeetingController extends Controller
      */
     private function staffMeetingCardData(HrMeeting $meeting, bool $forceZeroTasks = false): array
     {
-        $taskAttachmentUrl = $meeting->tasks
-            ->map(fn (HrMeetingTask $task): string => trim((string) ($task->projectTask?->attachment_path ?? '')))
-            ->first(static fn (string $attachmentPath): bool => $attachmentPath !== '') ?? '';
-        $meetingAttachmentUrl = trim((string) ($meeting->attachment_link ?? ''));
-
         return [
             'id' => (string) $meeting->id,
             'title' => $this->meetingTypeLabels()[$meeting->type] ?? $meeting->type,
@@ -1097,7 +1079,7 @@ class HrMeetingController extends Controller
             'date_time' => trim(($meeting->meeting_date?->format('d M') ?? '-').' '.substr((string) $meeting->meeting_time, 0, 5).' WIB'),
             'joined_count' => (int) ($meeting->joined_count ?? 0),
             'task_count' => $forceZeroTasks ? 0 : (int) ($meeting->tasks_count ?? 0),
-            'task_attachment_url' => $taskAttachmentUrl !== '' ? $taskAttachmentUrl : $meetingAttachmentUrl,
+            'attachment_url' => trim((string) ($meeting->attachment_link ?? '')),
             'meeting_link' => $meeting->meeting_link,
             'join_url' => route('zoom-meeting.join', $meeting),
             'details_url' => route('zoom-meeting.details', $meeting),

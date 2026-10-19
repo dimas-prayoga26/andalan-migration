@@ -71,25 +71,110 @@
         .talent-status-tabs {
             display: flex;
             flex-wrap: wrap;
+            align-items: center;
             gap: 0.5rem;
             margin: 0 0 1rem;
         }
 
         .talent-status-tab {
+            --talent-status-color: #1239b3;
+            --talent-status-bg: #e8eefc;
+            --talent-status-border: #1d4ed8;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
             min-height: 36px;
-            border: 1px solid #d9dce5;
-            border-radius: 0.45rem;
+            border: 1px solid #e2e5ec;
+            border-radius: 999px;
             background: #fff;
             color: #5f6b7a;
             font-size: 0.85rem;
             font-weight: 700;
-            padding: 0.35rem 0.75rem;
+            line-height: 1.2;
+            padding: 0.3rem 0.4rem 0.3rem 0.85rem;
+            transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+        }
+
+        .talent-status-tab:hover {
+            border-color: var(--talent-status-border);
+            color: var(--talent-status-color);
         }
 
         .talent-status-tab.active {
-            border-color: #1d4ed8;
-            background: #e8eefc;
-            color: #1239b3;
+            border-color: var(--talent-status-border);
+            background: var(--talent-status-bg);
+            color: var(--talent-status-color);
+        }
+
+        .talent-status-tab.status-value-0 {
+            --talent-status-color: #4b5563;
+            --talent-status-bg: #f3f4f6;
+            --talent-status-border: #9ca3af;
+        }
+
+        .talent-status-tab.status-value-1 {
+            --talent-status-color: #2448c7;
+            --talent-status-bg: #eef2ff;
+            --talent-status-border: #818cf8;
+        }
+
+        .talent-status-tab.status-value-2 {
+            --talent-status-color: #c2410c;
+            --talent-status-bg: #fff7ed;
+            --talent-status-border: #fb923c;
+        }
+
+        .talent-status-tab.status-value-3 {
+            --talent-status-color: #0e7490;
+            --talent-status-bg: #ecfeff;
+            --talent-status-border: #22d3ee;
+        }
+
+        .talent-status-tab.status-value-4 {
+            --talent-status-color: #047857;
+            --talent-status-bg: #ecfdf5;
+            --talent-status-border: #34d399;
+        }
+
+        .talent-status-tab.status-value-5 {
+            --talent-status-color: #be123c;
+            --talent-status-bg: #fff1f2;
+            --talent-status-border: #fb7185;
+        }
+
+        .talent-status-tab-end {
+            margin-left: auto;
+        }
+
+        .talent-status-dot {
+            width: 8px;
+            height: 8px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: var(--talent-status-color);
+        }
+
+        .talent-status-count {
+            min-width: 1.6rem;
+            border-radius: 999px;
+            background: #f1f3f7;
+            color: #64748b;
+            font-size: 0.75rem;
+            font-weight: 700;
+            line-height: 1;
+            padding: 0.3rem 0.45rem;
+            text-align: center;
+        }
+
+        .talent-status-tab.active .talent-status-count {
+            background: var(--talent-status-color);
+            color: #fff;
+        }
+
+        .talent-status-divider {
+            width: 1px;
+            height: 22px;
+            background: #e2e5ec;
         }
 
         .talent-photo {
@@ -430,6 +515,10 @@
                 max-width: 100%;
             }
 
+            .talent-status-tab-end {
+                margin-left: 0;
+            }
+
             #applicantsTable_wrapper .dt-layout-row:first-child {
                 align-items: stretch;
                 flex-direction: column;
@@ -507,9 +596,20 @@
                 </div>
 
                 <div class="talent-status-tabs" role="tablist" aria-label="Filter status pelamar">
+                    <button type="button" class="talent-status-tab active" data-status-value="" role="tab" aria-selected="true">
+                        Semua
+                        <span class="talent-status-count" data-status-count="all">&ndash;</span>
+                    </button>
+                    <span class="talent-status-divider" aria-hidden="true"></span>
                     @foreach ($applicantStatuses as $applicantStatus)
-                        <button type="button" class="talent-status-tab" data-status-value="{{ $applicantStatus->value }}" role="tab" aria-selected="false">
+                        <button type="button" @class([
+                            'talent-status-tab',
+                            'status-value-'.$applicantStatus->value,
+                            'talent-status-tab-end' => $applicantStatus->value === \App\Models\ApplicantStatus::VALUE_NOT_SUITABLE,
+                        ]) data-status-value="{{ $applicantStatus->value }}" role="tab" aria-selected="false">
+                            <span class="talent-status-dot" aria-hidden="true"></span>
                             {{ $applicantStatus->name }}
+                            <span class="talent-status-count" data-status-count="{{ $applicantStatus->value }}">&ndash;</span>
                         </button>
                     @endforeach
                 </div>
@@ -619,8 +719,25 @@
                 + '</div>';
         }
 
+        function updateApplicantStatusCounts(json) {
+            if (!json || !json.status_counts) {
+                return;
+            }
+
+            $('[data-status-count]').each(function () {
+                var countKey = $(this).attr('data-status-count');
+                var count = countKey === 'all' ? json.total_count : json.status_counts[countKey];
+
+                $(this).text(Number(count || 0));
+            });
+        }
+
         $(function () {
             var selectedApplicantStatus = '';
+
+            $('#applicantsTable').on('xhr.dt', function (event, settings, json) {
+                updateApplicantStatusCounts(json);
+            });
 
             var applicantsTable = $('#applicantsTable').DataTable({
                 ajax: {
@@ -683,18 +800,18 @@
 
             $('.talent-status-tab').on('click', function () {
                 var $tab = $(this);
-                var statusValue = String($tab.data('status-value'));
-                var isActive = $tab.hasClass('active');
 
-                selectedApplicantStatus = isActive ? '' : statusValue;
+                if ($tab.hasClass('active')) {
+                    return;
+                }
+
+                selectedApplicantStatus = $tab.attr('data-status-value');
 
                 $('.talent-status-tab')
                     .removeClass('active')
                     .attr('aria-selected', 'false');
 
-                if (!isActive) {
-                    $tab.addClass('active').attr('aria-selected', 'true');
-                } 
+                $tab.addClass('active').attr('aria-selected', 'true');
 
                 applicantsTable.ajax.reload();
             });

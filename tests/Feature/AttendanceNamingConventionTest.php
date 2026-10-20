@@ -18,7 +18,6 @@ class AttendanceNamingConventionTest extends TestCase
             'attendance.store',
             'attendance.update',
             'attendance.current-ip',
-            'attendance.verify-telegram-username',
             'attendance.exceptions.store',
             'attendance.reports',
             'attendance.reports.datatable',

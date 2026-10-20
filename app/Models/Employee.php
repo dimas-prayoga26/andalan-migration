@@ -142,11 +142,6 @@ class Employee extends Model
         return $this->hasMany(AttendanceOvertime::class, 'employee_id', 'id');
     }
 
-    public function telegramUser(): HasOne
-    {
-        return $this->hasOne(TelegramUser::class, 'employee_id', 'id');
-    }
-
     public function hasPositionName(string $positionName): bool
     {
         return $this->hasAnyPositionName([$positionName]);

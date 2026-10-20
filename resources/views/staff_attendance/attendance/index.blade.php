@@ -904,13 +904,10 @@
 
 @section('script')
     @php
-        $dashboardJsPath = public_path('assets/js/dashboard.js');
-        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
         $fullCalendarJsPath = public_path('assets/vendor/fullcalendar/js/main.js');
         $fullCalendarJsVersion = file_exists($fullCalendarJsPath) ? filemtime($fullCalendarJsPath) : time();
     @endphp
     <script src="{{ asset('assets/vendor/fullcalendar/js/main.js') }}?v={{ $fullCalendarJsVersion }}"></script>
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>

@@ -262,7 +262,6 @@
 @endsection
 
 @section('script')
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ file_exists(public_path('assets/js/dashboard.js')) ? filemtime(public_path('assets/js/dashboard.js')) : time() }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             if (!window.jQuery || !jQuery.fn.daterangepicker || typeof moment === 'undefined') {

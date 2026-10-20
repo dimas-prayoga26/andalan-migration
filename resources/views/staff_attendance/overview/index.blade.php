@@ -353,13 +353,10 @@
 
 @section('script')
     @php
-        $dashboardJsPath = public_path('assets/js/dashboard.js');
-        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
         $chartJsPath = public_path('assets/vendor/chart-js/chart.bundle.min.js');
         $chartJsVersion = file_exists($chartJsPath) ? filemtime($chartJsPath) : time();
     @endphp
     <script src="{{ asset('assets/vendor/chart-js/chart.bundle.min.js') }}?v={{ $chartJsVersion }}"></script>
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
         function isMobileChartViewport() {
             return window.matchMedia('(max-width: 767.98px)').matches;

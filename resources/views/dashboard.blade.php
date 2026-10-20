@@ -74,7 +74,6 @@
 @section('content')
 
     @php
-        $showDashboardMenuCarousel = false;
         $showDashboardInactiveShortcuts = false;
         $dashboardUser = auth()->user();
         $canViewDashboardEmployeeShortcut = false;
@@ -99,169 +98,6 @@
     <div class="row">
 
         <div class="col-xl-12 col-xxl-12">
-            <div class="row">
-
-                @if ($showDashboardMenuCarousel)
-                <div class="dashboard-menu-carousel owl-carousel">
-                    <!-- Start - Laporan Pekerjaan -->
-                    <div class="dashboard-activity-item">
-                        <div class="card overflow-hidden avtivity-card">
-                            <div class="card-body">
-                                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                                    <span class="avatar avatar-lg avatar-success rounded-circle border-0">
-                                        <i class="fa-solid fa-clipboard-list fs-1 text-success"></i>
-                                    </span>
-                                    <div>
-                                        <p class="fs-12 mb-2">Laporan Pekerjaan</p>
-                                        <span class="title text-black fs-20 fw-semibold">128 Laporan</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar bg-success position-absolute rounded bootom-0" style="width: 100%; height:5px;" aria-label="Progess-success" role="progressbar">
-                                            <span class="sr-only">76% Complete</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="effect bg-success"></div>
-                        </div>
-                    </div>
-                    <!-- End - Laporan Pekerjaan -->
-
-                    <!-- Start - Agenda Kegiatan -->
-                    <div class="dashboard-activity-item">
-                        <div class="card overflow-hidden avtivity-card">
-                            <div class="card-body">
-                                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                                    <span class="avatar avatar-lg avatar-secondary rounded-circle border-0">
-                                        <i class="fa-solid fa-calendar-days fs-1 text-secondary"></i>
-                                    </span>
-                                    <div>
-                                        <p class="fs-12 mb-2">Agenda Kegiatan</p>
-                                        <span class="title text-black fs-20 fw-semibold">24 Agenda</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-secondary" style="width: 100%; height:5px;" aria-label="Progess-secondary" role="progressbar">
-                                            <span class="sr-only">58% Complete</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="effect bg-secondary"></div>
-                        </div>
-                    </div>
-                    <!-- End - Agenda Kegiatan -->
-
-                    <!-- Start - Attendance Data -->
-                    <div class="dashboard-activity-item">
-                        <div class="card overflow-hidden avtivity-card">
-                            <div class="card-body">
-                                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                                    <span class="avatar avatar-lg avatar-danger rounded-circle border-0">
-                                        <i class="fa-solid fa-fingerprint fs-1 text-danger"></i>
-                                    </span>
-                                    <div>
-                                        <p class="fs-12 mb-2">Attendance Data</p>
-                                        <span class="title text-black fs-20 fw-semibold">97% Kehadiran</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-danger" style="width: 100%; height:5px;" aria-label="Progess-danger"  role="progressbar">
-                                            <span class="sr-only">97% Complete</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="effect bg-danger"></div>
-                        </div>
-                    </div>
-                    <!-- End - Attendance Data -->
-
-                    <!-- Start - Data Pelamar -->
-                    <div class="dashboard-activity-item">
-                        <div class="card overflow-hidden avtivity-card">
-                            <div class="card-body">
-                                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                                    <span class="avatar avatar-lg avatar-warning rounded-circle border-0">
-                                        <i class="fa-solid fa-id-card fs-1 text-warning"></i>
-                                    </span>
-                                    <div>
-                                        <p class="fs-12 mb-2">Data Pelamar</p>
-                                        <span class="title text-black fs-20 fw-semibold">36 Pelamar</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-warning" style="width: 100%; height:5px;" role="progressbar">
-                                            <span class="sr-only">64% Complete</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="effect bg-warning"></div>
-                        </div>
-                    </div>
-                    <!-- End - Data Pelamar -->
-
-                    <!-- Start - Data Karyawan -->
-                    <div class="dashboard-activity-item">
-                        <div class="card overflow-hidden avtivity-card">
-                            <div class="card-body">
-                                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                                    <span class="avatar avatar-lg avatar-primary rounded-circle border-0">
-                                        <i class="fa-solid fa-users fs-1 text-primary"></i>
-                                    </span>
-                                    <div>
-                                        <p class="fs-12 mb-2">Data Karyawan</p>
-                                        <span class="title text-black fs-20 fw-semibold">245 Karyawan</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-primary" style="width: 100%; height:5px;" role="progressbar">
-                                            <span class="sr-only">70% Complete</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="effect bg-primary"></div>
-                        </div>
-                    </div>
-                    <!-- End - Data Karyawan -->
-
-                    <!-- Start - Blog Management -->
-                    <div class="dashboard-activity-item">
-                        <div class="card overflow-hidden avtivity-card">
-                            <div class="card-body">
-                                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                                    <span class="avatar avatar-lg avatar-info rounded-circle border-0">
-                                        <i class="fa-solid fa-newspaper fs-1 text-info"></i>
-                                    </span>
-                                    <div>
-                                        <p class="fs-12 mb-2">Blog Management</p>
-                                        <span class="title text-black fs-20 fw-semibold">18 Artikel</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-info" style="width: 100%; height:5px;" role="progressbar">
-                                            <span class="sr-only">54% Complete</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="effect bg-info"></div>
-                        </div>
-                    </div>
-                    <!-- End - Blog Management -->
-                </div>
-                @endif
-
-            </div>
 
             @if (! empty($dashboardIncomingMeeting))
                 <div class="row mb-3">
@@ -703,7 +539,6 @@
             $dashboardCarbonWeekdays[$weekdayDate->dayOfWeek] = $weekdayDate->translatedFormat('l');
         }
     @endphp
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ file_exists(public_path('assets/js/dashboard.js')) ? filemtime(public_path('assets/js/dashboard.js')) : time() }}"></script>
     <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}?v={{ $sweetAlertJsVersion }}"></script>
     <script>
         (function () {
@@ -741,7 +576,6 @@
             var storeAttendanceUrl = @json(route('attendance.store'));
             var updateAttendanceUrlTemplate = @json(url('/attendance/__ATTENDANCE_ID__'));
             var currentIpUrl = @json(route('attendance.current-ip'));
-            var verifyTelegramUsernameUrl = @json(route('attendance.verify-telegram-username'));
             var userActivityLogUrl = @json(\Illuminate\Support\Facades\Route::has('user-activity-log.store') ? route('user-activity-log.store') : null);
             var csrfToken = @json(csrf_token());
             var dashboardClockBaseEpochMs = @json($dashboardCarbonClockNow->getTimestamp() * 1000);
@@ -774,7 +608,6 @@
                     ipBadgeElement: clockInIpBadgeElement,
                     submitButtonElement: clockInSubmitButton,
                     hasVerifiedOnsite: false,
-                    hasVerifiedTelegram: false,
                     latestUserCoordinates: null,
                     mapInstance: null,
                     officeRadiusCircle: null,
@@ -794,7 +627,6 @@
                     ipBadgeElement: clockOutIpBadgeElement,
                     submitButtonElement: clockOutSubmitButton,
                     hasVerifiedOnsite: false,
-                    hasVerifiedTelegram: false,
                     latestUserCoordinates: null,
                     mapInstance: null,
                     officeRadiusCircle: null,
@@ -891,7 +723,6 @@
                 }
 
                 context.hasVerifiedOnsite = false;
-                context.hasVerifiedTelegram = false;
                 context.latestUserCoordinates = null;
                 if (context.verifyButtonElement) {
                     context.verifyButtonElement.classList.remove('d-none');
@@ -982,13 +813,11 @@
             function renderSubmitButtons() {
                 if (clockInSubmitButton) {
                     clockInSubmitButton.disabled = !modalContext.clockIn.hasVerifiedOnsite
-                        || !modalContext.clockIn.hasVerifiedTelegram
                         || attendanceState.hasCheckedInToday;
                 }
 
                 if (clockOutSubmitButton) {
                     clockOutSubmitButton.disabled = !modalContext.clockOut.hasVerifiedOnsite
-                        || !modalContext.clockOut.hasVerifiedTelegram
                         || !attendanceState.hasCheckedInToday
                         || attendanceState.hasCheckedOutToday
                         || attendanceState.hasEarlyDepartureExceptionToday
@@ -1195,36 +1024,6 @@
                 context.mapInstance.panTo(userPosition);
             }
 
-            function verifyTelegramUsernameSync() {
-                return new Promise(function (resolve, reject) {
-                    if (!verifyTelegramUsernameUrl) {
-                        reject(new Error('Endpoint verifikasi Telegram belum tersedia.'));
-                        return;
-                    }
-
-                    $.ajax({
-                        url: verifyTelegramUsernameUrl,
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': csrfToken
-                        }
-                    }).done(function (response) {
-                        if (response && response.success) {
-                            resolve(response);
-                            return;
-                        }
-
-                        reject(new Error(response && response.message ? response.message : 'Verifikasi Telegram gagal.'));
-                    }).fail(function (xhr) {
-                        var errorMessage = 'Verifikasi Telegram gagal.';
-                        if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMessage = xhr.responseJSON.message;
-                        }
-                        reject(new Error(errorMessage));
-                    });
-                });
-            }
-
             function logUserActivity(eventName, metadata) {
                 if (!userActivityLogUrl || !eventName) {
                     return;
@@ -1250,7 +1049,6 @@
 
                 if (!navigator.geolocation) {
                     context.hasVerifiedOnsite = false;
-                    context.hasVerifiedTelegram = false;
                     setVerificationMessage(context, 'Browser tidak mendukung geolocation.', 'error');
                     renderSubmitButtons();
                     return;
@@ -1258,14 +1056,12 @@
 
                 if (!window.isSecureContext) {
                     context.hasVerifiedOnsite = false;
-                    context.hasVerifiedTelegram = false;
                     setVerificationMessage(context, 'Geolocation hanya jalan di HTTPS atau localhost.', 'error');
                     renderSubmitButtons();
                     return;
                 }
 
                 context.hasVerifiedOnsite = false;
-                context.hasVerifiedTelegram = false;
                 if (context.verifyButtonElement) {
                     context.verifyButtonElement.classList.add('d-none');
                 }
@@ -1273,34 +1069,26 @@
                 setVerificationMessage(context, 'Please wait', 'muted');
                 renderSubmitButtons();
 
-                verifyTelegramUsernameSync().then(function () {
-                    context.hasVerifiedTelegram = true;
-                    navigator.geolocation.getCurrentPosition(
-                        function (position) {
-                            updateUserLocationOnMap(context, position);
-                            setVerificationMessage(context, 'Verification successful', 'success');
-                            renderSubmitButtons();
-                            logUserActivity(context.type + '_verified', {
-                                has_coordinates: true
-                            });
-                        },
-                        function () {
-                            context.hasVerifiedOnsite = false;
-                            renderSubmitButtons();
-                            setVerificationMessage(context, 'Gagal mendapatkan lokasi.', 'error');
-                        },
-                        {
-                            enableHighAccuracy: true,
-                            timeout: 15000,
-                            maximumAge: 0
-                        }
-                    );
-                }).catch(function (error) {
-                    context.hasVerifiedTelegram = false;
-                    context.hasVerifiedOnsite = false;
-                    renderSubmitButtons();
-                    setVerificationMessage(context, error && error.message ? error.message : 'Verifikasi Telegram gagal.', 'error');
-                });
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        updateUserLocationOnMap(context, position);
+                        setVerificationMessage(context, 'Verification successful', 'success');
+                        renderSubmitButtons();
+                        logUserActivity(context.type + '_verified', {
+                            has_coordinates: true
+                        });
+                    },
+                    function () {
+                        context.hasVerifiedOnsite = false;
+                        renderSubmitButtons();
+                        setVerificationMessage(context, 'Gagal mendapatkan lokasi.', 'error');
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 0
+                    }
+                );
             }
 
             function resolveCurrentCoordinatesForAttendance(context) {
@@ -1360,7 +1148,7 @@
                     return;
                 }
 
-                if (!(context.hasVerifiedOnsite && context.hasVerifiedTelegram)) {
+                if (!context.hasVerifiedOnsite) {
                     setVerificationMessage(context, 'Harap verifikasi terlebih dahulu sebelum absen.', 'warning');
                     renderSubmitButtons();
                     return;

@@ -14,7 +14,6 @@ use App\Services\Attendance\AttendanceCalendarEventService;
 use App\Services\Attendance\AttendanceCardsViewDataService;
 use App\Services\Attendance\AttendanceIpVerificationService;
 use App\Services\Attendance\AttendanceMutationService;
-use App\Services\Attendance\TelegramVerificationService;
 use App\Services\UserActivityLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -27,7 +26,6 @@ class AttendanceController extends Controller
         private AttendanceMutationService $attendanceMutationService,
         private AttendanceCalendarEventService $attendanceCalendarEventService,
         private AttendanceIpVerificationService $attendanceIpVerificationService,
-        private TelegramVerificationService $telegramVerificationService,
         private UserActivityLogger $userActivityLogger
     ) {}
 
@@ -142,13 +140,6 @@ class AttendanceController extends Controller
                 Auth::id()
             )
         );
-    }
-
-    public function verifyTelegramUsername(): JsonResponse
-    {
-        $verificationResult = $this->telegramVerificationService->verify(Auth::user());
-
-        return response()->json($verificationResult['payload'], $verificationResult['status']);
     }
 
     public function storeException(StoreAttendanceExceptionRequest $request): JsonResponse

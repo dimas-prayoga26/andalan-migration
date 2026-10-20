@@ -364,7 +364,6 @@
             var updateAttendanceUrlTemplate = @json(url('/attendance/__ATTENDANCE_ID__'));
             var projectManagementIndexUrl = @json(route('project_management'));
             var currentIpUrl = @json(route('attendance.current-ip'));
-            var verifyTelegramUsernameUrl = @json(route('attendance.verify-telegram-username'));
             var storeAttendanceExceptionUrl = @json(route('attendance.exceptions.store'));
             var userActivityLogUrl = @json(\Illuminate\Support\Facades\Route::has('user-activity-log.store') ? route('user-activity-log.store') : null);
             var csrfToken = @json(csrf_token());
@@ -393,7 +392,6 @@
                     ipBadgeElement: clockInIpBadgeElement,
                     submitButtonElement: clockInSubmitButton,
                     hasVerifiedOnsite: false,
-                    hasVerifiedTelegram: false,
                     latestUserCoordinates: null,
                     mapInstance: null,
                     officeMarker: null,
@@ -414,7 +412,6 @@
                     ipBadgeElement: clockOutIpBadgeElement,
                     submitButtonElement: clockOutSubmitButton,
                     hasVerifiedOnsite: false,
-                    hasVerifiedTelegram: false,
                     latestUserCoordinates: null,
                     mapInstance: null,
                     officeMarker: null,
@@ -535,7 +532,6 @@
                 }
 
                 context.hasVerifiedOnsite = false;
-                context.hasVerifiedTelegram = false;
                 context.latestUserCoordinates = null;
                 if (context.verifyButtonElement) {
                     context.verifyButtonElement.classList.remove('d-none');
@@ -630,12 +626,10 @@
             function renderSubmitButtons() {
                 if (clockInSubmitButton) {
                     clockInSubmitButton.disabled = !modalContext.clockIn.hasVerifiedOnsite
-                        || !modalContext.clockIn.hasVerifiedTelegram
                         || attendanceState.hasCheckedInToday;
                 }
                 if (clockOutSubmitButton) {
                     clockOutSubmitButton.disabled = !modalContext.clockOut.hasVerifiedOnsite
-                        || !modalContext.clockOut.hasVerifiedTelegram
                         || !attendanceState.hasCheckedInToday
                         || attendanceState.hasCheckedOutToday
                         || attendanceState.hasEarlyDepartureExceptionToday
@@ -894,36 +888,6 @@
                 renderSubmitButtons();
             }
 
-            function verifyTelegramUsernameSync() {
-                return new Promise(function (resolve, reject) {
-                    if (!verifyTelegramUsernameUrl) {
-                        reject(new Error('Endpoint verifikasi Telegram belum tersedia.'));
-                        return;
-                    }
-
-                    $.ajax({
-                        url: verifyTelegramUsernameUrl,
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': csrfToken
-                        }
-                    }).done(function (response) {
-                        if (response && response.success) {
-                            resolve(response);
-                            return;
-                        }
-
-                        reject(new Error(response && response.message ? response.message : 'Verifikasi Telegram gagal.'));
-                    }).fail(function (xhr) {
-                        var errorMessage = 'Verifikasi Telegram gagal.';
-                        if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMessage = xhr.responseJSON.message;
-                        }
-                        reject(new Error(errorMessage));
-                    });
-                });
-            }
-
             function logUserActivity(eventName, metadata) {
                 if (!userActivityLogUrl || !eventName) {
                     return;
@@ -949,7 +913,6 @@
 
                 if (!navigator.geolocation) {
                     context.hasVerifiedOnsite = false;
-                    context.hasVerifiedTelegram = false;
                     setOnsiteStatus(context, 'Browser tidak mendukung geolocation');
                     setVerificationMessage(context, 'Browser tidak mendukung geolocation', 'error');
                     renderSubmitButtons();
@@ -958,7 +921,6 @@
 
                 if (!window.isSecureContext) {
                     context.hasVerifiedOnsite = false;
-                    context.hasVerifiedTelegram = false;
                     setOnsiteStatus(context, 'Geolocation hanya jalan di HTTPS atau localhost');
                     setVerificationMessage(context, 'Geolocation hanya jalan di HTTPS atau localhost', 'error');
                     renderSubmitButtons();
@@ -966,7 +928,6 @@
                 }
 
                 context.hasVerifiedOnsite = false;
-                context.hasVerifiedTelegram = false;
                 if (context.verifyButtonElement) {
                     context.verifyButtonElement.classList.add('d-none');
                 }
@@ -974,62 +935,53 @@
                 setVerificationMessage(context, 'Please wait', 'muted');
                 renderSubmitButtons();
 
-                verifyTelegramUsernameSync().then(function () {
-                    context.hasVerifiedTelegram = true;
-                    navigator.geolocation.getCurrentPosition(
-                        function (position) {
-                            updateUserLocationOnMap(context, position);
-                            setOnsiteStatus(context, 'Verification successful', 'success');
-                            setVerificationMessage(context, 'Verification successful', 'success');
-                            renderSubmitButtons();
-                            logUserActivity(context.type + '_verified', {
-                                has_coordinates: true
-                            });
-                        },
-                        function (error) {
-                            context.hasVerifiedOnsite = false;
-                            renderSubmitButtons();
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        updateUserLocationOnMap(context, position);
+                        setOnsiteStatus(context, 'Verification successful', 'success');
+                        setVerificationMessage(context, 'Verification successful', 'success');
+                        renderSubmitButtons();
+                        logUserActivity(context.type + '_verified', {
+                            has_coordinates: true
+                        });
+                    },
+                    function (error) {
+                        context.hasVerifiedOnsite = false;
+                        renderSubmitButtons();
 
-                            if (!error || typeof error.code === 'undefined') {
-                                setOnsiteStatus(context, 'Gagal mendapatkan lokasi');
-                                setVerificationMessage(context, 'Gagal mendapatkan lokasi', 'error');
-                                return;
-                            }
-
-                            if (error.code === 1) {
-                                setOnsiteStatus(context, 'Izin lokasi ditolak. Izinkan lokasi.');
-                                setVerificationMessage(context, 'Izin lokasi ditolak. Izinkan lokasi.', 'error');
-                                return;
-                            }
-
-                            if (error.code === 2) {
-                                setOnsiteStatus(context, 'Lokasi tidak tersedia. Aktifkan GPS/lokasi perangkat.');
-                                setVerificationMessage(context, 'Lokasi tidak tersedia. Aktifkan GPS/lokasi perangkat.', 'error');
-                                return;
-                            }
-
-                            if (error.code === 3) {
-                                setOnsiteStatus(context, 'Timeout saat mengambil lokasi. Coba lagi.');
-                                setVerificationMessage(context, 'Timeout saat mengambil lokasi. Coba lagi.', 'error');
-                                return;
-                            }
-
+                        if (!error || typeof error.code === 'undefined') {
                             setOnsiteStatus(context, 'Gagal mendapatkan lokasi');
                             setVerificationMessage(context, 'Gagal mendapatkan lokasi', 'error');
-                        },
-                        {
-                            enableHighAccuracy: true,
-                            timeout: 15000,
-                            maximumAge: 0
+                            return;
                         }
-                    );
-                }).catch(function (error) {
-                    context.hasVerifiedTelegram = false;
-                    context.hasVerifiedOnsite = false;
-                    renderSubmitButtons();
-                    setOnsiteStatus(context, error && error.message ? error.message : 'Verifikasi Telegram gagal.');
-                    setVerificationMessage(context, error && error.message ? error.message : 'Verifikasi Telegram gagal.', 'error');
-                });
+
+                        if (error.code === 1) {
+                            setOnsiteStatus(context, 'Izin lokasi ditolak. Izinkan lokasi.');
+                            setVerificationMessage(context, 'Izin lokasi ditolak. Izinkan lokasi.', 'error');
+                            return;
+                        }
+
+                        if (error.code === 2) {
+                            setOnsiteStatus(context, 'Lokasi tidak tersedia. Aktifkan GPS/lokasi perangkat.');
+                            setVerificationMessage(context, 'Lokasi tidak tersedia. Aktifkan GPS/lokasi perangkat.', 'error');
+                            return;
+                        }
+
+                        if (error.code === 3) {
+                            setOnsiteStatus(context, 'Timeout saat mengambil lokasi. Coba lagi.');
+                            setVerificationMessage(context, 'Timeout saat mengambil lokasi. Coba lagi.', 'error');
+                            return;
+                        }
+
+                        setOnsiteStatus(context, 'Gagal mendapatkan lokasi');
+                        setVerificationMessage(context, 'Gagal mendapatkan lokasi', 'error');
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 0
+                    }
+                );
             }
 
             function resolveCurrentCoordinatesForAttendance(context) {
@@ -1089,7 +1041,7 @@
                     return;
                 }
 
-                if (!(context.hasVerifiedOnsite && context.hasVerifiedTelegram)) {
+                if (!context.hasVerifiedOnsite) {
                     setOnsiteStatus(context, 'Harap verifikasi terlebih dahulu sebelum absen');
                     renderSubmitButtons();
                     return;

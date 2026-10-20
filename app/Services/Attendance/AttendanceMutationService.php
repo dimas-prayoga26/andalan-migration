@@ -2,12 +2,10 @@
 
 namespace App\Services\Attendance;
 
-use App\Http\Controllers\Support\TelegramAttendanceNotifier;
 use App\Models\Attendance;
 use App\Models\AttendanceException;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
-use App\Models\TelegramUser;
 use App\Models\User;
 use App\Support\Attendance\AttendanceExceptionPresenter;
 use App\Support\Attendance\AttendanceWorkDurationCalculator;
@@ -20,7 +18,6 @@ use Illuminate\Support\Facades\Http;
 class AttendanceMutationService
 {
     public function __construct(
-        private TelegramAttendanceNotifier $telegramAttendanceNotifier,
         private AttendanceExceptionPresenter $attendanceExceptionPresenter,
         private AttendanceWorkDurationCalculator $attendanceWorkDurationCalculator,
         private AttendanceContextService $attendanceContextService,
@@ -38,7 +35,7 @@ class AttendanceMutationService
         int|string|null $authenticatedUserId
     ): array {
         if ($authenticatedUser instanceof User) {
-            $authenticatedUser->loadMissing('employee.profile', 'employee.telegramUser');
+            $authenticatedUser->loadMissing('employee');
         }
 
         $employeeId = $authenticatedUser?->employee?->id;
@@ -121,15 +118,6 @@ class AttendanceMutationService
             }
 
             throw $queryException;
-        }
-
-        if (
-            $authenticatedUser instanceof User
-            && $this->isStaffUser($authenticatedUser)
-            && $authenticatedUser->is_telegram_verified
-            && $authenticatedUser->employee?->telegramUser instanceof TelegramUser
-        ) {
-            $this->telegramAttendanceNotifier->notifyCheckIn($authenticatedUser, $attendance);
         }
 
         return [
@@ -296,20 +284,6 @@ class AttendanceMutationService
                 ],
                 default => throw $runtimeException,
             };
-        }
-
-        if ($authenticatedUser instanceof User) {
-            $authenticatedUser->loadMissing('employee.profile', 'employee.telegramUser');
-        }
-
-        if (
-            $authenticatedUser instanceof User
-            && $this->isStaffUser($authenticatedUser)
-            && $authenticatedUser->is_telegram_verified
-            && $authenticatedUser->employee?->telegramUser instanceof TelegramUser
-        ) {
-            $updatedAttendance->refresh();
-            $this->telegramAttendanceNotifier->notifyCheckOut($authenticatedUser, $updatedAttendance);
         }
 
         return [
@@ -1138,16 +1112,5 @@ class AttendanceMutationService
             && $longitude >= -180
             && $longitude <= 180
             && ! (abs($latitude) < 0.000001 && abs($longitude) < 0.000001);
-    }
-
-    private function isStaffUser(?User $user): bool
-    {
-        if (! $user) {
-            return false;
-        }
-
-        return $user->getRoleNames()
-            ->map(fn (string $roleName): string => strtolower(trim($roleName)))
-            ->contains('staff');
     }
 }

@@ -2,127 +2,40 @@
 
 namespace Tests\Feature;
 
-use App\Models\Employee;
-use App\Models\TelegramUser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class VerifyTelegramUsernameTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_verify_telegram_username_skips_telegram_api_when_employee_already_linked(): void
+    public function test_telegram_verification_endpoint_is_removed(): void
     {
-        config(['services.telegram.bot_token' => 'test-bot-token']);
+        $user = User::factory()->activeEmployee(['view-attendance'])->create();
 
-        [$user, $employee] = $this->createAuthenticatedUserWithEmployee('staff_sync_skip');
+        $this->assertFalse(Route::has('attendance.verify-telegram-username'));
 
-        TelegramUser::query()->create([
-            'employee_id' => $employee->id,
-            'chat_id' => '123456',
-            'first_name' => 'Staff',
-            'last_name' => 'Sync',
-            'username' => 'staff_sync_skip',
-            'language_code' => 'id',
-        ]);
-
-        Http::fake();
-
-        $response = $this
-            ->actingAs($user)
-            ->postJson(route('attendance.verify-telegram-username'));
-
-        $response
-            ->assertOk()
-            ->assertJson([
-                'success' => true,
-                'message' => 'Verifikasi Telegram berhasil.',
-            ]);
-
-        Http::assertNothingSent();
+        $this->actingAs($user)
+            ->postJson('/attendance/verify-telegram-username')
+            ->assertClientError();
     }
 
-    public function test_verify_telegram_username_creates_telegram_user_when_match_found(): void
+    public function test_attendance_modals_no_longer_call_telegram_verification(): void
     {
-        config(['services.telegram.bot_token' => 'test-bot-token']);
+        $viewPaths = [
+            resource_path('views/dashboard.blade.php'),
+            resource_path('views/staff_attendance/components/attendance-cards.blade.php'),
+        ];
 
-        [$user, $employee] = $this->createAuthenticatedUserWithEmployee('staff_sync_create');
+        foreach ($viewPaths as $viewPath) {
+            $viewContents = File::get($viewPath);
 
-        Http::fake([
-            'https://api.telegram.org/*' => Http::response([
-                'ok' => true,
-                'result' => [
-                    [
-                        'update_id' => 1,
-                        'message' => [
-                            'from' => [
-                                'id' => 1001,
-                                'first_name' => 'Staff',
-                                'last_name' => 'Create',
-                                'username' => 'staff_sync_create',
-                                'language_code' => 'id',
-                            ],
-                            'chat' => [
-                                'id' => 1001,
-                                'type' => 'private',
-                            ],
-                        ],
-                    ],
-                ],
-            ], 200),
-        ]);
-
-        $response = $this
-            ->actingAs($user)
-            ->postJson(route('attendance.verify-telegram-username'));
-
-        $response
-            ->assertOk()
-            ->assertJson([
-                'success' => true,
-                'message' => 'Verifikasi Telegram berhasil.',
-            ]);
-
-        $this->assertDatabaseHas('telegram_users', [
-            'employee_id' => $employee->id,
-            'chat_id' => '1001',
-            'username' => 'staff_sync_create',
-        ]);
-    }
-
-    public function test_verify_telegram_username_returns_error_when_telegram_api_fails(): void
-    {
-        config(['services.telegram.bot_token' => 'test-bot-token']);
-
-        [$user] = $this->createAuthenticatedUserWithEmployee('staff_sync_error');
-
-        Http::fake([
-            'https://api.telegram.org/*' => Http::response(['ok' => false], 500),
-        ]);
-
-        $response = $this
-            ->actingAs($user)
-            ->postJson(route('attendance.verify-telegram-username'));
-
-        $response
-            ->assertStatus(422)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Gagal mengambil data update Telegram.',
-            ]);
-    }
-
-    /**
-     * @return array{0: User, 1: Employee}
-     */
-    private function createAuthenticatedUserWithEmployee(string $username): array
-    {
-        $user = User::factory()->activeEmployee(['view-attendance'])->create([
-            'username' => $username,
-        ]);
-
-        return [$user, $user->employee];
+            $this->assertStringNotContainsString('verifyTelegramUsername', $viewContents, $viewPath);
+            $this->assertStringNotContainsString('hasVerifiedTelegram', $viewContents, $viewPath);
+            $this->assertStringContainsString('if (!context.hasVerifiedOnsite) {', $viewContents, $viewPath);
+        }
     }
 }

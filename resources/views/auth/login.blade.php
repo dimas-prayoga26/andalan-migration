@@ -36,12 +36,6 @@
 	<link rel="shortcut icon" type="image/x-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
     <link rel="apple-touch-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
     
-	<!-- Start - Basic CSS -->
-    <link href="{{ asset('assets/vendor/metismenu/dist/metisMenu.min.css') }}?v={{ $assetVersion('vendor/metismenu/dist/metisMenu.min.css') }}" rel="stylesheet">
-    <link href="{{ asset('assets/vendor/bootstrap-select/dist/css/bootstrap-select.min.css') }}?v={{ $assetVersion('vendor/bootstrap-select/dist/css/bootstrap-select.min.css') }}" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('assets/vendor/chartist/css/chartist.min.css') }}?v={{ $assetVersion('vendor/chartist/css/chartist.min.css') }}">
-    <!-- End - Basic CSS -->
-    
 	<!-- Start - Switcher CSS -->
 	<link class="main-switcher" href="{{ asset('assets/css/switcher.css') }}?v={{ $assetVersion('css/switcher.css') }}" rel="stylesheet">
 	<!-- End - Switcher CSS -->
@@ -143,21 +137,8 @@
 	<!-- End - Authincation Section -->
 	
 	<!-- Start - Script -->
-	<script src="{{ asset('assets/vendor/jquery/dist/jquery.min.js') }}?v={{ $assetVersion('vendor/jquery/dist/jquery.min.js') }}"></script>
 	<script src="{{ asset('assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js') }}?v={{ $assetVersion('vendor/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
-	<script src="{{ asset('assets/vendor/bootstrap-select/dist/js/bootstrap-select.min.js') }}?v={{ $assetVersion('vendor/bootstrap-select/dist/js/bootstrap-select.min.js') }}"></script>
-	<script src="{{ asset('assets/vendor/@yaireo/tagify/dist/tagify.js') }}?v={{ $assetVersion('vendor/@yaireo/tagify/dist/tagify.js') }}"></script>
-	<script src="{{ asset('assets/vendor/metismenu/dist/metisMenu.min.js') }}?v={{ $assetVersion('vendor/metismenu/dist/metisMenu.min.js') }}"></script>
-	{{-- <script src="vendor/chart-js/chart.bundle.min.js"></script> --}}
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-        
-	<!-- Script For Custom JS -->
-	{{-- <script src="js/deznav-init.js"></script>
-    <script src="js/custom.js"></script> --}}
-	
-	<!-- Script For Multiple Languages -->
-	{{-- <script src="vendor/i18n/i18n.js"></script>
-	<script src="js/translator.js"></script> --}}
 	<script>
 		(function () {
 			const loginForm = document.getElementById('login-form');

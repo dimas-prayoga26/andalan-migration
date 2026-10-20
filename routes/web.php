@@ -360,7 +360,6 @@ Route::middleware('auth')->group(function (): void {
     // Attendance support routes
     Route::middleware('position.permission:view-attendance')->group(function (): void {
         Route::get('/attendance/current-ip', [AttendanceController::class, 'currentIp'])->name('attendance.current-ip');
-        Route::post('/attendance/verify-telegram-username', [AttendanceController::class, 'verifyTelegramUsername'])->name('attendance.verify-telegram-username');
         Route::post('/attendance/exceptions', [AttendanceController::class, 'storeException'])->name('attendance.exceptions.store');
     });
     Route::middleware('position.permission:view-timesheet-reporting')->group(function (): void {

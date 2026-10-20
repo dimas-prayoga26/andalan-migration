@@ -426,10 +426,5 @@
 @endsection
 
 @section('script')
-    @php
-        $dashboardJsPath = public_path('assets/js/dashboard.js');
-        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
-    @endphp
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script src="{{ asset('assets/js/email-management.js') }}?v={{ file_exists(public_path('assets/js/email-management.js')) ? filemtime(public_path('assets/js/email-management.js')) : time() }}"></script>
 @endsection

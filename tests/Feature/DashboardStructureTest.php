@@ -7,17 +7,30 @@ use Tests\TestCase;
 
 class DashboardStructureTest extends TestCase
 {
-    public function test_dashboard_menu_carousel_is_hidden_without_deleting_markup(): void
+    public function test_dashboard_menu_carousel_markup_is_removed(): void
     {
         $dashboardView = File::get(resource_path('views/dashboard.blade.php'));
+        $dashboardCss = File::get(public_path('assets/css/dashboard.css'));
 
-        $this->assertStringContainsString('$showDashboardMenuCarousel = false;', $dashboardView);
-        $this->assertStringContainsString('@if ($showDashboardMenuCarousel)', $dashboardView);
-        $this->assertStringContainsString('dashboard-menu-carousel owl-carousel', $dashboardView);
-        $this->assertStringContainsString('Data Pelamar', $dashboardView);
-        $this->assertStringContainsString('Data Karyawan', $dashboardView);
-        $this->assertStringContainsString('Blog Management', $dashboardView);
-        $this->assertStringContainsString('Laporan Pekerjaan', $dashboardView);
+        $this->assertStringNotContainsString('$showDashboardMenuCarousel', $dashboardView);
+        $this->assertStringNotContainsString('dashboard-menu-carousel', $dashboardView);
+        $this->assertStringNotContainsString('owl-carousel', $dashboardView);
+        $this->assertStringNotContainsString('dashboard-activity-item', $dashboardView);
+        $this->assertStringNotContainsString('dashboard-menu-carousel', $dashboardCss);
+    }
+
+    public function test_carousel_scripts_and_styles_are_no_longer_loaded(): void
+    {
+        $this->assertFileDoesNotExist(public_path('assets/js/dashboard.js'));
+
+        foreach (File::allFiles(resource_path('views')) as $view) {
+            $this->assertStringNotContainsString('assets/js/dashboard.js', $view->getContents(), $view->getRelativePathname());
+            $this->assertStringNotContainsString('$dashboardJsVersion', $view->getContents(), $view->getRelativePathname());
+        }
+
+        $this->assertStringNotContainsString('owl.carousel', File::get(resource_path('views/layouts/mainhead.blade.php')));
+        $this->assertStringNotContainsString('owl.carousel', File::get(resource_path('views/layouts/commonjs.blade.php')));
+        $this->assertStringNotContainsString('carouselReview', File::get(resource_path('views/layouts/main.blade.php')));
     }
 
     public function test_dashboard_shortcut_menu_only_shows_active_links_and_keeps_inactive_markup_hidden(): void

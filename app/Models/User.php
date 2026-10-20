@@ -33,7 +33,6 @@ class User extends Authenticatable
     {
         return [
             'is_active' => 'boolean',
-            'is_telegram_verified' => 'boolean',
         ];
     }
 

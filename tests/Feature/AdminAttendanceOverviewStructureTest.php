@@ -281,7 +281,7 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('function captureTonePalette(tone)', $recapView);
         $this->assertStringContainsString('drawCaptureBadge(context, lines[0], palette', $recapView);
         $this->assertStringContainsString("link.download = filename + '.png';", $recapView);
-        $this->assertStringContainsString('id="recapMonthlyTable"', $recapView);
+        $this->assertStringContainsString('<table id="datatable" class="table table-bordered text-nowrap w-100"></table>', $recapView);
         $this->assertStringContainsString('admin-attendance.recap.monthly-datatable', $recapView);
         $this->assertStringContainsString('employeeDetailBaseUrl', $recapView);
         $this->assertStringContainsString('monthlyTable.ajax.reload()', $recapView);
@@ -299,9 +299,9 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString('admin-attendance.recap.detail-employees.datatable', $detailView);
         $this->assertStringContainsString('detailTable.ajax.reload()', $detailView);
         $this->assertStringNotContainsString('history.replaceState', $detailView);
-        $this->assertStringContainsString('id="recapDetailAttendanceTable"', $detailView);
-        $this->assertStringContainsString('<th class="mw-160">Address</th>', $detailView);
-        $this->assertStringContainsString("{ data: 'location_address', render: function(data) { return escapeHtml(data); } }", $detailView);
+        $this->assertStringContainsString('<table id="datatable" class="table table-bordered text-nowrap w-100"></table>', $detailView);
+        $this->assertStringContainsString("title: 'Address', className: 'mw-160'", $detailView);
+        $this->assertStringContainsString("{ title: 'Address', className: 'mw-160', data: 'location_address', render: function(data) { return escapeHtml(data); } }", $detailView);
         $this->assertStringNotContainsString("$('#tableLicenseUsage').DataTable", $detailView);
         $this->assertStringNotContainsString('scrollX: true', $detailView);
         $this->assertStringContainsString('admin-attendance-detail-avatar', $detailView);
@@ -314,8 +314,8 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringNotContainsString('admin-attendance-overview-card', $detailView);
         $this->assertStringContainsString("\$leaveOverviewStats['pending']", $leaveIndexView);
         $this->assertStringContainsString('@forelse ($leavePendingCards as $leavePendingCard)', $leaveIndexView);
-        $this->assertStringContainsString('id="adminLeavePendingTable"', $leaveIndexView);
-        $this->assertStringContainsString('id="adminLeaveApprovedTable"', $leaveIndexView);
+        $this->assertStringContainsString('<table id="datatablePending" class="table table-bordered text-nowrap w-100"></table>', $leaveIndexView);
+        $this->assertStringContainsString('<table id="datatableApproved" class="table table-bordered text-nowrap w-100"></table>', $leaveIndexView);
         $this->assertStringContainsString('admin-attendance.leave.pending-datatable', $leaveIndexView);
         $this->assertStringContainsString('admin-attendance.leave.approved-datatable', $leaveIndexView);
         $this->assertStringContainsString('table.ajax.reload()', $leaveIndexView);

@@ -68,7 +68,7 @@ class CompanyController extends Controller
             ->with('status', 'Company has been updated.');
     }
 
-    public function destroy(Company $company): RedirectResponse
+    public function destroy(Request $request, Company $company): JsonResponse|RedirectResponse
     {
         $isUsedByUser = $company->users()->exists();
         $isUsedByDeployment = DB::table('employee_deployments')
@@ -79,14 +79,12 @@ class CompanyController extends Controller
         $isUsedByJobVacancy = $company->jobVacancies()->exists();
 
         if ($isUsedByUser || $isUsedByDeployment || $isUsedByProject || $isUsedByMailAccount || $isUsedByJobVacancy) {
-            return back()->with('error', 'Company is still used by employee, project, email, or job vacancy data.');
+            return $this->tableActionResponse($request, back(), 'Company is still used by employee, project, email, or job vacancy data.', false);
         }
 
         $company->delete();
 
-        return redirect()
-            ->route('settings.companies.index')
-            ->with('status', 'Company has been deleted.');
+        return $this->tableActionResponse($request, redirect()->route('settings.companies.index'), 'Company has been deleted.');
     }
 
     /**

@@ -126,13 +126,11 @@ class AttendanceRuleController extends Controller
             ->with('status', 'Attendance rule has been updated.');
     }
 
-    public function destroy(RulesOfAttendace $attendanceRule): RedirectResponse
+    public function destroy(Request $request, RulesOfAttendace $attendanceRule): JsonResponse|RedirectResponse
     {
         $attendanceRule->delete();
 
-        return redirect()
-            ->route('settings.attendance-rules.index')
-            ->with('status', 'Attendance rule has been deleted.');
+        return $this->tableActionResponse($request, redirect()->route('settings.attendance-rules.index'), 'Attendance rule has been deleted.');
     }
 
     /**

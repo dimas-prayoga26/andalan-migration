@@ -282,22 +282,7 @@
             </div>
             <div class="card-body table-card-body px-0 pt-0 pb-2">
                 <div class="table-responsive">
-                    <table class="table table-sm table-sm-responsive text-nowrap" id="recapDetailAttendanceTable">
-                        <thead>
-                            <tr>
-                                <th class="mw-100">Date</th>
-                                <th class="mw-80">Clock In</th>
-                                <th class="mw-80">Clock Out</th>
-                                <th class="mw-80">Note</th>
-                                <th class="mw-80">Working Hours</th>
-                                <th class="mw-160">Address</th>
-                                <th class="mw-100">Attachment</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            
-                        </tbody>
-                    </table>
+                    <table id="datatable" class="table table-bordered text-nowrap w-100"></table>
                 </div>
             </div>
         </div>
@@ -734,7 +719,7 @@
 			
 			}();
 
-			jQuery(document).ready(function(){
+			$(function () {
 				var detailPeriodFilter = document.getElementById('recapDetailPeriodFilter');
 				var detailMonthFilter = document.getElementById('recapDetailMonthFilter');
 				var detailYearFilter = document.getElementById('recapDetailYearFilter');
@@ -753,7 +738,7 @@
 						.replace(/"/g, '&quot;')
 						.replace(/'/g, '&#039;');
 				};
-				var detailTable = jQuery('#recapDetailAttendanceTable').DataTable({
+				var detailTable = jQuery('#datatable').DataTable({
 					ajax: {
 						url: @json(route('admin-attendance.recap.detail-employees.datatable', ['employee' => $recapDetailEmployee['id'] ?? ''])),
 						data: function(requestData) {
@@ -776,12 +761,16 @@
 					lengthChange: false,
 					columns: [
 						{
+							title: 'Date',
+							className: 'mw-100',
 							data: 'date',
 							render: function(data, type, row) {
 								return type === 'sort' ? row.date_sort : escapeHtml(data);
 							}
 						},
 						{
+							title: 'Clock In',
+							className: 'mw-80',
 							data: 'clock_in',
 							render: function(data, type, row) {
 								if (type !== 'display') {
@@ -792,6 +781,8 @@
 							}
 						},
 						{
+							title: 'Clock Out',
+							className: 'mw-80',
 							data: 'clock_out',
 							render: function(data, type, row) {
 								if (type !== 'display') {
@@ -801,10 +792,10 @@
 								return '<span class="badge badge-sm badge-' + escapeHtml(row.clock_out_badge) + ' light fw-semibold">' + escapeHtml(data) + '</span>';
 							}
 						},
-						{ data: 'note', render: function(data) { return escapeHtml(data); } },
-						{ data: 'working_hours', render: function(data) { return escapeHtml(data); } },
-						{ data: 'location_address', render: function(data) { return escapeHtml(data); } },
-						{ data: null, defaultContent: '', orderable: false, searchable: false }
+						{ title: 'Note', className: 'mw-80', data: 'note', render: function(data) { return escapeHtml(data); } },
+						{ title: 'Working Hours', className: 'mw-80', data: 'working_hours', render: function(data) { return escapeHtml(data); } },
+						{ title: 'Address', className: 'mw-160', data: 'location_address', render: function(data) { return escapeHtml(data); } },
+						{ title: 'Attachment', className: 'mw-100', data: null, defaultContent: '', orderable: false, searchable: false }
 					],
 					order: [[0, 'asc']],
 					language: {

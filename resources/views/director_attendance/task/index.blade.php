@@ -52,20 +52,7 @@
 
     <div class="card overflow-hidden">
         <div class="table-responsive check-wrapper">
-            <table id="directorTaskTable" class="table mb-0 table-bottom-borderless">
-                <thead>
-                    <tr>
-                        <th class="mw-50">No</th>
-                        <th class="mw-120">Task Name</th>
-                        <th class="mw-120">Project</th>
-                        <th class="mw-120">Assignee</th>
-                        <th class="mw-120">Priority</th>
-                        <th class="mw-120">Status</th>
-                        <th class="mw-120">Due Date</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+            <table id="datatable" class="table table-bordered text-nowrap w-100"></table>
         </div>
     </div>
 
@@ -171,7 +158,7 @@
     @endphp
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
     <script>
-        (function () {
+        $(function () {
             var selectedCategory = @js($selectedDirectorTaskCategory ?? '');
             var monthLabels = @js($directorTaskMonthOptions);
             var staffNames = @js($directorTaskStaffOptions->pluck('name', 'id')->all());
@@ -299,7 +286,8 @@
                     return;
                 }
 
-                taskTable = window.jQuery('#directorTaskTable').DataTable({
+                taskTable = window.jQuery('#datatable').DataTable({
+                    autoWidth: false,
                     processing: true,
                     serverSide: false,
                     searching: false,
@@ -329,25 +317,32 @@
                     },
                     columns: [
                         {
+                            title: 'No',
                             data: null,
-                            className: 'text-center',
+                            className: 'mw-50 text-center',
                             render: function (data, type, row, meta) {
                                 return (meta.row + 1) + '.';
                             }
                         },
                         {
+                            title: 'Task Name',
+                            className: 'mw-120',
                             data: 'task',
                             render: function (data) {
                                 return '<span class="text-black fw-semibold">' + escapeHtml(data || '-') + '</span>';
                             }
                         },
                         {
+                            title: 'Project',
+                            className: 'mw-120',
                             data: 'project',
                             render: function (data) {
                                 return escapeHtml(data || '-');
                             }
                         },
                         {
+                            title: 'Assignee',
+                            className: 'mw-120',
                             data: 'assignee',
                             render: function (data, type, row) {
                                 return '<div class="d-flex align-items-center">'
@@ -357,18 +352,24 @@
                             }
                         },
                         {
+                            title: 'Priority',
+                            className: 'mw-120',
                             data: 'priority',
                             render: function (data, type, row) {
                                 return '<span class="badge badge-sm badge-' + escapeHtml(row.priority_class || 'warning') + ' light fw-semibold">' + escapeHtml(data || '-') + '</span>';
                             }
                         },
                         {
+                            title: 'Status',
+                            className: 'mw-120',
                             data: 'status',
                             render: function (data, type, row) {
                                 return '<span class="badge badge-sm badge-' + escapeHtml(row.status_class || 'warning') + ' light fw-semibold">' + escapeHtml(data || '-') + '</span>';
                             }
                         },
                         {
+                            title: 'Due Date',
+                            className: 'mw-120',
                             data: 'due_date',
                             render: function (data) {
                                 return escapeHtml(data || '-');
@@ -387,11 +388,11 @@
                         rowElement.style.cursor = 'pointer';
                     },
                     drawCallback: function () {
-                        window.jQuery('#directorTaskTable tbody td.dataTables_empty').addClass('text-center py-4 text-muted');
+                        window.jQuery('#datatable tbody td.dataTables_empty').addClass('text-center py-4 text-muted');
                     }
                 });
 
-                window.jQuery('#directorTaskTable tbody').on('click', 'tr.director-task-row', function () {
+                window.jQuery('#datatable tbody').on('click', 'tr.director-task-row', function () {
                     var row = taskTable.row(this).data();
 
                     if (row) {
@@ -501,6 +502,6 @@
             initializeDirectorTaskTable();
             updateCategoryCards();
             updateFilterLabel();
-        })();
+        });
     </script>
 @endsection

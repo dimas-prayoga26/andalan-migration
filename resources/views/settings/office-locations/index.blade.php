@@ -70,8 +70,8 @@
             opacity: .35;
         }
 
-        #officeLocationsTable_wrapper .dataTables_filter,
-        #officeLocationsTable_wrapper .dataTables_length {
+        #datatable_wrapper .dataTables_filter,
+        #datatable_wrapper .dataTables_length {
             display: none;
         }
 
@@ -142,37 +142,59 @@
 
     <div class="card-body table-card-body p-0">
         <div class="table-responsive">
-            <table id="officeLocationsTable" class="table table-sm mb-0 table-bottom-borderless table-striped align-middle w-100">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Address</th>
-                        <th>Latitude</th>
-                        <th>Longitude</th>
-                        <th>Status</th>
-                        <th class="text-end">Action</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+            <table id="datatable" class="table table-bordered text-nowrap w-100"></table>
         </div>
     </div>
 </div>
-
-@include('settings.partials.delete-confirmation-swal')
 @endsection
 
 @section('script')
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}"></script>
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}"></script>
     <script>
-        (function () {
+        var csrfToken = @json(csrf_token());
+        var deleteUrlTemplate = @json(route('settings.office-locations.destroy', ['officeLocation' => '__ID__']));
+
+        function deleteData(id) {
+            var officeLocation = $('#datatable').DataTable().rows().data().toArray().find(function (row) {
+                return String(row.id) === String(id);
+            });
+
+            Swal.fire({
+                title: 'Delete Work Location',
+                text: 'Delete ' + (officeLocation ? officeLocation.name : 'this work location') + ' from work location data?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Delete',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc3545',
+                reverseButtons: true,
+                focusCancel: true
+            }).then(function (result) {
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                $.ajax({
+                    url: deleteUrlTemplate.replace('__ID__', encodeURIComponent(id)),
+                    type: 'DELETE',
+                    dataType: 'json',
+                    headers: { 'X-CSRF-TOKEN': csrfToken }
+                }).done(function (response) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: response.message });
+                    $('#datatable').DataTable().ajax.reload(null, false);
+                }).fail(function (xhr) {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Work location gagal dihapus.' });
+                });
+            });
+        }
+
+        $(function () {
             if (!window.jQuery || !jQuery.fn.DataTable) {
                 return;
             }
 
             var editUrlTemplate = @json(route('settings.office-locations.edit', ['officeLocation' => '__ID__']));
-            var deleteUrlTemplate = @json(route('settings.office-locations.destroy', ['officeLocation' => '__ID__']));
-            var csrfToken = @json(csrf_token());
 
             function escapeHtml(value) {
                 return String(value === null || value === undefined ? '' : value)
@@ -201,21 +223,15 @@
 
             function actionButtons(row) {
                 var editUrl = routeFor(editUrlTemplate, row.id);
-                var deleteUrl = routeFor(deleteUrlTemplate, row.id);
-                var name = escapeHtml(row.name || 'this work location');
 
                 return '' +
                     '<div class="d-inline-flex gap-1">' +
                         '<a href="' + editUrl + '" class="btn btn-primary light btn-sm">Update</a>' +
-                        '<form action="' + deleteUrl + '" method="POST" data-settings-delete-form data-delete-title="Delete Work Location" data-delete-message="Delete ' + name + ' from work location data?">' +
-                            '<input type="hidden" name="_token" value="' + csrfToken + '">' +
-                            '<input type="hidden" name="_method" value="DELETE">' +
-                            '<button type="submit" class="btn btn-danger light btn-sm">Delete</button>' +
-                        '</form>' +
+                        '<button type="button" class="btn btn-danger light btn-sm" onclick="deleteData(\'' + escapeHtml(row.id) + '\')">Delete</button>' +
                     '</div>';
             }
 
-            var officeLocationsTable = jQuery('#officeLocationsTable').DataTable({
+            var officeLocationsTable = jQuery('#datatable').DataTable({
                 ajax: '{{ route('settings.office-locations.datatable') }}',
                 autoWidth: false,
                 order: [[0, 'asc']],
@@ -224,23 +240,28 @@
                 serverSide: true,
                 columns: [
                     {
+                        title: 'Name',
                         data: 'name',
                         name: 'name',
                         className: 'fw-semibold text-black'
                     },
                     {
+                        title: 'Address',
                         data: 'address',
                         name: 'address'
                     },
                     {
+                        title: 'Latitude',
                         data: 'latitude',
                         name: 'latitude'
                     },
                     {
+                        title: 'Longitude',
                         data: 'longitude',
                         name: 'longitude'
                     },
                     {
+                        title: 'Status',
                         data: 'is_active',
                         name: 'is_active',
                         searchable: false,
@@ -249,6 +270,7 @@
                         }
                     },
                     {
+                        title: 'Action',
                         data: null,
                         name: 'action',
                         orderable: false,
@@ -281,7 +303,7 @@
                     }, 400);
                 });
             }
-        })();
+        });
     </script>
     @stack('scripts')
 @endsection

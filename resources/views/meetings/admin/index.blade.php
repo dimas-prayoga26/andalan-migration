@@ -23,7 +23,7 @@
         padding: 0 1.875rem 1rem;
     }
 
-    #tableLicenseUsage_wrapper .dt-layout-row:first-child {
+    #datatable_wrapper .dt-layout-row:first-child {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -31,39 +31,39 @@
         margin: 0 0 1rem;
     }
 
-    #tableLicenseUsage_wrapper .dt-layout-row:first-child .dt-layout-cell {
+    #datatable_wrapper .dt-layout-row:first-child .dt-layout-cell {
         display: flex;
         align-items: center;
         width: auto;
     }
 
-    #tableLicenseUsage_wrapper .dt-layout-row:first-child .dt-layout-cell:last-child {
+    #datatable_wrapper .dt-layout-row:first-child .dt-layout-cell:last-child {
         margin-left: auto;
     }
 
-    #tableLicenseUsage_wrapper .dt-length,
-    #tableLicenseUsage_wrapper .dt-search,
-    #tableLicenseUsage_wrapper .dataTables_length label,
-    #tableLicenseUsage_wrapper .dataTables_filter label {
+    #datatable_wrapper .dt-length,
+    #datatable_wrapper .dt-search,
+    #datatable_wrapper .dataTables_length label,
+    #datatable_wrapper .dataTables_filter label {
         display: inline-flex;
         align-items: center;
         gap: 0.55rem;
         margin: 0;
     }
 
-    #tableLicenseUsage_wrapper .dt-length label,
-    #tableLicenseUsage_wrapper .dt-search label,
-    #tableLicenseUsage_wrapper .dataTables_length label,
-    #tableLicenseUsage_wrapper .dataTables_filter label,
-    #tableLicenseUsage_wrapper .dt-info {
+    #datatable_wrapper .dt-length label,
+    #datatable_wrapper .dt-search label,
+    #datatable_wrapper .dataTables_length label,
+    #datatable_wrapper .dataTables_filter label,
+    #datatable_wrapper .dt-info {
         color: #5f6b7a;
         font-weight: 600;
     }
 
-    #tableLicenseUsage_wrapper .dt-length select,
-    #tableLicenseUsage_wrapper .dt-search input,
-    #tableLicenseUsage_wrapper .dataTables_length select,
-    #tableLicenseUsage_wrapper .dataTables_filter input {
+    #datatable_wrapper .dt-length select,
+    #datatable_wrapper .dt-search input,
+    #datatable_wrapper .dataTables_length select,
+    #datatable_wrapper .dataTables_filter input {
         min-height: 38px;
         border: 1px solid #d9dce5;
         border-radius: 0.5rem;
@@ -72,24 +72,24 @@
         box-shadow: none;
     }
 
-    #tableLicenseUsage_wrapper .dt-search input,
-    #tableLicenseUsage_wrapper .dataTables_filter input {
+    #datatable_wrapper .dt-search input,
+    #datatable_wrapper .dataTables_filter input {
         width: 240px;
         max-width: 100%;
         padding: 0.35rem 0.75rem;
     }
 
-    #tableLicenseUsage_wrapper .dt-length select,
-    #tableLicenseUsage_wrapper .dataTables_length select {
+    #datatable_wrapper .dt-length select,
+    #datatable_wrapper .dataTables_length select {
         min-width: 78px;
         padding: 0.35rem 2rem 0.35rem 0.75rem;
     }
 
-    #tableLicenseUsage {
+    #datatable {
         margin-bottom: 0 !important;
     }
 
-    #tableLicenseUsage thead th {
+    #datatable thead th {
         color: #071739;
         font-size: 1rem;
         font-weight: 700;
@@ -97,20 +97,20 @@
         vertical-align: middle;
     }
 
-    #tableLicenseUsage tbody td {
+    #datatable tbody td {
         color: #5f6b7a;
         font-size: 0.95rem;
         padding: 0.9rem 0.75rem;
         vertical-align: middle;
     }
 
-    #tableLicenseUsage thead th:first-child,
-    #tableLicenseUsage tbody td:first-child {
+    #datatable thead th:first-child,
+    #datatable tbody td:first-child {
         text-align: center !important;
         width: 70px;
     }
 
-    #tableLicenseUsage_wrapper .dt-layout-row:last-child {
+    #datatable_wrapper .dt-layout-row:last-child {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -120,15 +120,15 @@
         margin-top: 0.25rem;
     }
 
-    #tableLicenseUsage_wrapper .dt-paging,
-    #tableLicenseUsage_wrapper .dataTables_paginate {
+    #datatable_wrapper .dt-paging,
+    #datatable_wrapper .dataTables_paginate {
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
     }
 
-    #tableLicenseUsage_wrapper .dt-paging button,
-    #tableLicenseUsage_wrapper .dataTables_paginate .paginate_button {
+    #datatable_wrapper .dt-paging button,
+    #datatable_wrapper .dataTables_paginate .paginate_button {
         border: 0 !important;
         border-radius: 0.5rem !important;
         background: #f3f5fb !important;
@@ -139,14 +139,14 @@
         box-shadow: none !important;
     }
 
-    #tableLicenseUsage_wrapper .dt-paging button.current,
-    #tableLicenseUsage_wrapper .dataTables_paginate .paginate_button.current {
+    #datatable_wrapper .dt-paging button.current,
+    #datatable_wrapper .dataTables_paginate .paginate_button.current {
         background: #2444c3 !important;
         color: #fff !important;
     }
 
-    #tableLicenseUsage_wrapper .dt-paging button.disabled,
-    #tableLicenseUsage_wrapper .dataTables_paginate .paginate_button.disabled {
+    #datatable_wrapper .dt-paging button.disabled,
+    #datatable_wrapper .dataTables_paginate .paginate_button.disabled {
         opacity: 0.55;
     }
 
@@ -166,23 +166,23 @@
             padding: 0 1.25rem 1rem;
         }
 
-        #tableLicenseUsage_wrapper .dt-layout-row:first-child,
-        #tableLicenseUsage_wrapper .dt-layout-row:last-child {
+        #datatable_wrapper .dt-layout-row:first-child,
+        #datatable_wrapper .dt-layout-row:last-child {
             align-items: stretch;
             flex-direction: column;
         }
 
-        #tableLicenseUsage_wrapper .dt-layout-row:first-child .dt-layout-cell,
-        #tableLicenseUsage_wrapper .dt-length,
-        #tableLicenseUsage_wrapper .dt-search,
-        #tableLicenseUsage_wrapper .dataTables_length label,
-        #tableLicenseUsage_wrapper .dataTables_filter label {
+        #datatable_wrapper .dt-layout-row:first-child .dt-layout-cell,
+        #datatable_wrapper .dt-length,
+        #datatable_wrapper .dt-search,
+        #datatable_wrapper .dataTables_length label,
+        #datatable_wrapper .dataTables_filter label {
             justify-content: space-between;
             width: 100%;
         }
 
-        #tableLicenseUsage_wrapper .dt-search input,
-        #tableLicenseUsage_wrapper .dataTables_filter input {
+        #datatable_wrapper .dt-search input,
+        #datatable_wrapper .dataTables_filter input {
             width: 100%;
         }
     }
@@ -243,21 +243,7 @@
     </div>
     <div class="card-body table-card-body px-0 pt-0 pb-2">
         <div class="table-responsive">
-            <table class="table table-sm table-sm-responsive text-nowrap" id="tableLicenseUsage">
-                <thead>
-                    <tr>
-                        <th class="mw-10">No</th>
-                        <th class="mw-80">Date</th>
-                        <th class="mw-80">Meeting Type</th>
-                        <th class="mw-80">Time</th>
-                        <th class="mw-80">Joined</th>
-                        <th class="mw-80">Tasks</th>
-                        <th class="mw-80">Status</th>
-                        <th class="mw-100">Actions</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+            <table id="datatable" class="table table-bordered text-nowrap w-100"></table>
         </div>
     </div>
 </div>
@@ -353,7 +339,8 @@
                 return;
             }
 
-            var meetingTable = $('#tableLicenseUsage').DataTable({
+            var meetingTable = $('#datatable').DataTable({
+                autoWidth: false,
                 ajax: {
                     url: @json(route('hr-meetings.datatable')),
                     dataSrc: 'data',
@@ -366,6 +353,8 @@
                 serverSide: true,
                 columns: [
                     {
+                        title: 'No',
+                        className: 'mw-10',
                         data: null,
                         searchable: false,
                         orderable: false,
@@ -373,18 +362,22 @@
                             return (meta.row + meta.settings._iDisplayStart + 1) + '.';
                         }
                     },
-                    { data: 'date' },
-                    { data: 'type' },
-                    { data: 'time' },
-                    { data: 'joined' },
-                    { data: 'tasks' },
+                    { title: 'Date', className: 'mw-80', data: 'date' },
+                    { title: 'Meeting Type', className: 'mw-80', data: 'type' },
+                    { title: 'Time', className: 'mw-80', data: 'time' },
+                    { title: 'Joined', className: 'mw-80', data: 'joined' },
+                    { title: 'Tasks', className: 'mw-80', data: 'tasks' },
                     {
+                        title: 'Status',
+                        className: 'mw-80',
                         data: null,
                         render: function (data, type, row) {
                             return renderMeetingStatus(row);
                         }
                     },
                     {
+                        title: 'Actions',
+                        className: 'mw-100',
                         data: null,
                         searchable: false,
                         orderable: false,

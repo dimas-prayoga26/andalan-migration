@@ -102,8 +102,14 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString("@include('mail.partials.summary-cards')", $loginView);
         $this->assertStringContainsString('name="pin_digits[]"', $loginView);
         $this->assertStringContainsString('mail-pin-grid', $loginView);
-        $this->assertStringContainsString('Socials', $inboxView);
-        $this->assertStringContainsString('Promotion', $inboxView);
+        $this->assertStringNotContainsString('Socials', $inboxView);
+        $this->assertStringNotContainsString('Promotion', $inboxView);
+        $this->assertStringNotContainsString('pills-important', $inboxView);
+        $this->assertStringContainsString('data-mail-refresh', $inboxView);
+        $this->assertStringContainsString('fa-solid fa-arrows-rotate', $inboxView);
+        $this->assertStringContainsString("route(\$mailRoutePrefix.'.mark-all-read')", $inboxView);
+        $this->assertStringContainsString('fa-solid fa-check-double', $inboxView);
+        $this->assertStringContainsString('data-mail-mark-all-read-form', $inboxView);
         $this->assertStringContainsString("route(\$mailRoutePrefix.'.read', \$readRouteParameters)", $inboxView);
         $this->assertStringContainsString('route($folderRoute)', $inboxView);
         $this->assertStringContainsString("route(\$mailRoutePrefix.'.destroy')", $inboxView);
@@ -131,7 +137,8 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringNotContainsString('Socials', $composeView);
         $this->assertStringContainsString('read-wapper', $readView);
         $this->assertStringContainsString("@include('mail.partials.summary-cards')", $readView);
-        $this->assertStringContainsString('$message[\'body\']', $readView);
+        $this->assertStringContainsString('$threadMessage[\'body\']', $readView);
+        $this->assertStringContainsString('@foreach ($thread ?? [] as $threadItem)', $readView);
         $this->assertStringContainsString('mail-attachments', $readView);
         $this->assertStringContainsString("route(\$mailRoutePrefix.'.attachment'", $readView);
         $this->assertStringContainsString("route(\$mailRoutePrefix.'.reply'", $readView);
@@ -223,7 +230,8 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString('applyReplyHeaders($message, $replyHeaders)', $controller);
         $this->assertStringContainsString("addTextHeader('In-Reply-To'", $controller);
         $this->assertStringContainsString('sendOutgoingMail(', $controller);
-        $this->assertStringContainsString('UID SEARCH ALL', $inboxService);
+        $this->assertStringContainsString("'UID SEARCH '.\$searchKey", $inboxService);
+        $this->assertStringContainsString("\$this->searchUids('ALL')", $inboxService);
         $this->assertStringContainsString('verifySsl:', $inboxService);
         $this->assertStringContainsString('stream_context_create', $inboxService);
         $this->assertStringContainsString("'verify_peer' => \$this->verifySsl", $inboxService);

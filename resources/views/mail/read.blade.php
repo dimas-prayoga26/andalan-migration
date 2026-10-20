@@ -58,6 +58,108 @@
             display: flex;
             gap: 8px;
         }
+
+        .mail-html-frame {
+            background: #fff;
+            border: 0;
+            border-radius: 8px;
+            display: block;
+            height: 48px;
+            width: 100%;
+        }
+
+        .mail-thread {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px 0;
+        }
+
+        /* Chat layout: messages from the opened account sit on the right, the other party on the left. */
+        .mail-thread-item {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .mail-thread-item.is-own {
+            justify-content: flex-end;
+        }
+
+        .mail-thread-bubble {
+            border: 1px solid var(--bs-border-color);
+            border-radius: 12px;
+            max-width: 100%;
+            overflow: hidden;
+            width: 85%;
+        }
+
+        .mail-thread-item.is-own .mail-thread-bubble {
+            border-color: rgba(var(--bs-primary-rgb), .3);
+        }
+
+        .mail-thread-toggle {
+            align-items: flex-start;
+            background: transparent;
+            border: 0;
+            display: flex;
+            gap: 12px;
+            padding: 12px 14px;
+            text-align: left;
+            width: 100%;
+        }
+
+        .mail-thread-item.is-own .mail-thread-toggle {
+            flex-direction: row-reverse;
+            text-align: right;
+        }
+
+        .mail-thread-item.is-own .mail-thread-open-link {
+            text-align: right;
+        }
+
+        .mail-thread-heading {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .mail-thread-sender {
+            color: var(--bs-primary);
+            font-weight: 600;
+            overflow-wrap: anywhere;
+        }
+
+        .mail-thread-recipient,
+        .mail-thread-snippet {
+            color: #6b7280;
+            font-size: 13px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .mail-thread-toggle.collapsed .mail-thread-recipient,
+        .mail-thread-toggle:not(.collapsed) .mail-thread-snippet {
+            display: none;
+        }
+
+        .mail-thread-date {
+            color: #6b7280;
+            flex-shrink: 0;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .mail-thread-body {
+            padding: 12px 14px 14px;
+        }
+
+        @media (max-width: 575.98px) {
+            .mail-thread-bubble {
+                width: 100%;
+            }
+        }
     </style>
 @endsection
 
@@ -134,55 +236,87 @@
                     <div class="right-box-padding p-0">
                         <div class="read-wapper dz-scroll" id="read-content">
                             <div class="read-content">
-                                <div class="pt-3 d-sm-flex d-block justify-content-between border-bottom">
-                                    <div class="clearfix mb-3 d-flex">
-                                        <div class="avatar avatar-sm me-2 bg-primary text-white d-flex align-items-center justify-content-center rounded-circle">R</div>
-                                        <div class="clearfix ms-2">
-                                            <h5 class="text-primary mb-0">{{ $message['from'] ?? 'Email' }}</h5>
-                                            <p class="mb-0">{{ $message['date'] ?? '' }}</p>
-                                        </div>
+                                <div class="pt-3 pb-3 d-sm-flex d-block justify-content-between align-items-start gap-3 border-bottom">
+                                    <div>
+                                        <h5 class="my-1 text-primary">{{ $message['subject'] ?? 'Email tidak tersedia' }}</h5>
+                                        @if (count($thread ?? []) > 1)
+                                            <span class="badge badge-sm light badge-primary">{{ count($thread) }} pesan dalam percakapan</span>
+                                        @endif
                                     </div>
-                                    <div class="clearfix mb-3">
+                                    <div class="clearfix mt-2 mt-sm-0 flex-shrink-0">
                                         <button type="button" class="btn btn-square btn-primary btn-sm light" data-mail-reply-toggle><i class="fa fa-reply"></i></button>
                                         <button type="button" class="btn btn-square btn-primary btn-sm light"><i class="fas fa-arrow-right"></i></button>
                                         <button type="submit" form="mail-delete-form" class="btn btn-square btn-danger btn-sm light" title="Hapus email" @disabled(! $message)><i class="fa fa-trash"></i></button>
                                     </div>
                                 </div>
-                                <div class="mb-2 mt-3">
-                                    <span>{{ $message['time'] ?? '' }}</span>
-                                    <h5 class="my-1 text-primary">{{ $message['subject'] ?? 'Email tidak tersedia' }}</h5>
-                                    <p>To: <a>{{ $isSentFolder ? ($message['to'] ?? '') : $account->email }}</a></p>
-                                </div>
-                                <div class="read-content-body">
-                                    @if ($readError)
-                                        @include('partials.swal-alert', ['type' => 'warning', 'message' => $readError])
-                                    @elseif ($message)
-                                        <div class="lh-lg">{!! nl2br(e($message['body'])) !!}</div>
-                                    @endif
-                                </div>
-                                @if (! empty($message['attachments']))
-                                    <div class="border-top pt-3 mt-4">
-                                        <h5 class="mb-3"><i class="fa fa-paperclip me-1"></i> Attachments</h5>
-                                        <div class="mail-attachments">
-                                            @foreach ($message['attachments'] as $attachment)
-                                                <div class="mail-attachment-item">
-                                                    @if ($attachment['is_image'])
-                                                        <img src="{{ route($mailRoutePrefix.'.attachment', [$message['uid'], $attachment['id'], 'inline' => 1, ...$folderQuery]) }}" alt="{{ $attachment['filename'] }}" class="mail-attachment-preview mb-2">
-                                                    @else
-                                                        <div class="d-flex align-items-center justify-content-center bg-light rounded mb-2" style="height: 120px;">
-                                                            <i class="fa-regular fa-file fs-1 text-primary"></i>
-                                                        </div>
-                                                    @endif
-                                                    <div class="fw-semibold text-break">{{ $attachment['filename'] }}</div>
-                                                    <div class="small text-muted mb-2">{{ $attachment['content_type'] }} · {{ number_format($attachment['size'] / 1024, 1) }} KB</div>
-                                                    <a href="{{ route($mailRoutePrefix.'.attachment', [$message['uid'], $attachment['id'], ...$folderQuery]) }}" class="btn btn-primary btn-sm w-100">
-                                                        <i class="fa fa-download me-1"></i> Download
-                                                    </a>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
+                                @if ($readError)
+                                    @include('partials.swal-alert', ['type' => 'warning', 'message' => $readError])
                                 @endif
+                                <div class="mail-thread">
+                                    @foreach ($thread ?? [] as $threadItem)
+                                        @php
+                                            $threadMessage = $threadItem['message'];
+                                            $threadFolderQuery = $threadItem['folder'] === 'sent' ? ['folder' => 'sent'] : [];
+                                            $threadCollapseId = 'mailThreadMessage'.$loop->index;
+                                            $threadSender = (string) ($threadMessage['from'] ?? 'Email');
+                                            $threadSenderName = trim(preg_replace('/\s*<[^>]*>\s*/', '', $threadSender) ?? '', " \"'") ?: $threadSender;
+                                            $threadVisibleAttachments = collect($threadMessage['attachments'] ?? [])
+                                                ->reject(fn (array $attachment): bool => in_array((string) $attachment['id'], $threadItem['emailInlineAttachmentIds'], true));
+                                        @endphp
+                                        <div @class(['mail-thread-item', 'is-own' => $threadItem['isOwn']])>
+                                            <div class="mail-thread-bubble">
+                                                <button type="button" class="mail-thread-toggle {{ $threadItem['isCurrent'] ? '' : 'collapsed' }}" data-bs-toggle="collapse" data-bs-target="#{{ $threadCollapseId }}" aria-expanded="{{ $threadItem['isCurrent'] ? 'true' : 'false' }}" aria-controls="{{ $threadCollapseId }}">
+                                                    <span class="avatar avatar-sm bg-primary text-white d-flex align-items-center justify-content-center rounded-circle flex-shrink-0">{{ mb_strtoupper(mb_substr($threadSenderName, 0, 1)) }}</span>
+                                                    <span class="mail-thread-heading">
+                                                        <span class="mail-thread-sender">{{ $threadSender }}</span>
+                                                        <span class="mail-thread-recipient">To: {{ $threadMessage['to'] ?? '' }}</span>
+                                                        <span class="mail-thread-snippet">{{ \Illuminate\Support\Str::limit(trim(preg_replace('/\s+/', ' ', (string) ($threadMessage['body'] ?? '')) ?? ''), 140) }}</span>
+                                                    </span>
+                                                    <span class="mail-thread-date">{{ $threadMessage['time'] ?? '' }}</span>
+                                                </button>
+                                                <div class="collapse {{ $threadItem['isCurrent'] ? 'show' : '' }}" id="{{ $threadCollapseId }}">
+                                                    <div class="mail-thread-body">
+                                                        @if (! empty($threadItem['emailHtmlDocument']))
+                                                            <iframe class="mail-html-frame" data-mail-html-frame title="Isi email" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" srcdoc="{{ $threadItem['emailHtmlDocument'] }}"></iframe>
+                                                        @else
+                                                            <div class="lh-lg">{!! nl2br(e($threadMessage['body'] ?? '')) !!}</div>
+                                                        @endif
+                                                        @if ($threadVisibleAttachments->isNotEmpty())
+                                                            <div class="border-top pt-3 mt-4">
+                                                                <h5 class="mb-3"><i class="fa fa-paperclip me-1"></i> Attachments</h5>
+                                                                <div class="mail-attachments">
+                                                                    @foreach ($threadVisibleAttachments as $attachment)
+                                                                        <div class="mail-attachment-item">
+                                                                            @if ($attachment['is_image'])
+                                                                                <img src="{{ route($mailRoutePrefix.'.attachment', [$threadMessage['uid'], $attachment['id'], 'inline' => 1, ...$threadFolderQuery]) }}" alt="{{ $attachment['filename'] }}" class="mail-attachment-preview mb-2">
+                                                                            @else
+                                                                                <div class="d-flex align-items-center justify-content-center bg-light rounded mb-2" style="height: 120px;">
+                                                                                    <i class="fa-regular fa-file fs-1 text-primary"></i>
+                                                                                </div>
+                                                                            @endif
+                                                                            <div class="fw-semibold text-break">{{ $attachment['filename'] }}</div>
+                                                                            <div class="small text-muted mb-2">{{ $attachment['content_type'] }} · {{ number_format($attachment['size'] / 1024, 1) }} KB</div>
+                                                                            <a href="{{ route($mailRoutePrefix.'.attachment', [$threadMessage['uid'], $attachment['id'], ...$threadFolderQuery]) }}" class="btn btn-primary btn-sm w-100">
+                                                                                <i class="fa fa-download me-1"></i> Download
+                                                                            </a>
+                                                                        </div>
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                        @unless ($threadItem['isCurrent'])
+                                                            <div class="mail-thread-open-link mt-3">
+                                                                <a href="{{ route($mailRoutePrefix.'.read', [$threadMessage['uid'], ...$threadFolderQuery]) }}" class="small">
+                                                                    <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Buka pesan ini
+                                                                </a>
+                                                            </div>
+                                                        @endunless
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
                                 <div class="clearfix border-top border-bottom py-3 my-3">
                                     <button class="btn btn-primary btn-sm me-2"><i class="fa-solid fa-forward"></i> Forward</button>
                                     <button type="button" class="btn btn-secondary btn-sm" data-mail-reply-toggle><i class="fa-solid fa-reply"></i> Reply</button>
@@ -227,6 +361,38 @@
     @stack('scripts')
     @include('mail.partials.account-selector-script')
     <script>
+        const resizeMailFrame = (frame) => {
+            const frameDocument = frame.contentDocument;
+
+            if (!frameDocument || !frameDocument.documentElement || frame.offsetParent === null) {
+                return;
+            }
+
+            // Collapse first: scrollHeight never reports less than the frame's current height, so it could not shrink otherwise.
+            frame.style.height = '0px';
+            frame.style.height = `${Math.max(frameDocument.documentElement.scrollHeight, frameDocument.body ? frameDocument.body.scrollHeight : 0)}px`;
+        };
+
+        const resizeMailFramesIn = (container) => {
+            container.querySelectorAll('[data-mail-html-frame]').forEach((frame) => {
+                resizeMailFrame(frame);
+                // Late-loading images change the height, so measure again a few times.
+                [300, 1000, 2500].forEach((delay) => setTimeout(() => resizeMailFrame(frame), delay));
+            });
+        };
+
+        document.querySelectorAll('[data-mail-html-frame]').forEach((frame) => {
+            frame.addEventListener('load', () => resizeMailFramesIn(frame.parentElement));
+
+            if (frame.contentDocument?.URL === 'about:srcdoc' && frame.contentDocument.readyState === 'complete') {
+                resizeMailFramesIn(frame.parentElement);
+            }
+        });
+
+        // Frames inside collapsed thread messages have no size until they are opened.
+        document.addEventListener('shown.bs.collapse', (event) => resizeMailFramesIn(event.target));
+        window.addEventListener('resize', () => document.querySelectorAll('[data-mail-html-frame]').forEach(resizeMailFrame));
+
         document.querySelectorAll('[data-mail-reply-toggle]').forEach((button) => {
             button.addEventListener('click', () => {
                 const form = document.getElementById('mailReplyForm');

@@ -37,7 +37,7 @@
 		min-width: 980px;
 	}
 
-	#recapMonthlyTable {
+	#datatable {
 		min-width: 1220px;
 	}
 
@@ -262,25 +262,7 @@
 	</div>
 	<div class="card-body table-card-body p-0">
 		<div class="table-responsive">
-			<table id="recapMonthlyTable" class="table table-sm mb-0 table-bottom-borderless table-striped">
-				<thead>
-					<tr>
-						<th>Name</th>
-						<th>Working Days</th>
-						<th>Working Hours</th>
-						<th>On Time</th>
-						<th>Late</th>
-						<th>Leave</th>
-						<th>Deviation</th>
-						<th>Alpha</th>
-						<th>Trip</th>
-						<th>Overtimes</th>
-						<th>Leave 2026</th>
-						<th>Action</th>
-					</tr>
-				</thead>
-				<tbody></tbody>
-			</table>
+			<table id="datatable" class="table table-bordered text-nowrap w-100"></table>
 		</div>
 	</div>
 </div>
@@ -921,7 +903,7 @@
         }
 
         if (window.jQuery && jQuery.fn.DataTable) {
-            jQuery(function ($) {
+            $(function () {
                 var monthlyFilter = document.getElementById('recapMonthlyFilter');
                 var monthlyMonthFilter = document.getElementById('recapMonthlyMonthFilter');
                 var monthlyYearFilter = document.getElementById('recapMonthlyYearFilter');
@@ -941,7 +923,7 @@
                         .replace(/'/g, '&#039;');
                 };
                 var employeeDetailBaseUrl = @json(url('/pic-attendance/attendance'));
-                var monthlyTable = $('#recapMonthlyTable').DataTable({
+                var monthlyTable = $('#datatable').DataTable({
                     ajax: {
                         url: @json(route('pic-attendance.attendance.monthly-datatable')),
                         data: function (requestData) {
@@ -966,18 +948,19 @@
                     paging: true,
                     bInfo: true,
                     columns: [
-                        { data: 'name', render: function (data) { return '<span class="fw-semibold">' + escapeHtml(data) + '</span>'; } },
-                        { data: 'working_days', defaultContent: '-' },
-                        { data: 'working_hours', defaultContent: '-' },
-                        { data: 'on_time', defaultContent: '-' },
-                        { data: 'late', defaultContent: '-' },
-                        { data: 'leave', defaultContent: '-' },
-                        { data: 'deviation', defaultContent: '-' },
-                        { data: 'alpha', defaultContent: '-' },
-                        { data: 'trip', defaultContent: '-' },
-                        { data: 'overtimes', defaultContent: '-' },
-                        { data: 'year_leave', defaultContent: '-' },
+                        { title: 'Name', data: 'name', render: function (data) { return '<span class="fw-semibold">' + escapeHtml(data) + '</span>'; } },
+                        { title: 'Working Days', data: 'working_days', defaultContent: '-' },
+                        { title: 'Working Hours', data: 'working_hours', defaultContent: '-' },
+                        { title: 'On Time', data: 'on_time', defaultContent: '-' },
+                        { title: 'Late', data: 'late', defaultContent: '-' },
+                        { title: 'Leave', data: 'leave', defaultContent: '-' },
+                        { title: 'Deviation', data: 'deviation', defaultContent: '-' },
+                        { title: 'Alpha', data: 'alpha', defaultContent: '-' },
+                        { title: 'Trip', data: 'trip', defaultContent: '-' },
+                        { title: 'Overtimes', data: 'overtimes', defaultContent: '-' },
+                        { title: 'Leave 2026', data: 'year_leave', defaultContent: '-' },
                         {
+                            title: 'Action',
                             data: 'employee_id',
                             orderable: false,
                             searchable: false,

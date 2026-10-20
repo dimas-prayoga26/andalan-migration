@@ -10,12 +10,33 @@
         }
 
         .mail-list-clean .message .email-hader {
+            align-items: center;
+            display: flex;
+            gap: 6px;
             position: absolute;
             left: 0;
             width: 260px;
             overflow: hidden;
-            text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .mail-list-sender {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mail-toolbar-actions {
+            align-items: center;
+            display: flex;
+            gap: 4px;
+        }
+
+        .mail-list-thread-count {
+            color: #6b7280;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: 400;
         }
 
         .mail-list-clean .message .email-subject {
@@ -157,23 +178,20 @@
                             <div class="form-check custom-checkbox align-self-center mt-2">
                                 <input type="checkbox" class="form-check-input check-all" @disabled($account === null)>
                             </div>
-                            <ul class="nav nav-underline ms-2 ms-sm-3 gap-3" id="pills-tab" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link py-3 px-0 border-3 active" data-bs-toggle="pill" data-bs-target="#pills-important" type="button" role="tab" aria-selected="true">
-                                        <i class="fa-regular fa-envelope me-1"></i> Important
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link py-3 px-0 border-3" data-bs-toggle="pill" data-bs-target="#pills-socials" type="button" role="tab" aria-selected="false">
-                                        <i class="fa-regular fa-user me-1"></i> Socials
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link py-3 px-0 border-3" data-bs-toggle="pill" data-bs-target="#pills-promotion" type="button" role="tab" aria-selected="false">
-                                        <i class="fa-solid fa-ticket me-1"></i> Promotion
-                                    </button>
-                                </li>
-                            </ul>
+                            <div class="mail-toolbar-actions ms-2 ms-sm-3 py-3 py-sm-2">
+                                <a href="{{ request()->fullUrl() }}" @class(['btn btn-square btn-sm tp-btn-light btn-primary', 'disabled' => $account === null]) data-bs-toggle="tooltip" data-bs-placement="bottom" title="Refresh" aria-label="Refresh email" data-mail-refresh>
+                                    <i class="fa-solid fa-arrows-rotate" data-mail-action-icon></i>
+                                </a>
+                                @unless ($isSentFolder)
+                                    <form method="POST" action="{{ route($mailRoutePrefix.'.mark-all-read') }}" class="d-inline" data-mail-mark-all-read-form>
+                                        @csrf
+                                        <input type="hidden" name="folder" value="{{ $folder }}">
+                                        <button type="submit" class="btn btn-square btn-sm tp-btn-light btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Mark all as read" aria-label="Mark all as read" @disabled($account === null)>
+                                            <i class="fa-solid fa-check-double" data-mail-action-icon></i>
+                                        </button>
+                                    </form>
+                                @endunless
+                            </div>
                         </div>
                         <form method="GET" action="{{ route($folderRoute) }}" class="mail-search-form order-3 order-sm-2 flex-grow-1 py-2 ms-sm-auto">
                             <div class="input-group input-group-sm">
@@ -190,96 +208,75 @@
                         </form>
                     </div>
 
-                    <div class="tab-content" id="pills-tabContent">
-                        <div class="tab-pane fade show active" id="pills-important" role="tabpanel">
-                            <div class="email-list mail-list-clean dz-scroll" id="emails">
-                                @if ($inboxError)
-                                    <div class="p-4">
-                                        @include('partials.swal-alert', ['type' => 'warning', 'message' => $inboxError])
-                                    </div>
-                                @endif
+                    <div class="email-list mail-list-clean dz-scroll" id="emails">
+                        @if ($inboxError)
+                            <div class="p-4">
+                                @include('partials.swal-alert', ['type' => 'warning', 'message' => $inboxError])
+                            </div>
+                        @endif
 
-                                @forelse ($messages as $mail)
-                                    @php
-                                        $readRouteParameters = $isSentFolder ? ['uid' => $mail['uid'], 'folder' => 'sent'] : ['uid' => $mail['uid']];
-                                    @endphp
-                                    <div class="message {{ $mail['unread'] ? 'unread' : '' }}">
-                                        <div class="message-single">
-                                            <div class="email-checkbox form-check custom-checkbox">
-                                                <input type="checkbox" name="uids[]" value="{{ $mail['uid'] }}" form="mail-bulk-delete-form" class="form-check-input check-input" aria-label="Pilih email">
-                                            </div>
-                                            <label class="bookmark-btn">
-                                                <input type="checkbox">
-                                                <span class="checkmark"></span>
-                                            </label>
-                                        </div>
-                                        <a href="{{ route($mailRoutePrefix.'.read', $readRouteParameters) }}" class="col-mail col-mail-2">
-                                            <div class="email-hader">{{ $isSentFolder ? 'To: '.($mail['to'] ?: '-') : $mail['from'] }}</div>
-                                            <div class="email-subject">
-                                                {{ $mail['subject'] }} <span>{{ $mail['date'] }}</span>
-                                            </div>
-                                            <div class="email-date">{{ $mail['time'] }}</div>
-                                        </a>
-                                        <div class="on-hover">
-                                            <a><i class="fa fa-archive"></i></a>
-                                            <a class="ms-2"><i class="fa-regular fa-clock"></i></a>
-                                            <form method="POST" action="{{ route($mailRoutePrefix.'.destroy') }}" class="d-inline ms-2"
-                                                data-delete-confirmation-form
-                                                data-delete-title="Hapus Email"
-                                                data-delete-message="Hapus email &quot;{{ $mail['subject'] }}&quot;?"
-                                                data-delete-confirm-button="Hapus"
-                                                data-delete-cancel-button="Batal">
-                                                @csrf
-                                                <input type="hidden" name="folder" value="{{ $folder }}">
-                                                <input type="hidden" name="uids[]" value="{{ $mail['uid'] }}">
-                                                <button type="submit" class="btn btn-link p-0 text-danger" title="Hapus email"><i class="fa fa-trash"></i></button>
-                                            </form>
-                                        </div>
+                        @forelse ($messages as $mail)
+                            @php
+                                $readRouteParameters = $isSentFolder ? ['uid' => $mail['uid'], 'folder' => 'sent'] : ['uid' => $mail['uid']];
+                            @endphp
+                            <div class="message {{ $mail['unread'] ? 'unread' : '' }}">
+                                <div class="message-single">
+                                    <div class="email-checkbox form-check custom-checkbox">
+                                        <input type="checkbox" name="uids[]" value="{{ $mail['uid'] }}" form="mail-bulk-delete-form" class="form-check-input check-input" aria-label="Pilih email">
                                     </div>
-                                @empty
-                                    @if (! $inboxError)
-                                        <div class="p-4 text-center text-muted">
-                                            @if ($account === null)
-                                                @if ($hasAvailableMailAccounts)
-                                                    Pilih email account terlebih dahulu.
-                                                @else
-                                                    <span class="mail-empty-info">
-                                                        <i class="fa-solid fa-circle-info"></i>
-                                                        <span>Hubungi administrator untuk mendapatkan akses email personal business</span>
-                                                    </span>
-                                                @endif
-                                            @elseif ($searchQuery !== '')
-                                                Tidak ada email yang cocok dengan pencarian.
-                                            @else
-                                                {{ $isSentFolder ? 'Belum ada email terkirim.' : 'Inbox kosong.' }}
-                                            @endif
-                                        </div>
+                                    <label class="bookmark-btn">
+                                        <input type="checkbox">
+                                        <span class="checkmark"></span>
+                                    </label>
+                                </div>
+                                <a href="{{ route($mailRoutePrefix.'.read', $readRouteParameters) }}" class="col-mail col-mail-2">
+                                    <div class="email-hader">
+                                        <span class="mail-list-sender">{{ $isSentFolder ? 'To: '.($mail['to'] ?: '-') : $mail['from'] }}</span>
+                                        @if (($mail['thread_count'] ?? 1) > 1)
+                                            <span class="mail-list-thread-count" title="{{ $mail['thread_count'] }} pesan dalam percakapan">{{ $mail['thread_count'] }}</span>
+                                        @endif
+                                    </div>
+                                    <div class="email-subject">
+                                        {{ $mail['subject'] }} <span>{{ $mail['date'] }}</span>
+                                    </div>
+                                    <div class="email-date">{{ $mail['time'] }}</div>
+                                </a>
+                                <div class="on-hover">
+                                    <a><i class="fa fa-archive"></i></a>
+                                    <a class="ms-2"><i class="fa-regular fa-clock"></i></a>
+                                    <form method="POST" action="{{ route($mailRoutePrefix.'.destroy') }}" class="d-inline ms-2"
+                                        data-delete-confirmation-form
+                                        data-delete-title="Hapus Email"
+                                        data-delete-message="Hapus email &quot;{{ $mail['subject'] }}&quot;?"
+                                        data-delete-confirm-button="Hapus"
+                                        data-delete-cancel-button="Batal">
+                                        @csrf
+                                        <input type="hidden" name="folder" value="{{ $folder }}">
+                                        <input type="hidden" name="uids[]" value="{{ $mail['uid'] }}">
+                                        <button type="submit" class="btn btn-link p-0 text-danger" title="Hapus email"><i class="fa fa-trash"></i></button>
+                                    </form>
+                                </div>
+                            </div>
+                        @empty
+                            @if (! $inboxError)
+                                <div class="p-4 text-center text-muted">
+                                    @if ($account === null)
+                                        @if ($hasAvailableMailAccounts)
+                                            Pilih email account terlebih dahulu.
+                                        @else
+                                            <span class="mail-empty-info">
+                                                <i class="fa-solid fa-circle-info"></i>
+                                                <span>Hubungi administrator untuk mendapatkan akses email personal business</span>
+                                            </span>
+                                        @endif
+                                    @elseif ($searchQuery !== '')
+                                        Tidak ada email yang cocok dengan pencarian.
+                                    @else
+                                        {{ $isSentFolder ? 'Belum ada email terkirim.' : 'Inbox kosong.' }}
                                     @endif
-                                @endforelse
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="pills-socials" role="tabpanel">
-                            <div class="email-list mail-list-clean dz-scroll">
-                                <div class="message">
-                                    <a href="{{ route($mailRoutePrefix.'.inbox') }}" class="col-mail col-mail-2">
-                                        <div class="email-hader">Socials</div>
-                                        <div class="email-subject">Belum ada email social.</div>
-                                        <div class="email-date">Now</div>
-                                    </a>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="pills-promotion" role="tabpanel">
-                            <div class="email-list mail-list-clean dz-scroll">
-                                <div class="message">
-                                    <a href="{{ route($mailRoutePrefix.'.inbox') }}" class="col-mail col-mail-2">
-                                        <div class="email-hader">Promotion</div>
-                                        <div class="email-subject">Belum ada email promotion.</div>
-                                        <div class="email-date">Now</div>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+                            @endif
+                        @endforelse
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center bg-light px-3 py-2">
@@ -314,6 +311,29 @@
     @stack('scripts')
     @include('mail.partials.account-selector-script')
     <script>
+        // Show progress on the toolbar actions and prevent double clicks while the page reloads.
+        document.querySelectorAll('[data-mail-refresh]').forEach(function (refreshLink) {
+            refreshLink.addEventListener('click', function () {
+                refreshLink.querySelector('[data-mail-action-icon]')?.classList.add('fa-spin');
+                refreshLink.classList.add('disabled');
+            });
+        });
+
+        document.querySelectorAll('[data-mail-mark-all-read-form]').forEach(function (markAllReadForm) {
+            markAllReadForm.addEventListener('submit', function () {
+                var submitButton = markAllReadForm.querySelector('button[type="submit"]');
+                var icon = markAllReadForm.querySelector('[data-mail-action-icon]');
+
+                if (icon) {
+                    icon.className = 'fa-solid fa-spinner fa-spin';
+                }
+
+                window.setTimeout(function () {
+                    submitButton.disabled = true;
+                }, 0);
+            });
+        });
+
         (function () {
             var bulkDeleteButton = document.querySelector('[data-mail-bulk-delete]');
 

@@ -509,7 +509,7 @@ class TalentAcquisitionController extends Controller
             ->with('assessment_active_tab', 'technical-test-tab');
     }
 
-    public function updateApplicantStatus(Request $request, Applicant $applicant): RedirectResponse
+    public function updateApplicantStatus(Request $request, Applicant $applicant): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'applicant_status_id' => ['required', Rule::exists((new ApplicantStatus)->getTable(), 'id')],
@@ -524,12 +524,21 @@ class TalentAcquisitionController extends Controller
         $applicant->setRelation('applicantStatus', $applicantStatus);
 
         $mailSent = $this->sendApplicantStatusMail($applicant);
+        $mailFailedMessage = 'Status tersimpan, tapi email gagal dikirim. Periksa kembali username/password SMTP brand.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $mailSent ? 'Status pelamar berhasil diperbarui.' : $mailFailedMessage,
+                'mail_sent' => $mailSent,
+            ]);
+        }
 
         $response = back()->with('status', 'Status pelamar berhasil diperbarui.');
 
         if (! $mailSent) {
             return $response->withErrors([
-                'mail' => 'Status tersimpan, tapi email gagal dikirim. Periksa kembali username/password SMTP brand.',
+                'mail' => $mailFailedMessage,
             ]);
         }
 
@@ -694,7 +703,7 @@ class TalentAcquisitionController extends Controller
         return 'smtp';
     }
 
-    public function updateJobVacancyStatus(Request $request, JobVacancy $jobVacancy): RedirectResponse
+    public function updateJobVacancyStatus(Request $request, JobVacancy $jobVacancy): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'status' => ['required', 'integer', Rule::in(JobVacancy::statuses())],
@@ -703,16 +712,26 @@ class TalentAcquisitionController extends Controller
         $status = JobVacancy::statusValueFor((int) $validated['status']);
 
         if ($status === JobVacancy::STATUS_ACTIVE && ! $jobVacancy->technicalCriteria()->exists()) {
+            $missingCriteriaMessage = 'Isi kriteria tes teknis terlebih dahulu sebelum lowongan diaktifkan.';
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $missingCriteriaMessage,
+                    'redirect_url' => route('applicant.job_vacancies.edit', $jobVacancy),
+                ], 422);
+            }
+
             return redirect()
                 ->route('applicant.job_vacancies.edit', $jobVacancy)
-                ->withErrors(['technical_criteria' => 'Isi kriteria tes teknis terlebih dahulu sebelum lowongan diaktifkan.']);
+                ->withErrors(['technical_criteria' => $missingCriteriaMessage]);
         }
 
         $jobVacancy->update([
             'status' => $status,
         ]);
 
-        return back()->with('status', 'Status lowongan berhasil diperbarui.');
+        return $this->tableActionResponse($request, back(), 'Status lowongan berhasil diperbarui.');
     }
 
     public function createJobVacancy(): View
@@ -798,11 +817,11 @@ class TalentAcquisitionController extends Controller
         return redirect()->route('applicant.job_vacancies')->with('status', 'Lowongan berhasil diperbarui.');
     }
 
-    public function destroyJobVacancy(JobVacancy $jobVacancy): RedirectResponse
+    public function destroyJobVacancy(Request $request, JobVacancy $jobVacancy): JsonResponse|RedirectResponse
     {
         $jobVacancy->delete();
 
-        return back()->with('status', 'Lowongan berhasil dihapus.');
+        return $this->tableActionResponse($request, back(), 'Lowongan berhasil dihapus.');
     }
 
     /**
@@ -965,10 +984,10 @@ class TalentAcquisitionController extends Controller
         }
     }
 
-    public function destroyApplicant(Applicant $applicant): RedirectResponse
+    public function destroyApplicant(Request $request, Applicant $applicant): JsonResponse|RedirectResponse
     {
         $applicant->forceDelete();
 
-        return redirect()->route('applicant')->with('status', 'Data pelamar berhasil dihapus.');
+        return $this->tableActionResponse($request, redirect()->route('applicant'), 'Data pelamar berhasil dihapus.');
     }
 }

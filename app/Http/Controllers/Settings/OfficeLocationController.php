@@ -69,7 +69,7 @@ class OfficeLocationController extends Controller
             ->with('status', 'Work location has been updated.');
     }
 
-    public function destroy(OfficeLocation $officeLocation): RedirectResponse
+    public function destroy(Request $request, OfficeLocation $officeLocation): JsonResponse|RedirectResponse
     {
         $isUsedByDeployment = DB::table('employee_deployments')
             ->where('current_office_location_id', $officeLocation->id)
@@ -80,14 +80,12 @@ class OfficeLocationController extends Controller
             ->exists();
 
         if ($isUsedByDeployment || $isUsedByAttendanceRule) {
-            return back()->with('error', 'Work location is still used by employee deployment or attendance rule data.');
+            return $this->tableActionResponse($request, back(), 'Work location is still used by employee deployment or attendance rule data.', false);
         }
 
         $officeLocation->delete();
 
-        return redirect()
-            ->route('settings.office-locations.index')
-            ->with('status', 'Work location has been deleted.');
+        return $this->tableActionResponse($request, redirect()->route('settings.office-locations.index'), 'Work location has been deleted.');
     }
 
     /**

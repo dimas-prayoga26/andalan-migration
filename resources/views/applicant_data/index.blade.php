@@ -405,24 +405,24 @@
             color: #c0263d;
         }
 
-        #applicantsTable thead th {
+        #datatable thead th {
             font-size: 1rem;
             font-weight: 600;
             padding: 1rem 0.75rem;
         }
 
-        #applicantsTable tbody td {
+        #datatable tbody td {
             font-size: 0.95rem;
             padding: 0.9rem 0.75rem;
             vertical-align: top;
         }
 
-        #applicantsTable thead th:first-child,
-        #applicantsTable tbody td:first-child {
+        #datatable thead th:first-child,
+        #datatable tbody td:first-child {
             text-align: center !important;
         }
 
-        #applicantsTable_wrapper .dt-layout-row:first-child {
+        #datatable_wrapper .dt-layout-row:first-child {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -430,55 +430,55 @@
             margin: 0 0 1rem;
         }
 
-        #applicantsTable_wrapper .dataTables_length,
-        #applicantsTable_wrapper .dataTables_filter {
+        #datatable_wrapper .dataTables_length,
+        #datatable_wrapper .dataTables_filter {
             display: inline-flex;
             align-items: center;
             gap: 0.55rem;
             margin-bottom: 1rem;
         }
 
-        #applicantsTable_wrapper .dataTables_filter {
+        #datatable_wrapper .dataTables_filter {
             float: right;
         }
 
-        #applicantsTable_wrapper .dt-layout-row:first-child .dt-layout-cell {
+        #datatable_wrapper .dt-layout-row:first-child .dt-layout-cell {
             display: flex;
             align-items: center;
             width: auto;
         }
 
-        #applicantsTable_wrapper .dt-layout-row:first-child .dt-layout-cell:first-child {
+        #datatable_wrapper .dt-layout-row:first-child .dt-layout-cell:first-child {
             justify-content: flex-start;
         }
 
-        #applicantsTable_wrapper .dt-layout-row:first-child .dt-layout-cell:last-child {
+        #datatable_wrapper .dt-layout-row:first-child .dt-layout-cell:last-child {
             justify-content: flex-end;
         }
 
-        #applicantsTable_wrapper .dt-length,
-        #applicantsTable_wrapper .dt-search,
-        #applicantsTable_wrapper .dataTables_length label,
-        #applicantsTable_wrapper .dataTables_filter label {
+        #datatable_wrapper .dt-length,
+        #datatable_wrapper .dt-search,
+        #datatable_wrapper .dataTables_length label,
+        #datatable_wrapper .dataTables_filter label {
             display: inline-flex;
             align-items: center;
             gap: 0.55rem;
             margin: 0;
         }
 
-        #applicantsTable_wrapper .dt-length label,
-        #applicantsTable_wrapper .dt-search label,
-        #applicantsTable_wrapper .dataTables_length label,
-        #applicantsTable_wrapper .dataTables_filter label {
+        #datatable_wrapper .dt-length label,
+        #datatable_wrapper .dt-search label,
+        #datatable_wrapper .dataTables_length label,
+        #datatable_wrapper .dataTables_filter label {
             margin: 0;
             color: #5f6b7a;
             font-weight: 600;
         }
 
-        #applicantsTable_wrapper .dt-length select,
-        #applicantsTable_wrapper .dt-search input,
-        #applicantsTable_wrapper .dataTables_length select,
-        #applicantsTable_wrapper .dataTables_filter input {
+        #datatable_wrapper .dt-length select,
+        #datatable_wrapper .dt-search input,
+        #datatable_wrapper .dataTables_length select,
+        #datatable_wrapper .dataTables_filter input {
             min-height: 38px;
             border: 1px solid #d9dce5;
             border-radius: 0.5rem;
@@ -487,15 +487,15 @@
             box-shadow: none;
         }
 
-        #applicantsTable_wrapper .dt-search input,
-        #applicantsTable_wrapper .dataTables_filter input {
+        #datatable_wrapper .dt-search input,
+        #datatable_wrapper .dataTables_filter input {
             width: 220px;
             max-width: 100%;
             padding: 0.35rem 0.75rem;
         }
 
-        #applicantsTable_wrapper .dt-length select,
-        #applicantsTable_wrapper .dataTables_length select {
+        #datatable_wrapper .dt-length select,
+        #datatable_wrapper .dataTables_length select {
             padding: 0.35rem 2rem 0.35rem 0.75rem;
         }
 
@@ -519,28 +519,28 @@
                 margin-left: 0;
             }
 
-            #applicantsTable_wrapper .dt-layout-row:first-child {
+            #datatable_wrapper .dt-layout-row:first-child {
                 align-items: stretch;
                 flex-direction: column;
             }
 
-            #applicantsTable_wrapper .dt-layout-row:first-child .dt-layout-cell,
-            #applicantsTable_wrapper .dt-length,
-            #applicantsTable_wrapper .dt-search,
-            #applicantsTable_wrapper .dataTables_length,
-            #applicantsTable_wrapper .dataTables_filter,
-            #applicantsTable_wrapper .dataTables_length label,
-            #applicantsTable_wrapper .dataTables_filter label {
+            #datatable_wrapper .dt-layout-row:first-child .dt-layout-cell,
+            #datatable_wrapper .dt-length,
+            #datatable_wrapper .dt-search,
+            #datatable_wrapper .dataTables_length,
+            #datatable_wrapper .dataTables_filter,
+            #datatable_wrapper .dataTables_length label,
+            #datatable_wrapper .dataTables_filter label {
                 justify-content: space-between;
                 width: 100%;
             }
 
-            #applicantsTable_wrapper .dataTables_filter {
+            #datatable_wrapper .dataTables_filter {
                 float: none;
             }
 
-            #applicantsTable_wrapper .dt-search input,
-            #applicantsTable_wrapper .dataTables_filter input {
+            #datatable_wrapper .dt-search input,
+            #datatable_wrapper .dataTables_filter input {
                 width: 100%;
             }
         }
@@ -580,7 +580,6 @@
                 @if ($errors->any())
                     @include('partials.swal-alert', ['type' => 'error', 'message' => $errors->first()])
                 @endif
-                @include('settings.partials.delete-confirmation-swal')
 
                 <div class="talent-header-bar">
                     <div class="talent-table-title">Data Pelamar</div>
@@ -615,20 +614,7 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table id="applicantsTable" class="display table">
-                        <thead>
-                        <tr>
-                            <th class="mw-80">No</th>
-                            <th class="mw-100">Photo</th>
-                            <th class="mw-220">Nama Lengkap</th>
-                            <th class="mw-220">Posisi Dilamar</th>
-                            <th class="mw-420">Keterangan</th>
-                            <th class="mw-180">Penilaian</th>
-                            <th class="mw-120">Action</th>
-                        </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+                    <table id="datatable" class="table table-bordered text-nowrap w-100"></table>
                 </div>
             </div>
         </div>
@@ -642,6 +628,7 @@
         $dataTablesJsVersion = file_exists($dataTablesJsPath) ? filemtime($dataTablesJsPath) : time();
     @endphp
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}"></script>
     <script>
         var applicantStatuses = @json($applicantStatuses->map(fn ($status) => ['id' => (string) $status->id, 'value' => (int) $status->value, 'name' => (string) $status->name])->values());
         var csrfToken = @json(csrf_token());
@@ -686,15 +673,13 @@
                     + '</option>';
             }).join('');
 
-            return '<form method="POST" action="' + applicantUrl(applicantStatusUpdateUrlTemplate, applicant.id) + '" class="talent-status-form">'
-                + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
-                + '<input type="hidden" name="_method" value="PATCH">'
+            return '<div class="talent-status-form">'
                 + '<span class="talent-status-select-shell">'
-                + '<select name="applicant_status_id" class="talent-status-select status-value-' + Number(applicant.applicant_status_value || 0) + '" onchange="updateApplicantStatusColor(this); this.form.submit()" aria-label="Update status ' + escapeHtml(applicant.full_name) + '">'
+                + '<select name="applicant_status_id" class="talent-status-select status-value-' + Number(applicant.applicant_status_value || 0) + '" onchange="updateApplicantStatusColor(this); updateStatus(\'' + escapeHtml(applicant.id) + '\', this.value)" aria-label="Update status ' + escapeHtml(applicant.full_name) + '">'
                 + options
                 + '</select>'
                 + '</span>'
-                + '</form>';
+                + '</div>';
         }
 
         function renderAssessmentSummary(applicant) {
@@ -708,12 +693,66 @@
         function renderApplicantAction(applicant) {
             return '<div class="talent-action-group">'
                 + '<a href="' + applicantUrl(applicantShowUrlTemplate, applicant.id) + '" class="talent-action-btn view" title="Detail"><i class="bi bi-eye"></i></a>'
-                + '<form method="POST" action="' + applicantUrl(applicantDestroyUrlTemplate, applicant.id) + '" data-delete-confirmation-form data-delete-title="Hapus Data Pelamar?" data-delete-message="Data ' + escapeHtml(applicant.full_name) + ' akan dihapus permanen." data-delete-confirm-button="Ya, hapus" data-delete-cancel-button="Batal">'
-                + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
-                + '<input type="hidden" name="_method" value="DELETE">'
-                + '<button type="submit" class="talent-action-btn delete" title="Delete"><i class="bi bi-trash"></i></button>'
-                + '</form>'
+                + '<button type="button" class="talent-action-btn delete" title="Delete" onclick="deleteData(\'' + escapeHtml(applicant.id) + '\')"><i class="bi bi-trash"></i></button>'
                 + '</div>';
+        }
+
+        function findApplicantRow(id) {
+            return $('#datatable').DataTable().rows().data().toArray().find(function (row) {
+                return String(row.id) === String(id);
+            });
+        }
+
+        function ajaxErrorMessage(xhr, fallbackMessage) {
+            return xhr && xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : fallbackMessage;
+        }
+
+        function deleteData(id) {
+            var applicant = findApplicantRow(id);
+
+            Swal.fire({
+                title: 'Hapus Data Pelamar?',
+                text: 'Data ' + (applicant ? applicant.full_name : 'pelamar ini') + ' akan dihapus permanen.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, hapus',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#dc3545',
+                reverseButtons: true,
+                focusCancel: true
+            }).then(function (result) {
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                $.ajax({
+                    url: applicantUrl(applicantDestroyUrlTemplate, id),
+                    type: 'DELETE',
+                    dataType: 'json',
+                    headers: { 'X-CSRF-TOKEN': csrfToken }
+                }).done(function (response) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: response.message });
+                    $('#datatable').DataTable().ajax.reload(null, false);
+                }).fail(function (xhr) {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: ajaxErrorMessage(xhr, 'Data pelamar gagal dihapus.') });
+                });
+            });
+        }
+
+        function updateStatus(id, status) {
+            $.ajax({
+                url: applicantUrl(applicantStatusUpdateUrlTemplate, id),
+                type: 'PATCH',
+                dataType: 'json',
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+                data: { applicant_status_id: status }
+            }).done(function (response) {
+                Swal.fire({ icon: response.mail_sent === false ? 'warning' : 'success', title: response.mail_sent === false ? 'Perhatian' : 'Berhasil', text: response.message });
+                $('#datatable').DataTable().ajax.reload(null, false);
+            }).fail(function (xhr) {
+                Swal.fire({ icon: 'error', title: 'Gagal', text: ajaxErrorMessage(xhr, 'Status pelamar gagal diperbarui.') });
+                $('#datatable').DataTable().ajax.reload(null, false);
+            });
         }
 
         function updateApplicantStatusCounts(json) {
@@ -732,11 +771,12 @@
         $(function () {
             var selectedApplicantStatus = '';
 
-            $('#applicantsTable').on('xhr.dt', function (event, settings, json) {
+            $('#datatable').on('xhr.dt', function (event, settings, json) {
                 updateApplicantStatusCounts(json);
             });
 
-            var applicantsTable = $('#applicantsTable').DataTable({
+            var applicantsTable = $('#datatable').DataTable({
+                autoWidth: false,
                 ajax: {
                     url: "{{ route('applicant.datatable') }}",
                     data: function (requestData) {
@@ -750,6 +790,8 @@
                 order: [],
                 columns: [
                     {
+                        title: 'No',
+                        className: 'mw-80',
                         data: null,
                         searchable: false,
                         orderable: false,
@@ -758,6 +800,8 @@
                         }
                     },
                     {
+                        title: 'Photo',
+                        className: 'mw-100',
                         data: null,
                         searchable: false,
                         orderable: false,
@@ -765,15 +809,19 @@
                             return renderApplicantPhoto(row);
                         }
                     },
-                    { data: 'full_name' },
-                    { data: 'job_vacancy_name' },
+                    { title: 'Nama Lengkap', className: 'mw-220', data: 'full_name' },
+                    { title: 'Posisi Dilamar', className: 'mw-220', data: 'job_vacancy_name' },
                     {
+                        title: 'Keterangan',
+                        className: 'mw-420',
                         data: null,
                         render: function (data, type, row) {
                             return renderApplicantStatus(row);
                         }
                     },
                     {
+                        title: 'Penilaian',
+                        className: 'mw-180',
                         data: null,
                         searchable: false,
                         orderable: false,
@@ -782,6 +830,8 @@
                         }
                     },
                     {
+                        title: 'Action',
+                        className: 'mw-120',
                         data: null,
                         searchable: false,
                         orderable: false,

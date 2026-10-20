@@ -172,7 +172,7 @@
             color: #c0263d;
         }
 
-        #jobVacanciesTable_wrapper .dt-layout-row:first-child {
+        #datatable_wrapper .dt-layout-row:first-child {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -180,35 +180,35 @@
             margin: 0 0 1rem;
         }
 
-        #jobVacanciesTable_wrapper .dt-layout-row:first-child .dt-layout-cell {
+        #datatable_wrapper .dt-layout-row:first-child .dt-layout-cell {
             display: flex;
             align-items: center;
             width: auto;
         }
 
-        #jobVacanciesTable_wrapper .dt-length,
-        #jobVacanciesTable_wrapper .dt-search,
-        #jobVacanciesTable_wrapper .dataTables_length label,
-        #jobVacanciesTable_wrapper .dataTables_filter label {
+        #datatable_wrapper .dt-length,
+        #datatable_wrapper .dt-search,
+        #datatable_wrapper .dataTables_length label,
+        #datatable_wrapper .dataTables_filter label {
             display: inline-flex;
             align-items: center;
             gap: 0.55rem;
             margin: 0;
         }
 
-        #jobVacanciesTable_wrapper .dt-length label,
-        #jobVacanciesTable_wrapper .dt-search label,
-        #jobVacanciesTable_wrapper .dataTables_length label,
-        #jobVacanciesTable_wrapper .dataTables_filter label {
+        #datatable_wrapper .dt-length label,
+        #datatable_wrapper .dt-search label,
+        #datatable_wrapper .dataTables_length label,
+        #datatable_wrapper .dataTables_filter label {
             margin: 0;
             color: #5f6b7a;
             font-weight: 600;
         }
 
-        #jobVacanciesTable_wrapper .dt-length select,
-        #jobVacanciesTable_wrapper .dt-search input,
-        #jobVacanciesTable_wrapper .dataTables_length select,
-        #jobVacanciesTable_wrapper .dataTables_filter input {
+        #datatable_wrapper .dt-length select,
+        #datatable_wrapper .dt-search input,
+        #datatable_wrapper .dataTables_length select,
+        #datatable_wrapper .dataTables_filter input {
             min-height: 38px;
             border: 1px solid #d9dce5;
             border-radius: 0.5rem;
@@ -217,52 +217,52 @@
             box-shadow: none;
         }
 
-        #jobVacanciesTable_wrapper .dt-search input,
-        #jobVacanciesTable_wrapper .dataTables_filter input {
+        #datatable_wrapper .dt-search input,
+        #datatable_wrapper .dataTables_filter input {
             width: 220px;
             max-width: 100%;
             padding: 0.35rem 0.75rem;
         }
 
-        #jobVacanciesTable_wrapper .dt-length select,
-        #jobVacanciesTable_wrapper .dataTables_length select {
+        #datatable_wrapper .dt-length select,
+        #datatable_wrapper .dataTables_length select {
             padding: 0.35rem 2rem 0.35rem 0.75rem;
         }
 
-        #jobVacanciesTable thead th {
+        #datatable thead th {
             font-size: 1rem;
             font-weight: 600;
             padding: 1rem 0.75rem;
         }
 
-        #jobVacanciesTable tbody td {
+        #datatable tbody td {
             font-size: 0.95rem;
             padding: 0.9rem 0.75rem;
             vertical-align: middle;
         }
 
-        #jobVacanciesTable thead th:first-child,
-        #jobVacanciesTable tbody td:first-child {
+        #datatable thead th:first-child,
+        #datatable tbody td:first-child {
             text-align: center !important;
         }
 
         @media only screen and (max-width: 767.98px) {
-            #jobVacanciesTable_wrapper .dt-layout-row:first-child {
+            #datatable_wrapper .dt-layout-row:first-child {
                 align-items: stretch;
                 flex-direction: column;
             }
 
-            #jobVacanciesTable_wrapper .dt-layout-row:first-child .dt-layout-cell,
-            #jobVacanciesTable_wrapper .dt-length,
-            #jobVacanciesTable_wrapper .dt-search,
-            #jobVacanciesTable_wrapper .dataTables_length label,
-            #jobVacanciesTable_wrapper .dataTables_filter label {
+            #datatable_wrapper .dt-layout-row:first-child .dt-layout-cell,
+            #datatable_wrapper .dt-length,
+            #datatable_wrapper .dt-search,
+            #datatable_wrapper .dataTables_length label,
+            #datatable_wrapper .dataTables_filter label {
                 justify-content: space-between;
                 width: 100%;
             }
 
-            #jobVacanciesTable_wrapper .dt-search input,
-            #jobVacanciesTable_wrapper .dataTables_filter input {
+            #datatable_wrapper .dt-search input,
+            #datatable_wrapper .dataTables_filter input {
                 width: 100%;
             }
         }
@@ -321,27 +321,12 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table id="jobVacanciesTable" class="display table">
-                        <thead>
-                        <tr>
-                            <th class="mw-80">No</th>
-                            <th class="mw-300">Lowongan Pekerjaan</th>
-                            <th class="mw-220">Company</th>
-                            <th class="mw-160">Status</th>
-                            <th class="mw-160">Total Pelamar</th>
-                            <th class="mw-180">Created At</th>
-                            <th class="mw-120">Action</th>
-                        </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+                    <table id="datatable" class="table table-bordered text-nowrap w-100"></table>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-@include('settings.partials.delete-confirmation-swal')
 @endsection
 
 @section('script')
@@ -350,6 +335,7 @@
         $dataTablesJsVersion = file_exists($dataTablesJsPath) ? filemtime($dataTablesJsPath) : time();
     @endphp
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}"></script>
     <script>
         var jobVacancyStatuses = @json(collect($jobVacancyStatuses)->map(fn ($label, $value) => ['value' => (int) $value, 'label' => (string) $label])->values());
         var csrfToken = @json(csrf_token());
@@ -377,33 +363,99 @@
                     + '</option>';
             }).join('');
 
-            return '<form method="POST" action="' + jobVacancyUrl(jobVacancyStatusUpdateUrlTemplate, jobVacancy.id) + '" class="talent-vacancy-status-form">'
-                + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
-                + '<input type="hidden" name="_method" value="PATCH">'
+            return '<div class="talent-vacancy-status-form">'
                 + '<span class="talent-vacancy-status-select-shell">'
-                + '<select name="status" class="talent-vacancy-status-select ' + escapeHtml(jobVacancy.status_css_class) + '" onchange="updateJobVacancyStatusColor(this); this.form.submit()" aria-label="Update status ' + escapeHtml(jobVacancy.name) + '">'
+                + '<select name="status" class="talent-vacancy-status-select ' + escapeHtml(jobVacancy.status_css_class) + '" onchange="updateJobVacancyStatusColor(this); updateStatus(\'' + escapeHtml(jobVacancy.id) + '\', this.value)" aria-label="Update status ' + escapeHtml(jobVacancy.name) + '">'
                 + options
                 + '</select>'
                 + '</span>'
-                + '</form>';
+                + '</div>';
         }
 
         function renderJobVacancyAction(jobVacancy) {
             return '<div class="talent-vacancy-action-group">'
                 + '<a href="' + jobVacancyUrl(jobVacancyEditUrlTemplate, jobVacancy.id) + '" class="talent-vacancy-action-btn edit" title="Update"><i class="bi bi-pencil-square"></i></a>'
-                + '<form method="POST" action="' + jobVacancyUrl(jobVacancyDestroyUrlTemplate, jobVacancy.id) + '" data-delete-confirmation-form data-delete-title="Hapus Lowongan?" data-delete-message="Lowongan ' + escapeHtml(jobVacancy.name) + ' akan dihapus." data-delete-confirm-button="Ya, hapus" data-delete-cancel-button="Batal">'
-                + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
-                + '<input type="hidden" name="_method" value="DELETE">'
-                + '<button type="submit" class="talent-vacancy-action-btn delete" title="Delete"><i class="bi bi-trash"></i></button>'
-                + '</form>'
+                + '<button type="button" class="talent-vacancy-action-btn delete" title="Delete" onclick="deleteData(\'' + escapeHtml(jobVacancy.id) + '\')"><i class="bi bi-trash"></i></button>'
                 + '</div>';
+        }
+
+        function findJobVacancyRow(id) {
+            return $('#datatable').DataTable().rows().data().toArray().find(function (row) {
+                return String(row.id) === String(id);
+            });
+        }
+
+        function ajaxErrorMessage(xhr, fallbackMessage) {
+            return xhr && xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : fallbackMessage;
+        }
+
+        function deleteData(id) {
+            var jobVacancy = findJobVacancyRow(id);
+
+            Swal.fire({
+                title: 'Hapus Lowongan?',
+                text: 'Lowongan ' + (jobVacancy ? jobVacancy.name : 'ini') + ' akan dihapus.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, hapus',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#dc3545',
+                reverseButtons: true,
+                focusCancel: true
+            }).then(function (result) {
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                $.ajax({
+                    url: jobVacancyUrl(jobVacancyDestroyUrlTemplate, id),
+                    type: 'DELETE',
+                    dataType: 'json',
+                    headers: { 'X-CSRF-TOKEN': csrfToken }
+                }).done(function (response) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: response.message });
+                    $('#datatable').DataTable().ajax.reload(null, false);
+                }).fail(function (xhr) {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: ajaxErrorMessage(xhr, 'Lowongan gagal dihapus.') });
+                });
+            });
+        }
+
+        function updateStatus(id, status) {
+            $.ajax({
+                url: jobVacancyUrl(jobVacancyStatusUpdateUrlTemplate, id),
+                type: 'PATCH',
+                dataType: 'json',
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+                data: { status: status }
+            }).done(function (response) {
+                Swal.fire({ icon: 'success', title: 'Berhasil', text: response.message });
+                $('#datatable').DataTable().ajax.reload(null, false);
+            }).fail(function (xhr) {
+                var redirectUrl = xhr && xhr.responseJSON ? xhr.responseJSON.redirect_url : null;
+
+                $('#datatable').DataTable().ajax.reload(null, false);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: ajaxErrorMessage(xhr, 'Status lowongan gagal diperbarui.'),
+                    showCancelButton: !!redirectUrl,
+                    confirmButtonText: redirectUrl ? 'Isi Kriteria' : 'OK',
+                    cancelButtonText: 'Tutup'
+                }).then(function (result) {
+                    if (redirectUrl && result.isConfirmed) {
+                        window.location.href = redirectUrl;
+                    }
+                });
+            });
         }
 
         $(function () {
             var selectedCompanyId = '';
             var jobVacancyTable = null;
 
-            jobVacancyTable = $('#jobVacanciesTable').DataTable({
+            jobVacancyTable = $('#datatable').DataTable({
+                autoWidth: false,
                 ajax: {
                     url: "{{ route('applicant.job_vacancies.datatable') }}",
                     data: function (requestData) {
@@ -415,6 +467,8 @@
                 serverSide: true,
                 columns: [
                     {
+                        title: 'No',
+                        className: 'mw-80',
                         data: null,
                         searchable: false,
                         orderable: false,
@@ -422,17 +476,21 @@
                             return (meta.row + meta.settings._iDisplayStart + 1) + '.';
                         }
                     },
-                    { data: 'name' },
-                    { data: 'company_name' },
+                    { title: 'Lowongan Pekerjaan', className: 'mw-300', data: 'name' },
+                    { title: 'Company', className: 'mw-220', data: 'company_name' },
                     {
+                        title: 'Status',
+                        className: 'mw-160',
                         data: null,
                         render: function (data, type, row) {
                             return renderJobVacancyStatus(row);
                         }
                     },
-                    { data: 'applicants_count' },
-                    { data: 'created_at' },
+                    { title: 'Total Pelamar', className: 'mw-160', data: 'applicants_count' },
+                    { title: 'Created At', className: 'mw-180', data: 'created_at' },
                     {
+                        title: 'Action',
+                        className: 'mw-120',
                         data: null,
                         searchable: false,
                         orderable: false,

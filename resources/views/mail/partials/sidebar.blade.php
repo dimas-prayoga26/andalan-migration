@@ -17,7 +17,7 @@
             <a href="{{ route($mailRoutePrefix.'.inbox') }}" class="list-group-item {{ $inboxIsActive ? 'active' : '' }}">
                 <i class="fa-regular fa-envelope"></i> Inbox
                 @if ($unreadCount !== null)
-                    <span class="badge badge-purple badge-sm float-end rounded">{{ $unreadCount }}</span>
+                    <span class="badge badge-danger badge-sm float-end rounded">{{ $unreadCount }}</span>
                 @endif
             </a>
             <a href="{{ route($mailRoutePrefix.'.sent') }}" class="list-group-item {{ $sentIsActive ? 'active' : '' }}">

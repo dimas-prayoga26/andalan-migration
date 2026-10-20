@@ -22,15 +22,13 @@ class AttendanceReportExcelExportTest extends TestCase
 
         $this->assertStringContainsString('<i class="fa-solid fa-file-excel me-1"></i> Export Report', $reportView);
         $this->assertStringNotContainsString('Export Excel', $reportView);
-        $this->assertStringNotContainsString('<th class="mw-100">Variance</th>', $reportView);
-        $this->assertStringContainsString('<th class="mw-200">Location</th>', $reportView);
-        $this->assertStringContainsString('<th class="mw-150">Note</th>', $reportView);
-        $this->assertStringContainsString('<th class="mw-150">Attachment</th>', $reportView);
-        $this->assertSame(1, substr_count($reportView, '<th class="mw-150">Note</th>'));
-        $this->assertStringNotContainsString("{ data: 'variance', defaultContent: '-' }", $reportView);
-        $this->assertStringContainsString("{ data: 'location_display', defaultContent: '-' }", $reportView);
-        $this->assertStringContainsString("{ data: 'note', defaultContent: '-' }", $reportView);
-        $this->assertStringContainsString("{ data: 'attachment', defaultContent: '-' }", $reportView);
+        $this->assertStringNotContainsString("title: 'Variance'", $reportView);
+        $this->assertStringContainsString('<table id="datatable" class="table table-bordered text-nowrap w-100"></table>', $reportView);
+        $this->assertSame(1, substr_count($reportView, "title: 'Note'"));
+        $this->assertStringNotContainsString("data: 'variance'", $reportView);
+        $this->assertStringContainsString("{ title: 'Location', className: 'mw-200', data: 'location_display', defaultContent: '-' }", $reportView);
+        $this->assertStringContainsString("{ title: 'Note', className: 'mw-150', data: 'note', defaultContent: '-' }", $reportView);
+        $this->assertStringContainsString("{ title: 'Attachment', className: 'mw-150', data: 'attachment', defaultContent: '-' }", $reportView);
         $this->assertStringContainsString('class="attendance-attachment-link">View Attachment</a>', $reportView);
         $this->assertStringContainsString('id="attendanceReportDetailModal"', $reportView);
         $this->assertStringContainsString('data-bs-target="#attendanceReportDetailModal"', $reportView);

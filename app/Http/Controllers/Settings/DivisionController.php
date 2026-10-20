@@ -87,21 +87,19 @@ class DivisionController extends Controller
             ->with('status', 'Division has been updated.');
     }
 
-    public function destroy(Department $division): RedirectResponse
+    public function destroy(Request $request, Department $division): JsonResponse|RedirectResponse
     {
         $isUsedByDeployment = DB::table('employee_deployments')
             ->where('current_department_id', $division->id)
             ->exists();
 
         if ($isUsedByDeployment) {
-            return back()->with('error', 'Division is still used by employee deployment data.');
+            return $this->tableActionResponse($request, back(), 'Division is still used by employee deployment data.', false);
         }
 
         $division->delete();
 
-        return redirect()
-            ->route('settings.divisions.index')
-            ->with('status', 'Division has been deleted.');
+        return $this->tableActionResponse($request, redirect()->route('settings.divisions.index'), 'Division has been deleted.');
     }
 
     /**

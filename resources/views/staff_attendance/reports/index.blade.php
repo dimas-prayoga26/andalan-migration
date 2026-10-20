@@ -169,7 +169,7 @@
             border-top: 1px solid #eef2f7;
         }
 
-        #tableLogs.dataTable tbody td.dataTables_empty {
+        #datatable.dataTable tbody td.dataTables_empty {
             text-align: center !important;
         }
 
@@ -179,40 +179,40 @@
             -webkit-overflow-scrolling: touch;
         }
 
-        .attendance-table-scroll-area #tableLogs {
+        .attendance-table-scroll-area #datatable {
             width: 100% !important;
         }
 
-        #tableLogs_wrapper .dt-scroll,
-        #tableLogs_wrapper .dataTables_scroll {
+        #datatable_wrapper .dt-scroll,
+        #datatable_wrapper .dataTables_scroll {
             overflow-x: auto;
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
         }
 
-        #tableLogs_wrapper .dt-scroll-head table,
-        #tableLogs_wrapper .dt-scroll-body table,
-        #tableLogs_wrapper .dataTables_scrollHead table,
-        #tableLogs_wrapper .dataTables_scrollBody table {
+        #datatable_wrapper .dt-scroll-head table,
+        #datatable_wrapper .dt-scroll-body table,
+        #datatable_wrapper .dataTables_scrollHead table,
+        #datatable_wrapper .dataTables_scrollBody table {
             min-width: 900px;
         }
 
-        #tableLogs_wrapper .dt-scroll-body,
-        #tableLogs_wrapper .dataTables_scrollBody {
+        #datatable_wrapper .dt-scroll-body,
+        #datatable_wrapper .dataTables_scrollBody {
             overflow-x: auto !important;
             overflow-y: hidden !important;
             -webkit-overflow-scrolling: touch;
         }
 
-        #tableLogs_wrapper .dt-scroll-body thead,
-        #tableLogs_wrapper .dataTables_scrollBody thead {
+        #datatable_wrapper .dt-scroll-body thead,
+        #datatable_wrapper .dataTables_scrollBody thead {
             visibility: hidden !important;
         }
 
-        #tableLogs_wrapper .dt-scroll-body thead tr,
-        #tableLogs_wrapper .dt-scroll-body thead th,
-        #tableLogs_wrapper .dataTables_scrollBody thead tr,
-        #tableLogs_wrapper .dataTables_scrollBody thead th {
+        #datatable_wrapper .dt-scroll-body thead tr,
+        #datatable_wrapper .dt-scroll-body thead th,
+        #datatable_wrapper .dataTables_scrollBody thead tr,
+        #datatable_wrapper .dataTables_scrollBody thead th {
             height: 0 !important;
             line-height: 0 !important;
             padding-top: 0 !important;
@@ -222,7 +222,7 @@
             margin: 0 !important;
         }
 
-        #tableLogs_wrapper table.dataTable thead > tr > th span.dt-column-order {
+        #datatable_wrapper table.dataTable thead > tr > th span.dt-column-order {
             display: none !important;
         }
 
@@ -351,20 +351,7 @@
                 </div>
                 <div class="card-body table-card-body px-0 pt-0 pb-2">
                     <div class="table-responsive attendance-table-scroll-area">
-                        <table id="tableLogs" class="table table-sm table-sm-responsive text-nowrap">
-                            <thead>
-                                <tr>
-                                    <th class="mw-120">Date</th>
-                                    <th class="mw-100">Clock In</th>
-                                    <th class="mw-150">Clock Out</th>
-                                    <th class="mw-200">Location</th>
-                                    <th class="mw-150">Note</th>
-                                    <th class="mw-100">Work Hours</th>
-                                    <th class="mw-150">Attachment</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
+                        <table id="datatable" class="table table-bordered text-nowrap w-100"></table>
                     </div>
                 </div>
             </div>
@@ -519,18 +506,18 @@
             }
 
             var tableLogs = function(){
-                if ($('#tableLogs').length === 0) {
+                if ($('#datatable').length === 0) {
                     return;
                 }
 
                 var attendanceColumns = [
-                    { data: 'attendance_date', defaultContent: '-' },
-                    { data: 'check_in', defaultContent: '' },
-                    { data: 'check_out', defaultContent: '' },
-                    { data: 'location_display', defaultContent: '-' },
-                    { data: 'note', defaultContent: '-' },
-                    { data: 'work_hours', defaultContent: '-' },
-                    { data: 'attachment', defaultContent: '-' }
+                    { title: 'Date', className: 'mw-120', data: 'attendance_date', defaultContent: '-' },
+                    { title: 'Clock In', className: 'mw-100', data: 'check_in', defaultContent: '' },
+                    { title: 'Clock Out', className: 'mw-150', data: 'check_out', defaultContent: '' },
+                    { title: 'Location', className: 'mw-200', data: 'location_display', defaultContent: '-' },
+                    { title: 'Note', className: 'mw-150', data: 'note', defaultContent: '-' },
+                    { title: 'Work Hours', className: 'mw-100', data: 'work_hours', defaultContent: '-' },
+                    { title: 'Attachment', className: 'mw-150', data: 'attachment', defaultContent: '-' }
                 ];
 
                 var checkInColumnIndex = 1;
@@ -657,7 +644,7 @@
                     }
                 ];
 
-                attendanceTable = $('#tableLogs').DataTable({
+                attendanceTable = $('#datatable').DataTable({
                     ajax: {
                         url: attendanceDatatableUrl,
                         data: function (requestData) {

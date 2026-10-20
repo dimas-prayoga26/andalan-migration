@@ -65,8 +65,8 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('fa-solid fa-clock fs-20 text-danger', $attendanceDetailView);
         $this->assertStringContainsString('fa-solid fa-hourglass-half fs-20 text-secondary', $attendanceDetailView);
         $this->assertStringContainsString('fa-solid fa-business-time fs-20 text-info', $attendanceDetailView);
-        $this->assertStringContainsString('<th class="mw-160">Address</th>', $attendanceDetailView);
-        $this->assertStringContainsString("{ data: 'location_address', render: function(data) { return escapeHtml(data); } }", $attendanceDetailView);
+        $this->assertStringContainsString("title: 'Address', className: 'mw-160'", $attendanceDetailView);
+        $this->assertStringContainsString("{ title: 'Address', className: 'mw-160', data: 'location_address', render: function(data) { return escapeHtml(data); } }", $attendanceDetailView);
         $this->assertStringNotContainsString('clip-path="url(#clip3)"', $attendanceDetailView);
         $this->assertStringNotContainsString('clip-path="url(#clip4)"', $attendanceDetailView);
         $this->assertStringNotContainsString('clip-path="url(#clip5)"', $attendanceDetailView);
@@ -194,8 +194,8 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString("asset('assets/vendor/apexcharts/dist/apexcharts.min.js')", $attendanceDetailView);
         $this->assertStringContainsString("typeof window.ApexCharts === 'undefined'", $attendanceDetailView);
         $this->assertStringContainsString("typeof \$.fn.peity !== 'function'", $attendanceDetailView);
-        $this->assertStringContainsString('<th class="mw-160">Address</th>', $attendanceDetailView);
-        $this->assertStringContainsString("{ data: 'location_address', render: function(data) { return escapeHtml(data); } }", $attendanceDetailView);
+        $this->assertStringContainsString("title: 'Address', className: 'mw-160'", $attendanceDetailView);
+        $this->assertStringContainsString("{ title: 'Address', className: 'mw-160', data: 'location_address', render: function(data) { return escapeHtml(data); } }", $attendanceDetailView);
         $this->assertStringContainsString('employeeAvatarUrl', $attendanceController);
         $this->assertStringContainsString("asset('assets/default_user.jpg')", $attendanceController);
         $this->assertStringContainsString('Add Overtime', $overtimeView);

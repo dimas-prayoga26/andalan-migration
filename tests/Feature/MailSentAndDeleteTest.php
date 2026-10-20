@@ -9,6 +9,7 @@ use App\Services\MailInboxService;
 use App\Services\SimpleImapClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 use ReflectionMethod;
 use RuntimeException;
 use Tests\TestCase;
@@ -66,6 +67,52 @@ class MailSentAndDeleteTest extends TestCase
         $response->assertOk();
         $response->assertSee('Inbox kosong.');
         $this->assertSame([['messagesFor', 'department@example.test', 'inbox']], $this->mailInbox->calls);
+    }
+
+    public function test_inbox_shows_refresh_and_mark_all_as_read_actions_instead_of_category_tabs(): void
+    {
+        $response = $this->actingAsMailUser()->get(route('applicant.email.inbox'));
+
+        $response->assertOk();
+        $response->assertSee('data-mail-refresh', false);
+        $response->assertSee(route('applicant.email.mark-all-read'), false);
+        $response->assertDontSee('Socials');
+        $response->assertDontSee('Promotion');
+
+        $this->actingAsMailUser()->get(route('applicant.email.sent'))
+            ->assertOk()
+            ->assertSee('data-mail-refresh', false)
+            ->assertDontSee(route('applicant.email.mark-all-read'), false);
+    }
+
+    public function test_all_inbox_messages_can_be_marked_as_read(): void
+    {
+        $this->mailInbox->markedAsReadCount = 3;
+
+        $response = $this->actingAsMailUser()->post(route('applicant.email.mark-all-read'), ['folder' => 'inbox']);
+
+        $response->assertRedirect(route('applicant.email.inbox'));
+        $response->assertSessionHas('mail_status', '3 email ditandai sudah dibaca.');
+        $this->assertSame([['markAllAsRead', 'department@example.test', 'inbox']], $this->mailInbox->calls);
+    }
+
+    public function test_mark_all_as_read_reports_when_everything_was_already_read(): void
+    {
+        $response = $this->actingAsMailUser()->post(route('applicant.email.mark-all-read'), ['folder' => 'inbox']);
+
+        $response->assertRedirect(route('applicant.email.inbox'));
+        $response->assertSessionHas('mail_status', 'Semua email sudah dibaca.');
+        $this->assertSame('business-email/mark-all-read', Route::getRoutes()->getByName('business-email.mark-all-read')?->uri());
+    }
+
+    public function test_mark_all_as_read_failure_is_reported_to_the_user(): void
+    {
+        $this->mailInbox->failOn = 'markAllAsRead';
+
+        $response = $this->actingAsMailUser()->post(route('applicant.email.mark-all-read'), ['folder' => 'inbox']);
+
+        $response->assertRedirect(route('applicant.email.inbox'));
+        $response->assertSessionHasErrors(['mail' => 'Email belum bisa ditandai sudah dibaca. Coba refresh lalu ulangi.']);
     }
 
     public function test_selected_messages_can_be_deleted(): void
@@ -238,6 +285,16 @@ class FakeMailInboxService extends MailInboxService
     public array $storedSentMessages = [];
 
     public ?string $failOn = null;
+
+    public int $markedAsReadCount = 0;
+
+    public function markAllAsRead(string $email, string $folder = self::FOLDER_INBOX): int
+    {
+        $this->failIfRequested('markAllAsRead');
+        $this->calls[] = ['markAllAsRead', $email, $folder];
+
+        return $this->markedAsReadCount;
+    }
 
     public function messagesFor(string $email, int $limit = 20, string $folder = self::FOLDER_INBOX): array
     {

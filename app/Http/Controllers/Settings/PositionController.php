@@ -86,10 +86,10 @@ class PositionController extends Controller
             ->with('status', 'Position has been updated.');
     }
 
-    public function destroy(Position $position): RedirectResponse
+    public function destroy(Request $request, Position $position): JsonResponse|RedirectResponse
     {
         if ($position->is_protected) {
-            return back()->with('error', 'Protected position cannot be deleted because it is required by the system.');
+            return $this->tableActionResponse($request, back(), 'Protected position cannot be deleted because it is required by the system.', false);
         }
 
         $isUsedByDeployment = DB::table('employee_deployments')
@@ -101,14 +101,12 @@ class PositionController extends Controller
             ->exists();
 
         if ($isUsedByDeployment || $isUsedByDeploymentHistory) {
-            return back()->with('error', 'Position is still used by employee deployment data.');
+            return $this->tableActionResponse($request, back(), 'Position is still used by employee deployment data.', false);
         }
 
         $position->delete();
 
-        return redirect()
-            ->route('settings.positions.index')
-            ->with('status', 'Position has been deleted.');
+        return $this->tableActionResponse($request, redirect()->route('settings.positions.index'), 'Position has been deleted.');
     }
 
     /**

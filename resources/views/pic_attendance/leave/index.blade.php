@@ -112,17 +112,7 @@
                 </div>
                 <div class="card-body table-card-body px-0 pt-0 pb-2">
                     <div class="table-responsive">
-                        <table id="adminLeavePendingTable" class="table table-sm table-sm-responsive text-nowrap mb-0 w-100">
-                            <thead>
-                                <tr>
-                                    <th>No</th>
-                                    <th>Date</th>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                        </table>
+                        <table id="datatablePending" class="table table-bordered text-nowrap w-100"></table>
                     </div>
                 </div>
             </div>
@@ -147,17 +137,7 @@
                 </div>
                 <div class="card-body table-card-body px-0 pt-0 pb-2">
                     <div class="table-responsive">
-                        <table id="adminLeaveApprovedTable" class="table table-sm table-sm-responsive text-nowrap mb-0 w-100">
-                            <thead>
-                                <tr>
-                                    <th>No</th>
-                                    <th>Date</th>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                        </table>
+                        <table id="datatableApproved" class="table table-bordered text-nowrap w-100"></table>
                     </div>
                 </div>
             </div>
@@ -311,7 +291,7 @@
     @endphp
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        $(function () {
             var listViewButton = document.getElementById('project-list-tab');
             var gridViewButton = document.getElementById('project-grid-tab');
             var listPane = document.getElementById('project-list-pane');
@@ -389,11 +369,11 @@
                     paging: true,
                     info: true,
                     columns: [
-                        { data: 'no', defaultContent: '' },
-                        { data: 'date', defaultContent: '-' },
-                        { data: 'name', defaultContent: '-' },
-                        { data: 'type', defaultContent: '-' },
-                        { data: 'detail_url', defaultContent: '' }
+                        { title: 'No', data: 'no', defaultContent: '' },
+                        { title: 'Date', data: 'date', defaultContent: '-' },
+                        { title: 'Name', data: 'name', defaultContent: '-' },
+                        { title: 'Type', data: 'type', defaultContent: '-' },
+                        { title: 'Action', data: 'detail_url', defaultContent: '' }
                     ],
                     columnDefs: [
                         {
@@ -432,13 +412,13 @@
             }
 
             createLeaveTable(
-                '#adminLeavePendingTable',
+                '#datatablePending',
                 '{{ route('pic-attendance.leave.pending-datatable') }}',
                 '#adminLeavePendingMonth',
                 '#adminLeavePendingYear'
             );
             createLeaveTable(
-                '#adminLeaveApprovedTable',
+                '#datatableApproved',
                 '{{ route('pic-attendance.leave.approved-datatable') }}',
                 '#adminLeaveApprovedMonth',
                 '#adminLeaveApprovedYear'

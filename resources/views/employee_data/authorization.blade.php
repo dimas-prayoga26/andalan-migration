@@ -38,20 +38,20 @@
             box-shadow: none;
         }
 
-        #myTable thead th {
+        #datatable thead th {
             font-size: 1.1rem;
             font-weight: 600;
             padding: 1rem 0.75rem;
         }
 
-        #myTable tbody td {
+        #datatable tbody td {
             font-size: 1rem;
             padding: 0.9rem 0.75rem;
             vertical-align: middle;
         }
 
-        #myTable thead th:first-child,
-        #myTable tbody td:first-child {
+        #datatable thead th:first-child,
+        #datatable tbody td:first-child {
             text-align: center !important;
         }
 
@@ -188,14 +188,14 @@
             white-space: nowrap;
         }
 
-        #myTable_wrapper .dt-length label,
-        #myTable_wrapper .dt-search label,
-        #myTable_wrapper .dt-info,
-        #myTable_wrapper .dt-paging {
+        #datatable_wrapper .dt-length label,
+        #datatable_wrapper .dt-search label,
+        #datatable_wrapper .dt-info,
+        #datatable_wrapper .dt-paging {
             font-size: 1rem;
         }
 
-        #myTable_wrapper .dt-layout-row:first-child {
+        #datatable_wrapper .dt-layout-row:first-child {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -207,23 +207,23 @@
             border-radius: 0.75rem;
         }
 
-        #myTable_wrapper .dt-length,
-        #myTable_wrapper .dt-search {
+        #datatable_wrapper .dt-length,
+        #datatable_wrapper .dt-search {
             display: flex;
             align-items: center;
             gap: 0.5rem;
             margin: 0;
         }
 
-        #myTable_wrapper .dt-search label,
-        #myTable_wrapper .dt-length label {
+        #datatable_wrapper .dt-search label,
+        #datatable_wrapper .dt-length label {
             margin: 0;
             color: #5f6b7a;
             font-weight: 500;
         }
 
-        #myTable_wrapper .dt-search input,
-        #myTable_wrapper .dt-length select {
+        #datatable_wrapper .dt-search input,
+        #datatable_wrapper .dt-length select {
             min-height: 40px;
             font-size: 1rem;
             border-radius: 0.6rem;
@@ -233,12 +233,12 @@
             color: #27334a;
         }
 
-        #myTable_wrapper .dt-search input {
+        #datatable_wrapper .dt-search input {
             min-width: 220px;
         }
 
-        #myTable_wrapper .dt-search input:focus,
-        #myTable_wrapper .dt-length select:focus {
+        #datatable_wrapper .dt-search input:focus,
+        #datatable_wrapper .dt-length select:focus {
             border-color: #cfd5df;
             box-shadow: 0 0 0 0.15rem rgba(15, 23, 42, 0.08);
             outline: 0;
@@ -268,35 +268,35 @@
                 justify-content: flex-end;
             }
 
-            #myTable_wrapper .dt-layout-row:first-child {
+            #datatable_wrapper .dt-layout-row:first-child {
                 flex-direction: column;
                 align-items: stretch;
             }
 
-            #myTable_wrapper .dt-search,
-            #myTable_wrapper .dt-length {
+            #datatable_wrapper .dt-search,
+            #datatable_wrapper .dt-length {
                 justify-content: space-between;
                 width: 100%;
             }
 
-            #myTable_wrapper .dt-search input {
+            #datatable_wrapper .dt-search input {
                 min-width: 0;
                 width: 100%;
             }
         }
 
-        #myTable_wrapper .dt-paging .dt-paging-button {
+        #datatable_wrapper .dt-paging .dt-paging-button {
             background: #fff !important;
             border: 1px solid #d9dce5 !important;
             color: #5f6b7a !important;
         }
 
-        #myTable_wrapper .dt-paging .dt-paging-button:hover {
+        #datatable_wrapper .dt-paging .dt-paging-button:hover {
             background: #f3f6ff !important;
             color: var(--bs-primary) !important;
         }
 
-        #myTable_wrapper .dt-paging .dt-paging-button.current {
+        #datatable_wrapper .dt-paging .dt-paging-button.current {
             background: var(--bs-danger) !important;
             border-color: var(--bs-danger) !important;
             color: #fff !important;
@@ -350,221 +350,7 @@
                             </div>
                         </div>
                         <div class="table-responsive">
-                            <table id="myTable" class="display table">
-                                <thead>
-                                <tr>
-                                    <th class="mw-80">No</th>
-                                    <th class="mw-140">Action</th>
-                                    <th class="mw-220">Menu</th>
-                                    <th class="mw-500">Department</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                @if (false)
-                                <tr>
-                                    <td>1.</td>
-                                    <td>
-                                        <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                    <td>Administrations</td>
-                                    <td>
-                                        <div class="permission-wrap">
-                                            <span class="permission-chip">Board of Directors</span>
-                                            <span class="permission-chip">Administrator</span>
-                                            <span class="permission-chip">Finance and Administration Coordinator</span>
-                                            <span class="permission-chip">Accounting and Taxation</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>2.</td>
-                                    <td>
-                                        <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                    <td>Applicants</td>
-                                    <td>
-                                        <div class="permission-wrap">
-                                            <span class="permission-chip">Board of Directors</span>
-                                            <span class="permission-chip">Administrator</span>
-                                            <span class="permission-chip">Finance and Administration Coordinator</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>3.</td>
-                                    <td>
-                                        <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                    <td>Attendances</td>
-                                    <td>
-                                        <div class="permission-wrap">
-                                            <span class="permission-chip">All Staff</span>
-                                            <span class="permission-chip">Legal Officer &amp; Partnership</span>
-                                            <span class="permission-chip">Finance and Administration Coordinator</span>
-                                            <span class="permission-chip">Accounting and Taxation</span>
-                                            <span class="permission-chip">Operations Coordinator</span>
-                                            <span class="permission-chip">Interior Design</span>
-                                            <span class="permission-chip">Architecture Design</span>
-                                            <span class="permission-chip">Web Developer</span>
-                                            <span class="permission-chip">Documentation Staff</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>4.</td>
-                                    <td>
-                                        <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                    <td>Attendances-data</td>
-                                    <td>
-                                        <div class="permission-wrap">
-                                            <span class="permission-chip">Board of Directors</span>
-                                            <span class="permission-chip">Administrator</span>
-                                            <span class="permission-chip">Legal Officer &amp; Partnership</span>
-                                            <span class="permission-chip">Finance and Administration Coordinator</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>5.</td>
-                                    <td>
-                                        <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                    <td>Blogs</td>
-                                    <td>
-                                        <div class="permission-wrap">
-                                            <span class="permission-chip">Select All</span>
-                                            <span class="permission-chip">Administrator</span>
-                                            <span class="permission-chip">Legal Officer &amp; Partnership</span>
-                                            <span class="permission-chip">Finance and Administration Coordinator</span>
-                                            <span class="permission-chip">Accounting and Taxation</span>
-                                            <span class="permission-chip">Operations Coordinator</span>
-                                            <span class="permission-chip">Interior Design</span>
-                                            <span class="permission-chip">Architecture Design</span>
-                                            <span class="permission-chip">Web Developer</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>6.</td>
-                                    <td>
-                                        <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                    <td>Calendar</td>
-                                    <td>
-                                        <div class="permission-wrap">
-                                            <span class="permission-chip">Select All</span>
-                                            <span class="permission-chip">Administrator</span>
-                                            <span class="permission-chip">Legal Officer &amp; Partnership</span>
-                                            <span class="permission-chip">Finance and Administration Coordinator</span>
-                                            <span class="permission-chip">Accounting and Taxation</span>
-                                            <span class="permission-chip">Operations Coordinator</span>
-                                            <span class="permission-chip">Interior Design</span>
-                                            <span class="permission-chip">Architecture Design</span>
-                                            <span class="permission-chip">Web Developer</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>7.</td>
-                                    <td>
-                                        <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                    <td>Cms</td>
-                                    <td>
-                                        <div class="permission-wrap">
-                                            <span class="permission-chip">Select All</span>
-                                            <span class="permission-chip">Administrator</span>
-                                            <span class="permission-chip">Legal Officer &amp; Partnership</span>
-                                            <span class="permission-chip">Finance and Administration Coordinator</span>
-                                            <span class="permission-chip">Accounting and Taxation</span>
-                                            <span class="permission-chip">Operations Coordinator</span>
-                                            <span class="permission-chip">Interior Design</span>
-                                            <span class="permission-chip">Architecture Design</span>
-                                            <span class="permission-chip">Web Developer</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>8.</td>
-                                    <td>
-                                        <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                    <td>Dashboard</td>
-                                    <td>
-                                        <div class="permission-wrap">
-                                            <span class="permission-chip">Select All</span>
-                                            <span class="permission-chip">Administrator</span>
-                                            <span class="permission-chip">Legal Officer &amp; Partnership</span>
-                                            <span class="permission-chip">Finance and Administration Coordinator</span>
-                                            <span class="permission-chip">Accounting and Taxation</span>
-                                            <span class="permission-chip">Operations Coordinator</span>
-                                            <span class="permission-chip">Interior Design</span>
-                                            <span class="permission-chip">Architecture Design</span>
-                                            <span class="permission-chip">Web Developer</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>9.</td>
-                                    <td>
-                                        <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                    <td>Finances</td>
-                                    <td>
-                                        <div class="permission-wrap">
-                                            <span class="permission-chip">Board of Directors</span>
-                                            <span class="permission-chip">Administrator</span>
-                                            <span class="permission-chip">Finance and Administration Coordinator</span>
-                                            <span class="permission-chip">Accounting and Taxation</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>10.</td>
-                                    <td>
-                                        <div class="applicant-action-group">
-                                            <button type="button" class="applicant-action-btn edit"><i class="bi bi-pencil"></i></button>
-                                            <button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>
-                                        </div>
-                                    </td>
-                                    <td>Options</td>
-                                    <td>
-                                        <div class="permission-wrap">
-                                            <span class="permission-chip">Administrator</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endif
-                                </tbody>
-                            </table>
+                            <table id="datatable" class="table table-bordered text-nowrap w-100"></table>
                             </div>
 
                     </div>
@@ -614,7 +400,8 @@
                 }
             });
 
-            var applicantsTable = $('#myTable').DataTable({
+            var applicantsTable = $('#datatable').DataTable({
+                autoWidth: false,
                 ajax: {
                     url: "{{ route('employee_data.authorization.datatable') }}",
                     dataSrc: 'data'
@@ -623,6 +410,8 @@
                 serverSide: true,
                 columns: [
                     {
+                        title: 'No',
+                        className: 'mw-80',
                         data: null,
                         searchable: false,
                         orderable: false,
@@ -631,6 +420,8 @@
                         }
                     },
                     {
+                        title: 'Action',
+                        className: 'mw-140',
                         data: null,
                         searchable: false,
                         orderable: false,
@@ -638,8 +429,10 @@
                             return renderAuthorizationAction();
                         }
                     },
-                    { data: 'menu' },
+                    { title: 'Menu', className: 'mw-220', data: 'menu' },
                     {
+                        title: 'Department',
+                        className: 'mw-500',
                         data: 'departments',
                         orderable: false,
                         searchable: false,

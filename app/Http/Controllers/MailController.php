@@ -6,6 +6,7 @@ use App\Models\MailAccessAccount;
 use App\Models\Position;
 use App\Models\User;
 use App\Services\MailInboxService;
+use App\Support\Mail\EmailHtmlDocument;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -127,6 +128,35 @@ class MailController extends Controller
     public function sent(Request $request, MailInboxService $mailInbox): View|RedirectResponse
     {
         return $this->mailboxView($request, $mailInbox, MailInboxService::FOLDER_SENT);
+    }
+
+    public function markAllAsRead(Request $request, MailInboxService $mailInbox): RedirectResponse
+    {
+        $this->authorizeMailFeatureAccess($request);
+
+        $account = $this->currentAccount($request);
+
+        if ($account === null) {
+            return redirect()
+                ->route($this->routeName($request, 'inbox'))
+                ->withErrors(['mail' => 'Pilih email account terlebih dahulu.']);
+        }
+
+        $folder = $this->folderFromRequest($request);
+
+        try {
+            $markedCount = $mailInbox->markAllAsRead($account->email, $folder);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route($this->folderRouteName($request, $folder))
+                ->withErrors(['mail' => 'Email belum bisa ditandai sudah dibaca. Coba refresh lalu ulangi.']);
+        }
+
+        return redirect()
+            ->route($this->folderRouteName($request, $folder))
+            ->with('mail_status', $markedCount > 0 ? "{$markedCount} email ditandai sudah dibaca." : 'Semua email sudah dibaca.');
     }
 
     public function destroy(Request $request, MailInboxService $mailInbox): RedirectResponse
@@ -261,7 +291,76 @@ class MailController extends Controller
             'message' => $message,
             'readError' => $readError,
             'replyTo' => $message ? $this->replyRecipient($message, $folder) : null,
+            'thread' => $message ? $this->threadViewData($request, $mailInbox, $account->email, $message, $folder) : [],
         ]));
+    }
+
+    /**
+     * Every message of the conversation, ready for the read view. Falls back to the opened message alone
+     * when the rest of the conversation cannot be loaded.
+     *
+     * @param  array<string, mixed>  $message
+     * @return list<array{message: array<string, mixed>, folder: string, isCurrent: bool, isOwn: bool, emailHtmlDocument: ?string, emailInlineAttachmentIds: list<string>}>
+     */
+    private function threadViewData(Request $request, MailInboxService $mailInbox, string $email, array $message, string $folder): array
+    {
+        try {
+            $threadMessages = $mailInbox->threadFor($email, $message, $folder);
+        } catch (Throwable $exception) {
+            report($exception);
+            $threadMessages = [[...$message, 'folder' => $folder, 'is_current' => true]];
+        }
+
+        $accountEmail = $this->normalizeEmail($email);
+
+        return array_map(fn (array $threadMessage): array => [
+            'message' => $threadMessage,
+            'folder' => (string) $threadMessage['folder'],
+            'isCurrent' => (bool) $threadMessage['is_current'],
+            'isOwn' => $threadMessage['folder'] === MailInboxService::FOLDER_SENT
+                || $this->emailAddressFromHeader((string) ($threadMessage['from'] ?? '')) === $accountEmail,
+            ...$this->emailHtmlViewData($request, $threadMessage, (string) $threadMessage['folder']),
+        ], $threadMessages);
+    }
+
+    /**
+     * Prepare the sandboxed HTML version of a message, with inline (cid:) images pointed at the attachment route.
+     *
+     * @param  array<string, mixed>|null  $message
+     * @return array{emailHtmlDocument: ?string, emailInlineAttachmentIds: list<string>}
+     */
+    private function emailHtmlViewData(Request $request, ?array $message, string $folder): array
+    {
+        $html = is_array($message) ? (string) ($message['html_body'] ?? '') : '';
+
+        if (trim($html) === '') {
+            return [
+                'emailHtmlDocument' => null,
+                'emailInlineAttachmentIds' => [],
+            ];
+        }
+
+        $emailHtmlDocument = app(EmailHtmlDocument::class);
+        $referencedContentIds = $emailHtmlDocument->referencedContentIds($html);
+        $folderQuery = $folder === MailInboxService::FOLDER_SENT ? ['folder' => $folder] : [];
+        $inlineImageUrls = [];
+        $inlineAttachmentIds = [];
+
+        foreach ($message['attachments'] ?? [] as $attachment) {
+            $contentId = (string) ($attachment['content_id'] ?? '');
+
+            if ($contentId === '' || ! ($attachment['is_image'] ?? false) || ! in_array($contentId, $referencedContentIds, true)) {
+                continue;
+            }
+
+            $inlineImageUrls[$contentId] = route($this->routeName($request, 'attachment'), [$message['uid'], $attachment['id'], 'inline' => 1, ...$folderQuery]);
+            $inlineAttachmentIds[] = (string) $attachment['id'];
+        }
+
+        return [
+            'emailHtmlDocument' => $emailHtmlDocument->render($html, $inlineImageUrls),
+            'emailInlineAttachmentIds' => $inlineAttachmentIds,
+        ];
     }
 
     public function reply(Request $request, MailInboxService $mailInbox, string $uid): RedirectResponse

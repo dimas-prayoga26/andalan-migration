@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use RuntimeException;
+use ValueError;
 
 class MailInboxService
 {
@@ -16,8 +17,12 @@ class MailInboxService
 
     private const TRASH_MAILBOX_NAMES = ['Trash', 'Deleted Items', 'Deleted Messages'];
 
+    private const THREAD_MESSAGE_LIMIT = 20;
+
+    private const THREAD_SEARCH_ID_LIMIT = 10;
+
     /**
-     * @return list<array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool}>
+     * @return list<array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool, thread_count: int}>
      */
     public function messagesFor(string $email, int $limit = 20, string $folder = self::FOLDER_INBOX): array
     {
@@ -44,6 +49,52 @@ class MailInboxService
 
             return $client->message($uid, $accountEmailFilter, $this->accountEmailFilterMode($folder));
         });
+    }
+
+    /**
+     * The conversation the given message belongs to, collected from Inbox and Sent through its
+     * Message-ID / In-Reply-To / References headers, oldest first. The given message is always part of it.
+     *
+     * @param  array<string, mixed>  $message
+     * @return list<array<string, mixed>> Messages with their 'folder' and an 'is_current' flag.
+     */
+    public function threadFor(string $email, array $message, string $folder): array
+    {
+        $currentMessage = [...$message, 'folder' => $folder, 'is_current' => true];
+        $threadMessageIds = $this->threadMessageIds($message);
+
+        if ($threadMessageIds === []) {
+            return [$currentMessage];
+        }
+
+        $relatedMessages = $this->withClient($email, function (SimpleImapClient $client, ?string $accountEmailFilter) use ($threadMessageIds): array {
+            $relatedMessages = [];
+
+            foreach (self::FOLDERS as $threadFolder) {
+                $mailbox = $this->mailboxFor($client, $threadFolder);
+
+                if ($mailbox === null) {
+                    continue;
+                }
+
+                $client->selectMailbox($mailbox);
+
+                foreach (array_slice(array_reverse($client->threadUids($threadMessageIds)), 0, self::THREAD_MESSAGE_LIMIT) as $uid) {
+                    try {
+                        $relatedMessage = $client->message($uid, $accountEmailFilter, $this->accountEmailFilterMode($threadFolder));
+                    } catch (RuntimeException) {
+                        // Messages outside the account's own view are not part of its conversation.
+                        continue;
+                    }
+
+                    $relatedMessages[] = [...$relatedMessage, 'folder' => $threadFolder, 'is_current' => false];
+                }
+            }
+
+            return $relatedMessages;
+        });
+
+        return $this->sortedThreadMessages($currentMessage, $relatedMessages);
     }
 
     /**
@@ -77,6 +128,18 @@ class MailInboxService
 
             $client->selectMailbox($mailbox);
             $client->deleteMessages($uids, $trashMailbox === $mailbox ? null : $trashMailbox, $accountEmailFilter, $this->accountEmailFilterMode($folder));
+        });
+    }
+
+    /**
+     * Mark every unread message of the folder as read and return how many messages were marked.
+     */
+    public function markAllAsRead(string $email, string $folder = self::FOLDER_INBOX): int
+    {
+        return $this->withClient($email, function (SimpleImapClient $client, ?string $accountEmailFilter) use ($folder): int {
+            $client->selectMailbox($this->existingMailboxFor($client, $folder));
+
+            return $client->markAllAsSeen($accountEmailFilter, $this->accountEmailFilterMode($folder));
         });
     }
 
@@ -207,6 +270,63 @@ class MailInboxService
     private function accountEmailFilterMode(string $folder): string
     {
         return $folder === self::FOLDER_SENT ? SimpleImapClient::EMAIL_FILTER_SENDER : SimpleImapClient::EMAIL_FILTER_RECIPIENT;
+    }
+
+    /**
+     * Message-IDs that identify the conversation: the thread root, the latest references and the message itself.
+     *
+     * @param  array<string, mixed>  $message
+     * @return list<string>
+     */
+    private function threadMessageIds(array $message): array
+    {
+        $headerValues = implode(' ', [
+            (string) ($message['references'] ?? ''),
+            (string) ($message['in_reply_to'] ?? ''),
+            (string) ($message['message_id'] ?? ''),
+        ]);
+
+        preg_match_all('/<[^<>\s"\\\\]+>/', $headerValues, $matches);
+        $messageIds = array_values(array_unique($matches[0]));
+
+        if (count($messageIds) <= self::THREAD_SEARCH_ID_LIMIT) {
+            return $messageIds;
+        }
+
+        return array_values(array_unique([$messageIds[0], ...array_slice($messageIds, -(self::THREAD_SEARCH_ID_LIMIT - 1))]));
+    }
+
+    /**
+     * Drop duplicates (the current message wins), keep the newest messages within the limit, and order oldest first.
+     *
+     * @param  array<string, mixed>  $currentMessage
+     * @param  list<array<string, mixed>>  $relatedMessages
+     * @return list<array<string, mixed>>
+     */
+    private function sortedThreadMessages(array $currentMessage, array $relatedMessages): array
+    {
+        $threadKey = static fn (array $threadMessage): string => trim((string) ($threadMessage['message_id'] ?? '')) !== ''
+            ? mb_strtolower(trim((string) $threadMessage['message_id']))
+            : $threadMessage['folder'].':'.$threadMessage['uid'];
+        $messageTimestamp = static fn (array $threadMessage): int => strtotime((string) ($threadMessage['date'] ?? '')) ?: 0;
+
+        $uniqueMessages = [$threadKey($currentMessage) => $currentMessage];
+
+        foreach ($relatedMessages as $relatedMessage) {
+            $isCurrentMessage = $relatedMessage['folder'] === $currentMessage['folder'] && (string) $relatedMessage['uid'] === (string) $currentMessage['uid'];
+
+            if (! $isCurrentMessage) {
+                $uniqueMessages[$threadKey($relatedMessage)] ??= $relatedMessage;
+            }
+        }
+
+        $otherMessages = array_values(array_filter($uniqueMessages, static fn (array $threadMessage): bool => ! $threadMessage['is_current']));
+        usort($otherMessages, static fn (array $first, array $second): int => $messageTimestamp($first) <=> $messageTimestamp($second));
+
+        $threadMessages = [...array_slice($otherMessages, -(self::THREAD_MESSAGE_LIMIT - 1)), $currentMessage];
+        usort($threadMessages, static fn (array $first, array $second): int => $messageTimestamp($first) <=> $messageTimestamp($second));
+
+        return $threadMessages;
     }
 }
 
@@ -361,22 +481,32 @@ class SimpleImapClient
     }
 
     /**
-     * @return list<array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool}>
+     * Flag every unread message of the selected mailbox that the account can see as read.
+     */
+    public function markAllAsSeen(?string $accountEmailFilter = null, string $accountEmailFilterMode = self::EMAIL_FILTER_RECIPIENT): int
+    {
+        $uids = $this->searchUids('UNSEEN');
+
+        if ($accountEmailFilter !== null) {
+            $uids = array_values(array_filter(
+                $uids,
+                fn (string $uid): bool => $this->fetchHeader($uid, $accountEmailFilter, $accountEmailFilterMode) !== null,
+            ));
+        }
+
+        foreach (array_chunk($uids, 200) as $uidChunk) {
+            $this->command(sprintf('UID STORE %s +FLAGS.SILENT (\\Seen)', implode(',', $uidChunk)));
+        }
+
+        return count($uids);
+    }
+
+    /**
+     * @return list<array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool, thread_count: int}>
      */
     public function latestMessages(int $limit, ?string $accountEmailFilter = null, string $accountEmailFilterMode = self::EMAIL_FILTER_RECIPIENT): array
     {
-        $searchLines = $this->command('UID SEARCH ALL');
-        $uids = [];
-
-        foreach ($searchLines as $line) {
-            if (preg_match('/^\* SEARCH(?:\s+(.*))?$/', $line, $matches) !== 1) {
-                continue;
-            }
-
-            $uids = array_values(array_filter(preg_split('/\s+/', trim($matches[1] ?? '')) ?: []));
-        }
-
-        $uids = array_reverse($uids);
+        $uids = array_reverse($this->searchUids('ALL'));
         $messages = [];
 
         foreach ($uids as $uid) {
@@ -397,7 +527,7 @@ class SimpleImapClient
     }
 
     /**
-     * @return array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool, body: string, attachments: list<array{id: string, filename: string, content_type: string, size: int, is_image: bool}>, message_id: string, references: string}
+     * @return array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool, body: string, html_body: ?string, attachments: list<array{id: string, filename: string, content_type: string, size: int, is_image: bool, content_id: ?string, is_inline: bool}>, message_id: string, in_reply_to: string, references: string}
      */
     public function message(string $uid, ?string $accountEmailFilter = null, string $accountEmailFilterMode = self::EMAIL_FILTER_RECIPIENT): array
     {
@@ -420,14 +550,30 @@ class SimpleImapClient
             'time' => $this->formatDate($date),
             'unread' => ! str_contains($rawMessage, '\\Seen'),
             'body' => $content['body'],
+            'html_body' => $content['html_body'],
             'attachments' => $content['attachments'],
             'message_id' => $this->headerValue($rawHeaders, 'Message-ID') ?: '',
+            'in_reply_to' => $this->headerValue($rawHeaders, 'In-Reply-To') ?: '',
             'references' => $this->headerValue($rawHeaders, 'References') ?: '',
         ];
     }
 
     /**
-     * @return array{id: string, filename: string, content_type: string, size: int, is_image: bool, content: string}
+     * UIDs in the selected mailbox that belong to the conversation of the given Message-IDs:
+     * the messages themselves plus every message that replies to or references one of them.
+     *
+     * @param  list<string>  $messageIds
+     * @return list<string>
+     */
+    public function threadUids(array $messageIds): array
+    {
+        $searchKey = $this->threadSearchKey($messageIds);
+
+        return $searchKey === null ? [] : $this->searchUids($searchKey);
+    }
+
+    /**
+     * @return array{id: string, filename: string, content_type: string, size: int, is_image: bool, content_id: ?string, is_inline: bool, content: string}
      */
     public function attachment(string $uid, string $attachmentId, ?string $accountEmailFilter = null, string $accountEmailFilterMode = self::EMAIL_FILTER_RECIPIENT): array
     {
@@ -464,11 +610,11 @@ class SimpleImapClient
     }
 
     /**
-     * @return array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool}
+     * @return array{uid: string, from: string, to: string, subject: string, date: string, time: string, unread: bool, thread_count: int}
      */
     private function fetchHeader(string $uid, ?string $accountEmailFilter = null, string $accountEmailFilterMode = self::EMAIL_FILTER_RECIPIENT): ?array
     {
-        $lines = $this->command(sprintf('UID FETCH %s (UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM TO CC BCC DELIVERED-TO X-ORIGINAL-TO ENVELOPE-TO APPARENTLY-TO SUBJECT DATE)])', $uid));
+        $lines = $this->command(sprintf('UID FETCH %s (UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM TO CC BCC DELIVERED-TO X-ORIGINAL-TO ENVELOPE-TO APPARENTLY-TO SUBJECT DATE MESSAGE-ID IN-REPLY-TO REFERENCES)])', $uid));
         $raw = implode("\n", $lines);
 
         if ($accountEmailFilter !== null && ! $this->messageBelongsToEmail($raw, $accountEmailFilter, $accountEmailFilterMode)) {
@@ -483,7 +629,23 @@ class SimpleImapClient
             'date' => $this->headerValue($raw, 'Date') ?: '',
             'time' => $this->formatDate($this->headerValue($raw, 'Date') ?: ''),
             'unread' => ! str_contains($raw, '\\Seen'),
+            'thread_count' => $this->threadCount($raw),
         ];
+    }
+
+    /**
+     * How many messages the conversation holds up to this one: the message itself plus every earlier
+     * message listed in its In-Reply-To / References chain.
+     */
+    private function threadCount(string $rawHeaders): int
+    {
+        $messageId = mb_strtolower(trim((string) $this->headerValue($rawHeaders, 'Message-ID')));
+        $chain = ($this->headerValue($rawHeaders, 'References') ?: '').' '.($this->headerValue($rawHeaders, 'In-Reply-To') ?: '');
+
+        preg_match_all('/<[^<>\s"\\\\]+>/', $chain, $matches);
+        $earlierMessageIds = array_diff(array_unique(array_map('mb_strtolower', $matches[0])), [$messageId]);
+
+        return count($earlierMessageIds) + 1;
     }
 
     private function messageUidBelongsToEmail(string $uid, string $email, string $mode): bool
@@ -543,30 +705,33 @@ class SimpleImapClient
     }
 
     /**
-     * @return array{body: string, attachments: list<array{id: string, filename: string, content_type: string, size: int, is_image: bool, content?: string}>}
+     * @return array{body: string, html_body: ?string, attachments: list<array{id: string, filename: string, content_type: string, size: int, is_image: bool, content_id: ?string, is_inline: bool, content?: string}>}
      */
     private function messageContent(string $rawHeaders, string $rawBody, bool $includeAttachmentContent = false): array
     {
         $plainBody = null;
         $htmlBody = null;
+        $htmlSource = null;
         $attachments = [];
 
-        $this->collectParts($rawHeaders, $rawBody, $plainBody, $htmlBody, $attachments, $includeAttachmentContent);
+        $this->collectParts($rawHeaders, $rawBody, $plainBody, $htmlBody, $htmlSource, $attachments, $includeAttachmentContent);
 
         return [
             'body' => trim((string) ($plainBody ?? $htmlBody ?? '')),
+            'html_body' => $htmlSource === null || trim($htmlSource) === '' ? null : $htmlSource,
             'attachments' => $attachments,
         ];
     }
 
     /**
-     * @param  list<array{id: string, filename: string, content_type: string, size: int, is_image: bool, content?: string}>  $attachments
+     * @param  list<array{id: string, filename: string, content_type: string, size: int, is_image: bool, content_id: ?string, is_inline: bool, content?: string}>  $attachments
      */
     private function collectParts(
         string $headers,
         string $body,
         ?string &$plainBody,
         ?string &$htmlBody,
+        ?string &$htmlSource,
         array &$attachments,
         bool $includeAttachmentContent
     ): void {
@@ -578,7 +743,7 @@ class SimpleImapClient
         if (preg_match('/boundary="?([^";]+)"?/i', $contentTypeHeader, $matches) === 1) {
             foreach ($this->splitMultipartBody($body, $matches[1]) as $part) {
                 [$partHeaders, $partBody] = $this->splitRawMessage($part);
-                $this->collectParts($partHeaders, $partBody, $plainBody, $htmlBody, $attachments, $includeAttachmentContent);
+                $this->collectParts($partHeaders, $partBody, $plainBody, $htmlBody, $htmlSource, $attachments, $includeAttachmentContent);
             }
 
             return;
@@ -586,7 +751,11 @@ class SimpleImapClient
 
         $filename = $this->filenameFromHeaders($headers);
         $baseContentType = trim(strtok($contentType, ';') ?: 'application/octet-stream');
-        $isAttachment = $filename !== null || str_contains($disposition, 'attachment');
+        $contentId = trim((string) ($this->headerValue($headers, 'Content-ID') ?: ''), " \t<>");
+        $isInline = $contentId !== '' && ! str_contains($disposition, 'attachment');
+        $isAttachment = $filename !== null
+            || str_contains($disposition, 'attachment')
+            || ($contentId !== '' && ! str_starts_with($baseContentType, 'text/'));
         $decodedBody = $this->decodeTransferBody($headers, $body);
 
         if ($isAttachment) {
@@ -597,6 +766,8 @@ class SimpleImapClient
                 'content_type' => $baseContentType,
                 'size' => strlen($decodedBody),
                 'is_image' => str_starts_with($baseContentType, 'image/'),
+                'content_id' => $contentId === '' ? null : $contentId,
+                'is_inline' => $isInline,
             ];
 
             if ($includeAttachmentContent) {
@@ -608,12 +779,33 @@ class SimpleImapClient
             return;
         }
 
+        $decodedBody = $this->convertToUtf8($decodedBody, $this->headerParameter($contentTypeHeader, 'charset'));
+
         if (str_contains($baseContentType, 'text/plain') && $plainBody === null) {
             $plainBody = $this->cleanBody($decodedBody, false);
         }
 
         if (str_contains($baseContentType, 'text/html') && $htmlBody === null) {
+            $htmlSource = $decodedBody;
             $htmlBody = $this->cleanBody($decodedBody, true);
+        }
+    }
+
+    /**
+     * Convert a text part to UTF-8 using its declared charset, keeping the original bytes for unknown charsets.
+     */
+    private function convertToUtf8(string $body, ?string $charset): string
+    {
+        $charset = $charset === null ? '' : strtoupper(trim($charset, " \t\"'"));
+
+        if ($charset === '' || in_array($charset, ['UTF-8', 'UTF8', 'US-ASCII', 'ASCII'], true)) {
+            return $body;
+        }
+
+        try {
+            return mb_convert_encoding($body, 'UTF-8', $charset);
+        } catch (ValueError) {
+            return $body;
         }
     }
 
@@ -687,10 +879,21 @@ class SimpleImapClient
     private function cleanBody(string $body, bool $isHtml): string
     {
         if ($isHtml) {
-            $body = strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>'], "\n", $body));
+            // Drop non-visible blocks first so their CSS/JS source does not leak into the plain-text body.
+            $body = preg_replace('/<(head|style|script|title)\b[^>]*>.*?<\/\1\s*>|<!--.*?-->/is', '', $body) ?? $body;
+            $body = preg_replace('/<br\s*\/?>|<\/(p|div|tr|li|h[1-6]|table|blockquote)\s*>/i', "\n", $body) ?? $body;
+            $body = strip_tags($body);
         }
 
-        return trim(html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $body = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        if ($isHtml) {
+            $body = preg_replace('/[ \t\x{00A0}]+/u', ' ', $body) ?? $body;
+            $body = preg_replace('/ *\n */', "\n", $body) ?? $body;
+            $body = preg_replace('/\n{3,}/', "\n\n", $body) ?? $body;
+        }
+
+        return trim($body);
     }
 
     /**
@@ -836,6 +1039,57 @@ class SimpleImapClient
         }
 
         return rtrim($line, "\r\n");
+    }
+
+    /**
+     * Build one IMAP search key matching any message whose Message-ID, In-Reply-To or References
+     * contains one of the given Message-IDs, as a chain of binary ORs.
+     *
+     * @param  list<string>  $messageIds
+     */
+    private function threadSearchKey(array $messageIds): ?string
+    {
+        $criteria = [];
+
+        foreach ($messageIds as $messageId) {
+            $quotedMessageId = $this->quote($messageId);
+            array_push(
+                $criteria,
+                "HEADER Message-ID {$quotedMessageId}",
+                "HEADER In-Reply-To {$quotedMessageId}",
+                "HEADER References {$quotedMessageId}",
+            );
+        }
+
+        if ($criteria === []) {
+            return null;
+        }
+
+        $searchKey = array_pop($criteria);
+
+        while ($criteria !== []) {
+            $searchKey = 'OR '.array_pop($criteria).' '.$searchKey;
+        }
+
+        return $searchKey;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function searchUids(string $searchKey): array
+    {
+        $uids = [];
+
+        foreach ($this->command('UID SEARCH '.$searchKey) as $line) {
+            if (preg_match('/^\* SEARCH(?:\s+(.*))?$/', $line, $matches) !== 1) {
+                continue;
+            }
+
+            $uids = array_values(array_filter(preg_split('/\s+/', trim($matches[1] ?? '')) ?: []));
+        }
+
+        return $uids;
     }
 
     private function quote(string $value): string

@@ -110,6 +110,7 @@ Route::middleware('auth')->group(function (): void {
             Route::get('/applicant/email/inbox', [MailController::class, 'inbox'])->name('applicant.email.inbox');
             Route::get('/applicant/email/sent', [MailController::class, 'sent'])->name('applicant.email.sent');
             Route::post('/applicant/email/delete', [MailController::class, 'destroy'])->name('applicant.email.destroy');
+            Route::post('/applicant/email/mark-all-read', [MailController::class, 'markAllAsRead'])->name('applicant.email.mark-all-read');
             Route::get('/applicant/email/compose', [MailController::class, 'compose'])->name('applicant.email.compose');
             Route::post('/applicant/email/send', [MailController::class, 'send'])->name('applicant.email.send');
             Route::get('/applicant/email/read/{uid}/attachments/{attachment}', [MailController::class, 'attachment'])->whereNumber('uid')->whereNumber('attachment')->name('applicant.email.attachment');
@@ -143,6 +144,7 @@ Route::middleware('auth')->group(function (): void {
             Route::get('/inbox', [MailController::class, 'inbox'])->name('inbox');
             Route::get('/sent', [MailController::class, 'sent'])->name('sent');
             Route::post('/delete', [MailController::class, 'destroy'])->name('destroy');
+            Route::post('/mark-all-read', [MailController::class, 'markAllAsRead'])->name('mark-all-read');
             Route::get('/compose', [MailController::class, 'compose'])->name('compose');
             Route::post('/send', [MailController::class, 'send'])->name('send');
             Route::get('/read/{uid}/attachments/{attachment}', [MailController::class, 'attachment'])->whereNumber('uid')->whereNumber('attachment')->name('attachment');

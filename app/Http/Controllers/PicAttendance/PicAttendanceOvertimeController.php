@@ -90,30 +90,21 @@ class PicAttendanceOvertimeController extends Controller
         $companyId = $authenticatedUser instanceof User ? $this->currentCompanyIdFor($authenticatedUser) : null;
         $assignedByUserId = $authenticatedUser instanceof User ? (string) $authenticatedUser->id : null;
         $picOvertimeCompanyId = is_string($assignedByUserId) && trim($assignedByUserId) !== '' ? null : $companyId;
-        $fallbackMonth = $request->query('month');
-        $fallbackYear = $request->query('year');
-        $cardMonth = $this->normalizeMonth($request->query('card_month', $fallbackMonth));
-        $cardYear = $this->normalizeYear($request->query('card_year', $fallbackYear));
-        $pendingTableData = $tableBuilder->buildForContext(
+        $selectedMonth = $this->normalizeMonth($request->query('month'));
+        $selectedYear = $this->normalizeYear($request->query('year'));
+        $overtimeTableData = $tableBuilder->buildForContext(
             'pic',
             $picOvertimeCompanyId,
             $assignedByUserId,
-            $request->query('pending_month', $fallbackMonth),
-            $request->query('pending_year', $fallbackYear)
-        );
-        $approvedTableData = $tableBuilder->buildForContext(
-            'pic',
-            $picOvertimeCompanyId,
-            $assignedByUserId,
-            $request->query('approved_month', $fallbackMonth),
-            $request->query('approved_year', $fallbackYear)
+            $selectedMonth,
+            $selectedYear
         );
         $overtimeSummary = is_string($assignedByUserId) && trim($assignedByUserId) !== ''
             ? $metricBuilder->summarizeForPeriod(
                 $picOvertimeCompanyId,
                 $assignedByUserId,
-                $cardMonth,
-                $cardYear
+                $selectedMonth,
+                $selectedYear
             )
             : $metricBuilder->summarizeForActiveEmployees($companyId, $assignedByUserId);
 
@@ -128,34 +119,22 @@ class PicAttendanceOvertimeController extends Controller
                     $authenticatedUser,
                     $companyId,
                     $assignedByUserId,
-                    $cardMonth,
-                    $cardYear
+                    $selectedMonth,
+                    $selectedYear
                 )
                 : collect(),
             'overtimeCards' => $this->picOvertimeCardsFor(
                 $companyId,
                 $assignedByUserId,
-                $cardMonth,
-                $cardYear
+                $selectedMonth,
+                $selectedYear
             ),
-            'monthOptions' => $pendingTableData['monthOptions'],
-            'yearOptions' => $this->yearOptionsForFilters(
-                $cardYear,
-                (int) $pendingTableData['selectedYear'],
-                (int) $approvedTableData['selectedYear'],
-                $pendingTableData['yearOptions'],
-                $approvedTableData['yearOptions']
-            ),
-            'selectedMonth' => $pendingTableData['selectedMonth'],
-            'selectedYear' => $pendingTableData['selectedYear'],
-            'selectedCardMonth' => $cardMonth,
-            'selectedCardYear' => $cardYear,
-            'selectedPendingMonth' => $pendingTableData['selectedMonth'],
-            'selectedPendingYear' => $pendingTableData['selectedYear'],
-            'selectedApprovedMonth' => $approvedTableData['selectedMonth'],
-            'selectedApprovedYear' => $approvedTableData['selectedYear'],
-            'pendingRows' => $pendingTableData['pendingRows'],
-            'approvedRows' => $approvedTableData['approvedRows'],
+            'monthOptions' => $overtimeTableData['monthOptions'],
+            'yearOptions' => $overtimeTableData['yearOptions'],
+            'selectedMonth' => $selectedMonth,
+            'selectedYear' => $selectedYear,
+            'pendingRows' => $overtimeTableData['pendingRows'],
+            'approvedRows' => $overtimeTableData['approvedRows'],
         ]);
     }
 
@@ -175,21 +154,6 @@ class PicAttendanceOvertimeController extends Controller
         return $yearNumber >= 2020 && $yearNumber <= 2100
             ? $yearNumber
             : (int) Carbon::now('Asia/Jakarta')->format('Y');
-    }
-
-    /**
-     * @return array<int, int>
-     */
-    private function yearOptionsForFilters(mixed ...$selectedYearsAndOptions): array
-    {
-        return collect($selectedYearsAndOptions)
-            ->flatten()
-            ->filter(fn (mixed $year): bool => is_numeric($year) && (int) $year >= 2020)
-            ->map(fn (mixed $year): int => (int) $year)
-            ->unique()
-            ->sortDesc()
-            ->values()
-            ->all();
     }
 
     public function store(Request $request): RedirectResponse

@@ -42,8 +42,6 @@ class OvertimeReviewTableBuilderTest extends TestCase
         ] as $viewPath) {
             $view = (string) file_get_contents($viewPath);
 
-            $this->assertStringNotContainsString('name="month"', $view);
-            $this->assertStringNotContainsString('name="year"', $view);
             $this->assertStringContainsString('$monthOptions', $view);
             $this->assertStringContainsString('$yearOptions', $view);
             $this->assertStringContainsString('$pendingRows', $view);
@@ -54,16 +52,17 @@ class OvertimeReviewTableBuilderTest extends TestCase
 
         $picView = (string) file_get_contents(resource_path('views/pic_attendance/overtime/index.blade.php'));
 
-        $this->assertStringContainsString('name="card_month"', $picView);
-        $this->assertStringContainsString('name="card_year"', $picView);
-        $this->assertStringContainsString('name="pending_month"', $picView);
-        $this->assertStringContainsString('name="pending_year"', $picView);
-        $this->assertStringContainsString('name="approved_month"', $picView);
-        $this->assertStringContainsString('name="approved_year"', $picView);
-        $this->assertStringContainsString('$selectedCardMonth', $picView);
-        $this->assertStringContainsString('$selectedPendingMonth', $picView);
-        $this->assertStringContainsString('$selectedApprovedMonth', $picView);
-        $this->assertStringContainsString('pic-overtime-card-filter', $picView);
+        $this->assertSame(1, substr_count($picView, 'name="month"'));
+        $this->assertSame(1, substr_count($picView, 'name="year"'));
+        $this->assertStringNotContainsString('name="card_month"', $picView);
+        $this->assertStringNotContainsString('name="pending_month"', $picView);
+        $this->assertStringNotContainsString('name="approved_month"', $picView);
+        $this->assertStringNotContainsString('$selectedCardMonth', $picView);
+        $this->assertStringNotContainsString('$selectedPendingMonth', $picView);
+        $this->assertStringNotContainsString('$selectedApprovedMonth', $picView);
+        $this->assertStringNotContainsString('pic-overtime-card-filter', $picView);
+        $this->assertStringContainsString('pic-overtime-period-filter', $picView);
+        $this->assertStringContainsString('@selected($selectedMonth === $monthOption[\'value\'])', $picView);
         $this->assertStringContainsString('<div class="card-body text-center text-muted py-4">No overtime card data available for this period.</div>', $picView);
         $this->assertStringContainsString('overtime-summary-metrics mb-3', $picView);
         $this->assertStringContainsString('@foreach (($overtimeMetricCards ?? []) as $summaryCard)', $picView);
@@ -72,8 +71,12 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('grid-template-columns: repeat(9, minmax(0, 1fr));', $picView);
         $this->assertStringNotContainsString('$overtimeSummary[\'pending_label\']', $picView);
         $this->assertLessThan(
-            strpos($picView, '@forelse (($overtimeCards ?? collect()) as $overtimeCard)'),
-            strpos($picView, 'pic-overtime-card-filter'),
+            strpos($picView, 'pic-overtime-period-filter'),
+            strpos($picView, 'data-bs-target="#picAddOvertimeModal"'),
+        );
+        $this->assertLessThan(
+            strpos($picView, 'overtime-summary-metrics mb-3'),
+            strpos($picView, 'pic-overtime-period-filter'),
         );
         $this->assertStringContainsString('<th class="mw-80">Status</th>', $picView);
         $this->assertStringContainsString("{{ \$row['status_class'] ?? 'text-muted' }}", $picView);
@@ -123,18 +126,18 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('$yearOptions', $directorView);
         $this->assertStringContainsString('$pendingRows', $directorView);
         $this->assertStringContainsString('$approvedRows', $directorView);
-        $this->assertStringNotContainsString('name="month"', $directorView);
-        $this->assertStringNotContainsString('name="year"', $directorView);
-        $this->assertStringContainsString('name="card_month"', $directorView);
-        $this->assertStringContainsString('name="card_year"', $directorView);
-        $this->assertStringContainsString('name="pending_month"', $directorView);
-        $this->assertStringContainsString('name="pending_year"', $directorView);
-        $this->assertStringContainsString('name="approved_month"', $directorView);
-        $this->assertStringContainsString('name="approved_year"', $directorView);
-        $this->assertStringContainsString('$selectedCardMonth', $directorView);
-        $this->assertStringContainsString('$selectedPendingMonth', $directorView);
-        $this->assertStringContainsString('$selectedApprovedMonth', $directorView);
-        $this->assertStringContainsString('director-overtime-card-filter', $directorView);
+        $this->assertSame(1, substr_count($directorView, 'name="month"'));
+        $this->assertSame(1, substr_count($directorView, 'name="year"'));
+        $this->assertSame(1, substr_count($directorView, '<form'));
+        $this->assertStringNotContainsString('name="card_month"', $directorView);
+        $this->assertStringNotContainsString('name="pending_month"', $directorView);
+        $this->assertStringNotContainsString('name="approved_month"', $directorView);
+        $this->assertStringNotContainsString('$selectedCardMonth', $directorView);
+        $this->assertStringNotContainsString('$selectedPendingMonth', $directorView);
+        $this->assertStringNotContainsString('$selectedApprovedMonth', $directorView);
+        $this->assertStringNotContainsString('director-overtime-card-filter', $directorView);
+        $this->assertStringContainsString('director-overtime-period-filter', $directorView);
+        $this->assertStringContainsString('@selected($selectedMonth === $monthOption[\'value\'])', $directorView);
         $this->assertStringContainsString('overtime-summary-metrics mb-3', $directorView);
         $this->assertStringContainsString('@foreach (($overtimeMetricCards ?? []) as $summaryCard)', $directorView);
         $this->assertStringContainsString('overtime-summary-card {{ $summaryCard[\'background_class\'] ?? \'bg-light-subtle\' }}', $directorView);
@@ -142,8 +145,8 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('grid-template-columns: repeat(9, minmax(0, 1fr));', $directorView);
         $this->assertStringNotContainsString('$overtimeSummary[\'pending_label\']', $directorView);
         $this->assertLessThan(
-            strpos($directorView, '@forelse (($overtimeCards ?? collect()) as $overtimeCard)'),
-            strpos($directorView, 'director-overtime-card-filter'),
+            strpos($directorView, 'overtime-summary-metrics mb-3'),
+            strpos($directorView, 'director-overtime-period-filter'),
         );
         $this->assertStringContainsString('<th class="mw-80">Status</th>', $directorView);
         $this->assertStringContainsString("{{ \$row['status_class'] ?? 'text-muted' }}", $directorView);
@@ -191,18 +194,19 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $detailView = (string) file_get_contents(resource_path('views/admin_attendance/overtime/detail.blade.php'));
 
         $this->assertStringContainsString('Status : <span class="text-success">Complete</span>', $view);
-        $this->assertStringNotContainsString('name="month"', $view);
-        $this->assertStringNotContainsString('name="year"', $view);
-        $this->assertStringContainsString('name="card_month"', $view);
-        $this->assertStringContainsString('name="card_year"', $view);
-        $this->assertStringContainsString('name="pending_month"', $view);
-        $this->assertStringContainsString('name="pending_year"', $view);
-        $this->assertStringContainsString('name="complete_month"', $view);
-        $this->assertStringContainsString('name="complete_year"', $view);
-        $this->assertStringContainsString('$selectedCardMonth', $view);
-        $this->assertStringContainsString('$selectedPendingMonth', $view);
-        $this->assertStringContainsString('$selectedCompleteMonth', $view);
-        $this->assertStringContainsString('admin-overtime-card-filter', $view);
+        $this->assertSame(1, substr_count($view, 'name="month"'));
+        $this->assertSame(1, substr_count($view, 'name="year"'));
+        $this->assertSame(1, substr_count($view, '<form'));
+        $this->assertStringNotContainsString('name="card_month"', $view);
+        $this->assertStringNotContainsString('name="pending_month"', $view);
+        $this->assertStringNotContainsString('name="complete_month"', $view);
+        $this->assertStringNotContainsString('$selectedCardMonth', $view);
+        $this->assertStringNotContainsString('$selectedPendingMonth', $view);
+        $this->assertStringNotContainsString('$selectedCompleteMonth', $view);
+        $this->assertStringNotContainsString('admin-overtime-card-filter', $view);
+        $this->assertStringContainsString('admin-overtime-period-filter', $view);
+        $this->assertStringContainsString('@selected($selectedMonth === $monthOption[\'value\'])', $view);
+        $this->assertStringContainsString('@selected($selectedYear === $yearOption)', $view);
         $this->assertStringContainsString('overtime-summary-metrics mb-3', $view);
         $this->assertStringContainsString('@foreach (($overtimeMetricCards ?? []) as $summaryCard)', $view);
         $this->assertStringContainsString('overtime-summary-card {{ $summaryCard[\'background_class\'] ?? \'bg-light-subtle\' }}', $view);
@@ -210,8 +214,8 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertStringContainsString('grid-template-columns: repeat(9, minmax(0, 1fr));', $view);
         $this->assertStringNotContainsString('$overtimeSummary[\'pending_label\']', $view);
         $this->assertLessThan(
-            strpos($view, '@forelse (($overtimeCards ?? collect()) as $overtimeCard)'),
-            strpos($view, 'admin-overtime-card-filter'),
+            strpos($view, 'overtime-summary-metrics mb-3'),
+            strpos($view, 'admin-overtime-period-filter'),
         );
         $this->assertStringContainsString('<th class="mw-80">Status</th>', $view);
         $this->assertStringContainsString("{{ \$row['status_class'] ?? 'text-muted' }}", $view);

@@ -194,6 +194,119 @@ class AdminAttendanceLeaveOverviewStatsTest extends TestCase
         $this->assertSame('Annual', $data[0]['type']);
     }
 
+    public function test_leave_overview_stats_follow_selected_period(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-21 09:00:00', 'Asia/Jakarta'));
+
+        $company = Company::query()->create(['name' => 'RNB']);
+        $adminUser = $this->createEmployeeUser($company);
+        $employee = $this->createEmployeeUser($company)->employee;
+        $sickLeave = $this->createLeaveType('SICK', 'Sakit');
+
+        foreach ([
+            ['pending', '2026-10-21'],
+            ['approved', '2026-10-15'],
+            ['approved', '2026-09-10'],
+            ['pending', '2026-09-11'],
+            ['rejected', '2026-09-12'],
+        ] as [$status, $leaveDate]) {
+            $this->createSupervisorReviewHistory(
+                $this->createLeaveRequest($employee, $sickLeave, $status, $leaveDate, $leaveDate),
+                'approved'
+            );
+        }
+
+        $statsFor = function (array $query) use ($adminUser): array {
+            $request = Request::create('/admin-attendance/leave', 'GET', $query);
+            $request->setUserResolver(static fn (): User => $adminUser);
+
+            return app(AttendanceLeaveController::class)->index($request)->getData()['leaveOverviewStats'];
+        };
+
+        $octoberStats = $statsFor(['month' => 10, 'year' => 2026]);
+
+        $this->assertSame(1, $octoberStats['pending']);
+        $this->assertSame(1, $octoberStats['approved']);
+        $this->assertSame(0, $octoberStats['rejected']);
+        $this->assertSame(2, $octoberStats['sick']);
+
+        $septemberStats = $statsFor(['month' => 9, 'year' => 2026]);
+
+        $this->assertSame(1, $septemberStats['pending']);
+        $this->assertSame(1, $septemberStats['approved']);
+        $this->assertSame(1, $septemberStats['rejected']);
+        $this->assertSame(3, $septemberStats['sick']);
+    }
+
+    public function test_admin_leave_cards_show_steps_two_to_four_and_lock_cards_before_hr_verification(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-21 09:00:00', 'Asia/Jakarta'));
+
+        $company = Company::query()->create(['name' => 'RNB']);
+        $adminUser = $this->createEmployeeUser($company);
+        $employee = $this->createEmployeeUser($company)->employee;
+        $sickLeave = $this->createLeaveType('SICK', 'Sakit');
+
+        foreach ([
+            ['pending', 'pending', '2026-10-01'],
+            ['rejected', 'rejected', '2026-10-02'],
+            ['pending', 'approved', '2026-10-03'],
+            ['approved', 'approved', '2026-10-04'],
+            ['rejected', 'approved', '2026-10-05'],
+            ['pending', 'approved', '2026-09-30'],
+        ] as [$status, $supervisorReviewStatus, $leaveDate]) {
+            $this->createSupervisorReviewHistory(
+                $this->createLeaveRequest($employee, $sickLeave, $status, $leaveDate, $leaveDate),
+                $supervisorReviewStatus
+            );
+        }
+        $this->createLeaveRequest($employee, $sickLeave, 'pending', '2026-10-06', '2026-10-06');
+
+        $request = Request::create('/admin-attendance/leave', 'GET', ['month' => 10, 'year' => 2026]);
+        $request->setUserResolver(static fn (): User => $adminUser);
+        $leaveCards = app(AttendanceLeaveController::class)->index($request)->getData()['leaveCards'];
+
+        $this->assertSame(
+            [
+                ['title' => 'Supervisor Review', 'status' => 'Pending', 'color' => 'warning'],
+                ['title' => 'Supervisor Review', 'status' => 'Rejected', 'color' => 'danger'],
+                ['title' => 'HR Verification', 'status' => 'Pending', 'color' => 'warning'],
+                ['title' => 'Final Decision', 'status' => 'Approved', 'color' => 'success'],
+                ['title' => 'Final Decision', 'status' => 'Rejected', 'color' => 'danger'],
+            ],
+            $leaveCards->pluck('current_step')->all(),
+        );
+        $this->assertSame(
+            ['Belum Disetujui PIC', 'Ditolak PIC', null, null, null],
+            $leaveCards->map(fn (array $leaveCard): ?string => $leaveCard['locked_notice']['title'] ?? null)->all(),
+        );
+        $this->assertSame(
+            'Pengajuan cuti ini belum disetujui oleh PIC / Supervisor, sehingga belum bisa diproses.',
+            $leaveCards->first()['locked_notice']['message'],
+        );
+        $this->assertSame(
+            'Pengajuan cuti ini ditolak oleh PIC / Supervisor, sehingga tidak diteruskan.',
+            $leaveCards->get(1)['locked_notice']['message'],
+        );
+    }
+
+    public function test_admin_leave_view_uses_single_period_filter_above_summary_badges(): void
+    {
+        $view = (string) file_get_contents(resource_path('views/admin_attendance/leave/index.blade.php'));
+
+        $this->assertSame(1, substr_count($view, '<form'));
+        $this->assertSame(1, substr_count($view, 'name="month"'));
+        $this->assertSame(1, substr_count($view, 'name="year"'));
+        $this->assertStringNotContainsString('adminLeavePendingMonth', $view);
+        $this->assertStringNotContainsString('adminLeaveApprovedMonth', $view);
+        $this->assertStringContainsString("requestData.month = $('#adminLeavePeriodMonth').val();", $view);
+        $this->assertStringContainsString("requestData.year = $('#adminLeavePeriodYear').val();", $view);
+        $this->assertLessThan(
+            strpos($view, '{{ $leaveOverviewStats[\'pending\'] }}'),
+            strpos($view, 'admin-leave-period-filter'),
+        );
+    }
+
     private function createEmployeeUser(Company $company, string $employeeStatus = 'Active'): User
     {
         $user = User::query()->create([

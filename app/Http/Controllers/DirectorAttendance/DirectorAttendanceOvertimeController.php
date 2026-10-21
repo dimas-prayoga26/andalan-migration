@@ -23,48 +23,21 @@ class DirectorAttendanceOvertimeController extends Controller
 {
     public function index(Request $request, OvertimeSummaryMetricBuilder $metricBuilder, OvertimeReviewTableBuilder $tableBuilder): View
     {
-        $fallbackMonth = $request->query('month');
-        $fallbackYear = $request->query('year');
-        $cardMonth = $this->normalizeMonth($request->query('card_month', $fallbackMonth));
-        $cardYear = $this->normalizeYear($request->query('card_year', $fallbackYear));
-        $pendingTableData = $tableBuilder->buildForContext(
-            'director',
-            null,
-            null,
-            $request->query('pending_month', $fallbackMonth),
-            $request->query('pending_year', $fallbackYear)
-        );
-        $approvedTableData = $tableBuilder->buildForContext(
-            'director',
-            null,
-            null,
-            $request->query('approved_month', $fallbackMonth),
-            $request->query('approved_year', $fallbackYear)
-        );
-        $overtimeSummary = $metricBuilder->summarizeForPeriod(null, null, $cardMonth, $cardYear);
+        $selectedMonth = $this->normalizeMonth($request->query('month'));
+        $selectedYear = $this->normalizeYear($request->query('year'));
+        $overtimeTableData = $tableBuilder->buildForContext('director', null, null, $selectedMonth, $selectedYear);
+        $overtimeSummary = $metricBuilder->summarizeForPeriod(null, null, $selectedMonth, $selectedYear);
 
         return view('director_attendance.overtime.index', [
             'overtimeSummary' => $overtimeSummary,
             'overtimeMetricCards' => $metricBuilder->metricCards($overtimeSummary),
-            'overtimeCards' => $this->directorOvertimeCardsFor($cardMonth, $cardYear),
-            'monthOptions' => $pendingTableData['monthOptions'],
-            'yearOptions' => $this->yearOptionsForFilters(
-                $cardYear,
-                (int) $pendingTableData['selectedYear'],
-                (int) $approvedTableData['selectedYear'],
-                $pendingTableData['yearOptions'],
-                $approvedTableData['yearOptions']
-            ),
-            'selectedMonth' => $pendingTableData['selectedMonth'],
-            'selectedYear' => $pendingTableData['selectedYear'],
-            'selectedCardMonth' => $cardMonth,
-            'selectedCardYear' => $cardYear,
-            'selectedPendingMonth' => $pendingTableData['selectedMonth'],
-            'selectedPendingYear' => $pendingTableData['selectedYear'],
-            'selectedApprovedMonth' => $approvedTableData['selectedMonth'],
-            'selectedApprovedYear' => $approvedTableData['selectedYear'],
-            'pendingRows' => $pendingTableData['pendingRows'],
-            'approvedRows' => $approvedTableData['approvedRows'],
+            'overtimeCards' => $this->directorOvertimeCardsFor($selectedMonth, $selectedYear),
+            'monthOptions' => $overtimeTableData['monthOptions'],
+            'yearOptions' => $overtimeTableData['yearOptions'],
+            'selectedMonth' => $selectedMonth,
+            'selectedYear' => $selectedYear,
+            'pendingRows' => $overtimeTableData['pendingRows'],
+            'approvedRows' => $overtimeTableData['approvedRows'],
         ]);
     }
 
@@ -84,21 +57,6 @@ class DirectorAttendanceOvertimeController extends Controller
         return $yearNumber >= 2020 && $yearNumber <= 2100
             ? $yearNumber
             : (int) Carbon::now('Asia/Jakarta')->format('Y');
-    }
-
-    /**
-     * @return array<int, int>
-     */
-    private function yearOptionsForFilters(mixed ...$selectedYearsAndOptions): array
-    {
-        return collect($selectedYearsAndOptions)
-            ->flatten()
-            ->filter(fn (mixed $year): bool => is_numeric($year) && (int) $year >= 2020)
-            ->map(fn (mixed $year): int => (int) $year)
-            ->unique()
-            ->sortDesc()
-            ->values()
-            ->all();
     }
 
     public function detail(Request $request, string $uid): View

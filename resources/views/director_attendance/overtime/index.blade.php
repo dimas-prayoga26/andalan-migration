@@ -136,12 +136,8 @@
     $directorOvertimeTablePageSize = 5;
     $pendingTableRows = $pendingRows ?? collect();
     $approvedTableRows = $approvedRows ?? collect();
-    $selectedCardMonth = $selectedCardMonth ?? ($selectedMonth ?? now('Asia/Jakarta')->month);
-    $selectedCardYear = $selectedCardYear ?? ($selectedYear ?? now('Asia/Jakarta')->year);
-    $selectedPendingMonth = $selectedPendingMonth ?? ($selectedMonth ?? now('Asia/Jakarta')->month);
-    $selectedPendingYear = $selectedPendingYear ?? ($selectedYear ?? now('Asia/Jakarta')->year);
-    $selectedApprovedMonth = $selectedApprovedMonth ?? ($selectedMonth ?? now('Asia/Jakarta')->month);
-    $selectedApprovedYear = $selectedApprovedYear ?? ($selectedYear ?? now('Asia/Jakarta')->year);
+    $selectedMonth = $selectedMonth ?? now('Asia/Jakarta')->month;
+    $selectedYear = $selectedYear ?? now('Asia/Jakarta')->year;
     $pendingTablePageCount = max(1, (int) ceil($pendingTableRows->count() / $directorOvertimeTablePageSize));
     $approvedTablePageCount = max(1, (int) ceil($approvedTableRows->count() / $directorOvertimeTablePageSize));
 @endphp
@@ -150,7 +146,23 @@
 <div class="col-lg-12">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0">Overtime</h5>
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center flex-wrap justify-content-end gap-2">
+            <form class="clearfix d-flex align-items-center me-3 director-overtime-period-filter" method="GET" action="{{ url()->current() }}">
+                <div class="clearfix me-1">
+                    <select name="month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                        @foreach (($monthOptions ?? []) as $monthOption)
+                            <option value="{{ $monthOption['value'] }}" @selected($selectedMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="clearfix">
+                    <select name="year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                        @foreach (($yearOptions ?? []) as $yearOption)
+                            <option value="{{ $yearOption }}" @selected($selectedYear === $yearOption)>{{ $yearOption }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </form>
             <ul class="nav nav-pills nav-pills-square-sm gap-2" id="myTabView" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="project-list-tab" data-bs-toggle="tab" data-bs-target="#project-list-pane" type="button" role="tab" aria-controls="project-list-pane" aria-selected="true">
@@ -196,29 +208,6 @@
                 <div class="card">
                     <div class="card-header border-0 align-items-center gap-2 flex-wrap">
                         <h4 class="card-title m-0">Pending</h4>
-                        <form class="clearfix d-flex align-items-center" method="GET" action="{{ url()->current() }}">
-                            <input type="hidden" name="card_month" value="{{ $selectedCardMonth }}">
-                            <input type="hidden" name="card_year" value="{{ $selectedCardYear }}">
-                            <input type="hidden" name="approved_month" value="{{ $selectedApprovedMonth }}">
-                            <input type="hidden" name="approved_year" value="{{ $selectedApprovedYear }}">
-                            <div class="clearfix me-1">
-                                <select name="pending_month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
-                                    @foreach (($monthOptions ?? []) as $monthOption)
-                                        <option value="{{ $monthOption['value'] }}" @selected($selectedPendingMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="clearfix">
-                                <select name="pending_year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
-                                    @foreach (($yearOptions ?? []) as $yearOption)
-                                        <option value="{{ $yearOption }}" @selected($selectedPendingYear === $yearOption)>{{ $yearOption }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="ms-2">
-                                <div id="licenseUsageExcelBTN"></div>
-                            </div>
-                        </form>
                     </div>
                     <div class="card-body table-card-body px-0 pt-0 pb-0" data-director-overtime-table data-director-overtime-page-size="{{ $directorOvertimeTablePageSize }}">
                         <div class="table-responsive director-overtime-review-table overtime-review-table">
@@ -289,29 +278,6 @@
                 <div class="card">
                     <div class="card-header border-0 align-items-center">
                         <h4 class="card-title">Status : <span class="text-success">Approved</span> </h4>
-                        <form class="clearfix d-flex align-items-center" method="GET" action="{{ url()->current() }}">
-                            <input type="hidden" name="card_month" value="{{ $selectedCardMonth }}">
-                            <input type="hidden" name="card_year" value="{{ $selectedCardYear }}">
-                            <input type="hidden" name="pending_month" value="{{ $selectedPendingMonth }}">
-                            <input type="hidden" name="pending_year" value="{{ $selectedPendingYear }}">
-                            <div class="clearfix me-1">
-                                <select name="approved_month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
-                                    @foreach (($monthOptions ?? []) as $monthOption)
-                                        <option value="{{ $monthOption['value'] }}" @selected($selectedApprovedMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="clearfix">
-                                <select name="approved_year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
-                                    @foreach (($yearOptions ?? []) as $yearOption)
-                                        <option value="{{ $yearOption }}" @selected($selectedApprovedYear === $yearOption)>{{ $yearOption }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="ms-2">
-                                <div id="licenseUsageExcelBTN"></div>
-                            </div>
-                        </form>
                     </div>
                     <div class="card-body table-card-body px-0 pt-0 pb-0" data-director-overtime-table data-director-overtime-page-size="{{ $directorOvertimeTablePageSize }}">
                         <div class="table-responsive director-overtime-review-table overtime-review-table">
@@ -366,30 +332,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-12">
-                <div class="d-flex justify-content-end mb-3 director-overtime-card-filter">
-                    <form class="clearfix d-flex align-items-center" method="GET" action="{{ url()->current() }}">
-                        <input type="hidden" name="pending_month" value="{{ $selectedPendingMonth }}">
-                        <input type="hidden" name="pending_year" value="{{ $selectedPendingYear }}">
-                        <input type="hidden" name="approved_month" value="{{ $selectedApprovedMonth }}">
-                        <input type="hidden" name="approved_year" value="{{ $selectedApprovedYear }}">
-                        <div class="clearfix me-1">
-                            <select name="card_month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
-                                @foreach (($monthOptions ?? []) as $monthOption)
-                                    <option value="{{ $monthOption['value'] }}" @selected($selectedCardMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="clearfix">
-                            <select name="card_year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
-                                @foreach (($yearOptions ?? []) as $yearOption)
-                                    <option value="{{ $yearOption }}" @selected($selectedCardYear === $yearOption)>{{ $yearOption }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </form>
                 </div>
             </div>
             @forelse (($overtimeCards ?? collect()) as $overtimeCard)

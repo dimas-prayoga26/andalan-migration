@@ -10,6 +10,7 @@ use App\Models\LeaveRequestHistory;
 use App\Models\LeaveType;
 use App\Models\User;
 use App\Services\Leave\JointHolidaySummaryService;
+use App\Support\Attendance\LeaveCardStepResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -24,15 +25,18 @@ use Yajra\DataTables\Facades\DataTables;
 
 class AttendanceLeaveController extends Controller
 {
-    public function __construct(private readonly JointHolidaySummaryService $jointHolidaySummaryService) {}
+    public function __construct(
+        private readonly JointHolidaySummaryService $jointHolidaySummaryService,
+        private readonly LeaveCardStepResolver $leaveCardStepResolver,
+    ) {}
 
     public function index(Request $request): View
     {
         $selectedPeriod = $this->selectedPeriodFor($request);
 
         return view('admin_attendance.leave.index', [
-            'leaveOverviewStats' => $this->leaveOverviewStats(),
-            'leavePendingCards' => $this->pendingLeaveCardsFor($selectedPeriod),
+            'leaveOverviewStats' => $this->leaveOverviewStats($selectedPeriod),
+            'leaveCards' => $this->leaveProgressCardsFor($selectedPeriod),
             'leaveGridPositionGroups' => $this->leaveGridPositionGroupsFor($selectedPeriod),
             'leaveSelectedMonth' => $selectedPeriod['month'],
             'leaveSelectedYear' => $selectedPeriod['year'],
@@ -153,6 +157,10 @@ class AttendanceLeaveController extends Controller
     }
 
     /**
+     * Summary badges limited to leave requests overlapping the selected period.
+     * This Week and Next Week stay relative to today.
+     *
+     * @param  array{month: int, year: int}  $selectedPeriod
      * @return array{
      *     pending: int,
      *     rejected: int,
@@ -165,7 +173,7 @@ class AttendanceLeaveController extends Controller
      *     unpaid: int
      * }
      */
-    private function leaveOverviewStats(): array
+    private function leaveOverviewStats(array $selectedPeriod): array
     {
         $now = now('Asia/Jakarta')->startOfDay();
         $activeEmployeeIds = $this->activeEmployeeIdsFor($now);
@@ -174,7 +182,7 @@ class AttendanceLeaveController extends Controller
             return $this->emptyLeaveOverviewStats();
         }
 
-        $statusCounts = $this->baseLeaveRequestQuery($activeEmployeeIds)
+        $statusCounts = $this->applySelectedPeriodFilter($this->baseLeaveRequestQuery($activeEmployeeIds), $selectedPeriod)
             ->selectRaw('LOWER(COALESCE(status, "")) as normalized_status, COUNT(*) as aggregate')
             ->groupBy('normalized_status')
             ->pluck('aggregate', 'normalized_status');
@@ -185,16 +193,29 @@ class AttendanceLeaveController extends Controller
         $nextWeekEnd = $thisWeekEnd->copy()->addWeek();
 
         return [
-            'pending' => $this->countSupervisorApprovedPendingLeaveRequests($activeEmployeeIds),
+            'pending' => $this->countSupervisorApprovedPendingLeaveRequests($activeEmployeeIds, $selectedPeriod),
             'rejected' => (int) ($statusCounts['rejected'] ?? 0) + (int) ($statusCounts['refused'] ?? 0),
             'approved' => (int) ($statusCounts['approved'] ?? 0),
             'this_week' => $this->countLeaveRequestsBetween($activeEmployeeIds, $thisWeekStart, $thisWeekEnd),
             'next_week' => $this->countLeaveRequestsBetween($activeEmployeeIds, $nextWeekStart, $nextWeekEnd),
-            'annual' => $this->countLeaveRequestsByType($activeEmployeeIds, ['ANNUAL', 'ANNUAL_LEAVE'], ['annual leave', 'cuti tahunan']),
-            'sick' => $this->countLeaveRequestsByType($activeEmployeeIds, ['SICK', 'SICK_LEAVE'], ['sick leave', 'sakit']),
-            'special' => $this->countLeaveRequestsByType($activeEmployeeIds, ['SPECIAL', 'SPECIAL_LEAVE'], ['special leave', 'cuti khusus']),
-            'unpaid' => $this->countLeaveRequestsByType($activeEmployeeIds, ['UNPAID', 'UNPAID_LEAVE'], ['unpaid leave', 'cuti tidak dibayar']),
+            'annual' => $this->countLeaveRequestsByType($activeEmployeeIds, $selectedPeriod, ['ANNUAL', 'ANNUAL_LEAVE'], ['annual leave', 'cuti tahunan']),
+            'sick' => $this->countLeaveRequestsByType($activeEmployeeIds, $selectedPeriod, ['SICK', 'SICK_LEAVE'], ['sick leave', 'sakit']),
+            'special' => $this->countLeaveRequestsByType($activeEmployeeIds, $selectedPeriod, ['SPECIAL', 'SPECIAL_LEAVE'], ['special leave', 'cuti khusus']),
+            'unpaid' => $this->countLeaveRequestsByType($activeEmployeeIds, $selectedPeriod, ['UNPAID', 'UNPAID_LEAVE'], ['unpaid leave', 'cuti tidak dibayar']),
         ];
+    }
+
+    /**
+     * @param  array{month: int, year: int}  $selectedPeriod
+     */
+    private function applySelectedPeriodFilter(Builder $query, array $selectedPeriod): Builder
+    {
+        $periodStart = Carbon::create($selectedPeriod['year'], $selectedPeriod['month'], 1, 0, 0, 0, 'Asia/Jakarta')->startOfDay();
+        $periodEnd = $periodStart->copy()->endOfMonth()->startOfDay();
+
+        return $query
+            ->whereDate('start_date', '<=', $periodEnd->toDateString())
+            ->whereDate('end_date', '>=', $periodStart->toDateString());
     }
 
     /**
@@ -283,15 +304,23 @@ class AttendanceLeaveController extends Controller
         );
     }
 
-    private function countSupervisorApprovedPendingLeaveRequests(Collection $activeEmployeeIds): int
+    /**
+     * Leave requests sitting at step 3 (HR Verification): supervisor approved, final decision still pending.
+     *
+     * @param  array{month: int, year: int}  $selectedPeriod
+     */
+    private function countSupervisorApprovedPendingLeaveRequests(Collection $activeEmployeeIds, array $selectedPeriod): int
     {
         return (int) $this->applySupervisorApprovedReviewFilter(
-            $this->baseLeaveRequestQuery($activeEmployeeIds)
+            $this->applySelectedPeriodFilter($this->baseLeaveRequestQuery($activeEmployeeIds), $selectedPeriod)
                 ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['pending'])
         )->count();
     }
 
     /**
+     * Pending, approved and rejected leave requests between step 2 and step 4.
+     * Cards that have not reached HR Verification (step 3) carry a locked notice instead of being clickable.
+     *
      * @param  array{month: int, year: int}  $selectedPeriod
      * @return Collection<int, array{
      *     name:string,
@@ -300,42 +329,38 @@ class AttendanceLeaveController extends Controller
      *     reason:string,
      *     date_label:string,
      *     supervisor_name:string,
-     *     detail_url:string
+     *     detail_url:string,
+     *     current_step:array{title: string, status: string, color: string},
+     *     locked_notice:array{title: string, message: string}|null
      * }>
      */
-    private function pendingLeaveCardsFor(array $selectedPeriod): Collection
+    private function leaveProgressCardsFor(array $selectedPeriod): Collection
     {
         $now = now('Asia/Jakarta')->startOfDay();
         $activeEmployeeIds = $this->activeEmployeeIdsFor($now);
-        $periodStart = Carbon::create($selectedPeriod['year'], $selectedPeriod['month'], 1, 0, 0, 0, 'Asia/Jakarta')->startOfDay();
-        $periodEnd = $periodStart->copy()->endOfMonth()->startOfDay();
 
         if ($activeEmployeeIds->isEmpty()) {
             return collect();
         }
 
-        return $this->applySupervisorApprovedReviewFilter(
-            $this->baseLeaveRequestQuery($activeEmployeeIds)
-                ->with([
-                    'employee:id,user_id',
-                    'employee.profile:id,employee_id,name',
-                    'employee.user:id,username,email',
-                    'leaveType:id,code,name',
-                    'histories' => function ($query): void {
-                        $query
-                            ->select(['id', 'leave_request_id', 'event_type', 'to_status'])
-                            ->where('event_type', 'supervisor_review')
-                            ->where('to_status', 'approved')
-                            ->oldest('happened_at');
-                    },
-                ])
-                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['pending'])
-                ->whereDate('start_date', '<=', $periodEnd->toDateString())
-                ->whereDate('end_date', '>=', $periodStart->toDateString())
-        )
+        return $this->applySelectedPeriodFilter($this->baseLeaveRequestQuery($activeEmployeeIds), $selectedPeriod)
+            ->with([
+                'employee:id,user_id',
+                'employee.profile:id,employee_id,name',
+                'employee.user:id,username,email',
+                'leaveType:id,code,name',
+                'histories' => function ($query): void {
+                    $query
+                        ->select(['id', 'leave_request_id', 'event_type', 'to_status'])
+                        ->where('event_type', 'supervisor_review');
+                },
+            ])
+            ->whereRaw('LOWER(COALESCE(status, "")) IN (?, ?, ?, ?)', ['pending', 'approved', 'rejected', 'refused'])
+            ->whereHas('histories', function (Builder $query): void {
+                $query->where('event_type', 'supervisor_review');
+            })
             ->orderBy('start_date')
             ->orderBy('created_at')
-            ->limit(6)
             ->get(['id', 'employee_id', 'leave_type_id', 'start_date', 'end_date', 'total_days', 'reason', 'status'])
             ->map(function (LeaveRequest $leaveRequest): array {
                 $employeeName = $this->employeeDisplayName($leaveRequest->employee);
@@ -348,6 +373,8 @@ class AttendanceLeaveController extends Controller
                     'date_label' => $this->leaveRequestPeriodLabel($leaveRequest),
                     'supervisor_name' => $this->supervisorDisplayName($leaveRequest),
                     'detail_url' => route('admin-attendance.leave.detail', ['uid' => $leaveRequest->id]),
+                    'current_step' => $this->leaveCardStepResolver->currentStep($leaveRequest),
+                    'locked_notice' => $this->leaveCardStepResolver->hrLockedNotice($leaveRequest),
                 ];
             })
             ->values();
@@ -471,12 +498,13 @@ class AttendanceLeaveController extends Controller
     }
 
     /**
+     * @param  array{month: int, year: int}  $selectedPeriod
      * @param  array<int, string>  $codes
      * @param  array<int, string>  $names
      */
-    private function countLeaveRequestsByType(Collection $activeEmployeeIds, array $codes, array $names): int
+    private function countLeaveRequestsByType(Collection $activeEmployeeIds, array $selectedPeriod, array $codes, array $names): int
     {
-        return (int) $this->supervisorApprovedLeaveRequestQuery($activeEmployeeIds)
+        return (int) $this->applySelectedPeriodFilter($this->supervisorApprovedLeaveRequestQuery($activeEmployeeIds), $selectedPeriod)
             ->whereHas('leaveType', function (Builder $query) use ($codes, $names): void {
                 $query->where(function (Builder $query) use ($codes, $names): void {
                     $query

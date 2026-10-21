@@ -23,14 +23,11 @@ use Illuminate\Support\Str;
 class AttendanceOvertimeController extends Controller
 {
     /**
+     * Admin overtime cards only cover lifecycle steps 6-8, after PIC task & hours verification.
+     *
      * @var array<int, array{event_key:string,title:string,completed_statuses:array<int, string>}>
      */
     private const ADMIN_OVERTIME_CARD_STEPS = [
-        [
-            'event_key' => 'task_hours_verification',
-            'title' => 'Task & Hours Verification',
-            'completed_statuses' => ['verified'],
-        ],
         [
             'event_key' => 'payroll_processing',
             'title' => 'HR / Payroll Processing',
@@ -50,48 +47,21 @@ class AttendanceOvertimeController extends Controller
 
     public function index(Request $request, OvertimeSummaryMetricBuilder $metricBuilder, OvertimeReviewTableBuilder $tableBuilder): View
     {
-        $fallbackMonth = $request->query('month');
-        $fallbackYear = $request->query('year');
-        $cardMonth = $this->normalizeMonth($request->query('card_month', $fallbackMonth));
-        $cardYear = $this->normalizeYear($request->query('card_year', $fallbackYear));
-        $pendingTableData = $tableBuilder->buildForContext(
-            'admin',
-            null,
-            null,
-            $request->query('pending_month', $fallbackMonth),
-            $request->query('pending_year', $fallbackYear)
-        );
-        $completeTableData = $tableBuilder->buildForContext(
-            'admin',
-            null,
-            null,
-            $request->query('complete_month', $fallbackMonth),
-            $request->query('complete_year', $fallbackYear)
-        );
-        $overtimeSummary = $metricBuilder->summarizeForPeriod(null, null, $cardMonth, $cardYear);
+        $selectedMonth = $this->normalizeMonth($request->query('month'));
+        $selectedYear = $this->normalizeYear($request->query('year'));
+        $overtimeTableData = $tableBuilder->buildForContext('admin', null, null, $selectedMonth, $selectedYear);
+        $overtimeSummary = $metricBuilder->summarizeForPeriod(null, null, $selectedMonth, $selectedYear);
 
         return view('admin_attendance.overtime.index', [
             'overtimeSummary' => $overtimeSummary,
             'overtimeMetricCards' => $metricBuilder->metricCards($overtimeSummary),
-            'overtimeCards' => $this->adminOvertimeCardsFor(null, $cardMonth, $cardYear),
-            'monthOptions' => $pendingTableData['monthOptions'],
-            'yearOptions' => $this->yearOptionsForFilters(
-                $cardYear,
-                (int) $pendingTableData['selectedYear'],
-                (int) $completeTableData['selectedYear'],
-                $pendingTableData['yearOptions'],
-                $completeTableData['yearOptions']
-            ),
-            'selectedMonth' => $pendingTableData['selectedMonth'],
-            'selectedYear' => $pendingTableData['selectedYear'],
-            'selectedCardMonth' => $cardMonth,
-            'selectedCardYear' => $cardYear,
-            'selectedPendingMonth' => $pendingTableData['selectedMonth'],
-            'selectedPendingYear' => $pendingTableData['selectedYear'],
-            'selectedCompleteMonth' => $completeTableData['selectedMonth'],
-            'selectedCompleteYear' => $completeTableData['selectedYear'],
-            'pendingRows' => $pendingTableData['pendingRows'],
-            'approvedRows' => $completeTableData['approvedRows'],
+            'overtimeCards' => $this->adminOvertimeCardsFor(null, $selectedMonth, $selectedYear),
+            'monthOptions' => $overtimeTableData['monthOptions'],
+            'yearOptions' => $overtimeTableData['yearOptions'],
+            'selectedMonth' => $selectedMonth,
+            'selectedYear' => $selectedYear,
+            'pendingRows' => $overtimeTableData['pendingRows'],
+            'approvedRows' => $overtimeTableData['approvedRows'],
         ]);
     }
 
@@ -111,21 +81,6 @@ class AttendanceOvertimeController extends Controller
         return $yearNumber >= 2020 && $yearNumber <= 2100
             ? $yearNumber
             : (int) Carbon::now('Asia/Jakarta')->format('Y');
-    }
-
-    /**
-     * @return array<int, int>
-     */
-    private function yearOptionsForFilters(mixed ...$selectedYearsAndOptions): array
-    {
-        return collect($selectedYearsAndOptions)
-            ->flatten()
-            ->filter(fn (mixed $year): bool => is_numeric($year) && (int) $year >= 2020)
-            ->map(fn (mixed $year): int => (int) $year)
-            ->unique()
-            ->sortDesc()
-            ->values()
-            ->all();
     }
 
     public function detail(Request $request, string $uid): View
@@ -630,7 +585,7 @@ class AttendanceOvertimeController extends Controller
         $currentLog = $adminLifecycleLogs->first(fn (array $log): bool => $log['is_complete'] === false);
 
         $selectedLog = $currentLog ?? $adminLifecycleLogs->last() ?? [
-            'title' => 'Task & Hours Verification',
+            'title' => 'HR / Payroll Processing',
             'status' => 'Waiting',
             'badge_class' => 'badge-warning',
         ];

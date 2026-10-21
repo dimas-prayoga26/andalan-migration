@@ -122,7 +122,7 @@
             <p class="mb-0 text-muted fs-13">Assign staff into one event division each. Picking a staff into a division removes them from any other division.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-primary light btn-sm" data-bs-toggle="modal" data-bs-target="#addEventDivisionModal">
+            <button type="button" class="btn light btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addEventDivisionModal">
                 <i class="fa-solid fa-plus me-2"></i>Add Event Division
             </button>
             <button type="submit" form="authorizationEventDivisionForm" class="btn btn-primary btn-sm">

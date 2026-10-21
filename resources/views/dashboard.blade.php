@@ -221,7 +221,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <button type="button" class="btn light btn-primary m-3 mb-2 btn-lg" data-bs-toggle="modal" data-bs-target="#dashboardTaskFormModal" data-dashboard-task-form-mode="create">Create a New Task</button>
+                                <button type="button" class="btn light btn-success m-3 mb-2 btn-lg" data-bs-toggle="modal" data-bs-target="#dashboardTaskFormModal" data-dashboard-task-form-mode="create">Create a New Task</button>
                                 <div class="mb-3"></div>
                             </div>
                         </div>

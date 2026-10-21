@@ -130,7 +130,7 @@
                     aria-label="Search attendance rules"
                 >
             </div>
-            <a href="{{ route('settings.attendance-rules.create') }}" class="btn btn-primary btn-sm">
+            <a href="{{ route('settings.attendance-rules.create') }}" class="btn light btn-success btn-sm">
                 <i class="fa-solid fa-plus me-1"></i>Add Rule
             </a>
         </div>

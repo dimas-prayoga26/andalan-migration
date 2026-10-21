@@ -147,7 +147,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0">Overtime</h5>
         <div class="d-flex align-items-center flex-wrap justify-content-end gap-2">
-            <button type="button" class="btn btn-primary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#picAddOvertimeModal">
+            <button type="button" class="btn light btn-success btn-sm me-1" data-bs-toggle="modal" data-bs-target="#picAddOvertimeModal">
                 + Add Overtime
             </button>
             <form class="clearfix d-flex align-items-center me-3 pic-overtime-period-filter" method="GET" action="{{ url()->current() }}">

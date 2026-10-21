@@ -138,7 +138,7 @@
                     >
                 </div>
             </form>
-            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createMailAccountModal">
+            <button type="button" class="btn light btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#createMailAccountModal">
                 <i class="fa-solid fa-plus me-1"></i>Create
             </button>
         </div>
@@ -205,7 +205,7 @@
             <h4 class="card-title mb-1">Takeover Access</h4>
             <p class="mb-0 text-muted fs-13">Akses baca email staff lama untuk staff pengganti.</p>
         </div>
-        <button type="button" class="btn btn-primary btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#createTakeoverModal">
+        <button type="button" class="btn light btn-success btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#createTakeoverModal">
             <i class="fa-solid fa-user-check me-1"></i>Create
         </button>
     </div>

@@ -130,7 +130,7 @@
                     aria-label="Search work locations"
                 >
             </div>
-            <a href="{{ route('settings.office-locations.create') }}" class="btn btn-primary btn-sm">
+            <a href="{{ route('settings.office-locations.create') }}" class="btn light btn-success btn-sm">
                 <i class="fa-solid fa-plus me-1"></i>Add Location
             </a>
         </div>

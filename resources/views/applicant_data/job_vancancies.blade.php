@@ -305,7 +305,7 @@
 
                 <div class="talent-header-bar">
                     <div class="talent-table-title">Job Vacancy</div>
-                    <a href="{{ route('applicant.job_vacancies.create') }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center justify-content-center gap-1 talent-create-job-btn">
+                    <a href="{{ route('applicant.job_vacancies.create') }}" class="btn light btn-success btn-sm d-inline-flex align-items-center justify-content-center gap-1 talent-create-job-btn">
                         <i class="bi bi-plus-lg"></i>
                         <span>Create Job</span>
                     </a>

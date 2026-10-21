@@ -346,7 +346,7 @@
                         <div class="applicant-header-bar">
                             <div class="applicant-table-title">Data Authorization</div>
                             <div class="employee-header-actions">
-                                <button type="button" class="btn btn-primary btn-sm">Create Authorization</button>
+                                <button type="button" class="btn light btn-success btn-sm">Create Authorization</button>
                             </div>
                         </div>
                         <div class="table-responsive">

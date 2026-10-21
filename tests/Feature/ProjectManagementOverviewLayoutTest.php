@@ -447,7 +447,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('$projectCards = collect($projectCards ?? []);', $projectsIndex);
         $this->assertStringContainsString('$projectCompanyOptions = collect($projectCompanyOptions ?? []);', $projectsIndex);
         $this->assertStringContainsString('$projectStaffOptions = collect($projectStaffOptions ?? []);', $projectsIndex);
-        $this->assertStringContainsString('btn btn-primary btn-sm project-add-button', $projectsIndex);
+        $this->assertStringContainsString('btn light btn-success btn-sm project-add-button', $projectsIndex);
         $this->assertStringContainsString('fa-solid fa-plus', $projectsIndex);
         $this->assertStringContainsString('<span>Add Project</span>', $projectsIndex);
         $this->assertStringContainsString('project-card-actions', $projectsIndex);

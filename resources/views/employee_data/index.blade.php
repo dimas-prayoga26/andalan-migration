@@ -346,7 +346,7 @@
                         <div class="applicant-header-bar">
                             <div class="applicant-table-title">Employee Data</div>
                             <div class="employee-header-actions">
-                                <button type="button" class="btn btn-primary btn-sm">Add Employee</button>
+                                <button type="button" class="btn light btn-success btn-sm">Add Employee</button>
                                 <button type="button" class="btn btn-outline-secondary btn-sm">Search</button>
                             </div>
                         </div>

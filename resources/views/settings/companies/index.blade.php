@@ -130,7 +130,7 @@
                     aria-label="Search company"
                 >
             </div>
-            <a href="{{ route('settings.companies.create') }}" class="btn btn-primary btn-sm">
+            <a href="{{ route('settings.companies.create') }}" class="btn light btn-success btn-sm">
                 <i class="fa-solid fa-plus me-1"></i>Add Company
             </a>
         </div>

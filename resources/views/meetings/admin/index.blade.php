@@ -210,7 +210,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="mb-0">Meeting</h5>
-    <a href="{{ route('hr-meetings.create') }}" class="btn btn-sm btn-success mb-1">+ New Meeting</a>
+    <a href="{{ route('hr-meetings.create') }}" class="btn light btn-success btn-sm mb-1">+ New Meeting</a>
 </div>
 
 @if (session('status'))

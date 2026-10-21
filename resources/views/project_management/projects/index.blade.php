@@ -270,7 +270,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0">Projects</h5>
         @if ($canManageProjects ?? false)
-            <button type="button" class="btn btn-primary btn-sm project-add-button" data-bs-toggle="modal" data-bs-target="#projectCreateModal">
+            <button type="button" class="btn light btn-success btn-sm project-add-button" data-bs-toggle="modal" data-bs-target="#projectCreateModal">
                 <i class="fa-solid fa-plus" aria-hidden="true"></i>
                 <span>Add Project</span>
             </button>

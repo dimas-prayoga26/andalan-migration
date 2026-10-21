@@ -58,6 +58,10 @@ class DirectorAttendanceOvertimePeriodFilterTest extends TestCase
         $this->assertCount(2, $octoberData['pendingRows']);
         $this->assertCount(1, $octoberData['approvedRows']);
         $this->assertCount(3, $octoberData['overtimeCards']);
+        $this->assertSame(
+            ['12 Oct 2026', '11 Oct 2026', '10 Oct 2026'],
+            $octoberData['overtimeCards']->pluck('date_label')->all(),
+        );
     }
 
     public function test_legacy_per_table_filter_parameters_are_ignored(): void

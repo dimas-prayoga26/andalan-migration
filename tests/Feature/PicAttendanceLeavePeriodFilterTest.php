@@ -116,14 +116,18 @@ class PicAttendanceLeavePeriodFilterTest extends TestCase
 
         $this->assertCount(9, $leaveCards);
         $this->assertSame(
+            ['23 Oct 2026 (1 day)', '22 Oct 2026 (1 day)', '21 Oct 2026 (1 day)', '20 Oct 2026 (1 day)', '05 Oct 2026 (1 day)'],
+            $leaveCards->take(5)->pluck('date_label')->all(),
+        );
+        $this->assertSame(
             [
-                ['title' => 'Supervisor Review', 'status' => 'Pending', 'color' => 'warning'],
-                ['title' => 'HR Verification', 'status' => 'Pending', 'color' => 'warning'],
-                ['title' => 'Final Decision', 'status' => 'Approved', 'color' => 'success'],
-                ['title' => 'Supervisor Review', 'status' => 'Rejected', 'color' => 'danger'],
                 ['title' => 'Final Decision', 'status' => 'Rejected', 'color' => 'danger'],
+                ['title' => 'Supervisor Review', 'status' => 'Rejected', 'color' => 'danger'],
+                ['title' => 'Final Decision', 'status' => 'Approved', 'color' => 'success'],
+                ['title' => 'HR Verification', 'status' => 'Pending', 'color' => 'warning'],
+                ['title' => 'Supervisor Review', 'status' => 'Pending', 'color' => 'warning'],
             ],
-            $leaveCards->take(5)->pluck('current_step')->all(),
+            $leaveCards->slice(4)->pluck('current_step')->values()->all(),
         );
     }
 

@@ -359,8 +359,8 @@ class AttendanceLeaveController extends Controller
             ->whereHas('histories', function (Builder $query): void {
                 $query->where('event_type', 'supervisor_review');
             })
-            ->orderBy('start_date')
-            ->orderBy('created_at')
+            ->orderByDesc('start_date')
+            ->orderByDesc('created_at')
             ->get(['id', 'employee_id', 'leave_type_id', 'start_date', 'end_date', 'total_days', 'reason', 'status'])
             ->map(function (LeaveRequest $leaveRequest): array {
                 $employeeName = $this->employeeDisplayName($leaveRequest->employee);

@@ -267,26 +267,30 @@ class AdminAttendanceLeaveOverviewStatsTest extends TestCase
         $leaveCards = app(AttendanceLeaveController::class)->index($request)->getData()['leaveCards'];
 
         $this->assertSame(
+            ['05 Oct 2026 (1 day)', '04 Oct 2026 (1 day)', '03 Oct 2026 (1 day)', '02 Oct 2026 (1 day)', '01 Oct 2026 (1 day)'],
+            $leaveCards->pluck('date_label')->all(),
+        );
+        $this->assertSame(
             [
-                ['title' => 'Supervisor Review', 'status' => 'Pending', 'color' => 'warning'],
-                ['title' => 'Supervisor Review', 'status' => 'Rejected', 'color' => 'danger'],
-                ['title' => 'HR Verification', 'status' => 'Pending', 'color' => 'warning'],
-                ['title' => 'Final Decision', 'status' => 'Approved', 'color' => 'success'],
                 ['title' => 'Final Decision', 'status' => 'Rejected', 'color' => 'danger'],
+                ['title' => 'Final Decision', 'status' => 'Approved', 'color' => 'success'],
+                ['title' => 'HR Verification', 'status' => 'Pending', 'color' => 'warning'],
+                ['title' => 'Supervisor Review', 'status' => 'Rejected', 'color' => 'danger'],
+                ['title' => 'Supervisor Review', 'status' => 'Pending', 'color' => 'warning'],
             ],
             $leaveCards->pluck('current_step')->all(),
         );
         $this->assertSame(
-            ['Belum Disetujui PIC', 'Ditolak PIC', null, null, null],
+            [null, null, null, 'Ditolak PIC', 'Belum Disetujui PIC'],
             $leaveCards->map(fn (array $leaveCard): ?string => $leaveCard['locked_notice']['title'] ?? null)->all(),
         );
         $this->assertSame(
             'Pengajuan cuti ini belum disetujui oleh PIC / Supervisor, sehingga belum bisa diproses.',
-            $leaveCards->first()['locked_notice']['message'],
+            $leaveCards->last()['locked_notice']['message'],
         );
         $this->assertSame(
             'Pengajuan cuti ini ditolak oleh PIC / Supervisor, sehingga tidak diteruskan.',
-            $leaveCards->get(1)['locked_notice']['message'],
+            $leaveCards->get(3)['locked_notice']['message'],
         );
     }
 

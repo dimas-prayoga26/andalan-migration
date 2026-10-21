@@ -120,7 +120,7 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertStringContainsString('employee_pic_assignments', $leaveController);
         $this->assertStringNotContainsString("->where('current_company_id', \$companyId)", $leaveController);
         $this->assertStringContainsString('employee_pic_assignments', $attendanceController);
-        $this->assertStringContainsString("'profile:id,employee_id,name,profile_picture_path,updated_at'", $attendanceController);
+        $this->assertStringContainsString("'profile:id,employee_id,name,nickname,profile_picture_path,updated_at'", $attendanceController);
         $this->assertStringContainsString("'avatar_url' => \$this->employeeAvatarUrl(", $attendanceController);
         $this->assertStringContainsString('$employee->profile?->profile_picture_path,', $attendanceController);
         $this->assertStringContainsString('$employee->profile?->updated_at?->timestamp', $attendanceController);
@@ -361,9 +361,10 @@ class PicAttendanceModuleTest extends TestCase
         ]), function (Employee $employee): void {
             $employee->setRelation('profile', new EmployeeProfile([
                 'name' => 'Profile Full Name',
+                'nickname' => 'staff.nickname',
             ]));
             $employee->setRelation('user', new User([
-                'username' => 'staff.username',
+                'email' => 'staff@example.test',
             ]));
         }));
 
@@ -385,7 +386,7 @@ class PicAttendanceModuleTest extends TestCase
         $this->assertSame('project', $projectRow['task_context_type']);
         $this->assertSame('Task (Muktamar PKB)', $projectRow['task_category']);
         $this->assertSame('Senin, 21 - Rabu, 23 Sep 2026', $projectRow['due_date']);
-        $this->assertSame('staff.username', $projectRow['staff']);
+        $this->assertSame('staff.nickname', $projectRow['staff']);
 
         $this->assertSame('Daily Task', $dailyRow['task_context']);
         $this->assertSame('daily', $dailyRow['task_context_type']);

@@ -145,19 +145,19 @@ class DirectorAttendanceOvertimeController extends Controller
             ])
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
-                'employee.user:id,username,email',
+                'employee.profile:id,employee_id,name,nickname',
+                'employee.user:id,email',
                 'employee.deployment:id,employee_id,current_company_id',
-                'assignedBy:id,username,email',
+                'assignedBy:id,email',
                 'assignedBy.employee:id,user_id',
-                'assignedBy.employee.profile:id,employee_id,name',
+                'assignedBy.employee.profile:id,employee_id,name,nickname',
                 'lifecycleLogs:id,overtime_id,event_key,phase,step_order,title,status,actor_id,happened_at,metadata',
-                'lifecycleLogs.actor:id,username,email',
+                'lifecycleLogs.actor:id,email',
                 'lifecycleLogs.actor.employee:id,user_id',
-                'lifecycleLogs.actor.employee.profile:id,employee_id,name',
+                'lifecycleLogs.actor.employee.profile:id,employee_id,name,nickname',
                 'projectTasks:id,overtime_id,employee_id,project_id,assigned_by,title,description,status,priority,start_date,due_date,blockers,attachment_path,completed_at,created_at',
                 'projectTasks.project:id,name',
-                'projectTasks.assignedBy:id,username',
+                'projectTasks.assignedBy:id,email', 'projectTasks.assignedBy.employee.profile:id,employee_id,name,nickname',
             ])
             ->whereRaw('LOWER(COALESCE(status, "")) <> ?', ['cancelled'])
             ->whereHas('employee', function (Builder $query): void {
@@ -327,7 +327,7 @@ class DirectorAttendanceOvertimeController extends Controller
             'blockers' => (string) ($projectTask->blockers ?? ''),
             'task_category_label' => $projectTask->project_id !== null ? 'Project Task' : 'Daily Task',
             'project_name' => $projectTask->project_id !== null ? trim((string) ($projectTask->project?->name ?? '')) : 'Daily Task',
-            'assigned_by' => trim((string) ($projectTask->assignedBy?->username ?? 'self')) ?: 'self',
+            'assigned_by' => trim((string) ($projectTask->assignedBy?->shortName() ?? 'self')) ?: 'self',
             'checked' => $isFinished,
         ];
     }
@@ -452,9 +452,9 @@ class DirectorAttendanceOvertimeController extends Controller
             return $profileName;
         }
 
-        $username = is_string($user->username) ? trim($user->username) : '';
-        if ($username !== '') {
-            return $username;
+        $nickname = is_string($user->employee?->profile?->nickname) ? trim($user->employee->profile->nickname) : '';
+        if ($nickname !== '') {
+            return $nickname;
         }
 
         $email = is_string($user->email) ? trim($user->email) : '';
@@ -464,14 +464,14 @@ class DirectorAttendanceOvertimeController extends Controller
 
     private function employeeDisplayName(AttendanceOvertime $overtime): string
     {
-        $name = $overtime->employee?->profile?->name ?: $overtime->employee?->user?->username;
+        $name = $overtime->employee?->profile?->name ?: $overtime->employee?->profile?->nickname;
 
         return is_string($name) && trim($name) !== '' ? trim($name) : '-';
     }
 
     private function supervisorDisplayName(AttendanceOvertime $overtime): string
     {
-        $name = $overtime->assignedBy?->employee?->profile?->name ?: $overtime->assignedBy?->username;
+        $name = $overtime->assignedBy?->employee?->profile?->name ?: $overtime->assignedBy?->employee?->profile?->nickname;
 
         return is_string($name) && trim($name) !== '' ? trim($name) : '-';
     }

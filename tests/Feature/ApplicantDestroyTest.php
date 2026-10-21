@@ -77,7 +77,6 @@ class ApplicantDestroyTest extends TestCase
     private function createSuperuser(): User
     {
         $user = User::query()->create([
-            'username' => 'superadmin_'.uniqid(),
             'email' => uniqid().'@example.test',
             'password' => Hash::make('password'),
             'is_active' => true,

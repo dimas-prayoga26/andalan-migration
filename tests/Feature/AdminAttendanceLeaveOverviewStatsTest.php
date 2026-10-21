@@ -13,6 +13,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class AdminAttendanceLeaveOverviewStatsTest extends TestCase
@@ -91,7 +92,7 @@ class AdminAttendanceLeaveOverviewStatsTest extends TestCase
         $data = app(AttendanceLeaveController::class)->pendingDatatable($request)->getData(true)['data'];
 
         $this->assertCount(1, $data);
-        $this->assertSame($otherCompanyUser->username, $data[0]['name']);
+        $this->assertSame(Str::before($otherCompanyUser->email, '@'), $data[0]['name']);
         $this->assertSame('Sick', $data[0]['type']);
         $this->assertSame(route('admin-attendance.leave.detail', ['uid' => $leaveRequest->id]), $data[0]['detail_url']);
     }
@@ -314,7 +315,6 @@ class AdminAttendanceLeaveOverviewStatsTest extends TestCase
     private function createEmployeeUser(Company $company, string $employeeStatus = 'Active'): User
     {
         $user = User::query()->create([
-            'username' => 'user_'.uniqid(),
             'email' => uniqid('user_', true).'@example.com',
             'password' => 'password',
             'is_active' => true,

@@ -28,7 +28,7 @@ class LeaveRequestHistorySeederCoverageTest extends TestCase
             '$seedWorkingDates = $this->nextSeedWorkingDates($baseDay, 4, $this->seedBlockedDateValues());',
             'if (! $cursorDate->isWeekend() && ! array_key_exists($cursorDate->toDateString(), $blockedDateSet)) {',
             "Schema::hasTable('attendances_holidays')",
-            "->where('username', 'staff31')",
+            "->where('email', 'staff31@gmail.com')",
             "->orWhere('reason', 'like', '[Seeder] RNB dummy leave request%')",
             "->orWhere('reason', 'like', '[Seeder] RNB % leave approved')",
             "Schema::hasColumn('leave_requests', 'handover_notes')",

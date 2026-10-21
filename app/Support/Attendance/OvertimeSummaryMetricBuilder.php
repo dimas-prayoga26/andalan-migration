@@ -7,6 +7,7 @@ use App\Models\OvertimeLifecycleLog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class OvertimeSummaryMetricBuilder
 {
@@ -96,7 +97,8 @@ class OvertimeSummaryMetricBuilder
         $overtimes = (clone $query)
             ->with([
                 'employee:id,user_id',
-                'employee.user:id,username',
+                'employee.profile:id,employee_id,name,nickname',
+                'employee.user:id,email',
                 'lifecycleLogs:id,overtime_id,event_key,status',
             ])
             ->get([
@@ -398,8 +400,8 @@ class OvertimeSummaryMetricBuilder
             ->first(fn (array $row): bool => (string) $row['overtime']->employee_id === (string) $topEmployeeId);
 
         $employee = $topOvertime['overtime']->employee ?? null;
-        $name = $employee?->user?->username;
+        $name = $employee?->profile?->nickname ?: ($employee?->profile?->name ?: Str::before((string) $employee?->user?->email, '@'));
 
-        return is_string($name) && trim($name) !== '' ? trim($name) : '-';
+        return trim((string) $name) !== '' ? trim((string) $name) : '-';
     }
 }

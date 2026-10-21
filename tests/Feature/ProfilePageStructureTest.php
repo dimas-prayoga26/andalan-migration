@@ -47,8 +47,8 @@ class ProfilePageStructureTest extends TestCase
         $this->assertStringContainsString("return view('profile', \$this->profileData());", $controller);
         $this->assertStringContainsString("asset('assets/default_user.jpg')", $controller);
         $this->assertStringContainsString('employee:id,user_id,employee_code', $controller);
-        $this->assertStringContainsString("select(['id', 'username', 'email', 'phone'])", $controller);
-        $this->assertStringContainsString('employee.profile:id,employee_id,name,gender,marital_status,date_of_birth,profile_picture_path', $controller);
+        $this->assertStringContainsString("select(['id', 'email', 'phone'])", $controller);
+        $this->assertStringContainsString('employee.profile:id,employee_id,name,nickname,gender,marital_status,date_of_birth,profile_picture_path', $controller);
         $this->assertStringContainsString('current_office_location_id', $controller);
         $this->assertStringContainsString('employee.deployment.company:id,name', $controller);
         $this->assertStringContainsString('employee.deployment.officeLocation:id,name', $controller);

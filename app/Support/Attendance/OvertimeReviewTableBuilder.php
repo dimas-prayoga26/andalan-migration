@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 class OvertimeReviewTableBuilder
 {
@@ -174,8 +175,9 @@ class OvertimeReviewTableBuilder
             })
             ->with([
                 'employee:id,user_id',
-                'employee.user:id,username',
-                'assignedBy:id,username',
+                'employee.profile:id,employee_id,name,nickname',
+                'employee.user:id,email',
+                'assignedBy:id,email', 'assignedBy.employee.profile:id,employee_id,name,nickname',
                 'projectTasks:id,overtime_id',
                 'lifecycleLogs:id,overtime_id,event_key,title,status,step_order',
             ])
@@ -523,16 +525,15 @@ class OvertimeReviewTableBuilder
 
     private function employeeName(AttendanceOvertime $overtime): string
     {
-        $name = $overtime->employee?->user?->username;
+        $profile = $overtime->employee?->profile;
+        $name = $profile?->nickname ?: ($profile?->name ?: Str::before((string) $overtime->employee?->user?->email, '@'));
 
-        return is_string($name) && trim($name) !== '' ? trim($name) : '-';
+        return trim((string) $name) !== '' ? trim((string) $name) : '-';
     }
 
     private function supervisorName(AttendanceOvertime $overtime): string
     {
-        $name = $overtime->assignedBy?->username;
-
-        return is_string($name) && trim($name) !== '' ? trim($name) : '-';
+        return $overtime->assignedBy?->shortName() ?? '-';
     }
 
     private function detailUrlFor(string $context, AttendanceOvertime $overtime): string

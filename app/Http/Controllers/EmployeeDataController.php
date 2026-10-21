@@ -56,7 +56,7 @@ class EmployeeDataController extends Controller
         return Employee::query()
             ->with([
                 'user:id,is_active',
-                'profile:id,employee_id,name,profile_picture_path',
+                'profile:id,employee_id,name,nickname,profile_picture_path',
                 'identity:id,employee_id,nik',
                 'deployment:id,employee_id,current_company_id,current_position_id',
                 'deployment.company:id,name',

@@ -93,7 +93,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('word-break: break-word;', $profileHeader);
         $this->assertStringContainsString('class="project-progress-radial-chart"', $overview);
         $this->assertStringContainsString('parentHeightOffset: 0', $overview);
-        $this->assertStringContainsString('employee.profile:id,employee_id,name,profile_picture_path', $profileComposer);
+        $this->assertStringContainsString('employee.profile:id,employee_id,name,nickname,profile_picture_path', $profileComposer);
         $this->assertStringNotContainsString('userProfile', $profileComposer);
         $this->assertIsString(view('project_management.overview.index')->render());
         $this->assertStringContainsString('ProjectManagementOverviewController::class', $routes);
@@ -395,7 +395,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('projectTaskTimeline', $projectController);
         $this->assertStringContainsString('private function projectTaskTimelineValue(Project $project, Collection $tasks): array', $projectController);
         $this->assertStringContainsString('betweenIncluded($weekStart, $weekEnd)', $projectController);
-        $this->assertStringContainsString('memberships.employee.profile:id,employee_id,name,profile_picture_path', $projectController);
+        $this->assertStringContainsString('memberships.employee.profile:id,employee_id,name,nickname,profile_picture_path', $projectController);
         $this->assertStringContainsString('team_members', $projectController);
         $this->assertStringContainsString('private function teamMemberValue(?Employee $employee): array', $projectController);
         $this->assertStringContainsString('private function profilePictureUrl(mixed $profilePicturePath): string', $projectController);
@@ -1586,7 +1586,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
     private function createProjectTaskListUser(string $username): array
     {
         $user = User::factory()->activeEmployee(['view-timesheet-reporting'])->create([
-            'username' => $username,
         ]);
 
         return [$user, $user->employee];

@@ -75,7 +75,7 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString("'recapAttendanceDateInput' => \$attendanceDate->format('d/m/Y')", $recapController);
         $this->assertStringContainsString('monthlyDatatable', $recapController);
         $this->assertStringContainsString('recapEmployeeDetailData', $recapController);
-        $this->assertStringContainsString("'profile:id,employee_id,name,profile_picture_path'", $recapController);
+        $this->assertStringContainsString("'profile:id,employee_id,name,nickname,profile_picture_path'", $recapController);
         $this->assertStringContainsString("'avatar_url' => \$this->employeeAvatarUrl(\$employee->profile?->profile_picture_path)", $recapController);
         $this->assertStringContainsString("asset('assets/default_user.jpg')", $recapController);
         $this->assertStringContainsString('recapVirtualHolidayRows', $recapController);
@@ -150,7 +150,7 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString("'date_range_label' => \$this->taskDateRangeLabel", $overtimeController);
         $this->assertStringContainsString("'status_label' => \$this->projectTaskDetailStatusLabel", $overtimeController);
         $this->assertStringContainsString("'task_category_label' => \$projectTask->project_id !== null ? 'Project Task' : 'Daily Task'", $overtimeController);
-        $this->assertStringContainsString("'assigned_by' => trim((string) (\$projectTask->assignedBy?->username ?? 'self')) ?: 'self'", $overtimeController);
+        $this->assertStringContainsString("'assigned_by' => trim((string) (\$projectTask->assignedBy?->shortName() ?? 'self')) ?: 'self'", $overtimeController);
         $this->assertStringContainsString("'attachment_path' => (string) (\$projectTask->attachment_path ?? '')", $overtimeController);
         $this->assertStringContainsString('private function projectTaskDetailStatusLabel', $overtimeController);
         $this->assertStringContainsString('private function taskDateRangeLabel', $overtimeController);

@@ -31,7 +31,7 @@ class EmailManagementController extends Controller
                 'company:id,name',
                 'employee:id,user_id,status',
                 'employee.profile:id,employee_id,name,nickname',
-                'employee.user:id,username,email',
+                'employee.user:id,email',
                 'employee.deployment:id,employee_id,current_position_id',
                 'employee.deployment.position:id,name',
             ])
@@ -57,10 +57,10 @@ class EmailManagementController extends Controller
                 'mailAccessAccount:id,email,employee_id',
                 'sourceEmployee:id,user_id,status',
                 'sourceEmployee.profile:id,employee_id,name,nickname',
-                'sourceEmployee.user:id,username,email',
+                'sourceEmployee.user:id,email',
                 'targetEmployee:id,user_id,status',
                 'targetEmployee.profile:id,employee_id,name,nickname',
-                'targetEmployee.user:id,username,email',
+                'targetEmployee.user:id,email',
                 'assignedByEmployee:id,user_id',
                 'assignedByEmployee.profile:id,employee_id,name,nickname',
                 'revokedByEmployee:id,user_id',
@@ -74,7 +74,7 @@ class EmailManagementController extends Controller
             ->with([
                 'employee:id,user_id',
                 'employee.profile:id,employee_id,name,nickname',
-                'employee.user:id,username,email',
+                'employee.user:id,email',
             ])
             ->orderBy('email')
             ->get(['id', 'email', 'employee_id'])
@@ -90,7 +90,7 @@ class EmailManagementController extends Controller
             ->activeForMailManagement()
             ->with([
                 'profile:id,employee_id,name,nickname',
-                'user:id,username,email',
+                'user:id,email',
                 'deployment:id,employee_id,current_position_id',
                 'deployment.position:id,name',
             ])
@@ -343,7 +343,7 @@ class EmailManagementController extends Controller
         }
 
         $name = $this->employeeDisplayName($employee);
-        $email = trim((string) ($employee->user?->email ?: $employee->user?->username));
+        $email = trim((string) $employee->user?->email);
         $position = trim((string) $employee->deployment?->position?->name);
 
         $label = $name !== '' ? $name : ($email !== '' ? $email : (string) $employee->id);
@@ -366,7 +366,7 @@ class EmailManagementController extends Controller
 
         return $this->staffEmailLabel(
             $this->employeeDisplayName($employee),
-            (string) ($employee->user?->email ?: $employee->user?->username),
+            (string) $employee->user?->email,
             (string) $employee->id,
         );
     }

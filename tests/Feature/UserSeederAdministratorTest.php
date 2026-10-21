@@ -15,10 +15,10 @@ class UserSeederAdministratorTest extends TestCase
         $this->assertStringContainsString("DB::table('positions')->where('system_key', Position::KEY_ADMINISTRATOR)->value('id')", $userSeeder);
         $this->assertStringContainsString("DB::table('positions')->where('system_key', Position::KEY_SUPER_ADMINISTRATOR)->value('id')", $userSeeder);
         $this->assertStringContainsString("['email' => 'superadmin@andalanbersama.com']", $userSeeder);
-        $this->assertStringContainsString("'username' => 'superadmin'", $userSeeder);
+        $this->assertStringContainsString("['email' => 'superadmin@andalanbersama.com']", $userSeeder);
         $this->assertStringNotContainsString("['email' => 'superuser@gmail.com']", $userSeeder);
         $this->assertStringContainsString("['email' => \"admin{\$directorNumber}@gmail.com\"]", $userSeeder);
-        $this->assertStringContainsString("'username' => \"admin{\$directorNumber}\"", $userSeeder);
+        $this->assertStringContainsString("['email' => \"admin{\$directorNumber}@gmail.com\"]", $userSeeder);
         $this->assertStringNotContainsString('business_email', $userSeeder);
         $this->assertStringContainsString('$administrator->syncRoles([\'Staff\']);', $userSeeder);
         $this->assertStringContainsString('divisionId: $adminDivisionId', $userSeeder);

@@ -161,7 +161,6 @@ class AdminAttendanceLeaveBalanceSyncTest extends TestCase
     {
         $company = Company::query()->create(['name' => 'RNB']);
         $adminUser = User::query()->create([
-            'username' => 'admin_'.uniqid(),
             'email' => uniqid('admin_', true).'@example.com',
             'password' => 'password',
             'is_active' => true,
@@ -177,7 +176,6 @@ class AdminAttendanceLeaveBalanceSyncTest extends TestCase
             'status' => 'Active',
         ]);
         $employeeUser = User::query()->create([
-            'username' => 'staff_'.uniqid(),
             'email' => uniqid('staff_', true).'@example.com',
             'password' => 'password',
             'is_active' => true,

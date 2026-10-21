@@ -91,9 +91,9 @@ class EmployeeFamilySeeder extends Seeder
 
     private function resolveDisplayName(Employee $employee): string
     {
-        $username = is_string($employee->user?->username) ? trim($employee->user->username) : '';
-        if ($username !== '') {
-            return $username;
+        $nickname = is_string($employee->profile?->nickname) ? trim($employee->profile->nickname) : '';
+        if ($nickname !== '') {
+            return $nickname;
         }
 
         $email = is_string($employee->user?->email) ? trim($employee->user->email) : '';

@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProfilePasswordUpdateRequest;
 use App\Http\Requests\ProfilePhotoUpdateRequest;
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Employee;
 use App\Models\EmployeeAddress;
 use App\Models\EmployeeProfile;
 use App\Models\Position;
 use App\Models\User;
+use App\Support\Employee\EmployeeDataCompletionCalculator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -25,6 +27,8 @@ use Throwable;
 
 class ProfileController extends Controller
 {
+    public function __construct(private readonly EmployeeDataCompletionCalculator $employeeDataCompletionCalculator) {}
+
     public function index(): View
     {
         return view('profile', $this->profileData());
@@ -177,15 +181,16 @@ class ProfileController extends Controller
             'profileFormCompany' => '-',
             'profileFormBaseOffice' => '-',
             'profileFormAddress' => '-',
+            'employeeDataCompletionPercent' => 100,
         ];
 
         $authenticatedUserId = Auth::id();
         $authenticatedUser = is_string($authenticatedUserId) || is_int($authenticatedUserId)
             ? User::query()
-                ->select(['id', 'username', 'email', 'phone'])
+                ->select(['id', 'email', 'phone'])
                 ->with([
                     'employee:id,user_id,employee_code',
-                    'employee.profile:id,employee_id,name,gender,marital_status,date_of_birth,profile_picture_path',
+                    'employee.profile:id,employee_id,name,nickname,gender,marital_status,date_of_birth,profile_picture_path',
                     'employee.deployment:id,employee_id,current_position_id,current_department_id,current_company_id,current_office_location_id,join_date',
                     'employee.deployment.company:id,name',
                     'employee.deployment.department:id,name',
@@ -224,6 +229,11 @@ class ProfileController extends Controller
             $profileData['profileFormCompany'] = $this->companyName($authenticatedUser);
             $profileData['profileFormBaseOffice'] = $this->baseOfficeName($authenticatedUser);
             $profileData['profileFormAddress'] = $this->addressLine($authenticatedUser);
+
+            if ($authenticatedUser->employee instanceof Employee) {
+                $profileData['employeeDataCompletionPercent'] = $this->employeeDataCompletionCalculator
+                    ->forEmployee($authenticatedUser->employee)['percent'];
+            }
         }
 
         return $profileData;
@@ -236,9 +246,9 @@ class ProfileController extends Controller
             return $employeeProfileName;
         }
 
-        $username = trim((string) $user->username);
-        if ($username !== '') {
-            return $username;
+        $nickname = trim((string) ($user->employee?->profile?->nickname ?? ''));
+        if ($nickname !== '') {
+            return $nickname;
         }
 
         $emailName = trim((string) explode('@', (string) $user->email)[0]);

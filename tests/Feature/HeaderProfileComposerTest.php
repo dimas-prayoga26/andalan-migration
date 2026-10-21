@@ -15,7 +15,7 @@ class HeaderProfileComposerTest extends TestCase
         $routes = File::get(base_path('routes/web.php'));
 
         $this->assertStringContainsString("View::composer('layouts.header', HeaderProfileComposer::class);", $provider);
-        $this->assertStringContainsString('employee.profile:id,employee_id,name,profile_picture_path', $composer);
+        $this->assertStringContainsString('employee.profile:id,employee_id,name,nickname,profile_picture_path', $composer);
         $this->assertStringContainsString('employee.deployment.position:id,name', $composer);
         $this->assertStringContainsString('visibleUnreadNotifications', $composer);
         $this->assertStringContainsString("->whereNull('read_at')", $composer);

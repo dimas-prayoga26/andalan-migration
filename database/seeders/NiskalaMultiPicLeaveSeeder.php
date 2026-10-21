@@ -39,7 +39,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
 
             DB::transaction(function () use ($niskalaCompany, $now, $rnbCompany): void {
                 $mevia = $this->employeeByEmail('diktanamira@gmail.com') ?? $this->seedEmployeeAccount([
-                    'username' => 'staff-rnb-mevia',
                     'email' => 'diktanamira@gmail.com',
                     'name' => 'Mevia Dikta Namira',
                     'employee_code' => 'EMP-RNB-MEVIA',
@@ -52,7 +51,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
                 ], $now);
 
                 $erlin = $this->employeeByEmail('halloerlin@gmail.com') ?? $this->seedEmployeeAccount([
-                    'username' => 'staff-rnb-erlin',
                     'email' => 'halloerlin@gmail.com',
                     'name' => 'Tsabita Anisa Eriliana',
                     'employee_code' => 'EMP-RNB-ERLIN',
@@ -65,7 +63,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
                 ], $now);
 
                 $leonie = $this->employeeByEmail('leonieputri7@gmail.com') ?? $this->seedEmployeeAccount([
-                    'username' => 'staff-niskala-leonie',
                     'email' => 'leonieputri7@gmail.com',
                     'name' => 'Leonie Putri Andhari',
                     'employee_code' => 'EMP-NISKALA-LEONIE',
@@ -137,7 +134,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
 
     /**
      * @param  array{
-     *     username:string,
      *     email:string,
      *     name:string,
      *     employee_code:string,
@@ -154,7 +150,6 @@ class NiskalaMultiPicLeaveSeeder extends Seeder
         $user = User::query()->updateOrCreate(
             ['email' => $data['email']],
             [
-                'username' => $data['username'],
                 'company_id' => $data['company_id'],
                 'phone' => $data['phone'],
                 'is_active' => true,

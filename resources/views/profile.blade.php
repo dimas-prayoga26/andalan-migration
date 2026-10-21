@@ -8,7 +8,18 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    @include('employee_data.wizard.styles')
     <style>
+        .profile-locked-badge {
+            font-size: 0.7rem;
+            color: #6b7280;
+            background: #f4f6fb;
+            border: 1px solid #e7eaf3;
+            border-radius: 0.375rem;
+            padding: 0.2rem 0.5rem;
+            white-space: nowrap;
+        }
+
         .profile-account-tabs {
             display: inline-flex;
             gap: 0.25rem;
@@ -95,7 +106,24 @@
 
 @php
     $isPasswordTabActive = session()->has('password_status') || $errors->passwordUpdate->any();
+    $employeeDataCompletionPercent = (int) ($employeeDataCompletionPercent ?? 0);
 @endphp
+
+@if ($employeeDataCompletionPercent < 100)
+    <div class="alert alert-warning" role="alert">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+                <h5 class="alert-heading mb-1"><i class="fa fa-exclamation-circle me-2"></i>Data karyawan belum lengkap</h5>
+                <p class="mb-0">Silakan lengkapi data diri, identitas, pendidikan, dan keluarga pada tab <strong>Data Karyawan</strong>.</p>
+            </div>
+            <button type="button" class="btn btn-warning btn-sm js-open-employee-data-tab">Lengkapi Sekarang</button>
+        </div>
+        <div class="progress mt-3" style="height: 8px;">
+            <div class="progress-bar bg-warning" role="progressbar" style="width: {{ $employeeDataCompletionPercent }}%;" aria-valuenow="{{ $employeeDataCompletionPercent }}" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <small class="d-block mt-1">Kelengkapan data: {{ $employeeDataCompletionPercent }}%</small>
+    </div>
+@endif
 
 <div class="row">
 					
@@ -117,10 +145,19 @@
                     </div>
                 </div>
             </div>
+            <div class="d-flex align-items-center justify-content-between gap-2 px-4 pt-3 pb-2 border-top">
+                <h6 class="mb-0">Data Kepegawaian</h6>
+                <span class="profile-locked-badge"><i class="fa fa-lock me-1"></i>Dikelola HR</span>
+            </div>
             <ul class="list-group list-group-flush profile-summary-list">
                 <li class="list-group-item py-3"><span class="profile-summary-label">Employee ID</span><span class="profile-summary-value">{{ $profilePageEmployeeCode }}</span></li>
+                <li class="list-group-item py-3"><span class="profile-summary-label">Company</span><span class="profile-summary-value">{{ $profileFormCompany }}</span></li>
+                <li class="list-group-item py-3"><span class="profile-summary-label">Job Title</span><span class="profile-summary-value">{{ $profilePagePositionName }}</span></li>
                 <li class="list-group-item py-3"><span class="profile-summary-label">Department</span><span class="profile-summary-value">{{ $profilePageDepartmentName }}</span></li>
+                <li class="list-group-item py-3"><span class="profile-summary-label">Atasan Langsung</span><span class="profile-summary-value">{{ $profilePageSupervisorName ?? '-' }}</span></li>
                 <li class="list-group-item py-3"><span class="profile-summary-label">Join Date</span><span class="profile-summary-value">{{ $profilePageJoinDateLabel }}</span></li>
+                <li class="list-group-item py-3"><span class="profile-summary-label">Work Location</span><span class="profile-summary-value">{{ $profileFormBaseOffice }}</span></li>
+                <li class="list-group-item py-3"><span class="profile-summary-label">Work Email</span><span class="profile-summary-value">{{ $profileFormEmail }}</span></li>
             </ul>
         </div>
     </div>
@@ -139,6 +176,14 @@
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link {{ $isPasswordTabActive ? 'active' : '' }}" id="password-update-tab" data-bs-toggle="tab" data-bs-target="#password-update-pane" type="button" role="tab" aria-controls="password-update-pane" aria-selected="{{ $isPasswordTabActive ? 'true' : 'false' }}">Update Password</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="employee-data-tab" data-bs-toggle="tab" data-bs-target="#employee-data-pane" type="button" role="tab" aria-controls="employee-data-pane" aria-selected="false">
+                            Data Karyawan
+                            @if ($employeeDataCompletionPercent < 100)
+                                <span class="badge bg-danger ms-1">!</span>
+                            @endif
+                        </button>
                     </li>
                 </ul>
             </div>
@@ -252,6 +297,11 @@
                         </div>
                     </form>
                 </div>
+                <div class="tab-pane fade" id="employee-data-pane" role="tabpanel" aria-labelledby="employee-data-tab" tabindex="0">
+                    <div class="card-body">
+                        @include('employee_data.wizard.wizard')
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -262,7 +312,29 @@
 @endsection
 
 @section('script')
+    @include('employee_data.wizard.script')
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var employeeDataTabButton = document.getElementById('employee-data-tab');
+
+            if (!employeeDataTabButton) {
+                return;
+            }
+
+            function openEmployeeDataTab() {
+                bootstrap.Tab.getOrCreateInstance(employeeDataTabButton).show();
+                employeeDataTabButton.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            document.querySelectorAll('.js-open-employee-data-tab').forEach(function (button) {
+                button.addEventListener('click', openEmployeeDataTab);
+            });
+
+            if (window.location.hash === '#employee-data') {
+                openEmployeeDataTab();
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', function () {
             if (!window.jQuery || !jQuery.fn.daterangepicker || typeof moment === 'undefined') {
                 return;

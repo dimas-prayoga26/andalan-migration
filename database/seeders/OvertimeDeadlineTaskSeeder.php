@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
 
@@ -249,7 +250,7 @@ class OvertimeDeadlineTaskSeeder extends Seeder
     private function resolveStaffUsers(string $rnbCompanyId): Collection
     {
         return User::query()
-            ->whereIn('username', self::STAFF_USERNAMES)
+            ->whereIn('email', collect(self::STAFF_USERNAMES)->map(fn (string $seedName): string => $seedName.'@gmail.com')->all())
             ->whereHas('roles', function ($query): void {
                 $query->whereRaw('LOWER(name) = ?', ['staff']);
             })
@@ -258,7 +259,7 @@ class OvertimeDeadlineTaskSeeder extends Seeder
             })
             ->with(['employee.deployment'])
             ->get()
-            ->keyBy('username');
+            ->keyBy(fn (User $user): string => Str::before((string) $user->email, '@'));
     }
 
     private function resolveSupervisorUserId(string $staffEmployeeId): ?string
@@ -401,7 +402,7 @@ class OvertimeDeadlineTaskSeeder extends Seeder
                     'actual_end_time' => $scenario['actual_end_time'],
                     'calculated_hours' => $scenario['calculated_hours'],
                     'scenario' => $scenario['key'],
-                    'seeded_for' => $staffUser->username,
+                    'seeded_for' => Str::before((string) $staffUser->email, '@'),
                 ],
             ]);
         }

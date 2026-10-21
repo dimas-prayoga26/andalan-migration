@@ -12,6 +12,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
 
@@ -90,7 +91,7 @@ class BusinessTripSeeder extends Seeder
             }
 
             $staffUsers = User::query()
-                ->whereIn('username', array_keys($staffScenarios))
+                ->whereIn('email', collect(array_keys($staffScenarios))->map(fn (string $seedName): string => $seedName.'@gmail.com')->all())
                 ->whereHas('roles', function ($query): void {
                     $query->whereRaw('LOWER(name) = ?', ['staff']);
                 })
@@ -99,7 +100,7 @@ class BusinessTripSeeder extends Seeder
                 })
                 ->with(['employee.deployment'])
                 ->get()
-                ->keyBy('username');
+                ->keyBy(fn (User $user): string => Str::before((string) $user->email, '@'));
 
             $missingUsernames = collect(array_keys($staffScenarios))
                 ->reject(fn (string $username): bool => $staffUsers->has($username))
@@ -151,7 +152,7 @@ class BusinessTripSeeder extends Seeder
     {
         $employeeId = trim((string) ($staffUser->employee?->id ?? ''));
         if ($employeeId === '') {
-            throw new RuntimeException("Data employee untuk {$staffUser->username} tidak ditemukan.");
+            throw new RuntimeException("Data employee untuk {$staffUser->email} tidak ditemukan.");
         }
 
         $supervisorEmployeeId = $this->resolveSupervisorEmployeeId($employeeId);
@@ -358,7 +359,7 @@ class BusinessTripSeeder extends Seeder
                     : null,
                 'metadata' => [
                     'request_number' => $businessTrip->request_number,
-                    'seeded_for' => $staffUser->username,
+                    'seeded_for' => Str::before((string) $staffUser->email, '@'),
                 ],
             ]);
         }

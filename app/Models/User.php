@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Hidden(['password', 'remember_token', 'email_token', 'password_token'])]
@@ -53,6 +54,18 @@ class User extends Authenticatable
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'id');
+    }
+
+    /**
+     * Short name shown where the old username used to appear: the employee's nickname, then full name, then the email's local part.
+     */
+    public function shortName(): string
+    {
+        $profile = $this->employee?->profile;
+
+        return collect([$profile?->nickname, $profile?->name, Str::before((string) $this->email, '@')])
+            ->map(fn (mixed $nameCandidate): string => trim((string) $nameCandidate))
+            ->first(fn (string $nameCandidate): bool => $nameCandidate !== '') ?? '-';
     }
 
     public function createdProjects(): HasMany

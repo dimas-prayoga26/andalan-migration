@@ -35,22 +35,9 @@
             background: transparent;
         }
 
-        .authorization-avatar {
-            width: 42px;
-            height: 42px;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: #eef2ff;
-            color: #2448c7;
-            font-weight: 700;
-            overflow: hidden;
-        }
-
-        .authorization-avatar img {
-            width: 100%;
-            height: 100%;
+        .authorization-employee-avatar {
+            width: 35px;
+            height: 35px;
             object-fit: cover;
         }
 
@@ -191,7 +178,7 @@
     <div class="card-header border-0 flex-wrap gap-3">
         <div>
             <h4 class="card-title mb-1">Employee List</h4>
-            <p class="mb-0 text-muted fs-13">Employee, deployment, identity, and PIC data.</p>
+            <p class="mb-0 text-muted fs-13">Employee, position, company, and contract data.</p>
             <ul class="nav nav-pills authorization-status-tabs mt-3" aria-label="Employee status filter">
                 @foreach ($employeeStatusTabs as $statusValue => $statusLabel)
                     <li class="nav-item">
@@ -224,7 +211,7 @@
                 </div>
             </form>
             @if ($canManageDataEmployee)
-                <a href="{{ route('authorization.create') }}" class="btn btn-primary btn-sm">
+                <a href="{{ route('authorization.create') }}" class="btn light btn-success btn-sm">
                     <i class="fa-solid fa-plus me-1"></i>Add Employee
                 </a>
             @endif
@@ -233,73 +220,72 @@
     @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
     <div class="card-body table-card-body p-0">
         <div class="table-responsive">
-            <table id="authorizationEmployeeTable" class="table table-sm mb-0 table-bottom-borderless table-striped align-middle">
+            <table id="authorizationEmployeeTable" class="table table-sm table-sm-responsive text-nowrap mb-0">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>NIK</th>
-                        <th>Employee Code</th>
-                        <th>Position</th>
-                        <th>Company</th>
-                        <th>PIC</th>
-                        <th>Status</th>
-                        <th class="text-end">Action</th>
+                        <th class="mw-10">No</th>
+                        <th class="mw-80">Name</th>
+                        <th class="mw-80">Position</th>
+                        <th class="mw-80">Company</th>
+                        @if ($employeeStatusFilter === 'inactive')
+                            <th class="mw-80">Working Period</th>
+                        @else
+                            <th class="mw-80">Contract</th>
+                        @endif
+                        <th class="mw-100">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($users as $user)
                         <tr>
+                            <td>{{ $users->firstItem() + $loop->index }}</td>
                             <td>
-                                <div class="d-flex align-items-center gap-3">
-                                    <span class="authorization-avatar">
-                                        @if (! empty($user['avatar_url']))
-                                            <img src="{{ $user['avatar_url'] }}" alt="{{ $user['name'] }}">
-                                        @else
-                                            {{ $user['initials'] }}
-                                        @endif
-                                    </span>
-                                    <div>
-                                        <h6 class="mb-0 text-black">{{ $user['name'] }}</h6>
-                                    </div>
-                                </div>
+                                <a href="{{ route('authorization.show', ['employee' => $user['id']]) }}">
+                                    <img src="{{ $user['avatar_url'] }}" alt="{{ $user['name'] }}" class="rounded-circle me-2 authorization-employee-avatar" width="35" height="35">
+                                    <span>{{ $user['name'] }}</span>
+                                </a>
                             </td>
-                            <td>{{ $user['nik'] }}</td>
-                            <td>{{ $user['employee_code'] }}</td>
-                            <td>{{ $user['position'] }}</td>
+                            <td>
+                                <span>{{ $user['position'] }}</span>
+                                @if ($user['department'] !== '')
+                                    <br>
+                                    <span>{{ $user['department'] }}</span>
+                                @endif
+                            </td>
                             <td>{{ $user['company'] }}</td>
-                            <td>{{ $user['pic'] }}</td>
                             <td>
-                                @php
-                                    $statusClass = match ($user['status']) {
-                                        'Active' => 'badge-success',
-                                        'Pending' => 'badge-warning',
-                                        default => 'badge-danger',
-                                    };
-                                @endphp
-                                <span class="badge badge-sm light {{ $statusClass }}">{{ $user['status'] }}</span>
+                                <span>{{ $user['contract_start'] }}</span> <br>
+                                <span>{{ $employeeStatusFilter === 'inactive' ? $user['resignation_date'] : $user['contract_end'] }}</span>
                             </td>
-                            <td class="text-end">
-                                <div class="d-inline-flex gap-1">
-                                    <a href="{{ route('authorization.show', ['employee' => $user['id']]) }}" class="btn btn-info light btn-sm">Detail</a>
-                                    @if ($canManageDataEmployee)
-                                        <a href="{{ route('authorization.edit', ['employee' => $user['id']]) }}" class="btn btn-primary light btn-sm">Update</a>
-                                        <form
-                                            action="{{ route('authorization.destroy', ['employee' => $user['id']]) }}"
-                                            method="POST"
-                                            data-authorization-delete-form
-                                            data-employee-name="{{ $user['name'] }}"
-                                        >
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-danger light btn-sm">Delete</button>
-                                        </form>
-                                    @endif
+                            <td class="text-start">
+                                <div class="dropdown dropdown-xs">
+                                    <button class="btn btn-xs btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">
+                                        Options
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="{{ route('authorization.show', ['employee' => $user['id']]) }}">View More</a></li>
+                                        @if ($canManageDataEmployee)
+                                            <li><a class="dropdown-item" href="{{ route('authorization.edit', ['employee' => $user['id']]) }}">Edit</a></li>
+                                            <li>
+                                                <form
+                                                    action="{{ route('authorization.destroy', ['employee' => $user['id']]) }}"
+                                                    method="POST"
+                                                    data-authorization-delete-form
+                                                    data-employee-name="{{ $user['name'] }}"
+                                                >
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="dropdown-item text-danger">Delete</button>
+                                                </form>
+                                            </li>
+                                        @endif
+                                    </ul>
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">
+                            <td colspan="6" class="text-center text-muted py-4">
                                 {{ $search !== '' ? 'No matching employee found.' : 'No '.$employeeStatusFilter.' employee data available.' }}
                             </td>
                         </tr>

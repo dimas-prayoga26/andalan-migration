@@ -24,7 +24,7 @@ class EmployeePicAssignmentSeeder extends Seeder
             }
 
             $picUsers = User::query()
-                ->where('username', 'like', 'supervisor%')
+                ->where('email', 'like', 'supervisor%')
                 ->whereHas('employee.deployment')
                 ->with(['employee.deployment'])
                 ->get();

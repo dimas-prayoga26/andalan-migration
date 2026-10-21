@@ -94,11 +94,11 @@ class PicAttendanceTaskController extends Controller
         return ProjectTask::query()
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name,profile_picture_path',
-                'employee.user:id,username,email',
+                'employee.profile:id,employee_id,name,nickname,profile_picture_path',
+                'employee.user:id,email',
                 'project:id,name',
                 'overtime:id,record_number',
-                'assignedBy:id,username,email',
+                'assignedBy:id,email',
             ])
             ->whereIn('employee_id', $visibleEmployeeIds->all())
             ->whereHas('employee', function ($query): void {
@@ -211,7 +211,7 @@ class PicAttendanceTaskController extends Controller
         }
 
         return Employee::query()
-            ->with(['profile:id,employee_id,name', 'user:id,username,email'])
+            ->with(['profile:id,employee_id,name,nickname', 'user:id,email'])
             ->whereIn('id', $staffEmployeeIds->all())
             ->whereNull('deleted_at')
             ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
@@ -369,9 +369,14 @@ class PicAttendanceTaskController extends Controller
 
     private function employeeDisplayName(?Employee $employee): string
     {
-        $username = $employee?->user?->username;
-        if (is_string($username) && trim($username) !== '') {
-            return trim($username);
+        $nickname = $employee?->profile?->nickname;
+        if (is_string($nickname) && trim($nickname) !== '') {
+            return trim($nickname);
+        }
+
+        $profileName = $employee?->profile?->name;
+        if (is_string($profileName) && trim($profileName) !== '') {
+            return trim($profileName);
         }
 
         return 'Unknown Staff';
@@ -398,9 +403,9 @@ class PicAttendanceTaskController extends Controller
 
     private function assignedByLabel(ProjectTask $projectTask): string
     {
-        $username = trim((string) ($projectTask->assignedBy?->username ?? ''));
-        if ($username !== '') {
-            return $username;
+        $nickname = trim((string) ($projectTask->assignedBy?->employee?->profile?->nickname ?? ''));
+        if ($nickname !== '') {
+            return $nickname;
         }
 
         $email = trim((string) ($projectTask->assignedBy?->email ?? ''));

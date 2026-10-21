@@ -1338,11 +1338,12 @@ class AttendanceLeaveRequestController extends Controller
             return $defaultData;
         }
 
-        $fullName = EmployeeProfile::query()
+        $employeeProfileNames = EmployeeProfile::query()
             ->where('employee_id', $employeeId)
-            ->value('name');
+            ->first(['name', 'nickname']);
+        $fullName = $employeeProfileNames?->name;
         if (! is_string($fullName) || trim($fullName) === '') {
-            $fullName = $authenticatedUser?->username ?: '-';
+            $fullName = $employeeProfileNames?->nickname ?: '-';
         }
 
         $supervisorEmployeeId = DB::table('employee_pic_assignments')
@@ -1359,12 +1360,11 @@ class AttendanceLeaveRequestController extends Controller
             if (is_string($supervisorProfileName) && trim($supervisorProfileName) !== '') {
                 $supervisorName = trim($supervisorProfileName);
             } else {
-                $supervisorUsername = DB::table('employees')
-                    ->join('users', 'users.id', '=', 'employees.user_id')
-                    ->where('employees.id', trim($supervisorEmployeeId))
-                    ->value('users.username');
-                if (is_string($supervisorUsername) && trim($supervisorUsername) !== '') {
-                    $supervisorName = trim($supervisorUsername);
+                $supervisorNickname = EmployeeProfile::query()
+                    ->where('employee_id', trim($supervisorEmployeeId))
+                    ->value('nickname');
+                if (is_string($supervisorNickname) && trim($supervisorNickname) !== '') {
+                    $supervisorName = trim($supervisorNickname);
                 }
             }
         }

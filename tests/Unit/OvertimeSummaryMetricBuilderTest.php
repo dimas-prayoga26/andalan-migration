@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\AttendanceOvertime;
 use App\Models\Employee;
+use App\Models\EmployeeProfile;
 use App\Models\OvertimeLifecycleLog;
 use App\Models\User;
 use App\Support\Attendance\OvertimeSummaryMetricBuilder;
@@ -17,7 +18,7 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
         $summary = (new OvertimeSummaryMetricBuilder)->summarizeCollection(collect([
             $this->overtime(
                 employeeId: 'employee-a',
-                employeeUsername: 'rico.username',
+                employeeNickname: 'rico',
                 overtimeDate: '2026-06-22',
                 actualStartTime: '18:00:00',
                 actualEndTime: '20:00:00',
@@ -31,7 +32,7 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
             ),
             $this->overtime(
                 employeeId: 'employee-a',
-                employeeUsername: 'rico.username',
+                employeeNickname: 'rico',
                 overtimeDate: '2026-06-21',
                 actualStartTime: '10:00:00',
                 actualEndTime: '14:00:00',
@@ -45,7 +46,7 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
             ),
             $this->overtime(
                 employeeId: 'employee-b',
-                employeeUsername: 'syafiq.username',
+                employeeNickname: 'syafiq',
                 overtimeDate: '2026-06-23',
                 actualStartTime: '18:30:00',
                 actualEndTime: '21:30:00',
@@ -64,7 +65,7 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
         $this->assertSame('-', $summary['estimated_cost_label']);
         $this->assertSame('3 hours', $summary['median_hours_label']);
         $this->assertSame('3 hours', $summary['average_hours_label']);
-        $this->assertSame('rico.username', $summary['top_overtime_label']);
+        $this->assertSame('rico', $summary['top_overtime_label']);
         $this->assertSame('4h | 2h', $summary['weekend_weekday_label']);
     }
 
@@ -103,7 +104,7 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
         $summary = (new OvertimeSummaryMetricBuilder)->summarizeCollection(collect([
             $this->overtime(
                 employeeId: 'employee-a',
-                employeeUsername: 'dimas',
+                employeeNickname: 'dimas',
                 overtimeDate: '2026-07-30',
                 actualStartTime: '11:00:00',
                 actualEndTime: '13:00:00',
@@ -117,7 +118,7 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
             ),
             $this->overtime(
                 employeeId: 'employee-b',
-                employeeUsername: 'syafiq',
+                employeeNickname: 'syafiq',
                 overtimeDate: '2026-07-31',
                 actualStartTime: '18:00:00',
                 actualEndTime: '19:00:00',
@@ -142,7 +143,7 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
         $summary = (new OvertimeSummaryMetricBuilder)->summarizeCollection(collect([
             $this->overtime(
                 employeeId: 'employee-a',
-                employeeUsername: 'dimas',
+                employeeNickname: 'dimas',
                 overtimeDate: '2026-07-30',
                 actualStartTime: '11:00:00',
                 actualEndTime: '13:00:00',
@@ -166,7 +167,7 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
         $summary = (new OvertimeSummaryMetricBuilder)->summarizeCollection(collect([
             $this->overtime(
                 employeeId: 'employee-a',
-                employeeUsername: 'mevia',
+                employeeNickname: 'mevia',
                 overtimeDate: '2026-07-25',
                 actualStartTime: '14:00:00',
                 actualEndTime: '21:00:00',
@@ -191,7 +192,7 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
      */
     private function overtime(
         string $employeeId,
-        string $employeeUsername,
+        string $employeeNickname,
         string $overtimeDate,
         string $actualStartTime,
         string $actualEndTime,
@@ -202,8 +203,12 @@ class OvertimeSummaryMetricBuilderTest extends TestCase
         $employee = new Employee([
             'id' => $employeeId,
         ]);
+        $employee->setRelation('profile', new EmployeeProfile([
+            'employee_id' => $employeeId,
+            'nickname' => $employeeNickname,
+        ]));
         $employee->setRelation('user', new User([
-            'username' => $employeeUsername,
+            'email' => $employeeId.'@example.test',
         ]));
 
         $overtime = new AttendanceOvertime([

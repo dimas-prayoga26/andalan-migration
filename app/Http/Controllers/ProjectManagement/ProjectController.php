@@ -249,10 +249,10 @@ class ProjectController extends Controller
         abort_if($employeeId === null || ! $this->employeeCanViewProject($project, $employeeId, $authenticatedUserId, $canManageEventProjects), 403);
 
         $project->loadMissing([
-            'creator:id,username',
+            'creator:id,email', 'creator.employee.profile:id,employee_id,name,nickname',
             'memberships.employee:id,user_id',
-            'memberships.employee.user:id,username',
-            'memberships.employee.profile:id,employee_id,name,profile_picture_path',
+            'memberships.employee.user:id,email',
+            'memberships.employee.profile:id,employee_id,name,nickname,profile_picture_path',
             'memberships.employee.deployment:id,employee_id,current_event_division_id',
             'projectDivisionEvents:id,project_id,event_division_id,google_drive_url,folder_id,status',
             'projectDivisionEvents.eventDivision:id,title,sub_title',
@@ -261,10 +261,10 @@ class ProjectController extends Controller
         $tasks = ProjectTask::query()
             ->where('project_id', $project->id)
             ->with([
-                'assignedBy:id,username',
+                'assignedBy:id,email', 'assignedBy.employee.profile:id,employee_id,name,nickname',
                 'employee:id,user_id',
-                'employee.user:id,username',
-                'employee.profile:id,employee_id,name,profile_picture_path',
+                'employee.user:id,email',
+                'employee.profile:id,employee_id,name,nickname,profile_picture_path',
             ])
             ->orderByRaw('COALESCE(due_date, start_date, created_at) ASC')
             ->get();
@@ -355,7 +355,7 @@ class ProjectController extends Controller
         return response()->json([
             'success' => true,
             'message' => $isCompleted ? 'Task division berhasil diselesaikan.' : 'Task division dikembalikan ke pending.',
-            'task' => $this->projectTaskValue($projectTask->fresh(['assignedBy:id,username', 'employee:id,user_id', 'employee.user:id,username', 'employee.profile:id,employee_id,name']), $employeeId, $canManageProject),
+            'task' => $this->projectTaskValue($projectTask->fresh(['assignedBy:id,email', 'assignedBy.employee.profile:id,employee_id,name,nickname', 'employee:id,user_id', 'employee.user:id,email', 'employee.profile:id,employee_id,name,nickname']), $employeeId, $canManageProject),
         ]);
     }
 
@@ -572,8 +572,8 @@ class ProjectController extends Controller
                         ->whereNull('left_at')
                         ->with([
                             'employee:id,user_id',
-                            'employee.user:id,username',
-                            'employee.profile:id,employee_id,name,profile_picture_path',
+                            'employee.user:id,email',
+                            'employee.profile:id,employee_id,name,nickname,profile_picture_path',
                             'employee.deployment:id,employee_id,current_position_id',
                             'employee.deployment.position:id,name',
                             'employee.deployment.positions:id,name',
@@ -741,8 +741,8 @@ class ProjectController extends Controller
     {
         return Employee::query()
             ->with([
-                'profile:id,employee_id,name',
-                'user:id,username,email',
+                'profile:id,employee_id,name,nickname',
+                'user:id,email',
                 'deployment:id,employee_id,current_event_division_id',
                 'deployment.eventDivision:id,title',
             ])
@@ -1007,14 +1007,14 @@ class ProjectController extends Controller
             'live_event_duration_label' => $this->projectDurationLabel($project->live_event_start_date ?? $project->start_date, $project->live_event_end_date ?? $project->end_date),
             'date_label' => $this->projectDateRangeLabel($project->start_date, $project->end_date),
             'duration_label' => $this->projectDurationLabel($project->start_date, $project->end_date),
-            'pic_label' => trim((string) ($project->creator?->username ?? '-')),
+            'pic_label' => trim((string) ($project->creator?->shortName() ?? '-')),
             'team_count' => (int) $project->memberships->count(),
             'team_members' => $project->memberships
                 ->map(fn ($membership): array => $this->teamMemberValue($membership->employee))
                 ->filter(fn (array $teamMember): bool => $teamMember !== [])
                 ->values(),
             'team_names' => $project->memberships
-                ->map(fn ($membership): string => trim((string) ($membership->employee?->profile?->name ?? $membership->employee?->user?->username ?? 'Staff')))
+                ->map(fn ($membership): string => trim((string) ($membership->employee?->profile?->name ?? $membership->employee?->profile?->nickname ?? 'Staff')))
                 ->filter()
                 ->values(),
         ];
@@ -1029,7 +1029,7 @@ class ProjectController extends Controller
             return [];
         }
 
-        $displayName = trim((string) ($employee->profile?->name ?? $employee->user?->username ?? 'Staff'));
+        $displayName = trim((string) ($employee->profile?->name ?? $employee->profile?->nickname ?? 'Staff'));
 
         return [
             'name' => $displayName !== '' ? $displayName : 'Staff',
@@ -1268,7 +1268,7 @@ class ProjectController extends Controller
             'due_date' => $projectTask->due_date?->toDateString() ?? '',
             'due_label' => $this->taskDueLabel($projectTask->due_date, $isCompleted),
             'employee_id' => trim((string) $projectTask->employee_id),
-            'assignee_label' => trim((string) ($projectTask->employee?->profile?->name ?? $projectTask->employee?->user?->username ?? 'Staff')),
+            'assignee_label' => trim((string) ($projectTask->employee?->profile?->name ?? $projectTask->employee?->profile?->nickname ?? 'Staff')),
             'can_toggle' => $canManageProject || ($employeeId !== null && (string) $projectTask->employee_id === $employeeId),
             'toggle_url' => route('project_management.projects.tasks.toggle', [$projectTask->project_id, $projectTask]),
             'update_url' => route('project_management.projects.tasks.update', [$projectTask->project_id, $projectTask]),
@@ -1498,7 +1498,7 @@ class ProjectController extends Controller
 
     private function employeeDisplayName(Employee $employee): string
     {
-        $name = trim((string) ($employee->profile?->name ?? $employee->user?->username ?? $employee->user?->email ?? ''));
+        $name = trim((string) ($employee->profile?->name ?? $employee->profile?->nickname ?? $employee->user?->email ?? ''));
 
         return $name !== '' ? $name : (string) $employee->id;
     }

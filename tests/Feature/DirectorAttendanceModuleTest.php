@@ -110,7 +110,7 @@ class DirectorAttendanceModuleTest extends TestCase
         $this->assertStringContainsString("'date_range_label' => \$this->taskDateRangeLabel", $directorOvertimeController);
         $this->assertStringContainsString("'status_label' => \$this->projectTaskDetailStatusLabel", $directorOvertimeController);
         $this->assertStringContainsString("'task_category_label' => \$projectTask->project_id !== null ? 'Project Task' : 'Daily Task'", $directorOvertimeController);
-        $this->assertStringContainsString("'assigned_by' => trim((string) (\$projectTask->assignedBy?->username ?? 'self')) ?: 'self'", $directorOvertimeController);
+        $this->assertStringContainsString("'assigned_by' => trim((string) (\$projectTask->assignedBy?->shortName() ?? 'self')) ?: 'self'", $directorOvertimeController);
         $this->assertStringContainsString("'attachment_path' => (string) (\$projectTask->attachment_path ?? '')", $directorOvertimeController);
         $this->assertStringContainsString('private function projectTaskDetailStatusLabel', $directorOvertimeController);
         $this->assertStringContainsString('private function taskDateRangeLabel', $directorOvertimeController);
@@ -397,7 +397,6 @@ class DirectorAttendanceModuleTest extends TestCase
         ]));
         $employee->setRelation('user', new User([
             'id' => 'user-hr-task',
-            'username' => 'rifka',
             'email' => 'rifka@example.test',
         ]));
 
@@ -474,7 +473,7 @@ class DirectorAttendanceModuleTest extends TestCase
             'due_date' => Carbon::create(2026, 10, 12, 0, 0, 0, 'Asia/Jakarta'),
         ]);
         $projectTask->setRelation('employee', $employee);
-        $projectTask->setRelation('assignedBy', new User(['username' => 'erlin', 'email' => 'erlin@example.test']));
+        $projectTask->setRelation('assignedBy', new User(['email' => 'erlin@example.test']));
 
         $meetingTask = new HrMeetingTask([
             'id' => 'hr-meeting-task-with-detail',

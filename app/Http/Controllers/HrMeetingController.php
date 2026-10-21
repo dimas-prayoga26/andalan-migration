@@ -838,7 +838,7 @@ class HrMeetingController extends Controller
                                 'project_name' => trim((string) ($projectTask?->project?->name ?? '')) ?: 'Pilih Nama Project',
                                 'assignee_id' => $projectTask?->employee_id,
                                 'assignee' => $this->employeeDisplayName($projectTask?->employee),
-                                'assigned_by' => trim((string) ($projectTask?->assignedBy?->username ?? 'self')) ?: 'self',
+                                'assigned_by' => trim((string) ($projectTask?->assignedBy?->shortName() ?? 'self')) ?: 'self',
                                 'task_category_label' => $card['title'],
                                 'task_category_description' => $card['subtitle'],
                                 'start_date' => $startDate?->format('Y-m-d'),

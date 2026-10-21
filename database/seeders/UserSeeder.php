@@ -120,7 +120,6 @@ class UserSeeder extends Seeder
             $superAdmin = User::query()->updateOrCreate(
                 ['email' => 'superadmin@andalanbersama.com'],
                 [
-                    'username' => 'superadmin',
                     'is_active' => true,
                     'password' => Hash::make('password'),
                 ],
@@ -148,7 +147,6 @@ class UserSeeder extends Seeder
                 $director = User::query()->updateOrCreate(
                     ['email' => "director{$directorNumber}@gmail.com"],
                     [
-                        'username' => "director{$directorNumber}",
                         'is_active' => true,
                         'password' => Hash::make('password'),
                     ],
@@ -167,7 +165,6 @@ class UserSeeder extends Seeder
                 $supervisor = User::query()->updateOrCreate(
                     ['email' => "supervisor{$directorNumber}@gmail.com"],
                     [
-                        'username' => "supervisor{$directorNumber}",
                         'is_active' => true,
                         'password' => Hash::make('password'),
                     ],
@@ -186,7 +183,6 @@ class UserSeeder extends Seeder
                 $administrator = User::query()->updateOrCreate(
                     ['email' => "admin{$directorNumber}@gmail.com"],
                     [
-                        'username' => "admin{$directorNumber}",
                         'is_active' => true,
                         'password' => Hash::make('password'),
                     ],
@@ -210,7 +206,6 @@ class UserSeeder extends Seeder
                     $staff = User::query()->updateOrCreate(
                         ['email' => "staff{$directorNumber}{$staffIndex}@gmail.com"],
                         [
-                            'username' => "staff{$directorNumber}{$staffIndex}",
                             'is_active' => true,
                             'password' => Hash::make('password'),
                         ],
@@ -242,11 +237,11 @@ class UserSeeder extends Seeder
     private function deleteExtraSeededStaffAccounts(int $companySeedNumber): void
     {
         User::query()
-            ->where('username', 'like', 'staff'.$companySeedNumber.'%')
+            ->where('email', 'like', 'staff'.$companySeedNumber.'%@gmail.com')
             ->whereNotIn(
-                'username',
+                'email',
                 collect(range(1, self::STAFF_PER_COMPANY))
-                    ->map(static fn (int $staffIndex): string => 'staff'.$companySeedNumber.$staffIndex)
+                    ->map(static fn (int $staffIndex): string => 'staff'.$companySeedNumber.$staffIndex.'@gmail.com')
                     ->all(),
             )
             ->delete();
@@ -425,10 +420,6 @@ class UserSeeder extends Seeder
 
     private function resolveDisplayName(User $user): string
     {
-        if (is_string($user->username) && trim($user->username) !== '') {
-            return (string) $user->username;
-        }
-
         return (string) explode('@', (string) $user->email)[0];
     }
 
@@ -496,7 +487,7 @@ class UserSeeder extends Seeder
 
     private function resolveJoinDate(User $user, string $employeeId, Carbon $now): string
     {
-        if ((string) $user->username === 'staff31') {
+        if ((string) $user->email === 'staff31@gmail.com') {
             return $now->copy()->subYear()->subDay()->toDateString();
         }
 

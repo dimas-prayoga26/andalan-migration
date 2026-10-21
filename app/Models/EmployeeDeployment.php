@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
+use Carbon\CarbonInterface;
 use Database\Factories\EmployeeDeploymentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -35,8 +36,25 @@ class EmployeeDeployment extends Model
 
     protected $casts = [
         'join_date' => 'date',
+        'is_contract' => 'boolean',
+        'contract_end_date' => 'date',
+        'probation_end_date' => 'date',
         'resignation_date' => 'date',
     ];
+
+    /**
+     * Probation only applies to permanent (PKWTT) employees and ends after its end date.
+     */
+    public function isOnProbation(?CarbonInterface $date = null): bool
+    {
+        if ($this->is_contract || $this->probation_end_date === null) {
+            return false;
+        }
+
+        $date ??= now();
+
+        return $date->toDateString() <= $this->probation_end_date->toDateString();
+    }
 
     public function employee(): BelongsTo
     {

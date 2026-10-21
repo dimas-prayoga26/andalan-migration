@@ -291,10 +291,10 @@ class TaskListController extends Controller
         $tasks = (clone $monthTaskQuery)
             ->with([
                 'project:id,name',
-                'assignedBy:id,username',
+                'assignedBy:id,email', 'assignedBy.employee.profile:id,employee_id,name,nickname',
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
-                'employee.user:id,username,email',
+                'employee.profile:id,employee_id,name,nickname',
+                'employee.user:id,email',
             ])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -313,10 +313,10 @@ class TaskListController extends Controller
         $weekPlanTasks = (clone $taskQuery)
             ->with([
                 'project:id,name',
-                'assignedBy:id,username',
+                'assignedBy:id,email', 'assignedBy.employee.profile:id,employee_id,name,nickname',
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
-                'employee.user:id,username,email',
+                'employee.profile:id,employee_id,name,nickname',
+                'employee.user:id,email',
             ])
             ->whereRaw('DATE(COALESCE(due_date, start_date, created_at)) >= ?', [$weekStart->toDateString()])
             ->whereRaw('DATE(COALESCE(due_date, start_date, created_at)) <= ?', [$weekEnd->toDateString()])
@@ -541,7 +541,7 @@ class TaskListController extends Controller
             ->values();
 
         return Employee::query()
-            ->with(['profile:id,employee_id,name', 'user:id,username,email'])
+            ->with(['profile:id,employee_id,name,nickname', 'user:id,email'])
             ->whereIn('id', $assignableEmployeeIds->all())
             ->get()
             ->sortBy(fn (Employee $employee): int|false => $assignableEmployeeIds->search((string) $employee->id))
@@ -559,9 +559,9 @@ class TaskListController extends Controller
             return $profileName;
         }
 
-        $username = trim((string) ($employee->user?->username ?? ''));
-        if ($username !== '') {
-            return $username;
+        $nickname = trim((string) ($employee->profile?->nickname ?? ''));
+        if ($nickname !== '') {
+            return $nickname;
         }
 
         $email = trim((string) ($employee->user?->email ?? ''));
@@ -585,7 +585,7 @@ class TaskListController extends Controller
         $authenticatedUserId = trim((string) (Auth::id() ?? ''));
         $authenticatedEmployeeId = $this->authenticatedEmployeeId(Auth::user());
         $taskEmployeeId = (string) $projectTask->employee_id;
-        $assignedByUsername = trim((string) ($projectTask->assignedBy?->username ?? 'self'));
+        $assignedByUsername = trim((string) ($projectTask->assignedBy?->shortName() ?? 'self'));
         $isOvertimeTask = trim((string) ($projectTask->overtime_id ?? '')) !== '';
         $assigneeLabel = $projectTask->employee instanceof Employee
             ? $this->employeeOptionName($projectTask->employee)

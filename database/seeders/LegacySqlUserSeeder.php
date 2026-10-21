@@ -210,7 +210,6 @@ class LegacySqlUserSeeder extends Seeder
 
             $user->forceFill([
                 'company_id' => $this->currentSqlCompanyId($currentUser),
-                'username' => $this->nullIfEmpty($currentUser['username'] ?? null),
                 'phone' => $this->nullIfEmpty($currentUser['phone'] ?? null),
                 'email_token' => $this->nullIfEmpty($currentUser['email_token'] ?? null),
                 'password_token' => $this->nullIfEmpty($currentUser['password_token'] ?? null),
@@ -590,7 +589,6 @@ class LegacySqlUserSeeder extends Seeder
                 ['email' => $email],
                 [
                     'company_id' => $companyId,
-                    'username' => $this->uniqueUsername($legacyUser),
                     'phone' => $this->nullIfEmpty($legacyUser['phone']),
                     'password' => Hash::make('password'),
                     'is_active' => $isActive,
@@ -648,14 +646,12 @@ class LegacySqlUserSeeder extends Seeder
                 'name' => 'Rully Priyatno',
                 'nickname' => 'Rully',
                 'email' => 'rully.priyatno@andalanbersama.com',
-                'username' => 'rully.priyatno',
                 'employee_code' => 'EMP-RULLY-PRIYATNO',
             ],
             [
                 'name' => 'Hilmi Ulwan',
                 'nickname' => 'Hilmi',
                 'email' => 'hilmi.ulwan@andalanbersama.com',
-                'username' => 'hilmi.ulwan',
                 'employee_code' => 'EMP-HILMI-ULWAN',
             ],
         ];
@@ -666,7 +662,6 @@ class LegacySqlUserSeeder extends Seeder
                 ['email' => $userData['email']],
                 [
                     'company_id' => $companyId,
-                    'username' => $userData['username'],
                     'password' => Hash::make('password'),
                     'is_active' => true,
                     'deleted_at' => null,
@@ -1580,21 +1575,6 @@ class LegacySqlUserSeeder extends Seeder
         return 'legacy-user-'.$legacyUser['id'].'@legacy.local';
     }
 
-    private function uniqueUsername(array $legacyUser): string
-    {
-        $username = trim((string) $legacyUser['username']);
-
-        if ($username === '') {
-            $username = Str::slug((string) $legacyUser['name']);
-        }
-
-        if ($username === '') {
-            $username = 'legacy-user-'.$legacyUser['id'];
-        }
-
-        return $username;
-    }
-
     private function legacyEmployeeCode(array $legacyUser): string
     {
         $nik = $this->nullIfZeroValue($legacyUser['nik']);
@@ -1672,7 +1652,6 @@ class LegacySqlUserSeeder extends Seeder
             ['email' => 'superadmin@andalanbersama.com'],
             [
                 'company_id' => $companyId,
-                'username' => 'superadmin',
                 'password' => Hash::make('password'),
                 'is_active' => true,
                 'deleted_at' => null,

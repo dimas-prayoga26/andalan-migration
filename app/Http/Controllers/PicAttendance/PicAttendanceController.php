@@ -125,8 +125,8 @@ class PicAttendanceController extends Controller
 
         $employee = Employee::query()
             ->with([
-                'profile:id,employee_id,name,profile_picture_path,updated_at',
-                'user:id,username,email,phone',
+                'profile:id,employee_id,name,nickname,profile_picture_path,updated_at',
+                'user:id,email,phone',
                 'deployment:id,employee_id,current_company_id,current_position_id,current_department_id,current_office_location_id',
                 'deployment.company:id,name',
                 'deployment.officeLocation:id,name,address',
@@ -232,8 +232,8 @@ class PicAttendanceController extends Controller
         )->count();
         $monthlyExpectedWorkMinutes = $monthlyWorkingDaysCount * 8 * 60;
         $employeeRelations = [
-            'profile:id,employee_id,name',
-            'user:id,username,email',
+            'profile:id,employee_id,name,nickname',
+            'user:id,email',
             'deployment:id,employee_id,current_position_id,join_date',
             'deployment.position:id,name',
             'deployment.positions:id,name',
@@ -771,8 +771,8 @@ class PicAttendanceController extends Controller
         $dateKey = $date->toDateString();
         $employees = Employee::query()
             ->with([
-                'profile:id,employee_id,name',
-                'user:id,username,email',
+                'profile:id,employee_id,name,nickname',
+                'user:id,email',
                 'deployment:id,employee_id,current_position_id',
                 'deployment.position:id,name',
                 'deployment.positions:id,name',
@@ -1162,9 +1162,9 @@ class PicAttendanceController extends Controller
             return trim($profileName);
         }
 
-        $username = $employee?->user?->username;
-        if (is_string($username) && trim($username) !== '') {
-            return trim($username);
+        $nickname = $employee?->profile?->nickname;
+        if (is_string($nickname) && trim($nickname) !== '') {
+            return trim($nickname);
         }
 
         $email = $employee?->user?->email;

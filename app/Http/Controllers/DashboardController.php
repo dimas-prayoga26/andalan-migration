@@ -412,7 +412,7 @@ class DashboardController extends Controller
             ->values();
 
         return Employee::query()
-            ->with(['profile:id,employee_id,name', 'user:id,username,email'])
+            ->with(['profile:id,employee_id,name,nickname', 'user:id,email'])
             ->whereIn('id', $assignableEmployeeIds->all())
             ->get()
             ->sortBy(fn (Employee $employee): int|false => $assignableEmployeeIds->search((string) $employee->id))
@@ -430,9 +430,9 @@ class DashboardController extends Controller
             return $profileName;
         }
 
-        $username = trim((string) ($employee->user?->username ?? ''));
-        if ($username !== '') {
-            return $username;
+        $nickname = trim((string) ($employee->profile?->nickname ?? ''));
+        if ($nickname !== '') {
+            return $nickname;
         }
 
         $email = trim((string) ($employee->user?->email ?? ''));

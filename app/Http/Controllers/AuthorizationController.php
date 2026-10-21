@@ -6,7 +6,6 @@ use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmployeeDeployment;
-use App\Models\EmployeeIdentity;
 use App\Models\EmployeePicAssignment;
 use App\Models\EmployeeProfile;
 use App\Models\EventDivision;
@@ -16,6 +15,8 @@ use App\Models\Position;
 use App\Models\ProjectDivisionEvent;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\Employee\EmployeeDataDetailPresenter;
+use App\Support\Employee\EmployeeMonthlySummaryCalculator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -76,7 +77,6 @@ class AuthorizationController extends Controller
 
         $employee = DB::transaction(function () use ($validated): Employee {
             $user = User::query()->create([
-                'username' => $validated['username'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'] ?? null,
                 'company_id' => $validated['current_company_id'] ?? null,
@@ -87,7 +87,7 @@ class AuthorizationController extends Controller
 
             $employee = Employee::query()->create([
                 'user_id' => $user->id,
-                'employee_code' => $this->generateEmployeeCode($user),
+                'employee_code' => $validated['employee_code'],
                 'status' => $validated['employee_status'],
                 'is_event_project_admin' => (bool) $validated['is_event_project_admin'],
                 'is_core_staff' => (bool) $validated['is_core_staff'],
@@ -103,15 +103,23 @@ class AuthorizationController extends Controller
             ->with('status', 'Employee has been added successfully.');
     }
 
-    public function show(Request $request, Employee $employee): View
-    {
+    public function show(
+        Request $request,
+        Employee $employee,
+        EmployeeDataDetailPresenter $employeeDataDetailPresenter,
+        EmployeeMonthlySummaryCalculator $employeeMonthlySummaryCalculator,
+    ): View {
         $authenticatedUser = $request->user();
 
         abort_unless($authenticatedUser instanceof User && $this->canViewEmployee($authenticatedUser, $employee), 404);
 
+        $employee = $this->loadDataEmployee($employee);
+
         return view('authorization.show', [
-            'employee' => $this->loadDataEmployee($employee),
-            'canManageDataEmployee' => $this->canManageAuthorization($authenticatedUser),
+            'employee' => $employee,
+            'employeeAvatarUrl' => $this->employeeAvatarUrl($employee->profile?->profile_picture_path),
+            'employeeMonthlySummary' => $employeeMonthlySummaryCalculator->forEmployee($employee),
+            'employeeDataSections' => $employeeDataDetailPresenter->forEmployee($employee),
         ]);
     }
 
@@ -142,7 +150,6 @@ class AuthorizationController extends Controller
 
         DB::transaction(function () use ($employee, $validated): void {
             $employee->user?->update([
-                'username' => $validated['username'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'] ?? null,
                 'company_id' => $validated['current_company_id'] ?? null,
@@ -150,6 +157,7 @@ class AuthorizationController extends Controller
             ]);
 
             $employee->update([
+                'employee_code' => $validated['employee_code'],
                 'status' => $validated['employee_status'],
                 'is_event_project_admin' => (bool) $validated['is_event_project_admin'],
                 'is_core_staff' => (bool) $validated['is_core_staff'],
@@ -332,7 +340,7 @@ class AuthorizationController extends Controller
     {
         return Employee::query()
             ->with([
-                'profile:id,employee_id,name',
+                'profile:id,employee_id,name,nickname',
                 'deployment:id,employee_id,current_position_id',
                 'deployment.position:id,name,system_key',
                 'deployment.positions:id,name,system_key',
@@ -493,11 +501,16 @@ class AuthorizationController extends Controller
 
     /**
      * @return LengthAwarePaginator<int, array{
+     *     id: string,
      *     name: string,
      *     position: string,
+     *     department: string,
      *     company: string,
-     *     status: string,
-     *     initials: string
+     *     contract_start: string,
+     *     contract_end: string,
+     *     resignation_date: string,
+     *     is_event_project_admin: bool,
+     *     avatar_url: string
      * }>
      */
     private function authorizationUsersFor(User $viewer, string $search = '', string $statusFilter = 'active'): LengthAwarePaginator
@@ -518,15 +531,12 @@ class AuthorizationController extends Controller
             ->with([
                 'roles:uuid,name',
                 'employee:id,user_id,employee_code,status,is_event_project_admin',
-                'employee.profile:id,employee_id,name,profile_picture_path',
-                'employee.identity:id,employee_id,nik',
-                'employee.deployment:id,employee_id,current_company_id,current_position_id,status',
+                'employee.profile:id,employee_id,name,nickname,profile_picture_path',
+                'employee.deployment:id,employee_id,current_company_id,current_department_id,current_position_id,join_date,is_contract,contract_end_date,probation_end_date,resignation_date,status',
                 'employee.deployment.company:id,name',
+                'employee.deployment.department:id,name',
                 'employee.deployment.position:id,name,system_key',
                 'employee.deployment.positions:id,name,system_key',
-                'employee.picAssignment',
-                'employee.picAssignment.supervisor:id',
-                'employee.picAssignment.supervisor.profile:id,employee_id,name',
             ])
             ->whereDoesntHave('employee.deployment.position', function (Builder $positionQuery): void {
                 $positionQuery->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR);
@@ -578,13 +588,12 @@ class AuthorizationController extends Controller
                 $searchTerm = '%'.$search.'%';
 
                 $query
-                    ->where('username', 'like', $searchTerm)
-                    ->orWhere('email', 'like', $searchTerm)
+                    ->where('email', 'like', $searchTerm)
                     ->orWhereHas('employee', function (Builder $employeeQuery) use ($searchTerm): void {
                         $employeeQuery
                             ->where('employee_code', 'like', $searchTerm)
                             ->orWhere('status', 'like', $searchTerm)
-                            ->orWhereHas('profile', fn (Builder $profileQuery) => $profileQuery->where('name', 'like', $searchTerm))
+                            ->orWhereHas('profile', fn (Builder $profileQuery) => $profileQuery->where(fn (Builder $profileNameQuery) => $profileNameQuery->where('name', 'like', $searchTerm)->orWhere('nickname', 'like', $searchTerm)))
                             ->orWhereHas('identity', fn (Builder $identityQuery) => $identityQuery->where('nik', 'like', $searchTerm))
                             ->orWhereHas('deployment.company', fn (Builder $companyQuery) => $companyQuery->where('name', 'like', $searchTerm))
                             ->orWhereHas('deployment.position', fn (Builder $positionQuery) => $positionQuery->where('name', 'like', $searchTerm))
@@ -600,7 +609,7 @@ class AuthorizationController extends Controller
             ->orderByRaw('CASE WHEN authorization_pic_name IS NULL THEN 1 ELSE 0 END')
             ->orderBy('authorization_pic_name')
             ->orderBy('authorization_employee_name')
-            ->orderBy('username')
+            ->orderBy('email')
             ->paginate(10)
             ->withQueryString()
             ->through(fn (User $user): array => $this->presentAuthorizationUser($user));
@@ -640,7 +649,7 @@ class AuthorizationController extends Controller
     private function authorizationEmployeeNameSubquery(): Builder
     {
         return EmployeeProfile::query()
-            ->select('name')
+            ->selectRaw("COALESCE(NULLIF(TRIM(name), ''), nickname)")
             ->where('employee_id', $this->authorizationEmployeeIdSubquery())
             ->limit(1);
     }
@@ -697,11 +706,16 @@ class AuthorizationController extends Controller
 
     /**
      * @return array{
+     *     id: string,
      *     name: string,
      *     position: string,
+     *     department: string,
      *     company: string,
-     *     status: string,
-     *     initials: string
+     *     contract_start: string,
+     *     contract_end: string,
+     *     resignation_date: string,
+     *     is_event_project_admin: bool,
+     *     avatar_url: string
      * }
      */
     private function presentAuthorizationUser(User $user): array
@@ -709,29 +723,47 @@ class AuthorizationController extends Controller
         $name = trim((string) ($user->employee?->profile?->name ?? ''));
 
         if ($name === '') {
-            $name = trim((string) ($user->username ?? $user->email));
+            $name = trim((string) ($user->employee?->profile?->nickname ?? ''));
         }
 
-        $status = trim((string) ($user->employee?->status ?? ''));
-        $status = $status !== '' ? Str::title($status) : 'Active';
-
-        if (! $user->is_active) {
-            $status = 'Restricted';
+        if ($name === '') {
+            $name = trim((string) $user->email);
         }
+
+        $deployment = $user->employee?->deployment;
 
         return [
             'id' => (string) $user->employee?->id,
             'name' => $name,
             'position' => $this->positionNamesFor($user->employee)->implode(', ') ?: '-',
-            'company' => (string) ($user->employee?->deployment?->company?->name ?? '-'),
-            'employee_code' => (string) ($user->employee?->employee_code ?? '-'),
-            'nik' => (string) ($user->employee?->identity?->nik ?? '-'),
-            'pic' => (string) ($user->employee?->picAssignment?->supervisor?->profile?->name ?? '-'),
-            'status' => $status,
+            'department' => trim((string) ($deployment?->department?->name ?? '')),
+            'company' => (string) ($deployment?->company?->name ?? '-'),
+            'contract_start' => $deployment?->join_date?->format('d M Y') ?? '-',
+            'contract_end' => $this->contractEndLabel($deployment),
+            'resignation_date' => $deployment?->resignation_date?->format('d M Y') ?? '-',
             'is_event_project_admin' => (bool) ($user->employee?->is_event_project_admin ?? false),
-            'initials' => $this->initials($name),
             'avatar_url' => $this->employeeAvatarUrl($user->employee?->profile?->profile_picture_path),
         ];
+    }
+
+    /**
+     * PKWT shows its contract end date, PKWTT shows its probation end date or "No End Date".
+     */
+    private function contractEndLabel(?EmployeeDeployment $deployment): string
+    {
+        if ($deployment === null) {
+            return '-';
+        }
+
+        if ($deployment->is_contract) {
+            return $deployment->contract_end_date?->format('d M Y') ?? '-';
+        }
+
+        if ($deployment->isOnProbation()) {
+            return 'Probation until '.$deployment->probation_end_date->format('d M Y');
+        }
+
+        return 'No End Date';
     }
 
     private function canViewEmployee(User $viewer, Employee $employee): bool
@@ -749,8 +781,8 @@ class AuthorizationController extends Controller
     private function loadDataEmployee(Employee $employee): Employee
     {
         return $employee->loadMissing([
-            'user:id,company_id,username,phone,email,is_active',
-            'profile:id,employee_id,name,nickname,gender,place_of_birth,date_of_birth,marital_status',
+            'user:id,company_id,phone,email,is_active',
+            'profile:id,employee_id,name,nickname,gender,place_of_birth,date_of_birth,marital_status,profile_picture_path,portfolio_url',
             'identity:id,employee_id,nik,npwp,bpjs_ketenagakerjaan,bpjs_kesehatan',
             'deployment:id,employee_id,current_company_id,current_office_location_id,current_department_id,current_position_id,join_date,resignation_date,workplace,status',
             'deployment.company:id,name',
@@ -760,7 +792,7 @@ class AuthorizationController extends Controller
             'deployment.positions:id,name,system_key',
             'picAssignment',
             'picAssignment.supervisor:id',
-            'picAssignment.supervisor.profile:id,employee_id,name',
+            'picAssignment.supervisor.profile:id,employee_id,name,nickname',
         ]);
     }
 
@@ -791,7 +823,7 @@ class AuthorizationController extends Controller
             'departments' => $this->dataEmployeeDepartments($employee),
             'positions' => $this->dataEmployeePositions($employee),
             'picEmployees' => Employee::query()
-                ->with('profile:id,employee_id,name')
+                ->with('profile:id,employee_id,name,nickname')
                 ->orderBy('employee_code')
                 ->get(['id', 'employee_code']),
         ];
@@ -810,7 +842,6 @@ class AuthorizationController extends Controller
             'is_active' => $request->boolean('is_active'),
             'is_event_project_admin' => $request->boolean('is_event_project_admin'),
             'is_core_staff' => $request->boolean('is_core_staff'),
-            'date_of_birth' => $this->normalizeDateInput($request->input('date_of_birth')),
             'employee_status' => $request->boolean('is_active') ? 'Active' : 'Inactive',
         ]);
 
@@ -819,19 +850,10 @@ class AuthorizationController extends Controller
             'is_event_project_admin' => ['required', 'boolean'],
             'is_core_staff' => ['required', 'boolean'],
             'employee_status' => ['required', 'string', 'max:50'],
-            'name' => ['required', 'string', 'max:255'],
-            'nickname' => ['nullable', 'string', 'max:255'],
+            'employee_code' => ['required', 'string', 'max:50', Rule::unique('employees', 'employee_code')->ignore($employee?->id)],
+            'nickname' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'phone' => ['nullable', 'string', 'max:50'],
-            'username' => ['required', 'string', 'max:255', Rule::unique('users', 'username')->ignore($userId)],
-            'place_of_birth' => ['nullable', 'string', 'max:255'],
-            'date_of_birth' => ['nullable', 'date'],
-            'nik' => ['nullable', 'string', 'max:100'],
-            'npwp' => ['nullable', 'string', 'max:100'],
-            'bpjs_ketenagakerjaan' => ['nullable', 'string', 'max:100'],
-            'bpjs_kesehatan' => ['nullable', 'string', 'max:100'],
-            'gender' => ['nullable', 'string', 'max:50'],
-            'marital_status' => ['nullable', 'string', 'max:50'],
             'current_company_id' => ['nullable', 'string', 'exists:companies,id'],
             'current_office_location_id' => [
                 'required_with:current_company_id',
@@ -849,20 +871,6 @@ class AuthorizationController extends Controller
             'current_position_order.*' => ['string', 'exists:positions,id', Rule::in($assignablePositionIds)],
             'pic_employee_id' => ['nullable', 'string', 'exists:employees,id'],
         ]);
-    }
-
-    private function generateEmployeeCode(User $user): string
-    {
-        $baseCode = 'EMP-'.$this->shortNumericToken((string) $user->id, 'EMP');
-        $employeeCode = $baseCode;
-        $suffix = 1;
-
-        while (Employee::query()->where('employee_code', $employeeCode)->exists()) {
-            $employeeCode = $baseCode.'-'.$suffix;
-            $suffix++;
-        }
-
-        return $employeeCode;
     }
 
     private function defaultStaffRole(): Role
@@ -918,37 +926,6 @@ class AuthorizationController extends Controller
             ->contains($systemKey);
     }
 
-    private function shortNumericToken(string $value, string $salt): string
-    {
-        $hexHash = substr(hash('sha256', $salt.'|'.$value), 0, 16);
-        $decimalValue = (string) hexdec(substr($hexHash, 0, 8));
-
-        return str_pad(substr($decimalValue, 0, 8), 8, '0', STR_PAD_LEFT);
-    }
-
-    private function normalizeDateInput(mixed $value): ?string
-    {
-        $dateValue = is_string($value) ? trim($value) : '';
-
-        if ($dateValue === '') {
-            return null;
-        }
-
-        foreach (['Y-m-d', 'd/m/Y', 'j/n/Y', 'd-m-Y', 'j-n-Y'] as $format) {
-            try {
-                $date = Carbon::createFromFormat($format, $dateValue);
-            } catch (\Throwable) {
-                continue;
-            }
-
-            if ($date instanceof Carbon && $date->format($format) === $dateValue) {
-                return $date->format('Y-m-d');
-            }
-        }
-
-        return $dateValue;
-    }
-
     /**
      * @param  array<string, mixed>  $validated
      */
@@ -956,24 +933,7 @@ class AuthorizationController extends Controller
     {
         EmployeeProfile::query()->updateOrCreate(
             ['employee_id' => $employee->id],
-            [
-                'name' => $validated['name'],
-                'nickname' => $validated['nickname'] ?? null,
-                'gender' => $validated['gender'] ?? null,
-                'place_of_birth' => $validated['place_of_birth'] ?? null,
-                'date_of_birth' => $validated['date_of_birth'] ?? null,
-                'marital_status' => $validated['marital_status'] ?? null,
-            ]
-        );
-
-        EmployeeIdentity::query()->updateOrCreate(
-            ['employee_id' => $employee->id],
-            [
-                'nik' => $this->nullableStringValue($validated['nik'] ?? null),
-                'npwp' => $this->nullableStringValue($validated['npwp'] ?? null),
-                'bpjs_ketenagakerjaan' => $this->nullableStringValue($validated['bpjs_ketenagakerjaan'] ?? null),
-                'bpjs_kesehatan' => $this->nullableStringValue($validated['bpjs_kesehatan'] ?? null),
-            ]
+            ['nickname' => $validated['nickname']]
         );
 
         $selectedPositionIds = collect($validated['current_position_ids'] ?? [])
@@ -1169,17 +1129,6 @@ class AuthorizationController extends Controller
 
         $assignment->fill(['is_active' => true]);
         $assignment->save();
-    }
-
-    private function initials(string $name): string
-    {
-        $initials = collect(preg_split('/\s+/', trim($name)) ?: [])
-            ->filter()
-            ->map(fn (string $part): string => Str::substr($part, 0, 1))
-            ->take(2)
-            ->implode('');
-
-        return Str::upper($initials !== '' ? $initials : 'U');
     }
 
     private function employeeAvatarUrl(mixed $profilePicturePath): string

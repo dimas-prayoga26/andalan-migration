@@ -414,7 +414,7 @@ class OvertimeReviewTableBuilderTest extends TestCase
         );
     }
 
-    public function test_employee_name_uses_user_username_instead_of_profile_name(): void
+    public function test_employee_name_uses_profile_nickname_instead_of_full_name(): void
     {
         $reflection = new ReflectionClass(OvertimeReviewTableBuilder::class);
         $method = $reflection->getMethod('employeeName');
@@ -424,9 +424,10 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $employee->setRelation('profile', new EmployeeProfile([
             'employee_id' => 'employee-a',
             'name' => 'Dimas Prayoga',
+            'nickname' => 'dimas',
         ]));
         $employee->setRelation('user', new User([
-            'username' => 'dimas',
+            'email' => 'dimas.prayoga@example.test',
         ]));
 
         $overtime = new AttendanceOvertime(['employee_id' => 'employee-a']);
@@ -435,7 +436,7 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $this->assertSame('dimas', $method->invoke(new OvertimeReviewTableBuilder, $overtime));
     }
 
-    public function test_supervisor_name_uses_assigned_user_username_instead_of_profile_name(): void
+    public function test_supervisor_name_uses_assigned_user_nickname_instead_of_full_name(): void
     {
         $reflection = new ReflectionClass(OvertimeReviewTableBuilder::class);
         $method = $reflection->getMethod('supervisorName');
@@ -445,10 +446,11 @@ class OvertimeReviewTableBuilderTest extends TestCase
         $employee->setRelation('profile', new EmployeeProfile([
             'employee_id' => 'supervisor-employee',
             'name' => 'Muhammad Syafiq',
+            'nickname' => 'syafiq',
         ]));
 
         $assignedBy = new User([
-            'username' => 'syafiq',
+            'email' => 'muhammad.syafiq@example.test',
         ]);
         $assignedBy->setRelation('employee', $employee);
 

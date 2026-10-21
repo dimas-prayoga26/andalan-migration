@@ -41,7 +41,7 @@ class LeaveRequestFinalApprovedSeeder extends Seeder
             }
 
             $staffUser = User::query()
-                ->where('username', 'staff31')
+                ->where('email', 'staff31@gmail.com')
                 ->whereHas('roles', function ($query): void {
                     $query->whereRaw('LOWER(name) = ?', ['staff']);
                 })
@@ -49,7 +49,7 @@ class LeaveRequestFinalApprovedSeeder extends Seeder
                     $query->where('current_company_id', $rnbCompanyId);
                 })
                 ->with(['employee:id,user_id'])
-                ->orderBy('username')
+                ->orderBy('email')
                 ->first();
 
             $staffEmployeeId = is_string($staffUser?->employee?->id) ? trim($staffUser->employee->id) : '';
@@ -74,7 +74,7 @@ class LeaveRequestFinalApprovedSeeder extends Seeder
                             $positionQuery->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS);
                         });
                 })
-                ->orderBy('username')
+                ->orderBy('email')
                 ->get(['id']);
 
             if ($directorUsers->isEmpty()) {

@@ -229,7 +229,6 @@
                                 ?? '';
                             $sourceEmail = $takeover->mailAccessAccount?->email
                                 ?? $takeover->sourceEmployee?->user?->email
-                                ?? $takeover->sourceEmployee?->user?->username
                                 ?? '';
                             $sourceLabel = trim((string) $sourceName) !== '' && trim((string) $sourceEmail) !== ''
                                 ? "{$sourceName} - {$sourceEmail}"
@@ -238,7 +237,6 @@
                                 ?? $takeover->targetEmployee?->profile?->nickname
                                 ?? '';
                             $targetEmail = $takeover->targetEmployee?->user?->email
-                                ?? $takeover->targetEmployee?->user?->username
                                 ?? '';
                             $targetLabel = trim((string) $targetName) !== '' && trim((string) $targetEmail) !== ''
                                 ? "{$targetName} - {$targetEmail}"

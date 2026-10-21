@@ -288,7 +288,7 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString("'date_range_label' => \$this->taskDateRangeLabel", $controller);
         $this->assertStringContainsString("'status_label' => \$this->projectTaskDetailStatusLabel", $controller);
         $this->assertStringContainsString("'task_category_label' => \$projectTask->project_id !== null ? 'Project Task' : 'Daily Task'", $controller);
-        $this->assertStringContainsString("'assigned_by' => trim((string) (\$projectTask->assignedBy?->username ?? 'self')) ?: 'self'", $controller);
+        $this->assertStringContainsString("'assigned_by' => trim((string) (\$projectTask->assignedBy?->shortName() ?? 'self')) ?: 'self'", $controller);
         $this->assertStringContainsString("route('pic-attendance.overtime.tasks.update'", $controller);
         $this->assertStringContainsString("Route::put('/pic-attendance/overtime/detail/{attendanceOvertime}/tasks/{projectTask}'", $routes);
         $this->assertStringContainsString("->name('pic-attendance.overtime.tasks.update')", $routes);

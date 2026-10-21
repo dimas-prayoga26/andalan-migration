@@ -60,8 +60,8 @@ class PicAttendanceLeaveController extends Controller
         $leaveRequest = $this->baseLeaveRequestQuery($activeEmployeeIds)
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
-                'employee.user:id,username,email',
+                'employee.profile:id,employee_id,name,nickname',
+                'employee.user:id,email',
                 'employee.deployment:id,employee_id,join_date',
                 'leaveType:id,code,name',
                 'leaveType.subTypes:id,leave_type_id,name',
@@ -400,8 +400,8 @@ class PicAttendanceLeaveController extends Controller
         return $this->applySelectedPeriodFilter($this->baseLeaveRequestQuery($activeEmployeeIds), $selectedPeriod)
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
-                'employee.user:id,username,email',
+                'employee.profile:id,employee_id,name,nickname',
+                'employee.user:id,email',
                 'leaveType:id,code,name',
                 'histories' => function ($query): void {
                     $query
@@ -463,8 +463,8 @@ class PicAttendanceLeaveController extends Controller
         return Employee::query()
             ->whereIn('id', $activeEmployeeIds)
             ->with([
-                'profile:id,employee_id,name',
-                'user:id,username,email',
+                'profile:id,employee_id,name,nickname',
+                'user:id,email',
                 'deployment:id,employee_id,current_position_id,current_company_id,current_department_id',
                 'deployment.position:id,name',
                 'deployment.positions:id,name',
@@ -592,8 +592,8 @@ class PicAttendanceLeaveController extends Controller
         $query = $this->baseLeaveRequestQuery($activeEmployeeIds)
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
-                'employee.user:id,username,email',
+                'employee.profile:id,employee_id,name,nickname',
+                'employee.user:id,email',
                 'leaveType:id,code,name',
             ])
             ->whereDate('start_date', '<=', $periodEnd->toDateString())
@@ -719,9 +719,9 @@ class PicAttendanceLeaveController extends Controller
             return trim($profileName);
         }
 
-        $username = $employee?->user?->username;
-        if (is_string($username) && trim($username) !== '') {
-            return trim($username);
+        $nickname = $employee?->profile?->nickname;
+        if (is_string($nickname) && trim($nickname) !== '') {
+            return trim($nickname);
         }
 
         $email = $employee?->user?->email;
@@ -1246,7 +1246,7 @@ class PicAttendanceLeaveController extends Controller
     {
         return $leaveRequest->histories
             ->map(function ($history): array {
-                $actorName = $history->actor?->username;
+                $actorName = $history->actor?->shortName();
                 if (! is_string($actorName) || trim($actorName) === '') {
                     $actorEmail = $history->actor?->email;
                     $actorName = is_string($actorEmail) && trim($actorEmail) !== ''
@@ -1308,13 +1308,12 @@ class PicAttendanceLeaveController extends Controller
             return trim($profileName);
         }
 
-        $username = DB::table('employees')
-            ->join('users', 'users.id', '=', 'employees.user_id')
-            ->where('employees.id', trim($supervisorEmployeeId))
-            ->value('users.username');
+        $nickname = DB::table('employee_profiles')
+            ->where('employee_id', trim($supervisorEmployeeId))
+            ->value('nickname');
 
-        if (is_string($username) && trim($username) !== '') {
-            return trim($username);
+        if (is_string($nickname) && trim($nickname) !== '') {
+            return trim($nickname);
         }
 
         $email = DB::table('employees')

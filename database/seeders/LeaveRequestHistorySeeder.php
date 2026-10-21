@@ -42,7 +42,7 @@ class LeaveRequestHistorySeeder extends Seeder
             }
 
             $staffUser = User::query()
-                ->where('username', 'staff31')
+                ->where('email', 'staff31@gmail.com')
                 ->whereHas('roles', function ($query): void {
                     $query->whereRaw('LOWER(name) = ?', ['staff']);
                 })
@@ -50,7 +50,7 @@ class LeaveRequestHistorySeeder extends Seeder
                     $query->where('current_company_id', $rnbCompanyId);
                 })
                 ->with(['employee:id,user_id'])
-                ->orderBy('username')
+                ->orderBy('email')
                 ->first();
 
             $staffEmployeeId = is_string($staffUser?->employee?->id) ? trim($staffUser->employee->id) : '';
@@ -75,8 +75,8 @@ class LeaveRequestHistorySeeder extends Seeder
                             $positionQuery->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS);
                         });
                 })
-                ->orderBy('username')
-                ->get(['id', 'username']);
+                ->orderBy('email')
+                ->get(['id', 'email']);
 
             if ($directorUsers->isEmpty()) {
                 throw new RuntimeException('User director pada company RNB tidak ditemukan.');

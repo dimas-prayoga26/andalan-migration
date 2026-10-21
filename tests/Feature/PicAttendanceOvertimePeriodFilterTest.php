@@ -110,7 +110,6 @@ class PicAttendanceOvertimePeriodFilterTest extends TestCase
     private function createEmployeeUser(Company $company): User
     {
         $user = User::query()->create([
-            'username' => 'user_'.uniqid(),
             'email' => uniqid('user_', true).'@example.com',
             'password' => 'password',
             'is_active' => true,

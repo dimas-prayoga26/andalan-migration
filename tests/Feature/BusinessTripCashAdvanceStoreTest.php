@@ -145,7 +145,6 @@ class BusinessTripCashAdvanceStoreTest extends TestCase
     private function createAuthenticatedUserWithEmployee(string $username): array
     {
         $user = User::factory()->activeEmployee(['view-attendance'])->create([
-            'username' => $username,
         ]);
 
         return [$user, $user->employee];

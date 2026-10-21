@@ -11,7 +11,7 @@ class EmployeePicAssignmentSeederRoleCompatibilityTest extends TestCase
         $seeder = file_get_contents(database_path('seeders/EmployeePicAssignmentSeeder.php'));
 
         $this->assertIsString($seeder);
-        $this->assertStringContainsString("->where('username', 'like', 'supervisor%')", $seeder);
+        $this->assertStringContainsString("->where('email', 'like', 'supervisor%')", $seeder);
         $this->assertStringNotContainsString("whereRaw('LOWER(name) = ?', ['supervisor'])", $seeder);
     }
 }

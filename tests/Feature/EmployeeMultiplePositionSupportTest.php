@@ -236,7 +236,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $niskalaSeeder = file_get_contents(database_path('seeders/NiskalaMultiPicLeaveSeeder.php'));
 
         $this->assertIsString($legacySeeder);
-        $this->assertStringContainsString("'username' => 'superadmin'", $legacySeeder);
+        $this->assertStringNotContainsString("'username' =>", $legacySeeder);
         $this->assertStringContainsString('$user->syncRoles([\'Staff\']);', $legacySeeder);
         $this->assertStringNotContainsString("'admin@andalanbersama.com' => 'Administrator'", $legacySeeder);
         $this->assertStringNotContainsString("'admin@andalanbersama.com' => ['Administrator']", $legacySeeder);

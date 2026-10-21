@@ -105,7 +105,7 @@ class AttendanceProfileComposer
             ? User::query()
                 ->with([
                     'employee:id,user_id',
-                    'employee.profile:id,employee_id,name,profile_picture_path',
+                    'employee.profile:id,employee_id,name,nickname,profile_picture_path',
                     'employee.deployment:id,employee_id,current_company_id,current_position_id',
                     'employee.deployment.position:id,name',
                     'employee.deployment.positions:id,name',
@@ -142,8 +142,9 @@ class AttendanceProfileComposer
             $profileData['profileBusinessEmail'] = trim($authenticatedUser->email);
         }
 
-        if (is_string($authenticatedUser->username) && trim($authenticatedUser->username) !== '') {
-            $profileData['profileDisplayName'] = trim($authenticatedUser->username);
+        $employeeNickname = $authenticatedUser->employee?->profile?->nickname;
+        if (is_string($employeeNickname) && trim($employeeNickname) !== '') {
+            $profileData['profileDisplayName'] = trim($employeeNickname);
         } elseif (is_string($authenticatedUser->email) && trim($authenticatedUser->email) !== '') {
             $profileData['profileDisplayName'] = (string) explode('@', trim($authenticatedUser->email))[0];
         }

@@ -32,10 +32,10 @@ class ProjectManagementProfileComposer
 
         $authenticatedUser = is_string($authenticatedUserId) || is_int($authenticatedUserId)
             ? User::query()
-                ->select(['id', 'email', 'username'])
+                ->select(['id', 'email'])
                 ->with([
                     'employee:id,user_id',
-                    'employee.profile:id,employee_id,name,profile_picture_path',
+                    'employee.profile:id,employee_id,name,nickname,profile_picture_path',
                     'employee.deployment:id,employee_id,current_position_id',
                     'employee.deployment.position:id,name',
                     'employee.deployment.positions:id,name',
@@ -64,7 +64,7 @@ class ProjectManagementProfileComposer
 
             $displayName = $authenticatedUser->employee?->profile?->name;
             if (! is_string($displayName) || trim($displayName) === '') {
-                $displayName = $authenticatedUser->username;
+                $displayName = $authenticatedUser->employee?->profile?->nickname;
             }
 
             if (is_string($displayName) && trim($displayName) !== '') {

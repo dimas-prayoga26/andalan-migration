@@ -42,7 +42,6 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
             ]);
 
             $user = User::query()->create([
-                'username' => 'staff_stats_tester',
                 'email' => 'staff_stats_tester@example.com',
                 'password' => Hash::make('password'),
                 'is_active' => true,
@@ -227,7 +226,6 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
             ]);
 
             $user = User::query()->create([
-                'username' => 'staff_alpha_rate_tester',
                 'email' => 'staff_alpha_rate_tester@example.com',
                 'password' => Hash::make('password'),
                 'is_active' => true,
@@ -294,7 +292,6 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
             ]);
 
             $user = User::query()->create([
-                'username' => 'staff_tracking_start_tester',
                 'email' => 'staff_tracking_start_tester@example.com',
                 'password' => Hash::make('password'),
                 'is_active' => true,
@@ -361,7 +358,6 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
             $staffPosition = Position::query()->create(['name' => 'Staff']);
 
             $cooUser = User::query()->create([
-                'username' => 'lukman',
                 'email' => 'lukman@example.test',
                 'password' => Hash::make('password'),
                 'is_active' => true,
@@ -414,7 +410,6 @@ class AttendanceProfileComposerStaffStatsTest extends TestCase
     private function createEmployeeForAttendanceProfileScope(Company $company, Position $position): Employee
     {
         $user = User::query()->create([
-            'username' => 'scope_user_'.Str::random(8),
             'email' => Str::random(8).'@example.test',
             'password' => Hash::make('password'),
             'is_active' => true,

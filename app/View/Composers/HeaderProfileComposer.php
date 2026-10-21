@@ -28,10 +28,10 @@ class HeaderProfileComposer
         $authenticatedUserId = Auth::id();
         $authenticatedUser = is_string($authenticatedUserId) || is_int($authenticatedUserId)
             ? User::query()
-                ->select(['id', 'username', 'email'])
+                ->select(['id', 'email'])
                 ->with([
                     'employee:id,user_id',
-                    'employee.profile:id,employee_id,name,profile_picture_path',
+                    'employee.profile:id,employee_id,name,nickname,profile_picture_path',
                     'employee.deployment:id,employee_id,current_position_id',
                     'employee.deployment.position:id,name',
                 ])
@@ -40,12 +40,12 @@ class HeaderProfileComposer
 
         if ($authenticatedUser instanceof User) {
             $employeeName = trim((string) ($authenticatedUser->employee?->profile?->name ?? ''));
-            $username = trim((string) $authenticatedUser->username);
+            $nickname = trim((string) ($authenticatedUser->employee?->profile?->nickname ?? ''));
             $emailName = trim((string) explode('@', (string) $authenticatedUser->email)[0]);
 
             $headerData['headerUserName'] = $employeeName !== ''
                 ? $employeeName
-                : ($username !== '' ? $username : ($emailName !== '' ? $emailName : '-'));
+                : ($nickname !== '' ? $nickname : ($emailName !== '' ? $emailName : '-'));
 
             $primaryPositionName = trim((string) ($authenticatedUser->employee?->deployment?->position?->name ?? ''));
             $headerData['headerUserPositionLabel'] = $primaryPositionName !== '' ? $primaryPositionName : '-';

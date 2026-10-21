@@ -117,8 +117,8 @@ class DirectorAttendanceTaskController extends Controller
 
         return Employee::query()
             ->with([
-                'profile:id,employee_id,name',
-                'user:id,username,email',
+                'profile:id,employee_id,name,nickname',
+                'user:id,email',
                 'deployment:id,employee_id,current_company_id',
                 'deployment.company:id,name',
             ])
@@ -254,8 +254,8 @@ class DirectorAttendanceTaskController extends Controller
     {
         return Employee::query()
             ->with([
-                'profile:id,employee_id,name',
-                'user:id,username,email',
+                'profile:id,employee_id,name,nickname',
+                'user:id,email',
             ])
             ->whereHas('projectTasks.hrMeetingTasks')
             ->get(['id', 'user_id'])
@@ -346,9 +346,9 @@ class DirectorAttendanceTaskController extends Controller
                 'projectTask:id,project_id,employee_id,assigned_by,title,description,blockers,attachment_path,status,priority,start_date,due_date,completed_at,created_at',
                 'projectTask.project:id,name',
                 'projectTask.employee:id,user_id',
-                'projectTask.employee.profile:id,employee_id,name,profile_picture_path',
-                'projectTask.employee.user:id,username,email',
-                'projectTask.assignedBy:id,username,email',
+                'projectTask.employee.profile:id,employee_id,name,nickname,profile_picture_path',
+                'projectTask.employee.user:id,email',
+                'projectTask.assignedBy:id,email',
             ])
             ->when($selectedCategory !== null, fn ($query) => $query->where('category', $selectedCategory))
             ->whereHas('projectTask', function ($query) use ($selectedStaff, $periodStart, $periodEnd): void {
@@ -490,9 +490,9 @@ class DirectorAttendanceTaskController extends Controller
             return trim($profileName);
         }
 
-        $username = $employee?->user?->username;
-        if (is_string($username) && trim($username) !== '') {
-            return trim($username);
+        $nickname = $employee?->profile?->nickname;
+        if (is_string($nickname) && trim($nickname) !== '') {
+            return trim($nickname);
         }
 
         $email = $employee?->user?->email;
@@ -532,9 +532,9 @@ class DirectorAttendanceTaskController extends Controller
 
     private function assignedByLabel(ProjectTask $projectTask): string
     {
-        $username = trim((string) ($projectTask->assignedBy?->username ?? ''));
-        if ($username !== '') {
-            return $username;
+        $nickname = trim((string) ($projectTask->assignedBy?->employee?->profile?->nickname ?? ''));
+        if ($nickname !== '') {
+            return $nickname;
         }
 
         $email = trim((string) ($projectTask->assignedBy?->email ?? ''));

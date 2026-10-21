@@ -393,7 +393,6 @@ class AuthorizationEmployeeListScopeTest extends TestCase
         Position $position,
     ): User {
         $user = User::query()->create([
-            'username' => $username,
             'email' => $username.'@example.test',
             'password' => Hash::make('password'),
             'is_active' => true,

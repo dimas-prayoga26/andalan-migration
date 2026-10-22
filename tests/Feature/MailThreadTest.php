@@ -109,7 +109,7 @@ class MailThreadTest extends TestCase
             }
         });
 
-        $response = $this->actingAsMailUser()->get(route('applicant.email.inbox'));
+        $response = $this->actingAsMailUser()->get(route('administration-finance.email.inbox'));
 
         $response->assertOk();
         $response->assertSee('<span class="mail-list-thread-count" title="3 pesan dalam percakapan">3</span>', false);
@@ -174,7 +174,7 @@ class MailThreadTest extends TestCase
             [...$this->threadMessage('3', 'hr@rnb.co.id', 'Dimas testin now', 'Fri, 25 Sep 2026 08:29:00 +0700'), 'folder' => 'inbox', 'is_current' => true],
         ];
 
-        $response = $this->actingAsMailUser()->get(route('applicant.email.read', ['uid' => '3']));
+        $response = $this->actingAsMailUser()->get(route('administration-finance.email.read', ['uid' => '3']));
 
         $response->assertOk();
         $response->assertSee('3 pesan dalam percakapan');
@@ -184,14 +184,14 @@ class MailThreadTest extends TestCase
         $this->assertSame(1, substr_count($response->getContent(), 'class="mail-thread-item"'));
         $response->assertSee('class="collapse " id="mailThreadMessage0"', false);
         $response->assertSee('class="collapse show" id="mailThreadMessage2"', false);
-        $response->assertSee(route('applicant.email.read', ['uid' => '9', 'folder' => 'sent']), false);
-        $response->assertSee(route('applicant.email.attachment', ['uid' => '9', 'attachment' => '1', 'folder' => 'sent']), false);
+        $response->assertSee(route('administration-finance.email.read', ['uid' => '9', 'folder' => 'sent']), false);
+        $response->assertSee(route('administration-finance.email.attachment', ['uid' => '9', 'attachment' => '1', 'folder' => 'sent']), false);
         $response->assertSee('jadwal.pdf');
     }
 
     public function test_read_page_falls_back_to_the_opened_message_when_the_conversation_cannot_be_loaded(): void
     {
-        $response = $this->actingAsMailUser()->get(route('applicant.email.read', ['uid' => '3']));
+        $response = $this->actingAsMailUser()->get(route('administration-finance.email.read', ['uid' => '3']));
 
         $response->assertOk();
         $response->assertSee('Dimas testin now');

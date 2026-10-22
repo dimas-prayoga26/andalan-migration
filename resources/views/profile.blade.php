@@ -9,6 +9,7 @@
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
     @include('employee_data.wizard.styles')
+    @include('employee_data.documents.styles')
     <style>
         .profile-locked-badge {
             font-size: 0.7rem;
@@ -118,10 +119,6 @@
             </div>
             <button type="button" class="btn btn-warning btn-sm js-open-employee-data-tab">Lengkapi Sekarang</button>
         </div>
-        <div class="progress mt-3" style="height: 8px;">
-            <div class="progress-bar bg-warning" role="progressbar" style="width: {{ $employeeDataCompletionPercent }}%;" aria-valuenow="{{ $employeeDataCompletionPercent }}" aria-valuemin="0" aria-valuemax="100"></div>
-        </div>
-        <small class="d-block mt-1">Kelengkapan data: {{ $employeeDataCompletionPercent }}%</small>
     </div>
 @endif
 
@@ -184,6 +181,9 @@
                                 <span class="badge bg-danger ms-1">!</span>
                             @endif
                         </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="employee-documents-tab" data-bs-toggle="tab" data-bs-target="#employee-documents-pane" type="button" role="tab" aria-controls="employee-documents-pane" aria-selected="false">Dokumen</button>
                     </li>
                 </ul>
             </div>
@@ -299,7 +299,12 @@
                 </div>
                 <div class="tab-pane fade" id="employee-data-pane" role="tabpanel" aria-labelledby="employee-data-tab" tabindex="0">
                     <div class="card-body">
-                        @include('employee_data.wizard.wizard')
+                        @include('employee_data.wizard.wizard', ['isEmploymentStepReadOnly' => true])
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="employee-documents-pane" role="tabpanel" aria-labelledby="employee-documents-tab" tabindex="0">
+                    <div class="card-body">
+                        @include('employee_data.documents.vault', ['documentVaultMode' => 'employee'])
                     </div>
                 </div>
             </div>
@@ -313,6 +318,7 @@
 
 @section('script')
     @include('employee_data.wizard.script')
+    @include('employee_data.documents.script')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var employeeDataTabButton = document.getElementById('employee-data-tab');

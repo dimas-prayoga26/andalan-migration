@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Mail;
 
+use App\Http\Requests\Mail\Concerns\ComposesMailAccountEmail;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\MailAccessAccount;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class StoreMailAccessAccountRequest extends FormRequest
 {
+    use ComposesMailAccountEmail;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -28,7 +31,7 @@ class StoreMailAccessAccountRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        return $this->mailAccountEmailPartRules() + [
             'email' => [
                 'required',
                 'email',

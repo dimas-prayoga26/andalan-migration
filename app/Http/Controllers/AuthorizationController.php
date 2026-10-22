@@ -16,6 +16,7 @@ use App\Models\ProjectDivisionEvent;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\Employee\EmployeeDataDetailPresenter;
+use App\Support\Employee\EmployeeEmploymentDetailResolver;
 use App\Support\Employee\EmployeeMonthlySummaryCalculator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -55,7 +56,7 @@ class AuthorizationController extends Controller
         ]);
     }
 
-    public function create(Request $request): View
+    public function create(Request $request, EmployeeEmploymentDetailResolver $employeeEmploymentDetailResolver): View
     {
         $authenticatedUser = $request->user();
 
@@ -64,6 +65,7 @@ class AuthorizationController extends Controller
         return view('authorization.form', [
             'mode' => 'create',
             'employee' => null,
+            'employeeEmploymentDetails' => $employeeEmploymentDetailResolver->forEmployee(null),
         ] + $this->dataEmployeeFormOptions());
     }
 
@@ -123,7 +125,7 @@ class AuthorizationController extends Controller
         ]);
     }
 
-    public function edit(Request $request, Employee $employee): View
+    public function edit(Request $request, Employee $employee, EmployeeEmploymentDetailResolver $employeeEmploymentDetailResolver): View
     {
         $authenticatedUser = $request->user();
 
@@ -135,6 +137,7 @@ class AuthorizationController extends Controller
         return view('authorization.form', [
             'mode' => 'edit',
             'employee' => $employee,
+            'employeeEmploymentDetails' => $employeeEmploymentDetailResolver->forEmployee($employee),
         ] + $this->dataEmployeeFormOptions($employee));
     }
 

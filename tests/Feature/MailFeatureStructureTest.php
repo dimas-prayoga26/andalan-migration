@@ -12,19 +12,19 @@ class MailFeatureStructureTest extends TestCase
     public function test_mail_routes_are_registered(): void
     {
         $routes = [
-            'applicant.email.index' => 'applicant/email',
-            'applicant.email.select' => 'applicant/email/select',
-            'applicant.email.check' => 'applicant/email/check',
-            'applicant.email.login' => 'applicant/email/login',
-            'applicant.email.inbox' => 'applicant/email/inbox',
-            'applicant.email.sent' => 'applicant/email/sent',
-            'applicant.email.destroy' => 'applicant/email/delete',
-            'applicant.email.compose' => 'applicant/email/compose',
-            'applicant.email.send' => 'applicant/email/send',
-            'applicant.email.attachment' => 'applicant/email/read/{uid}/attachments/{attachment}',
-            'applicant.email.reply' => 'applicant/email/read/{uid}/reply',
-            'applicant.email.read' => 'applicant/email/read/{uid?}',
-            'applicant.email.logout' => 'applicant/email/logout',
+            'administration-finance.email.index' => 'administration-finance/email',
+            'administration-finance.email.select' => 'administration-finance/email/select',
+            'administration-finance.email.check' => 'administration-finance/email/check',
+            'administration-finance.email.login' => 'administration-finance/email/login',
+            'administration-finance.email.inbox' => 'administration-finance/email/inbox',
+            'administration-finance.email.sent' => 'administration-finance/email/sent',
+            'administration-finance.email.destroy' => 'administration-finance/email/delete',
+            'administration-finance.email.compose' => 'administration-finance/email/compose',
+            'administration-finance.email.send' => 'administration-finance/email/send',
+            'administration-finance.email.attachment' => 'administration-finance/email/read/{uid}/attachments/{attachment}',
+            'administration-finance.email.reply' => 'administration-finance/email/read/{uid}/reply',
+            'administration-finance.email.read' => 'administration-finance/email/read/{uid?}',
+            'administration-finance.email.logout' => 'administration-finance/email/logout',
             'business-email.index' => 'business-email',
             'business-email.select' => 'business-email/select',
             'business-email.check' => 'business-email/check',
@@ -47,22 +47,22 @@ class MailFeatureStructureTest extends TestCase
             $this->assertSame($uri, $route?->uri());
         }
 
-        $this->assertSame(MailController::class.'@index', Route::getRoutes()->getByName('applicant.email.index')?->getActionName());
-        $this->assertSame(MailController::class.'@selectAccount', Route::getRoutes()->getByName('applicant.email.select')?->getActionName());
-        $this->assertSame(MailController::class.'@checkEmail', Route::getRoutes()->getByName('applicant.email.check')?->getActionName());
-        $this->assertSame(MailController::class.'@authenticate', Route::getRoutes()->getByName('applicant.email.login')?->getActionName());
-        $this->assertSame(MailController::class.'@inbox', Route::getRoutes()->getByName('applicant.email.inbox')?->getActionName());
-        $this->assertSame(MailController::class.'@sent', Route::getRoutes()->getByName('applicant.email.sent')?->getActionName());
-        $this->assertSame(MailController::class.'@destroy', Route::getRoutes()->getByName('applicant.email.destroy')?->getActionName());
-        $this->assertSame(MailController::class.'@compose', Route::getRoutes()->getByName('applicant.email.compose')?->getActionName());
-        $this->assertSame(MailController::class.'@send', Route::getRoutes()->getByName('applicant.email.send')?->getActionName());
-        $this->assertSame(MailController::class.'@attachment', Route::getRoutes()->getByName('applicant.email.attachment')?->getActionName());
-        $this->assertSame(MailController::class.'@reply', Route::getRoutes()->getByName('applicant.email.reply')?->getActionName());
-        $this->assertSame(MailController::class.'@read', Route::getRoutes()->getByName('applicant.email.read')?->getActionName());
-        $this->assertSame(MailController::class.'@logout', Route::getRoutes()->getByName('applicant.email.logout')?->getActionName());
+        $this->assertSame(MailController::class.'@index', Route::getRoutes()->getByName('administration-finance.email.index')?->getActionName());
+        $this->assertSame(MailController::class.'@selectAccount', Route::getRoutes()->getByName('administration-finance.email.select')?->getActionName());
+        $this->assertSame(MailController::class.'@checkEmail', Route::getRoutes()->getByName('administration-finance.email.check')?->getActionName());
+        $this->assertSame(MailController::class.'@authenticate', Route::getRoutes()->getByName('administration-finance.email.login')?->getActionName());
+        $this->assertSame(MailController::class.'@inbox', Route::getRoutes()->getByName('administration-finance.email.inbox')?->getActionName());
+        $this->assertSame(MailController::class.'@sent', Route::getRoutes()->getByName('administration-finance.email.sent')?->getActionName());
+        $this->assertSame(MailController::class.'@destroy', Route::getRoutes()->getByName('administration-finance.email.destroy')?->getActionName());
+        $this->assertSame(MailController::class.'@compose', Route::getRoutes()->getByName('administration-finance.email.compose')?->getActionName());
+        $this->assertSame(MailController::class.'@send', Route::getRoutes()->getByName('administration-finance.email.send')?->getActionName());
+        $this->assertSame(MailController::class.'@attachment', Route::getRoutes()->getByName('administration-finance.email.attachment')?->getActionName());
+        $this->assertSame(MailController::class.'@reply', Route::getRoutes()->getByName('administration-finance.email.reply')?->getActionName());
+        $this->assertSame(MailController::class.'@read', Route::getRoutes()->getByName('administration-finance.email.read')?->getActionName());
+        $this->assertSame(MailController::class.'@logout', Route::getRoutes()->getByName('administration-finance.email.logout')?->getActionName());
         $this->assertSame(MailController::class.'@index', Route::getRoutes()->getByName('business-email.index')?->getActionName());
         $this->assertSame(MailController::class.'@selectAccount', Route::getRoutes()->getByName('business-email.select')?->getActionName());
-        $this->assertContains('position.permission:view-email-management', Route::getRoutes()->getByName('applicant.email.index')?->gatherMiddleware() ?? []);
+        $this->assertContains('position.permission:view-email-management', Route::getRoutes()->getByName('administration-finance.email.index')?->gatherMiddleware() ?? []);
         $this->assertContains('position.permission:view-business-email', Route::getRoutes()->getByName('business-email.index')?->gatherMiddleware() ?? []);
     }
 
@@ -280,7 +280,7 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString("foreignUuid('company_id')", $mailAccessCompanyMigration);
         $this->assertStringContainsString("->constrained('companies', 'id')", $mailAccessCompanyMigration);
         $this->assertStringContainsString('->nullOnDelete()', $mailAccessCompanyMigration);
-        $this->assertStringContainsString("route('applicant.email.index')", $sidebarView);
+        $this->assertStringContainsString("route('administration-finance.email.index')", $sidebarView);
         $this->assertStringContainsString("route('business-email.index')", $sidebarView);
         $this->assertStringContainsString('Business Email', $sidebarView);
         $this->assertStringContainsString("canViewSidebarMenu('view-business-email')", $sidebarView);

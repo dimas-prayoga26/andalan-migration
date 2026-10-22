@@ -105,7 +105,7 @@
     $account = $account ?? null;
     $folder = $folder ?? 'inbox';
     $mailFeatureTitle = $mailFeatureTitle ?? 'Email';
-    $mailRoutePrefix = $mailRoutePrefix ?? 'applicant.email';
+    $mailRoutePrefix = $mailRoutePrefix ?? 'administration-finance.email';
     $isSentFolder = $folder === 'sent';
     $folderRoute = $isSentFolder ? $mailRoutePrefix.'.sent' : $mailRoutePrefix.'.inbox';
     $folderLabel = $isSentFolder ? 'Sent' : 'Inbox';

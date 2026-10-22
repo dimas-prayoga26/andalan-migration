@@ -7,7 +7,7 @@
     $mailSummaryInboxCount = $totalInboxCount ?? null;
     $mailSummaryUnreadCount = $unreadCount ?? null;
     $mailSummaryFolder = $folder ?? 'inbox';
-    $mailRoutePrefix = $mailRoutePrefix ?? 'applicant.email';
+    $mailRoutePrefix = $mailRoutePrefix ?? 'administration-finance.email';
 @endphp
 
 <div class="row">

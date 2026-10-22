@@ -1,7 +1,7 @@
 @php
     $active = $active ?? 'inbox';
     $unreadCount = $unreadCount ?? null;
-    $mailRoutePrefix = $mailRoutePrefix ?? 'applicant.email';
+    $mailRoutePrefix = $mailRoutePrefix ?? 'administration-finance.email';
     $inboxIsActive = in_array($active, ['inbox', 'read'], true);
     $sentIsActive = $active === 'sent';
 @endphp

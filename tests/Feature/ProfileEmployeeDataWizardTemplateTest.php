@@ -38,7 +38,8 @@ class ProfileEmployeeDataWizardTemplateTest extends TestCase
         $response->assertOk();
         $response->assertSee('Data karyawan belum lengkap');
         $response->assertSee('Silakan lengkapi data diri, identitas, pendidikan, dan keluarga pada tab');
-        $response->assertSee('Kelengkapan data: 0%');
+        $response->assertDontSee('Kelengkapan data');
+        $response->assertDontSee('role="progressbar"', false);
         $response->assertDontSee('Step 1–4');
         $response->assertDontSee('Data kepegawaian akan diisi oleh HR');
         $response->assertSee('enableURLhash: false', false);
@@ -56,14 +57,30 @@ class ProfileEmployeeDataWizardTemplateTest extends TestCase
         $response->assertDontSee('Employment Type');
         $response->assertDontSee('Contract End');
         $response->assertDontSee('Job Level');
-        $response->assertDontSee('id="wizard_Finish"', false);
+        $response->assertSee('href="#wizard_Finish"', false);
+        $response->assertSeeInOrder([
+            'id="wizard_Finish"',
+            'Employment &amp; Contract Details',
+            'Dikelola HR',
+            'Entitas Perusahaan', 'value="RNB" readonly disabled',
+            'Employee Code', 'value="EMP-0001" readonly disabled',
+            'PIC', 'value="-" readonly disabled',
+            'Status Kepegawaian', 'value="PKWTT" readonly disabled',
+            'Tanggal Bergabung', 'value="01/01/2026" readonly disabled',
+            'Gaji Pokok',
+            'Riwayat MCU', 'Belum ada data.',
+            'Aset Perusahaan yang Dipegang', 'Belum ada data.',
+        ], false);
+        $response->assertDontSee('Pilih status');
+        $response->assertDontSee('NIK Karyawan');
+        $response->assertDontSee('Penempatan diatur pada tab');
         $response->assertDontSee('Simpan Data');
         $response->assertDontSee('toolbarExtraButtons', false);
     }
 
     public function test_wizard_step_partials_exist(): void
     {
-        foreach (['step-1-personal', 'step-2-legal-tax', 'step-3-education', 'step-4-family'] as $stepView) {
+        foreach (['step-1-personal', 'step-2-legal-tax', 'step-3-education', 'step-4-family', 'step-5-employment'] as $stepView) {
             $this->assertTrue(View::exists('employee_data.wizard.'.$stepView), $stepView.' partial is missing.');
         }
     }
@@ -74,6 +91,7 @@ class ProfileEmployeeDataWizardTemplateTest extends TestCase
             'step-2-legal-tax' => 1,
             'step-3-education' => 4,
             'step-4-family' => 2,
+            'step-5-employment' => 2,
         ];
 
         foreach ($expectedActionGroups as $stepView => $expectedCount) {
@@ -89,7 +107,7 @@ class ProfileEmployeeDataWizardTemplateTest extends TestCase
         $profile = (string) file_get_contents(resource_path('views/profile.blade.php'));
         $wizardStyles = (string) file_get_contents(resource_path('views/employee_data/wizard/styles.blade.php'));
 
-        $this->assertStringContainsString("@include('employee_data.wizard.wizard')", $profile);
+        $this->assertStringContainsString("@include('employee_data.wizard.wizard', ['isEmploymentStepReadOnly' => true])", $profile);
         $this->assertStringContainsString("@include('employee_data.wizard.styles')", $profile);
         $this->assertStringContainsString('.employee-data-row-actions {', $wizardStyles);
         $this->assertStringContainsString('flex-wrap: nowrap;', $wizardStyles);

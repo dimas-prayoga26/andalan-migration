@@ -86,6 +86,11 @@ class CompanySeeder extends Seeder
                     'primary_color' => '#8D0801',
                     'secondary_color' => '#BF0603',
                 ],
+                [
+                    'name' => 'Inticoal',
+                    'country' => 'Indonesia',
+                    'website' => 'https://inticoal.co.id/',
+                ],
             ];
 
             foreach ($companies as $companyData) {

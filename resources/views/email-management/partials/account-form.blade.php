@@ -5,12 +5,23 @@
     $selectedCompanyId = (string) old('company_id', $account?->company_id ?? '');
     $selectedEmployeeId = (string) old('employee_id', $account?->employee_id ?? '');
     $isPersonalType = $selectedType === $personalType;
+    $mailDomainOptions = \App\Models\MailAccessAccount::selectableMailDomains($account);
+    $selectedEmailLocalPart = (string) old('email_local_part', $account ? \Illuminate\Support\Str::before((string) $account->email, '@') : '');
+    $selectedEmailDomain = (string) old('email_domain', $account ? \Illuminate\Support\Str::after((string) $account->email, '@') : '');
 @endphp
 
 <div class="row g-3" data-mail-account-form>
     <div class="col-12">
-        <label class="form-label" for="email-{{ $accountId }}">Email</label>
-        <input id="email-{{ $accountId }}" name="email" type="email" class="form-control" value="{{ old('email', $account?->email) }}" placeholder="dimas@tims.co.id" required>
+        <label class="form-label" for="email-local-part-{{ $accountId }}">Email</label>
+        <div class="input-group">
+            <input id="email-local-part-{{ $accountId }}" name="email_local_part" type="text" class="form-control" value="{{ $selectedEmailLocalPart }}" placeholder="admin" autocomplete="off" required>
+            <select id="email-domain-{{ $accountId }}" name="email_domain" class="form-select js-skip-selectpicker flex-grow-0 w-auto" aria-label="Email domain" required>
+                <option value="">Select domain</option>
+                @foreach ($mailDomainOptions as $mailDomain)
+                    <option value="{{ $mailDomain }}" @selected($selectedEmailDomain === $mailDomain)>{{ '@'.$mailDomain }}</option>
+                @endforeach
+            </select>
+        </div>
     </div>
     <div class="col-12">
         <label class="form-label" for="type-{{ $accountId }}">Type</label>

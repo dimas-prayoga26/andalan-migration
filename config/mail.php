@@ -121,6 +121,17 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', 'trah.co.id'),
         ],
 
+        'inticoal' => [
+            'transport' => 'smtp',
+            'scheme' => env('INTICOAL_MAIL_SCHEME', 'smtps'),
+            'host' => env('INTICOAL_MAIL_HOST', 'mail.inticoal.co.id'),
+            'port' => env('INTICOAL_MAIL_PORT', 465),
+            'username' => $catchAllUsername('inticoal.co.id'),
+            'password' => $catchAllPassword,
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'inticoal.co.id'),
+        ],
+
         'ses' => [
             'transport' => 'ses',
         ],

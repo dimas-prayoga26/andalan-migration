@@ -296,6 +296,7 @@ class TaskListController extends Controller
                 'employee.profile:id,employee_id,name,nickname',
                 'employee.user:id,email',
             ])
+            ->orderByRaw('COALESCE(due_date, start_date, created_at) DESC')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get()

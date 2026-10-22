@@ -145,7 +145,7 @@ class BusinessEmailDefaultAccountTest extends TestCase
         $user->assignRole(Role::query()->firstOrCreate(['name' => 'Staff', 'guard_name' => 'web']));
 
         $this->actingAs($user)
-            ->get(route('applicant.email.inbox'))
+            ->get(route('administration-finance.email.inbox'))
             ->assertOk()
             ->assertSee('Pilih email account terlebih dahulu.');
 

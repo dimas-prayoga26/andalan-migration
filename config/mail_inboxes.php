@@ -57,5 +57,13 @@ return [
             'password' => env('KMA_IMAP_PASSWORD', $catchAllPassword),
             'verify_ssl' => env('KMA_IMAP_VERIFY_SSL', true),
         ],
+        'inticoal' => [
+            'host' => env('INTICOAL_IMAP_HOST', env('INTICOAL_MAIL_HOST', 'mail.inticoal.co.id')),
+            'port' => env('INTICOAL_IMAP_PORT', 993),
+            'encryption' => env('INTICOAL_IMAP_ENCRYPTION', 'ssl'),
+            'username' => env('INTICOAL_IMAP_USERNAME', $catchAllUsername('inticoal.co.id')),
+            'password' => env('INTICOAL_IMAP_PASSWORD', $catchAllPassword),
+            'verify_ssl' => env('INTICOAL_IMAP_VERIFY_SSL', true),
+        ],
     ],
 ];

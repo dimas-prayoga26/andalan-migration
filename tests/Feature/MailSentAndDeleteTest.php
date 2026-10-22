@@ -43,18 +43,18 @@ class MailSentAndDeleteTest extends TestCase
             ['uid' => '7', 'from' => 'department@example.test', 'to' => 'candidate@example.test', 'subject' => 'Interview Invitation', 'date' => 'Fri, 02 Oct 2026 10:00:00 +0700', 'time' => 'Oct 02, 10:00', 'unread' => false],
         ];
 
-        $response = $this->actingAsMailUser()->get(route('applicant.email.sent'));
+        $response = $this->actingAsMailUser()->get(route('administration-finance.email.sent'));
 
         $response->assertOk();
         $response->assertSee('To: candidate@example.test');
         $response->assertSee('Interview Invitation');
-        $response->assertSee(route('applicant.email.read', ['uid' => '7', 'folder' => 'sent']), false);
+        $response->assertSee(route('administration-finance.email.read', ['uid' => '7', 'folder' => 'sent']), false);
         $this->assertSame([['messagesFor', 'department@example.test', 'sent']], $this->mailInbox->calls);
     }
 
     public function test_sent_page_shows_empty_state(): void
     {
-        $response = $this->actingAsMailUser()->get(route('applicant.email.sent'));
+        $response = $this->actingAsMailUser()->get(route('administration-finance.email.sent'));
 
         $response->assertOk();
         $response->assertSee('Belum ada email terkirim.');
@@ -62,7 +62,7 @@ class MailSentAndDeleteTest extends TestCase
 
     public function test_inbox_page_still_reads_inbox_folder(): void
     {
-        $response = $this->actingAsMailUser()->get(route('applicant.email.inbox'));
+        $response = $this->actingAsMailUser()->get(route('administration-finance.email.inbox'));
 
         $response->assertOk();
         $response->assertSee('Inbox kosong.');
@@ -71,36 +71,36 @@ class MailSentAndDeleteTest extends TestCase
 
     public function test_inbox_shows_refresh_and_mark_all_as_read_actions_instead_of_category_tabs(): void
     {
-        $response = $this->actingAsMailUser()->get(route('applicant.email.inbox'));
+        $response = $this->actingAsMailUser()->get(route('administration-finance.email.inbox'));
 
         $response->assertOk();
         $response->assertSee('data-mail-refresh', false);
-        $response->assertSee(route('applicant.email.mark-all-read'), false);
+        $response->assertSee(route('administration-finance.email.mark-all-read'), false);
         $response->assertDontSee('Socials');
         $response->assertDontSee('Promotion');
 
-        $this->actingAsMailUser()->get(route('applicant.email.sent'))
+        $this->actingAsMailUser()->get(route('administration-finance.email.sent'))
             ->assertOk()
             ->assertSee('data-mail-refresh', false)
-            ->assertDontSee(route('applicant.email.mark-all-read'), false);
+            ->assertDontSee(route('administration-finance.email.mark-all-read'), false);
     }
 
     public function test_all_inbox_messages_can_be_marked_as_read(): void
     {
         $this->mailInbox->markedAsReadCount = 3;
 
-        $response = $this->actingAsMailUser()->post(route('applicant.email.mark-all-read'), ['folder' => 'inbox']);
+        $response = $this->actingAsMailUser()->post(route('administration-finance.email.mark-all-read'), ['folder' => 'inbox']);
 
-        $response->assertRedirect(route('applicant.email.inbox'));
+        $response->assertRedirect(route('administration-finance.email.inbox'));
         $response->assertSessionHas('mail_status', '3 email ditandai sudah dibaca.');
         $this->assertSame([['markAllAsRead', 'department@example.test', 'inbox']], $this->mailInbox->calls);
     }
 
     public function test_mark_all_as_read_reports_when_everything_was_already_read(): void
     {
-        $response = $this->actingAsMailUser()->post(route('applicant.email.mark-all-read'), ['folder' => 'inbox']);
+        $response = $this->actingAsMailUser()->post(route('administration-finance.email.mark-all-read'), ['folder' => 'inbox']);
 
-        $response->assertRedirect(route('applicant.email.inbox'));
+        $response->assertRedirect(route('administration-finance.email.inbox'));
         $response->assertSessionHas('mail_status', 'Semua email sudah dibaca.');
         $this->assertSame('business-email/mark-all-read', Route::getRoutes()->getByName('business-email.mark-all-read')?->uri());
     }
@@ -109,46 +109,46 @@ class MailSentAndDeleteTest extends TestCase
     {
         $this->mailInbox->failOn = 'markAllAsRead';
 
-        $response = $this->actingAsMailUser()->post(route('applicant.email.mark-all-read'), ['folder' => 'inbox']);
+        $response = $this->actingAsMailUser()->post(route('administration-finance.email.mark-all-read'), ['folder' => 'inbox']);
 
-        $response->assertRedirect(route('applicant.email.inbox'));
+        $response->assertRedirect(route('administration-finance.email.inbox'));
         $response->assertSessionHasErrors(['mail' => 'Email belum bisa ditandai sudah dibaca. Coba refresh lalu ulangi.']);
     }
 
     public function test_selected_messages_can_be_deleted(): void
     {
-        $response = $this->actingAsMailUser()->post(route('applicant.email.destroy'), [
+        $response = $this->actingAsMailUser()->post(route('administration-finance.email.destroy'), [
             'folder' => 'inbox',
             'uids' => ['12', '15', '12'],
         ]);
 
-        $response->assertRedirect(route('applicant.email.inbox'));
+        $response->assertRedirect(route('administration-finance.email.inbox'));
         $response->assertSessionHas('mail_status', '2 email berhasil dihapus.');
         $this->assertSame([['deleteMessages', 'department@example.test', ['12', '15'], 'inbox']], $this->mailInbox->calls);
     }
 
     public function test_sent_messages_can_be_deleted(): void
     {
-        $response = $this->actingAsMailUser()->post(route('applicant.email.destroy'), [
+        $response = $this->actingAsMailUser()->post(route('administration-finance.email.destroy'), [
             'folder' => 'sent',
             'uids' => ['3'],
         ]);
 
-        $response->assertRedirect(route('applicant.email.sent'));
+        $response->assertRedirect(route('administration-finance.email.sent'));
         $this->assertSame([['deleteMessages', 'department@example.test', ['3'], 'sent']], $this->mailInbox->calls);
     }
 
     public function test_delete_rejects_invalid_input(): void
     {
         $this->actingAsMailUser()
-            ->from(route('applicant.email.inbox'))
-            ->post(route('applicant.email.destroy'), ['folder' => 'inbox', 'uids' => ['1 2 3']])
+            ->from(route('administration-finance.email.inbox'))
+            ->post(route('administration-finance.email.destroy'), ['folder' => 'inbox', 'uids' => ['1 2 3']])
             ->assertSessionHasErrors('uids.0');
 
-        $this->post(route('applicant.email.destroy'), ['folder' => 'trash', 'uids' => ['1']])
+        $this->post(route('administration-finance.email.destroy'), ['folder' => 'trash', 'uids' => ['1']])
             ->assertSessionHasErrors('folder');
 
-        $this->post(route('applicant.email.destroy'), ['folder' => 'inbox'])
+        $this->post(route('administration-finance.email.destroy'), ['folder' => 'inbox'])
             ->assertSessionHasErrors(['uids' => 'Pilih minimal satu email yang akan dihapus.']);
 
         $this->assertSame([], $this->mailInbox->calls);
@@ -158,33 +158,33 @@ class MailSentAndDeleteTest extends TestCase
     {
         $this->mailInbox->failOn = 'deleteMessages';
 
-        $response = $this->actingAsMailUser()->post(route('applicant.email.destroy'), [
+        $response = $this->actingAsMailUser()->post(route('administration-finance.email.destroy'), [
             'folder' => 'inbox',
             'uids' => ['5'],
         ]);
 
-        $response->assertRedirect(route('applicant.email.inbox'));
+        $response->assertRedirect(route('administration-finance.email.inbox'));
         $response->assertSessionHasErrors(['mail' => 'Email belum bisa dihapus. Coba refresh lalu ulangi.']);
     }
 
     public function test_delete_requires_selected_mail_account(): void
     {
         $this->actingAs($this->createSuperAdministratorUser())
-            ->post(route('applicant.email.destroy'), ['folder' => 'inbox', 'uids' => ['5']])
-            ->assertRedirect(route('applicant.email.inbox'));
+            ->post(route('administration-finance.email.destroy'), ['folder' => 'inbox', 'uids' => ['5']])
+            ->assertRedirect(route('administration-finance.email.inbox'));
 
         $this->assertSame([], $this->mailInbox->calls);
     }
 
     public function test_sent_email_is_copied_to_sent_folder(): void
     {
-        $response = $this->actingAsMailUser()->post(route('applicant.email.send'), [
+        $response = $this->actingAsMailUser()->post(route('administration-finance.email.send'), [
             'to' => 'candidate@example.test',
             'subject' => 'Offering Letter',
             'body' => 'Halo kandidat',
         ]);
 
-        $response->assertRedirect(route('applicant.email.sent'));
+        $response->assertRedirect(route('administration-finance.email.sent'));
         $response->assertSessionHas('mail_status', 'Email berhasil dikirim.');
         $this->assertCount(1, $this->mailInbox->storedSentMessages);
         $this->assertSame('department@example.test', $this->mailInbox->storedSentMessages[0]['email']);
@@ -196,35 +196,35 @@ class MailSentAndDeleteTest extends TestCase
     {
         $this->mailInbox->failOn = 'storeSentMessage';
 
-        $response = $this->actingAsMailUser()->post(route('applicant.email.send'), [
+        $response = $this->actingAsMailUser()->post(route('administration-finance.email.send'), [
             'to' => 'candidate@example.test',
             'subject' => 'Offering Letter',
             'body' => 'Halo kandidat',
         ]);
 
-        $response->assertRedirect(route('applicant.email.sent'));
+        $response->assertRedirect(route('administration-finance.email.sent'));
         $response->assertSessionHas('mail_status', 'Email berhasil dikirim.');
         $response->assertSessionHasNoErrors();
     }
 
     public function test_reading_sent_message_replies_to_recipient(): void
     {
-        $response = $this->actingAsMailUser()->get(route('applicant.email.read', ['uid' => '9', 'folder' => 'sent']));
+        $response = $this->actingAsMailUser()->get(route('administration-finance.email.read', ['uid' => '9', 'folder' => 'sent']));
 
         $response->assertOk();
         $response->assertSee('Reply akan dikirim ke candidate@example.test');
         $response->assertSee('id="mail-delete-form"', false);
-        $response->assertSee(route('applicant.email.reply', ['9', 'folder' => 'sent']), false);
+        $response->assertSee(route('administration-finance.email.reply', ['9', 'folder' => 'sent']), false);
         $this->assertSame([['messageFor', 'department@example.test', '9', 'sent']], $this->mailInbox->calls);
     }
 
     public function test_reply_from_sent_message_is_sent_to_recipient_and_stored(): void
     {
-        $response = $this->actingAsMailUser()->post(route('applicant.email.reply', ['9', 'folder' => 'sent']), [
+        $response = $this->actingAsMailUser()->post(route('administration-finance.email.reply', ['9', 'folder' => 'sent']), [
             'body' => 'Follow up',
         ]);
 
-        $response->assertRedirect(route('applicant.email.read', ['uid' => '9', 'folder' => 'sent']));
+        $response->assertRedirect(route('administration-finance.email.read', ['uid' => '9', 'folder' => 'sent']));
         $this->assertCount(1, $this->mailInbox->storedSentMessages);
         $this->assertStringContainsString('To: candidate@example.test', $this->mailInbox->storedSentMessages[0]['raw']);
         $this->assertStringContainsString('Subject: Re: Interview Invitation', $this->mailInbox->storedSentMessages[0]['raw']);

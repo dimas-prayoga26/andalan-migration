@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Mail;
 
+use App\Http\Requests\Mail\Concerns\ComposesMailAccountEmail;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\MailAccessAccount;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class UpdateMailAccessAccountRequest extends FormRequest
 {
+    use ComposesMailAccountEmail;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -30,7 +33,7 @@ class UpdateMailAccessAccountRequest extends FormRequest
     {
         $mailAccessAccount = $this->route('mailAccessAccount');
 
-        return [
+        return $this->mailAccountEmailPartRules($mailAccessAccount instanceof MailAccessAccount ? $mailAccessAccount : null) + [
             'email' => [
                 'required',
                 'email',

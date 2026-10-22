@@ -1064,14 +1064,15 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         ]);
     }
 
-    public function test_task_list_shows_latest_tasks_first(): void
+    public function test_task_list_shows_newest_task_dates_first(): void
     {
         [$user, $employee] = $this->createProjectTaskListUser('latest_task_list');
 
         foreach ([
-            ['title' => 'Older completed task', 'date' => '2026-08-31', 'created_at' => '2026-08-21 08:00:00'],
+            ['title' => 'Newest completed task', 'date' => '2026-08-31', 'created_at' => '2026-08-21 08:00:00'],
             ['title' => 'Middle completed task', 'date' => '2026-08-24', 'created_at' => '2026-08-24 08:00:00'],
-            ['title' => 'Newest completed task', 'date' => '2026-08-01', 'created_at' => '2026-08-26 08:00:00'],
+            ['title' => 'Same day created earlier task', 'date' => '2026-08-24', 'created_at' => '2026-08-20 08:00:00'],
+            ['title' => 'Older completed task', 'date' => '2026-08-01', 'created_at' => '2026-08-26 08:00:00'],
         ] as $task) {
             ProjectTask::query()->create([
                 'employee_id' => $employee->id,
@@ -1101,13 +1102,16 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $taskListHtml = (string) $response->json('fragments.task_list');
         $newestPosition = strpos($taskListHtml, 'Newest completed task');
         $middlePosition = strpos($taskListHtml, 'Middle completed task');
+        $sameDayPosition = strpos($taskListHtml, 'Same day created earlier task');
         $olderPosition = strpos($taskListHtml, 'Older completed task');
 
         $this->assertIsInt($newestPosition);
         $this->assertIsInt($middlePosition);
+        $this->assertIsInt($sameDayPosition);
         $this->assertIsInt($olderPosition);
         $this->assertLessThan($middlePosition, $newestPosition);
-        $this->assertLessThan($olderPosition, $middlePosition);
+        $this->assertLessThan($sameDayPosition, $middlePosition);
+        $this->assertLessThan($olderPosition, $sameDayPosition);
     }
 
     public function test_task_list_includes_tasks_that_overlap_selected_month(): void

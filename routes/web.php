@@ -90,6 +90,29 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/project-management/detail', [ProjectManagementProjectController::class, 'detailFallback'])->name('project_management.detail');
     });
 
+    // Administration & Finance
+    Route::middleware('position.permission:view-email-management')
+        ->prefix('administration-finance/email')
+        ->name('administration-finance.email.')
+        ->group(function (): void {
+            Route::get('/', [MailController::class, 'index'])->name('index');
+            Route::post('/select', [MailController::class, 'selectAccount'])->name('select');
+            Route::post('/check', [MailController::class, 'checkEmail'])->name('check');
+            Route::post('/login', [MailController::class, 'authenticate'])->name('login');
+            Route::get('/inbox', [MailController::class, 'inbox'])->name('inbox');
+            Route::get('/sent', [MailController::class, 'sent'])->name('sent');
+            Route::post('/delete', [MailController::class, 'destroy'])->name('destroy');
+            Route::post('/mark-all-read', [MailController::class, 'markAllAsRead'])->name('mark-all-read');
+            Route::get('/compose', [MailController::class, 'compose'])->name('compose');
+            Route::post('/send', [MailController::class, 'send'])->name('send');
+            Route::get('/read/{uid}/attachments/{attachment}', [MailController::class, 'attachment'])->whereNumber('uid')->whereNumber('attachment')->name('attachment');
+            Route::post('/read/{uid}/reply', [MailController::class, 'reply'])->whereNumber('uid')->name('reply');
+            Route::get('/read/{uid?}', [MailController::class, 'read'])->whereNumber('uid')->name('read');
+            Route::post('/logout', [MailController::class, 'logout'])->name('logout');
+        });
+
+    Route::redirect('/applicant/email', '/administration-finance/email');
+
     // Applicant
     Route::middleware('position.permission:view-talent-acquisition')->group(function (): void {
         Route::get('/applicant', [TalentAcquisitionController::class, 'applicants'])->name('applicant');
@@ -102,22 +125,6 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/applicant/job-vacancies/{jobVacancy}/edit', [TalentAcquisitionController::class, 'editJobVacancy'])->name('applicant.job_vacancies.edit');
         Route::patch('/applicant/job-vacancies/{jobVacancy}', [TalentAcquisitionController::class, 'updateJobVacancy'])->name('applicant.job_vacancies.update');
         Route::delete('/applicant/job-vacancies/{jobVacancy}', [TalentAcquisitionController::class, 'destroyJobVacancy'])->name('applicant.job_vacancies.destroy');
-        Route::middleware('position.permission:view-email-management')->group(function (): void {
-            Route::get('/applicant/email', [MailController::class, 'index'])->name('applicant.email.index');
-            Route::post('/applicant/email/select', [MailController::class, 'selectAccount'])->name('applicant.email.select');
-            Route::post('/applicant/email/check', [MailController::class, 'checkEmail'])->name('applicant.email.check');
-            Route::post('/applicant/email/login', [MailController::class, 'authenticate'])->name('applicant.email.login');
-            Route::get('/applicant/email/inbox', [MailController::class, 'inbox'])->name('applicant.email.inbox');
-            Route::get('/applicant/email/sent', [MailController::class, 'sent'])->name('applicant.email.sent');
-            Route::post('/applicant/email/delete', [MailController::class, 'destroy'])->name('applicant.email.destroy');
-            Route::post('/applicant/email/mark-all-read', [MailController::class, 'markAllAsRead'])->name('applicant.email.mark-all-read');
-            Route::get('/applicant/email/compose', [MailController::class, 'compose'])->name('applicant.email.compose');
-            Route::post('/applicant/email/send', [MailController::class, 'send'])->name('applicant.email.send');
-            Route::get('/applicant/email/read/{uid}/attachments/{attachment}', [MailController::class, 'attachment'])->whereNumber('uid')->whereNumber('attachment')->name('applicant.email.attachment');
-            Route::post('/applicant/email/read/{uid}/reply', [MailController::class, 'reply'])->whereNumber('uid')->name('applicant.email.reply');
-            Route::get('/applicant/email/read/{uid?}', [MailController::class, 'read'])->whereNumber('uid')->name('applicant.email.read');
-            Route::post('/applicant/email/logout', [MailController::class, 'logout'])->name('applicant.email.logout');
-        });
         Route::patch('/applicant/{applicant}/status', [TalentAcquisitionController::class, 'updateApplicantStatus'])->name('applicant.status.update');
         Route::post('/applicant/{applicant}/assessment/upload-request', [TalentAcquisitionController::class, 'storeApplicantAssessmentUploadRequest'])->name('applicant.assessment.upload-request.store');
         Route::patch('/applicant/{applicant}/assessment/upload-request/revoke', [TalentAcquisitionController::class, 'revokeApplicantAssessmentUploadRequest'])->name('applicant.assessment.upload-request.revoke');

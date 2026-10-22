@@ -175,7 +175,7 @@
 
                 <div class="tab-pane fade js-employee-form-pane" id="employeeFormData" role="tabpanel" aria-labelledby="employeeFormDataTab" tabindex="0">
                     <p class="text-muted mb-3">This data is optional. Employees can also complete it themselves from their Profile page.</p>
-                    @include('employee_data.wizard.wizard')
+                    @include('employee_data.wizard.wizard', ['isEmploymentStepReadOnly' => false])
                 </div>
             </div>
         </div>

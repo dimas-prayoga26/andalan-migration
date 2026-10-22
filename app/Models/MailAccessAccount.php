@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class MailAccessAccount extends Model
 {
@@ -141,6 +142,26 @@ class MailAccessAccount extends Model
             ->map(static fn (mixed $account): string => is_array($account) ? mb_strtolower(trim((string) ($account['username'] ?? ''))) : '')
             ->filter(static fn (string $email): bool => filter_var($email, FILTER_VALIDATE_EMAIL) !== false)
             ->unique()
+            ->values();
+    }
+
+    /**
+     * Domains with a configured company mail server, plus the account's current domain so an older address stays editable.
+     *
+     * @return Collection<int, string>
+     */
+    public static function selectableMailDomains(?self $mailAccessAccount = null): Collection
+    {
+        $currentDomain = $mailAccessAccount instanceof self
+            ? mb_strtolower(trim(Str::after((string) $mailAccessAccount->email, '@')))
+            : '';
+
+        return self::configuredInboxEmails()
+            ->map(static fn (string $email): string => Str::after($email, '@'))
+            ->when($currentDomain !== '', static fn (Collection $domains): Collection => $domains->push($currentDomain))
+            ->filter()
+            ->unique()
+            ->sort()
             ->values();
     }
 

@@ -125,7 +125,7 @@ class MailHtmlRenderingTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAsMailUser()->get(route('applicant.email.read', ['uid' => '11']));
+        $response = $this->actingAsMailUser()->get(route('administration-finance.email.read', ['uid' => '11']));
 
         $response->assertOk();
         $response->assertSee('sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"', false);
@@ -133,7 +133,7 @@ class MailHtmlRenderingTest extends TestCase
         $response->assertSee("default-src 'none'");
         $response->assertSee('<p class="code">701075</p>');
         $response->assertDontSee('<script>alert(1)</script>');
-        $response->assertSee(route('applicant.email.attachment', ['uid' => '11', 'attachment' => '1', 'inline' => 1]));
+        $response->assertSee(route('administration-finance.email.attachment', ['uid' => '11', 'attachment' => '1', 'inline' => 1]));
         $response->assertSee('<img src="https://cdn.example.test/logo.png">');
         $response->assertSee('https: http:;');
         $response->assertDontSee('Tampilkan gambar');
@@ -143,7 +143,7 @@ class MailHtmlRenderingTest extends TestCase
 
     public function test_plain_text_email_keeps_the_text_layout(): void
     {
-        $response = $this->actingAsMailUser()->get(route('applicant.email.read', ['uid' => '11']));
+        $response = $this->actingAsMailUser()->get(route('administration-finance.email.read', ['uid' => '11']));
 
         $response->assertOk();
         $response->assertSee('Please use the code 701075');

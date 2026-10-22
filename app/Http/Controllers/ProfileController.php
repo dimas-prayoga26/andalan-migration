@@ -11,6 +11,7 @@ use App\Models\EmployeeProfile;
 use App\Models\Position;
 use App\Models\User;
 use App\Support\Employee\EmployeeDataCompletionCalculator;
+use App\Support\Employee\EmployeeEmploymentDetailResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -27,7 +28,10 @@ use Throwable;
 
 class ProfileController extends Controller
 {
-    public function __construct(private readonly EmployeeDataCompletionCalculator $employeeDataCompletionCalculator) {}
+    public function __construct(
+        private readonly EmployeeDataCompletionCalculator $employeeDataCompletionCalculator,
+        private readonly EmployeeEmploymentDetailResolver $employeeEmploymentDetailResolver,
+    ) {}
 
     public function index(): View
     {
@@ -159,7 +163,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * @return array<string, string>
+     * @return array<string, mixed>
      */
     private function profileData(): array
     {
@@ -182,6 +186,7 @@ class ProfileController extends Controller
             'profileFormBaseOffice' => '-',
             'profileFormAddress' => '-',
             'employeeDataCompletionPercent' => 100,
+            'employeeEmploymentDetails' => $this->employeeEmploymentDetailResolver->forEmployee(null),
         ];
 
         $authenticatedUserId = Auth::id();
@@ -233,6 +238,8 @@ class ProfileController extends Controller
             if ($authenticatedUser->employee instanceof Employee) {
                 $profileData['employeeDataCompletionPercent'] = $this->employeeDataCompletionCalculator
                     ->forEmployee($authenticatedUser->employee)['percent'];
+                $profileData['employeeEmploymentDetails'] = $this->employeeEmploymentDetailResolver
+                    ->forEmployee($authenticatedUser->employee);
             }
         }
 

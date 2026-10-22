@@ -106,7 +106,7 @@ class EmployeeDataDetailPresenterTest extends TestCase
         $this->assertSame('Laravel, MySQL', $valueOf('experience', 'Skills', 'Hard Skills'));
     }
 
-    public function test_attachments_tab_lists_certification_and_license_files_by_category(): void
+    public function test_attachments_tab_lists_certification_and_license_files_by_document_key(): void
     {
         Storage::fake('public');
         Storage::disk('public')->put('employee-documents/bnsp.pdf', str_repeat('a', 2048));
@@ -136,21 +136,12 @@ class EmployeeDataDetailPresenterTest extends TestCase
         ]);
 
         $sections = collect(app(EmployeeDataDetailPresenter::class)->forEmployee($employee))->keyBy('key');
-        $documentGroups = collect($sections['attachments']['document_groups'])->keyBy('title');
+        $documentFiles = $sections['attachments']['document_files'];
         $assetTable = $sections['assets']['groups'][0]['tables'][0];
 
         $this->assertSame(['Brand', 'Spec', 'PIN'], $assetTable['columns']);
         $this->assertSame([], $assetTable['rows']);
-        $this->assertSame([
-            'Personal Information',
-            'Financial & Tax Information',
-            'Digital Copies of Diplomas & Transcripts',
-            'Certifications & Licenses',
-            'Legal Documents',
-        ], $documentGroups->keys()->all());
-        $this->assertSame([], $documentGroups['Personal Information']['documents']);
-        $this->assertNull($documentGroups['Personal Information']['last_updated']);
-        $this->assertNotNull($documentGroups['Certifications & Licenses']['last_updated']);
+        $this->assertSame(['certificates', 'licenses'], array_keys($documentFiles));
         $this->assertSame([
             [
                 'name' => 'Web Programmer',
@@ -159,6 +150,8 @@ class EmployeeDataDetailPresenterTest extends TestCase
                 'icon' => 'assets/images/files/pdf.avif',
                 'is_image' => false,
             ],
+        ], $documentFiles['certificates']);
+        $this->assertSame([
             [
                 'name' => 'SIM A',
                 'url' => null,
@@ -166,7 +159,7 @@ class EmployeeDataDetailPresenterTest extends TestCase
                 'icon' => 'assets/images/files/folder.avif',
                 'is_image' => false,
             ],
-        ], $documentGroups['Certifications & Licenses']['documents']);
+        ], $documentFiles['licenses']);
     }
 
     public function test_permanent_employee_without_emergency_contact_is_flagged(): void

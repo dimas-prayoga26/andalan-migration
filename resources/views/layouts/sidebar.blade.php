@@ -18,6 +18,7 @@
 						$isReportingMenu = request()->routeIs('project_management', 'project_management.detail') || request()->is('project-management*');
 						$isAuthorizationMenu = request()->routeIs('authorization*') || request()->is('authorization*');
 						$isApplicantMenu = request()->routeIs('applicant*') || request()->is('applicant*');
+						$isAdministrationFinanceMenu = request()->routeIs('administration-finance*') || request()->is('administration-finance*');
 						$isSettingsMenu = request()->routeIs('settings*') || request()->is('settings*');
 						$canViewSidebarMenu = $canViewSidebarMenu ?? static fn (string $permissionName): bool => true;
 						$canViewDashboardMenu = $canViewSidebarMenu('view-dashboard');
@@ -151,14 +152,20 @@
 							<li>
 								<a class="{{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}" href="{{ route('applicant.job_vacancies') }}">Job Vacancies</a>
 							</li>
-							@if ($canViewEmailManagementMenu)
-							<li>
-								<a class="{{ request()->routeIs('applicant.email*') ? 'active' : '' }}" href="{{ route('applicant.email.index') }}">Email</a>
-							</li>
-							@endif
 						</ul>
 					</li>
 					@endif
+					@endif
+					@if ($canViewEmailManagementMenu)
+					<div class="copyright mt-1">
+						<p class="mb-1"><strong>Administration & Finance</strong> </p>
+					</div>
+					<li class="{{ $isAdministrationFinanceMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isAdministrationFinanceMenu ? 'active' : '' }}" href="{{ route('administration-finance.email.index') }}" aria-expanded="{{ $isAdministrationFinanceMenu ? 'true' : 'false' }}">
+							<i class="fa-regular fa-envelope"></i>
+							<span class="nav-text" data-i18n="Email">Email </span>
+						</a>
+					</li>
 					@endif
 					@if ($showPicManagementMenu)
 					<div class="copyright mt-1">
@@ -191,11 +198,6 @@
 							<li>
 								<a class="{{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}" href="{{ route('applicant.job_vacancies') }}">Job Vacancies</a>
 							</li>
-							@if ($canViewEmailManagementMenu)
-							<li>
-								<a class="{{ request()->routeIs('applicant.email*') ? 'active' : '' }}" href="{{ route('applicant.email.index') }}">Email</a>
-							</li>
-							@endif
 						</ul>
 					</li>
 					@endif
@@ -239,11 +241,6 @@
 							<li>
 								<a class="{{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}" href="{{ route('applicant.job_vacancies') }}">Job Vacancies</a>
 							</li>
-							@if ($canViewEmailManagementMenu)
-							<li>
-								<a class="{{ request()->routeIs('applicant.email*') ? 'active' : '' }}" href="{{ route('applicant.email.index') }}">Email</a>
-							</li>
-							@endif
 						</ul>
 					</li>
 					@endif

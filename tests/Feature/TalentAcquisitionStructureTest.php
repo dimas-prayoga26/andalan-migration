@@ -125,7 +125,7 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString("canViewSidebarMenu('view-talent-acquisition')", $sidebar);
         $this->assertStringContainsString("route('applicant')", $sidebar);
         $this->assertStringContainsString("route('applicant.job_vacancies')", $sidebar);
-        $this->assertStringContainsString("route('applicant.email.index')", $sidebar);
+        $this->assertStringNotContainsString("routeIs('applicant.email*')", $sidebar);
         $this->assertStringContainsString('position.permission:view-talent-acquisition', $routes);
         $this->assertStringContainsString('applicantsDatatable', $controller);
         $this->assertStringContainsString('jobVacanciesDatatable', $controller);

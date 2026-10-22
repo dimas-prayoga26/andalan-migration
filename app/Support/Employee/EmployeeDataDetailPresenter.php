@@ -29,8 +29,7 @@ use Illuminate\Support\Str;
  * @phpstan-type DetailTable array{title: string, is_required: bool, columns: list<string>, rows: list<list<string>>}
  * @phpstan-type DetailGroup array{title: string, fields: list<DetailField>, tables: list<DetailTable>}
  * @phpstan-type DetailDocument array{name: string, url: ?string, size: ?string, icon: string, is_image: bool}
- * @phpstan-type DocumentGroup array{title: string, last_updated: ?string, documents: list<DetailDocument>}
- * @phpstan-type DetailSection array{key: string, title: string, groups: list<DetailGroup>, document_groups?: list<DocumentGroup>}
+ * @phpstan-type DetailSection array{key: string, title: string, groups: list<DetailGroup>, document_files?: array<string, list<DetailDocument>>}
  */
 class EmployeeDataDetailPresenter
 {
@@ -227,64 +226,42 @@ class EmployeeDataDetailPresenter
                 'key' => 'attachments',
                 'title' => 'Attachments',
                 'groups' => [],
-                'document_groups' => $this->documentGroups($employeeId),
+                'document_files' => $this->documentFiles($employeeId),
             ],
         ];
     }
 
     /**
-     * Documents are grouped like the template's digital archive; only certification and license files are stored today.
+     * Uploaded files per document vault key (see EmployeeDocumentCatalog); only certification and license files are stored today.
      *
-     * @return list<DocumentGroup>
+     * @return array<string, list<DetailDocument>>
      */
-    private function documentGroups(string $employeeId): array
+    private function documentFiles(string $employeeId): array
     {
-        $certificationDocuments = EmployeeCertification::query()
-            ->where('employee_id', $employeeId)
-            ->whereNotNull('document_path')
-            ->where('document_path', '<>', '')
-            ->orderBy('sequence')
-            ->get()
-            ->map(fn (EmployeeCertification $certification): array => $this->document($certification->certificate_name ?: 'Certificate', (string) $certification->document_path, $certification->updated_at));
-        $licenseDocuments = EmployeeLicense::query()
-            ->where('employee_id', $employeeId)
-            ->whereNotNull('document_path')
-            ->where('document_path', '<>', '')
-            ->orderBy('created_at')
-            ->get()
-            ->map(fn (EmployeeLicense $license): array => $this->document($license->license_type ?: 'License', (string) $license->document_path, $license->updated_at));
-
         return [
-            $this->documentGroup('Personal Information', collect()),
-            $this->documentGroup('Financial & Tax Information', collect()),
-            $this->documentGroup('Digital Copies of Diplomas & Transcripts', collect()),
-            $this->documentGroup('Certifications & Licenses', $certificationDocuments->concat($licenseDocuments)),
-            $this->documentGroup('Legal Documents', collect()),
-        ];
-    }
-
-    /**
-     * @param  Collection<int, array{name: string, url: ?string, size: ?string, icon: string, is_image: bool, updated_at: ?Carbon}>  $documents
-     * @return DocumentGroup
-     */
-    private function documentGroup(string $title, Collection $documents): array
-    {
-        $lastUpdatedAt = $documents->pluck('updated_at')->filter()->max();
-
-        return [
-            'title' => $title,
-            'last_updated' => $lastUpdatedAt instanceof Carbon ? $lastUpdatedAt->timezone('Asia/Jakarta')->format('d M Y H:i') : null,
-            'documents' => $documents
-                ->map(fn (array $document): array => collect($document)->except('updated_at')->all())
-                ->values()
+            'certificates' => EmployeeCertification::query()
+                ->where('employee_id', $employeeId)
+                ->whereNotNull('document_path')
+                ->where('document_path', '<>', '')
+                ->orderBy('sequence')
+                ->get()
+                ->map(fn (EmployeeCertification $certification): array => $this->document($certification->certificate_name ?: 'Certificate', (string) $certification->document_path))
+                ->all(),
+            'licenses' => EmployeeLicense::query()
+                ->where('employee_id', $employeeId)
+                ->whereNotNull('document_path')
+                ->where('document_path', '<>', '')
+                ->orderBy('created_at')
+                ->get()
+                ->map(fn (EmployeeLicense $license): array => $this->document($license->license_type ?: 'License', (string) $license->document_path))
                 ->all(),
         ];
     }
 
     /**
-     * @return array{name: string, url: ?string, size: ?string, icon: string, is_image: bool, updated_at: ?Carbon}
+     * @return DetailDocument
      */
-    private function document(string $name, string $path, mixed $updatedAt): array
+    private function document(string $name, string $path): array
     {
         $path = trim($path);
         $extension = strtolower(pathinfo((string) (parse_url($path, PHP_URL_PATH) ?: $path), PATHINFO_EXTENSION));
@@ -314,7 +291,6 @@ class EmployeeDataDetailPresenter
                 default => 'assets/images/files/folder.avif',
             },
             'is_image' => $url !== null && in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif'], true),
-            'updated_at' => $updatedAt instanceof Carbon ? $updatedAt : null,
         ];
     }
 

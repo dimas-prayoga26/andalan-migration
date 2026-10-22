@@ -72,7 +72,15 @@ class AuthorizationEmployeeStoreTest extends TestCase
             'Personal &amp; Physical Profile', 'Nama Lengkap',
             'Legal, Tax &amp; Compliance', 'NIK (No KTP)',
             'Kontak Darurat',
+            'Employment &amp; Contract Details',
+            'Penempatan diatur pada tab',
+            'Status Kepegawaian', 'Pilih status', 'Probation', 'PKWT', 'PKWTT',
+            'Skema Waktu Kerja', 'Office Hours', 'Roster',
+            'Gaji Pokok', 'Tunjangan',
+            'Riwayat MCU', 'Rumah Sakit / Klinik',
+            'Aset Perusahaan yang Dipegang', 'Nomor Seri',
         ], false);
+        $response->assertSee('href="#wizard_Finish"', false);
         $response->assertSee('jquery.smartWizard.min.js', false);
         $response->assertSee('keyNavigation: false', false);
         $response->assertSee('<button type="submit" id="employeeFormSubmitButton" class="btn btn-success">', false);

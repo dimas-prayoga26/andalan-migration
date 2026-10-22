@@ -92,10 +92,9 @@ class AuthorizationEmployeeDataCompletionTest extends TestCase
             'Certifications', 'No data available.',
             'Company Assets &amp; Facilities',
             'Hardware', 'Brand', 'Spec', 'PIN', 'No data available.',
-            'Digital Document Archives (Attachments)',
-            'Personal Information', 'No documents uploaded yet.',
-            'Certifications &amp; Licenses', 'No documents uploaded yet.',
-            'Legal Documents', 'No documents uploaded yet.',
+            'Dokumen Digital', '0/7 Dokumen Wajib Terunggah',
+            'Dokumen Identitas &amp; Legalitas Pribadi', 'Scan KTP', 'Wajib', 'Klik atau seret file ke sini',
+            'Dokumen Perusahaan', 'Khusus HR', 'Scan Perjanjian Kerja (PKWT/PKWTT)', 'Klik atau seret file ke sini',
         ], false);
         $response->assertDontSee('Data Completion');
         $response->assertDontSee('role="progressbar"', false);

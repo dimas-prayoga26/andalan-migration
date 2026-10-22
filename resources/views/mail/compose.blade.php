@@ -25,7 +25,7 @@
 
 @php
     $mailFeatureTitle = $mailFeatureTitle ?? 'Email';
-    $mailRoutePrefix = $mailRoutePrefix ?? 'applicant.email';
+    $mailRoutePrefix = $mailRoutePrefix ?? 'administration-finance.email';
 @endphp
 
 @include('layouts.breadcrumb', [

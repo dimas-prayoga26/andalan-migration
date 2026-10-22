@@ -29,7 +29,7 @@ class MailController extends Controller
 
     private const BUSINESS_SESSION_SELECTED_KEY = 'business_mail_business_account_selected';
 
-    private const OPERATIONAL_ROUTE_PREFIX = 'applicant.email';
+    private const OPERATIONAL_ROUTE_PREFIX = 'administration-finance.email';
 
     private const BUSINESS_ROUTE_PREFIX = 'business-email';
 

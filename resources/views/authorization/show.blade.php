@@ -9,6 +9,7 @@
             object-fit: cover;
         }
     </style>
+    @include('employee_data.documents.styles')
 @endsection
 
 @section('content')
@@ -143,44 +144,8 @@
                                 </div>
                             @endforeach
 
-                            @if (! empty($dataSection['document_groups']))
-                                <h4 class="text-primary mb-3">Digital Document Archives (Attachments)</h4>
-                                @foreach ($dataSection['document_groups'] as $documentGroup)
-                                    <div class="mb-3">
-                                        <div class="clearfix">
-                                            <h6 class="mb-0">{{ $documentGroup['title'] }}</h6>
-                                            @if ($documentGroup['last_updated'] !== null)
-                                                <span class="small d-block">Last updated {{ $documentGroup['last_updated'] }}</span>
-                                            @endif
-                                        </div>
-                                        <div class="p-md-4 p-3 mt-3 border rounded">
-                                            @if ($documentGroup['documents'] === [])
-                                                <span class="text-muted">No documents uploaded yet.</span>
-                                            @else
-                                                <div class="row g-3">
-                                                    @foreach ($documentGroup['documents'] as $document)
-                                                        <div class="col-xxl-3 col-xl-4 col-sm-6">
-                                                            <div class="d-flex align-items-center">
-                                                                <div class="me-3">
-                                                                    <img src="{{ $document['is_image'] ? $document['url'] : asset($document['icon']) }}" width="35" height="35" class="employee-detail-avatar" alt="{{ $document['name'] }}">
-                                                                </div>
-                                                                <div class="clearfix">
-                                                                    @if ($document['url'] !== null)
-                                                                        <a href="{{ $document['url'] }}" target="_blank" rel="noopener noreferrer"><h6 class="mb-0">{{ $document['name'] }}</h6></a>
-                                                                        <span class="small">{{ $document['size'] ?? '-' }}</span>
-                                                                    @else
-                                                                        <h6 class="mb-0">{{ $document['name'] }}</h6>
-                                                                        <span class="small text-danger">File not found</span>
-                                                                    @endif
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            @endif
-                                        </div>
-                                    </div>
-                                @endforeach
+                            @if ($dataSection['key'] === 'attachments')
+                                @include('employee_data.documents.vault', ['documentVaultMode' => 'hr', 'employeeDocumentFiles' => $dataSection['document_files'] ?? []])
                             @endif
                         </div>
                     @endforeach
@@ -191,4 +156,8 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('script')
+    @include('employee_data.documents.script')
 @endsection

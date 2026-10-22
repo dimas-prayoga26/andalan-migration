@@ -105,7 +105,7 @@ class ProfilePageStructureTest extends TestCase
         $this->assertStringContainsString('id="profilePasswordForm"', $profile);
         $this->assertStringContainsString('action="{{ route(\'profile.password.update\') }}" method="POST"', $profile);
         $this->assertSame(2, substr_count($profile, '<form id='));
-        $this->assertSame(1, substr_count($profile, '<div class="card m-b30">'));
+        $this->assertSame(1, substr_count($profile, '<div class="card h-auto m-b30">'));
         $this->assertStringContainsString('<h6 class="card-title">Account Setup</h6>', $profile);
         $this->assertStringContainsString('.profile-account-tabs', $profile);
         $this->assertStringContainsString('background: #f4f6fb;', $profile);
@@ -124,7 +124,7 @@ class ProfilePageStructureTest extends TestCase
         $this->assertStringContainsString("'female' => 'Female'", $controller);
         $this->assertStringContainsString('name="marital_status"', $profile);
         $this->assertStringContainsString('Marital Status', $profile);
-        $this->assertStringContainsString("['Lajang', 'Menikah']", $profile);
+        $this->assertStringContainsString('@foreach (array_keys(\App\Support\Employee\EmployeeDataOptions::MARITAL_STATUSES) as $status)', $profile);
         $this->assertStringContainsString('@selected($profileMaritalStatusValue === $status)', $profile);
         $this->assertStringContainsString('maritalStatusLabel', $controller);
         $this->assertStringContainsString("'single', 'lajang' => 'Lajang'", $controller);
@@ -187,7 +187,7 @@ class ProfilePageStructureTest extends TestCase
         $this->assertStringContainsString('class ProfileUpdateRequest extends FormRequest', $request);
         $this->assertStringContainsString('return true;', $request);
         $this->assertStringContainsString("'gender' => ['nullable', Rule::in(['Male', 'Female'])]", $request);
-        $this->assertStringContainsString("'marital_status' => ['nullable', Rule::in(['Lajang', 'Menikah'])]", $request);
+        $this->assertStringContainsString("'marital_status' => ['nullable', Rule::in(array_keys(EmployeeDataOptions::MARITAL_STATUSES))]", $request);
         $this->assertStringContainsString("'birth' => ['nullable', 'date_format:Y-m-d']", $request);
         $this->assertStringContainsString("Rule::unique('users', 'email')->ignore(\$this->user()?->id)", $request);
         $this->assertStringContainsString("'profile_picture' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:1024']", $photoRequest);

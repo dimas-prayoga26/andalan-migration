@@ -145,7 +145,7 @@
                             @endforeach
 
                             @if ($dataSection['key'] === 'attachments')
-                                @include('employee_data.documents.vault', ['documentVaultMode' => 'hr', 'employeeDocumentFiles' => $dataSection['document_files'] ?? []])
+                                @include('employee_data.documents.vault', ['documentVaultMode' => 'view', 'employeeDocumentFiles' => $dataSection['document_files'] ?? []])
                             @endif
                         </div>
                     @endforeach

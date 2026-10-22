@@ -38,7 +38,10 @@ class EmployeeDocumentVaultTemplateTest extends TestCase
 
         $this->assertSame(11, substr_count($html, 'js-document-dropzone'));
         $this->assertStringContainsString('0/7 Dokumen Wajib Terunggah', $html);
-        $this->assertStringContainsString('<span class="badge badge-sm light badge-danger">Wajib</span>', $html);
+        $this->assertStringContainsString('<span class="badge badge-sm employee-document-required-badge">Wajib</span>', $html);
+        $this->assertStringContainsString('employee-document-required-dot', $html);
+        $this->assertStringContainsString('employee-document-optional-dot', $html);
+        $this->assertStringNotContainsString('badge-danger', $html);
         $this->assertStringContainsString('<span class="badge badge-sm light badge-primary">Opsional</span>', $html);
         $this->assertStringContainsString('data-max-size-mb="5"', $html);
         $this->assertStringContainsString('JPG, PNG · Maks 2 MB', $html);
@@ -62,6 +65,16 @@ class EmployeeDocumentVaultTemplateTest extends TestCase
         $this->assertStringNotContainsString('Belum tersedia', $html);
     }
 
+    public function test_view_vault_only_shows_documents_for_preview_and_download(): void
+    {
+        $html = Blade::render("@include('employee_data.documents.vault', ['documentVaultMode' => 'view'])");
+
+        $this->assertSame(0, substr_count($html, 'js-document-dropzone'));
+        $this->assertSame(14, substr_count($html, '<i class="fa fa-eye me-1"></i>Preview'));
+        $this->assertSame(14, substr_count($html, 'Belum diunggah'));
+        $this->assertStringNotContainsString('Belum tersedia', $html);
+    }
+
     public function test_profile_page_has_a_documents_tab_with_the_employee_vault(): void
     {
         $user = User::query()->create([
@@ -80,7 +93,7 @@ class EmployeeDocumentVaultTemplateTest extends TestCase
 
         $response->assertOk();
         $response->assertSeeInOrder([
-            'id="employee-documents-tab"', '>Dokumen</button>',
+            'id="employee-documents-tab"', 'Dokumen', '<span class="badge profile-tab-alert-badge ms-1">!</span>', '</button>',
             'id="employee-documents-pane"',
             'Dokumen Digital',
             'Dokumen Identitas &amp; Legalitas Pribadi',
@@ -88,6 +101,12 @@ class EmployeeDocumentVaultTemplateTest extends TestCase
             'Dokumen Riwayat Pekerjaan &amp; Medis',
             'Dokumen Perusahaan', 'Khusus HR',
         ], false);
-        $response->assertSee('function renderDocumentStatus', false);
+        $response->assertSee('data-upload-url="'.route('profile.employee-documents.store').'"', false);
+        $response->assertSee('function renderFiles', false);
+        $response->assertSee('.profile-tab-alert-badge {', false);
+        $response->assertSee('background-color: #dc3545;', false);
+        $response->assertSee('.employee-document-required-badge {', false);
+        $response->assertSee('background-color: rgba(220, 53, 69, 0.12);', false);
+        $response->assertDontSee('<span class="badge bg-danger ms-1">!</span>', false);
     }
 }

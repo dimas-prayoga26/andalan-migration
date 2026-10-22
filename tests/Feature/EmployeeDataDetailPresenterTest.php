@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\CompanyAsset;
 use App\Models\Employee;
 use App\Models\EmployeeAddress;
 use App\Models\EmployeeCertification;
@@ -106,6 +107,35 @@ class EmployeeDataDetailPresenterTest extends TestCase
         $this->assertSame('Laravel, MySQL', $valueOf('experience', 'Skills', 'Hard Skills'));
     }
 
+    public function test_company_assets_tab_lists_only_assets_held_by_the_employee(): void
+    {
+        $employee = Employee::factory()->create();
+        $company = Company::factory()->create();
+        CompanyAsset::factory()->for($company)->assignedTo($employee)->create([
+            'name' => 'Laptop',
+            'specification' => 'Lenovo ThinkPad E14',
+            'serial_number' => 'SN-001',
+            'handover_date' => '2026-06-01',
+        ]);
+        CompanyAsset::factory()->for($company)->assignedTo($employee)->create([
+            'name' => 'ID Card',
+            'specification' => null,
+            'serial_number' => null,
+            'handover_date' => '2026-05-01',
+        ]);
+        CompanyAsset::factory()->for($company)->assignedTo(Employee::factory()->create())->create(['name' => 'Monitor']);
+        CompanyAsset::factory()->for($company)->create(['name' => 'Spare Laptop']);
+
+        $sections = collect(app(EmployeeDataDetailPresenter::class)->forEmployee($employee))->keyBy('key');
+        $assetTable = $sections['assets']['groups'][0]['tables'][0];
+
+        $this->assertSame('Assets Held', $assetTable['title']);
+        $this->assertSame([
+            ['ID Card', '-', '-', '01 May 2026'],
+            ['Laptop', 'Lenovo ThinkPad E14', 'SN-001', '01 Jun 2026'],
+        ], $assetTable['rows']);
+    }
+
     public function test_attachments_tab_lists_certification_and_license_files_by_document_key(): void
     {
         Storage::fake('public');
@@ -139,25 +169,33 @@ class EmployeeDataDetailPresenterTest extends TestCase
         $documentFiles = $sections['attachments']['document_files'];
         $assetTable = $sections['assets']['groups'][0]['tables'][0];
 
-        $this->assertSame(['Brand', 'Spec', 'PIN'], $assetTable['columns']);
+        $this->assertSame(['Asset Name', 'Specification', 'Serial Number', 'Handover Date'], $assetTable['columns']);
         $this->assertSame([], $assetTable['rows']);
         $this->assertSame(['certificates', 'licenses'], array_keys($documentFiles));
         $this->assertSame([
             [
+                'id' => null,
                 'name' => 'Web Programmer',
                 'url' => asset('storage/employee-documents/bnsp.pdf'),
+                'download_url' => asset('storage/employee-documents/bnsp.pdf'),
+                'delete_url' => null,
                 'size' => '2.0 KB',
                 'icon' => 'assets/images/files/pdf.avif',
                 'is_image' => false,
+                'uploaded_at' => null,
             ],
         ], $documentFiles['certificates']);
         $this->assertSame([
             [
+                'id' => null,
                 'name' => 'SIM A',
                 'url' => null,
+                'download_url' => null,
+                'delete_url' => null,
                 'size' => null,
                 'icon' => 'assets/images/files/folder.avif',
                 'is_image' => false,
+                'uploaded_at' => null,
             ],
         ], $documentFiles['licenses']);
     }

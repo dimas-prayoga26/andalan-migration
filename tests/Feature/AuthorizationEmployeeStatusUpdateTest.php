@@ -11,13 +11,13 @@ class AuthorizationEmployeeStatusUpdateTest extends TestCase
     {
         $view = File::get(resource_path('views/authorization/form.blade.php'));
 
-        $this->assertStringContainsString('<input type="hidden" name="is_active" value="0">', $view);
+        $this->assertStringContainsString('<input type="hidden" name="is_active" value="0" form="employeeForm">', $view);
         $this->assertStringContainsString('id="is_active" name="is_active" value="1"', $view);
-        $this->assertStringContainsString('<input type="hidden" name="is_event_project_admin" value="0">', $view);
+        $this->assertStringContainsString('<input type="hidden" name="is_event_project_admin" value="0" form="employeeForm">', $view);
         $this->assertStringContainsString('id="is_event_project_admin" name="is_event_project_admin" value="1"', $view);
         $this->assertStringContainsString('Event Project Admin', $view);
         $this->assertStringContainsString('@if ($isEdit)', $view);
-        $this->assertStringContainsString('<input type="hidden" name="is_core_staff" value="0">', $view);
+        $this->assertStringContainsString('<input type="hidden" name="is_core_staff" value="0" form="employeeForm">', $view);
         $this->assertStringContainsString('id="is_core_staff" name="is_core_staff" value="1"', $view);
         $this->assertStringContainsString('Core Staff', $view);
     }

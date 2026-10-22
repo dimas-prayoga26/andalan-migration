@@ -37,7 +37,7 @@ class AuthorizationEmployeeStoreTest extends TestCase
             ->where('guard_name', 'web')
             ->firstOrFail();
 
-        $response->assertRedirect(route('authorization.show', ['employee' => $createdUser->employee]));
+        $response->assertRedirect(route('authorization.edit', ['employee' => $createdUser->employee]).'#employee-data');
         $this->assertTrue(Hash::check('password', $createdUser->password));
         $this->assertTrue($createdUser->hasRole('Staff'));
         $this->assertDatabaseHas('model_has_roles', [
@@ -66,25 +66,17 @@ class AuthorizationEmployeeStoreTest extends TestCase
             'name="employee_code"', 'name="nickname"', 'name="email"', 'name="phone"',
             'Placement',
             'name="current_company_id"', 'name="current_office_location_id"', 'name="current_department_id"', 'name="current_position_ids[]"', 'name="pic_employee_id"',
-            'This data is optional.',
-            'id="employeeDataWizard"',
-            'href="#wizard_Service"', 'href="#wizard_Time"', 'href="#wizard_Details"', 'href="#wizard_Payment"',
-            'Personal &amp; Physical Profile', 'Nama Lengkap',
-            'Legal, Tax &amp; Compliance', 'NIK (No KTP)',
-            'Kontak Darurat',
-            'Employment &amp; Contract Details',
-            'Penempatan diatur pada tab',
-            'Status Kepegawaian', 'Pilih status', 'Probation', 'PKWT', 'PKWTT',
-            'Skema Waktu Kerja', 'Office Hours', 'Roster',
-            'Gaji Pokok', 'Tunjangan',
-            'Riwayat MCU', 'Rumah Sakit / Klinik',
-            'Aset Perusahaan yang Dipegang', 'Nomor Seri',
+            '</form>',
+            'id="employeeFormData"',
+            'Employee data can be completed after the account is created.',
         ], false);
-        $response->assertSee('href="#wizard_Finish"', false);
-        $response->assertSee('jquery.smartWizard.min.js', false);
-        $response->assertSee('keyNavigation: false', false);
-        $response->assertSee('<button type="submit" id="employeeFormSubmitButton" class="btn btn-success">', false);
-        $response->assertSee("submitButton.classList.toggle('d-none', event.target === employeeDataTab);", false);
+        $response->assertDontSee('id="employeeDataWizard"', false);
+        $response->assertSee('<form method="POST" id="employeeForm" action="'.route('authorization.store').'">', false);
+        $response->assertSee('<input type="hidden" name="is_active" value="0" form="employeeForm">', false);
+        $response->assertSee('<button type="submit" id="employeeFormSubmitButton" class="btn btn-success" form="employeeForm">', false);
+        $response->assertSee("submitButton.classList.toggle('d-none', event.target !== accountTab);", false);
+        $response->assertDontSee('id="employeeFormDocumentsTab"', false);
+        $response->assertDontSee('js-document-dropzone mb-2', false);
         $response->assertDontSee('name="place_of_birth"', false);
         $response->assertDontSee('name="nik"', false);
     }
@@ -195,6 +187,36 @@ class AuthorizationEmployeeStoreTest extends TestCase
         $this->assertSame('EMP-NEW', $staffEmployee->employee_code);
         $this->assertSame('Wiz', $staffEmployee->profile->nickname);
         $this->assertSame('Nama Lengkap Dari Wizard', $staffEmployee->profile->name);
+    }
+
+    public function test_update_employee_form_has_documents_tab_for_hr_uploads(): void
+    {
+        $manager = $this->createAuthorizationManager();
+        $staffUser = User::query()->create([
+            'email' => 'staff.documents@example.test',
+            'password' => Hash::make('password'),
+            'is_active' => true,
+        ]);
+        $staffEmployee = Employee::query()->create([
+            'user_id' => $staffUser->id,
+            'employee_code' => 'EMP-DOCS',
+            'status' => 'Active',
+        ]);
+
+        $response = $this->actingAs($manager)->get(route('authorization.edit', ['employee' => $staffEmployee]));
+
+        $response->assertOk();
+        $response->assertSeeInOrder([
+            '1. Account &amp; Placement',
+            '2. Employee Data',
+            'id="employeeFormDocumentsTab"', '3. Documents', 'Optional',
+            'id="employeeFormDocuments"',
+            'Dokumen Digital',
+            'Dokumen Perusahaan', 'Khusus HR', 'Scan Perjanjian Kerja (PKWT/PKWTT)', 'Klik atau seret file ke sini',
+        ], false);
+        $this->assertSame(14, substr_count($response->getContent(), 'js-document-dropzone mb-2'));
+        $response->assertSee('data-upload-url="'.route('authorization.employee-documents.store', ['employee' => $staffEmployee]).'"', false);
+        $response->assertSee('function renderFiles', false);
     }
 
     private function createAuthorizationManager(): User

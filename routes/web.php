@@ -25,6 +25,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectManagement\OverviewController as ProjectManagementOverviewController;
 use App\Http\Controllers\ProjectManagement\ProjectController as ProjectManagementProjectController;
 use App\Http\Controllers\ProjectManagement\TaskListController as ProjectManagementTaskListController;
+use App\Http\Controllers\RegionController;
 use App\Http\Controllers\Settings\AttendanceRuleController as SettingsAttendanceRuleController;
 use App\Http\Controllers\Settings\CompanyController as SettingsCompanyController;
 use App\Http\Controllers\Settings\DivisionController as SettingsDivisionController;
@@ -39,6 +40,7 @@ use App\Http\Controllers\StaffAttendance\AttendanceOvertimeController;
 use App\Http\Controllers\StaffAttendance\AttendanceReportController;
 use App\Http\Controllers\TalentAcquisitionController;
 use App\Http\Controllers\UserActivityLogController;
+use App\Services\Employee\EmployeeDataWizardService;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -58,6 +60,16 @@ Route::middleware('auth')->group(function (): void {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
+    Route::put('/profile/employee-data/{employeeDataStep}', [ProfileController::class, 'updateEmployeeData'])
+        ->whereIn('employeeDataStep', EmployeeDataWizardService::SELF_SERVICE_STEPS)
+        ->name('profile.employee-data.update');
+    Route::post('/profile/employee-documents', [ProfileController::class, 'storeEmployeeDocument'])->name('profile.employee-documents.store');
+    Route::get('/profile/employee-documents/{employeeDocument}', [ProfileController::class, 'showEmployeeDocument'])->name('profile.employee-documents.show');
+    Route::delete('/profile/employee-documents/{employeeDocument}', [ProfileController::class, 'destroyEmployeeDocument'])->name('profile.employee-documents.destroy');
+    Route::get('/regions/provinces', [RegionController::class, 'provinces'])->name('regions.provinces');
+    Route::get('/regions/regencies/{provinceCode}', [RegionController::class, 'regencies'])->where('provinceCode', '\d{2}')->name('regions.regencies');
+    Route::get('/regions/districts/{regencyCode}', [RegionController::class, 'districts'])->where('regencyCode', '\d{2}\.\d{2}')->name('regions.districts');
+    Route::get('/regions/villages/{districtCode}', [RegionController::class, 'villages'])->where('districtCode', '\d{2}\.\d{2}\.\d{2}')->name('regions.villages');
     Route::get('/google-drive/oauth/access-token', [GoogleDriveOAuthController::class, 'accessToken'])->name('google-drive.oauth.access-token');
     Route::post('/google-drive/oauth/exchange-code', [GoogleDriveOAuthController::class, 'exchangeCode'])->name('google-drive.oauth.exchange-code');
     // Activity Schedule
@@ -184,6 +196,12 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/authorization/{employee}', [AuthorizationController::class, 'show'])->name('authorization.show');
         Route::get('/authorization/{employee}/edit', [AuthorizationController::class, 'edit'])->name('authorization.edit');
         Route::put('/authorization/{employee}', [AuthorizationController::class, 'update'])->name('authorization.update');
+        Route::put('/authorization/{employee}/employee-data/{employeeDataStep}', [AuthorizationController::class, 'updateEmployeeData'])
+            ->whereIn('employeeDataStep', EmployeeDataWizardService::HR_STEPS)
+            ->name('authorization.employee-data.update');
+        Route::post('/authorization/{employee}/employee-documents', [AuthorizationController::class, 'storeEmployeeDocument'])->name('authorization.employee-documents.store');
+        Route::get('/authorization/{employee}/employee-documents/{employeeDocument}', [AuthorizationController::class, 'showEmployeeDocument'])->name('authorization.employee-documents.show');
+        Route::delete('/authorization/{employee}/employee-documents/{employeeDocument}', [AuthorizationController::class, 'destroyEmployeeDocument'])->name('authorization.employee-documents.destroy');
         Route::delete('/authorization/{employee}', [AuthorizationController::class, 'destroy'])->name('authorization.destroy');
 
     });

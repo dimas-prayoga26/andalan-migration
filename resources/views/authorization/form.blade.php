@@ -5,6 +5,7 @@
 
 @section('css')
     @include('employee_data.wizard.styles')
+    @include('employee_data.documents.styles')
 @endsection
 
 @section('content')
@@ -18,12 +19,6 @@
     'homeRoute' => 'dashboard',
 ])
 
-<form method="POST" id="employeeForm" action="{{ $isEdit ? route('authorization.update', ['employee' => $employee]) : route('authorization.store') }}">
-    @csrf
-    @if ($isEdit)
-        @method('PUT')
-    @endif
-
     <div class="card">
         <div class="card-header border-0">
             <div>
@@ -32,26 +27,27 @@
             </div>
             <div class="d-flex align-items-center gap-4 flex-wrap">
                 <div class="form-check form-switch mb-0">
-                    <input type="hidden" name="is_active" value="0">
-                    <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" @checked(old('is_active', $employee?->user?->is_active ?? true))>
+                    <input type="hidden" name="is_active" value="0" form="employeeForm">
+                    <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" form="employeeForm" @checked(old('is_active', $employee?->user?->is_active ?? true))>
                     <label class="form-check-label fw-semibold" for="is_active">Employee Status</label>
                 </div>
-                <input type="hidden" name="is_event_project_admin" value="0">
+                <input type="hidden" name="is_event_project_admin" value="0" form="employeeForm">
                 @if ($isEdit)
                     <div class="form-check form-switch mb-0">
-                        <input class="form-check-input" type="checkbox" role="switch" id="is_event_project_admin" name="is_event_project_admin" value="1" @checked(old('is_event_project_admin', $employee?->is_event_project_admin ?? false))>
+                        <input class="form-check-input" type="checkbox" role="switch" id="is_event_project_admin" name="is_event_project_admin" value="1" form="employeeForm" @checked(old('is_event_project_admin', $employee?->is_event_project_admin ?? false))>
                         <label class="form-check-label fw-semibold" for="is_event_project_admin">Event Project Admin</label>
                     </div>
                 @endif
                 <div class="form-check form-switch mb-0">
-                    <input type="hidden" name="is_core_staff" value="0">
-                    <input class="form-check-input" type="checkbox" role="switch" id="is_core_staff" name="is_core_staff" value="1" @checked(old('is_core_staff', $employee?->is_core_staff ?? false))>
+                    <input type="hidden" name="is_core_staff" value="0" form="employeeForm">
+                    <input class="form-check-input" type="checkbox" role="switch" id="is_core_staff" name="is_core_staff" value="1" form="employeeForm" @checked(old('is_core_staff', $employee?->is_core_staff ?? false))>
                     <label class="form-check-label fw-semibold" for="is_core_staff">Core Staff</label>
                 </div>
             </div>
         </div>
 
         <div class="card-body">
+            @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
             @if ($errors->any())
                 @include('partials.swal-alert', [
                     'type' => 'error',
@@ -79,10 +75,23 @@
                         <span class="badge badge-xs light badge-secondary ms-1">Optional</span>
                     </button>
                 </li>
+                @if ($isEdit)
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="employeeFormDocumentsTab" data-bs-toggle="tab" data-bs-target="#employeeFormDocuments" type="button" role="tab" aria-controls="employeeFormDocuments" aria-selected="false">
+                            3. Documents
+                            <span class="badge badge-xs light badge-secondary ms-1">Optional</span>
+                        </button>
+                    </li>
+                @endif
             </ul>
 
             <div class="tab-content pt-4">
                 <div class="tab-pane fade show active js-employee-form-pane" id="employeeFormAccount" role="tabpanel" aria-labelledby="employeeFormAccountTab" tabindex="0">
+                    <form method="POST" id="employeeForm" action="{{ $isEdit ? route('authorization.update', ['employee' => $employee]) : route('authorization.store') }}">
+                    @csrf
+                    @if ($isEdit)
+                        @method('PUT')
+                    @endif
                     <h6 class="text-primary mb-3">Login Account</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-3">
@@ -171,27 +180,40 @@
                             </select>
                         </div>
                     </div>
+                    </form>
                 </div>
 
                 <div class="tab-pane fade js-employee-form-pane" id="employeeFormData" role="tabpanel" aria-labelledby="employeeFormDataTab" tabindex="0">
-                    <p class="text-muted mb-3">This data is optional. Employees can also complete it themselves from their Profile page.</p>
-                    @include('employee_data.wizard.wizard', ['isEmploymentStepReadOnly' => false])
+                    @if ($isEdit)
+                        <p class="text-muted mb-3">This data is optional and is saved automatically when you move to another step. Employees can also complete it themselves from their Profile page.</p>
+                        @include('employee_data.wizard.wizard', ['isEmploymentStepReadOnly' => false, 'isAccountManagedElsewhere' => true])
+                    @else
+                        <div class="alert alert-info mb-0" role="alert">
+                            Employee data can be completed after the account is created. Fill in <strong>1. Account &amp; Placement</strong>, then click <strong>Add Employee</strong>; you will be taken straight to this tab.
+                        </div>
+                    @endif
                 </div>
+
+                @if ($isEdit)
+                    <div class="tab-pane fade js-employee-form-pane" id="employeeFormDocuments" role="tabpanel" aria-labelledby="employeeFormDocumentsTab" tabindex="0">
+                        @include('employee_data.documents.vault', ['documentVaultMode' => 'hr', 'employeeDocumentFiles' => $employeeDocumentFiles ?? []])
+                    </div>
+                @endif
             </div>
         </div>
 
         <div class="card-footer d-flex justify-content-between">
             <a href="{{ route('authorization') }}" class="btn btn-light">Kembali</a>
-            <button type="submit" id="employeeFormSubmitButton" class="btn btn-success">
+            <button type="submit" id="employeeFormSubmitButton" class="btn btn-success" form="employeeForm">
                 <i class="fa-regular fa-floppy-disk me-1"></i>{{ $isEdit ? 'Update Employee' : 'Add Employee' }}
             </button>
         </div>
     </div>
-</form>
 @endsection
 
 @section('script')
     @include('employee_data.wizard.script')
+    @include('employee_data.documents.script')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var positionSelect = document.querySelector('.js-position-primary-selector');
@@ -315,17 +337,26 @@
             }, true);
 
             var submitButton = document.getElementById('employeeFormSubmitButton');
-            var employeeDataTab = document.getElementById('employeeFormDataTab');
+            var accountTab = document.getElementById('employeeFormAccountTab');
 
-            if (!submitButton || !employeeDataTab) {
+            if (!submitButton || !accountTab) {
                 return;
             }
 
             document.querySelectorAll('#employeeFormTabs [data-bs-toggle="tab"]').forEach(function (tabTrigger) {
                 tabTrigger.addEventListener('shown.bs.tab', function (event) {
-                    submitButton.classList.toggle('d-none', event.target === employeeDataTab);
+                    submitButton.classList.toggle('d-none', event.target !== accountTab);
                 });
             });
+
+            var tabTriggerFromHash = {
+                '#employee-data': document.getElementById('employeeFormDataTab'),
+                '#employee-documents': document.getElementById('employeeFormDocumentsTab')
+            }[window.location.hash];
+
+            if (tabTriggerFromHash) {
+                bootstrap.Tab.getOrCreateInstance(tabTriggerFromHash).show();
+            }
         });
     </script>
 @endsection

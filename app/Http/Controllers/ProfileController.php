@@ -2,19 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\EmployeeData\StoreEmployeeDocumentRequest;
 use App\Http\Requests\ProfilePasswordUpdateRequest;
 use App\Http\Requests\ProfilePhotoUpdateRequest;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\Employee;
 use App\Models\EmployeeAddress;
+use App\Models\EmployeeDocument;
 use App\Models\EmployeeProfile;
 use App\Models\Position;
 use App\Models\User;
+use App\Services\Employee\EmployeeDataWizardService;
+use App\Services\Employee\EmployeeDocumentVaultService;
 use App\Support\Employee\EmployeeDataCompletionCalculator;
+use App\Support\Employee\EmployeeDataOptions;
+use App\Support\Employee\EmployeeDataWizardValues;
+use App\Support\Employee\EmployeeDocumentCatalog;
 use App\Support\Employee\EmployeeEmploymentDetailResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -24,6 +32,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 class ProfileController extends Controller
@@ -31,6 +40,10 @@ class ProfileController extends Controller
     public function __construct(
         private readonly EmployeeDataCompletionCalculator $employeeDataCompletionCalculator,
         private readonly EmployeeEmploymentDetailResolver $employeeEmploymentDetailResolver,
+        private readonly EmployeeDocumentCatalog $employeeDocumentCatalog,
+        private readonly EmployeeDataWizardValues $employeeDataWizardValues,
+        private readonly EmployeeDataWizardService $employeeDataWizardService,
+        private readonly EmployeeDocumentVaultService $employeeDocumentVaultService,
     ) {}
 
     public function index(): View
@@ -67,16 +80,19 @@ class ProfileController extends Controller
                 [
                     'name' => $this->blankToNull($validated['name'] ?? null),
                     'gender' => $this->blankToNull($validated['gender'] ?? null),
-                    'marital_status' => $this->blankToNull($validated['marital_status'] ?? null),
+                    'marital_status' => EmployeeDataOptions::normalizeMaritalStatus($validated['marital_status'] ?? null),
                     'date_of_birth' => $this->blankToNull($validated['birth'] ?? null),
                 ],
             );
 
             $addressLine = $this->blankToNull($validated['address'] ?? null);
-            $latestAddress = $employee->latestAddress;
+            $domicileAddress = $this->domicileAddressFor($employee);
 
-            if ($latestAddress instanceof EmployeeAddress) {
-                $latestAddress->forceFill(['address_line' => $addressLine])->save();
+            if ($domicileAddress instanceof EmployeeAddress) {
+                $domicileAddress->forceFill([
+                    'type' => EmployeeDataCompletionCalculator::DOMICILE_ADDRESS_TYPE,
+                    'address_line' => $addressLine,
+                ])->save();
 
                 return;
             }
@@ -84,12 +100,71 @@ class ProfileController extends Controller
             if ($addressLine !== null) {
                 EmployeeAddress::query()->create([
                     'employee_id' => $employee->id,
+                    'type' => EmployeeDataCompletionCalculator::DOMICILE_ADDRESS_TYPE,
                     'address_line' => $addressLine,
                 ]);
             }
         });
 
         return back()->with('profile_status', 'Profile berhasil diperbarui.');
+    }
+
+    /**
+     * Autosaves one step (1–4) of the "Data Karyawan" wizard for the signed-in employee.
+     */
+    public function updateEmployeeData(Request $request, string $employeeDataStep): JsonResponse
+    {
+        $employee = $this->authenticatedEmployee($request);
+        $validated = app(EmployeeDataWizardService::requestClassFor($employeeDataStep))->validated();
+        $savedRowIds = $this->employeeDataWizardService->save($employee, $employeeDataStep, $validated);
+
+        return response()->json([
+            'message' => 'Data berhasil disimpan.',
+            'row_ids' => $savedRowIds,
+            'is_employee_data_complete' => $this->employeeDataCompletionCalculator->forEmployee($employee->refresh())['is_complete'],
+        ]);
+    }
+
+    public function storeEmployeeDocument(Request $request): JsonResponse
+    {
+        $employee = $this->authenticatedEmployee($request);
+        $documentRequest = app(StoreEmployeeDocumentRequest::class);
+        $documentType = (string) $documentRequest->validated('document_type');
+
+        if (! in_array($documentType, $this->employeeDocumentCatalog->uploadableDocumentKeys('employee'), true)) {
+            throw ValidationException::withMessages([
+                'document_type' => 'Dokumen ini hanya dapat diunggah oleh HR.',
+            ]);
+        }
+
+        $this->employeeDocumentVaultService->store($employee, $documentType, $documentRequest->file('file'), $request->user());
+
+        return response()->json([
+            'message' => 'Dokumen berhasil diunggah.',
+        ] + $this->employeeDocumentVaultService->documentTypeState($employee, $documentType, isSelfService: true));
+    }
+
+    public function showEmployeeDocument(Request $request, EmployeeDocument $employeeDocument): StreamedResponse
+    {
+        $employee = $this->authenticatedEmployee($request);
+
+        abort_unless($employeeDocument->employee_id === $employee->id, 404);
+
+        return $this->employeeDocumentVaultService->fileResponse($employeeDocument, $request->boolean('download'));
+    }
+
+    public function destroyEmployeeDocument(Request $request, EmployeeDocument $employeeDocument): JsonResponse
+    {
+        $employee = $this->authenticatedEmployee($request);
+
+        abort_unless($employeeDocument->employee_id === $employee->id, 404);
+        abort_unless(in_array($employeeDocument->document_type, $this->employeeDocumentCatalog->uploadableDocumentKeys('employee'), true), 403);
+
+        $this->employeeDocumentVaultService->delete($employeeDocument);
+
+        return response()->json([
+            'message' => 'Dokumen berhasil dihapus.',
+        ] + $this->employeeDocumentVaultService->documentTypeState($employee, $employeeDocument->document_type, isSelfService: true));
     }
 
     public function updatePassword(ProfilePasswordUpdateRequest $request): RedirectResponse
@@ -187,6 +262,11 @@ class ProfileController extends Controller
             'profileFormAddress' => '-',
             'employeeDataCompletionPercent' => 100,
             'employeeEmploymentDetails' => $this->employeeEmploymentDetailResolver->forEmployee(null),
+            'employeeDataWizardValues' => $this->employeeDataWizardValues->forEmployee(null),
+            'employeeDataStepUrls' => [],
+            'employeeDocumentFiles' => [],
+            'employeeDocumentUploadUrl' => null,
+            'hasMissingRequiredEmployeeDocuments' => true,
         ];
 
         $authenticatedUserId = Auth::id();
@@ -240,10 +320,48 @@ class ProfileController extends Controller
                     ->forEmployee($authenticatedUser->employee)['percent'];
                 $profileData['employeeEmploymentDetails'] = $this->employeeEmploymentDetailResolver
                     ->forEmployee($authenticatedUser->employee);
+                $profileData['employeeDataWizardValues'] = $this->employeeDataWizardValues
+                    ->forEmployee(Employee::query()->find($authenticatedUser->employee->id));
+                $profileData['employeeDataStepUrls'] = collect(EmployeeDataWizardService::SELF_SERVICE_STEPS)
+                    ->mapWithKeys(fn (string $step): array => [$step => route('profile.employee-data.update', ['employeeDataStep' => $step])])
+                    ->all();
+                $profileData['employeeDocumentFiles'] = $this->employeeDocumentVaultService
+                    ->filesFor($authenticatedUser->employee, isSelfService: true);
+                $profileData['employeeDocumentUploadUrl'] = route('profile.employee-documents.store');
+                $profileData['hasMissingRequiredEmployeeDocuments'] = $this->employeeDocumentVaultService
+                    ->requiredDocumentSummary($profileData['employeeDocumentFiles'])['has_missing_required_documents'];
             }
         }
 
         return $profileData;
+    }
+
+    private function authenticatedEmployee(Request $request): Employee
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User, 403);
+
+        $employee = $authenticatedUser->employee;
+
+        abort_unless($employee instanceof Employee, 404);
+
+        return $employee;
+    }
+
+    /**
+     * The address shown as "Address" on the profile form: the domicile address, or a legacy address without a type.
+     */
+    private function domicileAddressFor(Employee $employee): ?EmployeeAddress
+    {
+        return EmployeeAddress::query()
+            ->where('employee_id', $employee->id)
+            ->where(fn ($query) => $query
+                ->where('type', EmployeeDataCompletionCalculator::DOMICILE_ADDRESS_TYPE)
+                ->orWhereNull('type')
+                ->orWhere('type', ''))
+            ->latest('created_at')
+            ->first();
     }
 
     private function displayName(User $user): string
@@ -358,7 +476,9 @@ class ProfileController extends Controller
 
     private function addressLine(User $user): string
     {
-        $addressLine = $user->employee?->latestAddress?->address_line;
+        $addressLine = $user->employee instanceof Employee
+            ? $this->domicileAddressFor($user->employee)?->address_line
+            : null;
 
         return $this->profileValue($addressLine);
     }
@@ -370,6 +490,8 @@ class ProfileController extends Controller
         return match ($maritalStatus) {
             'single', 'lajang' => 'Lajang',
             'married', 'menikah' => 'Menikah',
+            'duda', 'widower' => 'Duda',
+            'janda', 'widow' => 'Janda',
             default => '',
         };
     }

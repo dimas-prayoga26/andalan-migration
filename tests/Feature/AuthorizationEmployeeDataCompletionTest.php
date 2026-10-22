@@ -91,13 +91,14 @@ class AuthorizationEmployeeDataCompletionTest extends TestCase
             'Educational Background', 'Universitas Gadjah Mada', 'Teknik Informatika', '2017 – 2021',
             'Certifications', 'No data available.',
             'Company Assets &amp; Facilities',
-            'Hardware', 'Brand', 'Spec', 'PIN', 'No data available.',
+            'Assets Held', 'Asset Name', 'Specification', 'Serial Number', 'Handover Date', 'No data available.',
             'Dokumen Digital', '0/7 Dokumen Wajib Terunggah',
-            'Dokumen Identitas &amp; Legalitas Pribadi', 'Scan KTP', 'Wajib', 'Klik atau seret file ke sini',
-            'Dokumen Perusahaan', 'Khusus HR', 'Scan Perjanjian Kerja (PKWT/PKWTT)', 'Klik atau seret file ke sini',
+            'Dokumen Identitas &amp; Legalitas Pribadi', 'Scan KTP', 'Wajib', 'Belum diunggah', 'Preview', 'Download',
+            'Dokumen Perusahaan', 'Khusus HR', 'Scan Perjanjian Kerja (PKWT/PKWTT)', 'Belum diunggah', 'Preview', 'Download',
         ], false);
         $response->assertDontSee('Data Completion');
         $response->assertDontSee('role="progressbar"', false);
+        $response->assertDontSee('js-document-dropzone mb-2', false);
         $response->assertDontSee(route('authorization.edit', ['employee' => $staffEmployee]), false);
         $response->assertDontSee('btn btn-light w-100 mt-2">Back</a>', false);
     }

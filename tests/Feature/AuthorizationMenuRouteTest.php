@@ -201,7 +201,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringNotContainsString('name="bpjs_kesehatan"', $authorizationFormView);
         $this->assertStringNotContainsString('name="npwp"', $authorizationFormView);
         $this->assertStringContainsString('pic_employee_id', $authorizationFormView);
-        $this->assertStringContainsString("@include('employee_data.wizard.wizard', ['isEmploymentStepReadOnly' => false])", $authorizationFormView);
+        $this->assertStringContainsString("@include('employee_data.wizard.wizard', ['isEmploymentStepReadOnly' => false, 'isAccountManagedElsewhere' => true])", $authorizationFormView);
         $this->assertStringContainsString("@include('employee_data.wizard.script')", $authorizationFormView);
         $this->assertStringNotContainsString('name="employee_status" value="Active"', $authorizationFormView);
         $this->assertStringContainsString('Add Employee', $authorizationFormView);

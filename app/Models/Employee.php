@@ -142,6 +142,39 @@ class Employee extends Model
         return $this->hasMany(AttendanceOvertime::class, 'employee_id', 'id');
     }
 
+    public function bankAccounts(): HasMany
+    {
+        return $this->hasMany(EmployeeBankAccount::class, 'employee_id', 'id');
+    }
+
+    public function families(): HasMany
+    {
+        return $this->hasMany(EmployeeFamily::class, 'employee_id', 'id');
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(EmployeeDocument::class, 'employee_id', 'id');
+    }
+
+    public function medicalCheckups(): HasMany
+    {
+        return $this->hasMany(EmployeeMedicalCheckup::class, 'employee_id', 'id');
+    }
+
+    public function compensation(): HasOne
+    {
+        return $this->hasOne(EmployeeCompensation::class, 'employee_id', 'id');
+    }
+
+    /**
+     * Company assets currently held by this employee.
+     */
+    public function assets(): HasMany
+    {
+        return $this->hasMany(CompanyAsset::class, 'employee_id', 'id');
+    }
+
     public function hasPositionName(string $positionName): bool
     {
         return $this->hasAnyPositionName([$positionName]);

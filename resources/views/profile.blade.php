@@ -11,6 +11,11 @@
     @include('employee_data.wizard.styles')
     @include('employee_data.documents.styles')
     <style>
+        .profile-tab-alert-badge {
+            background-color: #dc3545;
+            color: #fff;
+        }
+
         .profile-locked-badge {
             font-size: 0.7rem;
             color: #6b7280;
@@ -111,7 +116,7 @@
 @endphp
 
 @if ($employeeDataCompletionPercent < 100)
-    <div class="alert alert-warning" role="alert">
+    <div class="alert alert-warning js-employee-data-incomplete-alert" role="alert">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
                 <h5 class="alert-heading mb-1"><i class="fa fa-exclamation-circle me-2"></i>Data karyawan belum lengkap</h5>
@@ -149,9 +154,9 @@
             <ul class="list-group list-group-flush profile-summary-list">
                 <li class="list-group-item py-3"><span class="profile-summary-label">Employee ID</span><span class="profile-summary-value">{{ $profilePageEmployeeCode }}</span></li>
                 <li class="list-group-item py-3"><span class="profile-summary-label">Company</span><span class="profile-summary-value">{{ $profileFormCompany }}</span></li>
-                <li class="list-group-item py-3"><span class="profile-summary-label">Job Title</span><span class="profile-summary-value">{{ $profilePagePositionName }}</span></li>
+                <li class="list-group-item py-3"><span class="profile-summary-label">Position</span><span class="profile-summary-value">{{ $profilePagePositionName }}</span></li>
                 <li class="list-group-item py-3"><span class="profile-summary-label">Department</span><span class="profile-summary-value">{{ $profilePageDepartmentName }}</span></li>
-                <li class="list-group-item py-3"><span class="profile-summary-label">Atasan Langsung</span><span class="profile-summary-value">{{ $profilePageSupervisorName ?? '-' }}</span></li>
+                <li class="list-group-item py-3"><span class="profile-summary-label">PIC</span><span class="profile-summary-value">{{ $employeeEmploymentDetails['supervisor'] ?? '-' }}</span></li>
                 <li class="list-group-item py-3"><span class="profile-summary-label">Join Date</span><span class="profile-summary-value">{{ $profilePageJoinDateLabel }}</span></li>
                 <li class="list-group-item py-3"><span class="profile-summary-label">Work Location</span><span class="profile-summary-value">{{ $profileFormBaseOffice }}</span></li>
                 <li class="list-group-item py-3"><span class="profile-summary-label">Work Email</span><span class="profile-summary-value">{{ $profileFormEmail }}</span></li>
@@ -162,7 +167,7 @@
 
     <!-- Start - Account Setup -->
     <div class="col-xl-9">
-        <div class="card m-b30">
+        <div class="card h-auto m-b30">
             <div class="card-header">
                 <h6 class="card-title">Account Setup</h6>
             </div>
@@ -178,12 +183,17 @@
                         <button class="nav-link" id="employee-data-tab" data-bs-toggle="tab" data-bs-target="#employee-data-pane" type="button" role="tab" aria-controls="employee-data-pane" aria-selected="false">
                             Data Karyawan
                             @if ($employeeDataCompletionPercent < 100)
-                                <span class="badge bg-danger ms-1">!</span>
+                                <span class="badge profile-tab-alert-badge ms-1">!</span>
                             @endif
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="employee-documents-tab" data-bs-toggle="tab" data-bs-target="#employee-documents-pane" type="button" role="tab" aria-controls="employee-documents-pane" aria-selected="false">Dokumen</button>
+                        <button class="nav-link" id="employee-documents-tab" data-bs-toggle="tab" data-bs-target="#employee-documents-pane" type="button" role="tab" aria-controls="employee-documents-pane" aria-selected="false">
+                            Dokumen
+                            @if ($hasMissingRequiredEmployeeDocuments ?? false)
+                                <span class="badge profile-tab-alert-badge ms-1">!</span>
+                            @endif
+                        </button>
                     </li>
                 </ul>
             </div>
@@ -227,7 +237,7 @@
                             <label class="form-label">Marital Status</label>
                             <select name="marital_status" class="default-select form-control">
                                 <option value="">Open this select menu</option>
-                                @foreach (['Lajang', 'Menikah'] as $status)
+                                @foreach (array_keys(\App\Support\Employee\EmployeeDataOptions::MARITAL_STATUSES) as $status)
                                     <option value="{{ $status }}" @selected($profileMaritalStatusValue === $status)>{{ $status }}</option>
                                 @endforeach
                             </select>
@@ -304,7 +314,7 @@
                 </div>
                 <div class="tab-pane fade" id="employee-documents-pane" role="tabpanel" aria-labelledby="employee-documents-tab" tabindex="0">
                     <div class="card-body">
-                        @include('employee_data.documents.vault', ['documentVaultMode' => 'employee'])
+                        @include('employee_data.documents.vault', ['documentVaultMode' => 'employee', 'employeeDocumentFiles' => $employeeDocumentFiles ?? []])
                     </div>
                 </div>
             </div>
@@ -339,6 +349,43 @@
             if (window.location.hash === '#employee-data') {
                 openEmployeeDataTab();
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            function toggleTabAlertBadge(tabButtonId, isIncomplete) {
+                var tabButton = document.getElementById(tabButtonId);
+                var alertBadge = tabButton ? tabButton.querySelector('.profile-tab-alert-badge') : null;
+
+                if (!tabButton) {
+                    return;
+                }
+
+                if (isIncomplete && !alertBadge) {
+                    alertBadge = document.createElement('span');
+                    alertBadge.className = 'badge profile-tab-alert-badge ms-1';
+                    alertBadge.textContent = '!';
+                    tabButton.appendChild(alertBadge);
+                }
+
+                if (!isIncomplete && alertBadge) {
+                    alertBadge.remove();
+                }
+            }
+
+            document.addEventListener('employee-data:saved', function (event) {
+                var isComplete = !!(event.detail && event.detail.is_employee_data_complete);
+                var incompleteAlert = document.querySelector('.js-employee-data-incomplete-alert');
+
+                toggleTabAlertBadge('employee-data-tab', !isComplete);
+
+                if (incompleteAlert) {
+                    incompleteAlert.classList.toggle('d-none', isComplete);
+                }
+            });
+
+            document.addEventListener('employee-documents:changed', function (event) {
+                toggleTabAlertBadge('employee-documents-tab', !!(event.detail && event.detail.has_missing_required_documents));
+            });
         });
 
         document.addEventListener('DOMContentLoaded', function () {

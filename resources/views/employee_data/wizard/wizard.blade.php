@@ -1,4 +1,21 @@
-<div id="employeeDataWizard" class="form-wizard order-create border-0">
+{{--
+    "Data Karyawan" wizard shared by the Profile page (steps 1–4 editable, step 5 read-only) and Update Employee (all steps).
+    Each step is its own form that is saved automatically when the user moves to another step.
+    Params: isEmploymentStepReadOnly, employeeDataWizardValues, employeeDataStepUrls (step => save URL; empty = read-only),
+    isAccountManagedElsewhere (nickname/phone are edited on the account tab).
+--}}
+@php
+    $wizardValues = $employeeDataWizardValues ?? app(\App\Support\Employee\EmployeeDataWizardValues::class)->forEmployee(null);
+    $wizardStepUrls = $employeeDataStepUrls ?? [];
+    $isAccountManagedElsewhere = $isAccountManagedElsewhere ?? false;
+@endphp
+<div id="employeeDataWizard" class="form-wizard order-create border-0" data-region-urls="{{ json_encode([
+    'province' => route('regions.provinces'),
+    'regency' => url('regions/regencies'),
+    'subdistrict' => url('regions/districts'),
+    'village' => url('regions/villages'),
+]) }}">
+    <div class="alert alert-danger d-none js-employee-data-error" role="alert"></div>
     <ul class="nav nav-wizard">
         <li><a class="nav-link" href="#wizard_Service"><span>1</span></a></li>
         <li><a class="nav-link" href="#wizard_Time"><span>2</span></a></li>
@@ -13,4 +30,7 @@
         @include('employee_data.wizard.step-4-family')
         @include('employee_data.wizard.step-5-employment')
     </div>
+    @if ($wizardStepUrls !== [])
+        <p class="small text-muted mb-0 mt-2 js-employee-data-save-status" aria-live="polite">Data tersimpan otomatis saat pindah step.</p>
+    @endif
 </div>

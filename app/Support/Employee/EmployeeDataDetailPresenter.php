@@ -2,11 +2,14 @@
 
 namespace App\Support\Employee;
 
+use App\Models\CompanyAsset;
 use App\Models\Employee;
 use App\Models\EmployeeAddress;
+use App\Models\EmployeeBankAccount;
 use App\Models\EmployeeCertification;
 use App\Models\EmployeeDeployment;
 use App\Models\EmployeeEducation;
+use App\Models\EmployeeFamily;
 use App\Models\EmployeeIdentity;
 use App\Models\EmployeeLicense;
 use App\Models\EmployeePicAssignment;
@@ -14,11 +17,9 @@ use App\Models\EmployeeProfile;
 use App\Models\EmployeeReference;
 use App\Models\EmployeeWorkExperience;
 use App\Models\User;
+use App\Services\Employee\EmployeeDocumentVaultService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Number;
 use Illuminate\Support\Str;
 
 /**
@@ -28,11 +29,13 @@ use Illuminate\Support\Str;
  * @phpstan-type DetailField array{label: string, value: ?string, is_required: bool}
  * @phpstan-type DetailTable array{title: string, is_required: bool, columns: list<string>, rows: list<list<string>>}
  * @phpstan-type DetailGroup array{title: string, fields: list<DetailField>, tables: list<DetailTable>}
- * @phpstan-type DetailDocument array{name: string, url: ?string, size: ?string, icon: string, is_image: bool}
+ * @phpstan-type DetailDocument array{id: ?string, name: string, url: ?string, download_url: ?string, delete_url: ?string, size: ?string, icon: string, is_image: bool, uploaded_at: ?string}
  * @phpstan-type DetailSection array{key: string, title: string, groups: list<DetailGroup>, document_files?: array<string, list<DetailDocument>>}
  */
 class EmployeeDataDetailPresenter
 {
+    public function __construct(private readonly EmployeeDocumentVaultService $employeeDocumentVaultService) {}
+
     /**
      * @return list<DetailSection>
      */
@@ -50,16 +53,16 @@ class EmployeeDataDetailPresenter
             ->get()
             ->groupBy(fn (EmployeeAddress $address): string => strtolower(trim((string) $address->type)) ?: EmployeeDataCompletionCalculator::DOMICILE_ADDRESS_TYPE)
             ->map(fn (Collection $addresses): ?EmployeeAddress => $addresses->first());
-        $bankAccount = DB::table('employee_bank_accounts')
+        $bankAccount = EmployeeBankAccount::query()
             ->where('employee_id', $employeeId)
             ->orderByDesc('is_primary')
             ->orderByDesc('created_at')
             ->first();
-        $families = DB::table('employee_families')
+        $families = EmployeeFamily::query()
             ->where('employee_id', $employeeId)
             ->orderBy('created_at')
             ->get();
-        $emergencyContacts = $families->filter(fn (object $family): bool => (bool) $family->is_emergency_contact)->values();
+        $emergencyContacts = $families->filter(fn (EmployeeFamily $family): bool => $family->is_emergency_contact)->values();
 
         return [
             [
@@ -128,15 +131,15 @@ class EmployeeDataDetailPresenter
                     $this->group('Family & Emergency Contacts', $emergencyContacts->isEmpty()
                         ? [$this->field('Emergency Contact', null, true)]
                         : $emergencyContacts
-                            ->map(fn (object $contact, int $index): array => $this->field(
+                            ->map(fn (EmployeeFamily $contact, int $index): array => $this->field(
                                 'Emergency Contact '.($index + 1),
                                 $this->joinFilled([$this->joinFilled([$contact->name, $this->wrap($contact->relationship)], ' '), $contact->phone_number], ' - '),
                                 true,
                             ))
                             ->all(), [
                                 $this->table('Family Members', ['Name', 'Date of Birth', 'Gender', 'Relationship', 'Occupation', 'Phone'], $families
-                                    ->reject(fn (object $family): bool => (bool) $family->is_emergency_contact)
-                                    ->map(fn (object $family): array => [
+                                    ->reject(fn (EmployeeFamily $family): bool => $family->is_emergency_contact)
+                                    ->map(fn (EmployeeFamily $family): array => [
                                         $this->text($family->name),
                                         $this->dateWithAge($family->date_of_birth) ?? '-',
                                         $this->text($family->gender),
@@ -218,7 +221,17 @@ class EmployeeDataDetailPresenter
                 'title' => 'Company Assets',
                 'groups' => [
                     $this->group('Company Assets & Facilities', [], [
-                        $this->table('Hardware', ['Brand', 'Spec', 'PIN'], collect()),
+                        $this->table('Assets Held', ['Asset Name', 'Specification', 'Serial Number', 'Handover Date'], CompanyAsset::query()
+                            ->where('employee_id', $employeeId)
+                            ->orderBy('handover_date')
+                            ->orderBy('name')
+                            ->get()
+                            ->map(fn (CompanyAsset $companyAsset): array => [
+                                $this->text($companyAsset->name),
+                                $this->text($companyAsset->specification),
+                                $this->text($companyAsset->serial_number),
+                                $this->dateLabel($companyAsset->handover_date) ?? '-',
+                            ])),
                     ]),
                 ],
             ],
@@ -226,72 +239,19 @@ class EmployeeDataDetailPresenter
                 'key' => 'attachments',
                 'title' => 'Attachments',
                 'groups' => [],
-                'document_files' => $this->documentFiles($employeeId),
+                'document_files' => $this->documentFilesFor($employee),
             ],
         ];
     }
 
     /**
-     * Uploaded files per document vault key (see EmployeeDocumentCatalog); only certification and license files are stored today.
+     * Uploaded files per document vault key (see EmployeeDocumentCatalog).
      *
      * @return array<string, list<DetailDocument>>
      */
-    private function documentFiles(string $employeeId): array
+    public function documentFilesFor(Employee $employee): array
     {
-        return [
-            'certificates' => EmployeeCertification::query()
-                ->where('employee_id', $employeeId)
-                ->whereNotNull('document_path')
-                ->where('document_path', '<>', '')
-                ->orderBy('sequence')
-                ->get()
-                ->map(fn (EmployeeCertification $certification): array => $this->document($certification->certificate_name ?: 'Certificate', (string) $certification->document_path))
-                ->all(),
-            'licenses' => EmployeeLicense::query()
-                ->where('employee_id', $employeeId)
-                ->whereNotNull('document_path')
-                ->where('document_path', '<>', '')
-                ->orderBy('created_at')
-                ->get()
-                ->map(fn (EmployeeLicense $license): array => $this->document($license->license_type ?: 'License', (string) $license->document_path))
-                ->all(),
-        ];
-    }
-
-    /**
-     * @return DetailDocument
-     */
-    private function document(string $name, string $path): array
-    {
-        $path = trim($path);
-        $extension = strtolower(pathinfo((string) (parse_url($path, PHP_URL_PATH) ?: $path), PATHINFO_EXTENSION));
-        $url = null;
-        $size = null;
-
-        if (Str::startsWith($path, ['http://', 'https://'])) {
-            $url = $path;
-        } else {
-            $publicPath = ltrim($path, '/');
-            $storagePath = Str::startsWith($publicPath, 'storage/') ? Str::after($publicPath, 'storage/') : $publicPath;
-
-            if (Storage::disk('public')->exists($storagePath)) {
-                $url = asset('storage/'.$storagePath);
-                $size = Number::fileSize(Storage::disk('public')->size($storagePath), precision: 1);
-            }
-        }
-
-        return [
-            'name' => $name,
-            'url' => $url,
-            'size' => $size,
-            'icon' => match ($extension) {
-                'pdf' => 'assets/images/files/pdf.avif',
-                'csv', 'xls', 'xlsx' => 'assets/images/files/csv.avif',
-                'ppt', 'pptx' => 'assets/images/files/ppt.avif',
-                default => 'assets/images/files/folder.avif',
-            },
-            'is_image' => $url !== null && in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif'], true),
-        ];
+        return $this->employeeDocumentVaultService->filesFor($employee, isSelfService: false);
     }
 
     /**

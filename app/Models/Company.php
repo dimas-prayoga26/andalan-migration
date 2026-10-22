@@ -75,6 +75,11 @@ class Company extends Model
         return $this->hasMany(Project::class, 'company_id', 'id');
     }
 
+    public function assets(): HasMany
+    {
+        return $this->hasMany(CompanyAsset::class, 'company_id', 'id');
+    }
+
     /**
      * Brand keys from config/career_brands.php, which match company names case-insensitively.
      *

@@ -1,217 +1,87 @@
-										<div id="wizard_Details" class="tab-pane" role="tabpanel">
-											<div class="row">
-                                                <h4 class="mt-3 mb-3 fw-bold">Education, Experience & Skills</h4>
-                                                <h6 class="mb-3 fw-semibold">1. Pendidikan Formal:</h6>
-												<div class="col-lg-3 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Tingkat Pendidikan</label>
-														<select class="selectpicker form-select" required>
-                                                            <option value="AL">SD</option>
-                                                            <option value="WY">SMP</option>
-                                                            <option value="AL">SMA</option>
-                                                            <option value="WY">D3</option>
-															<option value="WY">D4</option>
-                                                            <option value="AL">S1</option>
-                                                            <option value="WY">S2</option>
-															<option value="WY">S3</option>
-                                                        </select>
-													</div>
-												</div>
-												<div class="col-lg-3 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Nama Institusi</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Nama Institusi">
-													</div>
-												</div>
-                                                <div class="col-lg-3 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Jurusan</label>
-														<input type="text" name="firstName" class="form-control" placeholder="Jurusan">
-													</div>
-												</div>
-												<div class="col-lg-3 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Kota</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Kota">
-													</div>
-												</div>
-                                                <div class="col-lg-3 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Tahun Masuk</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Tahun Masuk">
-													</div>
-												</div>
-                                                <div class="col-lg-3 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Tahun Lulus</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Tahun Lulus">
-													</div>
-												</div>
-                                                <div class="col-lg-3 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">IPK</label>
-														<input type="text" name="lastName" class="form-control" placeholder="IPK">
-													</div>
-												</div>
-                                                <div class="col-lg-3 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Action</label>
-                                                        <div class="employee-data-row-actions">
-                                                            <button type="button" class="btn btn-success light" title="Tambah baris" aria-label="Tambah baris"><i class="fa fa-plus"></i></button>
-                                                            <button type="button" class="btn btn-danger light" title="Hapus baris" aria-label="Hapus baris"><i class="fa fa-trash"></i></button>
-                                                        </div>
-													</div>
-												</div>
-                                            </div>
-                                            <hr>
-                                            <div class="row">
-                                                <h6 class="mb-3 fw-semibold">2. Sertifikasi Profesional:</h6>
-												<div class="col-lg-2 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Nama Sertifikat</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Nama Sertifikat">
-													</div>
-												</div>
-                                                <div class="col-lg-2 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Lembaga Penerbit</label>
-														<input type="text" name="firstName" class="form-control" placeholder="Lembaga Penerbit">
-													</div>
-												</div>
-												<div class="col-lg-2 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Tanggal Berlaku</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Tanggal Berlaku">
-													</div>
-												</div>
-                                                <div class="col-lg-2 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Berakhir</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Berakhir">
-													</div>
-												</div>
-                                                <div class="col-lg-2 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Kota</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Kota">
-													</div>
-												</div>
-                                                <div class="col-lg-2 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Action</label>
-                                                        <div class="employee-data-row-actions">
-                                                            <button type="button" class="btn btn-success light" title="Tambah baris" aria-label="Tambah baris"><i class="fa fa-plus"></i></button>
-                                                            <button type="button" class="btn btn-danger light" title="Hapus baris" aria-label="Hapus baris"><i class="fa fa-trash"></i></button>
-                                                        </div>
-													</div>
-												</div>
-                                            </div>
-                                            <hr>
-                                            <div class="row">
-                                                <h6 class="mb-3 fw-semibold">3. Riwayat Pekerjaan:</h6>
-												<div class="col-lg-2 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Nama Perusahaan</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Nama Perusahaan">
-													</div>
-												</div>
-                                                <div class="col-lg-2 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Jabatan Terakhir</label>
-														<input type="text" name="firstName" class="form-control" placeholder="Jabatan Terakhir">
-													</div>
-												</div>
-												<div class="col-lg-2 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Durasi Bekerja</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Durasi Bekerja">
-													</div>
-												</div>
-                                                <div class="col-lg-4 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Alasan Resign</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Alasan Resign">
-													</div>
-												</div>
-                                                <div class="col-lg-2 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Action</label>
-                                                        <div class="employee-data-row-actions">
-                                                            <button type="button" class="btn btn-success light" title="Tambah baris" aria-label="Tambah baris"><i class="fa fa-plus"></i></button>
-                                                            <button type="button" class="btn btn-danger light" title="Hapus baris" aria-label="Hapus baris"><i class="fa fa-trash"></i></button>
-                                                        </div>
-													</div>
-												</div>
-                                            </div>
-                                            <hr>
-                                            <div class="row">
-                                                <h6 class="mb-3 fw-semibold">4. Kontak Referensi:</h6>
-												<div class="col-lg-2 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Nama Atasan Lama</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Nama Atasan Lama">
-													</div>
-												</div>
-                                                <div class="col-lg-3 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Jabatan Atasan Lama</label>
-														<input type="text" name="firstName" class="form-control" placeholder="Jabatan Atasan Lama">
-													</div>
-												</div>
-                                                <div class="col-lg-3 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Nama Perusahaan</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Nama Perusahaan">
-													</div>
-												</div>
-												<div class="col-lg-2 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Nomor Handphone</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Nomor Handphone">
-													</div>
-												</div>
-                                                <div class="col-lg-2 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Action</label>
-                                                        <div class="employee-data-row-actions">
-                                                            <button type="button" class="btn btn-success light" title="Tambah baris" aria-label="Tambah baris"><i class="fa fa-plus"></i></button>
-                                                            <button type="button" class="btn btn-danger light" title="Hapus baris" aria-label="Hapus baris"><i class="fa fa-trash"></i></button>
-                                                        </div>
-													</div>
-												</div>
-                                            </div>
-                                            <hr>
-                                            <div class="row">
-                                                <h6 class="mb-3 fw-semibold">5. Keterampilan:</h6>
-                                                <div class="col-lg-4 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Bahasa Yang Dikuasai</label>
-														<input type="text" name="firstName" class="form-control" placeholder="Bahasa Yang Dikuasai">
-													</div>
-												</div>
-                                                <div class="col-lg-4 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Hard Skills</label>
-														<input type="text" name="lastName" class="form-control" placeholder="Hard Skills">
-													</div>
-												</div>
-												<div class="col-lg-4 mb-2">
-													<div class="mb-3">
-														<label class="text-label form-label">Soft Skills</label>
-														<select id="multi-value-select" multiple="multiple">
-                                                            <option selected="selected">Komunikasi Efektif</option>
-                                                            <option selected="selected">Teamwork</option>
-															<option>Problem Solving</option>
-															<option>Leadership</option>
-															<option>Time Management</option>
-															<option>Adaptability</option>
-															<option>Emotional Intelligence</option>
-															<option>Critical Thinking</option>
-															<option>Negosiasi</option>
-															<option>Work Ethic</option>
-                                                        </select>
-													</div>
-												</div>
-                                            </div>
-                                            <hr>
-										</div>
+@php
+    $educationValues = $wizardValues['education'];
+    $educationSaveUrl = $wizardStepUrls['education'] ?? null;
+    $educationLevelOptions = collect($wizardValues['education_levels'] ?? [])->pluck('name', 'id')->all();
+@endphp
+<div id="wizard_Details" class="tab-pane" role="tabpanel">
+    <form class="js-employee-data-step-form" data-employee-data-step="education" data-save-url="{{ $educationSaveUrl }}" novalidate autocomplete="off">
+        <fieldset @disabled(blank($educationSaveUrl))>
+            <div class="row">
+                <h4 class="mt-3 mb-3 fw-bold">Education, Experience & Skills</h4>
+                <h6 class="mb-3 fw-semibold">1. Pendidikan Formal:<span class="employee-data-required-mark">*</span></h6>
+                <div class="col-12">
+                    @include('employee_data.wizard.repeatable', [
+                        'group' => 'educations',
+                        'rows' => $educationValues['educations'] ?? [],
+                        'actionColumn' => 'col-lg-3',
+                        'fields' => [
+                            ['name' => 'education_level_id', 'label' => 'Tingkat Pendidikan', 'type' => 'select', 'options' => $educationLevelOptions],
+                            ['name' => 'institution_name', 'label' => 'Nama Institusi'],
+                            ['name' => 'major', 'label' => 'Jurusan'],
+                            ['name' => 'city', 'label' => 'Kota'],
+                            ['name' => 'start_year', 'label' => 'Tahun Masuk', 'type' => 'number', 'attributes' => 'min="1950" max="2100" step="1"'],
+                            ['name' => 'graduation_year', 'label' => 'Tahun Lulus', 'type' => 'number', 'attributes' => 'min="1950" max="2100" step="1"'],
+                            ['name' => 'gpa', 'label' => 'IPK', 'type' => 'number', 'placeholder' => '0.00 – 4.00', 'attributes' => 'min="0" max="4" step="0.01"'],
+                        ],
+                    ])
+                </div>
+            </div>
+            <hr>
+            <div class="row">
+                <h6 class="mb-3 fw-semibold">2. Sertifikasi Profesional:</h6>
+                <div class="col-12">
+                    @include('employee_data.wizard.repeatable', [
+                        'group' => 'certifications',
+                        'rows' => $educationValues['certifications'] ?? [],
+                        'fields' => [
+                            ['name' => 'certificate_name', 'label' => 'Nama Sertifikat', 'column' => 'col-lg-2'],
+                            ['name' => 'issuer', 'label' => 'Lembaga Penerbit', 'column' => 'col-lg-2'],
+                            ['name' => 'effective_date', 'label' => 'Tanggal Berlaku', 'type' => 'date', 'column' => 'col-lg-2'],
+                            ['name' => 'expired_at', 'label' => 'Berakhir', 'type' => 'date', 'column' => 'col-lg-2'],
+                            ['name' => 'city', 'label' => 'Kota', 'column' => 'col-lg-2'],
+                        ],
+                    ])
+                </div>
+            </div>
+            <hr>
+            <div class="row">
+                <h6 class="mb-3 fw-semibold">3. Riwayat Pekerjaan:</h6>
+                <div class="col-12">
+                    @include('employee_data.wizard.repeatable', [
+                        'group' => 'work_experiences',
+                        'rows' => $educationValues['work_experiences'] ?? [],
+                        'fields' => [
+                            ['name' => 'company_name', 'label' => 'Nama Perusahaan', 'column' => 'col-lg-2'],
+                            ['name' => 'last_position', 'label' => 'Jabatan Terakhir', 'column' => 'col-lg-2'],
+                            ['name' => 'duration_text', 'label' => 'Durasi Bekerja', 'column' => 'col-lg-2', 'placeholder' => 'Contoh: 2 tahun'],
+                            ['name' => 'resignation_reason', 'label' => 'Alasan Resign', 'column' => 'col-lg-4'],
+                        ],
+                    ])
+                </div>
+            </div>
+            <hr>
+            <div class="row">
+                <h6 class="mb-3 fw-semibold">4. Kontak Referensi:</h6>
+                <div class="col-12">
+                    @include('employee_data.wizard.repeatable', [
+                        'group' => 'references',
+                        'rows' => $educationValues['references'] ?? [],
+                        'fields' => [
+                            ['name' => 'name', 'label' => 'Nama Atasan Lama', 'column' => 'col-lg-2'],
+                            ['name' => 'position', 'label' => 'Jabatan Atasan Lama', 'column' => 'col-lg-3'],
+                            ['name' => 'company_name', 'label' => 'Nama Perusahaan', 'column' => 'col-lg-3'],
+                            ['name' => 'phone_number', 'label' => 'Nomor Handphone', 'type' => 'tel', 'column' => 'col-lg-2', 'attributes' => 'inputmode="tel"'],
+                        ],
+                    ])
+                </div>
+            </div>
+            <hr>
+            <div class="row">
+                <h6 class="mb-3 fw-semibold">5. Keterampilan:</h6>
+                @include('employee_data.wizard.field', ['name' => 'languages', 'label' => 'Bahasa Yang Dikuasai', 'column' => 'col-lg-4', 'value' => $educationValues['languages'] ?? null, 'placeholder' => 'Contoh: Indonesia, Inggris', 'help' => 'Pisahkan dengan koma.'])
+                @include('employee_data.wizard.field', ['name' => 'hard_skills', 'label' => 'Hard Skills', 'column' => 'col-lg-4', 'value' => $educationValues['hard_skills'] ?? null, 'placeholder' => 'Contoh: AutoCAD, Excel', 'help' => 'Pisahkan dengan koma.'])
+                @include('employee_data.wizard.field', ['name' => 'soft_skills', 'label' => 'Soft Skills', 'type' => 'select', 'multiple' => true, 'column' => 'col-lg-4', 'options' => \App\Support\Employee\EmployeeDataOptions::SOFT_SKILLS, 'value' => $educationValues['soft_skills'] ?? [], 'attributes' => 'title="Pilih Soft Skills"'])
+            </div>
+        </fieldset>
+    </form>
+</div>

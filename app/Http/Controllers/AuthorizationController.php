@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\EmployeeData\StoreEmployeeDocumentRequest;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmployeeDeployment;
+use App\Models\EmployeeDocument;
 use App\Models\EmployeePicAssignment;
 use App\Models\EmployeeProfile;
 use App\Models\EventDivision;
@@ -15,11 +17,17 @@ use App\Models\Position;
 use App\Models\ProjectDivisionEvent;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Employee\EmployeeDataWizardService;
+use App\Services\Employee\EmployeeDocumentVaultService;
+use App\Support\Employee\EmployeeDataCompletionCalculator;
 use App\Support\Employee\EmployeeDataDetailPresenter;
+use App\Support\Employee\EmployeeDataWizardValues;
+use App\Support\Employee\EmployeeDocumentCatalog;
 use App\Support\Employee\EmployeeEmploymentDetailResolver;
 use App\Support\Employee\EmployeeMonthlySummaryCalculator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -31,6 +39,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AuthorizationController extends Controller
 {
@@ -101,8 +111,8 @@ class AuthorizationController extends Controller
         });
 
         return redirect()
-            ->route('authorization.show', ['employee' => $employee])
-            ->with('status', 'Employee has been added successfully.');
+            ->to(route('authorization.edit', ['employee' => $employee]).'#employee-data')
+            ->with('status', 'Employee has been added successfully. You can complete the employee data now or later.');
     }
 
     public function show(
@@ -125,8 +135,13 @@ class AuthorizationController extends Controller
         ]);
     }
 
-    public function edit(Request $request, Employee $employee, EmployeeEmploymentDetailResolver $employeeEmploymentDetailResolver): View
-    {
+    public function edit(
+        Request $request,
+        Employee $employee,
+        EmployeeEmploymentDetailResolver $employeeEmploymentDetailResolver,
+        EmployeeDataDetailPresenter $employeeDataDetailPresenter,
+        EmployeeDataWizardValues $employeeDataWizardValues,
+    ): View {
         $authenticatedUser = $request->user();
 
         abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
@@ -138,6 +153,12 @@ class AuthorizationController extends Controller
             'mode' => 'edit',
             'employee' => $employee,
             'employeeEmploymentDetails' => $employeeEmploymentDetailResolver->forEmployee($employee),
+            'employeeDataWizardValues' => $employeeDataWizardValues->forEmployee(Employee::query()->find($employee->id)),
+            'employeeDataStepUrls' => collect(EmployeeDataWizardService::HR_STEPS)
+                ->mapWithKeys(fn (string $step): array => [$step => route('authorization.employee-data.update', ['employee' => $employee, 'employeeDataStep' => $step])])
+                ->all(),
+            'employeeDocumentFiles' => $employeeDataDetailPresenter->documentFilesFor($employee),
+            'employeeDocumentUploadUrl' => route('authorization.employee-documents.store', ['employee' => $employee]),
         ] + $this->dataEmployeeFormOptions($employee));
     }
 
@@ -172,6 +193,81 @@ class AuthorizationController extends Controller
         return redirect()
             ->route('authorization.show', ['employee' => $employee])
             ->with('status', 'Employee has been updated successfully.');
+    }
+
+    /**
+     * Autosaves one step (1–5) of the "Data Karyawan" wizard of an employee; step 5 is HR only.
+     */
+    public function updateEmployeeData(
+        Request $request,
+        Employee $employee,
+        string $employeeDataStep,
+        EmployeeDataWizardService $employeeDataWizardService,
+        EmployeeDataCompletionCalculator $employeeDataCompletionCalculator,
+    ): JsonResponse {
+        $this->authorizeEmployeeDataManagement($request, $employee);
+
+        $validated = app(EmployeeDataWizardService::requestClassFor($employeeDataStep))->validated();
+        $savedRowIds = $employeeDataWizardService->save($employee, $employeeDataStep, $validated);
+
+        return response()->json([
+            'message' => 'Data berhasil disimpan.',
+            'row_ids' => $savedRowIds,
+            'is_employee_data_complete' => $employeeDataCompletionCalculator->forEmployee($employee->refresh())['is_complete'],
+        ]);
+    }
+
+    public function storeEmployeeDocument(
+        Request $request,
+        Employee $employee,
+        EmployeeDocumentVaultService $employeeDocumentVaultService,
+        EmployeeDocumentCatalog $employeeDocumentCatalog,
+    ): JsonResponse {
+        $this->authorizeEmployeeDataManagement($request, $employee);
+
+        $documentRequest = app(StoreEmployeeDocumentRequest::class);
+        $documentType = (string) $documentRequest->validated('document_type');
+
+        if (! in_array($documentType, $employeeDocumentCatalog->uploadableDocumentKeys('hr'), true)) {
+            throw ValidationException::withMessages(['document_type' => 'Jenis dokumen tidak valid.']);
+        }
+
+        $employeeDocumentVaultService->store($employee, $documentType, $documentRequest->file('file'), $request->user());
+
+        return response()->json([
+            'message' => 'Dokumen berhasil diunggah.',
+        ] + $employeeDocumentVaultService->documentTypeState($employee, $documentType, isSelfService: false));
+    }
+
+    public function showEmployeeDocument(
+        Request $request,
+        Employee $employee,
+        EmployeeDocument $employeeDocument,
+        EmployeeDocumentVaultService $employeeDocumentVaultService,
+    ): StreamedResponse {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canViewEmployee($authenticatedUser, $employee), 404);
+        abort_unless($employeeDocument->employee_id === $employee->id, 404);
+
+        return $employeeDocumentVaultService->fileResponse($employeeDocument, $request->boolean('download'));
+    }
+
+    public function destroyEmployeeDocument(
+        Request $request,
+        Employee $employee,
+        EmployeeDocument $employeeDocument,
+        EmployeeDocumentVaultService $employeeDocumentVaultService,
+    ): JsonResponse {
+        $this->authorizeEmployeeDataManagement($request, $employee);
+
+        abort_unless($employeeDocument->employee_id === $employee->id, 404);
+
+        $employeeDocumentVaultService->delete($employeeDocument);
+
+        return response()->json([
+            'message' => 'Dokumen berhasil dihapus.',
+        ] + $employeeDocumentVaultService->documentTypeState($employee, $employeeDocument->document_type, isSelfService: false));
     }
 
     public function destroy(Request $request, Employee $employee): RedirectResponse
@@ -768,6 +864,14 @@ class AuthorizationController extends Controller
         }
 
         return 'No End Date';
+    }
+
+    private function authorizeEmployeeDataManagement(Request $request, Employee $employee): void
+    {
+        $authenticatedUser = $request->user();
+
+        abort_unless($authenticatedUser instanceof User && $this->canManageAuthorization($authenticatedUser), 403);
+        abort_unless($this->canViewEmployee($authenticatedUser, $employee), 404);
     }
 
     private function canViewEmployee(User $viewer, Employee $employee): bool

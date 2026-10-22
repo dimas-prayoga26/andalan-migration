@@ -24,6 +24,29 @@
         background-color: rgba(40, 70, 199, 0.05);
     }
 
+    .employee-document-dropzone.is-uploading {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    .employee-document-file + .employee-document-file {
+        margin-top: 0.35rem;
+    }
+
+    .employee-document-required-badge {
+        background-color: rgba(220, 53, 69, 0.12);
+        color: #dc3545;
+    }
+
+    .employee-document-required-dot,
+    .employee-document-error {
+        color: #dc3545;
+    }
+
+    .employee-document-optional-dot {
+        color: #adb5bd;
+    }
+
     .employee-document-dropzone .fa {
         font-size: 1.5rem;
         color: var(--bs-primary);

@@ -5,6 +5,9 @@ namespace Tests\Feature;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\EmployeeDeployment;
+use App\Models\EmployeePicAssignment;
+use App\Models\EmployeeProfile;
+use App\Models\Position;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\View;
@@ -61,7 +64,6 @@ class ProfileEmployeeDataWizardTemplateTest extends TestCase
         $response->assertSeeInOrder([
             'id="wizard_Finish"',
             'Employment &amp; Contract Details',
-            'Dikelola HR',
             'Entitas Perusahaan', 'value="RNB" readonly disabled',
             'Employee Code', 'value="EMP-0001" readonly disabled',
             'PIC', 'value="-" readonly disabled',
@@ -78,6 +80,43 @@ class ProfileEmployeeDataWizardTemplateTest extends TestCase
         $response->assertDontSee('toolbarExtraButtons', false);
     }
 
+    public function test_profile_summary_shows_position_and_pic_labels_with_the_assigned_pic(): void
+    {
+        $user = User::query()->create([
+            'email' => 'staff.pic@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        $employee = Employee::query()->create(['user_id' => $user->id, 'employee_code' => 'EMP-PIC', 'status' => 'Active']);
+        EmployeeDeployment::query()->create([
+            'employee_id' => $employee->id,
+            'current_position_id' => Position::query()->create(['name' => 'Web Developer'])->id,
+            'status' => 'Active',
+        ]);
+        $supervisorUser = User::query()->create([
+            'email' => 'supervisor.pic@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        $supervisor = Employee::query()->create(['user_id' => $supervisorUser->id, 'employee_code' => 'EMP-SPV', 'status' => 'Active']);
+        EmployeeProfile::query()->create(['employee_id' => $supervisor->id, 'name' => 'Erlin Supervisor']);
+        EmployeePicAssignment::query()->create([
+            'staff_employee_id' => $employee->id,
+            'supervisor_employee_id' => $supervisor->id,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('profile'));
+
+        $response->assertOk();
+        $response->assertSeeInOrder([
+            '<span class="profile-summary-label">Position</span><span class="profile-summary-value">Web Developer</span>',
+            '<span class="profile-summary-label">PIC</span><span class="profile-summary-value">Erlin Supervisor</span>',
+        ], false);
+        $response->assertDontSee('Job Title');
+        $response->assertDontSee('Atasan Langsung');
+    }
+
     public function test_wizard_step_partials_exist(): void
     {
         foreach (['step-1-personal', 'step-2-legal-tax', 'step-3-education', 'step-4-family', 'step-5-employment'] as $stepView) {
@@ -87,22 +126,26 @@ class ProfileEmployeeDataWizardTemplateTest extends TestCase
 
     public function test_repeatable_rows_use_compact_icon_action_buttons(): void
     {
-        $expectedActionGroups = [
+        $expectedRepeatableGroups = [
             'step-2-legal-tax' => 1,
             'step-3-education' => 4,
             'step-4-family' => 2,
             'step-5-employment' => 2,
         ];
 
-        foreach ($expectedActionGroups as $stepView => $expectedCount) {
+        foreach ($expectedRepeatableGroups as $stepView => $expectedCount) {
             $view = (string) file_get_contents(resource_path('views/employee_data/wizard/'.$stepView.'.blade.php'));
 
-            $this->assertSame($expectedCount, substr_count($view, '<div class="employee-data-row-actions">'), $stepView);
-            $this->assertSame($expectedCount, substr_count($view, '<i class="fa fa-plus"></i>'), $stepView);
-            $this->assertSame($expectedCount, substr_count($view, '<i class="fa fa-trash"></i>'), $stepView);
+            $this->assertSame($expectedCount, substr_count($view, "@include('employee_data.wizard.repeatable'"), $stepView);
             $this->assertStringNotContainsString('>Add</a>', $view);
             $this->assertStringNotContainsString('>Remove</a>', $view);
         }
+
+        $rowView = (string) file_get_contents(resource_path('views/employee_data/wizard/repeatable-row.blade.php'));
+
+        $this->assertSame(1, substr_count($rowView, '<div class="employee-data-row-actions">'));
+        $this->assertSame(1, substr_count($rowView, '<i class="fa fa-plus"></i>'));
+        $this->assertSame(1, substr_count($rowView, '<i class="fa fa-trash"></i>'));
 
         $profile = (string) file_get_contents(resource_path('views/profile.blade.php'));
         $wizardStyles = (string) file_get_contents(resource_path('views/employee_data/wizard/styles.blade.php'));
@@ -111,5 +154,7 @@ class ProfileEmployeeDataWizardTemplateTest extends TestCase
         $this->assertStringContainsString("@include('employee_data.wizard.styles')", $profile);
         $this->assertStringContainsString('.employee-data-row-actions {', $wizardStyles);
         $this->assertStringContainsString('flex-wrap: nowrap;', $wizardStyles);
+        $this->assertStringContainsString('overflow: visible !important;', $wizardStyles, 'SmartWizard must not clip open dropdown menus.');
+        $this->assertStringContainsString('data-size="8"', (string) file_get_contents(resource_path('views/employee_data/wizard/field.blade.php')));
     }
 }

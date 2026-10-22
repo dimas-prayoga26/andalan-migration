@@ -62,7 +62,7 @@ class MailFeatureStructureTest extends TestCase
         $this->assertSame(MailController::class.'@logout', Route::getRoutes()->getByName('administration-finance.email.logout')?->getActionName());
         $this->assertSame(MailController::class.'@index', Route::getRoutes()->getByName('business-email.index')?->getActionName());
         $this->assertSame(MailController::class.'@selectAccount', Route::getRoutes()->getByName('business-email.select')?->getActionName());
-        $this->assertContains('position.permission:view-email-management', Route::getRoutes()->getByName('administration-finance.email.index')?->gatherMiddleware() ?? []);
+        $this->assertContains('position.permission:view-administration-finance-email', Route::getRoutes()->getByName('administration-finance.email.index')?->gatherMiddleware() ?? []);
         $this->assertContains('position.permission:view-business-email', Route::getRoutes()->getByName('business-email.index')?->gatherMiddleware() ?? []);
     }
 
@@ -214,7 +214,7 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringContainsString("where('employee_id', \$employeeId)", $controller);
         $this->assertStringContainsString("where('type', '!=', MailAccessAccount::TYPE_PERSONAL)", $controller);
         $this->assertStringContainsString("hasAnyPositionPermission(['view-business-email'])", $controller);
-        $this->assertStringContainsString("hasAnyPositionPermission(['view-email-management'])", $controller);
+        $this->assertStringContainsString("hasAnyPositionPermission(['view-administration-finance-email'])", $controller);
         $this->assertStringContainsString('isAdminOrSuperAdministrator', $controller);
         $this->assertStringContainsString("'mailFeatureTitle' => \$this->mailFeatureTitle(\$request)", $controller);
         $this->assertStringContainsString("'mailRoutePrefix' => \$this->routePrefix(\$request)", $controller);

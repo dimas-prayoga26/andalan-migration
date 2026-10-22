@@ -91,7 +91,7 @@ Route::middleware('auth')->group(function (): void {
     });
 
     // Administration & Finance
-    Route::middleware('position.permission:view-email-management')
+    Route::middleware('position.permission:view-administration-finance-email')
         ->prefix('administration-finance/email')
         ->name('administration-finance.email.')
         ->group(function (): void {

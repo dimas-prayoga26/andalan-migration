@@ -40,7 +40,7 @@ class AdministrationFinanceEmailTest extends TestCase
             $this->assertNotNull($route, $routeSuffix);
             $this->assertSame($uri, $route->uri());
             $this->assertSame(MailController::class.'@'.$action, $route->getActionName());
-            $this->assertContains('position.permission:view-email-management', $route->gatherMiddleware());
+            $this->assertContains('position.permission:view-administration-finance-email', $route->gatherMiddleware());
         }
     }
 
@@ -49,10 +49,10 @@ class AdministrationFinanceEmailTest extends TestCase
         $sidebar = File::get(resource_path('views/layouts/sidebar.blade.php'));
 
         $emailManagerSidebar = Blade::render($sidebar, [
-            'canViewSidebarMenu' => static fn (string $permissionName): bool => in_array($permissionName, ['view-email-management', 'view-talent-acquisition'], true),
+            'canViewSidebarMenu' => static fn (string $permissionName): bool => in_array($permissionName, ['view-administration-finance-email', 'view-talent-acquisition'], true),
         ]);
         $staffSidebar = Blade::render($sidebar, [
-            'canViewSidebarMenu' => static fn (string $permissionName): bool => $permissionName === 'view-talent-acquisition',
+            'canViewSidebarMenu' => static fn (string $permissionName): bool => in_array($permissionName, ['view-email-management', 'view-talent-acquisition'], true),
         ]);
 
         $this->assertStringContainsString('<strong>Administration & Finance</strong>', $emailManagerSidebar);

@@ -532,7 +532,7 @@ class MailController extends Controller
             return;
         }
 
-        abort_unless($user->hasAnyPositionPermission(['view-email-management']), 403);
+        abort_unless($user->hasAnyPositionPermission(['view-administration-finance-email']), 403);
     }
 
     private function availableAccountQuery(Request $request): Builder

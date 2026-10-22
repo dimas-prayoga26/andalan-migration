@@ -35,6 +35,7 @@
 						$canViewTalentAcquisitionMenu = $canViewSidebarMenu('view-talent-acquisition');
 						$canViewSettingsMenu = $canViewSidebarMenu('view-settings');
 						$canViewBusinessEmailMenu = $canViewSidebarMenu('view-business-email');
+						$canViewAdministrationFinanceEmailMenu = $canViewSidebarMenu('view-administration-finance-email');
 						$useDirectorManagementMenu = $canViewDirectorAttendanceMenu;
 						$showAdminAuthorizationMenu = $canViewAuthorizationMenu && ! $useDirectorManagementMenu;
 						$showPicTalentAcquisitionMenu = $canViewTalentAcquisitionMenu && $canViewPicAttendanceMenu && ! $useDirectorManagementMenu;
@@ -156,7 +157,7 @@
 					</li>
 					@endif
 					@endif
-					@if ($canViewEmailManagementMenu)
+					@if ($canViewAdministrationFinanceEmailMenu)
 					<div class="copyright mt-1">
 						<p class="mb-1"><strong>Administration & Finance</strong> </p>
 					</div>

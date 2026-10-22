@@ -490,6 +490,7 @@ class AuthorizationController extends Controller
             'view-business-email' => ['section' => 'Siap', 'label' => 'Business Email'],
             'view-admin-attendance' => ['section' => 'Admin Management', 'label' => 'Admin Attendance'],
             'view-email-management' => ['section' => 'Admin Management', 'label' => 'Email Management'],
+            'view-administration-finance-email' => ['section' => 'Administration & Finance', 'label' => 'Email'],
             'view-pic-attendance' => ['section' => 'PIC Management', 'label' => 'PIC'],
             'view-director-attendance' => ['section' => 'Director Management', 'label' => 'Director'],
             'view-organization' => ['section' => 'Admin Management', 'label' => 'Organization'],

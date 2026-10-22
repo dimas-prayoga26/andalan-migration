@@ -54,6 +54,7 @@ class PositionPermissionSeeder extends Seeder
             ['section' => 'Siap', 'label' => 'Business Email', 'permission' => 'view-business-email'],
             ['section' => 'HR Management', 'label' => 'Admin Attendance', 'permission' => 'view-admin-attendance'],
             ['section' => 'HR Management', 'label' => 'Email Management', 'permission' => 'view-email-management'],
+            ['section' => 'Administration & Finance', 'label' => 'Email', 'permission' => 'view-administration-finance-email'],
             ['section' => 'HR Management', 'label' => 'PIC', 'permission' => 'view-pic-attendance'],
             ['section' => 'HR Management', 'label' => 'Director', 'permission' => 'view-director-attendance'],
             ['section' => 'HR Management', 'label' => 'Organization', 'permission' => 'view-organization'],

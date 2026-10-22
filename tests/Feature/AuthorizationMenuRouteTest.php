@@ -273,7 +273,7 @@ class AuthorizationMenuRouteTest extends TestCase
         $this->assertStringContainsString("route('authorization')", $accessMenusView);
         $this->assertStringContainsString('<th>Menu</th>', $accessMenusView);
         $this->assertStringNotContainsString('<th>Section</th>', $accessMenusView);
-        $this->assertStringNotContainsString("{{ \$permission['section'] }}", $accessMenusView);
+        $this->assertStringContainsString("{{ \$permission['section'] }} - {{ \$permission['label'] }}", $accessMenusView);
         $this->assertStringContainsString('Assign Position', $accessMenusView);
         $this->assertStringContainsString('@forelse ($menuPermissions as $permission)', $accessMenusView);
         $this->assertStringContainsString('permission_positions[{{ $permission[\'id\'] }}][]', $accessMenusView);

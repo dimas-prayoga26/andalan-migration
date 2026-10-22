@@ -160,7 +160,7 @@
                             @endphp
                             <tr>
                                 <td>
-                                    <h6 class="mb-1 text-black">{{ $permission['label'] }}</h6>
+                                    <h6 class="mb-1 text-black">{{ $permission['section'] }} - {{ $permission['label'] }}</h6>
                                     <span class="text-muted fs-13">{{ $permission['name'] }}</span>
                                 </td>
                                 <td>

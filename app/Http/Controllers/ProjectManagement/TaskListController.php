@@ -296,6 +296,7 @@ class TaskListController extends Controller
                 'employee.profile:id,employee_id,name,nickname',
                 'employee.user:id,email',
             ])
+            ->withExists(['hrMeetingTasks as is_hr_meeting_task'])
             ->orderByRaw('COALESCE(due_date, start_date, created_at) DESC')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -321,6 +322,7 @@ class TaskListController extends Controller
             ])
             ->whereRaw('DATE(COALESCE(due_date, start_date, created_at)) >= ?', [$weekStart->toDateString()])
             ->whereRaw('DATE(COALESCE(due_date, start_date, created_at)) <= ?', [$weekEnd->toDateString()])
+            ->withExists(['hrMeetingTasks as is_hr_meeting_task'])
             ->orderByRaw('COALESCE(due_date, start_date, created_at) ASC')
             ->limit(5)
             ->get()
@@ -588,6 +590,7 @@ class TaskListController extends Controller
         $taskEmployeeId = (string) $projectTask->employee_id;
         $assignedByUsername = trim((string) ($projectTask->assignedBy?->shortName() ?? 'self'));
         $isOvertimeTask = trim((string) ($projectTask->overtime_id ?? '')) !== '';
+        $isHrMeetingTask = $this->isHrMeetingTask($projectTask);
         $assigneeLabel = $projectTask->employee instanceof Employee
             ? $this->employeeOptionName($projectTask->employee)
             : trim($taskEmployeeId);
@@ -598,8 +601,9 @@ class TaskListController extends Controller
             'overtime_id' => $isOvertimeTask ? (string) $projectTask->overtime_id : '',
             'is_overtime_task' => $isOvertimeTask,
             'overtime_label' => 'Overtime',
+            'is_hr_meeting_task' => $isHrMeetingTask,
             'can_manage_from_task_list' => true,
-            'can_delete_from_task_list' => ! $isOvertimeTask,
+            'can_delete_from_task_list' => ! $isOvertimeTask && ! $isHrMeetingTask,
             'title' => trim((string) $projectTask->title),
             'description' => trim((string) ($projectTask->description ?? '')),
             'blockers' => trim((string) ($projectTask->blockers ?? '')),
@@ -789,10 +793,23 @@ class TaskListController extends Controller
         return $this->subordinateTaskEmployeeIdsForPic($employeeId)->contains($taskEmployeeId);
     }
 
+    /**
+     * Tasks assigned from an HR meeting are managed from the meeting, so they cannot be deleted from the task list.
+     */
+    private function isHrMeetingTask(ProjectTask $projectTask): bool
+    {
+        if (array_key_exists('is_hr_meeting_task', $projectTask->getAttributes())) {
+            return (bool) $projectTask->getAttribute('is_hr_meeting_task');
+        }
+
+        return $projectTask->hrMeetingTasks()->exists();
+    }
+
     private function canDeleteTaskListTask(ProjectTask $projectTask, string $employeeId): bool
     {
         return $this->canManageTaskListTask($projectTask, $employeeId)
-            && ($projectTask->overtime_id === null || trim((string) $projectTask->overtime_id) === '');
+            && ($projectTask->overtime_id === null || trim((string) $projectTask->overtime_id) === '')
+            && ! $this->isHrMeetingTask($projectTask);
     }
 
     private function nullableStringValue(mixed $value): ?string

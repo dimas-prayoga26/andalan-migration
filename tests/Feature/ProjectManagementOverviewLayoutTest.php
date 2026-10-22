@@ -11,6 +11,8 @@ use App\Models\EmployeeDeployment;
 use App\Models\EmployeePicAssignment;
 use App\Models\EventDivision;
 use App\Models\GoogleOauthToken;
+use App\Models\HrMeeting;
+use App\Models\HrMeetingTask;
 use App\Models\Position;
 use App\Models\Project;
 use App\Models\ProjectMember;
@@ -1112,6 +1114,55 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertLessThan($middlePosition, $newestPosition);
         $this->assertLessThan($sameDayPosition, $middlePosition);
         $this->assertLessThan($olderPosition, $sameDayPosition);
+    }
+
+    public function test_task_from_hr_meeting_cannot_be_deleted_from_task_list(): void
+    {
+        [$user, $employee] = $this->createProjectTaskListUser('hr_meeting_task_list');
+        $hrMeetingTask = ProjectTask::query()->create([
+            'employee_id' => $employee->id,
+            'assigned_by' => $user->id,
+            'title' => 'Follow up HR meeting',
+            'status' => 'pending',
+            'priority' => 'medium',
+            'due_date' => '2026-08-20',
+        ]);
+        $regularTask = ProjectTask::query()->create([
+            'employee_id' => $employee->id,
+            'assigned_by' => $user->id,
+            'title' => 'Regular daily task',
+            'status' => 'pending',
+            'priority' => 'medium',
+            'due_date' => '2026-08-19',
+        ]);
+        HrMeetingTask::query()->create([
+            'hr_meeting_id' => HrMeeting::query()->create([
+                'title' => 'Weekly HR Meeting',
+                'meeting_date' => '2026-08-18',
+                'meeting_time' => '09:00:00',
+            ])->id,
+            'project_task_id' => $hrMeetingTask->id,
+        ]);
+
+        $taskListHtml = (string) $this->actingAs($user)
+            ->getJson(route('project_management.task_list.filter', ['month' => '2026-08']))
+            ->assertOk()
+            ->json('fragments.task_list');
+
+        $this->assertStringContainsString('Follow up HR meeting', $taskListHtml);
+        $this->assertStringContainsString('Regular daily task', $taskListHtml);
+        $this->assertStringNotContainsString('data-delete-url="'.route('project_management.task_list.tasks.destroy', $hrMeetingTask).'"', $taskListHtml);
+        $this->assertStringContainsString('data-delete-url="'.route('project_management.task_list.tasks.destroy', $regularTask).'"', $taskListHtml);
+
+        $this->actingAs($user)
+            ->deleteJson(route('project_management.task_list.tasks.destroy', $hrMeetingTask))
+            ->assertForbidden();
+        $this->assertDatabaseHas('project_tasks', ['id' => $hrMeetingTask->id, 'deleted_at' => null]);
+        $this->assertDatabaseHas('hr_meeting_tasks', ['project_task_id' => $hrMeetingTask->id]);
+
+        $this->actingAs($user)
+            ->deleteJson(route('project_management.task_list.tasks.destroy', $regularTask))
+            ->assertOk();
     }
 
     public function test_task_list_includes_tasks_that_overlap_selected_month(): void

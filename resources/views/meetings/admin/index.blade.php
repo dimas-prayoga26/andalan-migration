@@ -272,21 +272,17 @@
         }
 
         function renderMeetingActions(meeting) {
-            return '<div class="d-inline-flex align-items-center gap-1">'
-                + '<a href="' + escapeHtml(meeting.details_url) + '" class="btn btn-square btn-secondary light btn-xs" title="Details">'
-                + '<i class="fa-regular fa-file-lines"></i>'
-                + '</a>'
-                + '<a href="' + escapeHtml(meeting.update_url) + '" class="btn btn-square btn-warning light btn-xs" title="Update">'
-                + '<i class="fa-solid fa-pencil"></i>'
-                + '</a>'
-                + '<form method="POST" action="' + escapeHtml(meeting.destroy_url) + '" class="d-inline js-meeting-delete-form" data-delete-title="Delete Meeting" data-delete-message="Delete this meeting?">'
-                + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
-                + '<input type="hidden" name="_method" value="DELETE">'
-                + '<button type="submit" class="btn btn-square btn-danger light btn-xs" title="Delete">'
-                + '<i class="fa-solid fa-trash"></i>'
-                + '</button>'
-                + '</form>'
-                + '</div>';
+            return actionMenu([
+                '<li><a class="dropdown-item" href="' + escapeHtml(meeting.details_url) + '"><i class="bi bi-eye"></i>Details</a></li>',
+                '<li><a class="dropdown-item" href="' + escapeHtml(meeting.update_url) + '"><i class="bi bi-pencil-square"></i>Update</a></li>',
+                '<li>'
+                    + '<form method="POST" action="' + escapeHtml(meeting.destroy_url) + '" class="js-meeting-delete-form" data-delete-title="Delete Meeting" data-delete-message="Delete this meeting?">'
+                    + '<input type="hidden" name="_token" value="' + escapeHtml(csrfToken) + '">'
+                    + '<input type="hidden" name="_method" value="DELETE">'
+                    + '<button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash"></i>Delete</button>'
+                    + '</form>'
+                    + '</li>'
+            ]);
         }
 
         document.addEventListener('submit', function (event) {

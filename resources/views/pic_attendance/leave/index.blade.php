@@ -318,8 +318,9 @@
                     return '-';
                 }
 
-                return '<a href="' + escapeHtml(row.detail_url) + '" class="btn btn-xs btn-light btn-square" aria-label="View leave request">'
-                    + '<i class="bi bi-pencil"></i></a>';
+                return actionMenu([
+                    '<li><a class="dropdown-item" href="' + escapeHtml(row.detail_url) + '"><i class="bi bi-eye"></i>Detail</a></li>'
+                ]);
             }
 
             function createLeaveTable(tableSelector, endpoint) {

@@ -179,6 +179,37 @@ class ProfilePageStructureTest extends TestCase
         $this->assertStringNotContainsString('dexignzone.com', $profile);
     }
 
+    public function test_profile_page_tabs_and_wizard_steps_fit_on_mobile(): void
+    {
+        $profile = File::get(resource_path('views/profile.blade.php'));
+        $wizardStyles = File::get(resource_path('views/employee_data/wizard/styles.blade.php'));
+
+        $mobileProfileStyles = substr($profile, strpos($profile, '@media (max-width: 575.98px)'));
+
+        $this->assertStringContainsString('grid-template-columns: repeat(2, minmax(0, 1fr));', $mobileProfileStyles);
+        $this->assertStringNotContainsString('flex: 1 1 0;', $mobileProfileStyles);
+
+        $this->assertStringContainsString('@media screen and (max-width: 640px)', $wizardStyles);
+        $this->assertStringContainsString('#employeeDataWizard.sw > .nav {', $wizardStyles);
+        $this->assertStringContainsString('flex-direction: row !important;', $wizardStyles);
+        $this->assertStringContainsString('flex-wrap: nowrap;', $wizardStyles);
+        $this->assertStringContainsString('#employeeDataWizard.sw > .nav > li {', $wizardStyles);
+    }
+
+    public function test_employee_data_wizard_step_nav_uses_neutral_theme_colors(): void
+    {
+        $wizardStyles = File::get(resource_path('views/employee_data/wizard/styles.blade.php'));
+
+        $this->assertStringContainsString('#employeeDataWizard.sw-theme-default > .nav {', $wizardStyles);
+        $this->assertStringContainsString('box-shadow: none !important;', $wizardStyles);
+        $this->assertStringContainsString('border-bottom: 1px solid var(--bs-border-color, #e7eaf3);', $wizardStyles);
+        $this->assertStringContainsString('#employeeDataWizard.sw-theme-default > .nav .nav-link.active::after {', $wizardStyles);
+        $this->assertStringContainsString('background: var(--bs-primary) !important;', $wizardStyles);
+        $this->assertStringContainsString('#employeeDataWizard.sw-theme-default > .nav .nav-link.done::after {', $wizardStyles);
+        $this->assertStringNotContainsString('#17a2b8', $wizardStyles);
+        $this->assertStringNotContainsString('#5cb85c', $wizardStyles);
+    }
+
     public function test_profile_update_request_limits_gender_and_profile_fields(): void
     {
         $request = File::get(app_path('Http/Requests/ProfileUpdateRequest.php'));

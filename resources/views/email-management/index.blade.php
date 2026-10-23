@@ -176,14 +176,14 @@
                                 <span class="badge badge-sm light {{ $accountStatusClass }}">{{ $account->is_active ? 'Active' : 'Inactive' }}</span>
                             </td>
                             <td class="text-end">
-                                <div class="d-inline-flex gap-1">
-                                    <button type="button" class="btn btn-primary light btn-sm" data-bs-toggle="modal" data-bs-target="#editMailAccountModal{{ $account->id }}">Update</button>
+                                <x-action-menu>
+                                    <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editMailAccountModal{{ $account->id }}"><i class="bi bi-pencil-square"></i>Update</button></li>
                                     @if ($isConfigManagedAccount)
-                                        <button type="button" class="btn btn-danger light btn-sm" disabled>Delete</button>
+                                        <li><button type="button" class="dropdown-item text-danger" disabled><i class="bi bi-trash"></i>Delete</button></li>
                                     @else
-                                        <button type="button" class="btn btn-danger light btn-sm" data-bs-toggle="modal" data-bs-target="#deleteMailAccountModal{{ $account->id }}">Delete</button>
+                                        <li><button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteMailAccountModal{{ $account->id }}"><i class="bi bi-trash"></i>Delete</button></li>
                                     @endif
-                                </div>
+                                </x-action-menu>
                             </td>
                         </tr>
                     @empty
@@ -253,10 +253,10 @@
                                 @endif
                             </td>
                             <td class="text-end">
-                                <div class="d-inline-flex gap-1">
-                                    <button type="button" class="btn btn-primary light btn-sm" data-bs-toggle="modal" data-bs-target="#editTakeoverModal{{ $takeover->id }}">Update</button>
-                                    <button type="button" class="btn btn-danger light btn-sm" data-bs-toggle="modal" data-bs-target="#deleteTakeoverModal{{ $takeover->id }}">Delete</button>
-                                </div>
+                                <x-action-menu>
+                                    <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editTakeoverModal{{ $takeover->id }}"><i class="bi bi-pencil-square"></i>Update</button></li>
+                                    <li><button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteTakeoverModal{{ $takeover->id }}"><i class="bi bi-trash"></i>Delete</button></li>
+                                </x-action-menu>
                             </td>
                         </tr>
                     @empty

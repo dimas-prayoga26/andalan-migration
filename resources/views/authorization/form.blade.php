@@ -186,7 +186,7 @@
                 <div class="tab-pane fade js-employee-form-pane" id="employeeFormData" role="tabpanel" aria-labelledby="employeeFormDataTab" tabindex="0">
                     @if ($isEdit)
                         <p class="text-muted mb-3">This data is optional and is saved automatically when you move to another step. Employees can also complete it themselves from their Profile page.</p>
-                        @include('employee_data.wizard.wizard', ['isEmploymentStepReadOnly' => false, 'isAccountManagedElsewhere' => true])
+                        @include('employee_data.wizard.wizard', ['isAccountManagedElsewhere' => true])
                     @else
                         <div class="alert alert-info mb-0" role="alert">
                             Employee data can be completed after the account is created. Fill in <strong>1. Account &amp; Placement</strong>, then click <strong>Add Employee</strong>; you will be taken straight to this tab.

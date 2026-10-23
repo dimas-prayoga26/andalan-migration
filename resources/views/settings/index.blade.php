@@ -249,19 +249,14 @@
             function actionButtons(row) {
                 var editUrl = routeFor(editUrlTemplate, row.id);
 
-                if (isPositionTable && isTruthy(row.is_protected)) {
-                    return '' +
-                        '<div class="d-inline-flex gap-1">' +
-                            '<a href="' + editUrl + '" class="btn btn-primary light btn-sm">Update</a>' +
-                            '<button type="button" class="btn btn-danger light btn-sm" disabled>Delete</button>' +
-                        '</div>';
-                }
+                var deleteItem = isPositionTable && isTruthy(row.is_protected)
+                    ? '<li><button type="button" class="dropdown-item text-danger" disabled><i class="bi bi-trash"></i>Delete</button></li>'
+                    : '<li><button type="button" class="dropdown-item text-danger" onclick="deleteData(\'' + escapeHtml(row.id) + '\')"><i class="bi bi-trash"></i>Delete</button></li>';
 
-                return '' +
-                    '<div class="d-inline-flex gap-1">' +
-                        '<a href="' + editUrl + '" class="btn btn-primary light btn-sm">Update</a>' +
-                        '<button type="button" class="btn btn-danger light btn-sm" onclick="deleteData(\'' + escapeHtml(row.id) + '\')">Delete</button>' +
-                    '</div>';
+                return actionMenu([
+                    '<li><a class="dropdown-item" href="' + editUrl + '"><i class="bi bi-pencil-square"></i>Update</a></li>',
+                    deleteItem
+                ]);
             }
 
             var columns = [

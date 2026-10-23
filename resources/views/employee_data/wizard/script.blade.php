@@ -58,6 +58,64 @@
                 });
             }
 
+            function dateDisplayFor(field) {
+                return field && field.hasAttribute('data-date-value')
+                    ? field.parentElement.querySelector('.js-employee-data-date-picker')
+                    : null;
+            }
+
+            function setDateValue(valueInput, date) {
+                var displayInput = dateDisplayFor(valueInput);
+
+                valueInput.value = date ? date.format('YYYY-MM-DD') : '';
+
+                if (displayInput) {
+                    displayInput.value = date ? date.format('DD/MM/YYYY') : '';
+                }
+            }
+
+            function initDatePickers(container) {
+                if (!window.jQuery || !jQuery.fn.daterangepicker || typeof moment === 'undefined') {
+                    return;
+                }
+
+                jQuery(container).find('.js-employee-data-date-picker').each(function () {
+                    var $displayInput = jQuery(this);
+                    var valueInput = this.parentElement.querySelector('[data-date-value]');
+
+                    if (!valueInput || $displayInput.data('daterangepicker')) {
+                        return;
+                    }
+
+                    var pickerOptions = {
+                        autoApply: true,
+                        autoUpdateInput: false,
+                        singleDatePicker: true,
+                        showDropdowns: true,
+                        drops: 'auto',
+                        locale: { format: 'DD/MM/YYYY' }
+                    };
+                    var currentDate = moment(valueInput.value, 'YYYY-MM-DD', true);
+
+                    if (currentDate.isValid()) {
+                        pickerOptions.startDate = currentDate;
+                    }
+
+                    $displayInput.daterangepicker(pickerOptions);
+
+                    $displayInput.on('apply.daterangepicker', function (event, picker) {
+                        setDateValue(valueInput, picker.startDate);
+                    });
+
+                    $displayInput.on('keydown', function (event) {
+                        if (event.key === 'Backspace' || event.key === 'Delete') {
+                            event.preventDefault();
+                            setDateValue(valueInput, null);
+                        }
+                    });
+                });
+            }
+
             function onFieldChange(field, handler) {
                 if (window.jQuery) {
                     jQuery(field).on('change', handler);
@@ -165,6 +223,8 @@
                         return;
                     }
 
+                    field = dateDisplayFor(field) || field;
+
                     var feedbackAnchor = field.closest('.bootstrap-select') || field.closest('.input-group') || field;
                     var feedback = document.createElement('div');
 
@@ -211,6 +271,7 @@
 
                 reindexRows(repeatable);
                 initSelects(newRow);
+                initDatePickers(newRow);
 
                 var firstField = newRow.querySelector('input:not([type="hidden"]), select');
 
@@ -478,11 +539,16 @@
                 }
 
                 var hasEndDate = employmentStatusSelect.value === 'PKWT' || employmentStatusSelect.value === 'Probation';
+                var endDateDisplay = dateDisplayFor(endDateInput);
 
                 endDateInput.disabled = !hasEndDate;
 
+                if (endDateDisplay) {
+                    endDateDisplay.disabled = !hasEndDate;
+                }
+
                 if (!hasEndDate) {
-                    endDateInput.value = '';
+                    setDateValue(endDateInput, null);
                 }
             }
 
@@ -510,6 +576,7 @@
             });
 
             wizardElement.querySelectorAll('.js-region-address').forEach(initRegionAddress);
+            initDatePickers(wizardElement);
             wizardElement.querySelectorAll('[data-currency-input]').forEach(function (input) {
                 input.addEventListener('input', function () {
                     formatCurrencyInput(input);

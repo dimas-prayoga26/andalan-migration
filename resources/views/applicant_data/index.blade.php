@@ -373,38 +373,6 @@
             opacity: 0.72;
         }
 
-        .talent-action-group {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-        }
-
-        .talent-action-btn {
-            width: 34px;
-            height: 34px;
-            border: 0;
-            border-radius: 0.35rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-        }
-
-        .talent-action-btn.view {
-            background: #d9f2f4;
-            color: #287b84;
-        }
-
-        .talent-action-btn.file {
-            background: #f8e8b7;
-            color: #b77900;
-        }
-
-        .talent-action-btn.delete {
-            background: #ffe1e6;
-            color: #c0263d;
-        }
-
         #datatable thead th {
             font-size: 1rem;
             font-weight: 600;
@@ -691,10 +659,10 @@
         }
 
         function renderApplicantAction(applicant) {
-            return '<div class="talent-action-group">'
-                + '<a href="' + applicantUrl(applicantShowUrlTemplate, applicant.id) + '" class="talent-action-btn view" title="Detail"><i class="bi bi-eye"></i></a>'
-                + '<button type="button" class="talent-action-btn delete" title="Delete" onclick="deleteData(\'' + escapeHtml(applicant.id) + '\')"><i class="bi bi-trash"></i></button>'
-                + '</div>';
+            return actionMenu([
+                '<li><a class="dropdown-item" href="' + applicantUrl(applicantShowUrlTemplate, applicant.id) + '"><i class="bi bi-eye"></i>Detail</a></li>',
+                '<li><button type="button" class="dropdown-item text-danger" onclick="deleteData(\'' + escapeHtml(applicant.id) + '\')"><i class="bi bi-trash"></i>Delete</button></li>'
+            ]);
         }
 
         function findApplicantRow(id) {

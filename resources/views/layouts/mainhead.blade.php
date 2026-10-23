@@ -82,6 +82,22 @@
             border-right: 0 !important;
         }
 
+        .action-menu-toggle {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+        }
+
+        .action-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
         .nav-label {
             border-top: 0 !important;
         }

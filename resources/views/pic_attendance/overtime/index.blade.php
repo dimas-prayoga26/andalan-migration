@@ -241,15 +241,10 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <div class="dropdown dropdown-xs">
-                                                    <button class="btn btn-xs btn-light btn-square" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end">
-                                                        <li><a class="dropdown-item" href="{{ $row['detail_url'] }}">Edit</a></li>
-                                                        <li><a class="dropdown-item" >Delete</a></li>
-                                                    </ul>
-                                                </div>
+                                                <x-action-menu>
+                                                    <li><a class="dropdown-item" href="{{ $row['detail_url'] }}"><i class="bi bi-pencil-square"></i>Edit</a></li>
+                                                    <li><button type="button" class="dropdown-item text-danger"><i class="bi bi-trash"></i>Delete</button></li>
+                                                </x-action-menu>
                                             </td>
                                         </tr>
                                     @empty

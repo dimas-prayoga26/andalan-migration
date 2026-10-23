@@ -258,29 +258,24 @@
                                 <span>{{ $employeeStatusFilter === 'inactive' ? $user['resignation_date'] : $user['contract_end'] }}</span>
                             </td>
                             <td class="text-start">
-                                <div class="dropdown dropdown-xs">
-                                    <button class="btn btn-xs btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">
-                                        Options
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="{{ route('authorization.show', ['employee' => $user['id']]) }}">View More</a></li>
-                                        @if ($canManageDataEmployee)
-                                            <li><a class="dropdown-item" href="{{ route('authorization.edit', ['employee' => $user['id']]) }}">Edit</a></li>
-                                            <li>
-                                                <form
-                                                    action="{{ route('authorization.destroy', ['employee' => $user['id']]) }}"
-                                                    method="POST"
-                                                    data-authorization-delete-form
-                                                    data-employee-name="{{ $user['name'] }}"
-                                                >
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="dropdown-item text-danger">Delete</button>
-                                                </form>
-                                            </li>
-                                        @endif
-                                    </ul>
-                                </div>
+                                <x-action-menu>
+                                    <li><a class="dropdown-item" href="{{ route('authorization.show', ['employee' => $user['id']]) }}"><i class="bi bi-eye"></i>View More</a></li>
+                                    @if ($canManageDataEmployee)
+                                        <li><a class="dropdown-item" href="{{ route('authorization.edit', ['employee' => $user['id']]) }}"><i class="bi bi-pencil-square"></i>Edit</a></li>
+                                        <li>
+                                            <form
+                                                action="{{ route('authorization.destroy', ['employee' => $user['id']]) }}"
+                                                method="POST"
+                                                data-authorization-delete-form
+                                                data-employee-name="{{ $user['name'] }}"
+                                            >
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash"></i>Delete</button>
+                                            </form>
+                                        </li>
+                                    @endif
+                                </x-action-menu>
                             </td>
                         </tr>
                     @empty

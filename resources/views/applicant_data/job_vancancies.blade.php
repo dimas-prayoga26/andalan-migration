@@ -145,33 +145,6 @@
             font-weight: 500;
         }
 
-        .talent-vacancy-action-group {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-        }
-
-        .talent-vacancy-action-btn {
-            width: 34px;
-            height: 34px;
-            border: 0;
-            border-radius: 0.35rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-        }
-
-        .talent-vacancy-action-btn.edit {
-            background: #d9f2f4;
-            color: #287b84;
-        }
-
-        .talent-vacancy-action-btn.delete {
-            background: #ffe1e6;
-            color: #c0263d;
-        }
-
         #datatable_wrapper .dt-layout-row:first-child {
             display: flex;
             align-items: center;
@@ -373,10 +346,10 @@
         }
 
         function renderJobVacancyAction(jobVacancy) {
-            return '<div class="talent-vacancy-action-group">'
-                + '<a href="' + jobVacancyUrl(jobVacancyEditUrlTemplate, jobVacancy.id) + '" class="talent-vacancy-action-btn edit" title="Update"><i class="bi bi-pencil-square"></i></a>'
-                + '<button type="button" class="talent-vacancy-action-btn delete" title="Delete" onclick="deleteData(\'' + escapeHtml(jobVacancy.id) + '\')"><i class="bi bi-trash"></i></button>'
-                + '</div>';
+            return actionMenu([
+                '<li><a class="dropdown-item" href="' + jobVacancyUrl(jobVacancyEditUrlTemplate, jobVacancy.id) + '"><i class="bi bi-pencil-square"></i>Update</a></li>',
+                '<li><button type="button" class="dropdown-item text-danger" onclick="deleteData(\'' + escapeHtml(jobVacancy.id) + '\')"><i class="bi bi-trash"></i>Delete</button></li>'
+            ]);
         }
 
         function findJobVacancyRow(id) {

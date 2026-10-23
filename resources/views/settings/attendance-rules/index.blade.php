@@ -252,11 +252,10 @@
             function actionButtons(row) {
                 var editUrl = routeFor(editUrlTemplate, row.id);
 
-                return '' +
-                    '<div class="d-inline-flex gap-1">' +
-                        '<a href="' + editUrl + '" class="btn btn-primary light btn-sm">Update</a>' +
-                        '<button type="button" class="btn btn-danger light btn-sm" onclick="deleteData(\'' + escapeHtml(row.id) + '\')">Delete</button>' +
-                    '</div>';
+                return actionMenu([
+                    '<li><a class="dropdown-item" href="' + editUrl + '"><i class="bi bi-pencil-square"></i>Update</a></li>',
+                    '<li><button type="button" class="dropdown-item text-danger" onclick="deleteData(\'' + escapeHtml(row.id) + '\')"><i class="bi bi-trash"></i>Delete</button></li>'
+                ]);
             }
 
             var attendanceRulesTable = jQuery('#datatable').DataTable({

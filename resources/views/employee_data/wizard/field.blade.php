@@ -2,6 +2,7 @@
     One input of the employee data wizard.
     Params: name, label, value, type (text|email|url|number|date|select|textarea), column, options (select), required, disabled,
     placeholder, help, attributes (extra HTML attributes), inputGroupText (prefix, e.g. "Rp").
+    A date renders a DD/MM/YYYY single date picker plus the hidden Y-m-d input that is submitted (and carries the attributes).
 --}}
 @php
     $fieldType = $type ?? 'text';
@@ -15,6 +16,9 @@
     $fieldPlaceholder = $placeholder ?? $label;
     $fieldAttributes = $attributes ?? '';
     $fieldIsDisabled = $disabled ?? false;
+    $fieldDateDisplay = $fieldType === 'date' && preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', (string) $fieldValue, $fieldDateParts)
+        ? $fieldDateParts[3].'/'.$fieldDateParts[2].'/'.$fieldDateParts[1]
+        : '';
 @endphp
 <div class="{{ $column ?? 'col-lg-3' }} mb-2">
     <div class="mb-3">
@@ -31,6 +35,9 @@
                     <option value="{{ $unknownValue }}" selected>{{ $unknownValue }}</option>
                 @endforeach
             </select>
+        @elseif ($fieldType === 'date')
+            <input type="text" class="form-control js-employee-data-date-picker" value="{{ $fieldDateDisplay }}" placeholder="{{ $placeholder ?? 'DD/MM/YYYY' }}" autocomplete="off" readonly @disabled($fieldIsDisabled)>
+            <input type="hidden" name="{{ $name }}" value="{{ $fieldValue }}" data-date-value @disabled($fieldIsDisabled) {!! $fieldAttributes !!}>
         @elseif ($fieldType === 'textarea')
             <textarea name="{{ $name }}" class="form-control" rows="2" placeholder="{{ $fieldPlaceholder }}" @disabled($fieldIsDisabled) {!! $fieldAttributes !!}>{{ $fieldValue }}</textarea>
         @elseif (filled($inputGroupText ?? null))

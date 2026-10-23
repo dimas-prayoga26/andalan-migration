@@ -670,7 +670,9 @@
                                     return employeeId || '';
                                 }
 
-                                return '<a href="' + employeeDetailBaseUrl + '/' + encodeURIComponent(employeeId) + '"><span class="badge badge-xs light badge-primary fw-semibold">View More</span></a>';
+                                return actionMenu([
+                                    '<li><a class="dropdown-item" href="' + employeeDetailBaseUrl + '/' + encodeURIComponent(employeeId) + '"><i class="bi bi-eye"></i>View More</a></li>'
+                                ]);
                             }
                         }
                     ],

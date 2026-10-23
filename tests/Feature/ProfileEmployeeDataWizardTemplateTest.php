@@ -60,19 +60,16 @@ class ProfileEmployeeDataWizardTemplateTest extends TestCase
         $response->assertDontSee('Employment Type');
         $response->assertDontSee('Contract End');
         $response->assertDontSee('Job Level');
-        $response->assertSee('href="#wizard_Finish"', false);
-        $response->assertSeeInOrder([
-            'id="wizard_Finish"',
-            'Employment &amp; Contract Details',
-            'Entitas Perusahaan', 'value="RNB" readonly disabled',
-            'Employee Code', 'value="EMP-0001" readonly disabled',
-            'PIC', 'value="-" readonly disabled',
-            'Status Kepegawaian', 'value="PKWTT" readonly disabled',
-            'Tanggal Bergabung', 'value="01/01/2026" readonly disabled',
-            'Gaji Pokok',
-            'Riwayat MCU', 'Belum ada data.',
-            'Aset Perusahaan yang Dipegang', 'Belum ada data.',
-        ], false);
+        $response->assertSee('href="#wizard_Payment"', false);
+        $response->assertDontSee('href="#wizard_Finish"', false);
+        $response->assertDontSee('id="wizard_Finish"', false);
+        $response->assertDontSee('<span>5</span>', false);
+        $response->assertDontSee('Employment &amp; Contract Details', false);
+        $response->assertDontSee('Status Kepegawaian');
+        $response->assertDontSee('Gaji Pokok');
+        $response->assertDontSee('Riwayat MCU');
+        $response->assertDontSee('Aset Perusahaan yang Dipegang');
+        $response->assertDontSee('Simpan Step 5');
         $response->assertDontSee('Pilih status');
         $response->assertDontSee('NIK Karyawan');
         $response->assertDontSee('Penempatan diatur pada tab');
@@ -117,6 +114,44 @@ class ProfileEmployeeDataWizardTemplateTest extends TestCase
         $response->assertDontSee('Atasan Langsung');
     }
 
+    public function test_wizard_date_fields_use_single_date_picker_with_hidden_iso_value(): void
+    {
+        $user = User::query()->create([
+            'email' => 'staff.date@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        $employee = Employee::query()->create(['user_id' => $user->id, 'employee_code' => 'EMP-DATE', 'status' => 'Active']);
+        EmployeeDeployment::query()->create(['employee_id' => $employee->id, 'status' => 'Active']);
+        EmployeeProfile::query()->create(['employee_id' => $employee->id, 'name' => 'Staff Date', 'date_of_birth' => '2003-04-26']);
+
+        $response = $this->actingAs($user)->get(route('profile'));
+
+        $response->assertOk();
+        $response->assertSee('<input type="text" class="form-control js-employee-data-date-picker" value="26/04/2003" placeholder="DD/MM/YYYY" autocomplete="off" readonly', false);
+        $response->assertSee('<input type="hidden" name="date_of_birth" value="2003-04-26" data-date-value', false);
+        $response->assertSee('data-row-field="date_of_birth"', false);
+        $response->assertDontSee('type="date"', false);
+        $response->assertSee('singleDatePicker: true', false);
+        $response->assertSee('initDatePickers(newRow);', false);
+        $response->assertSee('field = dateDisplayFor(field) || field;', false);
+    }
+
+    public function test_wizard_date_field_renders_empty_display_without_a_value(): void
+    {
+        $field = view('employee_data.wizard.field', [
+            'name' => 'expired_at',
+            'label' => 'Masa Berlaku',
+            'type' => 'date',
+            'value' => null,
+            'disabled' => true,
+        ])->render();
+
+        $this->assertStringContainsString('class="form-control js-employee-data-date-picker" value="" placeholder="DD/MM/YYYY"', $field);
+        $this->assertStringContainsString('<input type="hidden" name="expired_at" value="" data-date-value disabled', $field);
+        $this->assertSame(2, substr_count($field, 'disabled'));
+    }
+
     public function test_wizard_step_partials_exist(): void
     {
         foreach (['step-1-personal', 'step-2-legal-tax', 'step-3-education', 'step-4-family', 'step-5-employment'] as $stepView) {
@@ -150,7 +185,7 @@ class ProfileEmployeeDataWizardTemplateTest extends TestCase
         $profile = (string) file_get_contents(resource_path('views/profile.blade.php'));
         $wizardStyles = (string) file_get_contents(resource_path('views/employee_data/wizard/styles.blade.php'));
 
-        $this->assertStringContainsString("@include('employee_data.wizard.wizard', ['isEmploymentStepReadOnly' => true])", $profile);
+        $this->assertStringContainsString("@include('employee_data.wizard.wizard', ['hasEmploymentStep' => false])", $profile);
         $this->assertStringContainsString("@include('employee_data.wizard.styles')", $profile);
         $this->assertStringContainsString('.employee-data-row-actions {', $wizardStyles);
         $this->assertStringContainsString('flex-wrap: nowrap;', $wizardStyles);

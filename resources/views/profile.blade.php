@@ -77,14 +77,22 @@
 
         @media (max-width: 575.98px) {
             .profile-account-tabs {
-                display: flex;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
                 width: 100%;
             }
 
-            .profile-account-tabs .nav-item,
             .profile-account-tabs .nav-link {
-                flex: 1 1 0;
+                width: 100%;
+                height: 100%;
                 min-width: 0;
+                padding: 0.6rem 0.5rem;
+                font-size: 0.8125rem;
+                line-height: 1.3;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
             }
 
             .profile-summary-list .list-group-item {
@@ -309,7 +317,7 @@
                 </div>
                 <div class="tab-pane fade" id="employee-data-pane" role="tabpanel" aria-labelledby="employee-data-tab" tabindex="0">
                     <div class="card-body">
-                        @include('employee_data.wizard.wizard', ['isEmploymentStepReadOnly' => true])
+                        @include('employee_data.wizard.wizard', ['hasEmploymentStep' => false])
                     </div>
                 </div>
                 <div class="tab-pane fade" id="employee-documents-pane" role="tabpanel" aria-labelledby="employee-documents-tab" tabindex="0">

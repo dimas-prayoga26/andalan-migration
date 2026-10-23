@@ -156,38 +156,6 @@
             object-fit: cover;
         }
 
-        .applicant-action-group {
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
-        }
-
-        .applicant-action-btn {
-            width: 34px;
-            height: 34px;
-            border: 0;
-            border-radius: 0.35rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-        }
-
-        .applicant-action-btn.edit {
-            background: #f8e8b7;
-            color: #f2ad00;
-        }
-
-        .applicant-action-btn.view {
-            background: #d9f2f4;
-            color: #4aa3ad;
-        }
-
-        .applicant-action-btn.delete {
-            background: #f8d6e2;
-            color: #ff4f7b;
-        }
-
         #datatable_wrapper .dt-length label,
         #datatable_wrapper .dt-search label,
         #datatable_wrapper .dt-info,
@@ -391,11 +359,11 @@
         }
 
         function renderEmployeeAction(employee) {
-            return '<div class="applicant-action-group">'
-                + '<button type="button" class="applicant-action-btn view"><i class="bi bi-box-arrow-up-right"></i></button>'
-                + '<a href="' + employeeUrl(employeeEditUrlTemplate, employee.id) + '" class="applicant-action-btn edit" aria-label="Update ' + escapeHtml(employee.name) + '"><i class="bi bi-pencil"></i></a>'
-                + '<button type="button" class="applicant-action-btn delete"><i class="bi bi-trash"></i></button>'
-                + '</div>';
+            return actionMenu([
+                '<li><button type="button" class="dropdown-item"><i class="bi bi-box-arrow-up-right"></i>View</button></li>',
+                '<li><a class="dropdown-item" href="' + employeeUrl(employeeEditUrlTemplate, employee.id) + '" aria-label="Update ' + escapeHtml(employee.name) + '"><i class="bi bi-pencil-square"></i>Update</a></li>',
+                '<li><button type="button" class="dropdown-item text-danger"><i class="bi bi-trash"></i>Delete</button></li>'
+            ]);
         }
 
         $(function () {

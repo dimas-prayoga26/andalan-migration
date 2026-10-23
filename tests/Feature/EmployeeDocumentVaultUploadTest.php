@@ -142,7 +142,7 @@ class EmployeeDocumentVaultUploadTest extends TestCase
         $this->assertNotSoftDeleted($hrDocument);
     }
 
-    public function test_hr_uploads_company_documents_that_staff_can_only_view(): void
+    public function test_hr_uploads_company_documents_that_are_hidden_from_the_staff_profile(): void
     {
         $manager = $this->createAuthorizationManager();
         [$staffUser, $staffEmployee] = $this->createStaff('hr.vault.staff');
@@ -166,9 +166,15 @@ class EmployeeDocumentVaultUploadTest extends TestCase
 
         $this->actingAs($staffUser)->get(route('profile'))
             ->assertOk()
-            ->assertSee('pkwt-2026.pdf')
-            ->assertSee(route('profile.employee-documents.show', ['employeeDocument' => $hrDocument]), false)
+            ->assertDontSee('Dokumen Perusahaan')
+            ->assertDontSee('pkwt-2026.pdf')
+            ->assertDontSee(route('profile.employee-documents.show', ['employeeDocument' => $hrDocument]), false)
             ->assertDontSee('data-delete-url="'.route('profile.employee-documents.destroy', ['employeeDocument' => $hrDocument]).'"', false);
+
+        $this->actingAs($manager)->get(route('authorization.edit', ['employee' => $staffEmployee]))
+            ->assertOk()
+            ->assertSee('Dokumen Perusahaan')
+            ->assertSee('pkwt-2026.pdf');
 
         $this->actingAs($manager)
             ->deleteJson(route('authorization.employee-documents.destroy', ['employee' => $staffEmployee, 'employeeDocument' => $hrDocument]))

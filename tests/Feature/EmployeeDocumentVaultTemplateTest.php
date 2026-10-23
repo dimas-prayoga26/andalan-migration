@@ -32,11 +32,17 @@ class EmployeeDocumentVaultTemplateTest extends TestCase
         $this->assertFalse($documents['certificates']['is_required']);
     }
 
-    public function test_employee_vault_lets_staff_upload_their_documents_but_only_view_hr_documents(): void
+    public function test_employee_vault_lets_staff_upload_their_documents_and_hides_company_documents(): void
     {
         $html = Blade::render("@include('employee_data.documents.vault', ['documentVaultMode' => 'employee'])");
 
         $this->assertSame(11, substr_count($html, 'js-document-dropzone'));
+        $this->assertSame(11, substr_count($html, 'js-document-card'));
+        $this->assertStringContainsString('3. Dokumen Riwayat Pekerjaan &amp; Medis', $html);
+        $this->assertStringNotContainsString('Dokumen Perusahaan', $html);
+        $this->assertStringNotContainsString('Khusus HR', $html);
+        $this->assertStringNotContainsString('Scan Perjanjian Kerja (PKWT/PKWTT)', $html);
+        $this->assertStringNotContainsString('Dari HR', $html);
         $this->assertStringContainsString('0/7 Dokumen Wajib Terunggah', $html);
         $this->assertStringContainsString('<span class="badge badge-sm employee-document-required-badge">Wajib</span>', $html);
         $this->assertStringContainsString('employee-document-required-dot', $html);
@@ -45,8 +51,8 @@ class EmployeeDocumentVaultTemplateTest extends TestCase
         $this->assertStringContainsString('<span class="badge badge-sm light badge-primary">Opsional</span>', $html);
         $this->assertStringContainsString('data-max-size-mb="5"', $html);
         $this->assertStringContainsString('JPG, PNG · Maks 2 MB', $html);
-        $this->assertSame(3, substr_count($html, 'Belum tersedia'));
-        $this->assertSame(3, substr_count($html, '<i class="fa fa-download me-1"></i>Download'));
+        $this->assertStringNotContainsString('Belum tersedia', $html);
+        $this->assertStringNotContainsString('<i class="fa fa-download me-1"></i>Download', $html);
         $this->assertStringNotContainsString('role="progressbar"', $html);
     }
 
@@ -99,8 +105,9 @@ class EmployeeDocumentVaultTemplateTest extends TestCase
             'Dokumen Identitas &amp; Legalitas Pribadi',
             'Dokumen Akademik &amp; Kompetensi',
             'Dokumen Riwayat Pekerjaan &amp; Medis',
-            'Dokumen Perusahaan', 'Khusus HR',
         ], false);
+        $response->assertDontSee('Dokumen Perusahaan');
+        $response->assertDontSee('Khusus HR');
         $response->assertSee('data-upload-url="'.route('profile.employee-documents.store').'"', false);
         $response->assertSee('function renderFiles', false);
         $response->assertSee('.profile-tab-alert-badge {', false);

@@ -1,6 +1,6 @@
 {{--
-    E-Filing & Document Vault. Modes: "employee" (staff uploads own documents, views HR documents), "hr" (HR uploads every
-    document) and "view" (read-only). Files are uploaded as soon as they are chosen when an upload URL is given.
+    E-Filing & Document Vault. Modes: "employee" (staff uploads own documents; HR-only blocks are hidden), "hr" (HR uploads
+    every document) and "view" (read-only). Files are uploaded as soon as they are chosen when an upload URL is given.
     Params: documentVaultMode, employeeDocumentFiles (document key => files), employeeDocumentUploadUrl.
 --}}
 @inject('employeeDocumentCatalog', \App\Support\Employee\EmployeeDocumentCatalog::class)
@@ -15,6 +15,9 @@
         ->filter(fn (string $documentKey): bool => ! empty($employeeDocumentFiles[$documentKey]))
         ->count();
     $hasAllRequiredDocuments = $uploadedRequiredDocumentCount === count($requiredDocumentKeys);
+    $documentBlocks = collect($employeeDocumentCatalog->blocks())
+        ->reject(fn (array $documentBlock): bool => $documentVaultMode === 'employee' && $documentBlock['is_hr_only'])
+        ->values();
 @endphp
 <div class="employee-document-vault js-employee-document-vault" data-upload-url="{{ $documentUploadUrl }}" data-required-total="{{ count($requiredDocumentKeys) }}">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
@@ -25,7 +28,7 @@
         <span @class(['badge light js-document-required-counter', 'badge-success' => $hasAllRequiredDocuments, 'badge-warning' => ! $hasAllRequiredDocuments])>{{ $uploadedRequiredDocumentCount }}/{{ count($requiredDocumentKeys) }} Dokumen Wajib Terunggah</span>
     </div>
 
-    @foreach ($employeeDocumentCatalog->blocks() as $documentBlock)
+    @foreach ($documentBlocks as $documentBlock)
         <div class="mb-4">
             <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
                 <h6 class="mb-0 fw-semibold">{{ $loop->iteration }}. {{ $documentBlock['title'] }}</h6>

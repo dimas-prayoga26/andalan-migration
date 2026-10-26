@@ -90,6 +90,17 @@ class EmployeeDocumentCatalog
     }
 
     /**
+     * Whether the document belongs to an HR-only block (e.g. "Dokumen Perusahaan").
+     */
+    public function isHrOnlyDocument(string $documentKey): bool
+    {
+        return collect($this->blocks())
+            ->filter(fn (array $block): bool => $block['is_hr_only'])
+            ->flatMap(fn (array $block): array => $block['documents'])
+            ->contains('key', $documentKey);
+    }
+
+    /**
      * @return list<string>
      */
     public function requiredEmployeeDocumentKeys(): array

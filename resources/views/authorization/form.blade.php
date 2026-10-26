@@ -196,7 +196,7 @@
 
                 @if ($isEdit)
                     <div class="tab-pane fade js-employee-form-pane" id="employeeFormDocuments" role="tabpanel" aria-labelledby="employeeFormDocumentsTab" tabindex="0">
-                        @include('employee_data.documents.vault', ['documentVaultMode' => 'hr', 'employeeDocumentFiles' => $employeeDocumentFiles ?? []])
+                        @include('employee_data.documents.vault', ['documentVaultMode' => 'hr', 'employeeDocumentFiles' => $employeeDocumentFiles ?? [], 'canViewHrOnlyDocuments' => $canViewHrOnlyDocuments ?? false])
                     </div>
                 @endif
             </div>

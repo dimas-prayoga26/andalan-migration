@@ -120,6 +120,7 @@ class AuthorizationController extends Controller
         Employee $employee,
         EmployeeDataDetailPresenter $employeeDataDetailPresenter,
         EmployeeMonthlySummaryCalculator $employeeMonthlySummaryCalculator,
+        EmployeeDocumentVaultService $employeeDocumentVaultService,
     ): View {
         $authenticatedUser = $request->user();
 
@@ -132,6 +133,7 @@ class AuthorizationController extends Controller
             'employeeAvatarUrl' => $this->employeeAvatarUrl($employee->profile?->profile_picture_path),
             'employeeMonthlySummary' => $employeeMonthlySummaryCalculator->forEmployee($employee),
             'employeeDataSections' => $employeeDataDetailPresenter->forEmployee($employee),
+            'canViewHrOnlyDocuments' => $employeeDocumentVaultService->canAccessHrOnlyDocuments($authenticatedUser),
         ]);
     }
 
@@ -141,6 +143,7 @@ class AuthorizationController extends Controller
         EmployeeEmploymentDetailResolver $employeeEmploymentDetailResolver,
         EmployeeDataDetailPresenter $employeeDataDetailPresenter,
         EmployeeDataWizardValues $employeeDataWizardValues,
+        EmployeeDocumentVaultService $employeeDocumentVaultService,
     ): View {
         $authenticatedUser = $request->user();
 
@@ -159,6 +162,7 @@ class AuthorizationController extends Controller
                 ->all(),
             'employeeDocumentFiles' => $employeeDataDetailPresenter->documentFilesFor($employee),
             'employeeDocumentUploadUrl' => route('authorization.employee-documents.store', ['employee' => $employee]),
+            'canViewHrOnlyDocuments' => $employeeDocumentVaultService->canAccessHrOnlyDocuments($authenticatedUser),
         ] + $this->dataEmployeeFormOptions($employee));
     }
 
@@ -232,6 +236,8 @@ class AuthorizationController extends Controller
             throw ValidationException::withMessages(['document_type' => 'Jenis dokumen tidak valid.']);
         }
 
+        abort_unless($employeeDocumentVaultService->canAccessDocumentType($documentType, $request->user()), 403);
+
         $employeeDocumentVaultService->store($employee, $documentType, $documentRequest->file('file'), $request->user());
 
         return response()->json([
@@ -249,6 +255,7 @@ class AuthorizationController extends Controller
 
         abort_unless($authenticatedUser instanceof User && $this->canViewEmployee($authenticatedUser, $employee), 404);
         abort_unless($employeeDocument->employee_id === $employee->id, 404);
+        abort_unless($employeeDocumentVaultService->canAccessDocumentType($employeeDocument->document_type, $authenticatedUser), 404);
 
         return $employeeDocumentVaultService->fileResponse($employeeDocument, $request->boolean('download'));
     }
@@ -262,6 +269,7 @@ class AuthorizationController extends Controller
         $this->authorizeEmployeeDataManagement($request, $employee);
 
         abort_unless($employeeDocument->employee_id === $employee->id, 404);
+        abort_unless($employeeDocumentVaultService->canAccessDocumentType($employeeDocument->document_type, $request->user()), 403);
 
         $employeeDocumentVaultService->delete($employeeDocument);
 

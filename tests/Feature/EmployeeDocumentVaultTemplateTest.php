@@ -30,6 +30,10 @@ class EmployeeDocumentVaultTemplateTest extends TestCase
         $this->assertTrue($blocks['company']['is_hr_only']);
         $this->assertSame(['hr'], collect($blocks['company']['documents'])->pluck('uploaded_by')->unique()->values()->all());
         $this->assertFalse($documents['certificates']['is_required']);
+        $this->assertTrue($catalog->isHrOnlyDocument('employment_agreement'));
+        $this->assertTrue($catalog->isHrOnlyDocument('asset_handover'));
+        $this->assertFalse($catalog->isHrOnlyDocument('ktp'));
+        $this->assertFalse($catalog->isHrOnlyDocument('unknown'));
     }
 
     public function test_employee_vault_lets_staff_upload_their_documents_and_hides_company_documents(): void
@@ -58,7 +62,7 @@ class EmployeeDocumentVaultTemplateTest extends TestCase
 
     public function test_hr_vault_can_upload_every_document_including_company_documents(): void
     {
-        $html = Blade::render("@include('employee_data.documents.vault', ['documentVaultMode' => 'hr', 'employeeDocumentFiles' => \$files])", [
+        $html = Blade::render("@include('employee_data.documents.vault', ['documentVaultMode' => 'hr', 'employeeDocumentFiles' => \$files, 'canViewHrOnlyDocuments' => true])", [
             'files' => [
                 'ktp' => [['name' => 'KTP Dimas', 'url' => 'https://example.test/ktp.pdf', 'size' => '1.2 MB', 'icon' => 'assets/images/files/pdf.avif', 'is_image' => false]],
             ],
@@ -73,12 +77,27 @@ class EmployeeDocumentVaultTemplateTest extends TestCase
 
     public function test_view_vault_only_shows_documents_for_preview_and_download(): void
     {
-        $html = Blade::render("@include('employee_data.documents.vault', ['documentVaultMode' => 'view'])");
+        $html = Blade::render("@include('employee_data.documents.vault', ['documentVaultMode' => 'view', 'canViewHrOnlyDocuments' => true])");
 
         $this->assertSame(0, substr_count($html, 'js-document-dropzone'));
         $this->assertSame(14, substr_count($html, '<i class="fa fa-eye me-1"></i>Preview'));
         $this->assertSame(14, substr_count($html, 'Belum diunggah'));
         $this->assertStringNotContainsString('Belum tersedia', $html);
+    }
+
+    public function test_hr_only_blocks_need_the_administrator_flag(): void
+    {
+        foreach (['hr', 'view'] as $documentVaultMode) {
+            $html = Blade::render("@include('employee_data.documents.vault', ['documentVaultMode' => \$mode])", ['mode' => $documentVaultMode]);
+
+            $this->assertSame(11, substr_count($html, 'js-document-card'), $documentVaultMode);
+            $this->assertStringNotContainsString('Dokumen Perusahaan', $html, $documentVaultMode);
+            $this->assertStringNotContainsString('Khusus HR', $html, $documentVaultMode);
+        }
+
+        $employeeHtml = Blade::render("@include('employee_data.documents.vault', ['documentVaultMode' => 'employee', 'canViewHrOnlyDocuments' => true])");
+
+        $this->assertStringNotContainsString('Dokumen Perusahaan', $employeeHtml, 'The staff profile never shows HR-only blocks.');
     }
 
     public function test_profile_page_has_a_documents_tab_with_the_employee_vault(): void

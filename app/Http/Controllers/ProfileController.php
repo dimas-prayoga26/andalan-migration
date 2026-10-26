@@ -149,6 +149,7 @@ class ProfileController extends Controller
         $employee = $this->authenticatedEmployee($request);
 
         abort_unless($employeeDocument->employee_id === $employee->id, 404);
+        abort_unless($this->employeeDocumentVaultService->canAccessDocumentType($employeeDocument->document_type, $request->user()), 404);
 
         return $this->employeeDocumentVaultService->fileResponse($employeeDocument, $request->boolean('download'));
     }

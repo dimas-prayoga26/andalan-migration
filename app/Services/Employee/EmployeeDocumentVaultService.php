@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\EmployeeCertification;
 use App\Models\EmployeeDocument;
 use App\Models\EmployeeLicense;
+use App\Models\Position;
 use App\Models\User;
 use App\Support\Employee\EmployeeDocumentCatalog;
 use Illuminate\Http\UploadedFile;
@@ -32,6 +33,20 @@ class EmployeeDocumentVaultService
     private const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif'];
 
     public function __construct(private readonly EmployeeDocumentCatalog $employeeDocumentCatalog) {}
+
+    /**
+     * HR-only documents (the "Khusus HR" blocks) are restricted to the Administrator and Super Administrator positions.
+     */
+    public function canAccessHrOnlyDocuments(?User $user): bool
+    {
+        return $user instanceof User
+            && ($user->isSuperAdministrator() || ($user->employee?->hasAnyPositionSystemKey([Position::KEY_ADMINISTRATOR]) ?? false));
+    }
+
+    public function canAccessDocumentType(string $documentType, ?User $user): bool
+    {
+        return ! $this->employeeDocumentCatalog->isHrOnlyDocument($documentType) || $this->canAccessHrOnlyDocuments($user);
+    }
 
     /**
      * @return array<string, list<VaultFile>>

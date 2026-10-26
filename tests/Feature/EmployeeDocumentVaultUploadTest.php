@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\EmployeeDeployment;
 use App\Models\EmployeeDocument;
 use App\Models\EmployeeProfile;
+use App\Models\Permission;
 use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
@@ -183,6 +184,59 @@ class EmployeeDocumentVaultUploadTest extends TestCase
         $this->assertSoftDeleted($hrDocument);
     }
 
+    public function test_company_documents_are_limited_to_administrator_and_super_administrator_positions(): void
+    {
+        $superAdministrator = $this->createAuthorizationManager();
+        $administrator = $this->createEmployeeWithPosition('administrator', 'Administrator');
+        $chiefOperatingOfficer = $this->createEmployeeWithPosition('coo', 'Chief Operating Officer');
+        [$staffUser, $staffEmployee] = $this->createStaff('company.docs.staff');
+
+        $this->actingAs($superAdministrator)->postJson(route('authorization.employee-documents.store', ['employee' => $staffEmployee]), [
+            'document_type' => 'employment_agreement',
+            'file' => UploadedFile::fake()->create('pkwt-2026.pdf', 200, 'application/pdf'),
+        ])->assertOk();
+
+        $hrDocument = EmployeeDocument::query()->where('employee_id', $staffEmployee->id)->firstOrFail();
+        $hrDocumentUrl = route('authorization.employee-documents.show', ['employee' => $staffEmployee, 'employeeDocument' => $hrDocument]);
+
+        $this->actingAs($administrator)->get(route('authorization.show', ['employee' => $staffEmployee]))
+            ->assertOk()
+            ->assertSee('Dokumen Perusahaan')
+            ->assertSee('pkwt-2026.pdf');
+        $this->actingAs($administrator)->get($hrDocumentUrl)->assertOk();
+        $this->actingAs($administrator)->get(route('authorization.edit', ['employee' => $staffEmployee]))
+            ->assertOk()
+            ->assertSee('Dokumen Perusahaan');
+
+        $this->actingAs($chiefOperatingOfficer)->get(route('authorization.show', ['employee' => $staffEmployee]))
+            ->assertOk()
+            ->assertSee('Dokumen Riwayat Pekerjaan &amp; Medis', false)
+            ->assertDontSee('Dokumen Perusahaan')
+            ->assertDontSee('pkwt-2026.pdf');
+        $this->actingAs($chiefOperatingOfficer)->get(route('authorization.edit', ['employee' => $staffEmployee]))
+            ->assertOk()
+            ->assertDontSee('Dokumen Perusahaan');
+        $this->actingAs($chiefOperatingOfficer)->get($hrDocumentUrl)->assertNotFound();
+        $this->actingAs($chiefOperatingOfficer)->postJson(route('authorization.employee-documents.store', ['employee' => $staffEmployee]), [
+            'document_type' => 'nda',
+            'file' => UploadedFile::fake()->create('nda.pdf', 200, 'application/pdf'),
+        ])->assertForbidden();
+        $this->actingAs($chiefOperatingOfficer)
+            ->deleteJson(route('authorization.employee-documents.destroy', ['employee' => $staffEmployee, 'employeeDocument' => $hrDocument]))
+            ->assertForbidden();
+        $this->actingAs($chiefOperatingOfficer)->postJson(route('authorization.employee-documents.store', ['employee' => $staffEmployee]), [
+            'document_type' => 'ktp',
+            'file' => UploadedFile::fake()->create('ktp.pdf', 200, 'application/pdf'),
+        ])->assertOk();
+
+        $this->actingAs($staffUser)
+            ->get(route('profile.employee-documents.show', ['employeeDocument' => $hrDocument]))
+            ->assertNotFound();
+
+        $this->assertNotSoftDeleted($hrDocument);
+        $this->assertFalse(EmployeeDocument::query()->where('employee_id', $staffEmployee->id)->where('document_type', 'nda')->exists());
+    }
+
     public function test_documents_of_another_employee_cannot_be_reached_through_an_employee_url(): void
     {
         $manager = $this->createAuthorizationManager();
@@ -253,24 +307,33 @@ class EmployeeDocumentVaultUploadTest extends TestCase
 
     private function createAuthorizationManager(): User
     {
-        $manager = User::query()->create([
-            'email' => 'superadmin@example.test',
+        return $this->createEmployeeWithPosition('superadmin', 'Super Administrator');
+    }
+
+    private function createEmployeeWithPosition(string $emailName, string $positionName): User
+    {
+        $user = User::query()->create([
+            'email' => $emailName.'@example.test',
             'password' => Hash::make('password'),
             'is_active' => true,
         ]);
-        $manager->assignRole(Role::query()->firstOrCreate(['name' => 'Staff', 'guard_name' => 'web']));
-        $managerEmployee = Employee::query()->create([
-            'user_id' => $manager->id,
-            'employee_code' => 'EMP-ADMIN',
+        $user->assignRole(Role::query()->firstOrCreate(['name' => 'Staff', 'guard_name' => 'web']));
+        $employee = Employee::query()->create([
+            'user_id' => $user->id,
+            'employee_code' => 'EMP-'.strtoupper($emailName),
             'status' => 'Active',
         ]);
-        EmployeeProfile::query()->create(['employee_id' => $managerEmployee->id, 'name' => 'Super Administrator']);
+        EmployeeProfile::query()->create(['employee_id' => $employee->id, 'name' => $positionName]);
+        $position = Position::query()->firstOrCreate(['name' => $positionName]);
+        $position->permissions()->syncWithoutDetaching([
+            Permission::query()->firstOrCreate(['name' => 'view-authorization', 'guard_name' => 'web'])->uuid,
+        ]);
         EmployeeDeployment::query()->create([
-            'employee_id' => $managerEmployee->id,
-            'current_position_id' => Position::query()->create(['name' => 'Super Administrator'])->id,
+            'employee_id' => $employee->id,
+            'current_position_id' => $position->id,
             'status' => 'Active',
         ]);
 
-        return $manager;
+        return $user;
     }
 }

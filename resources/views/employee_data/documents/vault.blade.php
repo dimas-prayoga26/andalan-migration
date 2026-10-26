@@ -1,7 +1,8 @@
 {{--
-    E-Filing & Document Vault. Modes: "employee" (staff uploads own documents; HR-only blocks are hidden), "hr" (HR uploads
-    every document) and "view" (read-only). Files are uploaded as soon as they are chosen when an upload URL is given.
-    Params: documentVaultMode, employeeDocumentFiles (document key => files), employeeDocumentUploadUrl.
+    E-Filing & Document Vault. Modes: "employee" (staff uploads own documents), "hr" (HR uploads every document) and "view"
+    (read-only). Files are uploaded as soon as they are chosen when an upload URL is given.
+    Params: documentVaultMode, employeeDocumentFiles (document key => files), employeeDocumentUploadUrl,
+    canViewHrOnlyDocuments (shows the "Khusus HR" blocks; Administrator and Super Administrator only, never on the staff profile).
 --}}
 @inject('employeeDocumentCatalog', \App\Support\Employee\EmployeeDocumentCatalog::class)
 @php
@@ -15,8 +16,9 @@
         ->filter(fn (string $documentKey): bool => ! empty($employeeDocumentFiles[$documentKey]))
         ->count();
     $hasAllRequiredDocuments = $uploadedRequiredDocumentCount === count($requiredDocumentKeys);
+    $canViewHrOnlyDocuments = $documentVaultMode !== 'employee' && ($canViewHrOnlyDocuments ?? false);
     $documentBlocks = collect($employeeDocumentCatalog->blocks())
-        ->reject(fn (array $documentBlock): bool => $documentVaultMode === 'employee' && $documentBlock['is_hr_only'])
+        ->reject(fn (array $documentBlock): bool => $documentBlock['is_hr_only'] && ! $canViewHrOnlyDocuments)
         ->values();
 @endphp
 <div class="employee-document-vault js-employee-document-vault" data-upload-url="{{ $documentUploadUrl }}" data-required-total="{{ count($requiredDocumentKeys) }}">

@@ -25,6 +25,56 @@
         z-index: 1060;
     }
 
+    .mail-account-heading {
+        align-items: center;
+        display: flex;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .mail-account-heading .mail-account-trigger {
+        min-width: 0;
+    }
+
+    .mail-account-copy {
+        align-items: center;
+        background: #f1f5f9;
+        border: 0;
+        border-radius: 8px;
+        color: #64748b;
+        display: inline-flex;
+        flex: 0 0 auto;
+        font-size: 14px;
+        height: 32px;
+        justify-content: center;
+        padding: 0;
+        transition: background .2s ease, color .2s ease;
+        width: 32px;
+    }
+
+    .mail-account-copy:hover {
+        background: #eef3ff;
+        color: var(--bs-primary);
+    }
+
+    .mail-account-copy:focus {
+        outline: 0;
+    }
+
+    .mail-account-copy:focus-visible {
+        box-shadow: 0 0 0 3px rgba(36, 69, 199, .16);
+    }
+
+    .mail-account-copy.is-copied {
+        background: rgba(25, 135, 84, .12);
+        color: #198754;
+    }
+
+    .mail-account-copy.is-failed {
+        background: rgba(220, 53, 69, .12);
+        color: #dc3545;
+    }
+
     .mail-account-trigger {
         align-items: center;
         background: transparent;

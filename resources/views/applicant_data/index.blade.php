@@ -294,83 +294,33 @@
         }
 
         .talent-assessment-summary {
-            display: inline-grid;
-            gap: 0.2rem;
-            min-width: 150px;
+            display: grid;
+            gap: 0.3rem;
+            min-width: 180px;
         }
 
-        .talent-assessment-badge {
-            display: inline-flex;
+        .talent-assessment-row {
+            display: flex;
             align-items: center;
-            width: fit-content;
-            min-height: 32px;
-            border: 1px solid #d9dce5;
-            border-radius: 0.55rem;
-            background: #f8fafc;
-            color: #475569;
+            justify-content: space-between;
+            gap: 0.75rem;
             font-size: 0.82rem;
-            font-weight: 800;
-            padding: 0.35rem 0.65rem;
         }
 
-        .talent-assessment-badge.pending {
-            background: #f8fafc;
-            border-color: #d9dce5;
+        .talent-assessment-label {
             color: #64748b;
+            font-weight: 600;
         }
 
-        .talent-assessment-badge.progress {
-            background: #eef2ff;
-            border-color: #c7d2fe;
-            color: #2448c7;
+        .talent-assessment-score {
+            color: #1e293b;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
-        .talent-assessment-badge.review {
-            background: #fff7ed;
-            border-color: #fed7aa;
-            color: #c2410c;
-        }
-
-        .talent-assessment-badge.final {
-            background: #ecfdf5;
-            border-color: #a7f3d0;
-            color: #047857;
-        }
-
-        .talent-assessment-note {
+        .talent-assessment-score.is-empty {
             color: #94a3b8;
-            font-size: 0.78rem;
             font-weight: 600;
-        }
-
-        .talent-assessment-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 34px;
-            height: 34px;
-            min-width: 34px;
-            border: 1px solid #c7d2fe;
-            border-radius: 0.35rem;
-            background: #eef2ff;
-            color: #2448c7;
-            font-size: 1rem;
-            padding: 0;
-            text-decoration: none;
-        }
-
-        .talent-assessment-button:hover {
-            border-color: #2448c7;
-            background: #2448c7;
-            color: #fff;
-            text-decoration: none;
-        }
-
-        .talent-assessment-button small {
-            color: currentColor;
-            font-size: 0.72rem;
-            font-weight: 600;
-            opacity: 0.72;
         }
 
         #datatable thead th {
@@ -650,17 +600,34 @@
                 + '</div>';
         }
 
+        var applicantAssessmentSections = [
+            { key: 'hr_interview', label: 'HR Interview' },
+            { key: 'technical_test', label: 'Technical Test' },
+            { key: 'interview_user', label: 'Interview User' }
+        ];
+
         function renderAssessmentSummary(applicant) {
-            var assessmentUrl = applicantUrl(applicantAssessmentUrlTemplate, applicant.id);
+            var assessmentScores = applicant.assessment_scores || {};
 
             return '<div class="talent-assessment-summary">'
-                + '<a href="' + assessmentUrl + '" class="talent-assessment-button" title="Form Penilaian" aria-label="Form Penilaian"><i class="bi bi-clipboard-check"></i></a>'
+                + applicantAssessmentSections.map(function (assessmentSection) {
+                    var score = assessmentScores[assessmentSection.key];
+                    var hasScore = score !== null && score !== undefined;
+
+                    return '<div class="talent-assessment-row">'
+                        + '<span class="talent-assessment-label">' + assessmentSection.label + '</span>'
+                        + '<span class="talent-assessment-score' + (hasScore ? '' : ' is-empty') + '">'
+                        + (hasScore ? Math.round(Number(score)) + '/100' : '-')
+                        + '</span>'
+                        + '</div>';
+                }).join('')
                 + '</div>';
         }
 
         function renderApplicantAction(applicant) {
             return actionMenu([
                 '<li><a class="dropdown-item" href="' + applicantUrl(applicantShowUrlTemplate, applicant.id) + '"><i class="bi bi-eye"></i>Detail</a></li>',
+                '<li><a class="dropdown-item" href="' + applicantUrl(applicantAssessmentUrlTemplate, applicant.id) + '"><i class="bi bi-clipboard-check"></i>Form Penilaian</a></li>',
                 '<li><button type="button" class="dropdown-item text-danger" onclick="deleteData(\'' + escapeHtml(applicant.id) + '\')"><i class="bi bi-trash"></i>Delete</button></li>'
             ]);
         }

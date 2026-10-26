@@ -21,10 +21,17 @@
                     <div class="min-w-0">
                         <p class="fs-14 mb-2">Email Account</p>
                         <div class="mail-account-picker" data-mail-account-picker>
-                            <button type="button" class="mail-account-trigger title fs-20 fw-semibold" data-mail-account-trigger aria-label="Pilih email account">
-                                <span>{{ $mailSummaryEmail }}</span>
-                                <i class="fa-solid fa-chevron-down"></i>
-                            </button>
+                            <div class="mail-account-heading">
+                                <button type="button" class="mail-account-trigger title fs-20 fw-semibold" data-mail-account-trigger aria-label="Pilih email account">
+                                    <span>{{ $mailSummaryEmail }}</span>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </button>
+                                @if (filled($mailSummaryAccount?->email))
+                                    <button type="button" class="mail-account-copy" data-mail-account-copy data-copy-value="{{ $mailSummaryAccount->email }}" title="Salin email" aria-label="Salin email {{ $mailSummaryAccount->email }}">
+                                        <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                                    </button>
+                                @endif
+                            </div>
                             <div class="mail-account-menu d-none" data-mail-account-menu>
                                 <form method="POST" action="{{ route($mailRoutePrefix.'.select') }}">
                                     @csrf

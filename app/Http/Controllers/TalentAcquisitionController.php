@@ -63,6 +63,7 @@ class TalentAcquisitionController extends Controller
             ])
             ->with([
                 'applicantStatus:id,value,name',
+                'assessments:id,applicant_id,section,total_score',
                 'documents:id,applicant_id,document_type,file_path',
                 'jobVacancy:id,name',
             ])
@@ -82,12 +83,33 @@ class TalentAcquisitionController extends Controller
                 'job_vacancy_name' => (string) ($applicant->jobVacancy?->name ?? '-'),
                 'applicant_status_id' => (string) ($applicant->applicant_status_id ?? ''),
                 'applicant_status_value' => (int) ($applicant->applicantStatus?->value ?? ApplicantStatus::VALUE_SUBMITTED),
+                'assessment_scores' => $this->applicantAssessmentScores($applicant),
             ])
             ->values();
 
         return DataTables::collection($applicants)
             ->with($this->applicantStatusCounts($request))
             ->toJson();
+    }
+
+    /**
+     * Score (0–100) of each assessment stage, or null while the stage has not been assessed yet.
+     *
+     * @return array{hr_interview: ?float, technical_test: ?float, interview_user: ?float}
+     */
+    private function applicantAssessmentScores(Applicant $applicant): array
+    {
+        $scoresBySection = $applicant->assessments->pluck('total_score', 'section');
+
+        return collect([
+            ApplicantAssessment::SECTION_HR_INTERVIEW,
+            ApplicantAssessment::SECTION_TECHNICAL_TEST,
+            ApplicantAssessment::SECTION_INTERVIEW_USER,
+        ])
+            ->mapWithKeys(fn (string $section): array => [
+                $section => $scoresBySection->has($section) ? (float) $scoresBySection->get($section) : null,
+            ])
+            ->all();
     }
 
     /**

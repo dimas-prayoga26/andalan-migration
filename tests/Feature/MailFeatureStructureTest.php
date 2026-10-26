@@ -317,4 +317,24 @@ class MailFeatureStructureTest extends TestCase
         $this->assertStringNotContainsString('Keluar Email', $mailSidebarView);
         $this->assertStringContainsString('->visibleForMailAccess()', $controller);
     }
+
+    public function test_summary_card_has_a_copy_button_for_the_selected_email(): void
+    {
+        $summaryCards = view('mail.partials.summary-cards', [
+            'account' => (object) ['id' => 1, 'email' => 'dimas@tims.co.id'],
+            'mailAccounts' => [],
+        ])->render();
+        $summaryCardsWithoutAccount = view('mail.partials.summary-cards', ['mailAccounts' => []])->render();
+        $mailAccountSelectorScript = File::get(resource_path('views/mail/partials/account-selector-script.blade.php'));
+        $mailAccountSelectorStyles = File::get(resource_path('views/mail/partials/account-selector-styles.blade.php'));
+
+        $this->assertStringContainsString('<button type="button" class="mail-account-copy" data-mail-account-copy data-copy-value="dimas@tims.co.id" title="Salin email" aria-label="Salin email dimas@tims.co.id">', $summaryCards);
+        $this->assertStringContainsString('<i class="fa-regular fa-copy" aria-hidden="true"></i>', $summaryCards);
+        $this->assertStringNotContainsString('data-mail-account-copy', $summaryCardsWithoutAccount);
+        $this->assertStringContainsString("event.target.closest('[data-mail-account-copy]')", $mailAccountSelectorScript);
+        $this->assertStringContainsString('navigator.clipboard.writeText(value)', $mailAccountSelectorScript);
+        $this->assertStringContainsString("document.execCommand('copy')", $mailAccountSelectorScript);
+        $this->assertStringContainsString("'Email tersalin'", $mailAccountSelectorScript);
+        $this->assertStringContainsString('.mail-account-copy.is-copied {', $mailAccountSelectorStyles);
+    }
 }

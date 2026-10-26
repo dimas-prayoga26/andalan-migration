@@ -233,7 +233,12 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString('.talent-status-select.status-value-4', $applicantsView);
         $this->assertStringContainsString('.talent-status-select.status-value-5', $applicantsView);
         $this->assertStringContainsString('.talent-assessment-summary', $applicantsView);
-        $this->assertStringContainsString('.talent-assessment-badge', $applicantsView);
+        $this->assertStringContainsString('.talent-assessment-row', $applicantsView);
+        $this->assertStringContainsString('.talent-assessment-score.is-empty', $applicantsView);
+        $this->assertStringContainsString("{ key: 'hr_interview', label: 'HR Interview' }", $applicantsView);
+        $this->assertStringContainsString("{ key: 'technical_test', label: 'Technical Test' }", $applicantsView);
+        $this->assertStringContainsString("{ key: 'interview_user', label: 'Interview User' }", $applicantsView);
+        $this->assertStringContainsString("Math.round(Number(score)) + '/100'", $applicantsView);
         $this->assertStringNotContainsString("label: 'Belum Dinilai'", $applicantsView);
         $this->assertStringContainsString("selectElement.classList.remove('status-value-0', 'status-value-1', 'status-value-2', 'status-value-3', 'status-value-4', 'status-value-5')", $applicantsView);
         $this->assertStringContainsString('updateApplicantStatusColor', $applicantsView);
@@ -243,9 +248,8 @@ class TalentAcquisitionStructureTest extends TestCase
         $this->assertStringContainsString("route('applicant.status.update'", $applicantsView);
         $this->assertStringContainsString("route('applicant.show'", $applicantsView);
         $this->assertStringContainsString("route('applicant.assessment'", $applicantsView);
-        $this->assertStringContainsString('talent-assessment-button', $applicantsView);
-        $this->assertStringContainsString('bi-clipboard-check', $applicantsView);
-        $this->assertStringContainsString('aria-label="Form Penilaian"', $applicantsView);
+        $this->assertStringNotContainsString('talent-assessment-button', $applicantsView);
+        $this->assertStringContainsString('<li><a class="dropdown-item" href="\' + applicantUrl(applicantAssessmentUrlTemplate, applicant.id) + \'"><i class="bi bi-clipboard-check"></i>Form Penilaian</a></li>', $applicantsView);
         $this->assertStringNotContainsString('<span>Form Penilaian</span>', $applicantsView);
         $this->assertStringNotContainsString("note: 'Form HR Interview'", $applicantsView);
         $this->assertStringContainsString("route('applicant.destroy'", $applicantsView);

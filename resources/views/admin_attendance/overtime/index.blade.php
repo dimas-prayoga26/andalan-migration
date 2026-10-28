@@ -8,6 +8,7 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}">
     <style>
         .admin-overtime-table-footer.dataTables_wrapper {
             display: flex;
@@ -330,8 +331,16 @@
                 </div>
             </div>
             @forelse (($overtimeCards ?? collect()) as $overtimeCard)
+                @php
+                    $overtimeCardLockedNotice = $overtimeCard['locked_notice'] ?? null;
+                @endphp
                 <div class="col-xxl-3 col-xl-4 col-sm-6">
-                    <div class="card">
+                    <div @class(['card', 'js-admin-overtime-card-locked' => $overtimeCardLockedNotice !== null])
+                        @if ($overtimeCardLockedNotice !== null)
+                            role="button" tabindex="0" style="cursor: pointer;"
+                            data-locked-title="{{ $overtimeCardLockedNotice['title'] }}"
+                            data-locked-message="{{ $overtimeCardLockedNotice['message'] }}"
+                        @endif>
                         <div class="card-body">
                             <div class="clearfix d-flex">
                                 <div class="avatar avatar-sm rounded me-3 d-flex align-items-center justify-content-center bg-primary-subtle text-primary fw-semibold">
@@ -339,7 +348,12 @@
                                 </div>
                                 <div class="clearfix">
                                     <h6 class="mb-0 fw-semibold">
-                                        <a href="{{ $overtimeCard['detail_url'] }}" class="stretched-link">{{ $overtimeCard['record_number'] }}</a>
+                                        @if ($overtimeCardLockedNotice === null)
+                                            <a href="{{ $overtimeCard['detail_url'] }}" class="stretched-link">{{ $overtimeCard['record_number'] }}</a>
+                                        @else
+                                            <span class="text-dark">{{ $overtimeCard['record_number'] }}</span>
+                                            <i class="fa fa-lock ms-1 text-muted" aria-hidden="true"></i>
+                                        @endif
                                     </h6>
                                     <span class="small">{{ $overtimeCard['employee_name'] }}</span>
                                 </div>
@@ -492,8 +506,34 @@
 @endsection
 
 @section('script')
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            function showLockedOvertimeCardNotice(card) {
+                var title = card.getAttribute('data-locked-title') || 'Informasi';
+                var message = card.getAttribute('data-locked-message') || '';
+
+                if (window.Swal) {
+                    window.Swal.fire({ icon: 'info', title: title, text: message });
+
+                    return;
+                }
+
+                window.alert(message);
+            }
+
+            document.querySelectorAll('.js-admin-overtime-card-locked').forEach(function (card) {
+                card.addEventListener('click', function () {
+                    showLockedOvertimeCardNotice(card);
+                });
+                card.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        showLockedOvertimeCardNotice(card);
+                    }
+                });
+            });
+
             if (!window.jQuery) {
                 return;
             }

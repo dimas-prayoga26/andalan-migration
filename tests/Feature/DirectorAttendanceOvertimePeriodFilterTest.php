@@ -86,6 +86,85 @@ class DirectorAttendanceOvertimePeriodFilterTest extends TestCase
         $this->assertContains(2026, $viewData['yearOptions']);
     }
 
+    public function test_director_overtime_cards_lock_cards_before_director_approval(): void
+    {
+        $employee = $this->createActiveEmployee();
+        $this->createOvertime($employee, '2026-09-30', [
+            'task_hours_verification' => 'pending',
+        ]);
+        $this->createOvertime($employee, '2026-10-01', [
+            'task_hours_verification' => 'pending',
+            'payroll_processing' => 'waiting',
+            'director_approval' => 'waiting',
+        ]);
+        $this->createOvertime($employee, '2026-10-02', []);
+        $this->createOvertime($employee, '2026-10-03', [
+            'task_hours_verification' => 'verified',
+            'payroll_processing' => 'pending',
+            'director_approval' => 'waiting',
+        ]);
+        $this->createOvertime($employee, '2026-10-04', [
+            'task_hours_verification' => 'verified',
+            'payroll_processing' => 'rejected',
+            'director_approval' => 'waiting',
+        ]);
+        $this->createOvertimeWithDirectorStatus($employee, '2026-10-05', 'pending');
+        $this->createOvertimeWithDirectorStatus($employee, '2026-10-06', 'approved');
+        $this->createOvertimeWithDirectorStatus($employee, '2026-10-07', 'rejected');
+        $this->createOvertimeWithDirectorStatus($employee, '2026-10-08', 'pending')->update(['status' => 'cancelled']);
+
+        $viewData = $this->directorOvertimeIndex(['month' => 10, 'year' => 2026])->getData();
+        $overtimeCards = $viewData['overtimeCards'];
+
+        $this->assertCount(1, $viewData['pendingRows']);
+        $this->assertSame(
+            ['07 Oct 2026', '06 Oct 2026', '05 Oct 2026', '04 Oct 2026', '03 Oct 2026', '02 Oct 2026', '01 Oct 2026'],
+            $overtimeCards->pluck('date_label')->all(),
+        );
+        $this->assertSame(
+            [
+                'Director Approval',
+                'Director Approval',
+                'Director Approval',
+                'HR / Payroll Processing',
+                'HR / Payroll Processing',
+                'Task & Hours Verification',
+                'Task & Hours Verification',
+            ],
+            $overtimeCards->pluck('current_log.title')->all(),
+        );
+        $this->assertSame(
+            ['Rejected', 'Approved', 'Pending', 'Rejected', 'Pending', 'Waiting', 'Pending'],
+            $overtimeCards->pluck('current_log.status')->all(),
+        );
+        $this->assertSame(
+            [null, null, null, 'Ditolak HR', 'Belum Diproses HR', 'Belum Diverifikasi PIC', 'Belum Diverifikasi PIC'],
+            $overtimeCards->map(fn (array $overtimeCard): ?string => $overtimeCard['locked_notice']['title'] ?? null)->all(),
+        );
+        $this->assertSame(
+            'Lembur ini belum diverifikasi oleh PIC / Supervisor, sehingga belum bisa diproses.',
+            $overtimeCards->last()['locked_notice']['message'],
+        );
+        $this->assertSame(
+            'Lembur ini belum diproses oleh HR / Payroll, sehingga belum bisa di-approve Director.',
+            $overtimeCards->get(4)['locked_notice']['message'],
+        );
+        $this->assertSame(
+            'Lembur ini ditolak oleh HR / Payroll, sehingga tidak diteruskan ke Director.',
+            $overtimeCards->get(3)['locked_notice']['message'],
+        );
+    }
+
+    public function test_director_overtime_view_locks_cards_with_sweetalert_notice(): void
+    {
+        $view = (string) file_get_contents(resource_path('views/director_attendance/overtime/index.blade.php'));
+
+        $this->assertStringContainsString('js-director-overtime-card-locked', $view);
+        $this->assertStringContainsString('data-locked-message="{{ $overtimeCardLockedNotice[\'message\'] }}"', $view);
+        $this->assertStringContainsString("window.Swal.fire({ icon: 'info', title: title, text: message });", $view);
+        $this->assertStringContainsString('assets/vendor/sweetalert2/sweetalert2.min.js', $view);
+    }
+
     /**
      * @param  array<string, int>  $query
      */
@@ -123,6 +202,18 @@ class DirectorAttendanceOvertimePeriodFilterTest extends TestCase
 
     private function createOvertimeWithDirectorStatus(Employee $employee, string $overtimeDate, string $directorStatus): AttendanceOvertime
     {
+        return $this->createOvertime($employee, $overtimeDate, [
+            'task_hours_verification' => 'verified',
+            'payroll_processing' => 'calculated_locked',
+            'director_approval' => $directorStatus,
+        ]);
+    }
+
+    /**
+     * @param  array<string, string>  $lifecycleStatuses
+     */
+    private function createOvertime(Employee $employee, string $overtimeDate, array $lifecycleStatuses): AttendanceOvertime
+    {
         $overtime = AttendanceOvertime::query()->create([
             'employee_id' => $employee->id,
             'overtime_date' => $overtimeDate,
@@ -132,16 +223,18 @@ class DirectorAttendanceOvertimePeriodFilterTest extends TestCase
             'status' => 'completed',
         ]);
 
-        foreach ([
-            ['task_hours_verification', 'verified', 5],
-            ['payroll_processing', 'calculated_locked', 6],
-            ['director_approval', $directorStatus, 7],
-        ] as [$eventKey, $status, $stepOrder]) {
+        $stepOrders = [
+            'task_hours_verification' => 5,
+            'payroll_processing' => 6,
+            'director_approval' => 7,
+        ];
+
+        foreach ($lifecycleStatuses as $eventKey => $status) {
             OvertimeLifecycleLog::query()->create([
                 'overtime_id' => $overtime->id,
                 'phase' => 'payroll_payment',
                 'event_key' => $eventKey,
-                'step_order' => $stepOrder,
+                'step_order' => $stepOrders[$eventKey],
                 'title' => $eventKey,
                 'status' => $status,
                 'happened_at' => Carbon::parse($overtimeDate.' 20:00:00', 'Asia/Jakarta'),

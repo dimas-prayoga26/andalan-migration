@@ -23,7 +23,7 @@ use Illuminate\Support\Str;
 class AttendanceOvertimeController extends Controller
 {
     /**
-     * Admin overtime cards only cover lifecycle steps 6-8, after PIC task & hours verification.
+     * Admin overtime lifecycle steps 6-8, reachable after PIC task & hours verification (step 5).
      *
      * @var array<int, array{event_key:string,title:string,completed_statuses:array<int, string>}>
      */
@@ -244,12 +244,13 @@ class AttendanceOvertimeController extends Controller
             ->orderByDesc('overtime_date')
             ->orderByDesc('created_at')
             ->get()
-            ->filter(fn (AttendanceOvertime $overtime): bool => $this->hasStartedAdminOvertimeCardRange($overtime))
             ->map(fn (AttendanceOvertime $overtime): array => $this->adminOvertimeCardFor($overtime))
             ->values();
     }
 
     /**
+     * Cards that have not passed PIC task & hours verification carry a locked notice instead of being clickable.
+     *
      * @return array<string, mixed>
      */
     private function adminOvertimeCardFor(AttendanceOvertime $overtime): array
@@ -257,6 +258,7 @@ class AttendanceOvertimeController extends Controller
         $task = $overtime->projectTasks->first();
         $lifecycleLogsByEvent = $overtime->lifecycleLogs->keyBy('event_key');
         $showActualTime = $this->hasApprovedOvertimeTimes($overtime) || $this->hasActualOvertimeTimes($overtime);
+        $isAwaitingPicVerification = $this->isAwaitingPicVerification($overtime);
 
         return [
             'record_number' => '#'.(is_string($overtime->record_number) && trim($overtime->record_number) !== '' ? trim($overtime->record_number) : '-'),
@@ -266,7 +268,15 @@ class AttendanceOvertimeController extends Controller
             'time_lines' => $this->timeLinesFor($overtime, $showActualTime),
             'supervisor_name' => $this->supervisorDisplayName($overtime),
             'detail_url' => route('admin-attendance.overtime.detail', ['uid' => $overtime->id]),
-            'current_log' => $this->currentAdminLifecycleLog($lifecycleLogsByEvent),
+            'current_log' => $isAwaitingPicVerification
+                ? $this->picVerificationLifecycleLog($lifecycleLogsByEvent)
+                : $this->currentAdminLifecycleLog($lifecycleLogsByEvent),
+            'locked_notice' => $isAwaitingPicVerification
+                ? [
+                    'title' => 'Belum Diverifikasi PIC',
+                    'message' => 'Lembur ini belum diverifikasi oleh PIC / Supervisor, sehingga belum bisa diproses.',
+                ]
+                : null,
         ];
     }
 
@@ -593,6 +603,28 @@ class AttendanceOvertimeController extends Controller
         unset($selectedLog['is_complete']);
 
         return $selectedLog;
+    }
+
+    /**
+     * @param  Collection<string, OvertimeLifecycleLog>  $lifecycleLogsByEvent
+     * @return array{title:string,status:string,badge_class:string}
+     */
+    private function picVerificationLifecycleLog(Collection $lifecycleLogsByEvent): array
+    {
+        $status = $this->lifecycleStatus($lifecycleLogsByEvent, 'task_hours_verification');
+
+        return [
+            'title' => 'Task & Hours Verification',
+            'status' => $this->lifecycleStatusLabel($status),
+            'badge_class' => $this->lifecycleStatusBadgeClass($status !== '' ? $status : 'waiting'),
+        ];
+    }
+
+    private function isAwaitingPicVerification(AttendanceOvertime $overtime): bool
+    {
+        $verificationStatus = $this->lifecycleStatus($overtime->lifecycleLogs->keyBy('event_key'), 'task_hours_verification');
+
+        return $verificationStatus !== 'verified' && ! $this->hasStartedAdminOvertimeCardRange($overtime);
     }
 
     private function hasStartedAdminOvertimeCardRange(AttendanceOvertime $overtime): bool

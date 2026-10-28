@@ -68,8 +68,7 @@ class AdminAttendanceOvertimePeriodFilterTest extends TestCase
         $this->assertSame('1 request', $viewData['overtimeSummary']['pending_label']);
         $this->assertSame('1 request', $this->metricCardValue($viewData['overtimeMetricCards'], 'Pending'));
         $this->assertCount(1, $viewData['pendingRows']);
-        $this->assertCount(1, $viewData['overtimeCards']);
-        $this->assertSame('16 Sep 2026', $viewData['overtimeCards']->first()['date_label']);
+        $this->assertSame(['16 Sep 2026', '15 Sep 2026'], $viewData['overtimeCards']->pluck('date_label')->all());
     }
 
     public function test_period_filter_defaults_to_current_month_when_missing_or_invalid(): void
@@ -109,9 +108,10 @@ class AdminAttendanceOvertimePeriodFilterTest extends TestCase
         $this->assertContains(2026, $viewData['yearOptions']);
     }
 
-    public function test_admin_overtime_cards_only_include_lifecycle_steps_six_to_eight(): void
+    public function test_admin_overtime_cards_lock_cards_before_pic_verification(): void
     {
         $employee = $this->createActiveEmployee();
+        $this->createOvertime($employee, '2026-09-30', self::WAITING_PIC_VERIFICATION);
         $this->createOvertime($employee, '2026-10-01', self::WAITING_PIC_VERIFICATION);
         $this->createOvertime($employee, '2026-10-02', [
             'task_hours_verification' => 'verified',
@@ -129,16 +129,43 @@ class AdminAttendanceOvertimePeriodFilterTest extends TestCase
             'director_approval' => 'approved',
             'payment_disbursement' => 'completed',
         ]);
+        $this->createOvertime($employee, '2026-10-06', [
+            'session_ended' => 'waiting',
+            'task_hours_verification' => 'waiting',
+        ]);
+        $this->createOvertime($employee, '2026-10-07', []);
+        $cancelledOvertime = $this->createOvertime($employee, '2026-10-08', self::WAITING_PIC_VERIFICATION);
+        $cancelledOvertime->update(['status' => 'cancelled']);
 
         $overtimeCards = $this->adminOvertimeIndex(['month' => 10, 'year' => 2026])->getData()['overtimeCards'];
 
         $this->assertSame(
-            ['05 Oct 2026', '04 Oct 2026', '03 Oct 2026'],
+            ['07 Oct 2026', '06 Oct 2026', '05 Oct 2026', '04 Oct 2026', '03 Oct 2026', '02 Oct 2026', '01 Oct 2026'],
             $overtimeCards->pluck('date_label')->all(),
         );
         $this->assertSame(
-            ['Payment Distribution', 'Director Approval', 'HR / Payroll Processing'],
+            [
+                'Task & Hours Verification',
+                'Task & Hours Verification',
+                'Payment Distribution',
+                'Director Approval',
+                'HR / Payroll Processing',
+                'HR / Payroll Processing',
+                'Task & Hours Verification',
+            ],
             $overtimeCards->pluck('current_log.title')->all(),
+        );
+        $this->assertSame(
+            ['Waiting', 'Waiting', 'Completed', 'Pending', 'Pending', 'Waiting', 'Pending'],
+            $overtimeCards->pluck('current_log.status')->all(),
+        );
+        $this->assertSame(
+            ['Belum Diverifikasi PIC', 'Belum Diverifikasi PIC', null, null, null, null, 'Belum Diverifikasi PIC'],
+            $overtimeCards->map(fn (array $overtimeCard): ?string => $overtimeCard['locked_notice']['title'] ?? null)->all(),
+        );
+        $this->assertSame(
+            'Lembur ini belum diverifikasi oleh PIC / Supervisor, sehingga belum bisa diproses.',
+            $overtimeCards->last()['locked_notice']['message'],
         );
     }
 

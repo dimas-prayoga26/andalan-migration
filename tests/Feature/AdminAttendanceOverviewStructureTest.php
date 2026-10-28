@@ -30,6 +30,7 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $overtimeDetailRoute = Route::getRoutes()->getByName('admin-attendance.overtime.detail');
         $overtimeApprovalRoute = Route::getRoutes()->getByName('admin-attendance.overtime.approval');
         $overviewView = File::get(resource_path('views/admin_attendance/overview/index.blade.php'));
+        $overtimeIndexView = File::get(resource_path('views/admin_attendance/overtime/index.blade.php'));
         $overtimeDetailView = File::get(resource_path('views/admin_attendance/overtime/detail.blade.php'));
         $overviewController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceOverviewController.php'));
         $recapController = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceRecapController.php'));
@@ -175,6 +176,10 @@ class AdminAttendanceOverviewStructureTest extends TestCase
         $this->assertStringContainsString("->orWhereHas('employee.deployment.positions'", $overtimeController);
         $this->assertStringNotContainsString("['label' => \$plannedTimeLabel, 'strike' => true]", $overtimeController);
         $this->assertStringNotContainsString('$companyId = $overtime->employee?->deployment?->current_company_id;', $overtimeController);
+        $this->assertStringContainsString('js-admin-overtime-card-locked', $overtimeIndexView);
+        $this->assertStringContainsString('data-locked-message="{{ $overtimeCardLockedNotice[\'message\'] }}"', $overtimeIndexView);
+        $this->assertStringContainsString("window.Swal.fire({ icon: 'info', title: title, text: message });", $overtimeIndexView);
+        $this->assertStringContainsString('assets/vendor/sweetalert2/sweetalert2.min.js', $overtimeIndexView);
         $this->assertStringContainsString('Staff Start ClockIn', $overtimeDetailView);
         $this->assertStringContainsString('Staff Start ClockOut', $overtimeDetailView);
         $this->assertStringContainsString('$overtimeDetail[\'actual_start_time\']', $overtimeDetailView);

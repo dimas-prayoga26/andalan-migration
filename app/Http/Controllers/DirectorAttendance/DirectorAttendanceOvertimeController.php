@@ -180,11 +180,6 @@ class DirectorAttendanceOvertimeController extends Controller
 
         return $this->directorOvertimeQuery()
             ->whereBetween('overtime_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
-            ->whereHas('lifecycleLogs', function (Builder $query): void {
-                $query
-                    ->where('event_key', 'director_approval')
-                    ->whereIn(DB::raw('LOWER(COALESCE(status, ""))'), ['pending', 'approved']);
-            })
             ->orderByDesc('overtime_date')
             ->orderByDesc('created_at')
             ->get()
@@ -193,13 +188,15 @@ class DirectorAttendanceOvertimeController extends Controller
     }
 
     /**
+     * Cards that have not reached Director Approval (step 7) carry a locked notice instead of being clickable.
+     *
      * @return array<string, mixed>
      */
     private function directorOvertimeCardFor(AttendanceOvertime $overtime): array
     {
         $task = $overtime->projectTasks->first();
-        $directorApprovalLog = $this->overtimeLifecycleLog($overtime, 'director_approval');
-        $status = strtolower(trim((string) ($directorApprovalLog?->status ?? 'pending')));
+        $directorStatus = $this->lifecycleStatus($overtime, 'director_approval');
+        $hasReachedDirectorApproval = in_array($directorStatus, ['pending', 'approved', 'rejected'], true);
 
         return [
             'record_number' => '#'.(is_string($overtime->record_number) && trim($overtime->record_number) !== '' ? trim($overtime->record_number) : '-'),
@@ -209,12 +206,69 @@ class DirectorAttendanceOvertimeController extends Controller
             'time_lines' => $this->timeLinesFor($overtime, $this->hasApprovedOvertimeTimes($overtime) || $this->hasActualOvertimeTimes($overtime)),
             'supervisor_name' => $this->supervisorDisplayName($overtime),
             'detail_url' => route('director-attendance.overtime.detail', ['uid' => $overtime->id]),
-            'current_log' => [
-                'title' => 'Director Approval',
-                'status' => $this->lifecycleStatusLabel($status),
-                'badge_class' => $this->lifecycleStatusBadgeClass($status),
-            ],
+            'current_log' => $hasReachedDirectorApproval
+                ? $this->cardLifecycleLog('Director Approval', $directorStatus)
+                : $this->lockedCardLifecycleLog($overtime),
+            'locked_notice' => $hasReachedDirectorApproval ? null : $this->lockedCardNotice($overtime),
         ];
+    }
+
+    /**
+     * @return array{title:string,status:string,badge_class:string}
+     */
+    private function lockedCardLifecycleLog(AttendanceOvertime $overtime): array
+    {
+        return $this->isAwaitingPicVerification($overtime)
+            ? $this->cardLifecycleLog('Task & Hours Verification', $this->lifecycleStatus($overtime, 'task_hours_verification'))
+            : $this->cardLifecycleLog('HR / Payroll Processing', $this->lifecycleStatus($overtime, 'payroll_processing'));
+    }
+
+    /**
+     * @return array{title:string,message:string}
+     */
+    private function lockedCardNotice(AttendanceOvertime $overtime): array
+    {
+        if ($this->isAwaitingPicVerification($overtime)) {
+            return [
+                'title' => 'Belum Diverifikasi PIC',
+                'message' => 'Lembur ini belum diverifikasi oleh PIC / Supervisor, sehingga belum bisa diproses.',
+            ];
+        }
+
+        if ($this->lifecycleStatus($overtime, 'payroll_processing') === 'rejected') {
+            return [
+                'title' => 'Ditolak HR',
+                'message' => 'Lembur ini ditolak oleh HR / Payroll, sehingga tidak diteruskan ke Director.',
+            ];
+        }
+
+        return [
+            'title' => 'Belum Diproses HR',
+            'message' => 'Lembur ini belum diproses oleh HR / Payroll, sehingga belum bisa di-approve Director.',
+        ];
+    }
+
+    private function isAwaitingPicVerification(AttendanceOvertime $overtime): bool
+    {
+        return $this->lifecycleStatus($overtime, 'task_hours_verification') !== 'verified'
+            && in_array($this->lifecycleStatus($overtime, 'payroll_processing'), ['', 'waiting'], true);
+    }
+
+    /**
+     * @return array{title:string,status:string,badge_class:string}
+     */
+    private function cardLifecycleLog(string $title, string $status): array
+    {
+        return [
+            'title' => $title,
+            'status' => $this->lifecycleStatusLabel($status),
+            'badge_class' => $this->lifecycleStatusBadgeClass($status !== '' ? $status : 'waiting'),
+        ];
+    }
+
+    private function lifecycleStatus(AttendanceOvertime $overtime, string $eventKey): string
+    {
+        return strtolower(trim((string) ($this->overtimeLifecycleLog($overtime, $eventKey)?->status ?? '')));
     }
 
     /**

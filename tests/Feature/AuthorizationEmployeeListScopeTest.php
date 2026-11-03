@@ -324,8 +324,8 @@ class AuthorizationEmployeeListScopeTest extends TestCase
 
         $this->actingAs($coo)
             ->post(route('authorization.position-permissions.update'), [
-                'permission_positions' => [
-                    (string) $authorizationPermission->uuid => [(string) $cooPosition->id],
+                'permission_levels' => [
+                    (string) $authorizationPermission->uuid => [Position::levelForSystemKey($cooPosition->system_key) => 'all'],
                 ],
             ])
             ->assertRedirect(route('authorization.access-menus'));

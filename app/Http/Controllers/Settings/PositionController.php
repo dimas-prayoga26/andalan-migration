@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\Position;
+use App\Services\PositionLevelPermissionService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -30,7 +31,7 @@ class PositionController extends Controller
     public function datatable(): JsonResponse
     {
         $query = Position::query()
-            ->select(['id', 'name', 'status', 'is_protected']);
+            ->select(['id', 'name', 'status', 'level', 'is_protected']);
 
         return DataTables::eloquent($query)
             ->toJson();
@@ -48,9 +49,11 @@ class PositionController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, PositionLevelPermissionService $positionLevelPermissionService): RedirectResponse
     {
-        Position::query()->create($this->validatedData($request));
+        $position = Position::query()->create($this->validatedData($request));
+
+        $positionLevelPermissionService->grantLevelPermissionsTo($position);
 
         return redirect()
             ->route('settings.positions.index')
@@ -69,7 +72,7 @@ class PositionController extends Controller
         ]);
     }
 
-    public function update(Request $request, Position $position): RedirectResponse
+    public function update(Request $request, Position $position, PositionLevelPermissionService $positionLevelPermissionService): RedirectResponse
     {
         $validated = $this->validatedData($request, $position);
 
@@ -79,7 +82,15 @@ class PositionController extends Controller
                 ->withInput();
         }
 
-        $position->update($validated);
+        $isLevelChanged = $position->level !== $validated['level'];
+
+        DB::transaction(function () use ($isLevelChanged, $position, $positionLevelPermissionService, $validated): void {
+            $position->update($validated);
+
+            if ($isLevelChanged) {
+                $positionLevelPermissionService->replaceWithLevelPermissions($position);
+            }
+        });
 
         return redirect()
             ->route('settings.positions.index')
@@ -110,7 +121,7 @@ class PositionController extends Controller
     }
 
     /**
-     * @return array{name: string, status: string}
+     * @return array{name: string, status: string, level: string}
      */
     private function validatedData(Request $request, ?Position $position = null): array
     {
@@ -122,6 +133,7 @@ class PositionController extends Controller
                 Rule::unique('positions', 'name')->ignore($position?->id, 'id'),
             ],
             'status' => ['required', 'string', Rule::in(['active', 'inactive'])],
+            'level' => ['required', 'string', Rule::in(array_keys(Position::LEVEL_LABELS))],
         ]);
     }
 }

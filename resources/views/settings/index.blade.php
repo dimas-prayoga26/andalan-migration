@@ -277,6 +277,18 @@
             ];
 
             if (isPositionTable) {
+                var positionLevelLabels = @json(\App\Models\Position::LEVEL_LABELS);
+
+                columns.push({
+                    title: 'Level',
+                    data: 'level',
+                    name: 'level',
+                    searchable: false,
+                    render: function (data) {
+                        return $('<span>').text(positionLevelLabels[data] || data || '-').html();
+                    }
+                });
+
                 columns.push({
                     title: 'Type',
                     data: 'is_protected',

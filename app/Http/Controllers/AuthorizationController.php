@@ -19,6 +19,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\Employee\EmployeeDataWizardService;
 use App\Services\Employee\EmployeeDocumentVaultService;
+use App\Services\PositionLevelPermissionService;
 use App\Support\Employee\EmployeeDataCompletionCalculator;
 use App\Support\Employee\EmployeeDataDetailPresenter;
 use App\Support\Employee\EmployeeDataWizardValues;
@@ -296,47 +297,33 @@ class AuthorizationController extends Controller
             ->with('status', 'Employee has been deleted successfully.');
     }
 
-    public function accessMenus(Request $request): View
+    public function accessMenus(Request $request, PositionLevelPermissionService $positionLevelPermissionService): View
     {
         $authenticatedUser = $request->user();
 
         abort_unless($authenticatedUser instanceof User && $this->canManagePositionPermissions($authenticatedUser), 403);
 
+        $levels = $positionLevelPermissionService->levels();
+
         return view('authorization.access-menus', [
-            'positions' => $this->authorizationPositions(),
-            'menuPermissions' => $this->menuPermissions(),
+            'levels' => $levels,
+            'menuPermissions' => $this->menuPermissions($positionLevelPermissionService, $levels),
         ]);
     }
 
-    public function updatePositionPermissions(Request $request): RedirectResponse
+    public function updatePositionPermissions(Request $request, PositionLevelPermissionService $positionLevelPermissionService): RedirectResponse
     {
         $authenticatedUser = $request->user();
 
         abort_unless($authenticatedUser instanceof User && $this->canManagePositionPermissions($authenticatedUser), 403);
 
         $validated = $request->validate([
-            'permission_positions' => ['array'],
-            'permission_positions.*' => ['array'],
-            'permission_positions.*.*' => ['string', 'exists:positions,id'],
+            'permission_levels' => ['array'],
+            'permission_levels.*' => ['array'],
+            'permission_levels.*.*' => ['string', Rule::in(PositionLevelPermissionService::STATES)],
         ]);
 
-        $submittedPositionIds = collect($validated['permission_positions'] ?? []);
-        $assignablePositionIds = $this->authorizationPositions()
-            ->pluck('id')
-            ->all();
-
-        Permission::query()
-            ->get(['uuid'])
-            ->each(function (Permission $permission) use ($assignablePositionIds, $submittedPositionIds): void {
-                $positionIds = collect($submittedPositionIds->get((string) $permission->uuid, []))
-                    ->filter()
-                    ->intersect($assignablePositionIds)
-                    ->unique()
-                    ->values()
-                    ->all();
-
-                $permission->positions()->sync($positionIds);
-            });
+        $positionLevelPermissionService->sync($validated['permission_levels'] ?? []);
 
         return redirect()
             ->route('authorization.access-menus')
@@ -532,33 +519,18 @@ class AuthorizationController extends Controller
     }
 
     /**
-     * @return Collection<int, array{id: string, name: string}>
+     * @param  Collection<string, array{key: string, label: string, positions: Collection<int, Position>}>  $levels
+     * @return Collection<int, array{id: string, name: string, label: string, section: string, levels: array<string, array{state: string, granted_position_names: array<int, string>}>}>
      */
-    private function authorizationPositions(): Collection
-    {
-        return Position::query()
-            ->whereNotSystemKey(Position::KEY_SUPER_ADMINISTRATOR)
-            ->orderBy('name')
-            ->get(['id', 'name', 'system_key'])
-            ->map(fn (Position $position): array => [
-                'id' => (string) $position->id,
-                'name' => (string) $position->name,
-            ])
-            ->values();
-    }
-
-    /**
-     * @return Collection<int, array{id: string, name: string, label: string, section: string, position_ids: array<int, string>}>
-     */
-    private function menuPermissions(): Collection
+    private function menuPermissions(PositionLevelPermissionService $positionLevelPermissionService, Collection $levels): Collection
     {
         $menuPermissionMetadata = $this->menuPermissionMetadata();
 
         return Permission::query()
-            ->with(['positions' => fn ($query) => $query->whereNotSystemKey(Position::KEY_SUPER_ADMINISTRATOR)->select(['positions.id', 'positions.name', 'positions.system_key'])])
+            ->with(['positions' => fn ($query) => $query->select(['positions.id'])])
             ->orderBy('name')
             ->get(['uuid', 'name'])
-            ->map(function (Permission $permission) use ($menuPermissionMetadata): array {
+            ->map(function (Permission $permission) use ($levels, $menuPermissionMetadata, $positionLevelPermissionService): array {
                 $metadata = $menuPermissionMetadata[(string) $permission->name] ?? null;
 
                 return [
@@ -566,11 +538,10 @@ class AuthorizationController extends Controller
                     'name' => (string) $permission->name,
                     'label' => (string) ($metadata['label'] ?? Str::of((string) $permission->name)->replace('-', ' ')->title()),
                     'section' => (string) ($metadata['section'] ?? 'Other'),
-                    'position_ids' => $permission->positions
-                        ->pluck('id')
-                        ->map(fn (mixed $positionId): string => (string) $positionId)
-                        ->values()
-                        ->all(),
+                    'levels' => $positionLevelPermissionService->levelStates(
+                        $levels,
+                        $permission->positions->map(fn (Position $position): string => (string) $position->id),
+                    ),
                 ];
             })
             ->sortBy([

@@ -59,6 +59,7 @@ class PositionSeeder extends Seeder
                     'id' => $position['id'],
                     'name' => $position['name'],
                     'system_key' => $position['system_key'],
+                    'level' => Position::levelForSystemKey($position['system_key']),
                     'status' => 'active',
                     'is_protected' => $position['is_protected'],
                     'created_at' => $now,

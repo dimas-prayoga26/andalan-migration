@@ -96,6 +96,56 @@ class Position extends Model
         self::KEY_EXECUTIVE_ASSISTANT,
     ];
 
+    public const LEVEL_ADMINISTRATOR = 'administrator';
+
+    public const LEVEL_DIRECTOR = 'director';
+
+    public const LEVEL_SUPERVISOR = 'supervisor';
+
+    public const LEVEL_CORE_STAFF = 'core_staff';
+
+    /**
+     * Staff outside day-to-day team work, e.g. weekly meetings (drivers, crew, baristas).
+     */
+    public const LEVEL_NON_CORE_STAFF = 'non_core_staff';
+
+    /**
+     * Permission levels in display order.
+     *
+     * @var array<string, string>
+     */
+    public const LEVEL_LABELS = [
+        self::LEVEL_ADMINISTRATOR => 'Administrator',
+        self::LEVEL_DIRECTOR => 'Director',
+        self::LEVEL_SUPERVISOR => 'Supervisor',
+        self::LEVEL_CORE_STAFF => 'Core Staff',
+        self::LEVEL_NON_CORE_STAFF => 'Non-Core Staff',
+    ];
+
+    /**
+     * Default level for new system positions; any other new position starts as core staff.
+     *
+     * @var array<string, array<int, string>>
+     */
+    public const LEVEL_SYSTEM_KEYS = [
+        self::LEVEL_ADMINISTRATOR => [
+            self::KEY_ADMINISTRATOR,
+        ],
+        self::LEVEL_DIRECTOR => [
+            self::KEY_DIRECTOR,
+            self::KEY_CHIEF_OPERATING_OFFICER,
+            self::KEY_COMMISSIONER,
+            self::KEY_COMMISSIONER_INDEPENDENT,
+        ],
+        self::LEVEL_SUPERVISOR => [
+            self::KEY_SUPERVISOR,
+        ],
+        self::LEVEL_NON_CORE_STAFF => [
+            self::KEY_DRIVER,
+            self::KEY_EXECUTIVE_ASSISTANT,
+        ],
+    ];
+
     protected $table = 'positions';
 
     protected $guarded = [];
@@ -121,6 +171,10 @@ class Position extends Model
             if (! is_string($position->id) || trim($position->id) === '') {
                 $position->id = static::generateCustomSequenceUuid('id');
             }
+
+            if (blank($position->level)) {
+                $position->level = static::levelForSystemKey($position->system_key);
+            }
         });
 
         static::saving(function (self $position): void {
@@ -144,6 +198,17 @@ class Position extends Model
     public static function isProtectedSystemKey(string $systemKey): bool
     {
         return in_array($systemKey, self::PROTECTED_SYSTEM_KEYS, true);
+    }
+
+    public static function levelForSystemKey(?string $systemKey): string
+    {
+        foreach (self::LEVEL_SYSTEM_KEYS as $level => $systemKeys) {
+            if (in_array($systemKey, $systemKeys, true)) {
+                return $level;
+            }
+        }
+
+        return self::LEVEL_CORE_STAFF;
     }
 
     public function permissions(): BelongsToMany

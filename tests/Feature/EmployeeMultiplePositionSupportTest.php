@@ -142,11 +142,11 @@ class EmployeeMultiplePositionSupportTest extends TestCase
 
     public function test_super_administrator_is_not_assignable_from_access_menu_editor(): void
     {
-        $controller = file_get_contents(app_path('Http/Controllers/AuthorizationController.php'));
+        $levelPermissionService = file_get_contents(app_path('Services/PositionLevelPermissionService.php'));
 
-        $this->assertIsString($controller);
-        $this->assertStringContainsString('->whereNotSystemKey(Position::KEY_SUPER_ADMINISTRATOR)', $controller);
-        $this->assertStringContainsString('->intersect($assignablePositionIds)', $controller);
+        $this->assertIsString($levelPermissionService);
+        $this->assertStringContainsString('->whereNotSystemKey(Position::KEY_SUPER_ADMINISTRATOR)', $levelPermissionService);
+        $this->assertStringContainsString('->intersect($grantedPositionIds)', $levelPermissionService);
     }
 
     public function test_leave_grouping_and_seeders_no_longer_depend_only_on_current_position_id(): void

@@ -96,6 +96,18 @@
                     @endif
                     @error('status')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
+                @if ($resourceLabel === 'Position')
+                    <div class="col-md-3">
+                        <label class="form-label">Level</label>
+                        <select name="level" class="default-select form-control @error('level') is-invalid @enderror">
+                            @foreach (\App\Models\Position::LEVEL_LABELS as $levelValue => $levelLabel)
+                                <option value="{{ $levelValue }}" @selected(old('level', $item?->level ?? \App\Models\Position::LEVEL_CORE_STAFF) === $levelValue)>{{ $levelLabel }}</option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">Menu access follows the level set in Assign Permission.</div>
+                        @error('level')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                @endif
             </div>
         </div>
         <div class="card-footer d-flex justify-content-between">

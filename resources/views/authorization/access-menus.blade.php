@@ -8,7 +8,6 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
-    <link rel="stylesheet" href="{{ asset('assets/vendor/select2/css/select2.min.css') }}">
     <style>
         .authorization-nav-card {
             border-radius: 8px;
@@ -35,61 +34,48 @@
             background: transparent;
         }
 
-        .authorization-access-form .select2-container {
-            width: 100% !important;
+        .authorization-level-legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
         }
 
-        .authorization-access-form .bootstrap-select {
-            display: none !important;
-        }
-
-        .authorization-access-form .select2-container--default .select2-selection--single,
-        .authorization-access-form .select2-container--default .select2-selection--multiple {
-            min-height: 44px;
-            border-color: #e5e7eb;
+        .authorization-level-legend-item {
+            border: 1px solid #e5e7eb;
             border-radius: 8px;
+            padding: 0.75rem 1rem;
         }
 
-        .authorization-access-form .select2-container--default .select2-selection--single .select2-selection__rendered {
-            line-height: 44px;
-            padding-left: 14px;
+        .authorization-level-legend-item h6 {
+            margin-bottom: 0.25rem;
+            color: var(--bs-primary);
         }
 
-        .authorization-access-form .select2-container--default .select2-selection--single .select2-selection__arrow {
-            height: 44px;
+        .authorization-level-legend-item span {
+            color: #6b7280;
+            font-size: 0.8125rem;
         }
 
-        .authorization-access-form .select2-container--default .select2-selection--multiple {
-            padding: 6px 10px;
+        .authorization-access-form .authorization-level-column {
+            width: 130px;
+            text-align: center;
         }
 
-        .authorization-access-form .select2-container--default .select2-selection--multiple .select2-selection__choice {
-            margin-top: 2px;
-            margin-bottom: 2px;
-            border-color: #d1d5db;
-            background: #f3f4f6;
-            border-radius: 6px;
+        .authorization-access-form .authorization-level-checkbox {
+            width: 1.25rem;
+            height: 1.25rem;
+            float: none;
+            margin: 0;
+            cursor: pointer;
         }
 
-        .authorization-access-form .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-            border-right-color: #d1d5db;
-        }
-
-        .authorization-select2-option {
-            display: flex;
-            align-items: center;
-            width: 100%;
-        }
-
-        .select2-container--default .select2-results__option[aria-selected=true] {
-            background: var(--bs-primary);
-            color: #fff;
-            font-weight: 600;
-        }
-
-        .select2-container--default .select2-results__option--highlighted[aria-selected] {
-            background: var(--bs-primary);
-            color: #fff;
+        .authorization-level-partial {
+            max-width: 130px;
+            margin: 0.25rem auto 0;
+            color: #b45309;
+            font-size: 0.75rem;
+            line-height: 1.3;
         }
     </style>
 @endsection
@@ -129,7 +115,7 @@
     <div class="card-header border-0 flex-wrap gap-3">
         <div>
             <h4 class="card-title mb-1">Assign Permission</h4>
-            <p class="mb-0 text-muted fs-13">Assign positions that can access each menu.</p>
+            <p class="mb-0 text-muted fs-13">Choose which position levels can access each menu.</p>
         </div>
         <button type="submit" form="authorizationAccessForm" class="btn btn-primary btn-sm">
             <i class="fa-solid fa-floppy-disk me-2"></i>Save Access
@@ -139,7 +125,21 @@
         @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
 
         @if ($errors->any())
-            @include('partials.swal-alert', ['type' => 'error', 'message' => 'Periksa kembali position yang dipilih.'])
+            @include('partials.swal-alert', ['type' => 'error', 'message' => 'Periksa kembali level yang dipilih.'])
+        @endif
+
+        <div class="authorization-level-legend">
+            @foreach ($levels as $level)
+                <div class="authorization-level-legend-item">
+                    <h6>{{ $level['label'] }}</h6>
+                    <span>{{ $level['positions']->pluck('name')->implode(', ') ?: 'No positions yet' }}</span>
+                </div>
+            @endforeach
+        </div>
+        @if (auth()->user()?->hasAnyPositionPermission(['view-settings']))
+            <p class="text-muted fs-13 mb-3">
+                A position's level can be changed in <a href="{{ route('settings.positions.index') }}">Setting &rsaquo; Position</a>.
+            </p>
         @endif
 
         <form id="authorizationAccessForm" action="{{ route('authorization.position-permissions.update') }}" method="POST">
@@ -149,37 +149,47 @@
                     <thead>
                         <tr>
                             <th>Menu</th>
-                            <th style="min-width: 420px;">Assign Position</th>
+                            @foreach ($levels as $level)
+                                <th class="authorization-level-column">{{ $level['label'] }}</th>
+                            @endforeach
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($menuPermissions as $permission)
-                            @php
-                                $selectedPositionIds = old("permission_positions.{$permission['id']}", $permission['position_ids']);
-                                $selectedPositionIds = is_array($selectedPositionIds) ? $selectedPositionIds : [];
-                            @endphp
                             <tr>
                                 <td>
                                     <h6 class="mb-1 text-black">{{ $permission['section'] }} - {{ $permission['label'] }}</h6>
                                     <span class="text-muted fs-13">{{ $permission['name'] }}</span>
                                 </td>
-                                <td>
-                                    <select
-                                        class="form-control authorization-select2 js-skip-selectpicker authorization-position-select"
-                                        id="authorizationPositionSelect-{{ $permission['id'] }}"
-                                        name="permission_positions[{{ $permission['id'] }}][]"
-                                        multiple
-                                        data-placeholder="Select position"
-                                    >
-                                        @foreach ($positions as $position)
-                                            <option value="{{ $position['id'] }}" @selected(in_array($position['id'], $selectedPositionIds, true))>{{ $position['name'] }}</option>
-                                        @endforeach
-                                    </select>
-                                </td>
+                                @foreach ($levels as $level)
+                                    @php
+                                        $levelState = $permission['levels'][$level['key']];
+                                        $isPartialLevel = $levelState['state'] === \App\Services\PositionLevelPermissionService::STATE_PARTIAL;
+                                        $levelInputName = "permission_levels[{$permission['id']}][{$level['key']}]";
+                                    @endphp
+                                    <td class="authorization-level-column">
+                                        <input type="hidden" name="{{ $levelInputName }}" value="{{ $isPartialLevel ? 'partial' : 'none' }}" data-level-fallback>
+                                        <input
+                                            class="form-check-input authorization-level-checkbox"
+                                            type="checkbox"
+                                            name="{{ $levelInputName }}"
+                                            value="all"
+                                            aria-label="{{ $level['label'] }} - {{ $permission['section'] }} - {{ $permission['label'] }}"
+                                            @checked($levelState['state'] === \App\Services\PositionLevelPermissionService::STATE_ALL)
+                                            @disabled($level['positions']->isEmpty())
+                                            @if ($isPartialLevel) data-partial-level @endif
+                                        >
+                                        @if ($isPartialLevel)
+                                            <div class="authorization-level-partial" data-level-partial-note>
+                                                Partial: {{ implode(', ', $levelState['granted_position_names']) }}
+                                            </div>
+                                        @endif
+                                    </td>
+                                @endforeach
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="2" class="text-center text-muted py-4">No menu data available.</td>
+                                <td colspan="{{ $levels->count() + 1 }}" class="text-center text-muted py-4">No menu data available.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -191,48 +201,23 @@
 @endsection
 
 @section('script')
-    <script src="{{ asset('assets/vendor/select2/js/select2.full.min.js') }}"></script>
     <script>
         (function () {
-            function formatPositionOption(option) {
-                if (!option.id) {
-                    return option.text;
-                }
+            // A partial level keeps its current positions until the checkbox is touched; after that it is all-or-none.
+            document.querySelectorAll('[data-partial-level]').forEach(function (checkbox) {
+                var fallbackInput = checkbox.parentElement.querySelector('[data-level-fallback]');
+                var partialNote = checkbox.parentElement.querySelector('[data-level-partial-note]');
 
-                var optionContent = $('<span class="authorization-select2-option"></span>');
+                checkbox.indeterminate = true;
 
-                $('<span></span>').text(option.text).appendTo(optionContent);
+                checkbox.addEventListener('change', function () {
+                    fallbackInput.value = 'none';
 
-                return optionContent;
-            }
-
-            function initializeAuthorizationSelect2() {
-                $('.authorization-select2').each(function () {
-                    var selectElement = $(this);
-
-                    if ($.fn.selectpicker && selectElement.data('selectpicker')) {
-                        selectElement.selectpicker('destroy');
+                    if (partialNote) {
+                        partialNote.remove();
                     }
-
-                    selectElement.siblings('.bootstrap-select').remove();
-
-                    if ($.fn.select2) {
-                        if (selectElement.hasClass('select2-hidden-accessible')) {
-                            selectElement.select2('destroy');
-                        }
-
-                        selectElement.select2({
-                            placeholder: selectElement.data('placeholder'),
-                            closeOnSelect: false,
-                            templateResult: formatPositionOption,
-                            width: '100%'
-                        });
-                    }
-                });
-            }
-
-            $(initializeAuthorizationSelect2);
-            $(window).on('load', initializeAuthorizationSelect2);
+                }, { once: true });
+            });
         })();
     </script>
 @endsection

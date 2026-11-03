@@ -231,6 +231,22 @@
             object-fit: contain;
         }
 
+        .applicant-assessment-preview iframe {
+            width: 100%;
+            height: 560px;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background: #fff;
+        }
+
+        .applicant-assessment-file-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
         .applicant-assessment-summary-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -446,6 +462,15 @@
     ];
     $generatedAssessmentUploadUrl = session('assessment_upload_url', $assessmentUploadUrl);
     $assessmentUploaded = filled($assessmentFileUrl);
+    $assessmentFileDownloadUrl = $assessmentFileDownloadUrl ?? null;
+    $assessmentFileIsImage = (bool) $assessmentDocument?->isImage();
+    $assessmentFileIsPdf = (bool) $assessmentDocument?->isPdf();
+    $assessmentFileIcon = match ($assessmentDocument?->fileExtension()) {
+        'pdf' => 'bi-file-earmark-pdf',
+        'doc', 'docx' => 'bi-file-earmark-word',
+        'zip', 'rar' => 'bi-file-earmark-zip',
+        default => 'bi-file-earmark-check',
+    };
     $technicalTestUploadRequest = $technicalTestUploadRequest ?? null;
     $generatedTechnicalTestUploadUrl = session('technical_test_upload_url', $technicalTestUploadUrl ?? null);
     $technicalTestUploaded = filled($technicalTestFileUrl ?? null);
@@ -595,13 +620,36 @@
                                 </div>
                                 <div class="applicant-assessment-upload">
                                     @if ($assessmentUploaded)
-                                        <div class="applicant-assessment-preview">
-                                            <a href="{{ $assessmentFileUrl }}" target="_blank" rel="noopener">
-                                                <img src="{{ $assessmentFileUrl }}" alt="Hasil assessment {{ $applicant->full_name }}">
+                                        @if ($assessmentFileIsImage)
+                                            <div class="applicant-assessment-preview">
+                                                <a href="{{ $assessmentFileUrl }}" target="_blank" rel="noopener">
+                                                    <img src="{{ $assessmentFileUrl }}" alt="Hasil assessment {{ $applicant->full_name }}">
+                                                </a>
+                                            </div>
+                                        @elseif ($assessmentFileIsPdf)
+                                            <div class="applicant-assessment-preview">
+                                                <iframe src="{{ $assessmentFileUrl }}" title="Hasil assessment {{ $applicant->full_name }}" loading="lazy"></iframe>
+                                            </div>
+                                        @else
+                                            <i class="bi {{ $assessmentFileIcon }} fs-3 d-block mb-2"></i>
+                                        @endif
+                                        <div class="fw-semibold">Hasil assessment sudah diupload</div>
+                                        <div class="small">{{ $assessmentDocument?->displayName() }}</div>
+                                        @if (! $assessmentFileIsImage && ! $assessmentFileIsPdf)
+                                            <div class="small">File ini tidak bisa dipreview di browser, silakan download untuk membukanya.</div>
+                                        @endif
+                                        <div class="applicant-assessment-file-actions">
+                                            @if ($assessmentFileIsImage || $assessmentFileIsPdf)
+                                                <a href="{{ $assessmentFileUrl }}" target="_blank" rel="noopener" class="btn btn-primary light btn-sm">
+                                                    <i class="bi bi-eye me-1"></i>
+                                                    Lihat File
+                                                </a>
+                                            @endif
+                                            <a href="{{ $assessmentFileDownloadUrl }}" class="btn btn-primary btn-sm">
+                                                <i class="bi bi-download me-1"></i>
+                                                Download
                                             </a>
                                         </div>
-                                        <div class="fw-semibold">Hasil assessment sudah diupload</div>
-                                        <div class="small">{{ $assessmentDocument?->original_name ?: basename((string) $assessmentDocument?->file_path) }}</div>
                                     @else
                                         <i class="bi bi-cloud-arrow-up fs-3 d-block mb-2"></i>
                                         <div class="fw-semibold">Upload hasil assessment</div>

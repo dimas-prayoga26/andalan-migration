@@ -74,6 +74,11 @@ class ApplicantAssessmentUploadLinkService
             .'/assessment-file';
     }
 
+    public function assessmentFileDownloadUrlFor(Applicant $applicant): string
+    {
+        return $this->assessmentFileUrlFor($applicant).'?download=1';
+    }
+
     private function baseUrlFor(Applicant $applicant): string
     {
         $brandKey = $this->brandKeyFor($applicant);

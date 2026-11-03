@@ -7,6 +7,7 @@ use App\Models\ApplicantDocument;
 use App\Models\ApplicantStatus;
 use App\Models\ApplicantUploadRequest;
 use App\Models\JobVacancy;
+use App\Models\User;
 use App\Services\ApplicantAssessmentUploadLinkService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
@@ -65,8 +66,80 @@ class ApplicantAssessmentUploadLinkTest extends TestCase
             'https://assessment-test.coffeeniskala.com/'.$applicant->id.'/assessment-file',
             $assessmentFileUrl,
         );
+        $this->assertSame(
+            'https://assessment-test.coffeeniskala.com/'.$applicant->id.'/assessment-file?download=1',
+            $service->assessmentFileDownloadUrlFor($applicant),
+        );
         $this->assertNull(config('assessment_upload'));
         $this->assertSame(7, config('assessment_test_upload.expires_in_days'));
+    }
+
+    public function test_assessment_document_detects_previewable_file_types(): void
+    {
+        $pdf = new ApplicantDocument(['file_path' => 'uploaded-images/abc.pdf', 'original_name' => 'Hasil.pdf', 'mime_type' => 'application/pdf']);
+        $image = new ApplicantDocument(['file_path' => 'uploaded-images/abc.png', 'original_name' => 'Hasil.PNG', 'mime_type' => null]);
+        $word = new ApplicantDocument([
+            'file_path' => 'uploaded-images/abc.docx',
+            'original_name' => null,
+            'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ]);
+
+        $this->assertTrue($pdf->isPdf());
+        $this->assertFalse($pdf->isImage());
+        $this->assertSame('Hasil.pdf', $pdf->displayName());
+
+        $this->assertTrue($image->isImage());
+        $this->assertFalse($image->isPdf());
+        $this->assertSame('png', $image->fileExtension());
+
+        $this->assertFalse($word->isImage());
+        $this->assertFalse($word->isPdf());
+        $this->assertSame('abc.docx', $word->displayName());
+    }
+
+    public function test_assessment_page_previews_and_offers_download_for_uploaded_pdf(): void
+    {
+        $applicant = $this->createApplicantWithAssessmentDocument('1001131098.pdf', 'application/pdf');
+
+        $this->actingAs(User::factory()->superAdministrator()->create())
+            ->get(route('applicant.assessment', $applicant))
+            ->assertOk()
+            ->assertSee('Hasil assessment sudah diupload')
+            ->assertSee('1001131098.pdf')
+            ->assertSee('<iframe src="https://assessment-test.rnb.co.id/'.$applicant->id.'/assessment-file"', false)
+            ->assertSee('Lihat File')
+            ->assertSee('href="https://assessment-test.rnb.co.id/'.$applicant->id.'/assessment-file?download=1"', false)
+            ->assertDontSee('<img src="https://assessment-test.rnb.co.id/'.$applicant->id.'/assessment-file"', false);
+    }
+
+    public function test_assessment_page_previews_uploaded_image(): void
+    {
+        $applicant = $this->createApplicantWithAssessmentDocument('hasil.jpg', 'image/jpeg');
+
+        $this->actingAs(User::factory()->superAdministrator()->create())
+            ->get(route('applicant.assessment', $applicant))
+            ->assertOk()
+            ->assertSee('<img src="https://assessment-test.rnb.co.id/'.$applicant->id.'/assessment-file"', false)
+            ->assertSee('Lihat File')
+            ->assertSee('assessment-file?download=1', false);
+    }
+
+    public function test_assessment_page_only_offers_download_for_non_previewable_document(): void
+    {
+        $applicant = $this->createApplicantWithAssessmentDocument(
+            'hasil.docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        );
+
+        $this->actingAs(User::factory()->superAdministrator()->create())
+            ->get(route('applicant.assessment', $applicant))
+            ->assertOk()
+            ->assertSee('hasil.docx')
+            ->assertSee('bi-file-earmark-word', false)
+            ->assertSee('tidak bisa dipreview di browser')
+            ->assertSee('assessment-file?download=1', false)
+            ->assertDontSee('Lihat File')
+            ->assertDontSee('<iframe src="https://assessment-test.rnb.co.id/'.$applicant->id.'/assessment-file"', false);
     }
 
     public function test_assessment_upload_link_generation_is_wired_to_route_view_and_request_table(): void
@@ -92,5 +165,26 @@ class ApplicantAssessmentUploadLinkTest extends TestCase
         $this->assertStringContainsString('assessmentUploadUrl', $view);
         $this->assertStringContainsString('assessmentFileUrl', $view);
         $this->assertStringContainsString('Sudah Upload', $view);
+    }
+
+    private function createApplicantWithAssessmentDocument(string $originalName, string $mimeType): Applicant
+    {
+        $applicant = Applicant::query()->create([
+            'job_vacancy_id' => JobVacancy::query()->create(['name' => 'Graphic Designer', 'status' => JobVacancy::STATUS_ACTIVE])->id,
+            'applicant_status_id' => ApplicantStatus::query()->where('value', ApplicantStatus::VALUE_HR_INTERVIEW)->value('id'),
+            'full_name' => 'Assessment Candidate',
+            'email' => 'assessment.candidate@example.test',
+            'brand_key' => 'rnb',
+        ]);
+
+        ApplicantDocument::query()->create([
+            'applicant_id' => $applicant->id,
+            'document_type' => ApplicantDocument::TYPE_ASSESSMENT_TEST,
+            'file_path' => 'uploaded-images/'.$originalName,
+            'original_name' => $originalName,
+            'mime_type' => $mimeType,
+        ]);
+
+        return $applicant;
     }
 }

@@ -52,6 +52,27 @@ class ApplicantDocument extends Model
         });
     }
 
+    public function displayName(): string
+    {
+        return (string) ($this->original_name ?: basename((string) $this->file_path));
+    }
+
+    public function fileExtension(): string
+    {
+        return strtolower(pathinfo($this->displayName(), PATHINFO_EXTENSION));
+    }
+
+    public function isImage(): bool
+    {
+        return str_starts_with((string) $this->mime_type, 'image/')
+            || in_array($this->fileExtension(), ['jpg', 'jpeg', 'png', 'webp'], true);
+    }
+
+    public function isPdf(): bool
+    {
+        return $this->mime_type === 'application/pdf' || $this->fileExtension() === 'pdf';
+    }
+
     public function applicant(): BelongsTo
     {
         return $this->belongsTo(Applicant::class, 'applicant_id', 'id');

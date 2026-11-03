@@ -231,6 +231,9 @@ class TalentAcquisitionController extends Controller
             'assessmentFileUrl' => $assessmentDocument instanceof ApplicantDocument
                 ? $uploadLinkService->assessmentFileUrlFor($applicant)
                 : null,
+            'assessmentFileDownloadUrl' => $assessmentDocument instanceof ApplicantDocument
+                ? $uploadLinkService->assessmentFileDownloadUrlFor($applicant)
+                : null,
             'assessmentUploadRequest' => $assessmentUploadRequest,
             'assessmentUploadUrl' => $assessmentUploadRequest instanceof ApplicantUploadRequest
                 ? $uploadLinkService->urlFor($applicant)

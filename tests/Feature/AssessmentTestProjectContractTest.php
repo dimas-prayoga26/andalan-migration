@@ -25,6 +25,7 @@ class AssessmentTestProjectContractTest extends TestCase
         $this->assertStringContainsString("public const TYPE_ASSESSMENT_TEST = 'assessment_test';", $documentModel);
         $this->assertStringContainsString('/upload-file/verify-applicant', $service);
         $this->assertStringContainsString('/assessment-file', $service);
+        $this->assertStringContainsString("'?download=1'", $service);
         $this->assertStringContainsString("'trah' => 'https://assessment-test.trah.co.id'", $assessmentConfig);
 
         $this->assertStringContainsString('/{applicant}/upload-file/verify-applicant', $uploadRoutes);
@@ -35,6 +36,7 @@ class AssessmentTestProjectContractTest extends TestCase
         $this->assertStringContainsString('brandMatchesApplicant', $uploadAccess);
         $this->assertStringNotContainsString('brand_connections', $uploadAccess);
         $this->assertStringContainsString('possiblePublicFilePaths', $assessmentFileController);
+        $this->assertStringContainsString("\$request->boolean('download')", $assessmentFileController);
     }
 
     private function uploadProjectPath(): string

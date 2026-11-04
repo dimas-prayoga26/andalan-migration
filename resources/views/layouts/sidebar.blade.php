@@ -6,24 +6,45 @@
 						$isDashboardMenu = request()->routeIs('dashboard');
 						$isCalendarMenu = request()->routeIs('activity-schadule*');
 						$isAttendanceMenu = request()->routeIs('attendance*') || request()->is('attendance*');
+						$isZoomMeetingMenu = request()->routeIs('zoom-meeting*') || request()->is('zoom-meeting*');
+						$isBusinessEmailMenu = request()->routeIs('business-email*') || request()->is('business-email*');
 						$isAdminAttendanceMenu = request()->routeIs('admin-attendance*') || request()->is('admin-attendance*');
-						$isPicAttendanceMenu = request()->routeIs('pic-attendance*') || request()->is('pic-attendance*');
-						$isDirectorAttendanceMenu = request()->routeIs('director-attendance*') || request()->is('director-attendance*');
+						$isHrMeetingMenu = request()->routeIs('hr-meetings*') || request()->is('hr-meetings*');
+						$isEmailManagementMenu = request()->routeIs('email-management*') || request()->is('email-management*');
+						$isPicAttendanceMenu = (request()->routeIs('pic-attendance*') || request()->is('pic-attendance*')) && ! request()->routeIs('pic-attendance.task*');
+						$isPicTeamTasksMenu = request()->routeIs('pic-attendance.task*');
+						$isDirectorTaskMenu = request()->routeIs('director-attendance.task*');
+						$isDirectorAttendanceMenu = (request()->routeIs('director-attendance*') || request()->is('director-attendance*')) && ! $isDirectorTaskMenu;
 						$isReportingMenu = request()->routeIs('project_management', 'project_management.detail') || request()->is('project-management*');
 						$isAuthorizationMenu = request()->routeIs('authorization*') || request()->is('authorization*');
 						$isApplicantMenu = request()->routeIs('applicant*') || request()->is('applicant*');
+						$isAdministrationFinanceMenu = request()->routeIs('administration-finance*') || request()->is('administration-finance*');
 						$isSettingsMenu = request()->routeIs('settings*') || request()->is('settings*');
 						$canViewSidebarMenu = $canViewSidebarMenu ?? static fn (string $permissionName): bool => true;
 						$canViewDashboardMenu = $canViewSidebarMenu('view-dashboard');
 						$canViewCalendarMenu = $canViewSidebarMenu('view-calendar');
 						$canViewAttendanceMenu = $canViewSidebarMenu('view-attendance');
 						$canViewTimesheetReportingMenu = $canViewSidebarMenu('view-timesheet-reporting');
+						$canViewMeetingMenu = $canViewSidebarMenu('view-meeting');
 						$canViewAdminAttendanceMenu = $canViewSidebarMenu('view-admin-attendance');
+						$canViewHrMeetingsMenu = $canViewAdminAttendanceMenu;
+						$canViewEmailManagementMenu = $canViewSidebarMenu('view-email-management');
 						$canViewPicAttendanceMenu = $canViewSidebarMenu('view-pic-attendance');
 						$canViewDirectorAttendanceMenu = $canViewSidebarMenu('view-director-attendance');
 						$canViewAuthorizationMenu = $canViewSidebarMenu('view-authorization');
 						$canViewTalentAcquisitionMenu = $canViewSidebarMenu('view-talent-acquisition');
 						$canViewSettingsMenu = $canViewSidebarMenu('view-settings');
+						$canViewBusinessEmailMenu = $canViewSidebarMenu('view-business-email');
+						$canViewAdministrationFinanceEmailMenu = $canViewSidebarMenu('view-administration-finance-email');
+						$useDirectorManagementMenu = $canViewDirectorAttendanceMenu;
+						$showAdminAuthorizationMenu = $canViewAuthorizationMenu && ! $useDirectorManagementMenu;
+						$showPicTalentAcquisitionMenu = $canViewTalentAcquisitionMenu && $canViewPicAttendanceMenu && ! $useDirectorManagementMenu;
+						$showAdminTalentAcquisitionMenu = $canViewTalentAcquisitionMenu && ! $useDirectorManagementMenu && ! $showPicTalentAcquisitionMenu;
+						$showDirectorAuthorizationMenu = $canViewAuthorizationMenu && $useDirectorManagementMenu;
+						$showDirectorTalentAcquisitionMenu = $canViewTalentAcquisitionMenu && $useDirectorManagementMenu;
+						$showAdminManagementMenu = $canViewAdminAttendanceMenu || $canViewHrMeetingsMenu || $canViewEmailManagementMenu || $showAdminAuthorizationMenu || $showAdminTalentAcquisitionMenu;
+						$showPicManagementMenu = $canViewPicAttendanceMenu || $showPicTalentAcquisitionMenu;
+						$showDirectorManagementMenu = $canViewDirectorAttendanceMenu || $showDirectorAuthorizationMenu || $showDirectorTalentAcquisitionMenu;
 					@endphp
 					@if ($canViewDashboardMenu || $canViewCalendarMenu)
 					<div class="copyright mt-1">
@@ -46,7 +67,7 @@
 						</a>
 					</li>
 					@endif
-					@if ($canViewAttendanceMenu || $canViewTimesheetReportingMenu)
+					@if ($canViewAttendanceMenu || $canViewTimesheetReportingMenu || $canViewMeetingMenu || $canViewBusinessEmailMenu)
 					<div class="copyright mt-1">
 						<p class="mb-1"><strong>Siap</strong> </p>
 					</div>
@@ -67,11 +88,26 @@
 						</a>
 					</li>
 					@endif
-					@if ($canViewAdminAttendanceMenu || $canViewPicAttendanceMenu || $canViewDirectorAttendanceMenu || $canViewAuthorizationMenu || $canViewTalentAcquisitionMenu)
-					<div class="copyright mt-1">
-						<p class="mb-1"><strong>HR Management</strong> </p>
-					</div>
+					@if ($canViewBusinessEmailMenu)
+					<li class="{{ $isBusinessEmailMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isBusinessEmailMenu ? 'active' : '' }}" href="{{ route('business-email.index') }}" aria-expanded="{{ $isBusinessEmailMenu ? 'true' : 'false' }}">
+							<i class="fa-regular fa-envelope"></i>
+							<span class="nav-text" data-i18n="Business Email">Business Email </span>
+						</a>
+					</li>
 					@endif
+					@if ($canViewMeetingMenu)
+					<li class="{{ $isZoomMeetingMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isZoomMeetingMenu ? 'active' : '' }}" href="{{ route('zoom-meeting.index') }}" aria-expanded="{{ $isZoomMeetingMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-video"></i>
+							<span class="nav-text" data-i18n="Zoom Meeting">Zoom Meeting </span>
+						</a>
+					</li>
+					@endif
+					@if ($showAdminManagementMenu)
+					<div class="copyright mt-1">
+						<p class="mb-1"><strong>Admin Management</strong> </p>
+					</div>
 					@if ($canViewAdminAttendanceMenu)
 					<li class="{{ $isAdminAttendanceMenu ? 'mm-active' : '' }}">
 						<a class="{{ $isAdminAttendanceMenu ? 'active' : '' }}" href="{{ route('admin-attendance.overview') }}" aria-expanded="{{ $isAdminAttendanceMenu ? 'true' : 'false' }}">
@@ -80,23 +116,23 @@
 						</a>
 					</li>
 					@endif
-					@if ($canViewPicAttendanceMenu)
-					<li class="{{ $isPicAttendanceMenu ? 'mm-active' : '' }}">
-						<a class="{{ $isPicAttendanceMenu ? 'active' : '' }}" href="{{ route('pic-attendance.attendance') }}" aria-expanded="{{ $isPicAttendanceMenu ? 'true' : 'false' }}">
-							<i class="fa-solid fa-clipboard-check"></i>
-							<span class="nav-text" data-i18n="PIC">PIC</span>
+					@if ($canViewHrMeetingsMenu)
+					<li class="{{ $isHrMeetingMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isHrMeetingMenu ? 'active' : '' }}" href="{{ route('hr-meetings.index') }}" aria-expanded="{{ $isHrMeetingMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-users-viewfinder"></i>
+							<span class="nav-text" data-i18n="HR Meetings">HR Meetings </span>
 						</a>
 					</li>
 					@endif
-					@if ($canViewDirectorAttendanceMenu)
-					<li class="{{ $isDirectorAttendanceMenu ? 'mm-active' : '' }}">
-						<a class="{{ $isDirectorAttendanceMenu ? 'active' : '' }}" href="{{ route('director-attendance.attendance') }}" aria-expanded="{{ $isDirectorAttendanceMenu ? 'true' : 'false' }}">
-							<i class="fa-solid fa-user-tie"></i>
-							<span class="nav-text" data-i18n="Director">Director</span>
+					@if ($canViewEmailManagementMenu)
+					<li class="{{ $isEmailManagementMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isEmailManagementMenu ? 'active' : '' }}" href="{{ route('email-management.index') }}" aria-expanded="{{ $isEmailManagementMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-envelope-open-text"></i>
+							<span class="nav-text" data-i18n="Email Management">Email Management </span>
 						</a>
 					</li>
 					@endif
-					@if ($canViewAuthorizationMenu)
+					@if ($showAdminAuthorizationMenu)
 					<li class="{{ $isAuthorizationMenu ? 'mm-active' : '' }}">
 						<a class="{{ $isAuthorizationMenu ? 'active' : '' }}" href="{{ route('authorization') }}" aria-expanded="{{ $isAuthorizationMenu ? 'true' : 'false' }}">
 							<i class="fa-solid fa-id-card"></i>
@@ -104,7 +140,7 @@
 						</a>
 					</li>
 					@endif
-					@if ($canViewTalentAcquisitionMenu)
+					@if ($showAdminTalentAcquisitionMenu)
 					<li class="{{ $isApplicantMenu ? 'mm-active' : '' }}">
 						<a class="has-arrow {{ $isApplicantMenu ? 'active' : '' }}" href="javascript:void(0);" aria-expanded="{{ $isApplicantMenu ? 'true' : 'false' }}">
 							<i class="fa-solid fa-user-plus"></i>
@@ -120,6 +156,96 @@
 						</ul>
 					</li>
 					@endif
+					@endif
+					@if ($canViewAdministrationFinanceEmailMenu)
+					<div class="copyright mt-1">
+						<p class="mb-1"><strong>Administration & Finance</strong> </p>
+					</div>
+					<li class="{{ $isAdministrationFinanceMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isAdministrationFinanceMenu ? 'active' : '' }}" href="{{ route('administration-finance.email.index') }}" aria-expanded="{{ $isAdministrationFinanceMenu ? 'true' : 'false' }}">
+							<i class="fa-regular fa-envelope"></i>
+							<span class="nav-text" data-i18n="Email">Email </span>
+						</a>
+					</li>
+					@endif
+					@if ($showPicManagementMenu)
+					<div class="copyright mt-1">
+						<p class="mb-1"><strong>PIC Management</strong> </p>
+					</div>
+					@if ($canViewPicAttendanceMenu)
+					<li class="{{ $isPicAttendanceMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isPicAttendanceMenu ? 'active' : '' }}" href="{{ route('pic-attendance.attendance') }}" aria-expanded="{{ $isPicAttendanceMenu ? 'true' : 'false' }}">
+							<i class="fa-regular fa-clock"></i>
+							<span class="nav-text" data-i18n="Attendance">Attendance </span>
+						</a>
+					</li>
+					<li class="{{ $isPicTeamTasksMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isPicTeamTasksMenu ? 'active' : '' }}" href="{{ route('pic-attendance.task') }}" aria-expanded="{{ $isPicTeamTasksMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-list-check"></i>
+							<span class="nav-text" data-i18n="Team tasks">Team tasks</span>
+						</a>
+					</li>
+					@endif
+					@if ($showPicTalentAcquisitionMenu)
+					<li class="{{ $isApplicantMenu ? 'mm-active' : '' }}">
+						<a class="has-arrow {{ $isApplicantMenu ? 'active' : '' }}" href="javascript:void(0);" aria-expanded="{{ $isApplicantMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-user-plus"></i>
+							<span class="nav-text" data-i18n="Talent Acquisition">Talent Acquisition</span>
+						</a>
+						<ul aria-expanded="{{ $isApplicantMenu ? 'true' : 'false' }}" class="{{ $isApplicantMenu ? 'mm-show' : '' }}">
+							<li>
+								<a class="{{ request()->routeIs('applicant') ? 'active' : '' }}" href="{{ route('applicant') }}">Applicants</a>
+							</li>
+							<li>
+								<a class="{{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}" href="{{ route('applicant.job_vacancies') }}">Job Vacancies</a>
+							</li>
+						</ul>
+					</li>
+					@endif
+					@endif
+					@if ($showDirectorManagementMenu)
+					<div class="copyright mt-1">
+						<p class="mb-1"><strong>Director Management</strong> </p>
+					</div>
+					@if ($canViewDirectorAttendanceMenu)
+					<li class="{{ $isDirectorAttendanceMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isDirectorAttendanceMenu ? 'active' : '' }}" href="{{ route('director-attendance.attendance') }}" aria-expanded="{{ $isDirectorAttendanceMenu ? 'true' : 'false' }}">
+							<i class="fa-regular fa-clock"></i>
+							<span class="nav-text" data-i18n="Attendance">Attendance </span>
+						</a>
+					</li>
+					<li class="{{ $isDirectorTaskMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isDirectorTaskMenu ? 'active' : '' }}" href="{{ route('director-attendance.task') }}" aria-expanded="{{ $isDirectorTaskMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-list-check"></i>
+							<span class="nav-text" data-i18n="Task Management">Task Management</span>
+						</a>
+					</li>
+					@endif
+					@if ($showDirectorAuthorizationMenu)
+					<li class="{{ $isAuthorizationMenu ? 'mm-active' : '' }}">
+						<a class="{{ $isAuthorizationMenu ? 'active' : '' }}" href="{{ route('authorization') }}" aria-expanded="{{ $isAuthorizationMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-id-card"></i>
+							<span class="nav-text" data-i18n="Employee Data">Employee Data </span>
+						</a>
+					</li>
+					@endif
+					@if ($showDirectorTalentAcquisitionMenu)
+					<li class="{{ $isApplicantMenu ? 'mm-active' : '' }}">
+						<a class="has-arrow {{ $isApplicantMenu ? 'active' : '' }}" href="javascript:void(0);" aria-expanded="{{ $isApplicantMenu ? 'true' : 'false' }}">
+							<i class="fa-solid fa-user-plus"></i>
+							<span class="nav-text" data-i18n="Talent Acquisition">Talent Acquisition</span>
+						</a>
+						<ul aria-expanded="{{ $isApplicantMenu ? 'true' : 'false' }}" class="{{ $isApplicantMenu ? 'mm-show' : '' }}">
+							<li>
+								<a class="{{ request()->routeIs('applicant') ? 'active' : '' }}" href="{{ route('applicant') }}">Applicants</a>
+							</li>
+							<li>
+								<a class="{{ request()->routeIs('applicant.job_vacancies') ? 'active' : '' }}" href="{{ route('applicant.job_vacancies') }}">Job Vacancies</a>
+							</li>
+						</ul>
+					</li>
+					@endif
+					@endif
 					@if ($canViewSettingsMenu)
 					<div class="copyright mt-1">
 						<p class="mb-1"><strong>Setting</strong> </p>
@@ -131,13 +257,16 @@
 						</a>
 						<ul aria-expanded="{{ $isSettingsMenu ? 'true' : 'false' }}" class="{{ $isSettingsMenu ? 'mm-show' : '' }}">
 							<li>
+								<a class="{{ request()->routeIs('settings.companies*') ? 'active' : '' }}" href="{{ route('settings.companies.index') }}">Company</a>
+							</li>
+							<li>
 								<a class="{{ request()->routeIs('settings.divisions*') ? 'active' : '' }}" href="{{ route('settings.divisions.index') }}">Division</a>
 							</li>
 							<li>
 								<a class="{{ request()->routeIs('settings.positions*') ? 'active' : '' }}" href="{{ route('settings.positions.index') }}">Position</a>
 							</li>
 							<li>
-								<a class="{{ request()->routeIs('settings.office-locations*') ? 'active' : '' }}" href="{{ route('settings.office-locations.index') }}">Office Locations</a>
+								<a class="{{ request()->routeIs('settings.office-locations*') ? 'active' : '' }}" href="{{ route('settings.office-locations.index') }}">Work Locations</a>
 							</li>
 							<li>
 								<a class="{{ request()->routeIs('settings.attendance-rules*') ? 'active' : '' }}" href="{{ route('settings.attendance-rules.index') }}">Attendance Rules</a>

@@ -79,16 +79,18 @@
         </div>
         <div class="card-body">
             @if ($errors->any())
-                <div class="alert alert-danger">
-                    <strong>The data is not valid.</strong> Please check the required fields again.
-                </div>
+                @include('partials.swal-alert', [
+                    'type' => 'error',
+                    'title' => 'The data is not valid.',
+                    'message' => 'Please check the required fields again.',
+                ])
             @endif
 
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label">Office Location</label>
+                    <label class="form-label">Work Location</label>
                     <select name="office_location_id" class="default-select form-control @error('office_location_id') is-invalid @enderror" required>
-                        <option value="">Select office location</option>
+                        <option value="">Select work location</option>
                         @foreach ($officeLocationOptions as $officeLocation)
                             <option value="{{ $officeLocation['id'] }}" @selected((string) old('office_location_id', $attendanceRule?->office_location_id ?? '') === $officeLocation['id'])>{{ $officeLocation['label'] }}</option>
                         @endforeach
@@ -153,12 +155,4 @@
         </div>
     </div>
 </form>
-@endsection
-
-@section('script')
-    @php
-        $dashboardJsPath = public_path('assets/js/dashboard.js');
-        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
-    @endphp
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 @endsection

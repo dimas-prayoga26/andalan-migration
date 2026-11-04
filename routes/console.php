@@ -18,6 +18,11 @@ Schedule::command('business-trips:lifecycle:sync')
     ->timezone('Asia/Jakarta')
     ->withoutOverlapping();
 
+Schedule::command('mail-business:sync --folder=inbox --limit=50')
+    ->everyFiveMinutes()
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping();
+
 Schedule::command('overtimes:complete-monthly-payment-disbursements')
     ->monthlyOn(1, '00:15')
     ->timezone('Asia/Jakarta')

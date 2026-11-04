@@ -30,15 +30,11 @@
 
 	<!-- Mobile Specific -->
 	<meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#2846c7">
 
-	<!-- Favicon icon -->
+    <!-- Favicon icon -->
 	<link rel="shortcut icon" type="image/x-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
-    
-	<!-- Start - Basic CSS -->
-    <link href="{{ asset('assets/vendor/metismenu/dist/metisMenu.min.css') }}?v={{ $assetVersion('vendor/metismenu/dist/metisMenu.min.css') }}" rel="stylesheet">
-    <link href="{{ asset('assets/vendor/bootstrap-select/dist/css/bootstrap-select.min.css') }}?v={{ $assetVersion('vendor/bootstrap-select/dist/css/bootstrap-select.min.css') }}" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('assets/vendor/chartist/css/chartist.min.css') }}?v={{ $assetVersion('vendor/chartist/css/chartist.min.css') }}">
-    <!-- End - Basic CSS -->
+    <link rel="apple-touch-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
     
 	<!-- Start - Switcher CSS -->
 	<link class="main-switcher" href="{{ asset('assets/css/switcher.css') }}?v={{ $assetVersion('css/switcher.css') }}" rel="stylesheet">
@@ -105,11 +101,6 @@
 							</a>
 						</div>
 						<h4 class="text-center mb-4">Sign in your account</h4>
-						@if ($errors->any())
-							<div class="alert alert-danger">
-								{{ $errors->first() }}
-							</div>
-						@endif
 						<form id="login-form" action="{{ route('login.store') }}" method="POST">
 							@csrf
 							<div class="form-group mb-3">
@@ -146,21 +137,8 @@
 	<!-- End - Authincation Section -->
 	
 	<!-- Start - Script -->
-	<script src="{{ asset('assets/vendor/jquery/dist/jquery.min.js') }}?v={{ $assetVersion('vendor/jquery/dist/jquery.min.js') }}"></script>
 	<script src="{{ asset('assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js') }}?v={{ $assetVersion('vendor/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
-	<script src="{{ asset('assets/vendor/bootstrap-select/dist/js/bootstrap-select.min.js') }}?v={{ $assetVersion('vendor/bootstrap-select/dist/js/bootstrap-select.min.js') }}"></script>
-	<script src="{{ asset('assets/vendor/@yaireo/tagify/dist/tagify.js') }}?v={{ $assetVersion('vendor/@yaireo/tagify/dist/tagify.js') }}"></script>
-	<script src="{{ asset('assets/vendor/metismenu/dist/metisMenu.min.js') }}?v={{ $assetVersion('vendor/metismenu/dist/metisMenu.min.js') }}"></script>
-	{{-- <script src="vendor/chart-js/chart.bundle.min.js"></script> --}}
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-        
-	<!-- Script For Custom JS -->
-	{{-- <script src="js/deznav-init.js"></script>
-    <script src="js/custom.js"></script> --}}
-	
-	<!-- Script For Multiple Languages -->
-	{{-- <script src="vendor/i18n/i18n.js"></script>
-	<script src="js/translator.js"></script> --}}
 	<script>
 		(function () {
 			const loginForm = document.getElementById('login-form');
@@ -185,6 +163,17 @@
 
 			if (typeof Swal === 'undefined') {
 				return;
+			}
+
+			const serverLoginError = @json($errors->first());
+
+			if (serverLoginError) {
+				Swal.fire({
+					icon: 'error',
+					title: 'Login Gagal',
+					text: serverLoginError,
+					confirmButtonText: 'Coba Lagi',
+				});
 			}
 
 			loginForm.addEventListener('submit', async function (event) {
@@ -255,6 +244,5 @@
 			});
 		})();
 	</script>
-	
 </body>
 </html>

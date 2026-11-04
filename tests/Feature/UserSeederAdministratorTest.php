@@ -12,14 +12,14 @@ class UserSeederAdministratorTest extends TestCase
         $userSeeder = File::get(database_path('seeders/UserSeeder.php'));
 
         $this->assertStringContainsString("DB::table('departments')->where('name', 'Administrator')->value('id')", $userSeeder);
-        $this->assertStringContainsString("DB::table('positions')->where('name', 'Administrator')->value('id')", $userSeeder);
-        $this->assertStringContainsString("DB::table('positions')->where('name', 'Super Administrator')->value('id')", $userSeeder);
+        $this->assertStringContainsString("DB::table('positions')->where('system_key', Position::KEY_ADMINISTRATOR)->value('id')", $userSeeder);
+        $this->assertStringContainsString("DB::table('positions')->where('system_key', Position::KEY_SUPER_ADMINISTRATOR)->value('id')", $userSeeder);
         $this->assertStringContainsString("['email' => 'superadmin@andalanbersama.com']", $userSeeder);
-        $this->assertStringContainsString("'username' => 'superadmin'", $userSeeder);
+        $this->assertStringContainsString("['email' => 'superadmin@andalanbersama.com']", $userSeeder);
         $this->assertStringNotContainsString("['email' => 'superuser@gmail.com']", $userSeeder);
         $this->assertStringContainsString("['email' => \"admin{\$directorNumber}@gmail.com\"]", $userSeeder);
-        $this->assertStringContainsString("'username' => \"admin{\$directorNumber}\"", $userSeeder);
-        $this->assertStringContainsString("'business_email' => \"admin{\$directorNumber}@{\$this->resolveCompanyEmailDomain((string) \$company->name)}\"", $userSeeder);
+        $this->assertStringContainsString("['email' => \"admin{\$directorNumber}@gmail.com\"]", $userSeeder);
+        $this->assertStringNotContainsString('business_email', $userSeeder);
         $this->assertStringContainsString('$administrator->syncRoles([\'Staff\']);', $userSeeder);
         $this->assertStringContainsString('divisionId: $adminDivisionId', $userSeeder);
         $this->assertStringContainsString('positionId: $administratorPositionId', $userSeeder);

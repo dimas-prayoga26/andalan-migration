@@ -18,6 +18,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Throwable;
 
@@ -1098,12 +1099,9 @@ class AttendanceBusinessTripController extends Controller
             return $nickname;
         }
 
-        $username = trim((string) $user->username);
-        if ($username !== '') {
-            return $username;
-        }
+        $emailName = trim(Str::before((string) $user->email, '@'));
 
-        return trim((string) $user->email) !== '' ? trim((string) $user->email) : '-';
+        return $emailName !== '' ? $emailName : '-';
     }
 
     private function employeeDisplayName(?Employee $employee): string

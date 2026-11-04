@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Hidden(['password', 'remember_token', 'email_token', 'password_token'])]
@@ -32,7 +33,7 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'is_telegram_verified' => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -53,6 +54,18 @@ class User extends Authenticatable
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'id');
+    }
+
+    /**
+     * Short name shown where the old username used to appear: the employee's nickname, then full name, then the email's local part.
+     */
+    public function shortName(): string
+    {
+        $profile = $this->employee?->profile;
+
+        return collect([$profile?->nickname, $profile?->name, Str::before((string) $this->email, '@')])
+            ->map(fn (mixed $nameCandidate): string => trim((string) $nameCandidate))
+            ->first(fn (string $nameCandidate): bool => $nameCandidate !== '') ?? '-';
     }
 
     public function createdProjects(): HasMany
@@ -80,19 +93,17 @@ class User extends Authenticatable
      */
     public function hasAnyPositionPermission(array $permissionNames): bool
     {
-        if ($this->hasRole('superuser')) {
-            return true;
-        }
-
         $this->loadMissing([
+            'employee.deployment.position:id,name,system_key',
             'employee.deployment.position.permissions:uuid,name',
+            'employee.deployment.positions:id,name,system_key',
             'employee.deployment.positions.permissions:uuid,name',
         ]);
 
         $deployment = $this->employee?->deployment;
         $permissionPositions = $this->permissionPositionsForDeployment($deployment);
 
-        if ($permissionPositions->contains('name', 'Super Administrator')) {
+        if ($permissionPositions->contains('system_key', Position::KEY_SUPER_ADMINISTRATOR)) {
             return true;
         }
 
@@ -101,6 +112,17 @@ class User extends Authenticatable
             ->pluck('name')
             ->intersect($permissionNames)
             ->isNotEmpty();
+    }
+
+    public function isSuperAdministrator(): bool
+    {
+        $this->loadMissing([
+            'employee.deployment.position:id,name,system_key',
+            'employee.deployment.positions:id,name,system_key',
+        ]);
+
+        return $this->permissionPositionsForDeployment($this->employee?->deployment)
+            ->contains('system_key', Position::KEY_SUPER_ADMINISTRATOR);
     }
 
     /**
@@ -112,16 +134,48 @@ class User extends Authenticatable
             return collect();
         }
 
-        $primaryPositions = $deployment->positions
-            ->filter(static fn (Position $position): bool => (bool) ($position->pivot?->is_primary ?? false))
-            ->values();
+        $positions = $deployment->positions ?? collect();
+        $primaryPosition = $positions
+            ->first(static fn (Position $position): bool => (bool) ($position->pivot?->is_primary ?? false))
+            ?? $deployment->position;
 
-        if ($primaryPositions->isNotEmpty()) {
-            return $primaryPositions;
+        $permissionPositions = collect([$primaryPosition])->filter();
+        $primaryPositionId = $primaryPosition?->id;
+        $secondaryPosition = $positions
+            ->reject(static fn (Position $position): bool => (string) $position->id === (string) $primaryPositionId)
+            ->sortBy(static fn (Position $position): string => str_pad((string) (int) ($position->pivot?->sort_order ?? 999), 5, '0', STR_PAD_LEFT).'|'.(string) $position->name)
+            ->first();
+
+        if ($secondaryPosition instanceof Position) {
+            $permissionPositions->push($secondaryPosition);
         }
 
-        return $deployment->position !== null
-            ? collect([$deployment->position])
-            : collect();
+        return $permissionPositions
+            ->unique('id')
+            ->take(2)
+            ->values();
+    }
+
+    public function canLogin(): bool
+    {
+        if (! $this->is_active) {
+            return false;
+        }
+
+        $this->loadMissing('employee.deployment');
+
+        if ($this->employee === null) {
+            return false;
+        }
+
+        if (strtolower(trim((string) $this->employee->status)) !== 'active') {
+            return false;
+        }
+
+        if ($this->employee->deployment === null) {
+            return false;
+        }
+
+        return strtolower(trim((string) $this->employee->deployment->status)) === 'active';
     }
 }

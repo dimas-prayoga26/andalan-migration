@@ -11,20 +11,12 @@ use Database\Seeders\UserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class RnbStaffSeederTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        if (! extension_loaded('pdo_sqlite')) {
-            $this->markTestSkipped('pdo_sqlite extension is not available.');
-        }
-
-        parent::setUp();
-    }
 
     public function test_user_seeder_creates_expected_active_users_for_each_company(): void
     {
@@ -48,7 +40,7 @@ class RnbStaffSeederTest extends TestCase
             ->where('positions.name', '!=', 'Administrator')
             ->where('positions.name', '!=', 'Director')
             ->where('positions.name', '!=', 'Supervisor')
-            ->where('users.username', 'like', 'staff%')
+            ->where('users.email', 'like', 'staff%')
             ->groupBy('companies.name')
             ->orderBy('companies.name')
             ->get([
@@ -105,7 +97,7 @@ class RnbStaffSeederTest extends TestCase
             ->where('roles.name', 'Staff')
             ->where('users.is_active', true)
             ->where('employee_deployments.current_company_id', $rnbCompanyId)
-            ->whereIn('users.username', ['staff31', 'staff32', 'staff33', 'staff34', 'staff35'])
+            ->whereIn('users.email', ['staff31@gmail.com', 'staff32@gmail.com', 'staff33@gmail.com', 'staff34@gmail.com', 'staff35@gmail.com'])
             ->distinct()
             ->count('users.id');
 
@@ -115,17 +107,17 @@ class RnbStaffSeederTest extends TestCase
             ->join('employees', 'employees.user_id', '=', 'users.id')
             ->join('employee_deployments', 'employee_deployments.employee_id', '=', 'employees.id')
             ->where('employee_deployments.current_company_id', $rnbCompanyId)
-            ->whereIn('users.username', ['staff31', 'staff32', 'staff33', 'staff34', 'staff35'])
-            ->orderBy('users.username')
-            ->pluck('users.username')
+            ->whereIn('users.email', ['staff31@gmail.com', 'staff32@gmail.com', 'staff33@gmail.com', 'staff34@gmail.com', 'staff35@gmail.com'])
+            ->orderBy('users.email')
+            ->pluck('users.email')
             ->all();
 
-        $this->assertSame(['staff31', 'staff32', 'staff33', 'staff34', 'staff35'], $staffUsernames);
+        $this->assertSame(['staff31@gmail.com', 'staff32@gmail.com', 'staff33@gmail.com', 'staff34@gmail.com', 'staff35@gmail.com'], $staffUsernames);
 
         $staff31JoinDate = DB::table('users')
             ->join('employees', 'employees.user_id', '=', 'users.id')
             ->join('employee_deployments', 'employee_deployments.employee_id', '=', 'employees.id')
-            ->where('users.username', 'staff31')
+            ->where('users.email', 'staff31@gmail.com')
             ->where('employee_deployments.current_company_id', $rnbCompanyId)
             ->value('employee_deployments.join_date');
 
@@ -135,7 +127,7 @@ class RnbStaffSeederTest extends TestCase
         $latestGeneratedJoinDate = DB::table('users')
             ->join('employees', 'employees.user_id', '=', 'users.id')
             ->join('employee_deployments', 'employee_deployments.employee_id', '=', 'employees.id')
-            ->where('users.username', '<>', 'staff31')
+            ->where('users.email', '<>', 'staff31@gmail.com')
             ->max('employee_deployments.join_date');
 
         $this->assertNotNull($latestGeneratedJoinDate);
@@ -147,11 +139,11 @@ class RnbStaffSeederTest extends TestCase
             ->join('departments', 'departments.id', '=', 'employee_deployments.current_department_id')
             ->join('positions', 'positions.id', '=', 'employee_deployments.current_position_id')
             ->where('employee_deployments.current_company_id', $rnbCompanyId)
-            ->whereIn('users.username', ['staff31', 'staff32', 'staff33', 'staff34', 'staff35'])
-            ->orderBy('users.username')
-            ->get(['users.username', 'departments.name as department_name', 'positions.name as position_name'])
+            ->whereIn('users.email', ['staff31@gmail.com', 'staff32@gmail.com', 'staff33@gmail.com', 'staff34@gmail.com', 'staff35@gmail.com'])
+            ->orderBy('users.email')
+            ->get(['users.email', 'departments.name as department_name', 'positions.name as position_name'])
             ->mapWithKeys(fn (object $staffAssignment): array => [
-                (string) $staffAssignment->username => [
+                Str::before((string) $staffAssignment->email, '@') => [
                     'department' => (string) $staffAssignment->department_name,
                     'position' => (string) $staffAssignment->position_name,
                 ],
@@ -201,12 +193,11 @@ class RnbStaffSeederTest extends TestCase
             ->join('positions', 'positions.id', '=', 'employee_deployments.current_position_id')
             ->where('departments.name', 'Administrator')
             ->where('positions.name', 'Administrator')
-            ->where('users.username', 'like', 'admin%')
+            ->where('users.email', 'like', 'admin%')
             ->orderBy('companies.name')
             ->get([
                 'companies.name as company_name',
-                'users.username',
-                'users.business_email',
+                'users.email',
             ]);
 
         $this->assertCount(7, $administratorRows);
@@ -214,40 +205,32 @@ class RnbStaffSeederTest extends TestCase
         $administratorAssignments = $administratorRows
             ->mapWithKeys(fn (object $assignment): array => [
                 (string) $assignment->company_name => [
-                    'username' => (string) $assignment->username,
-                    'business_email' => (string) $assignment->business_email,
+                    'email' => (string) $assignment->email,
                 ],
             ])
             ->all();
 
         $this->assertSame([
             'AndalanKu' => [
-                'username' => 'admin1',
-                'business_email' => 'admin1@andalanku.local',
+                'email' => 'admin1@gmail.com',
             ],
             'KMA' => [
-                'username' => 'admin2',
-                'business_email' => 'admin2@kma.local',
+                'email' => 'admin2@gmail.com',
             ],
             'Niskala' => [
-                'username' => 'admin4',
-                'business_email' => 'admin4@niskala.local',
+                'email' => 'admin4@gmail.com',
             ],
             'RNB' => [
-                'username' => 'admin3',
-                'business_email' => 'admin3@rnb.local',
+                'email' => 'admin3@gmail.com',
             ],
             'RNE' => [
-                'username' => 'admin5',
-                'business_email' => 'admin5@rne.local',
+                'email' => 'admin5@gmail.com',
             ],
             'TMS' => [
-                'username' => 'admin6',
-                'business_email' => 'admin6@tms.local',
+                'email' => 'admin6@gmail.com',
             ],
             'Trah' => [
-                'username' => 'admin7',
-                'business_email' => 'admin7@trah.local',
+                'email' => 'admin7@gmail.com',
             ],
         ], $administratorAssignments);
     }

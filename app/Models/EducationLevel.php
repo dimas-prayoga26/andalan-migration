@@ -18,13 +18,6 @@ class EducationLevel extends Model
 
     public $incrementing = false;
 
-    protected function casts(): array
-    {
-        return [
-            'legacy_created_at' => 'datetime',
-        ];
-    }
-
     protected static function booted(): void
     {
         static::creating(function (self $educationLevel): void {
@@ -37,5 +30,10 @@ class EducationLevel extends Model
     public function applicantEducations(): HasMany
     {
         return $this->hasMany(ApplicantEducation::class, 'education_level_id', 'id');
+    }
+
+    public function employeeEducations(): HasMany
+    {
+        return $this->hasMany(EmployeeEducation::class, 'education_level_id', 'id');
     }
 }

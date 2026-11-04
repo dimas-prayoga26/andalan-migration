@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\EmployeeDeployment;
 use App\Models\EmployeeIdentity;
 use App\Models\EmployeeProfile;
+use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -53,7 +54,7 @@ class UserSeeder extends Seeder
         try {
             app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-            $roles = ['superuser', 'Board of Directors', 'Staff'];
+            $roles = ['Staff'];
 
             Role::query()
                 ->whereNotIn('name', $roles)
@@ -95,41 +96,37 @@ class UserSeeder extends Seeder
                     ?? DB::table('departments')->where('name', 'Information and Communications Technology')->value('id'),
             );
             $adminDivisionId = $this->toNullableString(DB::table('departments')->where('name', 'Administrator')->value('id'));
-            $directorPositionId = $this->toNullableString(DB::table('positions')->where('name', 'Director')->value('id'));
+            $directorPositionId = $this->toNullableString(DB::table('positions')->where('system_key', Position::KEY_DIRECTOR)->value('id'));
             $staffPositionId = $this->toNullableString(
-                DB::table('positions')->where('name', 'Web Developer')->value('id')
+                DB::table('positions')->where('system_key', Position::KEY_WEB_DEVELOPER)->value('id')
                     ?? DB::table('positions')->orderBy('name')->value('id'),
             );
             $supervisorPositionId = $this->toNullableString(
-                DB::table('positions')->where('name', 'Supervisor')->value('id')
-                    ?? DB::table('positions')->where('name', 'Team Lead')->value('id')
-                    ?? DB::table('positions')->where('name', 'Manager')->value('id')
+                DB::table('positions')->where('system_key', Position::KEY_SUPERVISOR)->value('id')
                     ?? DB::table('positions')->orderBy('name')->value('id'),
             );
             $administratorPositionId = $this->toNullableString(
-                DB::table('positions')->where('name', 'Administrator')->value('id')
+                DB::table('positions')->where('system_key', Position::KEY_ADMINISTRATOR)->value('id')
                     ?? DB::table('positions')->orderBy('name')->value('id'),
             );
             $superAdministratorPositionId = $this->toNullableString(
-                DB::table('positions')->where('name', 'Super Administrator')->value('id')
+                DB::table('positions')->where('system_key', Position::KEY_SUPER_ADMINISTRATOR)->value('id')
                     ?? DB::table('positions')->orderBy('name')->value('id'),
             );
             $jakartaDomicileId = $this->toNullableInt(DB::table('meta_data_domicili')->where('name', 'Jakarta')->value('id'));
             $yogyakartaDomicileId = $this->toNullableInt(DB::table('meta_data_domicili')->where('name', 'Yogyakarta')->value('id'));
             $fallbackDomicileId = $this->toNullableInt(DB::table('meta_data_domicili')->orderBy('id')->value('id'));
 
-            $superuser = User::query()->updateOrCreate(
+            $superAdmin = User::query()->updateOrCreate(
                 ['email' => 'superadmin@andalanbersama.com'],
                 [
-                    'username' => 'superadmin',
-                    'business_email' => 'superadmin@andalanbersama.com',
                     'is_active' => true,
                     'password' => Hash::make('password'),
                 ],
             );
-            $superuser->syncRoles(['superuser']);
+            $superAdmin->syncRoles(['Staff']);
             $this->seedUserRelations(
-                $superuser,
+                $superAdmin,
                 companyId: $companies->first()->id,
                 divisionId: $adminDivisionId,
                 positionId: $superAdministratorPositionId,
@@ -150,13 +147,11 @@ class UserSeeder extends Seeder
                 $director = User::query()->updateOrCreate(
                     ['email' => "director{$directorNumber}@gmail.com"],
                     [
-                        'username' => "director{$directorNumber}",
-                        'business_email' => "director{$directorNumber}@{$this->resolveCompanyEmailDomain((string) $company->name)}",
                         'is_active' => true,
                         'password' => Hash::make('password'),
                     ],
                 );
-                $director->syncRoles(['Board of Directors']);
+                $director->syncRoles(['Staff']);
                 $this->seedUserRelations(
                     $director,
                     companyId: $company->id,
@@ -170,8 +165,6 @@ class UserSeeder extends Seeder
                 $supervisor = User::query()->updateOrCreate(
                     ['email' => "supervisor{$directorNumber}@gmail.com"],
                     [
-                        'username' => "supervisor{$directorNumber}",
-                        'business_email' => "supervisor{$directorNumber}@{$this->resolveCompanyEmailDomain((string) $company->name)}",
                         'is_active' => true,
                         'password' => Hash::make('password'),
                     ],
@@ -190,8 +183,6 @@ class UserSeeder extends Seeder
                 $administrator = User::query()->updateOrCreate(
                     ['email' => "admin{$directorNumber}@gmail.com"],
                     [
-                        'username' => "admin{$directorNumber}",
-                        'business_email' => "admin{$directorNumber}@{$this->resolveCompanyEmailDomain((string) $company->name)}",
                         'is_active' => true,
                         'password' => Hash::make('password'),
                     ],
@@ -215,8 +206,6 @@ class UserSeeder extends Seeder
                     $staff = User::query()->updateOrCreate(
                         ['email' => "staff{$directorNumber}{$staffIndex}@gmail.com"],
                         [
-                            'username' => "staff{$directorNumber}{$staffIndex}",
-                            'business_email' => "staff{$directorNumber}{$staffIndex}@{$this->resolveCompanyEmailDomain((string) $company->name)}",
                             'is_active' => true,
                             'password' => Hash::make('password'),
                         ],
@@ -248,11 +237,11 @@ class UserSeeder extends Seeder
     private function deleteExtraSeededStaffAccounts(int $companySeedNumber): void
     {
         User::query()
-            ->where('username', 'like', 'staff'.$companySeedNumber.'%')
+            ->where('email', 'like', 'staff'.$companySeedNumber.'%@gmail.com')
             ->whereNotIn(
-                'username',
+                'email',
                 collect(range(1, self::STAFF_PER_COMPANY))
-                    ->map(static fn (int $staffIndex): string => 'staff'.$companySeedNumber.$staffIndex)
+                    ->map(static fn (int $staffIndex): string => 'staff'.$companySeedNumber.$staffIndex.'@gmail.com')
                     ->all(),
             )
             ->delete();
@@ -384,6 +373,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'is_primary' => true,
+                ...$this->deploymentPositionSortOrderPayload(0),
                 'status' => 'active',
                 'started_at' => $joinDate,
                 'ended_at' => null,
@@ -391,6 +381,18 @@ class UserSeeder extends Seeder
                 'updated_at' => now(),
             ],
         );
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function deploymentPositionSortOrderPayload(int $sortOrder): array
+    {
+        if (! Schema::hasColumn('employee_deployment_positions', 'sort_order')) {
+            return [];
+        }
+
+        return ['sort_order' => $sortOrder];
     }
 
     private function toNullableInt(mixed $value): ?int
@@ -418,10 +420,6 @@ class UserSeeder extends Seeder
 
     private function resolveDisplayName(User $user): string
     {
-        if (is_string($user->username) && trim($user->username) !== '') {
-            return (string) $user->username;
-        }
-
         return (string) explode('@', (string) $user->email)[0];
     }
 
@@ -489,7 +487,7 @@ class UserSeeder extends Seeder
 
     private function resolveJoinDate(User $user, string $employeeId, Carbon $now): string
     {
-        if ((string) $user->username === 'staff31') {
+        if ((string) $user->email === 'staff31@gmail.com') {
             return $now->copy()->subYear()->subDay()->toDateString();
         }
 

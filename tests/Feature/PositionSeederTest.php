@@ -13,6 +13,8 @@ class PositionSeederTest extends TestCase
         $metaDataPositionSeeder = File::get(database_path('seeders/MetaDataPositionSeeder.php'));
 
         $this->assertStringContainsString("'Supervisor'", $positionSeeder);
+        $this->assertStringContainsString("'system_key' => Position::KEY_SUPERVISOR", $positionSeeder);
+        $this->assertStringContainsString("'is_protected' => true", $positionSeeder);
         $this->assertStringContainsString("'Supervisor'", $metaDataPositionSeeder);
     }
 }

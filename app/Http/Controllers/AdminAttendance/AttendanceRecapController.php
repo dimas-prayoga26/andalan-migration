@@ -11,6 +11,7 @@ use App\Models\AttendanceOvertime;
 use App\Models\BusinessTrip;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Models\Position;
 use App\Support\Attendance\AttendanceDurationFormatter;
 use App\Support\Attendance\AttendanceExceptionPresenter;
 use App\Support\Attendance\AttendanceLocationFormatter;
@@ -23,6 +24,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Yajra\DataTables\Facades\DataTables;
 
 class AttendanceRecapController extends Controller
 {
@@ -56,10 +58,9 @@ class AttendanceRecapController extends Controller
     {
         $monthlyData = $this->recapMonthlyData($request);
 
-        return response()->json([
-            'data' => $monthlyData['recapMonthlyRows'],
-            'period_label' => $monthlyData['recapMonthlyPeriodLabel'],
-        ]);
+        return DataTables::collection($monthlyData['recapMonthlyRows'])
+            ->with('period_label', $monthlyData['recapMonthlyPeriodLabel'])
+            ->toJson();
     }
 
     public function employeeDetails(Request $request, string $employee): View
@@ -85,10 +86,9 @@ class AttendanceRecapController extends Controller
             $detailContext['period_end'],
         );
 
-        return response()->json([
-            'data' => $detailData['recapDetailAttendanceRows'],
-            'period_label' => $detailData['recapDetailPeriodLabel'],
-        ]);
+        return DataTables::collection($detailData['recapDetailAttendanceRows'])
+            ->with('period_label', $detailData['recapDetailPeriodLabel'])
+            ->toJson();
     }
 
     protected function attendanceIndexView(): string
@@ -121,8 +121,8 @@ class AttendanceRecapController extends Controller
 
         $employee = Employee::query()
             ->with([
-                'profile:id,employee_id,name,profile_picture_path',
-                'user:id,username,email,phone',
+                'profile:id,employee_id,name,nickname,profile_picture_path',
+                'user:id,email,phone',
                 'deployment:id,employee_id,current_company_id,current_position_id,current_department_id,current_office_location_id',
                 'deployment.company:id,name',
                 'deployment.officeLocation:id,name,address',
@@ -224,8 +224,8 @@ class AttendanceRecapController extends Controller
         )->count();
         $monthlyExpectedWorkMinutes = $monthlyWorkingDaysCount * 8 * 60;
         $employeeRelations = [
-            'profile:id,employee_id,name',
-            'user:id,username,email',
+            'profile:id,employee_id,name,nickname',
+            'user:id,email',
             'deployment:id,employee_id,current_position_id,join_date',
             'deployment.position:id,name',
             'deployment.positions:id,name',
@@ -267,7 +267,7 @@ class AttendanceRecapController extends Controller
             ->whereIn('type', ['late_arrival', 'early_departure'])
             ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['approved'])
             ->whereNull('deleted_at')
-            ->get(['employee_id', 'exception_date'])
+            ->get(['employee_id', 'exception_date', 'type', 'from_time', 'to_time'])
             ->groupBy('employee_id');
         $overtimesByEmployeeId = AttendanceOvertime::query()
             ->whereIn('employee_id', $activeEmployeeIds)
@@ -324,28 +324,32 @@ class AttendanceRecapController extends Controller
                     ->unique();
                 $leaveDays = $this->recapOverlappingWorkDayCount($leaveRequests, $employeeWorkDays);
                 $businessTripDays = $this->recapOverlappingWorkDayCount($businessTrips, $employeeWorkDays);
+                $attendanceExceptions = $exceptionsByEmployeeId
+                    ->get($employeeId, collect())
+                    ->filter(fn (AttendanceException $attendanceException): bool => $employeeWorkDayKeys->contains($this->dateKey($attendanceException->exception_date)));
+                $deviationDateKeys = $attendanceExceptions
+                    ->map(fn (AttendanceException $attendanceException): string => $this->dateKey($attendanceException->exception_date))
+                    ->unique();
                 $onTimeCount = $attendances
-                    ->reject(fn (Attendance $attendance): bool => $this->isLateAttendance($attendance))
+                    ->reject(fn (Attendance $attendance): bool => $this->isLateAttendance($attendance) || $deviationDateKeys->contains($this->dateKey($attendance->date)))
                     ->count();
                 $lateAttendances = $attendances
-                    ->filter(fn (Attendance $attendance): bool => $this->isLateAttendance($attendance));
+                    ->filter(fn (Attendance $attendance): bool => $this->isLateAttendance($attendance) && ! $deviationDateKeys->contains($this->dateKey($attendance->date)));
                 $lateMinutes = $lateAttendances->sum(fn (Attendance $attendance): int => (int) $attendance->late_minutes);
-                $deviationCount = $exceptionsByEmployeeId
-                    ->get($employeeId, collect())
-                    ->map(fn (AttendanceException $attendanceException): string => $this->dateKey($attendanceException->exception_date))
-                    ->filter(fn (string $dateKey): bool => $employeeWorkDayKeys->contains($dateKey))
-                    ->unique()
-                    ->count();
+                $deviationCount = $deviationDateKeys->count();
+                $deviationMinutes = $attendanceExceptions
+                    ->sum(fn (AttendanceException $attendanceException): int => $this->recapAttendanceExceptionMinutes($attendanceException));
                 $workedMinutes = $attendances
                     ->sum(fn (Attendance $attendance): int => $this->recapAttendanceWorkMinutes($attendance, $employee));
                 $overtimeMinutes = $overtimesByEmployeeId
                     ->get($employeeId, collect())
                     ->sum(fn (AttendanceOvertime $overtime): int => $this->recapApprovedOvertimeMinutes($overtime));
                 $alphaDays = $employeeWorkDayKeys
-                    ->filter(function (string $dateKey) use ($attendedDateKeys, $leaveRequests, $businessTrips): bool {
+                    ->filter(function (string $dateKey) use ($attendedDateKeys, $leaveRequests, $businessTrips, $deviationDateKeys): bool {
                         $date = Carbon::parse($dateKey, 'Asia/Jakarta');
 
                         return ! $attendedDateKeys->contains($dateKey)
+                            && ! $deviationDateKeys->contains($dateKey)
                             && ! $leaveRequests->contains(fn (LeaveRequest $leaveRequest): bool => $this->overlapsDate($leaveRequest->start_date, $leaveRequest->end_date, $date))
                             && ! $businessTrips->contains(fn (BusinessTrip $businessTrip): bool => $this->overlapsDate($businessTrip->start_date, $businessTrip->end_date, $date));
                     })
@@ -359,7 +363,7 @@ class AttendanceRecapController extends Controller
                     'on_time' => $this->recapDaysLabel($onTimeCount),
                     'late' => $this->recapLateLabel($lateAttendances->count(), $lateMinutes),
                     'leave' => $this->recapDaysLabel($leaveDays),
-                    'deviation' => $this->recapDaysLabel($deviationCount),
+                    'deviation' => $this->recapDeviationLabel($deviationCount, $deviationMinutes),
                     'alpha' => $this->recapDaysLabel($alphaDays),
                     'trip' => $this->recapDaysLabel($businessTripDays),
                     'overtimes' => $this->recapCompactMinutesLabel($overtimeMinutes),
@@ -471,6 +475,62 @@ class AttendanceRecapController extends Controller
         }
 
         return $daysLabel.' ('.$this->recapCompactMinutesLabel($lateMinutes).')';
+    }
+
+    private function recapDeviationLabel(int $deviationDays, int $deviationMinutes): string
+    {
+        $daysLabel = $this->recapDaysLabel($deviationDays);
+
+        if ($deviationDays <= 0 || $deviationMinutes <= 0) {
+            return $daysLabel;
+        }
+
+        return $daysLabel.' ('.$this->recapCompactMinutesLabel($deviationMinutes).')';
+    }
+
+    private function recapAttendanceExceptionMinutes(AttendanceException $attendanceException): int
+    {
+        $fromTime = $this->normalizeAttendanceExceptionTime($attendanceException->getRawOriginal('from_time'))
+            ?? $this->normalizeAttendanceExceptionTime($attendanceException->from_time);
+        $toTime = $this->normalizeAttendanceExceptionTime($attendanceException->getRawOriginal('to_time'))
+            ?? $this->normalizeAttendanceExceptionTime($attendanceException->to_time);
+
+        if ($fromTime === null || $toTime === null) {
+            return 0;
+        }
+
+        $exceptionDate = $this->dateKey($attendanceException->exception_date);
+
+        try {
+            $fromDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $exceptionDate.' '.$fromTime, 'Asia/Jakarta');
+            $toDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $exceptionDate.' '.$toTime, 'Asia/Jakarta');
+        } catch (\Throwable) {
+            return 0;
+        }
+
+        return abs((int) $fromDateTime->diffInMinutes($toDateTime, false));
+    }
+
+    private function normalizeAttendanceExceptionTime(mixed $time): ?string
+    {
+        if ($time instanceof \DateTimeInterface) {
+            return $time->format('H:i:s');
+        }
+
+        if (! is_string($time) || trim($time) === '') {
+            return null;
+        }
+
+        $normalizedTime = trim($time);
+        if (preg_match('/^\d{2}:\d{2}$/', $normalizedTime) === 1) {
+            return $normalizedTime.':00';
+        }
+
+        if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $normalizedTime) === 1) {
+            return $normalizedTime;
+        }
+
+        return null;
     }
 
     private function recapDaysLabel(int $days): string
@@ -700,8 +760,8 @@ class AttendanceRecapController extends Controller
         $dateKey = $date->toDateString();
         $employees = Employee::query()
             ->with([
-                'profile:id,employee_id,name',
-                'user:id,username,email',
+                'profile:id,employee_id,name,nickname',
+                'user:id,email',
                 'deployment:id,employee_id,current_position_id',
                 'deployment.position:id,name',
                 'deployment.positions:id,name',
@@ -1022,10 +1082,13 @@ class AttendanceRecapController extends Controller
             ->whereHas('user', function ($query): void {
                 $query
                     ->where('is_active', true)
-                    ->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS)
-                    ->whereDoesntHave('roles', function ($roleQuery): void {
-                        $roleQuery->where('name', 'superuser');
-                    });
+                    ->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS);
+            })
+            ->whereDoesntHave('deployment.position', function ($query): void {
+                $query->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR);
+            })
+            ->whereDoesntHave('deployment.positions', function ($query): void {
+                $query->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR);
             })
             ->whereHas('deployment', function ($query) use ($todayDate): void {
                 $query
@@ -1064,9 +1127,9 @@ class AttendanceRecapController extends Controller
             return trim($profileName);
         }
 
-        $username = $employee?->user?->username;
-        if (is_string($username) && trim($username) !== '') {
-            return trim($username);
+        $nickname = $employee?->profile?->nickname;
+        if (is_string($nickname) && trim($nickname) !== '') {
+            return trim($nickname);
         }
 
         $email = $employee?->user?->email;

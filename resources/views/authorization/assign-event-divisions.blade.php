@@ -122,7 +122,7 @@
             <p class="mb-0 text-muted fs-13">Assign staff into one event division each. Picking a staff into a division removes them from any other division.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-primary light btn-sm" data-bs-toggle="modal" data-bs-target="#addEventDivisionModal">
+            <button type="button" class="btn light btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addEventDivisionModal">
                 <i class="fa-solid fa-plus me-2"></i>Add Event Division
             </button>
             <button type="submit" form="authorizationEventDivisionForm" class="btn btn-primary btn-sm">
@@ -131,16 +131,12 @@
         </div>
     </div>
     <div class="card-body pt-0">
-        @if (session('status'))
-            <div class="alert alert-success">{{ session('status') }}</div>
-        @endif
+        @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
 
-        @if (session('error'))
-            <div class="alert alert-danger">{{ session('error') }}</div>
-        @endif
+        @include('partials.swal-alert', ['type' => 'error', 'message' => session('error')])
 
         @if ($errors->any())
-            <div class="alert alert-danger">Periksa kembali data yang dipilih atau diisi.</div>
+            @include('partials.swal-alert', ['type' => 'error', 'message' => 'Periksa kembali data yang dipilih atau diisi.'])
         @endif
 
         <form id="authorizationEventDivisionForm" action="{{ route('authorization.event-divisions.update') }}" method="POST">
@@ -181,24 +177,30 @@
                                     </select>
                                 </td>
                                 <td class="text-end authorization-event-division-actions">
-                                    <button
-                                        type="button"
-                                        class="btn btn-primary light btn-sm js-edit-event-division"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#editEventDivisionModal"
-                                        data-update-url="{{ route('authorization.event-divisions.divisions.update', ['eventDivision' => $eventDivisionAssignment['id']]) }}"
-                                        data-title="{{ $eventDivisionAssignment['title'] }}"
-                                        data-sub-title="{{ $eventDivisionAssignment['sub_title'] }}"
-                                    >
-                                        Update
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        form="deleteEventDivisionForm-{{ $eventDivisionAssignment['id'] }}"
-                                        class="btn btn-danger light btn-sm"
-                                    >
-                                        Delete
-                                    </button>
+                                    <x-action-menu>
+                                        <li>
+                                            <button
+                                                type="button"
+                                                class="dropdown-item js-edit-event-division"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editEventDivisionModal"
+                                                data-update-url="{{ route('authorization.event-divisions.divisions.update', ['eventDivision' => $eventDivisionAssignment['id']]) }}"
+                                                data-title="{{ $eventDivisionAssignment['title'] }}"
+                                                data-sub-title="{{ $eventDivisionAssignment['sub_title'] }}"
+                                            >
+                                                <i class="bi bi-pencil-square"></i>Update
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button
+                                                type="submit"
+                                                form="deleteEventDivisionForm-{{ $eventDivisionAssignment['id'] }}"
+                                                class="dropdown-item text-danger"
+                                            >
+                                                <i class="bi bi-trash"></i>Delete
+                                            </button>
+                                        </li>
+                                    </x-action-menu>
                                 </td>
                             </tr>
                         @empty
@@ -288,13 +290,8 @@
 @endsection
 
 @section('script')
-    @php
-        $dashboardJsPath = public_path('assets/js/dashboard.js');
-        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
-    @endphp
     <script src="{{ asset('assets/vendor/select2/js/select2.full.min.js') }}"></script>
     <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}"></script>
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
         (function () {
             function initializeAuthorizationSelect2() {

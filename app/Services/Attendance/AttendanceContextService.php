@@ -56,7 +56,8 @@ class AttendanceContextService
      *     office_end_time:string,
      *     office_reset_time:string,
      *     attendance_type:string,
-     *     is_flexible:bool
+     *     is_flexible:bool,
+     *     has_attendance_rule:bool
      * }|null
      */
     public function resolveOfficeContext(int|string|null $userId): ?array
@@ -135,6 +136,7 @@ class AttendanceContextService
                 : '00:00:00',
             'attendance_type' => $attendanceType,
             'is_flexible' => $attendanceType === 'flexible',
+            'has_attendance_rule' => $attendanceRule !== null,
         ];
     }
 

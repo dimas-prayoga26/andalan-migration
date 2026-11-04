@@ -4,32 +4,37 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\Position;
+use App\Services\PositionLevelPermissionService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Yajra\DataTables\Facades\DataTables;
 
 class PositionController extends Controller
 {
-    public function index(Request $request): View
+    public function index(): View
     {
-        $search = trim((string) $request->query('search', ''));
-
-        $items = Position::query()
-            ->when($search !== '', fn ($query) => $query->where('name', 'like', "%{$search}%"))
-            ->orderBy('name')
-            ->paginate(10)
-            ->withQueryString();
-
         return view('settings.index', [
-            'items' => $items,
-            'search' => $search,
             'pageTitle' => 'Position',
             'resourceLabel' => 'Position',
             'routePrefix' => 'settings.positions',
             'routeParameter' => 'position',
+            'datatableRoute' => 'settings.positions.datatable',
+            'tableId' => 'positionsTable',
+            'searchPlaceholder' => 'Search position',
         ]);
+    }
+
+    public function datatable(): JsonResponse
+    {
+        $query = Position::query()
+            ->select(['id', 'name', 'status', 'level', 'is_protected']);
+
+        return DataTables::eloquent($query)
+            ->toJson();
     }
 
     public function create(): View
@@ -44,9 +49,11 @@ class PositionController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, PositionLevelPermissionService $positionLevelPermissionService): RedirectResponse
     {
-        Position::query()->create($this->validatedData($request));
+        $position = Position::query()->create($this->validatedData($request));
+
+        $positionLevelPermissionService->grantLevelPermissionsTo($position);
 
         return redirect()
             ->route('settings.positions.index')
@@ -65,17 +72,37 @@ class PositionController extends Controller
         ]);
     }
 
-    public function update(Request $request, Position $position): RedirectResponse
+    public function update(Request $request, Position $position, PositionLevelPermissionService $positionLevelPermissionService): RedirectResponse
     {
-        $position->update($this->validatedData($request, $position));
+        $validated = $this->validatedData($request, $position);
+
+        if ($position->is_protected && $validated['status'] !== 'active') {
+            return back()
+                ->with('error', 'Protected position cannot be set inactive.')
+                ->withInput();
+        }
+
+        $isLevelChanged = $position->level !== $validated['level'];
+
+        DB::transaction(function () use ($isLevelChanged, $position, $positionLevelPermissionService, $validated): void {
+            $position->update($validated);
+
+            if ($isLevelChanged) {
+                $positionLevelPermissionService->replaceWithLevelPermissions($position);
+            }
+        });
 
         return redirect()
             ->route('settings.positions.index')
             ->with('status', 'Position has been updated.');
     }
 
-    public function destroy(Position $position): RedirectResponse
+    public function destroy(Request $request, Position $position): JsonResponse|RedirectResponse
     {
+        if ($position->is_protected) {
+            return $this->tableActionResponse($request, back(), 'Protected position cannot be deleted because it is required by the system.', false);
+        }
+
         $isUsedByDeployment = DB::table('employee_deployments')
             ->where('current_position_id', $position->id)
             ->exists();
@@ -85,18 +112,16 @@ class PositionController extends Controller
             ->exists();
 
         if ($isUsedByDeployment || $isUsedByDeploymentHistory) {
-            return back()->with('error', 'Position is still used by employee deployment data.');
+            return $this->tableActionResponse($request, back(), 'Position is still used by employee deployment data.', false);
         }
 
         $position->delete();
 
-        return redirect()
-            ->route('settings.positions.index')
-            ->with('status', 'Position has been deleted.');
+        return $this->tableActionResponse($request, redirect()->route('settings.positions.index'), 'Position has been deleted.');
     }
 
     /**
-     * @return array{name: string, status: string}
+     * @return array{name: string, status: string, level: string}
      */
     private function validatedData(Request $request, ?Position $position = null): array
     {
@@ -108,6 +133,7 @@ class PositionController extends Controller
                 Rule::unique('positions', 'name')->ignore($position?->id, 'id'),
             ],
             'status' => ['required', 'string', Rule::in(['active', 'inactive'])],
+            'level' => ['required', 'string', Rule::in(array_keys(Position::LEVEL_LABELS))],
         ]);
     }
 }

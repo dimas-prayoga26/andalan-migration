@@ -6,32 +6,22 @@ use App\Models\LeaveRequest;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class LeaveRequestDestroyAuthorizationTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
+    public function test_super_administrator_can_delete_leave_request(): void
     {
-        if (! extension_loaded('pdo_sqlite')) {
-            $this->markTestSkipped('pdo_sqlite extension is not available.');
-        }
-
-        parent::setUp();
-    }
-
-    public function test_superuser_can_delete_leave_request(): void
-    {
-        $superuser = $this->createUserWithRole('superuser');
+        $superuser = $this->createSuperAdministratorUser();
         $leaveRequest = LeaveRequest::query()->create([
             'employee_id' => null,
             'leave_type_id' => null,
             'start_date' => now('Asia/Jakarta')->toDateString(),
             'end_date' => now('Asia/Jakarta')->toDateString(),
             'total_days' => 1,
-            'reason' => 'Delete request as superuser',
+            'reason' => 'Delete request as super administrator',
             'status' => 'pending',
         ]);
 
@@ -81,13 +71,19 @@ class LeaveRequestDestroyAuthorizationTest extends TestCase
             'guard_name' => 'web',
         ]);
 
-        $user = User::query()->create([
-            'email' => strtolower($roleName).'.'.uniqid().'@example.com',
-            'password' => Hash::make('password'),
-            'is_active' => true,
-        ]);
-
+        $user = User::factory()->activeEmployee(['view-attendance'])->create();
         $user->assignRole($role);
+
+        return $user;
+    }
+
+    private function createSuperAdministratorUser(): User
+    {
+        $user = User::factory()->superAdministrator()->create();
+        $user->assignRole(Role::query()->firstOrCreate([
+            'name' => 'Staff',
+            'guard_name' => 'web',
+        ]));
 
         return $user;
     }

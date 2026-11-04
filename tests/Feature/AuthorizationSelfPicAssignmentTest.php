@@ -26,7 +26,7 @@ class AuthorizationSelfPicAssignmentTest extends TestCase
         $syncMethod = $this->methodContents(
             $controller,
             'private function syncPicAssignment',
-            'private function initials',
+            'private function employeeAvatarUrl',
         );
 
         $this->assertStringContainsString("if (\$picEmployeeId === '')", $syncMethod);

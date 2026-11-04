@@ -631,11 +631,6 @@
 
 @section('script')
 
-@php
-    $dashboardJsPath = public_path('assets/js/dashboard.js');
-    $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
-@endphp
-<script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 <script src="{{ asset('assets-workload/vendor/draggable/draggable.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>

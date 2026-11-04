@@ -3,10 +3,19 @@
 @section('title', 'Employee Details')
 @section('navbarTitle', 'Employee Details')
 
+@section('css')
+    <style>
+        .employee-detail-avatar {
+            object-fit: cover;
+        }
+    </style>
+    @include('employee_data.documents.styles')
+@endsection
+
 @section('content')
 @include('layouts.breadcrumb', [
     'title' => 'Employee Details',
-    'current' => $employee->profile?->name ?? 'Employee',
+    'current' => $employee->profile?->name ?: ($employee->profile?->nickname ?: 'Employee'),
     'homeRoute' => 'dashboard',
 ])
 
@@ -18,51 +27,131 @@
         ->unique()
         ->values();
     $positionLabel = $positionNames->implode(', ') ?: '-';
+    $employeeName = collect([$employee->profile?->name, $employee->profile?->nickname, $employee->user?->email])
+        ->map(fn ($nameCandidate) => trim((string) $nameCandidate))
+        ->first(fn ($nameCandidate) => $nameCandidate !== '') ?? 'Employee';
+    $portfolioUrl = trim((string) ($employee->profile?->portfolio_url ?? ''));
 @endphp
 
-<div class="card">
-    <div class="card-header border-0 flex-wrap gap-2">
-        <div>
-            <h4 class="card-title mb-1">{{ $employee->profile?->name ?? $employee->user?->username ?? 'Employee' }}</h4>
-            <p class="mb-0 text-muted fs-13">{{ $positionLabel }} - {{ $employee->deployment?->company?->name ?? '-' }}</p>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="{{ route('authorization') }}" class="btn btn-light btn-sm">Back</a>
-            @if ($canManageDataEmployee)
-                <a href="{{ route('authorization.edit', ['employee' => $employee]) }}" class="btn btn-primary btn-sm">Update</a>
-            @endif
+@include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
+
+<div class="row">
+    <div class="col-xl-3 col-md-4">
+        <div class="card h-auto">
+            <div class="card-body py-sm-5">
+                <div class="text-center">
+                    <div class="avatar avatar-xl rounded-circle overflow-hidden mx-auto">
+                        <img class="w-100 h-100 employee-detail-avatar" src="{{ $employeeAvatarUrl }}" alt="{{ $employeeName }}">
+                    </div>
+                    <div class="clearfix mt-3">
+                        <h6 class="mb-0">{{ $employeeName }}</h6>
+                        <span>{{ $positionLabel }}</span> <br>
+                        <span>{{ $employee->deployment?->department?->name ?? '-' }}</span>
+                    </div>
+                </div>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between py-3">
+                    <span>Attendance ({{ $employeeMonthlySummary['month_label'] }})</span>
+                    <span>{{ $employeeMonthlySummary['attended_days'] }}/{{ $employeeMonthlySummary['working_days'] }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between py-3">
+                    <span>Report ({{ $employeeMonthlySummary['month_label'] }})</span>
+                    <span>{{ $employeeMonthlySummary['completed_tasks'] }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between py-3">
+                    <span>KPI</span>
+                    <span>-</span>
+                </li>
+            </ul>
+            <div class="card-footer p-4">
+                <span class="btn btn-outline-light w-100 pe-none">{{ $employee->deployment?->company?->name ?? '-' }}</span>
+                @if ($portfolioUrl !== '')
+                    <a href="{{ $portfolioUrl }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary w-100 mt-2"><span class="overflow-hidden">{{ $portfolioUrl }}</span></a>
+                @endif
+            </div>
         </div>
     </div>
-    <div class="card-body">
-        @if (session('status'))
-            <div class="alert alert-success mb-4" role="alert">{{ session('status') }}</div>
-        @endif
 
-        <div class="row g-4">
-            <div class="col-lg-4">
-                <h5 class="mb-3">User</h5>
-                <p class="mb-1"><span class="text-muted">Username:</span> {{ $employee->user?->username ?? '-' }}</p>
-                <p class="mb-1"><span class="text-muted">Email:</span> {{ $employee->user?->email ?? '-' }}</p>
-                <p class="mb-1"><span class="text-muted">Phone:</span> {{ $employee->user?->phone ?? '-' }}</p>
-                <p class="mb-1"><span class="text-muted">Status:</span> {{ $employee->status ?? '-' }}</p>
-                <p class="mb-1">
-                    <span class="text-muted">Event Project Admin:</span>
-                    {{ $employee->is_event_project_admin ? 'Yes' : 'No' }}
-                </p>
+    <div class="col-xl-9 col-md-8">
+        <div class="card h-auto">
+            <div class="card-header">
+                <ul class="nav nav-underline card-header-tabs" id="employeeDetailTabs" role="tablist">
+                    @foreach ($employeeDataSections as $dataSection)
+                        <li class="nav-item" role="presentation">
+                            <button @class(['nav-link', 'active' => $loop->first]) id="employee-detail-{{ $dataSection['key'] }}-tab" data-bs-toggle="tab" data-bs-target="#employee-detail-{{ $dataSection['key'] }}" type="button" role="tab" aria-controls="employee-detail-{{ $dataSection['key'] }}" aria-selected="{{ $loop->first ? 'true' : 'false' }}">{{ $dataSection['title'] }}</button>
+                        </li>
+                    @endforeach
+                </ul>
             </div>
-            <div class="col-lg-4">
-                <h5 class="mb-3">Identity</h5>
-                <p class="mb-1"><span class="text-muted">NIK:</span> {{ $employee->identity?->nik ?? '-' }}</p>
-                <p class="mb-1"><span class="text-muted">NPWP:</span> {{ $employee->identity?->npwp ?? '-' }}</p>
-                <p class="mb-1"><span class="text-muted">Employment BPJS:</span> {{ $employee->identity?->bpjs_ketenagakerjaan ?? '-' }}</p>
-                <p class="mb-1"><span class="text-muted">Healthcare BPJS:</span> {{ $employee->identity?->bpjs_kesehatan ?? '-' }}</p>
-            </div>
-            <div class="col-lg-4">
-                <h5 class="mb-3">Deployment</h5>
-                <p class="mb-1"><span class="text-muted">Company:</span> {{ $employee->deployment?->company?->name ?? '-' }}</p>
-                <p class="mb-1"><span class="text-muted">Division:</span> {{ $employee->deployment?->department?->name ?? '-' }}</p>
-                <p class="mb-1"><span class="text-muted">Position:</span> {{ $positionLabel }}</p>
-                <p class="mb-1"><span class="text-muted">PIC:</span> {{ $employee->picAssignment?->supervisor?->profile?->name ?? '-' }}</p>
+            <div class="card-body">
+                <div class="tab-content" id="employeeDetailTabContent">
+                    @foreach ($employeeDataSections as $dataSection)
+                        <div @class(['tab-pane fade', 'show active' => $loop->first]) id="employee-detail-{{ $dataSection['key'] }}" role="tabpanel" aria-labelledby="employee-detail-{{ $dataSection['key'] }}-tab" tabindex="0">
+                            @foreach ($dataSection['groups'] as $dataGroup)
+                                <h4 @class(['text-primary mb-3', 'mt-4' => ! $loop->first])>{{ $dataGroup['title'] }}</h4>
+                                <div class="text-dark rounded">
+                                    @foreach ($dataGroup['fields'] as $dataField)
+                                        <div class="row mb-2">
+                                            <div class="col-md-4 col-sm-4">
+                                                <h5>{{ $dataField['label'] }}@if ($dataField['is_required'])<span class="text-danger">*</span>@endif <span class="float-sm-end">:</span></h5>
+                                            </div>
+                                            <div class="col-md-8 col-sm-8">
+                                                @if ($dataField['value'] !== null)
+                                                    <span>{{ $dataField['value'] }}</span>
+                                                @elseif ($dataField['is_required'])
+                                                    <span class="text-danger fst-italic">Not filled yet</span>
+                                                @else
+                                                    <span>-</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+
+                                    @foreach ($dataGroup['tables'] as $dataTable)
+                                        <div class="row mb-2">
+                                            <div class="col-md-4 col-sm-4">
+                                                <h5>{{ $dataTable['title'] }}@if ($dataTable['is_required'])<span class="text-danger">*</span>@endif <span class="float-sm-end">:</span></h5>
+                                            </div>
+                                        </div>
+                                        <div class="table-responsive mb-3">
+                                            <table class="table table-sm table-sm-responsive table-bottom-borderless mb-0">
+                                                <thead class="text-nowrap">
+                                                    <tr>
+                                                        @foreach ($dataTable['columns'] as $tableColumn)
+                                                            <th class="mw-150">{{ $tableColumn }}</th>
+                                                        @endforeach
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="text-nowrap">
+                                                    @forelse ($dataTable['rows'] as $tableRow)
+                                                        <tr>
+                                                            @foreach ($tableRow as $tableCell)
+                                                                <td>{{ $tableCell }}</td>
+                                                            @endforeach
+                                                        </tr>
+                                                    @empty
+                                                        <tr>
+                                                            <td colspan="{{ count($dataTable['columns']) }}" @class(['text-center', 'text-danger fst-italic' => $dataTable['is_required'], 'text-muted' => ! $dataTable['is_required']])>
+                                                                {{ $dataTable['is_required'] ? 'Not filled yet' : 'No data available.' }}
+                                                            </td>
+                                                        </tr>
+                                                    @endforelse
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endforeach
+
+                            @if ($dataSection['key'] === 'attachments')
+                                @include('employee_data.documents.vault', ['documentVaultMode' => 'view', 'employeeDocumentFiles' => $dataSection['document_files'] ?? [], 'canViewHrOnlyDocuments' => $canViewHrOnlyDocuments ?? false])
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+
+                <small class="d-block mt-3 text-muted"><span class="text-danger">*</span> Required data filled in by the employee from the Profile page.</small>
             </div>
         </div>
     </div>
@@ -70,9 +159,5 @@
 @endsection
 
 @section('script')
-    @php
-        $dashboardJsPath = public_path('assets/js/dashboard.js');
-        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
-    @endphp
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    @include('employee_data.documents.script')
 @endsection

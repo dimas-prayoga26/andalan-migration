@@ -8,6 +8,7 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.css') }}">
     <style>
         .director-overtime-table-footer.dataTables_wrapper {
             display: flex;
@@ -136,12 +137,8 @@
     $directorOvertimeTablePageSize = 5;
     $pendingTableRows = $pendingRows ?? collect();
     $approvedTableRows = $approvedRows ?? collect();
-    $selectedCardMonth = $selectedCardMonth ?? ($selectedMonth ?? now('Asia/Jakarta')->month);
-    $selectedCardYear = $selectedCardYear ?? ($selectedYear ?? now('Asia/Jakarta')->year);
-    $selectedPendingMonth = $selectedPendingMonth ?? ($selectedMonth ?? now('Asia/Jakarta')->month);
-    $selectedPendingYear = $selectedPendingYear ?? ($selectedYear ?? now('Asia/Jakarta')->year);
-    $selectedApprovedMonth = $selectedApprovedMonth ?? ($selectedMonth ?? now('Asia/Jakarta')->month);
-    $selectedApprovedYear = $selectedApprovedYear ?? ($selectedYear ?? now('Asia/Jakarta')->year);
+    $selectedMonth = $selectedMonth ?? now('Asia/Jakarta')->month;
+    $selectedYear = $selectedYear ?? now('Asia/Jakarta')->year;
     $pendingTablePageCount = max(1, (int) ceil($pendingTableRows->count() / $directorOvertimeTablePageSize));
     $approvedTablePageCount = max(1, (int) ceil($approvedTableRows->count() / $directorOvertimeTablePageSize));
 @endphp
@@ -150,7 +147,23 @@
 <div class="col-lg-12">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0">Overtime</h5>
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center flex-wrap justify-content-end gap-2">
+            <form class="clearfix d-flex align-items-center me-3 director-overtime-period-filter" method="GET" action="{{ url()->current() }}">
+                <div class="clearfix me-1">
+                    <select name="month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                        @foreach (($monthOptions ?? []) as $monthOption)
+                            <option value="{{ $monthOption['value'] }}" @selected($selectedMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="clearfix">
+                    <select name="year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
+                        @foreach (($yearOptions ?? []) as $yearOption)
+                            <option value="{{ $yearOption }}" @selected($selectedYear === $yearOption)>{{ $yearOption }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </form>
             <ul class="nav nav-pills nav-pills-square-sm gap-2" id="myTabView" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="project-list-tab" data-bs-toggle="tab" data-bs-target="#project-list-pane" type="button" role="tab" aria-controls="project-list-pane" aria-selected="true">
@@ -196,29 +209,6 @@
                 <div class="card">
                     <div class="card-header border-0 align-items-center gap-2 flex-wrap">
                         <h4 class="card-title m-0">Pending</h4>
-                        <form class="clearfix d-flex align-items-center" method="GET" action="{{ url()->current() }}">
-                            <input type="hidden" name="card_month" value="{{ $selectedCardMonth }}">
-                            <input type="hidden" name="card_year" value="{{ $selectedCardYear }}">
-                            <input type="hidden" name="approved_month" value="{{ $selectedApprovedMonth }}">
-                            <input type="hidden" name="approved_year" value="{{ $selectedApprovedYear }}">
-                            <div class="clearfix me-1">
-                                <select name="pending_month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
-                                    @foreach (($monthOptions ?? []) as $monthOption)
-                                        <option value="{{ $monthOption['value'] }}" @selected($selectedPendingMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="clearfix">
-                                <select name="pending_year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
-                                    @foreach (($yearOptions ?? []) as $yearOption)
-                                        <option value="{{ $yearOption }}" @selected($selectedPendingYear === $yearOption)>{{ $yearOption }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="ms-2">
-                                <div id="licenseUsageExcelBTN"></div>
-                            </div>
-                        </form>
                     </div>
                     <div class="card-body table-card-body px-0 pt-0 pb-0" data-director-overtime-table data-director-overtime-page-size="{{ $directorOvertimeTablePageSize }}">
                         <div class="table-responsive director-overtime-review-table overtime-review-table">
@@ -249,15 +239,10 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <div class="dropdown dropdown-xs">
-                                                    <button class="btn btn-xs btn-light btn-square" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end">
-                                                        <li><a class="dropdown-item" href="{{ $row['detail_url'] }}">Edit</a></li>
-                                                        <li><a class="dropdown-item" >Delete</a></li>
-                                                    </ul>
-                                                </div>
+                                                <x-action-menu>
+                                                    <li><a class="dropdown-item" href="{{ $row['detail_url'] }}"><i class="bi bi-pencil-square"></i>Edit</a></li>
+                                                    <li><button type="button" class="dropdown-item text-danger"><i class="bi bi-trash"></i>Delete</button></li>
+                                                </x-action-menu>
                                             </td>
                                         </tr>
                                     @empty
@@ -289,29 +274,6 @@
                 <div class="card">
                     <div class="card-header border-0 align-items-center">
                         <h4 class="card-title">Status : <span class="text-success">Approved</span> </h4>
-                        <form class="clearfix d-flex align-items-center" method="GET" action="{{ url()->current() }}">
-                            <input type="hidden" name="card_month" value="{{ $selectedCardMonth }}">
-                            <input type="hidden" name="card_year" value="{{ $selectedCardYear }}">
-                            <input type="hidden" name="pending_month" value="{{ $selectedPendingMonth }}">
-                            <input type="hidden" name="pending_year" value="{{ $selectedPendingYear }}">
-                            <div class="clearfix me-1">
-                                <select name="approved_month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
-                                    @foreach (($monthOptions ?? []) as $monthOption)
-                                        <option value="{{ $monthOption['value'] }}" @selected($selectedApprovedMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="clearfix">
-                                <select name="approved_year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
-                                    @foreach (($yearOptions ?? []) as $yearOption)
-                                        <option value="{{ $yearOption }}" @selected($selectedApprovedYear === $yearOption)>{{ $yearOption }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="ms-2">
-                                <div id="licenseUsageExcelBTN"></div>
-                            </div>
-                        </form>
                     </div>
                     <div class="card-body table-card-body px-0 pt-0 pb-0" data-director-overtime-table data-director-overtime-page-size="{{ $directorOvertimeTablePageSize }}">
                         <div class="table-responsive director-overtime-review-table overtime-review-table">
@@ -368,33 +330,17 @@
                     </div>
                 </div>
             </div>
-            <div class="col-12">
-                <div class="d-flex justify-content-end mb-3 director-overtime-card-filter">
-                    <form class="clearfix d-flex align-items-center" method="GET" action="{{ url()->current() }}">
-                        <input type="hidden" name="pending_month" value="{{ $selectedPendingMonth }}">
-                        <input type="hidden" name="pending_year" value="{{ $selectedPendingYear }}">
-                        <input type="hidden" name="approved_month" value="{{ $selectedApprovedMonth }}">
-                        <input type="hidden" name="approved_year" value="{{ $selectedApprovedYear }}">
-                        <div class="clearfix me-1">
-                            <select name="card_month" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
-                                @foreach (($monthOptions ?? []) as $monthOption)
-                                    <option value="{{ $monthOption['value'] }}" @selected($selectedCardMonth === $monthOption['value'])>{{ $monthOption['label'] }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="clearfix">
-                            <select name="card_year" class="selectpicker form-select form-select-sm" onchange="this.form.submit()">
-                                @foreach (($yearOptions ?? []) as $yearOption)
-                                    <option value="{{ $yearOption }}" @selected($selectedCardYear === $yearOption)>{{ $yearOption }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </form>
-                </div>
-            </div>
             @forelse (($overtimeCards ?? collect()) as $overtimeCard)
+                @php
+                    $overtimeCardLockedNotice = $overtimeCard['locked_notice'] ?? null;
+                @endphp
                 <div class="col-xxl-3 col-xl-4 col-sm-6">
-                    <div class="card">
+                    <div @class(['card', 'js-director-overtime-card-locked' => $overtimeCardLockedNotice !== null])
+                        @if ($overtimeCardLockedNotice !== null)
+                            role="button" tabindex="0" style="cursor: pointer;"
+                            data-locked-title="{{ $overtimeCardLockedNotice['title'] }}"
+                            data-locked-message="{{ $overtimeCardLockedNotice['message'] }}"
+                        @endif>
                         <div class="card-body">
                             <div class="clearfix d-flex">
                                 <div class="avatar avatar-sm rounded me-3">
@@ -404,7 +350,12 @@
                                 </div>
                                 <div class="clearfix">
                                     <h6 class="mb-0 fw-semibold">
-                                        <a href="{{ $overtimeCard['detail_url'] }}" class="stretched-link">{{ $overtimeCard['record_number'] }}</a>
+                                        @if ($overtimeCardLockedNotice === null)
+                                            <a href="{{ $overtimeCard['detail_url'] }}" class="stretched-link">{{ $overtimeCard['record_number'] }}</a>
+                                        @else
+                                            <span class="text-dark">{{ $overtimeCard['record_number'] }}</span>
+                                            <i class="fa fa-lock ms-1 text-muted" aria-hidden="true"></i>
+                                        @endif
                                     </h6>
                                     <span class="small">{{ $overtimeCard['employee_name'] }}</span>
                                 </div>
@@ -453,7 +404,7 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body text-center text-muted">
-                            No director approval overtime cards available for this period.
+                            No overtime card data available for this period.
                         </div>
                     </div>
                 </div>
@@ -565,13 +516,34 @@
 @endsection
 
 @section('script')
-    @php
-        $dashboardJsPath = public_path('assets/js/dashboard.js');
-        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
-    @endphp
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            function showLockedOvertimeCardNotice(card) {
+                var title = card.getAttribute('data-locked-title') || 'Informasi';
+                var message = card.getAttribute('data-locked-message') || '';
+
+                if (window.Swal) {
+                    window.Swal.fire({ icon: 'info', title: title, text: message });
+
+                    return;
+                }
+
+                window.alert(message);
+            }
+
+            document.querySelectorAll('.js-director-overtime-card-locked').forEach(function (card) {
+                card.addEventListener('click', function () {
+                    showLockedOvertimeCardNotice(card);
+                });
+                card.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        showLockedOvertimeCardNotice(card);
+                    }
+                });
+            });
+
             if (!window.jQuery) {
                 return;
             }

@@ -787,11 +787,6 @@
 @endsection
 
 @section('script')
-    @php
-        $dashboardJsPath = public_path('assets/js/dashboard.js');
-        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
-    @endphp
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
         <!-- Required vendors -->
     <script src="{{ asset('assets-workload/vendor/global/global.min.js') }}"></script>
 	<script src="{{ asset('assets-workload/vendor/jquery-nice-select/js/jquery.nice-select.min.js') }}"></script>
@@ -1040,4 +1035,3 @@
     <script src="{{ asset('assets-workload/js/custom.min.js') }}"></script>
 	<script src="{{ asset('assets-workload/js/dlabnav-init.js') }}"></script>
 @endsection
-

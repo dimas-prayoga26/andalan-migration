@@ -17,13 +17,31 @@
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0">Leave</h5>
-        <div class="btn-group" role="group" aria-label="Leave view">
-            <button type="button" id="project-list-tab" class="btn btn-primary btn-sm" aria-label="List view" aria-pressed="true">
-                <i class="bi bi-list-ul"></i>
-            </button>
-            <button type="button" id="project-grid-tab" class="btn btn-light btn-sm" aria-label="Grid view" aria-pressed="false">
-                <i class="bi bi-grid"></i>
-            </button>
+        <div class="d-flex align-items-center flex-wrap justify-content-end gap-2">
+            <form class="clearfix d-flex align-items-center me-3 pic-leave-period-filter" method="GET" action="{{ url()->current() }}">
+                <div class="clearfix me-1">
+                    <select name="month" id="picLeavePeriodMonth" class="selectpicker form-select form-select-sm" aria-label="Leave month" onchange="this.form.submit()">
+                        @foreach (($leaveMonthOptions ?? []) as $month)
+                            <option value="{{ $month['value'] }}" @selected($month['value'] === $leaveSelectedMonth)>{{ $month['label'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="clearfix">
+                    <select name="year" id="picLeavePeriodYear" class="selectpicker form-select form-select-sm" aria-label="Leave year" onchange="this.form.submit()">
+                        @foreach (($leaveYearOptions ?? []) as $year)
+                            <option value="{{ $year }}" @selected($year === $leaveSelectedYear)>{{ $year }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </form>
+            <div class="btn-group" role="group" aria-label="Leave view">
+                <button type="button" id="project-list-tab" class="btn btn-primary btn-sm" aria-label="List view" aria-pressed="true">
+                    <i class="bi bi-list-ul"></i>
+                </button>
+                <button type="button" id="project-grid-tab" class="btn btn-light btn-sm" aria-label="Grid view" aria-pressed="false">
+                    <i class="bi bi-grid"></i>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -97,32 +115,10 @@
             <div class="card h-100">
                 <div class="card-header border-0 d-flex flex-wrap align-items-center justify-content-between gap-3">
                     <h4 class="card-title m-0">Pending <span class="text-danger">(Supervisor Review)</span></h4>
-                    <div class="d-flex gap-2">
-                        <select id="adminLeavePendingMonth" class="form-select form-select-sm" aria-label="Pending month">
-                            @foreach ($leaveMonthOptions as $month)
-                                <option value="{{ $month['value'] }}" @selected($month['value'] === $leaveSelectedMonth)>{{ $month['label'] }}</option>
-                            @endforeach
-                        </select>
-                        <select id="adminLeavePendingYear" class="form-select form-select-sm" aria-label="Pending year">
-                            @foreach ($leaveYearOptions as $year)
-                                <option value="{{ $year }}" @selected($year === $leaveSelectedYear)>{{ $year }}</option>
-                            @endforeach
-                        </select>
-                    </div>
                 </div>
                 <div class="card-body table-card-body px-0 pt-0 pb-2">
                     <div class="table-responsive">
-                        <table id="adminLeavePendingTable" class="table table-sm table-sm-responsive text-nowrap mb-0 w-100">
-                            <thead>
-                                <tr>
-                                    <th>No</th>
-                                    <th>Date</th>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                        </table>
+                        <table id="datatablePending" class="table table-bordered text-nowrap w-100"></table>
                     </div>
                 </div>
             </div>
@@ -132,32 +128,10 @@
             <div class="card h-100">
                 <div class="card-header border-0 d-flex flex-wrap align-items-center justify-content-between gap-3">
                     <h4 class="card-title m-0">Status : <span class="text-success">Supervisor Approved</span></h4>
-                    <div class="d-flex gap-2">
-                        <select id="adminLeaveApprovedMonth" class="form-select form-select-sm" aria-label="Approved month">
-                            @foreach ($leaveMonthOptions as $month)
-                                <option value="{{ $month['value'] }}" @selected($month['value'] === $leaveSelectedMonth)>{{ $month['label'] }}</option>
-                            @endforeach
-                        </select>
-                        <select id="adminLeaveApprovedYear" class="form-select form-select-sm" aria-label="Approved year">
-                            @foreach ($leaveYearOptions as $year)
-                                <option value="{{ $year }}" @selected($year === $leaveSelectedYear)>{{ $year }}</option>
-                            @endforeach
-                        </select>
-                    </div>
                 </div>
                 <div class="card-body table-card-body px-0 pt-0 pb-2">
                     <div class="table-responsive">
-                        <table id="adminLeaveApprovedTable" class="table table-sm table-sm-responsive text-nowrap mb-0 w-100">
-                            <thead>
-                                <tr>
-                                    <th>No</th>
-                                    <th>Date</th>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                        </table>
+                        <table id="datatableApproved" class="table table-bordered text-nowrap w-100"></table>
                     </div>
                 </div>
             </div>
@@ -233,28 +207,28 @@
         </div>
     </div>
     <div id="project-list-card-pane" class="row g-4 mt-1">
-        @forelse ($leavePendingCards as $leavePendingCard)
+        @forelse (($leaveCards ?? collect()) as $leaveCard)
             <div class="col-xxl-3 col-xl-4 col-md-6">
                 <div class="card h-100">
                     <div class="card-body">
                         <div class="clearfix d-flex align-items-center">
                             <div class="avatar avatar-sm rounded me-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center fw-semibold">
-                                {{ $leavePendingCard['initial'] }}
+                                {{ $leaveCard['initial'] }}
                             </div>
                             <div class="clearfix">
                                 <h6 class="mb-0 fw-semibold">
-                                    <a href="{{ $leavePendingCard['detail_url'] }}" class="stretched-link text-dark">{{ $leavePendingCard['name'] }}</a>
+                                    <a href="{{ $leaveCard['detail_url'] }}" class="stretched-link text-dark">{{ $leaveCard['name'] }}</a>
                                 </h6>
-                                <span class="small text-muted">{{ $leavePendingCard['leave_type'] }}</span>
+                                <span class="small text-muted">{{ $leaveCard['leave_type'] }}</span>
                             </div>
                         </div>
-                        <p class="my-3">{{ $leavePendingCard['reason'] }}</p>
+                        <p class="my-3">{{ $leaveCard['reason'] }}</p>
                         <div class="row py-1">
                             <div class="col-12">
                                 <span>Date :</span>
                             </div>
                             <div class="col-12">
-                                <span>{{ $leavePendingCard['date_label'] }}</span>
+                                <span>{{ $leaveCard['date_label'] }}</span>
                             </div>
                         </div>
                         <div class="row py-1">
@@ -262,20 +236,20 @@
                                 <span>PIC / Supervisor :</span>
                             </div>
                             <div class="col-12">
-                                <span>{{ $leavePendingCard['supervisor_name'] }}</span>
+                                <span>{{ $leaveCard['supervisor_name'] }}</span>
                             </div>
                         </div>
                     </div>
                     <div class="card-footer d-flex justify-content-between align-items-center">
-                        <span class="fw-semibold text-warning">Supervisor Review</span>
-                        <span class="badge badge-sm badge-warning light fw-semibold">Pending</span>
+                        <span class="fw-semibold text-{{ $leaveCard['current_step']['color'] }}">{{ $leaveCard['current_step']['title'] }}</span>
+                        <span class="badge badge-sm badge-{{ $leaveCard['current_step']['color'] }} light fw-semibold">{{ $leaveCard['current_step']['status'] }}</span>
                     </div>
                 </div>
             </div>
         @empty
             <div class="col-12">
                 <div class="card">
-                    <div class="card-body text-center text-muted py-4">No pending leave request data available.</div>
+                    <div class="card-body text-center text-muted py-4">No leave request data available.</div>
                 </div>
             </div>
         @endforelse
@@ -284,15 +258,12 @@
 
 @section('script')
     @php
-        $dashboardJsPath = public_path('assets/js/dashboard.js');
-        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
         $dataTablesJsPath = public_path('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js');
         $dataTablesJsVersion = file_exists($dataTablesJsPath) ? filemtime($dataTablesJsPath) : time();
     @endphp
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        $(function () {
             var listViewButton = document.getElementById('project-list-tab');
             var gridViewButton = document.getElementById('project-grid-tab');
             var listPane = document.getElementById('project-list-pane');
@@ -347,32 +318,35 @@
                     return '-';
                 }
 
-                return '<a href="' + escapeHtml(row.detail_url) + '" class="btn btn-xs btn-light btn-square" aria-label="View leave request">'
-                    + '<i class="bi bi-pencil"></i></a>';
+                return actionMenu([
+                    '<li><a class="dropdown-item" href="' + escapeHtml(row.detail_url) + '"><i class="bi bi-eye"></i>Detail</a></li>'
+                ]);
             }
 
-            function createLeaveTable(tableSelector, endpoint, monthSelector, yearSelector) {
+            function createLeaveTable(tableSelector, endpoint) {
                 var table = $(tableSelector).DataTable({
                     ajax: {
                         url: endpoint,
                         data: function (requestData) {
-                            requestData.month = $(monthSelector).val();
-                            requestData.year = $(yearSelector).val();
+                            requestData.month = $('#picLeavePeriodMonth').val();
+                            requestData.year = $('#picLeavePeriodYear').val();
                         },
                         dataSrc: 'data'
                     },
                     autoWidth: false,
+                    processing: true,
+                    serverSide: true,
                     searching: false,
                     pageLength: 5,
                     lengthChange: false,
                     paging: true,
                     info: true,
                     columns: [
-                        { data: 'no', defaultContent: '' },
-                        { data: 'date', defaultContent: '-' },
-                        { data: 'name', defaultContent: '-' },
-                        { data: 'type', defaultContent: '-' },
-                        { data: 'detail_url', defaultContent: '' }
+                        { title: 'No', data: 'no', defaultContent: '' },
+                        { title: 'Date', data: 'date', defaultContent: '-' },
+                        { title: 'Name', data: 'name', defaultContent: '-' },
+                        { title: 'Type', data: 'type', defaultContent: '-' },
+                        { title: 'Action', data: 'detail_url', defaultContent: '' }
                     ],
                     columnDefs: [
                         {
@@ -403,25 +377,11 @@
                     }
                 });
 
-                $(monthSelector + ', ' + yearSelector).on('change', function () {
-                    table.ajax.reload();
-                });
-
                 return table;
             }
 
-            createLeaveTable(
-                '#adminLeavePendingTable',
-                '{{ route('pic-attendance.leave.pending-datatable') }}',
-                '#adminLeavePendingMonth',
-                '#adminLeavePendingYear'
-            );
-            createLeaveTable(
-                '#adminLeaveApprovedTable',
-                '{{ route('pic-attendance.leave.approved-datatable') }}',
-                '#adminLeaveApprovedMonth',
-                '#adminLeaveApprovedYear'
-            );
+            createLeaveTable('#datatablePending', '{{ route('pic-attendance.leave.pending-datatable') }}');
+            createLeaveTable('#datatableApproved', '{{ route('pic-attendance.leave.approved-datatable') }}');
         });
     </script>
 @endsection

@@ -181,8 +181,6 @@
 
 @section('script')
     @php
-        $dashboardJsPath = public_path('assets/js/dashboard.js');
-        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
         $fullCalendarJsPath = public_path('assets/vendor/fullcalendar/js/main.js');
         $fullCalendarJsVersion = file_exists($fullCalendarJsPath) ? filemtime($fullCalendarJsPath) : time();
         $fullCalendarInitJsPath = public_path('assets/js/plugins-init/fullcalendar-init.js');
@@ -190,5 +188,4 @@
     @endphp
     <script src="{{ asset('assets/vendor/fullcalendar/js/main.js') }}?v={{ $fullCalendarJsVersion }}"></script>
     <script src="{{ asset('assets/js/plugins-init/fullcalendar-init.js') }}?v={{ $fullCalendarInitJsVersion }}"></script>
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 @endsection

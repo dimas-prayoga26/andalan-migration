@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\ProjectManagement\ProjectController;
+use App\Models\AttendanceOvertime;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
@@ -10,23 +11,25 @@ use App\Models\EmployeeDeployment;
 use App\Models\EmployeePicAssignment;
 use App\Models\EventDivision;
 use App\Models\GoogleOauthToken;
+use App\Models\HrMeeting;
+use App\Models\HrMeetingTask;
 use App\Models\Position;
 use App\Models\Project;
 use App\Models\ProjectMember;
 use App\Models\ProjectTask;
 use App\Models\User;
-use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ProjectManagementOverviewLayoutTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_monthly_overview_cards_use_equal_height_layout(): void
     {
         $overview = File::get(resource_path('views/project_management/overview/index.blade.php'));
@@ -92,7 +95,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('word-break: break-word;', $profileHeader);
         $this->assertStringContainsString('class="project-progress-radial-chart"', $overview);
         $this->assertStringContainsString('parentHeightOffset: 0', $overview);
-        $this->assertStringContainsString('employee.profile:id,employee_id,name,profile_picture_path', $profileComposer);
+        $this->assertStringContainsString('employee.profile:id,employee_id,name,nickname,profile_picture_path', $profileComposer);
         $this->assertStringNotContainsString('userProfile', $profileComposer);
         $this->assertIsString(view('project_management.overview.index')->render());
         $this->assertStringContainsString('ProjectManagementOverviewController::class', $routes);
@@ -346,7 +349,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('private function projectStaffOptions(): Collection', $projectController);
         $this->assertStringContainsString('private function employeeProjectOptionLabel(Employee $employee): string', $projectController);
         $this->assertStringContainsString('private function authenticatedEmployeeIsSupervisor(?User $authenticatedUser): bool', $projectController);
-        $this->assertStringContainsString("hasPositionName('Supervisor')", $projectController);
+        $this->assertStringContainsString('hasPositionSystemKey(Position::KEY_SUPERVISOR)', $projectController);
         $this->assertStringContainsString("'projectStoreUrl' => route('project_management.projects.store')", $projectController);
         $this->assertStringContainsString('public function updateProject(Request $request, Project $project): JsonResponse', $projectController);
         $this->assertStringContainsString('public function destroyProject(Project $project): JsonResponse', $projectController);
@@ -394,7 +397,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('projectTaskTimeline', $projectController);
         $this->assertStringContainsString('private function projectTaskTimelineValue(Project $project, Collection $tasks): array', $projectController);
         $this->assertStringContainsString('betweenIncluded($weekStart, $weekEnd)', $projectController);
-        $this->assertStringContainsString('memberships.employee.profile:id,employee_id,name,profile_picture_path', $projectController);
+        $this->assertStringContainsString('memberships.employee.profile:id,employee_id,name,nickname,profile_picture_path', $projectController);
         $this->assertStringContainsString('team_members', $projectController);
         $this->assertStringContainsString('private function teamMemberValue(?Employee $employee): array', $projectController);
         $this->assertStringContainsString('private function profilePictureUrl(mixed $profilePicturePath): string', $projectController);
@@ -446,7 +449,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $this->assertStringContainsString('$projectCards = collect($projectCards ?? []);', $projectsIndex);
         $this->assertStringContainsString('$projectCompanyOptions = collect($projectCompanyOptions ?? []);', $projectsIndex);
         $this->assertStringContainsString('$projectStaffOptions = collect($projectStaffOptions ?? []);', $projectsIndex);
-        $this->assertStringContainsString('btn btn-primary btn-sm project-add-button', $projectsIndex);
+        $this->assertStringContainsString('btn light btn-success btn-sm project-add-button', $projectsIndex);
         $this->assertStringContainsString('fa-solid fa-plus', $projectsIndex);
         $this->assertStringContainsString('<span>Add Project</span>', $projectsIndex);
         $this->assertStringContainsString('project-card-actions', $projectsIndex);
@@ -835,12 +838,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
 
     public function test_task_list_endpoints_manage_authenticated_employee_tasks(): void
     {
-        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
-            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
-        }
-
-        $this->createProjectTaskListTestSchema();
-
         [$user, $employee] = $this->createProjectTaskListUser('staff_task_list');
         [$otherUser, $otherEmployee] = $this->createProjectTaskListUser('other_staff_task_list');
 
@@ -848,6 +845,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'id' => (string) Str::uuid(),
             'name' => 'Task List Project',
             'code' => 'TASK-LIST',
+            'company_id' => Company::factory()->create()->id,
             'status' => 'active',
             'created_by' => $user->id,
         ]);
@@ -859,8 +857,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'joined_at' => '2026-06-01',
             'status' => 'active',
         ]);
-
-        $this->withoutMiddleware();
 
         $storeResponse = $this
             ->actingAs($user)
@@ -963,7 +959,12 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'id' => (string) Str::uuid(),
             'employee_id' => $employee->id,
             'assigned_by' => $user->id,
-            'overtime_id' => (string) Str::uuid(),
+            'overtime_id' => AttendanceOvertime::query()->create([
+                'employee_id' => $employee->id,
+                'assigned_by' => $user->id,
+                'overtime_date' => '2026-06-22',
+                'status' => 'assigned',
+            ])->id,
             'title' => 'Overtime task',
             'status' => 'pending',
             'priority' => 'high',
@@ -1065,20 +1066,15 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         ]);
     }
 
-    public function test_task_list_shows_latest_tasks_first(): void
+    public function test_task_list_shows_newest_task_dates_first(): void
     {
-        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
-            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
-        }
-
-        $this->createProjectTaskListTestSchema();
-
         [$user, $employee] = $this->createProjectTaskListUser('latest_task_list');
 
         foreach ([
-            ['title' => 'Older completed task', 'date' => '2026-08-31', 'created_at' => '2026-08-21 08:00:00'],
+            ['title' => 'Newest completed task', 'date' => '2026-08-31', 'created_at' => '2026-08-21 08:00:00'],
             ['title' => 'Middle completed task', 'date' => '2026-08-24', 'created_at' => '2026-08-24 08:00:00'],
-            ['title' => 'Newest completed task', 'date' => '2026-08-01', 'created_at' => '2026-08-26 08:00:00'],
+            ['title' => 'Same day created earlier task', 'date' => '2026-08-24', 'created_at' => '2026-08-20 08:00:00'],
+            ['title' => 'Older completed task', 'date' => '2026-08-01', 'created_at' => '2026-08-26 08:00:00'],
         ] as $task) {
             ProjectTask::query()->create([
                 'employee_id' => $employee->id,
@@ -1094,8 +1090,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             ]);
         }
 
-        $this->withoutMiddleware();
-
         $response = $this
             ->actingAs($user)
             ->getJson(route('project_management.task_list.filter', [
@@ -1110,23 +1104,69 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         $taskListHtml = (string) $response->json('fragments.task_list');
         $newestPosition = strpos($taskListHtml, 'Newest completed task');
         $middlePosition = strpos($taskListHtml, 'Middle completed task');
+        $sameDayPosition = strpos($taskListHtml, 'Same day created earlier task');
         $olderPosition = strpos($taskListHtml, 'Older completed task');
 
         $this->assertIsInt($newestPosition);
         $this->assertIsInt($middlePosition);
+        $this->assertIsInt($sameDayPosition);
         $this->assertIsInt($olderPosition);
         $this->assertLessThan($middlePosition, $newestPosition);
-        $this->assertLessThan($olderPosition, $middlePosition);
+        $this->assertLessThan($sameDayPosition, $middlePosition);
+        $this->assertLessThan($olderPosition, $sameDayPosition);
+    }
+
+    public function test_task_from_hr_meeting_cannot_be_deleted_from_task_list(): void
+    {
+        [$user, $employee] = $this->createProjectTaskListUser('hr_meeting_task_list');
+        $hrMeetingTask = ProjectTask::query()->create([
+            'employee_id' => $employee->id,
+            'assigned_by' => $user->id,
+            'title' => 'Follow up HR meeting',
+            'status' => 'pending',
+            'priority' => 'medium',
+            'due_date' => '2026-08-20',
+        ]);
+        $regularTask = ProjectTask::query()->create([
+            'employee_id' => $employee->id,
+            'assigned_by' => $user->id,
+            'title' => 'Regular daily task',
+            'status' => 'pending',
+            'priority' => 'medium',
+            'due_date' => '2026-08-19',
+        ]);
+        HrMeetingTask::query()->create([
+            'hr_meeting_id' => HrMeeting::query()->create([
+                'title' => 'Weekly HR Meeting',
+                'meeting_date' => '2026-08-18',
+                'meeting_time' => '09:00:00',
+            ])->id,
+            'project_task_id' => $hrMeetingTask->id,
+        ]);
+
+        $taskListHtml = (string) $this->actingAs($user)
+            ->getJson(route('project_management.task_list.filter', ['month' => '2026-08']))
+            ->assertOk()
+            ->json('fragments.task_list');
+
+        $this->assertStringContainsString('Follow up HR meeting', $taskListHtml);
+        $this->assertStringContainsString('Regular daily task', $taskListHtml);
+        $this->assertStringNotContainsString('data-delete-url="'.route('project_management.task_list.tasks.destroy', $hrMeetingTask).'"', $taskListHtml);
+        $this->assertStringContainsString('data-delete-url="'.route('project_management.task_list.tasks.destroy', $regularTask).'"', $taskListHtml);
+
+        $this->actingAs($user)
+            ->deleteJson(route('project_management.task_list.tasks.destroy', $hrMeetingTask))
+            ->assertForbidden();
+        $this->assertDatabaseHas('project_tasks', ['id' => $hrMeetingTask->id, 'deleted_at' => null]);
+        $this->assertDatabaseHas('hr_meeting_tasks', ['project_task_id' => $hrMeetingTask->id]);
+
+        $this->actingAs($user)
+            ->deleteJson(route('project_management.task_list.tasks.destroy', $regularTask))
+            ->assertOk();
     }
 
     public function test_task_list_includes_tasks_that_overlap_selected_month(): void
     {
-        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
-            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
-        }
-
-        $this->createProjectTaskListTestSchema();
-
         [$user, $employee] = $this->createProjectTaskListUser('overlap_task_list');
 
         ProjectTask::query()->create([
@@ -1152,8 +1192,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'created_at' => '2026-09-01 08:00:00',
             'updated_at' => '2026-09-01 08:00:00',
         ]);
-
-        $this->withoutMiddleware();
 
         $augustResponse = $this
             ->actingAs($user)
@@ -1213,25 +1251,16 @@ class ProjectManagementOverviewLayoutTest extends TestCase
 
     public function test_project_creator_is_added_as_active_project_member(): void
     {
-        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
-            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
-        }
-
-        $this->createProjectTaskListTestSchema();
-
         [$picUser, $picEmployee] = $this->createProjectTaskListUser('project_creator_pic');
         [, $staffEmployee] = $this->createProjectTaskListUser('project_creator_staff');
         $company = Company::query()->create([
             'id' => (string) Str::uuid(),
             'name' => 'RNB Test Company',
         ]);
-        $supervisorPosition = Position::query()->create([
-            'id' => (string) Str::uuid(),
-            'name' => 'Supervisor',
-        ]);
-        EmployeeDeployment::query()->create([
-            'id' => (string) Str::uuid(),
-            'employee_id' => $picEmployee->id,
+        $supervisorPosition = Position::factory()
+            ->withPermissions(['view-timesheet-reporting'])
+            ->create(['name' => 'Supervisor']);
+        $picEmployee->deployment->update([
             'current_position_id' => $supervisorPosition->id,
         ]);
 
@@ -1248,8 +1277,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-
-        $this->withoutMiddleware();
 
         $response = $this
             ->actingAs($picUser)
@@ -1293,12 +1320,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
 
     public function test_pic_can_assign_task_list_task_to_active_staff_only(): void
     {
-        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
-            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
-        }
-
-        $this->createProjectTaskListTestSchema();
-
         [$picUser, $picEmployee] = $this->createProjectTaskListUser('pic_task_list');
         [, $staffEmployee] = $this->createProjectTaskListUser('assigned_staff_task_list');
         [, $outsideEmployee] = $this->createProjectTaskListUser('outside_staff_task_list');
@@ -1314,6 +1335,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'id' => (string) Str::uuid(),
             'name' => 'Assigned Staff Project',
             'code' => 'ASSIGNED-STAFF',
+            'company_id' => Company::factory()->create()->id,
             'status' => 'active',
             'created_by' => $picUser->id,
         ]);
@@ -1325,8 +1347,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'joined_at' => '2026-07-01',
             'status' => 'active',
         ]);
-
-        $this->withoutMiddleware();
 
         $assignResponse = $this
             ->actingAs($picUser)
@@ -1377,12 +1397,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
 
     public function test_event_project_admin_can_update_project_event_division_google_drive(): void
     {
-        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
-            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
-        }
-
-        $this->createProjectTaskListTestSchema();
-
         [$adminUser, $adminEmployee] = $this->createProjectTaskListUser('event_admin_drive');
         [$staffUser, $staffEmployee] = $this->createProjectTaskListUser('staff_drive');
         $eventDivision = $this->createProjectTaskListEventDivision('Operations');
@@ -1393,6 +1407,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'id' => (string) Str::uuid(),
             'name' => 'Google Drive Event',
             'code' => 'DRIVE-EVENT',
+            'company_id' => Company::factory()->create()->id,
             'status' => 'active',
             'created_by' => $staffUser->id,
         ]);
@@ -1404,8 +1419,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'joined_at' => '2026-08-01',
             'status' => 'active',
         ]);
-
-        $this->withoutMiddleware();
 
         $response = $this
             ->actingAs($adminUser)
@@ -1445,12 +1458,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
 
     public function test_google_drive_oauth_code_exchange_stores_token_for_authenticated_user(): void
     {
-        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
-            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
-        }
-
-        $this->createProjectTaskListTestSchema();
-
         [$user] = $this->createProjectTaskListUser('google_drive_oauth_user');
 
         config([
@@ -1503,12 +1510,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
 
     public function test_event_project_admin_can_assign_detail_project_task_to_event_division(): void
     {
-        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
-            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
-        }
-
-        $this->createProjectTaskListTestSchema();
-
         [$picUser, $picEmployee] = $this->createProjectTaskListUser('event_pic_task');
         [, $staffEmployee] = $this->createProjectTaskListUser('event_member_task');
         $eventDivision = $this->createProjectTaskListEventDivision('Information and Communications Technology');
@@ -1519,6 +1520,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'id' => (string) Str::uuid(),
             'name' => 'PIC Detail Project',
             'code' => 'PIC-DETAIL',
+            'company_id' => Company::factory()->create()->id,
             'status' => 'active',
             'created_by' => $picUser->id,
         ]);
@@ -1532,8 +1534,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
                 'status' => 'active',
             ]);
         }
-
-        $this->withoutMiddleware();
 
         $response = $this
             ->actingAs($picUser)
@@ -1586,12 +1586,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
 
     public function test_project_member_can_create_own_detail_project_task_for_event_division(): void
     {
-        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
-            $this->markTestSkipped('SQLite PDO driver is not available for this database behavior test.');
-        }
-
-        $this->createProjectTaskListTestSchema();
-
         [$staffUser, $staffEmployee] = $this->createProjectTaskListUser('event_member_own_task');
         $eventDivision = $this->createProjectTaskListEventDivision('Graphic Design');
         $this->assignEmployeeToEventDivision($staffEmployee, $eventDivision);
@@ -1600,6 +1594,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'id' => (string) Str::uuid(),
             'name' => 'Staff Own Event Task',
             'code' => 'STAFF-OWN-TASK',
+            'company_id' => Company::factory()->create()->id,
             'status' => 'active',
             'created_by' => $staffUser->id,
         ]);
@@ -1611,8 +1606,6 @@ class ProjectManagementOverviewLayoutTest extends TestCase
             'joined_at' => '2026-08-01',
             'status' => 'active',
         ]);
-
-        $this->withoutMiddleware();
 
         $response = $this
             ->actingAs($staffUser)
@@ -1642,225 +1635,15 @@ class ProjectManagementOverviewLayoutTest extends TestCase
         ]);
     }
 
-    private function createProjectTaskListTestSchema(): void
-    {
-        foreach ([
-            'project_tasks',
-            'project_division_event',
-            'google_oauth_tokens',
-            'event_divisions',
-            'project_members',
-            'projects',
-            'employee_pic_assignments',
-            'employee_profiles',
-            'employee_deployment_positions',
-            'employee_deployments',
-            'employees',
-            'positions',
-            'departments',
-            'companies',
-            'users',
-        ] as $table) {
-            Schema::dropIfExists($table);
-        }
-
-        Schema::create('users', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->string('username')->nullable()->unique();
-            $table->string('email')->unique();
-            $table->string('password');
-            $table->boolean('is_active')->default(true);
-            $table->rememberToken();
-            $table->timestamps();
-        });
-
-        Schema::create('departments', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->string('name');
-            $table->string('status')->default('active');
-            $table->timestamps();
-        });
-
-        Schema::create('event_divisions', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->string('title');
-            $table->string('sub_title')->nullable();
-            $table->string('status')->default('active');
-            $table->timestamps();
-        });
-
-        Schema::create('companies', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->string('name');
-            $table->timestamps();
-        });
-
-        Schema::create('positions', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->string('name');
-            $table->timestamps();
-        });
-
-        Schema::create('employees', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('user_id')->unique()->constrained('users', 'id')->cascadeOnDelete();
-            $table->string('status')->default('Active');
-            $table->boolean('is_event_project_admin')->default(false);
-            $table->softDeletes();
-            $table->timestamps();
-        });
-
-        Schema::create('employee_profiles', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('employee_id')->constrained('employees', 'id')->cascadeOnDelete();
-            $table->string('name')->nullable();
-            $table->string('profile_picture_path')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('employee_deployments', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('employee_id')->unique()->constrained('employees', 'id')->cascadeOnDelete();
-            $table->foreignUuid('current_department_id')->nullable()->constrained('departments', 'id')->nullOnDelete();
-            $table->foreignUuid('current_event_division_id')->nullable()->constrained('event_divisions', 'id')->nullOnDelete();
-            $table->foreignUuid('current_position_id')->nullable()->constrained('positions', 'id')->nullOnDelete();
-            $table->timestamps();
-        });
-
-        Schema::create('employee_deployment_positions', function (Blueprint $table): void {
-            $table->foreignUuid('employee_deployment_id')->constrained('employee_deployments', 'id')->cascadeOnDelete();
-            $table->foreignUuid('position_id')->constrained('positions', 'id')->cascadeOnDelete();
-            $table->boolean('is_primary')->default(false);
-            $table->string('status')->default('active');
-            $table->date('started_at')->nullable();
-            $table->date('ended_at')->nullable();
-            $table->timestamps();
-            $table->primary(['employee_deployment_id', 'position_id']);
-        });
-
-        Schema::create('employee_pic_assignments', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('supervisor_employee_id')->constrained('employees', 'id')->cascadeOnDelete();
-            $table->foreignUuid('staff_employee_id')->constrained('employees', 'id')->cascadeOnDelete();
-            $table->boolean('is_active')->default(true);
-            $table->softDeletes();
-            $table->timestamps();
-        });
-
-        Schema::create('indonesia_provinces', function (Blueprint $table): void {
-            $table->id();
-            $table->char('code', 2)->unique();
-            $table->string('name');
-            $table->text('meta')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('indonesia_cities', function (Blueprint $table): void {
-            $table->id();
-            $table->char('code', 4)->unique();
-            $table->char('province_code', 2);
-            $table->string('name');
-            $table->text('meta')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('projects', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('company_id')->nullable()->constrained('companies', 'id')->nullOnDelete();
-            $table->string('code')->nullable();
-            $table->string('name');
-            $table->text('description')->nullable();
-            $table->string('client_name')->nullable();
-            $table->char('province_code', 2)->nullable();
-            $table->char('city_code', 4)->nullable();
-            $table->text('address')->nullable();
-            $table->date('live_event_start_date')->nullable();
-            $table->date('live_event_end_date')->nullable();
-            $table->date('start_date')->nullable();
-            $table->date('end_date')->nullable();
-            $table->string('status')->default('active');
-            $table->foreignUuid('created_by')->nullable()->constrained('users', 'id')->nullOnDelete();
-            $table->softDeletes();
-            $table->timestamps();
-        });
-
-        Schema::create('project_members', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('project_id')->constrained('projects', 'id')->cascadeOnDelete();
-            $table->foreignUuid('employee_id')->constrained('employees', 'id')->cascadeOnDelete();
-            $table->date('joined_at')->nullable();
-            $table->date('left_at')->nullable();
-            $table->string('status')->default('active');
-            $table->timestamps();
-        });
-
-        Schema::create('project_division_event', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('project_id')->constrained('projects', 'id')->cascadeOnDelete();
-            $table->foreignUuid('event_division_id')->constrained('event_divisions', 'id')->cascadeOnDelete();
-            $table->string('google_drive_url', 2048)->nullable();
-            $table->string('folder_id')->nullable()->index();
-            $table->string('status')->default('active');
-            $table->timestamps();
-        });
-
-        Schema::create('google_oauth_tokens', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('user_id')->constrained('users', 'id')->cascadeOnDelete();
-            $table->string('provider')->default('google_drive');
-            $table->text('scopes')->nullable();
-            $table->text('access_token')->nullable();
-            $table->text('refresh_token')->nullable();
-            $table->string('token_type')->nullable();
-            $table->timestamp('expires_at')->nullable();
-            $table->timestamp('refresh_token_expires_at')->nullable();
-            $table->timestamp('revoked_at')->nullable();
-            $table->timestamps();
-
-            $table->unique(['user_id', 'provider'], 'google_oauth_tokens_user_provider_unique');
-        });
-
-        Schema::create('project_tasks', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('project_id')->nullable()->constrained('projects', 'id')->nullOnDelete();
-            $table->foreignUuid('event_division_id')->nullable()->constrained('event_divisions', 'id')->nullOnDelete();
-            $table->foreignUuid('employee_id')->constrained('employees', 'id')->cascadeOnDelete();
-            $table->foreignUuid('assigned_by')->nullable()->constrained('users', 'id')->nullOnDelete();
-            $table->foreignUuid('overtime_id')->nullable();
-            $table->string('title');
-            $table->text('description')->nullable();
-            $table->text('blockers')->nullable();
-            $table->string('attachment_path')->nullable();
-            $table->string('status')->default('pending');
-            $table->string('priority')->default('medium');
-            $table->date('start_date')->nullable();
-            $table->date('due_date')->nullable();
-            $table->timestamp('completed_at')->nullable();
-            $table->softDeletes();
-            $table->timestamps();
-        });
-    }
-
     /**
      * @return array{0: User, 1: Employee}
      */
     private function createProjectTaskListUser(string $username): array
     {
-        $user = User::query()->create([
-            'id' => (string) Str::uuid(),
-            'username' => $username,
-            'email' => $username.'@example.com',
-            'password' => Hash::make('password'),
-            'is_active' => true,
+        $user = User::factory()->activeEmployee(['view-timesheet-reporting'])->create([
         ]);
 
-        $employee = Employee::query()->create([
-            'id' => (string) Str::uuid(),
-            'user_id' => $user->id,
-            'status' => 'Active',
-        ]);
-
-        return [$user, $employee];
+        return [$user, $user->employee];
     }
 
     private function createProjectTaskListEventDivision(string $title): EventDivision
@@ -1876,10 +1659,7 @@ class ProjectManagementOverviewLayoutTest extends TestCase
     {
         return EmployeeDeployment::query()->updateOrCreate(
             ['employee_id' => $employee->id],
-            [
-                'id' => (string) Str::uuid(),
-                'current_event_division_id' => $eventDivision->id,
-            ],
+            ['current_event_division_id' => $eventDivision->id],
         );
     }
 
@@ -1894,10 +1674,9 @@ class ProjectManagementOverviewLayoutTest extends TestCase
 
     private function assignEmployeeToDepartment(Employee $employee, Department $department): EmployeeDeployment
     {
-        return EmployeeDeployment::query()->create([
-            'id' => (string) Str::uuid(),
-            'employee_id' => $employee->id,
-            'current_department_id' => $department->id,
-        ]);
+        return EmployeeDeployment::query()->updateOrCreate(
+            ['employee_id' => $employee->id],
+            ['current_department_id' => $department->id],
+        );
     }
 }

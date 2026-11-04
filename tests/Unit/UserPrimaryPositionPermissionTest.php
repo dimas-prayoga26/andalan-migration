@@ -13,20 +13,31 @@ use Tests\TestCase;
 
 class UserPrimaryPositionPermissionTest extends TestCase
 {
-    public function test_additional_position_permission_does_not_grant_access_when_primary_lacks_it(): void
+    public function test_first_secondary_position_permission_grants_access_when_primary_lacks_it(): void
     {
-        $staffPosition = $this->position('staff', 'Staff', true);
-        $administratorPosition = $this->position('administrator', 'Administrator', false, ['view-authorization']);
+        $staffPosition = $this->position('staff', 'Staff', true, 0);
+        $administratorPosition = $this->position('administrator', 'Administrator', false, 1, ['view-authorization']);
 
         $user = $this->userWithPositions($staffPosition, collect([$staffPosition, $administratorPosition]));
+
+        $this->assertTrue($user->hasAnyPositionPermission(['view-authorization']));
+    }
+
+    public function test_third_position_permission_does_not_grant_access(): void
+    {
+        $staffPosition = $this->position('staff', 'Staff', true, 0);
+        $supervisorPosition = $this->position('supervisor', 'Supervisor', false, 1);
+        $administratorPosition = $this->position('administrator', 'Administrator', false, 2, ['view-authorization']);
+
+        $user = $this->userWithPositions($staffPosition, collect([$staffPosition, $supervisorPosition, $administratorPosition]));
 
         $this->assertFalse($user->hasAnyPositionPermission(['view-authorization']));
     }
 
     public function test_primary_position_permission_grants_access(): void
     {
-        $staffPosition = $this->position('staff', 'Staff', false);
-        $administratorPosition = $this->position('administrator', 'Administrator', true, ['view-authorization']);
+        $staffPosition = $this->position('staff', 'Staff', false, 1);
+        $administratorPosition = $this->position('administrator', 'Administrator', true, 0, ['view-authorization']);
 
         $user = $this->userWithPositions($administratorPosition, collect([$staffPosition, $administratorPosition]));
 
@@ -35,7 +46,7 @@ class UserPrimaryPositionPermissionTest extends TestCase
 
     public function test_current_position_is_fallback_when_primary_pivot_is_missing(): void
     {
-        $administratorPosition = $this->position('administrator', 'Administrator', false, ['view-authorization']);
+        $administratorPosition = $this->position('administrator', 'Administrator', false, 0, ['view-authorization']);
 
         $user = $this->userWithPositions($administratorPosition, collect());
 
@@ -66,11 +77,12 @@ class UserPrimaryPositionPermissionTest extends TestCase
     /**
      * @param  array<int, string>  $permissionNames
      */
-    private function position(string $id, string $name, bool $isPrimary, array $permissionNames = []): Position
+    private function position(string $id, string $name, bool $isPrimary, int $sortOrder = 0, array $permissionNames = []): Position
     {
         $position = new Position([
             'id' => $id,
             'name' => $name,
+            'system_key' => Position::systemKeyForName($name),
         ]);
 
         $position->setRelation(
@@ -85,7 +97,10 @@ class UserPrimaryPositionPermissionTest extends TestCase
         );
 
         $pivot = new Pivot;
-        $pivot->forceFill(['is_primary' => $isPrimary]);
+        $pivot->forceFill([
+            'is_primary' => $isPrimary,
+            'sort_order' => $sortOrder,
+        ]);
         $position->setRelation('pivot', $pivot);
 
         return $position;

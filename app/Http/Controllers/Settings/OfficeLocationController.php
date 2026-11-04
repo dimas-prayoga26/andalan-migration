@@ -5,32 +5,32 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Models\OfficeLocation;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Yajra\DataTables\Facades\DataTables;
 
 class OfficeLocationController extends Controller
 {
-    public function index(Request $request): View
+    public function index(): View
     {
-        $search = trim((string) $request->query('search', ''));
-
-        $officeLocations = OfficeLocation::query()
-            ->when($search !== '', function ($query) use ($search): void {
-                $query
-                    ->where('name', 'like', "%{$search}%")
-                    ->orWhere('address', 'like', "%{$search}%");
-            })
-            ->orderBy('name')
-            ->paginate(10)
-            ->withQueryString();
-
         return view('settings.office-locations.index', [
-            'officeLocations' => $officeLocations,
-            'search' => $search,
-            'pageTitle' => 'Office Locations',
+            'pageTitle' => 'Work Locations',
         ]);
+    }
+
+    public function datatable(): JsonResponse
+    {
+        $query = OfficeLocation::query()
+            ->select(['id', 'name', 'address', 'latitude', 'longitude', 'is_active']);
+
+        return DataTables::eloquent($query)
+            ->editColumn('address', fn (OfficeLocation $officeLocation): string => $officeLocation->address ?: '-')
+            ->editColumn('latitude', fn (OfficeLocation $officeLocation): string => number_format((float) $officeLocation->latitude, 7, '.', ''))
+            ->editColumn('longitude', fn (OfficeLocation $officeLocation): string => number_format((float) $officeLocation->longitude, 7, '.', ''))
+            ->toJson();
     }
 
     public function create(): View
@@ -38,7 +38,7 @@ class OfficeLocationController extends Controller
         return view('settings.office-locations.form', [
             'officeLocation' => null,
             'mode' => 'create',
-            'pageTitle' => 'Add Office Location',
+            'pageTitle' => 'Add Work Location',
         ]);
     }
 
@@ -48,7 +48,7 @@ class OfficeLocationController extends Controller
 
         return redirect()
             ->route('settings.office-locations.index')
-            ->with('status', 'Office location has been added.');
+            ->with('status', 'Work location has been added.');
     }
 
     public function edit(OfficeLocation $officeLocation): View
@@ -56,7 +56,7 @@ class OfficeLocationController extends Controller
         return view('settings.office-locations.form', [
             'officeLocation' => $officeLocation,
             'mode' => 'edit',
-            'pageTitle' => 'Update Office Location',
+            'pageTitle' => 'Update Work Location',
         ]);
     }
 
@@ -66,10 +66,10 @@ class OfficeLocationController extends Controller
 
         return redirect()
             ->route('settings.office-locations.index')
-            ->with('status', 'Office location has been updated.');
+            ->with('status', 'Work location has been updated.');
     }
 
-    public function destroy(OfficeLocation $officeLocation): RedirectResponse
+    public function destroy(Request $request, OfficeLocation $officeLocation): JsonResponse|RedirectResponse
     {
         $isUsedByDeployment = DB::table('employee_deployments')
             ->where('current_office_location_id', $officeLocation->id)
@@ -80,14 +80,12 @@ class OfficeLocationController extends Controller
             ->exists();
 
         if ($isUsedByDeployment || $isUsedByAttendanceRule) {
-            return back()->with('error', 'Office location is still used by employee deployment or attendance rule data.');
+            return $this->tableActionResponse($request, back(), 'Work location is still used by employee deployment or attendance rule data.', false);
         }
 
         $officeLocation->delete();
 
-        return redirect()
-            ->route('settings.office-locations.index')
-            ->with('status', 'Office location has been deleted.');
+        return $this->tableActionResponse($request, redirect()->route('settings.office-locations.index'), 'Work location has been deleted.');
     }
 
     /**

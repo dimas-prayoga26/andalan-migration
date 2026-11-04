@@ -8,11 +8,22 @@
 @endphp
 <script src="vendor/jquery/dist/jquery.min.js?v={{ $assetVersion('vendor/jquery/dist/jquery.min.js') }}"></script>
 <script src="vendor/bootstrap/dist/js/bootstrap.bundle.min.js?v={{ $assetVersion('vendor/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
+<script>
+    /**
+     * Three-dot action menu for JS-rendered table rows; markup mirrors the x-action-menu Blade component.
+     * Each item is a ready-made '<li>…</li>' string.
+     */
+    window.actionMenu = function (items) {
+        return '<div class="dropdown action-menu">'
+            + '<button type="button" class="btn btn-light action-menu-toggle" data-bs-toggle="dropdown" data-bs-popper-config=\'{"strategy":"fixed"}\' aria-expanded="false" aria-label="Action" title="Action">'
+            + '<i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>'
+            + '</button>'
+            + '<ul class="dropdown-menu dropdown-menu-end">' + items.join('') + '</ul>'
+            + '</div>';
+    };
+</script>
 <script src="vendor/bootstrap-select/dist/js/bootstrap-select.min.js?v={{ $assetVersion('vendor/bootstrap-select/dist/js/bootstrap-select.min.js') }}"></script>
 <script src="vendor/metismenu/dist/metisMenu.min.js?v={{ $assetVersion('vendor/metismenu/dist/metisMenu.min.js') }}"></script>
-
-<!-- Script for Owl Carousel -->
-<script src="vendor/owl-carousel/owl.carousel.js?v={{ $assetVersion('vendor/owl-carousel/owl.carousel.js') }}"></script>
 
 <!-- Script For Daterangepicker -->
 <script src="vendor/daterangepicker/moment.min.js?v={{ $assetVersion('vendor/daterangepicker/moment.min.js') }}"></script>
@@ -24,7 +35,6 @@
     }
 </script>
 <script src="vendor/daterangepicker/daterangepicker.js?v={{ $assetVersion('vendor/daterangepicker/daterangepicker.js') }}"></script>
-<script src="js/plugins-init/daterangepicker-init.js?v={{ $assetVersion('js/plugins-init/daterangepicker-init.js') }}"></script>
 <script src="vendor/bootstrap-datetimepicker/js/bootstrap-datetimepicker.min.js?v={{ $assetVersion('vendor/bootstrap-datetimepicker/js/bootstrap-datetimepicker.min.js') }}"></script>
 
 <!-- Script for Chart piety -->

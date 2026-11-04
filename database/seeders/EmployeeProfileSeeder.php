@@ -26,7 +26,7 @@ class EmployeeProfileSeeder extends Seeder
                     continue;
                 }
 
-                $name = $user->username ?: explode('@', (string) $user->email)[0];
+                $name = explode('@', (string) $user->email)[0];
                 $profile = EmployeeProfile::query()->firstOrNew(['employee_id' => $employee->id]);
                 $profile->name = filled($profile->name) ? $profile->name : $name;
                 $profile->nickname = filled($profile->nickname) ? $profile->nickname : $name;

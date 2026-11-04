@@ -24,10 +24,13 @@
 	<meta name="format-detection" content="telephone=no">
 
 	<!-- Mobile Specific -->
-	<meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#2846c7">
 
 	<!-- Favicon icon -->
 	<link rel="shortcut icon" type="image/x-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
+    <link rel="apple-touch-icon" href="{{ $brandLogoUrl ?? asset('images/images.png') }}">
 
     @php
         $assetVersion = static function (string $path): int {
@@ -38,7 +41,6 @@
     @endphp
 
 	<!-- All Required CSS -->
-	<link href="vendor/owl-carousel/owl.carousel.css?v={{ $assetVersion('vendor/owl-carousel/owl.carousel.css') }}" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -78,6 +80,22 @@
         .deznav {
             box-shadow: none !important;
             border-right: 0 !important;
+        }
+
+        .action-menu-toggle {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+        }
+
+        .action-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .nav-label {

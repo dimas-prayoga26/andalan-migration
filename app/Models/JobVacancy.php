@@ -5,19 +5,16 @@ namespace App\Models;
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class JobVacancy extends Model
 {
     use GeneratesCustomSequenceUuid;
 
-    public const STATUS_ACTIVE = 'active';
+    public const STATUS_ACTIVE = 1;
 
-    public const STATUS_INACTIVE = 'inactive';
-
-    public const LEGACY_STATUS_ACTIVE = 1;
-
-    public const LEGACY_STATUS_INACTIVE = 2;
+    public const STATUS_INACTIVE = 2;
 
     protected $table = 'job_vacancies';
 
@@ -34,7 +31,7 @@ class JobVacancy extends Model
     protected function casts(): array
     {
         return [
-            'legacy_created_at' => 'datetime',
+            'status' => 'integer',
         ];
     }
 
@@ -52,13 +49,32 @@ class JobVacancy extends Model
         return $this->hasMany(Applicant::class, 'job_vacancy_id', 'id');
     }
 
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'company_id', 'id');
+    }
+
+    public function technicalCriteria(): HasMany
+    {
+        return $this->hasMany(JobVacancyTechnicalCriterion::class, 'job_vacancy_id', 'id')
+            ->orderBy('sort_order')
+            ->orderBy('name');
+    }
+
+    public function skillCriteria(): HasMany
+    {
+        return $this->hasMany(JobVacancySkillCriterion::class, 'job_vacancy_id', 'id')
+            ->orderBy('sort_order')
+            ->orderBy('name');
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_ACTIVE);
     }
 
     /**
-     * @return array<int, string>
+     * @return array<int, int>
      */
     public static function statuses(): array
     {
@@ -69,7 +85,7 @@ class JobVacancy extends Model
     }
 
     /**
-     * @return array<string, string>
+     * @return array<int, string>
      */
     public static function statusOptions(): array
     {
@@ -79,15 +95,20 @@ class JobVacancy extends Model
         ];
     }
 
-    public static function legacyStatusValueFor(string $status): int
+    public static function statusValueFor(int $status): int
     {
         return $status === self::STATUS_ACTIVE
-            ? self::LEGACY_STATUS_ACTIVE
-            : self::LEGACY_STATUS_INACTIVE;
+            ? self::STATUS_ACTIVE
+            : self::STATUS_INACTIVE;
     }
 
     public function statusLabel(): string
     {
-        return self::statusOptions()[$this->status] ?? 'Non Active';
+        return self::statusOptions()[(int) $this->status] ?? 'Non Active';
+    }
+
+    public function statusCssClass(): string
+    {
+        return (int) $this->status === self::STATUS_ACTIVE ? 'active' : 'inactive';
     }
 }

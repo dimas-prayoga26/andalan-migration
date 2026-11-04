@@ -41,6 +41,7 @@
 @section('content')
 @php
     $isEdit = $mode === 'edit';
+    $isProtectedPosition = $resourceLabel === 'Position' && (bool) ($item?->is_protected ?? false);
 @endphp
 
 @include('layouts.breadcrumb', [
@@ -66,9 +67,11 @@
         </div>
         <div class="card-body">
             @if ($errors->any())
-                <div class="alert alert-danger">
-                    <strong>The data is not valid.</strong> Please check the required fields again.
-                </div>
+                @include('partials.swal-alert', [
+                    'type' => 'error',
+                    'title' => 'The data is not valid.',
+                    'message' => 'Please check the required fields again.',
+                ])
             @endif
 
             <div class="row g-3">
@@ -81,11 +84,30 @@
                     <label class="form-label">Status</label>
                     <select name="status" class="default-select form-control @error('status') is-invalid @enderror">
                         @foreach (['active' => 'Active', 'inactive' => 'Inactive'] as $statusValue => $statusLabel)
-                            <option value="{{ $statusValue }}" @selected(old('status', strtolower((string) ($item?->status ?? 'active'))) === $statusValue)>{{ $statusLabel }}</option>
+                            <option
+                                value="{{ $statusValue }}"
+                                @selected(old('status', strtolower((string) ($item?->status ?? 'active'))) === $statusValue)
+                                @disabled($isProtectedPosition && $statusValue !== 'active')
+                            >{{ $statusLabel }}</option>
                         @endforeach
                     </select>
+                    @if ($isProtectedPosition)
+                        <div class="form-text">Protected positions are required by system access rules.</div>
+                    @endif
                     @error('status')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
+                @if ($resourceLabel === 'Position')
+                    <div class="col-md-3">
+                        <label class="form-label">Level</label>
+                        <select name="level" class="default-select form-control @error('level') is-invalid @enderror">
+                            @foreach (\App\Models\Position::LEVEL_LABELS as $levelValue => $levelLabel)
+                                <option value="{{ $levelValue }}" @selected(old('level', $item?->level ?? \App\Models\Position::LEVEL_CORE_STAFF) === $levelValue)>{{ $levelLabel }}</option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">Menu access follows the level set in Assign Permission.</div>
+                        @error('level')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                @endif
             </div>
         </div>
         <div class="card-footer d-flex justify-content-between">
@@ -96,12 +118,4 @@
         </div>
     </div>
 </form>
-@endsection
-
-@section('script')
-    @php
-        $dashboardJsPath = public_path('assets/js/dashboard.js');
-        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
-    @endphp
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 @endsection

@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             NiskalaMultiPicLeaveSeeder::class,
             LeaveBalanceSeeder::class,
             RulesOfAttendacesSeeder::class,
+            MailAccessAccountSeeder::class,
         ];
 
         foreach ($seeders as $seederClass) {

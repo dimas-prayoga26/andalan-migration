@@ -22,7 +22,7 @@ return new class extends Migration
 
         $now = now();
         $departmentNames = [
-            'Superuser',
+            'Super Administrator',
             'Administrator',
             'Board of Directors',
             'Administration, Finance and Legal',

@@ -228,7 +228,7 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString('private function formatActualEndDateTime(AttendanceOvertime $overtime): string', $controller);
         $this->assertStringContainsString('private function resolveOvertimeDirectorApprover(AttendanceOvertime $overtime): ?User', $controller);
         $this->assertStringContainsString("->whereRaw('LOWER(email) = ?', ['lukman@rnbmanagement.com'])", $controller);
-        $this->assertStringContainsString("->orWhereHas('employee.deployment.position'", $controller);
+        $this->assertStringContainsString("->whereHas('employee.deployment.position'", $controller);
         $this->assertStringContainsString("->orWhereHas('employee.deployment.positions'", $controller);
         $this->assertStringNotContainsString("['label' => \$plannedTimeLabel, 'strike' => true]", $controller);
         $this->assertStringNotContainsString('$companyId = $overtime->employee?->deployment?->current_company_id;', $controller);
@@ -288,7 +288,7 @@ class PicAttendanceOvertimeStoreTest extends TestCase
         $this->assertStringContainsString("'date_range_label' => \$this->taskDateRangeLabel", $controller);
         $this->assertStringContainsString("'status_label' => \$this->projectTaskDetailStatusLabel", $controller);
         $this->assertStringContainsString("'task_category_label' => \$projectTask->project_id !== null ? 'Project Task' : 'Daily Task'", $controller);
-        $this->assertStringContainsString("'assigned_by' => trim((string) (\$projectTask->assignedBy?->username ?? 'self')) ?: 'self'", $controller);
+        $this->assertStringContainsString("'assigned_by' => trim((string) (\$projectTask->assignedBy?->shortName() ?? 'self')) ?: 'self'", $controller);
         $this->assertStringContainsString("route('pic-attendance.overtime.tasks.update'", $controller);
         $this->assertStringContainsString("Route::put('/pic-attendance/overtime/detail/{attendanceOvertime}/tasks/{projectTask}'", $routes);
         $this->assertStringContainsString("->name('pic-attendance.overtime.tasks.update')", $routes);

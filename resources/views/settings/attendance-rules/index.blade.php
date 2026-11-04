@@ -70,6 +70,11 @@
             opacity: .35;
         }
 
+        #datatable_wrapper .dataTables_filter,
+        #datatable_wrapper .dataTables_length {
+            display: none;
+        }
+
         @media (max-width: 767.98px) {
             .settings-table-footer.dataTables_wrapper {
                 flex-direction: column;
@@ -97,16 +102,6 @@
 @endsection
 
 @section('content')
-@php
-    $formatTimeLabel = static function (mixed $value): string {
-        if (blank($value)) {
-            return '-';
-        }
-
-        return substr((string) $value, 0, 5);
-    };
-@endphp
-
 @include('layouts.breadcrumb', [
     'title' => 'Setting',
     'current' => $pageTitle,
@@ -122,122 +117,245 @@
             <p class="mb-0 text-muted fs-13">Manage attendance time, IP, and location radius rules.</p>
         </div>
         <div class="settings-list-actions">
-            <form method="GET" action="{{ route('settings.attendance-rules.index') }}" class="mb-0">
-                <div class="input-group">
-                    <button type="submit" class="input-group-text bg-white" aria-label="Search attendance rules">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </button>
-                    <input
-                        name="search"
-                        type="search"
-                        class="form-control"
-                        value="{{ $search }}"
-                        placeholder="Search attendance rules"
-                        autocomplete="off"
-                        aria-label="Search attendance rules"
-                    >
-                </div>
-            </form>
-            <a href="{{ route('settings.attendance-rules.create') }}" class="btn btn-primary btn-sm">
+            <div class="input-group">
+                <span class="input-group-text bg-white" aria-hidden="true">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input
+                    id="attendanceRulesTableSearch"
+                    type="search"
+                    class="form-control"
+                    placeholder="Search attendance rules"
+                    autocomplete="off"
+                    aria-label="Search attendance rules"
+                >
+            </div>
+            <a href="{{ route('settings.attendance-rules.create') }}" class="btn light btn-success btn-sm">
                 <i class="fa-solid fa-plus me-1"></i>Add Rule
             </a>
         </div>
     </div>
 
-    @if (session('status'))
-        <div class="alert alert-success mx-4 mb-3">{{ session('status') }}</div>
-    @endif
+    @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
 
-    @if (session('error'))
-        <div class="alert alert-danger mx-4 mb-3">{{ session('error') }}</div>
-    @endif
+    @include('partials.swal-alert', ['type' => 'error', 'message' => session('error')])
 
     <div class="card-body table-card-body p-0">
         <div class="table-responsive">
-            <table class="table table-sm mb-0 table-bottom-borderless table-striped align-middle">
-                <thead>
-                    <tr>
-                        <th>Office Location</th>
-                        <th>IP Range</th>
-                        <th>Radius</th>
-                        <th>Type</th>
-                        <th>Positions</th>
-                        <th>Clock In</th>
-                        <th>Clock Out</th>
-                        <th>Status</th>
-                        <th class="text-end">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($attendanceRules as $attendanceRule)
-                        <tr>
-                            <td>
-                                <span class="fw-semibold text-black">{{ $attendanceRule->officeLocation?->name ?? '-' }}</span>
-                                @if (filled($attendanceRule->officeLocation?->address))
-                                    <br><span class="text-muted fs-12">{{ $attendanceRule->officeLocation->address }}</span>
-                                @endif
-                            </td>
-                            <td>{{ $attendanceRule->ip_range }}</td>
-                            <td>{{ number_format((int) $attendanceRule->radius) }} m</td>
-                            <td>
-                                <span class="badge badge-sm light {{ $attendanceRule->attendance_type === 'flexible' ? 'badge-info' : 'badge-primary' }}">
-                                    {{ ucfirst((string) ($attendanceRule->attendance_type ?? 'fixed')) }}
-                                </span>
-                            </td>
-                            <td>
-                                @if ($attendanceRule->positions->isNotEmpty())
-                                    <span class="text-black">{{ $attendanceRule->positions->pluck('name')->join(', ') }}</span>
-                                @else
-                                    <span class="text-muted">Fallback office rule</span>
-                                @endif
-                            </td>
-                            <td>{{ $formatTimeLabel($attendanceRule->office_start_time) }}</td>
-                            <td>{{ $formatTimeLabel($attendanceRule->office_end_time) }}</td>
-                            <td>
-                                <span class="badge badge-sm light {{ $attendanceRule->is_active ? 'badge-success' : 'badge-danger' }}">
-                                    {{ $attendanceRule->is_active ? 'Active' : 'Inactive' }}
-                                </span>
-                            </td>
-                            <td class="text-end">
-                                <div class="d-inline-flex gap-1">
-                                    <a href="{{ route('settings.attendance-rules.edit', ['attendanceRule' => $attendanceRule]) }}" class="btn btn-primary light btn-sm">Update</a>
-                                    <form
-                                        action="{{ route('settings.attendance-rules.destroy', ['attendanceRule' => $attendanceRule]) }}"
-                                        method="POST"
-                                        data-settings-delete-form
-                                        data-delete-title="Delete Attendance Rule"
-                                        data-delete-message="Delete the attendance rule for {{ $attendanceRule->officeLocation?->name ?? 'this office location' }}?"
-                                    >
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger light btn-sm">Delete</button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="9" class="text-center text-muted py-4">
-                                {{ $search !== '' ? 'No matching attendance rule found.' : 'No attendance rule data available.' }}
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            <table id="datatable" class="table table-bordered text-nowrap w-100"></table>
         </div>
-
-        @include('settings.partials.pagination', ['items' => $attendanceRules])
     </div>
 </div>
-
-@include('settings.partials.delete-confirmation-swal')
 @endsection
 
 @section('script')
-    @php
-        $dashboardJsPath = public_path('assets/js/dashboard.js');
-        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
-    @endphp
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}"></script>
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}"></script>
+    <script>
+        var csrfToken = @json(csrf_token());
+        var deleteUrlTemplate = @json(route('settings.attendance-rules.destroy', ['attendanceRule' => '__ID__']));
+
+        function deleteData(id) {
+            var attendanceRule = $('#datatable').DataTable().rows().data().toArray().find(function (row) {
+                return String(row.id) === String(id);
+            });
+
+            Swal.fire({
+                title: 'Delete Attendance Rule',
+                text: 'Delete the attendance rule for ' + (attendanceRule ? attendanceRule.office_location_name : 'this work location') + '?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Delete',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc3545',
+                reverseButtons: true,
+                focusCancel: true
+            }).then(function (result) {
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                $.ajax({
+                    url: deleteUrlTemplate.replace('__ID__', encodeURIComponent(id)),
+                    type: 'DELETE',
+                    dataType: 'json',
+                    headers: { 'X-CSRF-TOKEN': csrfToken }
+                }).done(function (response) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: response.message });
+                    $('#datatable').DataTable().ajax.reload(null, false);
+                }).fail(function (xhr) {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Attendance rule gagal dihapus.' });
+                });
+            });
+        }
+
+        $(function () {
+            if (!window.jQuery || !jQuery.fn.DataTable) {
+                return;
+            }
+
+            var editUrlTemplate = @json(route('settings.attendance-rules.edit', ['attendanceRule' => '__ID__']));
+
+            function escapeHtml(value) {
+                return String(value === null || value === undefined ? '' : value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function routeFor(template, id) {
+                return template.replace('__ID__', encodeURIComponent(id));
+            }
+
+            function isTruthy(value) {
+                return value === true || value === 1 || value === '1' || value === 'true';
+            }
+
+            function workLocationLabel(row) {
+                var name = escapeHtml(row.office_location_name || '-');
+                var address = escapeHtml(row.office_location_address || '');
+                var html = '<span class="fw-semibold text-black">' + name + '</span>';
+
+                if (address) {
+                    html += '<br><span class="text-muted fs-12">' + address + '</span>';
+                }
+
+                return html;
+            }
+
+            function attendanceTypeBadge(type) {
+                var normalizedType = String(type || 'fixed').toLowerCase();
+                var badgeClass = normalizedType === 'flexible' ? 'badge-info' : 'badge-primary';
+                var label = normalizedType.charAt(0).toUpperCase() + normalizedType.slice(1);
+
+                return '<span class="badge badge-sm light ' + badgeClass + '">' + escapeHtml(label) + '</span>';
+            }
+
+            function positionsLabel(value) {
+                if (!value) {
+                    return '<span class="text-muted">Fallback office rule</span>';
+                }
+
+                return '<span class="text-black">' + escapeHtml(value) + '</span>';
+            }
+
+            function statusBadge(isActive) {
+                var active = isTruthy(isActive);
+                var statusClass = active ? 'badge-success' : 'badge-danger';
+                var statusLabel = active ? 'Active' : 'Inactive';
+
+                return '<span class="badge badge-sm light ' + statusClass + '">' + statusLabel + '</span>';
+            }
+
+            function actionButtons(row) {
+                var editUrl = routeFor(editUrlTemplate, row.id);
+
+                return actionMenu([
+                    '<li><a class="dropdown-item" href="' + editUrl + '"><i class="bi bi-pencil-square"></i>Update</a></li>',
+                    '<li><button type="button" class="dropdown-item text-danger" onclick="deleteData(\'' + escapeHtml(row.id) + '\')"><i class="bi bi-trash"></i>Delete</button></li>'
+                ]);
+            }
+
+            var attendanceRulesTable = jQuery('#datatable').DataTable({
+                ajax: '{{ route('settings.attendance-rules.datatable') }}',
+                autoWidth: false,
+                order: [],
+                pageLength: 10,
+                processing: true,
+                serverSide: true,
+                columns: [
+                    {
+                        title: 'Work Location',
+                        data: null,
+                        name: 'officeLocation.name',
+                        orderable: false,
+                        render: function (data, type, row) {
+                            return workLocationLabel(row);
+                        }
+                    },
+                    {
+                        title: 'IP Range',
+                        data: 'ip_range',
+                        name: 'ip_range'
+                    },
+                    {
+                        title: 'Radius',
+                        data: 'radius',
+                        name: 'radius'
+                    },
+                    {
+                        title: 'Type',
+                        data: 'attendance_type',
+                        name: 'attendance_type',
+                        render: function (data) {
+                            return attendanceTypeBadge(data);
+                        }
+                    },
+                    {
+                        title: 'Positions',
+                        data: 'positions_label',
+                        name: 'positions.name',
+                        orderable: false,
+                        render: function (data) {
+                            return positionsLabel(data);
+                        }
+                    },
+                    {
+                        title: 'Clock In',
+                        data: 'office_start_time',
+                        name: 'office_start_time'
+                    },
+                    {
+                        title: 'Clock Out',
+                        data: 'office_end_time',
+                        name: 'office_end_time'
+                    },
+                    {
+                        title: 'Status',
+                        data: 'is_active',
+                        name: 'is_active',
+                        searchable: false,
+                        render: function (data) {
+                            return statusBadge(data);
+                        }
+                    },
+                    {
+                        title: 'Action',
+                        data: null,
+                        name: 'action',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-end',
+                        render: function (data, type, row) {
+                            return actionButtons(row);
+                        }
+                    }
+                ],
+                language: {
+                    emptyTable: 'No attendance rule data available.',
+                    info: 'Showing _START_ to _END_ of _TOTAL_ entries',
+                    infoEmpty: 'Showing 0 to 0 of 0 entries',
+                    infoFiltered: '(filtered from _MAX_ total entries)',
+                    processing: 'Loading...',
+                    zeroRecords: 'No matching attendance rule found.'
+                }
+            });
+
+            var searchInput = document.getElementById('attendanceRulesTableSearch');
+            var searchTimeout = null;
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    window.clearTimeout(searchTimeout);
+
+                    searchTimeout = window.setTimeout(function () {
+                        attendanceRulesTable.search(searchInput.value).draw();
+                    }, 400);
+                });
+            }
+        });
+    </script>
     @stack('scripts')
 @endsection

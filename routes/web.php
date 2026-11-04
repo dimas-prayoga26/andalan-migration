@@ -5,14 +5,18 @@ use App\Http\Controllers\AdminAttendance\AttendanceLeaveController as AdminAtten
 use App\Http\Controllers\AdminAttendance\AttendanceOvertimeController as AdminAttendanceOvertimeController;
 use App\Http\Controllers\AdminAttendance\AttendanceOverviewController as AdminAttendanceOverviewController;
 use App\Http\Controllers\AdminAttendance\AttendanceRecapController as AdminAttendanceRecapController;
+use App\Http\Controllers\AppNotificationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuthorizationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceOvertimeController;
 use App\Http\Controllers\DirectorAttendance\DirectorAttendanceTaskController;
+use App\Http\Controllers\EmailManagementController;
 use App\Http\Controllers\EmployeeDataController;
 use App\Http\Controllers\GoogleDriveOAuthController;
+use App\Http\Controllers\HrMeetingController;
+use App\Http\Controllers\MailController;
 use App\Http\Controllers\PicAttendance\PicAttendanceController;
 use App\Http\Controllers\PicAttendance\PicAttendanceLeaveController;
 use App\Http\Controllers\PicAttendance\PicAttendanceOvertimeController;
@@ -21,7 +25,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectManagement\OverviewController as ProjectManagementOverviewController;
 use App\Http\Controllers\ProjectManagement\ProjectController as ProjectManagementProjectController;
 use App\Http\Controllers\ProjectManagement\TaskListController as ProjectManagementTaskListController;
+use App\Http\Controllers\RegionController;
 use App\Http\Controllers\Settings\AttendanceRuleController as SettingsAttendanceRuleController;
+use App\Http\Controllers\Settings\CompanyController as SettingsCompanyController;
 use App\Http\Controllers\Settings\DivisionController as SettingsDivisionController;
 use App\Http\Controllers\Settings\OfficeLocationController as SettingsOfficeLocationController;
 use App\Http\Controllers\Settings\PositionController as SettingsPositionController;
@@ -34,6 +40,7 @@ use App\Http\Controllers\StaffAttendance\AttendanceOvertimeController;
 use App\Http\Controllers\StaffAttendance\AttendanceReportController;
 use App\Http\Controllers\TalentAcquisitionController;
 use App\Http\Controllers\UserActivityLogController;
+use App\Services\Employee\EmployeeDataWizardService;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -43,6 +50,7 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/user-activity-log', [UserActivityLogController::class, 'store'])->name('user-activity-log.store');
+    Route::get('/notifications/{appNotification}/open', [AppNotificationController::class, 'open'])->name('notifications.open');
 
     Route::get('/', [DashboardController::class, 'index'])
         ->middleware('position.permission:view-dashboard')
@@ -52,9 +60,18 @@ Route::middleware('auth')->group(function (): void {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
+    Route::put('/profile/employee-data/{employeeDataStep}', [ProfileController::class, 'updateEmployeeData'])
+        ->whereIn('employeeDataStep', EmployeeDataWizardService::SELF_SERVICE_STEPS)
+        ->name('profile.employee-data.update');
+    Route::post('/profile/employee-documents', [ProfileController::class, 'storeEmployeeDocument'])->name('profile.employee-documents.store');
+    Route::get('/profile/employee-documents/{employeeDocument}', [ProfileController::class, 'showEmployeeDocument'])->name('profile.employee-documents.show');
+    Route::delete('/profile/employee-documents/{employeeDocument}', [ProfileController::class, 'destroyEmployeeDocument'])->name('profile.employee-documents.destroy');
+    Route::get('/regions/provinces', [RegionController::class, 'provinces'])->name('regions.provinces');
+    Route::get('/regions/regencies/{provinceCode}', [RegionController::class, 'regencies'])->where('provinceCode', '\d{2}')->name('regions.regencies');
+    Route::get('/regions/districts/{regencyCode}', [RegionController::class, 'districts'])->where('regencyCode', '\d{2}\.\d{2}')->name('regions.districts');
+    Route::get('/regions/villages/{districtCode}', [RegionController::class, 'villages'])->where('districtCode', '\d{2}\.\d{2}\.\d{2}')->name('regions.villages');
     Route::get('/google-drive/oauth/access-token', [GoogleDriveOAuthController::class, 'accessToken'])->name('google-drive.oauth.access-token');
     Route::post('/google-drive/oauth/exchange-code', [GoogleDriveOAuthController::class, 'exchangeCode'])->name('google-drive.oauth.exchange-code');
-
     // Activity Schedule
     Route::middleware('position.permission:view-calendar')->group(function (): void {
         Route::get('/activity-schadule', [ActivityScheduleController::class, 'index'])->name('activity-schadule');
@@ -85,25 +102,83 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/project-management/detail', [ProjectManagementProjectController::class, 'detailFallback'])->name('project_management.detail');
     });
 
+    // Administration & Finance
+    Route::middleware('position.permission:view-administration-finance-email')
+        ->prefix('administration-finance/email')
+        ->name('administration-finance.email.')
+        ->group(function (): void {
+            Route::get('/', [MailController::class, 'index'])->name('index');
+            Route::post('/select', [MailController::class, 'selectAccount'])->name('select');
+            Route::post('/check', [MailController::class, 'checkEmail'])->name('check');
+            Route::post('/login', [MailController::class, 'authenticate'])->name('login');
+            Route::get('/inbox', [MailController::class, 'inbox'])->name('inbox');
+            Route::get('/sent', [MailController::class, 'sent'])->name('sent');
+            Route::post('/delete', [MailController::class, 'destroy'])->name('destroy');
+            Route::post('/mark-all-read', [MailController::class, 'markAllAsRead'])->name('mark-all-read');
+            Route::get('/compose', [MailController::class, 'compose'])->name('compose');
+            Route::post('/send', [MailController::class, 'send'])->name('send');
+            Route::get('/read/{uid}/attachments/{attachment}', [MailController::class, 'attachment'])->whereNumber('uid')->whereNumber('attachment')->name('attachment');
+            Route::post('/read/{uid}/reply', [MailController::class, 'reply'])->whereNumber('uid')->name('reply');
+            Route::get('/read/{uid?}', [MailController::class, 'read'])->whereNumber('uid')->name('read');
+            Route::post('/logout', [MailController::class, 'logout'])->name('logout');
+        });
+
+    Route::redirect('/applicant/email', '/administration-finance/email');
+
     // Applicant
     Route::middleware('position.permission:view-talent-acquisition')->group(function (): void {
         Route::get('/applicant', [TalentAcquisitionController::class, 'applicants'])->name('applicant');
+        Route::get('/applicant/datatable', [TalentAcquisitionController::class, 'applicantsDatatable'])->name('applicant.datatable');
         Route::get('/applicant/job-vacancies', [TalentAcquisitionController::class, 'jobVacancies'])->name('applicant.job_vacancies');
+        Route::get('/applicant/job-vacancies/datatable', [TalentAcquisitionController::class, 'jobVacanciesDatatable'])->name('applicant.job_vacancies.datatable');
         Route::get('/applicant/job-vacancies/create', [TalentAcquisitionController::class, 'createJobVacancy'])->name('applicant.job_vacancies.create');
         Route::post('/applicant/job-vacancies', [TalentAcquisitionController::class, 'storeJobVacancy'])->name('applicant.job_vacancies.store');
         Route::patch('/applicant/job-vacancies/{jobVacancy}/status', [TalentAcquisitionController::class, 'updateJobVacancyStatus'])->name('applicant.job_vacancies.status.update');
+        Route::get('/applicant/job-vacancies/{jobVacancy}/edit', [TalentAcquisitionController::class, 'editJobVacancy'])->name('applicant.job_vacancies.edit');
+        Route::patch('/applicant/job-vacancies/{jobVacancy}', [TalentAcquisitionController::class, 'updateJobVacancy'])->name('applicant.job_vacancies.update');
+        Route::delete('/applicant/job-vacancies/{jobVacancy}', [TalentAcquisitionController::class, 'destroyJobVacancy'])->name('applicant.job_vacancies.destroy');
         Route::patch('/applicant/{applicant}/status', [TalentAcquisitionController::class, 'updateApplicantStatus'])->name('applicant.status.update');
+        Route::post('/applicant/{applicant}/assessment/upload-request', [TalentAcquisitionController::class, 'storeApplicantAssessmentUploadRequest'])->name('applicant.assessment.upload-request.store');
+        Route::patch('/applicant/{applicant}/assessment/upload-request/revoke', [TalentAcquisitionController::class, 'revokeApplicantAssessmentUploadRequest'])->name('applicant.assessment.upload-request.revoke');
+        Route::post('/applicant/{applicant}/technical-test/upload-request', [TalentAcquisitionController::class, 'storeApplicantTechnicalTestUploadRequest'])->name('applicant.technical-test.upload-request.store');
+        Route::patch('/applicant/{applicant}/technical-test/upload-request/revoke', [TalentAcquisitionController::class, 'revokeApplicantTechnicalTestUploadRequest'])->name('applicant.technical-test.upload-request.revoke');
+        Route::post('/applicant/{applicant}/assessment/hr-interview-score', [TalentAcquisitionController::class, 'storeApplicantHrInterviewScore'])->name('applicant.assessment.hr-interview-score.store');
+        Route::post('/applicant/{applicant}/assessment/technical-test-score', [TalentAcquisitionController::class, 'storeApplicantTechnicalTestScore'])->name('applicant.assessment.technical-test-score.store');
+        Route::post('/applicant/{applicant}/assessment/user-interview-score', [TalentAcquisitionController::class, 'storeApplicantUserInterviewScore'])->name('applicant.assessment.user-interview-score.store');
+        Route::post('/applicant/{applicant}/assessment/final', [TalentAcquisitionController::class, 'storeApplicantFinalAssessment'])->name('applicant.assessment.final.store');
+        Route::post('/applicant/{applicant}/assessment/{section}/notes', [TalentAcquisitionController::class, 'storeApplicantAssessmentNotes'])->where('section', 'technical_test|interview_user')->name('applicant.assessment.notes.store');
+        Route::get('/applicant/{applicant}/assessment', [TalentAcquisitionController::class, 'showApplicantAssessment'])->name('applicant.assessment');
         Route::get('/applicant/{applicant}', [TalentAcquisitionController::class, 'showApplicant'])->name('applicant.show');
         Route::delete('/applicant/{applicant}', [TalentAcquisitionController::class, 'destroyApplicant'])->name('applicant.destroy');
     });
 
+    Route::middleware('position.permission:view-business-email')
+        ->prefix('business-email')
+        ->name('business-email.')
+        ->group(function (): void {
+            Route::get('/', [MailController::class, 'index'])->name('index');
+            Route::post('/select', [MailController::class, 'selectAccount'])->name('select');
+            Route::post('/check', [MailController::class, 'checkEmail'])->name('check');
+            Route::post('/login', [MailController::class, 'authenticate'])->name('login');
+            Route::get('/inbox', [MailController::class, 'inbox'])->name('inbox');
+            Route::get('/sent', [MailController::class, 'sent'])->name('sent');
+            Route::post('/delete', [MailController::class, 'destroy'])->name('destroy');
+            Route::post('/mark-all-read', [MailController::class, 'markAllAsRead'])->name('mark-all-read');
+            Route::get('/compose', [MailController::class, 'compose'])->name('compose');
+            Route::post('/send', [MailController::class, 'send'])->name('send');
+            Route::get('/read/{uid}/attachments/{attachment}', [MailController::class, 'attachment'])->whereNumber('uid')->whereNumber('attachment')->name('attachment');
+            Route::post('/read/{uid}/reply', [MailController::class, 'reply'])->whereNumber('uid')->name('reply');
+            Route::get('/read/{uid?}', [MailController::class, 'read'])->whereNumber('uid')->name('read');
+            Route::post('/logout', [MailController::class, 'logout'])->name('logout');
+        });
+
     // Employee
     Route::middleware('position.permission:view-organization,view-employee-database')->group(function (): void {
         Route::get('/employee-data', [EmployeeDataController::class, 'index'])->name('employee_data');
+        Route::get('/employee-data/datatable', [EmployeeDataController::class, 'datatable'])->name('employee_data.datatable');
         Route::patch('/employee-data/{employee}/event-project-admin', [EmployeeDataController::class, 'updateEventProjectAdmin'])->name('employee_data.event-project-admin.update');
-        Route::get('/employee-data/authorize', function () {
-            return view('employee_data.authorization');
-        })->name('employee_data.authorization');
+        Route::get('/employee-data/authorize', [EmployeeDataController::class, 'authorization'])->name('employee_data.authorization');
+        Route::get('/employee-data/authorize/datatable', [EmployeeDataController::class, 'authorizationDatatable'])->name('employee_data.authorization.datatable');
     });
 
     // Authorization
@@ -121,13 +196,40 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/authorization/{employee}', [AuthorizationController::class, 'show'])->name('authorization.show');
         Route::get('/authorization/{employee}/edit', [AuthorizationController::class, 'edit'])->name('authorization.edit');
         Route::put('/authorization/{employee}', [AuthorizationController::class, 'update'])->name('authorization.update');
+        Route::put('/authorization/{employee}/employee-data/{employeeDataStep}', [AuthorizationController::class, 'updateEmployeeData'])
+            ->whereIn('employeeDataStep', EmployeeDataWizardService::HR_STEPS)
+            ->name('authorization.employee-data.update');
+        Route::post('/authorization/{employee}/employee-documents', [AuthorizationController::class, 'storeEmployeeDocument'])->name('authorization.employee-documents.store');
+        Route::get('/authorization/{employee}/employee-documents/{employeeDocument}', [AuthorizationController::class, 'showEmployeeDocument'])->name('authorization.employee-documents.show');
+        Route::delete('/authorization/{employee}/employee-documents/{employeeDocument}', [AuthorizationController::class, 'destroyEmployeeDocument'])->name('authorization.employee-documents.destroy');
         Route::delete('/authorization/{employee}', [AuthorizationController::class, 'destroy'])->name('authorization.destroy');
 
     });
 
+    // Email Management
+    Route::middleware('position.permission:view-email-management')
+        ->prefix('email-management')
+        ->name('email-management.')
+        ->group(function (): void {
+            Route::get('/', [EmailManagementController::class, 'index'])->name('index');
+            Route::post('/accounts', [EmailManagementController::class, 'storeAccount'])->name('accounts.store');
+            Route::patch('/accounts/{mailAccessAccount}', [EmailManagementController::class, 'updateAccount'])->name('accounts.update');
+            Route::delete('/accounts/{mailAccessAccount}', [EmailManagementController::class, 'destroyAccount'])->name('accounts.destroy');
+            Route::post('/takeovers', [EmailManagementController::class, 'storeTakeover'])->name('takeovers.store');
+            Route::patch('/takeovers/{mailAccountTakeover}', [EmailManagementController::class, 'updateTakeover'])->name('takeovers.update');
+            Route::patch('/takeovers/{mailAccountTakeover}/revoke', [EmailManagementController::class, 'revokeTakeover'])->name('takeovers.revoke');
+            Route::delete('/takeovers/{mailAccountTakeover}', [EmailManagementController::class, 'destroyTakeover'])->name('takeovers.destroy');
+        });
+
     // Settings
     Route::middleware('position.permission:view-settings')->prefix('settings')->name('settings.')->group(function (): void {
         Route::get('/', fn () => redirect()->route('settings.divisions.index'))->name('index');
+        Route::get('companies/datatable', [SettingsCompanyController::class, 'datatable'])->name('companies.datatable');
+        Route::get('divisions/datatable', [SettingsDivisionController::class, 'datatable'])->name('divisions.datatable');
+        Route::get('positions/datatable', [SettingsPositionController::class, 'datatable'])->name('positions.datatable');
+        Route::get('office-locations/datatable', [SettingsOfficeLocationController::class, 'datatable'])->name('office-locations.datatable');
+        Route::get('attendance-rules/datatable', [SettingsAttendanceRuleController::class, 'datatable'])->name('attendance-rules.datatable');
+        Route::resource('companies', SettingsCompanyController::class)->except(['show']);
         Route::resource('office-locations', SettingsOfficeLocationController::class)
             ->except(['show'])
             ->parameters(['office-locations' => 'officeLocation']);
@@ -142,6 +244,27 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/agenda', function () {
         return view('agenda');
     })->middleware('position.permission:view-meeting')->name('agenda');
+
+    Route::middleware('position.permission:view-meeting')->group(function (): void {
+        Route::get('/zoom-meeting', [HrMeetingController::class, 'staffIndex'])->name('zoom-meeting.index');
+        Route::match(['get', 'post'], '/zoom-meeting/{hrMeeting}/join', [HrMeetingController::class, 'staffJoin'])->name('zoom-meeting.join');
+        Route::get('/zoom-meeting/{hrMeeting}/details', [HrMeetingController::class, 'staffDetails'])->name('zoom-meeting.details');
+        Route::put('/zoom-meeting/{hrMeeting}/tasks/{hrMeetingTask}', [HrMeetingController::class, 'updateStaffTask'])->name('zoom-meeting.tasks.update');
+    });
+
+    Route::middleware('position.permission:view-admin-attendance')->group(function (): void {
+        Route::get('/hr-meetings', [HrMeetingController::class, 'index'])->name('hr-meetings.index');
+        Route::get('/hr-meetings/datatable', [HrMeetingController::class, 'datatable'])->name('hr-meetings.datatable');
+        Route::get('/hr-meetings/create', [HrMeetingController::class, 'create'])->name('hr-meetings.create');
+        Route::post('/hr-meetings', [HrMeetingController::class, 'store'])->name('hr-meetings.store');
+        Route::get('/hr-meetings/details/{hrMeeting?}', [HrMeetingController::class, 'show'])->name('hr-meetings.details');
+        Route::get('/hr-meetings/update/{hrMeeting?}', [HrMeetingController::class, 'edit'])->name('hr-meetings.update');
+        Route::post('/hr-meetings/{hrMeeting}/tasks', [HrMeetingController::class, 'storeTask'])->name('hr-meetings.tasks.store');
+        Route::put('/hr-meetings/{hrMeeting}/tasks/{hrMeetingTask}', [HrMeetingController::class, 'updateTask'])->name('hr-meetings.tasks.update');
+        Route::delete('/hr-meetings/{hrMeeting}/tasks/{hrMeetingTask}', [HrMeetingController::class, 'destroyTask'])->name('hr-meetings.tasks.destroy');
+        Route::put('/hr-meetings/{hrMeeting}', [HrMeetingController::class, 'update'])->name('hr-meetings.update.save');
+        Route::delete('/hr-meetings/{hrMeeting}', [HrMeetingController::class, 'destroy'])->name('hr-meetings.destroy');
+    });
 
     // Attendance overview and daily attendance
     Route::view('/attendance/overview', 'staff_attendance.overview.index')
@@ -264,7 +387,6 @@ Route::middleware('auth')->group(function (): void {
     // Attendance support routes
     Route::middleware('position.permission:view-attendance')->group(function (): void {
         Route::get('/attendance/current-ip', [AttendanceController::class, 'currentIp'])->name('attendance.current-ip');
-        Route::post('/attendance/verify-telegram-username', [AttendanceController::class, 'verifyTelegramUsername'])->name('attendance.verify-telegram-username');
         Route::post('/attendance/exceptions', [AttendanceController::class, 'storeException'])->name('attendance.exceptions.store');
     });
     Route::middleware('position.permission:view-timesheet-reporting')->group(function (): void {

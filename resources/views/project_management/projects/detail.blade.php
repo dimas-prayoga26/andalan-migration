@@ -739,13 +739,10 @@
 @section('script')
 
 @php
-    $dashboardJsPath = public_path('assets/js/dashboard.js');
-    $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
     $apexChartsPath = public_path('assets/vendor/apexcharts/dist/apexcharts.min.js');
     $apexChartsVersion = file_exists($apexChartsPath) ? filemtime($apexChartsPath) : time();
 @endphp
 <script src="{{ asset('assets/vendor/apexcharts/dist/apexcharts.min.js') }}?v={{ $apexChartsVersion }}"></script>
-<script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://accounts.google.com/gsi/client"></script>
 <script src="https://apis.google.com/js/api.js"></script>

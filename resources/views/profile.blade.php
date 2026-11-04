@@ -8,7 +8,24 @@
         $dashboardCssVersion = file_exists($dashboardCssPath) ? filemtime($dashboardCssPath) : time();
     @endphp
     <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $dashboardCssVersion }}">
+    @include('employee_data.wizard.styles')
+    @include('employee_data.documents.styles')
     <style>
+        .profile-tab-alert-badge {
+            background-color: #dc3545;
+            color: #fff;
+        }
+
+        .profile-locked-badge {
+            font-size: 0.7rem;
+            color: #6b7280;
+            background: #f4f6fb;
+            border: 1px solid #e7eaf3;
+            border-radius: 0.375rem;
+            padding: 0.2rem 0.5rem;
+            white-space: nowrap;
+        }
+
         .profile-account-tabs {
             display: inline-flex;
             gap: 0.25rem;
@@ -60,14 +77,22 @@
 
         @media (max-width: 575.98px) {
             .profile-account-tabs {
-                display: flex;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
                 width: 100%;
             }
 
-            .profile-account-tabs .nav-item,
             .profile-account-tabs .nav-link {
-                flex: 1 1 0;
+                width: 100%;
+                height: 100%;
                 min-width: 0;
+                padding: 0.6rem 0.5rem;
+                font-size: 0.8125rem;
+                line-height: 1.3;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
             }
 
             .profile-summary-list .list-group-item {
@@ -95,7 +120,20 @@
 
 @php
     $isPasswordTabActive = session()->has('password_status') || $errors->passwordUpdate->any();
+    $employeeDataCompletionPercent = (int) ($employeeDataCompletionPercent ?? 0);
 @endphp
+
+@if ($employeeDataCompletionPercent < 100)
+    <div class="alert alert-warning js-employee-data-incomplete-alert" role="alert">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+                <h5 class="alert-heading mb-1"><i class="fa fa-exclamation-circle me-2"></i>Data karyawan belum lengkap</h5>
+                <p class="mb-0">Silakan lengkapi data diri, identitas, pendidikan, dan keluarga pada tab <strong>Data Karyawan</strong>.</p>
+            </div>
+            <button type="button" class="btn btn-warning btn-sm js-open-employee-data-tab">Lengkapi Sekarang</button>
+        </div>
+    </div>
+@endif
 
 <div class="row">
 					
@@ -117,10 +155,19 @@
                     </div>
                 </div>
             </div>
+            <div class="d-flex align-items-center justify-content-between gap-2 px-4 pt-3 pb-2 border-top">
+                <h6 class="mb-0">Data Kepegawaian</h6>
+                <span class="profile-locked-badge"><i class="fa fa-lock me-1"></i>Dikelola HR</span>
+            </div>
             <ul class="list-group list-group-flush profile-summary-list">
                 <li class="list-group-item py-3"><span class="profile-summary-label">Employee ID</span><span class="profile-summary-value">{{ $profilePageEmployeeCode }}</span></li>
+                <li class="list-group-item py-3"><span class="profile-summary-label">Company</span><span class="profile-summary-value">{{ $profileFormCompany }}</span></li>
+                <li class="list-group-item py-3"><span class="profile-summary-label">Position</span><span class="profile-summary-value">{{ $profilePagePositionName }}</span></li>
                 <li class="list-group-item py-3"><span class="profile-summary-label">Department</span><span class="profile-summary-value">{{ $profilePageDepartmentName }}</span></li>
+                <li class="list-group-item py-3"><span class="profile-summary-label">PIC</span><span class="profile-summary-value">{{ $employeeEmploymentDetails['supervisor'] ?? '-' }}</span></li>
                 <li class="list-group-item py-3"><span class="profile-summary-label">Join Date</span><span class="profile-summary-value">{{ $profilePageJoinDateLabel }}</span></li>
+                <li class="list-group-item py-3"><span class="profile-summary-label">Work Location</span><span class="profile-summary-value">{{ $profileFormBaseOffice }}</span></li>
+                <li class="list-group-item py-3"><span class="profile-summary-label">Work Email</span><span class="profile-summary-value">{{ $profileFormEmail }}</span></li>
             </ul>
         </div>
     </div>
@@ -128,7 +175,7 @@
 
     <!-- Start - Account Setup -->
     <div class="col-xl-9">
-        <div class="card m-b30">
+        <div class="card h-auto m-b30">
             <div class="card-header">
                 <h6 class="card-title">Account Setup</h6>
             </div>
@@ -140,6 +187,22 @@
                     <li class="nav-item" role="presentation">
                         <button class="nav-link {{ $isPasswordTabActive ? 'active' : '' }}" id="password-update-tab" data-bs-toggle="tab" data-bs-target="#password-update-pane" type="button" role="tab" aria-controls="password-update-pane" aria-selected="{{ $isPasswordTabActive ? 'true' : 'false' }}">Update Password</button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="employee-data-tab" data-bs-toggle="tab" data-bs-target="#employee-data-pane" type="button" role="tab" aria-controls="employee-data-pane" aria-selected="false">
+                            Data Karyawan
+                            @if ($employeeDataCompletionPercent < 100)
+                                <span class="badge profile-tab-alert-badge ms-1">!</span>
+                            @endif
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="employee-documents-tab" data-bs-toggle="tab" data-bs-target="#employee-documents-pane" type="button" role="tab" aria-controls="employee-documents-pane" aria-selected="false">
+                            Dokumen
+                            @if ($hasMissingRequiredEmployeeDocuments ?? false)
+                                <span class="badge profile-tab-alert-badge ms-1">!</span>
+                            @endif
+                        </button>
+                    </li>
                 </ul>
             </div>
             <div class="tab-content" id="profileAccountSetupTabContent">
@@ -148,17 +211,9 @@
                         @csrf
                         @method('PATCH')
                         <div class="card-body">
-                    @if (session('profile_status'))
-                        <div class="alert alert-success mb-4">{{ session('profile_status') }}</div>
-                    @endif
+                    @include('partials.swal-alert', ['type' => 'success', 'message' => session('profile_status')])
                     @if ($errors->any())
-                        <div class="alert alert-danger mb-4">
-                            <ul class="mb-0">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
+                        @include('partials.swal-alert', ['type' => 'error', 'message' => implode("\n", $errors->all())])
                     @endif
                     @php
                         $profileNameValue = old('name', $profileFormName === '-' ? '' : $profileFormName);
@@ -190,7 +245,7 @@
                             <label class="form-label">Marital Status</label>
                             <select name="marital_status" class="default-select form-control">
                                 <option value="">Open this select menu</option>
-                                @foreach (['Lajang', 'Menikah'] as $status)
+                                @foreach (array_keys(\App\Support\Employee\EmployeeDataOptions::MARITAL_STATUSES) as $status)
                                     <option value="{{ $status }}" @selected($profileMaritalStatusValue === $status)>{{ $status }}</option>
                                 @endforeach
                             </select>
@@ -236,17 +291,9 @@
                         @csrf
                         @method('PATCH')
                         <div class="card-body">
-                    @if (session('password_status'))
-                        <div class="alert alert-success mb-4">{{ session('password_status') }}</div>
-                    @endif
+                    @include('partials.swal-alert', ['type' => 'success', 'message' => session('password_status')])
                     @if ($errors->passwordUpdate->any())
-                        <div class="alert alert-danger mb-4">
-                            <ul class="mb-0">
-                                @foreach ($errors->passwordUpdate->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
+                        @include('partials.swal-alert', ['type' => 'error', 'message' => implode("\n", $errors->passwordUpdate->all())])
                     @endif
                     <div class="row">
                         <div class="col-md-4 mb-4">
@@ -268,6 +315,16 @@
                         </div>
                     </form>
                 </div>
+                <div class="tab-pane fade" id="employee-data-pane" role="tabpanel" aria-labelledby="employee-data-tab" tabindex="0">
+                    <div class="card-body">
+                        @include('employee_data.wizard.wizard', ['hasEmploymentStep' => false])
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="employee-documents-pane" role="tabpanel" aria-labelledby="employee-documents-tab" tabindex="0">
+                    <div class="card-body">
+                        @include('employee_data.documents.vault', ['documentVaultMode' => 'employee', 'employeeDocumentFiles' => $employeeDocumentFiles ?? []])
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -278,8 +335,67 @@
 @endsection
 
 @section('script')
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ file_exists(public_path('assets/js/dashboard.js')) ? filemtime(public_path('assets/js/dashboard.js')) : time() }}"></script>
+    @include('employee_data.wizard.script')
+    @include('employee_data.documents.script')
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var employeeDataTabButton = document.getElementById('employee-data-tab');
+
+            if (!employeeDataTabButton) {
+                return;
+            }
+
+            function openEmployeeDataTab() {
+                bootstrap.Tab.getOrCreateInstance(employeeDataTabButton).show();
+                employeeDataTabButton.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            document.querySelectorAll('.js-open-employee-data-tab').forEach(function (button) {
+                button.addEventListener('click', openEmployeeDataTab);
+            });
+
+            if (window.location.hash === '#employee-data') {
+                openEmployeeDataTab();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            function toggleTabAlertBadge(tabButtonId, isIncomplete) {
+                var tabButton = document.getElementById(tabButtonId);
+                var alertBadge = tabButton ? tabButton.querySelector('.profile-tab-alert-badge') : null;
+
+                if (!tabButton) {
+                    return;
+                }
+
+                if (isIncomplete && !alertBadge) {
+                    alertBadge = document.createElement('span');
+                    alertBadge.className = 'badge profile-tab-alert-badge ms-1';
+                    alertBadge.textContent = '!';
+                    tabButton.appendChild(alertBadge);
+                }
+
+                if (!isIncomplete && alertBadge) {
+                    alertBadge.remove();
+                }
+            }
+
+            document.addEventListener('employee-data:saved', function (event) {
+                var isComplete = !!(event.detail && event.detail.is_employee_data_complete);
+                var incompleteAlert = document.querySelector('.js-employee-data-incomplete-alert');
+
+                toggleTabAlertBadge('employee-data-tab', !isComplete);
+
+                if (incompleteAlert) {
+                    incompleteAlert.classList.toggle('d-none', isComplete);
+                }
+            });
+
+            document.addEventListener('employee-documents:changed', function (event) {
+                toggleTabAlertBadge('employee-documents-tab', !!(event.detail && event.detail.has_missing_required_documents));
+            });
+        });
+
         document.addEventListener('DOMContentLoaded', function () {
             if (!window.jQuery || !jQuery.fn.daterangepicker || typeof moment === 'undefined') {
                 return;

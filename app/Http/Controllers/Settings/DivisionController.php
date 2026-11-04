@@ -5,32 +5,36 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Models\Department;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Yajra\DataTables\Facades\DataTables;
 
 class DivisionController extends Controller
 {
-    public function index(Request $request): View
+    public function index(): View
     {
-        $search = trim((string) $request->query('search', ''));
-
-        $items = Department::query()
-            ->when($search !== '', fn ($query) => $query->where('name', 'like', "%{$search}%"))
-            ->orderBy('name')
-            ->paginate(10)
-            ->withQueryString();
-
         return view('settings.index', [
-            'items' => $items,
-            'search' => $search,
             'pageTitle' => 'Division',
             'resourceLabel' => 'Division',
             'routePrefix' => 'settings.divisions',
             'routeParameter' => 'division',
+            'datatableRoute' => 'settings.divisions.datatable',
+            'tableId' => 'divisionsTable',
+            'searchPlaceholder' => 'Search division',
         ]);
+    }
+
+    public function datatable(): JsonResponse
+    {
+        $query = Department::query()
+            ->select(['id', 'name', 'status']);
+
+        return DataTables::eloquent($query)
+            ->toJson();
     }
 
     public function create(): View
@@ -83,21 +87,19 @@ class DivisionController extends Controller
             ->with('status', 'Division has been updated.');
     }
 
-    public function destroy(Department $division): RedirectResponse
+    public function destroy(Request $request, Department $division): JsonResponse|RedirectResponse
     {
         $isUsedByDeployment = DB::table('employee_deployments')
             ->where('current_department_id', $division->id)
             ->exists();
 
         if ($isUsedByDeployment) {
-            return back()->with('error', 'Division is still used by employee deployment data.');
+            return $this->tableActionResponse($request, back(), 'Division is still used by employee deployment data.', false);
         }
 
         $division->delete();
 
-        return redirect()
-            ->route('settings.divisions.index')
-            ->with('status', 'Division has been deleted.');
+        return $this->tableActionResponse($request, redirect()->route('settings.divisions.index'), 'Division has been deleted.');
     }
 
     /**

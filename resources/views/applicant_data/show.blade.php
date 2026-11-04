@@ -287,7 +287,7 @@
                         </div>
                         <div>
                             <div class="applicant-detail-label">Applied At</div>
-                            <p class="applicant-detail-value">{{ $applicant->legacy_created_at?->format('d M Y H:i') ?? '-' }}</p>
+                            <p class="applicant-detail-value">{{ $applicant->created_at?->format('d M Y H:i') ?? '-' }}</p>
                         </div>
                     </div>
                 </div>

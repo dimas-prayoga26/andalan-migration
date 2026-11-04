@@ -89,6 +89,18 @@ class LegacySqlUserSeeder extends Seeder
     ];
 
     /**
+     * @var array<string, string>
+     */
+    private const CURRENT_SQL_COMPANY_NAMES_BY_ID = [
+        '0231b00c-ed68-8254-9cd5-27bc46fc6539' => 'TMS',
+        '0f068713-5419-8f49-9ebc-487ae8173711' => 'Trah',
+        '8f7c7d59-fa35-899c-be1e-c95e4caa280b' => 'RNE',
+        '97a28979-0971-809c-99df-13418951d399' => 'KMA',
+        'a788dce1-fdb0-83c9-9d8a-5b3fd0c894d9' => 'RNB',
+        'c0325496-ec01-84df-99b3-199027bf80ed' => 'Niskala',
+    ];
+
+    /**
      * @var array<int, string>
      */
     private array $companyIdsByLegacyId = [];
@@ -131,6 +143,8 @@ class LegacySqlUserSeeder extends Seeder
                 $this->syncRnbJakartaOfficeAssignments();
                 $this->syncLatestStaffDeployments();
                 $this->deactivateRemovedLegacyStaff();
+                $this->seedCurrentSqlUsers();
+                $this->syncCurrentSqlUserStatuses();
                 $this->seedPositionPermissions($this->parseInsertRows($dump, 'users_authorization'));
                 $this->seedSuperAdministratorAccount();
 
@@ -156,6 +170,248 @@ class LegacySqlUserSeeder extends Seeder
         }
 
         return $dump;
+    }
+
+    private function seedCurrentSqlUsers(): void
+    {
+        $usersPath = base_path('users.sql');
+        $employeesPath = base_path('employees.sql');
+
+        if (! is_file($usersPath) || ! is_file($employeesPath)) {
+            return;
+        }
+
+        $usersDump = file_get_contents($usersPath);
+        $employeesDump = file_get_contents($employeesPath);
+
+        if (! is_string($usersDump) || ! is_string($employeesDump)) {
+            return;
+        }
+
+        $employeesByUserId = $this->parseInsertRows($employeesDump, 'employees')
+            ->keyBy(static fn (array $employee): string => mb_strtolower((string) ($employee['user_id'] ?? '')));
+
+        Role::query()->firstOrCreate(['name' => 'Staff', 'guard_name' => 'web']);
+
+        $this->parseInsertRows($usersDump, 'users')->each(function (array $currentUser) use ($employeesByUserId): void {
+            $email = $this->currentSqlPersonalEmail($currentUser);
+
+            if ($email === null) {
+                return;
+            }
+
+            $employeeRow = $employeesByUserId->get(mb_strtolower((string) ($currentUser['id'] ?? '')));
+            $isActive = $this->currentSqlUserIsActive($currentUser, $employeesByUserId);
+            $user = User::query()->firstOrNew(['email' => $email]);
+
+            if (! $user->exists) {
+                $user->id = (string) ($currentUser['id'] ?? Str::uuid());
+            }
+
+            $user->forceFill([
+                'company_id' => $this->currentSqlCompanyId($currentUser),
+                'phone' => $this->nullIfEmpty($currentUser['phone'] ?? null),
+                'email_token' => $this->nullIfEmpty($currentUser['email_token'] ?? null),
+                'password_token' => $this->nullIfEmpty($currentUser['password_token'] ?? null),
+                'email_verified_at' => $this->normalizeTimestamp($currentUser['email_verified_at'] ?? null),
+                'phone_verified_at' => $this->normalizeTimestamp($currentUser['phone_verified_at'] ?? null),
+                'last_login_at' => $this->normalizeTimestamp($currentUser['last_login_at'] ?? null),
+                'password' => $this->nullIfEmpty($currentUser['password'] ?? null) ?? Hash::make('password'),
+                'is_active' => $isActive,
+                'remember_token' => $this->nullIfEmpty($currentUser['remember_token'] ?? null),
+                'created_at' => $this->normalizeTimestamp($currentUser['created_at'] ?? null) ?? now(),
+                'updated_at' => $this->normalizeTimestamp($currentUser['updated_at'] ?? null) ?? now(),
+            ])->save();
+
+            if ($user->roles()->doesntExist()) {
+                $user->syncRoles(['Staff']);
+            }
+
+            $employee = Employee::withTrashed()->firstOrNew(['user_id' => $user->id]);
+
+            if (! $employee->exists) {
+                $employee->id = (string) ($employeeRow['id'] ?? Str::uuid());
+            }
+
+            $employee->forceFill([
+                'employee_code' => $this->nullIfEmpty($employeeRow['employee_code'] ?? null),
+                'status' => $isActive ? 'Active' : 'Inactive',
+                'created_at' => $this->normalizeTimestamp($employeeRow['created_at'] ?? null) ?? $user->created_at ?? now(),
+                'updated_at' => $this->normalizeTimestamp($employeeRow['updated_at'] ?? null) ?? $user->updated_at ?? now(),
+            ])->save();
+
+            if ($isActive && $employee->trashed()) {
+                $employee->restore();
+            }
+
+            $this->ensureCurrentSqlDeployment($employee, $currentUser, $isActive);
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $currentUser
+     */
+    private function currentSqlPersonalEmail(array $currentUser): ?string
+    {
+        $email = mb_strtolower(trim((string) ($currentUser['email'] ?? '')));
+
+        return filter_var($email, FILTER_VALIDATE_EMAIL) === false ? null : $email;
+    }
+
+    /**
+     * @param  array<string, mixed>  $currentUser
+     */
+    private function currentSqlCompanyId(array $currentUser): ?string
+    {
+        $currentCompanyId = mb_strtolower(trim((string) ($currentUser['company_id'] ?? '')));
+        $companyName = self::CURRENT_SQL_COMPANY_NAMES_BY_ID[$currentCompanyId] ?? null;
+
+        if ($companyName !== null) {
+            $companyId = Company::query()->where('name', $companyName)->value('id');
+
+            if (is_string($companyId)) {
+                return $companyId;
+            }
+        }
+
+        return Company::query()->orderBy('name')->value('id');
+    }
+
+    /**
+     * @param  array<string, mixed>  $currentUser
+     */
+    private function ensureCurrentSqlDeployment(Employee $employee, array $currentUser, bool $isActive): void
+    {
+        if (DB::table('employee_deployments')->where('employee_id', $employee->id)->exists()) {
+            return;
+        }
+
+        DB::table('employee_deployments')->insert([
+            'id' => (string) Str::uuid(),
+            'employee_id' => $employee->id,
+            'current_department_id' => DB::table('departments')->where('name', 'Information and Communications Technology')->value('id')
+                ?? DB::table('departments')->orderBy('name')->value('id'),
+            'current_position_id' => DB::table('positions')->where('system_key', Position::KEY_WEB_DEVELOPER)->value('id')
+                ?? DB::table('positions')->orderBy('name')->value('id'),
+            'current_company_id' => $this->currentSqlCompanyId($currentUser),
+            'join_date' => $this->normalizeDate($currentUser['created_at'] ?? null),
+            'resignation_date' => $isActive ? null : $this->normalizeDate($currentUser['updated_at'] ?? null),
+            'workplace' => null,
+            'status' => $isActive ? 'Active' : 'Inactive',
+            'created_at' => $this->normalizeTimestamp($currentUser['created_at'] ?? null) ?? now(),
+            'updated_at' => $this->normalizeTimestamp($currentUser['updated_at'] ?? null) ?? now(),
+        ]);
+    }
+
+    private function syncCurrentSqlUserStatuses(): void
+    {
+        foreach ($this->currentSqlUserStatuses() as $email => $isActive) {
+            User::query()
+                ->whereRaw('LOWER(email) = ?', [$email])
+                ->get()
+                ->each(function (User $user) use ($isActive): void {
+                    $user->forceFill(['is_active' => $isActive])->save();
+
+                    Employee::withTrashed()
+                        ->where('user_id', $user->id)
+                        ->get()
+                        ->each(function (Employee $employee) use ($isActive): void {
+                            $employee->forceFill([
+                                'status' => $isActive ? 'Active' : 'Inactive',
+                            ])->save();
+
+                            if ($isActive && $employee->trashed()) {
+                                $employee->restore();
+                            }
+
+                            $deploymentUpdates = [
+                                'status' => $isActive ? 'Active' : 'Inactive',
+                                'updated_at' => now(),
+                            ];
+
+                            if ($isActive) {
+                                $deploymentUpdates['deleted_at'] = null;
+                            }
+
+                            DB::table('employee_deployments')
+                                ->where('employee_id', $employee->id)
+                                ->update($deploymentUpdates);
+                        });
+                });
+        }
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    private function currentSqlUserStatuses(): array
+    {
+        $usersPath = base_path('users.sql');
+        $employeesPath = base_path('employees.sql');
+
+        if (! is_file($usersPath) || ! is_file($employeesPath)) {
+            return [];
+        }
+
+        $usersDump = file_get_contents($usersPath);
+        $employeesDump = file_get_contents($employeesPath);
+
+        if (! is_string($usersDump) || ! is_string($employeesDump)) {
+            return [];
+        }
+
+        $employeesByUserId = $this->parseInsertRows($employeesDump, 'employees')
+            ->keyBy(static fn (array $employee): string => mb_strtolower((string) ($employee['user_id'] ?? '')));
+        $statuses = [];
+
+        $this->parseInsertRows($usersDump, 'users')->each(function (array $user) use ($employeesByUserId, &$statuses): void {
+            $email = $this->currentSqlUserEmail($user);
+
+            if ($email === null) {
+                return;
+            }
+
+            $statuses[$email] = ($statuses[$email] ?? false) || $this->currentSqlUserIsActive($user, $employeesByUserId);
+        });
+
+        return $statuses;
+    }
+
+    /**
+     * @param  array<string, mixed>  $user
+     */
+    private function currentSqlUserEmail(array $user): ?string
+    {
+        $businessEmail = trim((string) ($user['business_email'] ?? ''));
+        $personalEmail = trim((string) ($user['email'] ?? ''));
+        $email = mb_strtolower($businessEmail !== '' ? $businessEmail : $personalEmail);
+
+        return filter_var($email, FILTER_VALIDATE_EMAIL) === false ? null : $email;
+    }
+
+    /**
+     * @param  array<string, mixed>  $user
+     * @param  Collection<string, array<string, mixed>>  $employeesByUserId
+     */
+    private function currentSqlUserIsActive(array $user, Collection $employeesByUserId): bool
+    {
+        if ((int) ($user['is_active'] ?? 0) !== 1 || $this->filledSqlValue($user['deleted_at'] ?? null)) {
+            return false;
+        }
+
+        $employee = $employeesByUserId->get(mb_strtolower((string) ($user['id'] ?? '')));
+
+        if ($employee === null) {
+            return true;
+        }
+
+        return mb_strtolower(trim((string) ($employee['status'] ?? ''))) === 'active'
+            && ! $this->filledSqlValue($employee['deleted_at'] ?? null);
+    }
+
+    private function filledSqlValue(mixed $value): bool
+    {
+        return is_string($value) ? trim($value) !== '' : $value !== null;
     }
 
     /**
@@ -223,18 +479,28 @@ class LegacySqlUserSeeder extends Seeder
     {
         $legacyPositions->each(function (array $legacyPosition): void {
             $legacyId = (int) $legacyPosition['id'];
+            $positionName = $this->normalizePositionName((string) $legacyPosition['name']);
+            $systemKey = $this->positionSystemKeyForName($positionName);
             $position = Position::query()->updateOrCreate(
-                ['name' => $this->normalizePositionName((string) $legacyPosition['name'])],
-                ['status' => 'active'],
+                ['name' => $positionName],
+                array_filter([
+                    'system_key' => $systemKey,
+                    'is_protected' => $systemKey !== null && in_array($systemKey, Position::PROTECTED_SYSTEM_KEYS, true),
+                    'status' => 'active',
+                ], static fn (mixed $value): bool => $value !== null),
             );
 
             $this->positionIdsByLegacyId[$legacyId] = (string) $position->id;
         });
 
-        foreach (['Administrator', 'Chief Operating Officer', 'Director', 'Supervisor'] as $positionName) {
+        foreach ($this->corePositionSystemKeys() as $systemKey => $positionName) {
             Position::query()->updateOrCreate(
-                ['name' => $positionName],
-                ['status' => 'active'],
+                ['system_key' => $systemKey],
+                [
+                    'name' => $positionName,
+                    'status' => 'active',
+                    'is_protected' => in_array($systemKey, Position::PROTECTED_SYSTEM_KEYS, true),
+                ],
             );
         }
     }
@@ -323,9 +589,7 @@ class LegacySqlUserSeeder extends Seeder
                 ['email' => $email],
                 [
                     'company_id' => $companyId,
-                    'username' => $this->uniqueUsername($legacyUser),
                     'phone' => $this->nullIfEmpty($legacyUser['phone']),
-                    'business_email' => $email,
                     'password' => Hash::make('password'),
                     'is_active' => $isActive,
                     'created_at' => $this->normalizeTimestamp($legacyUser['created_at']) ?? $now,
@@ -382,14 +646,12 @@ class LegacySqlUserSeeder extends Seeder
                 'name' => 'Rully Priyatno',
                 'nickname' => 'Rully',
                 'email' => 'rully.priyatno@andalanbersama.com',
-                'username' => 'rully.priyatno',
                 'employee_code' => 'EMP-RULLY-PRIYATNO',
             ],
             [
                 'name' => 'Hilmi Ulwan',
                 'nickname' => 'Hilmi',
                 'email' => 'hilmi.ulwan@andalanbersama.com',
-                'username' => 'hilmi.ulwan',
                 'employee_code' => 'EMP-HILMI-ULWAN',
             ],
         ];
@@ -400,8 +662,6 @@ class LegacySqlUserSeeder extends Seeder
                 ['email' => $userData['email']],
                 [
                     'company_id' => $companyId,
-                    'username' => $userData['username'],
-                    'business_email' => $userData['email'],
                     'password' => Hash::make('password'),
                     'is_active' => true,
                     'deleted_at' => null,
@@ -761,7 +1021,7 @@ class LegacySqlUserSeeder extends Seeder
         }
 
         Position::query()
-            ->whereIn('name', ['Chief Operating Officer', 'Director'])
+            ->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS)
             ->get()
             ->each(function (Position $position) use ($adminAttendancePermissionId, $directorAttendancePermissionId): void {
                 $permissionIds = $position->permissions()
@@ -880,6 +1140,7 @@ class LegacySqlUserSeeder extends Seeder
             ],
             [
                 'is_primary' => true,
+                ...$this->deploymentPositionSortOrderPayload(0),
                 'status' => 'active',
                 'started_at' => $joinDate,
                 'ended_at' => $resignationDate,
@@ -897,14 +1158,19 @@ class LegacySqlUserSeeder extends Seeder
             return;
         }
 
-        $positionNames = $this->additionalPositionNamesForLegacyUser($legacyUser);
+        $positionSystemKeys = $this->additionalPositionSystemKeysForLegacyUser($legacyUser);
         $positionIds = DB::table('positions')
-            ->whereIn('name', $positionNames)
+            ->whereIn('system_key', $positionSystemKeys)
             ->pluck('id')
             ->filter(static fn (mixed $positionId): bool => is_string($positionId) && trim($positionId) !== '')
             ->values();
         $managedPositionIds = DB::table('positions')
-            ->whereIn('name', ['Administrator', 'Accounting and Taxation', 'Director', 'Supervisor'])
+            ->whereIn('system_key', [
+                Position::KEY_ADMINISTRATOR,
+                Position::KEY_ACCOUNTING_TAXATION,
+                Position::KEY_DIRECTOR,
+                Position::KEY_SUPERVISOR,
+            ])
             ->pluck('id');
 
         DB::table('employee_deployment_positions')
@@ -917,7 +1183,7 @@ class LegacySqlUserSeeder extends Seeder
             )
             ->delete();
 
-        foreach ($positionIds as $positionId) {
+        foreach ($positionIds as $index => $positionId) {
             if (! is_string($positionId) || trim($positionId) === '') {
                 continue;
             }
@@ -929,6 +1195,7 @@ class LegacySqlUserSeeder extends Seeder
                 ],
                 [
                     'is_primary' => false,
+                    ...$this->deploymentPositionSortOrderPayload($index + 1),
                     'status' => 'active',
                     'started_at' => $joinDate,
                     'ended_at' => $resignationDate,
@@ -940,21 +1207,33 @@ class LegacySqlUserSeeder extends Seeder
     }
 
     /**
+     * @return array<string, int>
+     */
+    private function deploymentPositionSortOrderPayload(int $sortOrder): array
+    {
+        if (! Schema::hasColumn('employee_deployment_positions', 'sort_order')) {
+            return [];
+        }
+
+        return ['sort_order' => $sortOrder];
+    }
+
+    /**
      * @return array<int, string>
      */
-    private function additionalPositionNamesForLegacyUser(array $legacyUser): array
+    private function additionalPositionSystemKeysForLegacyUser(array $legacyUser): array
     {
         $email = strtolower(trim((string) ($legacyUser['email'] ?? '')));
 
         return match ($email) {
-            'halloerlin@gmail.com' => ['Administrator', 'Accounting and Taxation'],
-            'diktanamira@gmail.com' => ['Administrator', 'Accounting and Taxation'],
-            'msyafiq.dev@gmail.com' => ['Supervisor'],
-            'rexy@andalanbersama.com' => ['Supervisor'],
-            'fuadmfahrudin@gmail.com' => ['Supervisor'],
-            'fahmil@andalanbersama.com' => ['Supervisor'],
-            'lukman@rnbmanagement.com' => ['Director', 'Supervisor'],
-            'leonieputri7@gmail.com' => ['Administrator', 'Supervisor'],
+            'halloerlin@gmail.com' => [Position::KEY_ADMINISTRATOR, Position::KEY_ACCOUNTING_TAXATION],
+            'diktanamira@gmail.com' => [Position::KEY_ADMINISTRATOR, Position::KEY_ACCOUNTING_TAXATION],
+            'msyafiq.dev@gmail.com' => [Position::KEY_SUPERVISOR],
+            'rexy@andalanbersama.com' => [Position::KEY_SUPERVISOR],
+            'fuadmfahrudin@gmail.com' => [Position::KEY_SUPERVISOR],
+            'fahmil@andalanbersama.com' => [Position::KEY_SUPERVISOR],
+            'lukman@rnbmanagement.com' => [Position::KEY_DIRECTOR, Position::KEY_SUPERVISOR],
+            'leonieputri7@gmail.com' => [Position::KEY_ADMINISTRATOR, Position::KEY_SUPERVISOR],
             default => [],
         };
     }
@@ -1257,9 +1536,32 @@ class LegacySqlUserSeeder extends Seeder
         };
     }
 
+    private function positionSystemKeyForName(string $name): ?string
+    {
+        return Position::systemKeyForName($this->normalizePositionName($name));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function corePositionSystemKeys(): array
+    {
+        return [
+            Position::KEY_ADMINISTRATOR => 'Administrator',
+            Position::KEY_CHIEF_OPERATING_OFFICER => 'Chief Operating Officer',
+            Position::KEY_DIRECTOR => 'Director',
+            Position::KEY_SUPERVISOR => 'Supervisor',
+            Position::KEY_ACCOUNTING_TAXATION => 'Accounting and Taxation',
+        ];
+    }
+
     private function normalizeRoleName(string $name): string
     {
-        return trim($name) === 'Superuser' ? 'superuser' : trim($name);
+        return match (trim($name)) {
+            'Superuser' => 'Staff',
+            'Board of Directors' => 'Staff',
+            default => trim($name),
+        };
     }
 
     private function legacyEmail(array $legacyUser): string
@@ -1271,21 +1573,6 @@ class LegacySqlUserSeeder extends Seeder
         }
 
         return 'legacy-user-'.$legacyUser['id'].'@legacy.local';
-    }
-
-    private function uniqueUsername(array $legacyUser): string
-    {
-        $username = trim((string) $legacyUser['username']);
-
-        if ($username === '') {
-            $username = Str::slug((string) $legacyUser['name']);
-        }
-
-        if ($username === '') {
-            $username = 'legacy-user-'.$legacyUser['id'];
-        }
-
-        return $username;
     }
 
     private function legacyEmployeeCode(array $legacyUser): string
@@ -1350,14 +1637,14 @@ class LegacySqlUserSeeder extends Seeder
             ->value('id')
             ?? Company::query()->orderBy('name')->value('id');
         $departmentId = DB::table('departments')->where('name', 'Administrator')->value('id');
-        $positionId = DB::table('positions')->where('name', 'Super Administrator')->value('id');
+        $positionId = DB::table('positions')->where('system_key', Position::KEY_SUPER_ADMINISTRATOR)->value('id');
 
         if (! is_string($positionId) || trim($positionId) === '') {
             throw new RuntimeException('Position Super Administrator tidak ditemukan.');
         }
 
         Role::query()->firstOrCreate([
-            'name' => 'superuser',
+            'name' => 'Staff',
             'guard_name' => 'web',
         ]);
 
@@ -1365,8 +1652,6 @@ class LegacySqlUserSeeder extends Seeder
             ['email' => 'superadmin@andalanbersama.com'],
             [
                 'company_id' => $companyId,
-                'username' => 'superadmin',
-                'business_email' => 'superadmin@andalanbersama.com',
                 'password' => Hash::make('password'),
                 'is_active' => true,
                 'deleted_at' => null,
@@ -1374,7 +1659,7 @@ class LegacySqlUserSeeder extends Seeder
                 'updated_at' => $now,
             ],
         );
-        $user->syncRoles(['superuser']);
+        $user->syncRoles(['Staff']);
 
         $employee = Employee::withTrashed()->updateOrCreate(
             ['user_id' => $user->id],
@@ -1506,6 +1791,7 @@ class LegacySqlUserSeeder extends Seeder
             'view-talent-acquisition',
             'view-settings',
             'view-meeting',
+            'view-business-email',
         ];
     }
 
@@ -1542,40 +1828,6 @@ class LegacySqlUserSeeder extends Seeder
     private function syncRolePermissions(): void
     {
         Role::query()
-            ->where('name', 'superuser')
-            ->first()
-            ?->syncPermissions([
-                'view-dashboard',
-                'view-calendar',
-                'view-attendance',
-                'view-timesheet-reporting',
-                'view-admin-attendance',
-                'view-pic-attendance',
-                'view-director-attendance',
-                'view-authorization',
-                'view-employee-database',
-                'view-talent-acquisition',
-                'view-settings',
-                'view-meeting',
-            ]);
-
-        Role::query()
-            ->where('name', 'Board of Directors')
-            ->first()
-            ?->syncPermissions([
-                'view-dashboard',
-                'view-calendar',
-                'view-attendance',
-                'view-timesheet-reporting',
-                'view-director-attendance',
-                'view-authorization',
-                'view-employee-database',
-                'view-talent-acquisition',
-                'view-settings',
-                'view-meeting',
-            ]);
-
-        Role::query()
             ->where('name', 'Staff')
             ->first()
             ?->syncPermissions([
@@ -1584,6 +1836,7 @@ class LegacySqlUserSeeder extends Seeder
                 'view-attendance',
                 'view-timesheet-reporting',
                 'view-meeting',
+                'view-business-email',
             ]);
     }
 }

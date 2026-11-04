@@ -1,5 +1,12 @@
 <?php
 
+$catchAllUsername = fn (string $domain): string => str_replace(
+    '{domain}',
+    $domain,
+    env('CATCHALL_MAIL_USERNAME', 'catchall-temp@{domain}'),
+);
+$catchAllPassword = env('CATCHALL_MAIL_PASSWORD');
+
 return [
 
     /*
@@ -47,6 +54,82 @@ return [
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
+        'rnb' => [
+            'transport' => 'smtp',
+            'scheme' => env('RNB_MAIL_SCHEME', 'smtps'),
+            'host' => env('RNB_MAIL_HOST', 'mail.rnb.co.id'),
+            'port' => env('RNB_MAIL_PORT', 465),
+            'username' => $catchAllUsername('rnb.co.id'),
+            'password' => $catchAllPassword,
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'rnb.co.id'),
+        ],
+        'kma' => [
+            'transport' => 'smtp',
+            'scheme' => env('KMA_MAIL_SCHEME', 'smtps'),
+            'host' => env('KMA_MAIL_HOST', 'mail.karpetmerah.id'),
+            'port' => env('KMA_MAIL_PORT', 465),
+            'username' => $catchAllUsername('karpetmerah.id'),
+            'password' => $catchAllPassword,
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'karpetmerah.id'),
+        ],
+
+        'niskala' => [
+            'transport' => 'smtp',
+            'scheme' => env('NISKALA_MAIL_SCHEME', 'smtps'),
+            'host' => env('NISKALA_MAIL_HOST', 'mail.coffeeniskala.com'),
+            'port' => env('NISKALA_MAIL_PORT', 465),
+            'username' => $catchAllUsername('coffeeniskala.com'),
+            'password' => $catchAllPassword,
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'coffeeniskala.com'),
+        ],
+
+        'rne' => [
+            'transport' => 'smtp',
+            'scheme' => env('RNE_MAIL_SCHEME', 'smtps'),
+            'host' => env('RNE_MAIL_HOST', 'mail.rne.co.id'),
+            'port' => env('RNE_MAIL_PORT', 465),
+            'username' => $catchAllUsername('rne.co.id'),
+            'password' => $catchAllPassword,
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'rne.co.id'),
+        ],
+
+        'tms' => [
+            'transport' => 'smtp',
+            'scheme' => env('TMS_MAIL_SCHEME', 'smtps'),
+            'host' => env('TMS_MAIL_HOST', 'mail.tims.co.id'),
+            'port' => env('TMS_MAIL_PORT', 465),
+            'username' => $catchAllUsername('tims.co.id'),
+            'password' => $catchAllPassword,
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'tims.co.id'),
+        ],
+
+        'trah' => [
+            'transport' => 'smtp',
+            'scheme' => env('TRAH_MAIL_SCHEME', 'smtps'),
+            'host' => env('TRAH_MAIL_HOST', 'mail.trah.co.id'),
+            'port' => env('TRAH_MAIL_PORT', 465),
+            'username' => $catchAllUsername('trah.co.id'),
+            'password' => $catchAllPassword,
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'trah.co.id'),
+        ],
+
+        'inticoal' => [
+            'transport' => 'smtp',
+            'scheme' => env('INTICOAL_MAIL_SCHEME', 'smtps'),
+            'host' => env('INTICOAL_MAIL_HOST', 'mail.inticoal.co.id'),
+            'port' => env('INTICOAL_MAIL_PORT', 465),
+            'username' => $catchAllUsername('inticoal.co.id'),
+            'password' => $catchAllPassword,
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'inticoal.co.id'),
         ],
 
         'ses' => [

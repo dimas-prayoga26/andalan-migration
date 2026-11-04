@@ -47,8 +47,8 @@ class ProfilePageStructureTest extends TestCase
         $this->assertStringContainsString("return view('profile', \$this->profileData());", $controller);
         $this->assertStringContainsString("asset('assets/default_user.jpg')", $controller);
         $this->assertStringContainsString('employee:id,user_id,employee_code', $controller);
-        $this->assertStringContainsString("select(['id', 'username', 'email', 'phone'])", $controller);
-        $this->assertStringContainsString('employee.profile:id,employee_id,name,gender,marital_status,date_of_birth,profile_picture_path', $controller);
+        $this->assertStringContainsString("select(['id', 'email', 'phone'])", $controller);
+        $this->assertStringContainsString('employee.profile:id,employee_id,name,nickname,gender,marital_status,date_of_birth,profile_picture_path', $controller);
         $this->assertStringContainsString('current_office_location_id', $controller);
         $this->assertStringContainsString('employee.deployment.company:id,name', $controller);
         $this->assertStringContainsString('employee.deployment.officeLocation:id,name', $controller);
@@ -105,7 +105,7 @@ class ProfilePageStructureTest extends TestCase
         $this->assertStringContainsString('id="profilePasswordForm"', $profile);
         $this->assertStringContainsString('action="{{ route(\'profile.password.update\') }}" method="POST"', $profile);
         $this->assertSame(2, substr_count($profile, '<form id='));
-        $this->assertSame(1, substr_count($profile, '<div class="card m-b30">'));
+        $this->assertSame(1, substr_count($profile, '<div class="card h-auto m-b30">'));
         $this->assertStringContainsString('<h6 class="card-title">Account Setup</h6>', $profile);
         $this->assertStringContainsString('.profile-account-tabs', $profile);
         $this->assertStringContainsString('background: #f4f6fb;', $profile);
@@ -124,7 +124,7 @@ class ProfilePageStructureTest extends TestCase
         $this->assertStringContainsString("'female' => 'Female'", $controller);
         $this->assertStringContainsString('name="marital_status"', $profile);
         $this->assertStringContainsString('Marital Status', $profile);
-        $this->assertStringContainsString("['Lajang', 'Menikah']", $profile);
+        $this->assertStringContainsString('@foreach (array_keys(\App\Support\Employee\EmployeeDataOptions::MARITAL_STATUSES) as $status)', $profile);
         $this->assertStringContainsString('@selected($profileMaritalStatusValue === $status)', $profile);
         $this->assertStringContainsString('maritalStatusLabel', $controller);
         $this->assertStringContainsString("'single', 'lajang' => 'Lajang'", $controller);
@@ -179,6 +179,37 @@ class ProfilePageStructureTest extends TestCase
         $this->assertStringNotContainsString('dexignzone.com', $profile);
     }
 
+    public function test_profile_page_tabs_and_wizard_steps_fit_on_mobile(): void
+    {
+        $profile = File::get(resource_path('views/profile.blade.php'));
+        $wizardStyles = File::get(resource_path('views/employee_data/wizard/styles.blade.php'));
+
+        $mobileProfileStyles = substr($profile, strpos($profile, '@media (max-width: 575.98px)'));
+
+        $this->assertStringContainsString('grid-template-columns: repeat(2, minmax(0, 1fr));', $mobileProfileStyles);
+        $this->assertStringNotContainsString('flex: 1 1 0;', $mobileProfileStyles);
+
+        $this->assertStringContainsString('@media screen and (max-width: 640px)', $wizardStyles);
+        $this->assertStringContainsString('#employeeDataWizard.sw > .nav {', $wizardStyles);
+        $this->assertStringContainsString('flex-direction: row !important;', $wizardStyles);
+        $this->assertStringContainsString('flex-wrap: nowrap;', $wizardStyles);
+        $this->assertStringContainsString('#employeeDataWizard.sw > .nav > li {', $wizardStyles);
+    }
+
+    public function test_employee_data_wizard_step_nav_uses_neutral_theme_colors(): void
+    {
+        $wizardStyles = File::get(resource_path('views/employee_data/wizard/styles.blade.php'));
+
+        $this->assertStringContainsString('#employeeDataWizard.sw-theme-default > .nav {', $wizardStyles);
+        $this->assertStringContainsString('box-shadow: none !important;', $wizardStyles);
+        $this->assertStringContainsString('border-bottom: 1px solid var(--bs-border-color, #e7eaf3);', $wizardStyles);
+        $this->assertStringContainsString('#employeeDataWizard.sw-theme-default > .nav .nav-link.active::after {', $wizardStyles);
+        $this->assertStringContainsString('background: var(--bs-primary) !important;', $wizardStyles);
+        $this->assertStringContainsString('#employeeDataWizard.sw-theme-default > .nav .nav-link.done::after {', $wizardStyles);
+        $this->assertStringNotContainsString('#17a2b8', $wizardStyles);
+        $this->assertStringNotContainsString('#5cb85c', $wizardStyles);
+    }
+
     public function test_profile_update_request_limits_gender_and_profile_fields(): void
     {
         $request = File::get(app_path('Http/Requests/ProfileUpdateRequest.php'));
@@ -187,7 +218,7 @@ class ProfilePageStructureTest extends TestCase
         $this->assertStringContainsString('class ProfileUpdateRequest extends FormRequest', $request);
         $this->assertStringContainsString('return true;', $request);
         $this->assertStringContainsString("'gender' => ['nullable', Rule::in(['Male', 'Female'])]", $request);
-        $this->assertStringContainsString("'marital_status' => ['nullable', Rule::in(['Lajang', 'Menikah'])]", $request);
+        $this->assertStringContainsString("'marital_status' => ['nullable', Rule::in(array_keys(EmployeeDataOptions::MARITAL_STATUSES))]", $request);
         $this->assertStringContainsString("'birth' => ['nullable', 'date_format:Y-m-d']", $request);
         $this->assertStringContainsString("Rule::unique('users', 'email')->ignore(\$this->user()?->id)", $request);
         $this->assertStringContainsString("'profile_picture' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:1024']", $photoRequest);

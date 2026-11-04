@@ -43,6 +43,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
     public function test_multiple_position_schema_and_relations_are_registered(): void
     {
         $migration = file_get_contents(database_path('migrations/2026_06_30_114352_create_employee_deployment_positions_table.php'));
+        $sortOrderMigration = file_get_contents(database_path('migrations/2026_09_24_000000_add_sort_order_to_employee_deployment_positions_table.php'));
         $deploymentModel = file_get_contents(app_path('Models/EmployeeDeployment.php'));
         $positionModel = file_get_contents(app_path('Models/Position.php'));
 
@@ -52,9 +53,14 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringContainsString('position_id', $migration);
         $this->assertStringContainsString('is_primary', $migration);
 
+        $this->assertIsString($sortOrderMigration);
+        $this->assertStringContainsString("Schema::hasColumn('employee_deployment_positions', 'sort_order')", $sortOrderMigration);
+        $this->assertStringContainsString("unsignedSmallInteger('sort_order')", $sortOrderMigration);
+
         $this->assertIsString($deploymentModel);
         $this->assertStringContainsString('function positions(): BelongsToMany', $deploymentModel);
         $this->assertStringContainsString("'employee_deployment_positions'", $deploymentModel);
+        $this->assertStringContainsString("'sort_order'", $deploymentModel);
 
         $this->assertIsString($positionModel);
         $this->assertStringContainsString('function deployments(): BelongsToMany', $positionModel);
@@ -72,29 +78,31 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringNotContainsString("'System Administrator'", $positionSeeder);
 
         $this->assertIsString($permissionSeeder);
-        $this->assertStringContainsString("->where('name', 'Super Administrator')", $permissionSeeder);
+        $this->assertStringContainsString('->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR)', $permissionSeeder);
         $this->assertStringContainsString('->permissions()->detach()', $permissionSeeder);
         $this->assertStringNotContainsString("'Super Administrator' => \$allPermissions", $permissionSeeder);
-        $this->assertStringContainsString("'Administrator' => \$allPermissionsWithoutPic", $permissionSeeder);
-        $this->assertStringContainsString("'Chief Operating Officer' => \$directorPermissions", $permissionSeeder);
-        $this->assertStringContainsString('?->syncPermissions($permissionNames)', $permissionSeeder);
+        $this->assertStringContainsString('Position::KEY_ADMINISTRATOR => $allPermissionsWithoutPic', $permissionSeeder);
+        $this->assertStringContainsString('Position::KEY_CHIEF_OPERATING_OFFICER => $directorPermissions', $permissionSeeder);
+        $this->assertStringContainsString("->where('name', 'Staff')", $permissionSeeder);
 
         $this->assertIsString($positionMigration);
         $this->assertStringContainsString("string('name', 191)->unique('positions_name_unique')", $positionMigration);
     }
 
-    public function test_position_permissions_read_only_primary_position_for_access(): void
+    public function test_position_permissions_read_primary_position_for_authorization(): void
     {
         $userModel = file_get_contents(app_path('Models/User.php'));
         $middleware = file_get_contents(app_path('Http/Middleware/EnsurePositionPermission.php'));
         $sidebarComposer = file_get_contents(app_path('View/Composers/SidebarPermissionComposer.php'));
 
         $this->assertIsString($userModel);
-        $this->assertStringContainsString("if (\$this->hasRole('superuser'))", $userModel);
+        $this->assertStringContainsString("contains('system_key', Position::KEY_SUPER_ADMINISTRATOR)", $userModel);
         $this->assertStringContainsString("'employee.deployment.position.permissions:uuid,name'", $userModel);
         $this->assertStringContainsString("'employee.deployment.positions.permissions:uuid,name'", $userModel);
         $this->assertStringContainsString('permissionPositionsForDeployment', $userModel);
-        $this->assertStringContainsString('pivot?->is_primary', $userModel);
+        $this->assertStringContainsString('$position->pivot?->is_primary', $userModel);
+        $this->assertStringContainsString('$position->pivot?->sort_order', $userModel);
+        $this->assertStringContainsString('->take(2)', $userModel);
 
         $this->assertIsString($middleware);
         $this->assertStringContainsString('hasAnyPositionPermission($permissionNames)', $middleware);
@@ -112,19 +120,20 @@ class EmployeeMultiplePositionSupportTest extends TestCase
 
         $this->assertIsString($controller);
         $this->assertStringContainsString("'current_position_ids' => ['array']", $controller);
+        $this->assertStringContainsString("'current_position_order' => ['array']", $controller);
+        $this->assertStringContainsString("'sort_order' => \$index", $controller);
         $this->assertStringContainsString('syncDeploymentPositions(', $controller);
         $this->assertStringContainsString('$this->positionNamesFor($user->employee)', $controller);
 
         $this->assertIsString($form);
         $this->assertStringContainsString('name="current_position_id"', $form);
-        $this->assertStringContainsString('data-position-primary-input', $form);
         $this->assertStringContainsString('name="current_position_ids[]"', $form);
+        $this->assertStringContainsString('data-position-primary-input', $form);
+        $this->assertStringContainsString('data-position-order-fields', $form);
+        $this->assertStringContainsString("input.name = 'current_position_order[]'", $form);
         $this->assertStringContainsString('js-position-primary-selector', $form);
-        $this->assertStringNotContainsString('js-position-role-summary', $form);
-        $this->assertStringContainsString('positionBaseLabel', $form);
         $this->assertStringContainsString('Primary Position', $form);
         $this->assertStringContainsString('Secondary Position', $form);
-        $this->assertStringContainsString('selectedPositionOrder = @js($selectedPositionIds->all())', $form);
         $this->assertStringContainsString('multiple', $form);
 
         $this->assertIsString($show);
@@ -133,11 +142,11 @@ class EmployeeMultiplePositionSupportTest extends TestCase
 
     public function test_super_administrator_is_not_assignable_from_access_menu_editor(): void
     {
-        $controller = file_get_contents(app_path('Http/Controllers/AuthorizationController.php'));
+        $levelPermissionService = file_get_contents(app_path('Services/PositionLevelPermissionService.php'));
 
-        $this->assertIsString($controller);
-        $this->assertStringContainsString("->where('name', '<>', 'Super Administrator')", $controller);
-        $this->assertStringContainsString('->intersect($assignablePositionIds)', $controller);
+        $this->assertIsString($levelPermissionService);
+        $this->assertStringContainsString('->whereNotSystemKey(Position::KEY_SUPER_ADMINISTRATOR)', $levelPermissionService);
+        $this->assertStringContainsString('->intersect($grantedPositionIds)', $levelPermissionService);
     }
 
     public function test_leave_grouping_and_seeders_no_longer_depend_only_on_current_position_id(): void
@@ -174,19 +183,19 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringContainsString("employeeByEmail('diktanamira@gmail.com')", $niskalaSeeder);
         $this->assertStringContainsString("employeeByEmail('halloerlin@gmail.com')", $niskalaSeeder);
         $this->assertStringContainsString("employeeByEmail('leonieputri7@gmail.com')", $niskalaSeeder);
-        $this->assertGreaterThanOrEqual(2, substr_count($niskalaSeeder, "'additional_position_names' => ['Administrator', 'Accounting and Taxation']"));
-        $this->assertStringContainsString("'additional_position_names' => ['Administrator', 'Accounting and Taxation']", $niskalaSeeder);
+        $this->assertGreaterThanOrEqual(2, substr_count($niskalaSeeder, "'additional_position_system_keys' => [Position::KEY_ADMINISTRATOR, Position::KEY_ACCOUNTING_TAXATION]"));
+        $this->assertStringContainsString("'additional_position_system_keys' => [Position::KEY_ADMINISTRATOR, Position::KEY_ACCOUNTING_TAXATION]", $niskalaSeeder);
         $this->assertStringContainsString('seedPendingSupervisorReviewLeaveRequest($mevia', $niskalaSeeder);
         $this->assertStringContainsString('seedPendingSupervisorReviewLeaveRequest($erlin', $niskalaSeeder);
         $this->assertStringContainsString('NiskalaMultiPicLeaveSeeder::class', $databaseSeeder);
-        $this->assertStringContainsString("'halloerlin@gmail.com' => ['Administrator', 'Accounting and Taxation']", $legacySeeder);
-        $this->assertStringContainsString("'diktanamira@gmail.com' => ['Administrator', 'Accounting and Taxation']", $legacySeeder);
-        $this->assertStringContainsString("'leonieputri7@gmail.com' => ['Administrator', 'Supervisor']", $legacySeeder);
-        $this->assertStringContainsString("'msyafiq.dev@gmail.com' => ['Supervisor']", $legacySeeder);
-        $this->assertStringContainsString("'rexy@andalanbersama.com' => ['Supervisor']", $legacySeeder);
-        $this->assertStringContainsString("'fuadmfahrudin@gmail.com' => ['Supervisor']", $legacySeeder);
-        $this->assertStringContainsString("'fahmil@andalanbersama.com' => ['Supervisor']", $legacySeeder);
-        $this->assertStringContainsString("'lukman@rnbmanagement.com' => ['Director', 'Supervisor']", $legacySeeder);
+        $this->assertStringContainsString("'halloerlin@gmail.com' => [Position::KEY_ADMINISTRATOR, Position::KEY_ACCOUNTING_TAXATION]", $legacySeeder);
+        $this->assertStringContainsString("'diktanamira@gmail.com' => [Position::KEY_ADMINISTRATOR, Position::KEY_ACCOUNTING_TAXATION]", $legacySeeder);
+        $this->assertStringContainsString("'leonieputri7@gmail.com' => [Position::KEY_ADMINISTRATOR, Position::KEY_SUPERVISOR]", $legacySeeder);
+        $this->assertStringContainsString("'msyafiq.dev@gmail.com' => [Position::KEY_SUPERVISOR]", $legacySeeder);
+        $this->assertStringContainsString("'rexy@andalanbersama.com' => [Position::KEY_SUPERVISOR]", $legacySeeder);
+        $this->assertStringContainsString("'fuadmfahrudin@gmail.com' => [Position::KEY_SUPERVISOR]", $legacySeeder);
+        $this->assertStringContainsString("'fahmil@andalanbersama.com' => [Position::KEY_SUPERVISOR]", $legacySeeder);
+        $this->assertStringContainsString("'lukman@rnbmanagement.com' => [Position::KEY_DIRECTOR, Position::KEY_SUPERVISOR]", $legacySeeder);
         $this->assertStringContainsString("'rully.priyatno@andalanbersama.com'", $legacySeeder);
         $this->assertStringContainsString("'hilmi.ulwan@andalanbersama.com'", $legacySeeder);
         $this->assertStringContainsString("'adik@andalanbersama.com'", $legacySeeder);
@@ -227,8 +236,8 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $niskalaSeeder = file_get_contents(database_path('seeders/NiskalaMultiPicLeaveSeeder.php'));
 
         $this->assertIsString($legacySeeder);
-        $this->assertStringContainsString("'username' => 'superadmin'", $legacySeeder);
-        $this->assertStringContainsString("\$user->syncRoles(['superuser']);", $legacySeeder);
+        $this->assertStringNotContainsString("'username' =>", $legacySeeder);
+        $this->assertStringContainsString('$user->syncRoles([\'Staff\']);', $legacySeeder);
         $this->assertStringNotContainsString("'admin@andalanbersama.com' => 'Administrator'", $legacySeeder);
         $this->assertStringNotContainsString("'admin@andalanbersama.com' => ['Administrator']", $legacySeeder);
         $this->assertStringNotContainsString("'admin@andalanbersama.com' => 'Super Administrator'", $legacySeeder);
@@ -238,7 +247,7 @@ class EmployeeMultiplePositionSupportTest extends TestCase
         $this->assertStringNotContainsString("'halloerlin@gmail.com' => ['Super Administrator']", $legacySeeder);
 
         $this->assertIsString($niskalaSeeder);
-        $this->assertStringNotContainsString("'additional_position_names' => ['Super Administrator']", $niskalaSeeder);
+        $this->assertStringNotContainsString("'additional_position_system_keys' => [Position::KEY_SUPER_ADMINISTRATOR]", $niskalaSeeder);
         $this->assertStringNotContainsString('Admin RNB 2', $niskalaSeeder);
         $this->assertStringNotContainsString('admin3b@gmail.com', $niskalaSeeder);
     }

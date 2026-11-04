@@ -68,6 +68,115 @@
             padding: 0.35rem 0.75rem;
         }
 
+        .talent-status-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0 0 1rem;
+        }
+
+        .talent-status-tab {
+            --talent-status-color: #1239b3;
+            --talent-status-bg: #e8eefc;
+            --talent-status-border: #1d4ed8;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            min-height: 36px;
+            border: 1px solid #e2e5ec;
+            border-radius: 999px;
+            background: #fff;
+            color: #5f6b7a;
+            font-size: 0.85rem;
+            font-weight: 700;
+            line-height: 1.2;
+            padding: 0.3rem 0.4rem 0.3rem 0.85rem;
+            transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+        }
+
+        .talent-status-tab:hover {
+            border-color: var(--talent-status-border);
+            color: var(--talent-status-color);
+        }
+
+        .talent-status-tab.active {
+            border-color: var(--talent-status-border);
+            background: var(--talent-status-bg);
+            color: var(--talent-status-color);
+        }
+
+        .talent-status-tab.status-value-0 {
+            --talent-status-color: #4b5563;
+            --talent-status-bg: #f3f4f6;
+            --talent-status-border: #9ca3af;
+        }
+
+        .talent-status-tab.status-value-1 {
+            --talent-status-color: #2448c7;
+            --talent-status-bg: #eef2ff;
+            --talent-status-border: #818cf8;
+        }
+
+        .talent-status-tab.status-value-2 {
+            --talent-status-color: #c2410c;
+            --talent-status-bg: #fff7ed;
+            --talent-status-border: #fb923c;
+        }
+
+        .talent-status-tab.status-value-3 {
+            --talent-status-color: #0e7490;
+            --talent-status-bg: #ecfeff;
+            --talent-status-border: #22d3ee;
+        }
+
+        .talent-status-tab.status-value-4 {
+            --talent-status-color: #047857;
+            --talent-status-bg: #ecfdf5;
+            --talent-status-border: #34d399;
+        }
+
+        .talent-status-tab.status-value-5 {
+            --talent-status-color: #be123c;
+            --talent-status-bg: #fff1f2;
+            --talent-status-border: #fb7185;
+        }
+
+        .talent-status-tab-end {
+            margin-left: auto;
+        }
+
+        .talent-status-dot {
+            width: 8px;
+            height: 8px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: var(--talent-status-color);
+        }
+
+        .talent-status-count {
+            min-width: 1.6rem;
+            border-radius: 999px;
+            background: #f1f3f7;
+            color: #64748b;
+            font-size: 0.75rem;
+            font-weight: 700;
+            line-height: 1;
+            padding: 0.3rem 0.45rem;
+            text-align: center;
+        }
+
+        .talent-status-tab.active .talent-status-count {
+            background: var(--talent-status-color);
+            color: #fff;
+        }
+
+        .talent-status-divider {
+            width: 1px;
+            height: 22px;
+            background: #e2e5ec;
+        }
+
         .talent-photo {
             width: 34px;
             height: 34px;
@@ -89,19 +198,63 @@
         }
 
         .talent-status-form {
+            align-items: center;
             display: inline-flex;
             vertical-align: middle;
         }
 
+        .talent-status-select-shell {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            min-width: 160px;
+        }
+
+        .talent-status-select-shell::after {
+            content: "";
+            position: absolute;
+            right: 0.85rem;
+            width: 0.45rem;
+            height: 0.45rem;
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            color: #64748b;
+            pointer-events: none;
+            transform: translateY(-20%) rotate(45deg);
+        }
+
         .talent-status-select {
-            min-height: 28px;
+            appearance: none;
+            min-height: 42px;
+            width: 100%;
             border: 1px solid #d9dce5;
-            border-radius: 0.35rem;
+            border-radius: 0.6rem;
             background: #fff;
             color: #27334a;
-            font-size: 0.78rem;
+            cursor: pointer;
+            font-size: 0.86rem;
             font-weight: 700;
-            padding: 0.15rem 1.75rem 0.15rem 0.5rem;
+            line-height: 1.2;
+            padding: 0.45rem 2.25rem 0.45rem 0.9rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+        }
+
+        .talent-status-select:hover {
+            border-color: #b8c0ce;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+        }
+
+        .talent-status-select:focus {
+            border-color: #93a4c0;
+            box-shadow: 0 0 0 0.18rem rgba(37, 99, 235, 0.12);
+            outline: 0;
+        }
+
+        .talent-status-select option {
+            background: #fff;
+            color: #111827;
+            font-weight: 500;
         }
 
         .talent-status-select.status-value-0 {
@@ -123,9 +276,9 @@
         }
 
         .talent-status-select.status-value-3 {
-            background: #f0f9ff;
-            border-color: #bae6fd;
-            color: #0369a1;
+            background: #ecfeff;
+            border-color: #a5f3fc;
+            color: #0e7490;
         }
 
         .talent-status-select.status-value-4 {
@@ -135,85 +288,59 @@
         }
 
         .talent-status-select.status-value-5 {
-            background: #fef2f2;
-            border-color: #fecaca;
-            color: #b91c1c;
+            background: #fff1f2;
+            border-color: #fecdd3;
+            color: #be123c;
         }
 
-        .talent-status-tabs {
+        .talent-assessment-summary {
+            display: grid;
+            gap: 0.3rem;
+            min-width: 180px;
+        }
+
+        .talent-assessment-row {
             display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin: 0 0 1rem;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            font-size: 0.82rem;
         }
 
-        .talent-status-tab {
-            min-height: 36px;
-            border: 1px solid #d9dce5;
-            border-radius: 0.45rem;
-            background: #fff;
-            color: #5f6b7a;
-            font-size: 0.85rem;
+        .talent-assessment-label {
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .talent-assessment-score {
+            color: #1e293b;
             font-weight: 700;
-            padding: 0.35rem 0.75rem;
+            white-space: nowrap;
         }
 
-        .talent-status-tab.active {
-            border-color: #1d4ed8;
-            background: #e8eefc;
-            color: #1239b3;
+        .talent-assessment-score.is-empty {
+            color: #94a3b8;
+            font-weight: 600;
         }
 
-        .talent-action-group {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-        }
-
-        .talent-action-btn {
-            width: 34px;
-            height: 34px;
-            border: 0;
-            border-radius: 0.35rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-        }
-
-        .talent-action-btn.view {
-            background: #d9f2f4;
-            color: #287b84;
-        }
-
-        .talent-action-btn.file {
-            background: #f8e8b7;
-            color: #b77900;
-        }
-
-        .talent-action-btn.delete {
-            background: #ffe1e6;
-            color: #c0263d;
-        }
-
-        #applicantsTable thead th {
+        #datatable thead th {
             font-size: 1rem;
             font-weight: 600;
             padding: 1rem 0.75rem;
         }
 
-        #applicantsTable tbody td {
+        #datatable tbody td {
             font-size: 0.95rem;
             padding: 0.9rem 0.75rem;
             vertical-align: top;
         }
 
-        #applicantsTable thead th:first-child,
-        #applicantsTable tbody td:first-child {
+        #datatable thead th:first-child,
+        #datatable tbody td:first-child {
             text-align: center !important;
         }
 
-        #applicantsTable_wrapper .dt-layout-row:first-child {
+        #datatable_wrapper .dt-layout-row:first-child {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -221,55 +348,55 @@
             margin: 0 0 1rem;
         }
 
-        #applicantsTable_wrapper .dataTables_length,
-        #applicantsTable_wrapper .dataTables_filter {
+        #datatable_wrapper .dataTables_length,
+        #datatable_wrapper .dataTables_filter {
             display: inline-flex;
             align-items: center;
             gap: 0.55rem;
             margin-bottom: 1rem;
         }
 
-        #applicantsTable_wrapper .dataTables_filter {
+        #datatable_wrapper .dataTables_filter {
             float: right;
         }
 
-        #applicantsTable_wrapper .dt-layout-row:first-child .dt-layout-cell {
+        #datatable_wrapper .dt-layout-row:first-child .dt-layout-cell {
             display: flex;
             align-items: center;
             width: auto;
         }
 
-        #applicantsTable_wrapper .dt-layout-row:first-child .dt-layout-cell:first-child {
+        #datatable_wrapper .dt-layout-row:first-child .dt-layout-cell:first-child {
             justify-content: flex-start;
         }
 
-        #applicantsTable_wrapper .dt-layout-row:first-child .dt-layout-cell:last-child {
+        #datatable_wrapper .dt-layout-row:first-child .dt-layout-cell:last-child {
             justify-content: flex-end;
         }
 
-        #applicantsTable_wrapper .dt-length,
-        #applicantsTable_wrapper .dt-search,
-        #applicantsTable_wrapper .dataTables_length label,
-        #applicantsTable_wrapper .dataTables_filter label {
+        #datatable_wrapper .dt-length,
+        #datatable_wrapper .dt-search,
+        #datatable_wrapper .dataTables_length label,
+        #datatable_wrapper .dataTables_filter label {
             display: inline-flex;
             align-items: center;
             gap: 0.55rem;
             margin: 0;
         }
 
-        #applicantsTable_wrapper .dt-length label,
-        #applicantsTable_wrapper .dt-search label,
-        #applicantsTable_wrapper .dataTables_length label,
-        #applicantsTable_wrapper .dataTables_filter label {
+        #datatable_wrapper .dt-length label,
+        #datatable_wrapper .dt-search label,
+        #datatable_wrapper .dataTables_length label,
+        #datatable_wrapper .dataTables_filter label {
             margin: 0;
             color: #5f6b7a;
             font-weight: 600;
         }
 
-        #applicantsTable_wrapper .dt-length select,
-        #applicantsTable_wrapper .dt-search input,
-        #applicantsTable_wrapper .dataTables_length select,
-        #applicantsTable_wrapper .dataTables_filter input {
+        #datatable_wrapper .dt-length select,
+        #datatable_wrapper .dt-search input,
+        #datatable_wrapper .dataTables_length select,
+        #datatable_wrapper .dataTables_filter input {
             min-height: 38px;
             border: 1px solid #d9dce5;
             border-radius: 0.5rem;
@@ -278,15 +405,15 @@
             box-shadow: none;
         }
 
-        #applicantsTable_wrapper .dt-search input,
-        #applicantsTable_wrapper .dataTables_filter input {
+        #datatable_wrapper .dt-search input,
+        #datatable_wrapper .dataTables_filter input {
             width: 220px;
             max-width: 100%;
             padding: 0.35rem 0.75rem;
         }
 
-        #applicantsTable_wrapper .dt-length select,
-        #applicantsTable_wrapper .dataTables_length select {
+        #datatable_wrapper .dt-length select,
+        #datatable_wrapper .dataTables_length select {
             padding: 0.35rem 2rem 0.35rem 0.75rem;
         }
 
@@ -306,28 +433,32 @@
                 max-width: 100%;
             }
 
-            #applicantsTable_wrapper .dt-layout-row:first-child {
+            .talent-status-tab-end {
+                margin-left: 0;
+            }
+
+            #datatable_wrapper .dt-layout-row:first-child {
                 align-items: stretch;
                 flex-direction: column;
             }
 
-            #applicantsTable_wrapper .dt-layout-row:first-child .dt-layout-cell,
-            #applicantsTable_wrapper .dt-length,
-            #applicantsTable_wrapper .dt-search,
-            #applicantsTable_wrapper .dataTables_length,
-            #applicantsTable_wrapper .dataTables_filter,
-            #applicantsTable_wrapper .dataTables_length label,
-            #applicantsTable_wrapper .dataTables_filter label {
+            #datatable_wrapper .dt-layout-row:first-child .dt-layout-cell,
+            #datatable_wrapper .dt-length,
+            #datatable_wrapper .dt-search,
+            #datatable_wrapper .dataTables_length,
+            #datatable_wrapper .dataTables_filter,
+            #datatable_wrapper .dataTables_length label,
+            #datatable_wrapper .dataTables_filter label {
                 justify-content: space-between;
                 width: 100%;
             }
 
-            #applicantsTable_wrapper .dataTables_filter {
+            #datatable_wrapper .dataTables_filter {
                 float: none;
             }
 
-            #applicantsTable_wrapper .dt-search input,
-            #applicantsTable_wrapper .dataTables_filter input {
+            #datatable_wrapper .dt-search input,
+            #datatable_wrapper .dataTables_filter input {
                 width: 100%;
             }
         }
@@ -361,16 +492,11 @@
                 </ul>
             </div>
             <div class="card-body">
-                @if (! ($syncResult['available'] ?? true))
-                    <div class="alert alert-warning mb-3" role="alert">
-                        {{ $syncResult['message'] ?? 'Koneksi database legacy belum tersedia.' }}
-                    </div>
-                @endif
                 @if (session('status'))
-                    <div class="alert alert-success mb-3" role="alert">{{ session('status') }}</div>
+                    @include('partials.swal-alert', ['type' => 'success', 'message' => session('status')])
                 @endif
                 @if ($errors->any())
-                    <div class="alert alert-danger mb-3" role="alert">{{ $errors->first() }}</div>
+                    @include('partials.swal-alert', ['type' => 'error', 'message' => $errors->first()])
                 @endif
 
                 <div class="talent-header-bar">
@@ -387,92 +513,26 @@
                 </div>
 
                 <div class="talent-status-tabs" role="tablist" aria-label="Filter status pelamar">
+                    <button type="button" class="talent-status-tab active" data-status-value="" role="tab" aria-selected="true">
+                        Semua
+                        <span class="talent-status-count" data-status-count="all">&ndash;</span>
+                    </button>
+                    <span class="talent-status-divider" aria-hidden="true"></span>
                     @foreach ($applicantStatuses as $applicantStatus)
-                        <button type="button" class="talent-status-tab" data-status-value="{{ $applicantStatus->value }}" role="tab" aria-selected="false">
+                        <button type="button" @class([
+                            'talent-status-tab',
+                            'status-value-'.$applicantStatus->value,
+                            'talent-status-tab-end' => $applicantStatus->value === \App\Models\ApplicantStatus::VALUE_NOT_SUITABLE,
+                        ]) data-status-value="{{ $applicantStatus->value }}" role="tab" aria-selected="false">
+                            <span class="talent-status-dot" aria-hidden="true"></span>
                             {{ $applicantStatus->name }}
+                            <span class="talent-status-count" data-status-count="{{ $applicantStatus->value }}">&ndash;</span>
                         </button>
                     @endforeach
                 </div>
 
                 <div class="table-responsive">
-                    <table id="applicantsTable" class="display table">
-                        <thead>
-                        <tr>
-                            <th class="mw-80">No</th>
-                            <th class="mw-100">Photo</th>
-                            <th class="mw-220">Nama Lengkap</th>
-                            <th class="mw-220">Posisi Dilamar</th>
-                            <th class="mw-420">Keterangan</th>
-                            <th class="mw-120">Action</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        @forelse ($applicants as $applicant)
-                            @php
-                                $photoUrl = $applicant->photoUrl();
-                                $applicantStatusValue = $applicantStatuses->firstWhere('id', $applicant->applicant_status_id)?->value ?? 0;
-                            @endphp
-                            <tr data-status-value="{{ $applicantStatusValue }}">
-                                <td>{{ $loop->iteration }}.</td>
-                                <td>
-                                    <span class="talent-photo" title="{{ $applicant->photo ?: 'No photo' }}">
-                                        @if ($photoUrl)
-                                            <img
-                                                src="{{ $photoUrl }}"
-                                                alt="{{ $applicant->full_name }}"
-                                                loading="lazy"
-                                                decoding="async"
-                                                onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
-                                                onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';"
-                                            >
-                                            <i class="bi bi-person-fill" style="display: none;"></i>
-                                        @else
-                                            <i class="bi bi-person-fill"></i>
-                                        @endif
-                                    </span>
-                                </td>
-                                <td>{{ $applicant->full_name }}</td>
-                                <td>{{ $applicant->jobVacancy?->name ?? '-' }}</td>
-                                <td>
-                                    <form method="POST" action="{{ route('applicant.status.update', ['applicant' => $applicant->id]) }}" class="talent-status-form">
-                                        @csrf
-                                        @method('PATCH')
-                                        <select name="applicant_status_id" class="talent-status-select status-value-{{ $applicantStatusValue }}" onchange="updateApplicantStatusColor(this); this.form.submit()" aria-label="Update status {{ $applicant->full_name }}">
-                                            @foreach ($applicantStatuses as $applicantStatus)
-                                                <option value="{{ $applicantStatus->id }}" data-status-value="{{ $applicantStatus->value }}" @selected($applicant->applicant_status_id === $applicantStatus->id)>
-                                                    {{ $applicantStatus->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </form>
-                                </td>
-                                <td>
-                                    <div class="talent-action-group">
-                                        <a href="{{ route('applicant.show', ['applicant' => $applicant->id]) }}" class="talent-action-btn view" title="Detail">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <form
-                                            method="POST"
-                                            action="{{ route('applicant.destroy', ['applicant' => $applicant->id]) }}"
-                                            data-applicant-delete-form
-                                            data-applicant-name="{{ $applicant->full_name }}"
-                                        >
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="talent-action-btn delete" title="Delete">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="text-center text-muted">Belum ada data pelamar.</td>
-                            </tr>
-                        @endforelse
-                        </tbody>
-                    </table>
+                    <table id="datatable" class="table table-bordered text-nowrap w-100"></table>
                 </div>
             </div>
         </div>
@@ -482,17 +542,27 @@
 
 @section('script')
     @php
-        $dashboardJsPath = public_path('assets/js/dashboard.js');
-        $dashboardJsVersion = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
         $dataTablesJsPath = public_path('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js');
         $dataTablesJsVersion = file_exists($dataTablesJsPath) ? filemtime($dataTablesJsPath) : time();
-        $sweetAlertJsPath = public_path('assets/vendor/sweetalert2/sweetalert2.min.js');
-        $sweetAlertJsVersion = file_exists($sweetAlertJsPath) ? filemtime($sweetAlertJsPath) : time();
     @endphp
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.bundle.min.js') }}?v={{ $dataTablesJsVersion }}"></script>
-    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}?v={{ $sweetAlertJsVersion }}"></script>
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ $dashboardJsVersion }}"></script>
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}"></script>
     <script>
+        var applicantStatuses = @json($applicantStatuses->map(fn ($status) => ['id' => (string) $status->id, 'value' => (int) $status->value, 'name' => (string) $status->name])->values());
+        var csrfToken = @json(csrf_token());
+        var applicantStatusUpdateUrlTemplate = @json(route('applicant.status.update', ['applicant' => '__APPLICANT_ID__']));
+        var applicantShowUrlTemplate = @json(route('applicant.show', ['applicant' => '__APPLICANT_ID__']));
+        var applicantAssessmentUrlTemplate = @json(route('applicant.assessment', ['applicant' => '__APPLICANT_ID__']));
+        var applicantDestroyUrlTemplate = @json(route('applicant.destroy', ['applicant' => '__APPLICANT_ID__']));
+
+        function escapeHtml(value) {
+            return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
+        }
+
+        function applicantUrl(template, applicantId) {
+            return template.replace('__APPLICANT_ID__', encodeURIComponent(applicantId));
+        }
+
         function updateApplicantStatusColor(selectElement) {
             var selectedOption = selectElement.options[selectElement.selectedIndex];
             var statusValue = selectedOption ? selectedOption.dataset.statusValue : '0';
@@ -501,96 +571,237 @@
             selectElement.classList.add('status-value-' + statusValue);
         }
 
+        function renderApplicantPhoto(applicant) {
+            var title = escapeHtml(applicant.photo || 'No photo');
+
+            if (!applicant.photo_url) {
+                return '<span class="talent-photo" title="' + title + '"><i class="bi bi-person-fill"></i></span>';
+            }
+
+            return '<span class="talent-photo" title="' + title + '">'
+                + '<img src="' + escapeHtml(applicant.photo_url) + '" alt="' + escapeHtml(applicant.full_name) + '" loading="lazy" decoding="async" onload="this.style.display=\'block\'; this.nextElementSibling.style.display=\'none\';" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'inline-block\';">'
+                + '<i class="bi bi-person-fill" style="display: none;"></i>'
+                + '</span>';
+        }
+
+        function renderApplicantStatus(applicant) {
+            var options = applicantStatuses.map(function (status) {
+                return '<option value="' + escapeHtml(status.id) + '" data-status-value="' + status.value + '"' + (String(applicant.applicant_status_id) === String(status.id) ? ' selected' : '') + '>'
+                    + escapeHtml(status.name)
+                    + '</option>';
+            }).join('');
+
+            return '<div class="talent-status-form">'
+                + '<span class="talent-status-select-shell">'
+                + '<select name="applicant_status_id" class="talent-status-select status-value-' + Number(applicant.applicant_status_value || 0) + '" onchange="updateApplicantStatusColor(this); updateStatus(\'' + escapeHtml(applicant.id) + '\', this.value)" aria-label="Update status ' + escapeHtml(applicant.full_name) + '">'
+                + options
+                + '</select>'
+                + '</span>'
+                + '</div>';
+        }
+
+        var applicantAssessmentSections = [
+            { key: 'hr_interview', label: 'HR Interview' },
+            { key: 'technical_test', label: 'Technical Test' },
+            { key: 'interview_user', label: 'Interview User' }
+        ];
+
+        function renderAssessmentSummary(applicant) {
+            var assessmentScores = applicant.assessment_scores || {};
+
+            return '<div class="talent-assessment-summary">'
+                + applicantAssessmentSections.map(function (assessmentSection) {
+                    var score = assessmentScores[assessmentSection.key];
+                    var hasScore = score !== null && score !== undefined;
+
+                    return '<div class="talent-assessment-row">'
+                        + '<span class="talent-assessment-label">' + assessmentSection.label + '</span>'
+                        + '<span class="talent-assessment-score' + (hasScore ? '' : ' is-empty') + '">'
+                        + (hasScore ? Math.round(Number(score)) + '/100' : '-')
+                        + '</span>'
+                        + '</div>';
+                }).join('')
+                + '</div>';
+        }
+
+        function renderApplicantAction(applicant) {
+            return actionMenu([
+                '<li><a class="dropdown-item" href="' + applicantUrl(applicantShowUrlTemplate, applicant.id) + '"><i class="bi bi-eye"></i>Detail</a></li>',
+                '<li><a class="dropdown-item" href="' + applicantUrl(applicantAssessmentUrlTemplate, applicant.id) + '"><i class="bi bi-clipboard-check"></i>Form Penilaian</a></li>',
+                '<li><button type="button" class="dropdown-item text-danger" onclick="deleteData(\'' + escapeHtml(applicant.id) + '\')"><i class="bi bi-trash"></i>Delete</button></li>'
+            ]);
+        }
+
+        function findApplicantRow(id) {
+            return $('#datatable').DataTable().rows().data().toArray().find(function (row) {
+                return String(row.id) === String(id);
+            });
+        }
+
+        function ajaxErrorMessage(xhr, fallbackMessage) {
+            return xhr && xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : fallbackMessage;
+        }
+
+        function deleteData(id) {
+            var applicant = findApplicantRow(id);
+
+            Swal.fire({
+                title: 'Hapus Data Pelamar?',
+                text: 'Data ' + (applicant ? applicant.full_name : 'pelamar ini') + ' akan dihapus permanen.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, hapus',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#dc3545',
+                reverseButtons: true,
+                focusCancel: true
+            }).then(function (result) {
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                $.ajax({
+                    url: applicantUrl(applicantDestroyUrlTemplate, id),
+                    type: 'DELETE',
+                    dataType: 'json',
+                    headers: { 'X-CSRF-TOKEN': csrfToken }
+                }).done(function (response) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: response.message });
+                    $('#datatable').DataTable().ajax.reload(null, false);
+                }).fail(function (xhr) {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: ajaxErrorMessage(xhr, 'Data pelamar gagal dihapus.') });
+                });
+            });
+        }
+
+        function updateStatus(id, status) {
+            $.ajax({
+                url: applicantUrl(applicantStatusUpdateUrlTemplate, id),
+                type: 'PATCH',
+                dataType: 'json',
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+                data: { applicant_status_id: status }
+            }).done(function (response) {
+                Swal.fire({ icon: response.mail_sent === false ? 'warning' : 'success', title: response.mail_sent === false ? 'Perhatian' : 'Berhasil', text: response.message });
+                $('#datatable').DataTable().ajax.reload(null, false);
+            }).fail(function (xhr) {
+                Swal.fire({ icon: 'error', title: 'Gagal', text: ajaxErrorMessage(xhr, 'Status pelamar gagal diperbarui.') });
+                $('#datatable').DataTable().ajax.reload(null, false);
+            });
+        }
+
+        function updateApplicantStatusCounts(json) {
+            if (!json || !json.status_counts) {
+                return;
+            }
+
+            $('[data-status-count]').each(function () {
+                var countKey = $(this).attr('data-status-count');
+                var count = countKey === 'all' ? json.total_count : json.status_counts[countKey];
+
+                $(this).text(Number(count || 0));
+            });
+        }
+
         $(function () {
             var selectedApplicantStatus = '';
 
-            var applicantsTable = $('#applicantsTable').DataTable({
-                order: [],
-                columnDefs: [
-                    { targets: [0, 1, 5], orderable: false }
-                ],
-                drawCallback: function () {
-                    var tableApi = this.api();
-                    var pageInfo = tableApi.page.info();
-
-                    tableApi.column(0, { page: 'current' }).nodes().each(function (cell, index) {
-                        cell.innerHTML = (pageInfo.start + index + 1) + '.';
-                    });
-                }
+            $('#datatable').on('xhr.dt', function (event, settings, json) {
+                updateApplicantStatusCounts(json);
             });
 
-            $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
-                if (settings.nTable.id !== 'applicantsTable' || !selectedApplicantStatus) {
-                    return true;
-                }
-
-                var rowNode = applicantsTable.row(dataIndex).node();
-
-                return rowNode && String(rowNode.dataset.statusValue) === selectedApplicantStatus;
+            var applicantsTable = $('#datatable').DataTable({
+                autoWidth: false,
+                ajax: {
+                    url: "{{ route('applicant.datatable') }}",
+                    data: function (requestData) {
+                        requestData.status_value = selectedApplicantStatus;
+                        requestData.job_vacancy_name = $('#positionFilter').val();
+                    },
+                    dataSrc: 'data'
+                },
+                processing: true,
+                serverSide: true,
+                order: [],
+                columns: [
+                    {
+                        title: 'No',
+                        className: 'mw-80',
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row, meta) {
+                            return (meta.row + meta.settings._iDisplayStart + 1) + '.';
+                        }
+                    },
+                    {
+                        title: 'Photo',
+                        className: 'mw-100',
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            return renderApplicantPhoto(row);
+                        }
+                    },
+                    { title: 'Nama Lengkap', className: 'mw-220', data: 'full_name' },
+                    { title: 'Posisi Dilamar', className: 'mw-220', data: 'job_vacancy_name' },
+                    {
+                        title: 'Keterangan',
+                        className: 'mw-420',
+                        data: null,
+                        render: function (data, type, row) {
+                            return renderApplicantStatus(row);
+                        }
+                    },
+                    {
+                        title: 'Penilaian',
+                        className: 'mw-180',
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            return renderAssessmentSummary(row);
+                        }
+                    },
+                    {
+                        title: 'Action',
+                        className: 'mw-120',
+                        data: null,
+                        searchable: false,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            return renderApplicantAction(row);
+                        }
+                    }
+                ],
+                columnDefs: [
+                    { targets: [0, 1, 5, 6], orderable: false }
+                ]
             });
 
             $('.talent-status-tab').on('click', function () {
-                var statusValue = String(this.dataset.statusValue);
-                var shouldReset = selectedApplicantStatus === statusValue;
+                var $tab = $(this);
 
-                selectedApplicantStatus = shouldReset ? '' : statusValue;
+                if ($tab.hasClass('active')) {
+                    return;
+                }
+
+                selectedApplicantStatus = $tab.attr('data-status-value');
+
                 $('.talent-status-tab')
                     .removeClass('active')
                     .attr('aria-selected', 'false');
 
-                if (!shouldReset) {
-                    $(this)
-                        .addClass('active')
-                        .attr('aria-selected', 'true');
-                }
+                $tab.addClass('active').attr('aria-selected', 'true');
 
-                applicantsTable.draw();
+                applicantsTable.ajax.reload();
             });
 
             $('#positionFilter').on('change', function () {
-                var selectedPosition = $(this).val();
-                var escapedPosition = $.fn.dataTable.util.escapeRegex(selectedPosition);
-
-                applicantsTable
-                    .column(3)
-                    .search(selectedPosition ? '^' + escapedPosition + '$' : '', true, false)
-                    .draw();
-            });
-
-            $(document).on('submit', '[data-applicant-delete-form]', function (event) {
-                var form = this;
-                var applicantName = form.dataset.applicantName || 'pelamar ini';
-
-                if (form.dataset.deleteConfirmed === 'true') {
-                    return;
-                }
-
-                event.preventDefault();
-
-                if (typeof Swal === 'undefined' || !Swal || typeof Swal.fire !== 'function') {
-                    return;
-                }
-
-                Swal.fire({
-                    title: 'Hapus data pelamar?',
-                    text: 'Data ' + applicantName + ' akan dihapus dari daftar pelamar.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Hapus',
-                    cancelButtonText: 'Batal',
-                    confirmButtonColor: '#dc2626',
-                    cancelButtonColor: '#64748b',
-                    reverseButtons: true,
-                    focusCancel: true
-                }).then(function (result) {
-                    if (!result.isConfirmed) {
-                        return;
-                    }
-
-                    form.dataset.deleteConfirmed = 'true';
-                    form.submit();
-                });
+                applicantsTable.ajax.reload();
             });
         });
     </script>
+    @stack('scripts')
 @endsection

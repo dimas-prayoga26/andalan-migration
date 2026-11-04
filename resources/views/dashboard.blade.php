@@ -28,6 +28,44 @@
             cursor: not-allowed;
             pointer-events: auto;
         }
+
+        .dashboard-incoming-meeting {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            padding: 18px 24px;
+            border: 1px dashed rgba(36, 68, 193, 0.35);
+            border-radius: 12px;
+            background: #eef3ff;
+            color: #071739;
+        }
+
+        .dashboard-incoming-meeting__icon {
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--bs-primary);
+            flex: 0 0 28px;
+            margin-top: 2px;
+        }
+
+        .dashboard-incoming-meeting__title {
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .dashboard-incoming-meeting__body,
+        .dashboard-incoming-meeting__meta {
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        .dashboard-incoming-meeting__meta a {
+            color: var(--bs-primary);
+            font-weight: 600;
+        }
     </style>
 @endsection
 
@@ -36,7 +74,6 @@
 @section('content')
 
     @php
-        $showDashboardMenuCarousel = false;
         $showDashboardInactiveShortcuts = false;
         $dashboardUser = auth()->user();
         $canViewDashboardEmployeeShortcut = false;
@@ -51,179 +88,45 @@
                 'view-employee-database',
             ]);
         }
+
+        $dashboardTaskProjectOptions = collect($dashboardTaskProjectOptions ?? []);
+        $dashboardTaskAssignableStaffOptions = collect($dashboardTaskAssignableStaffOptions ?? []);
+        $dashboardTaskProjectOptionsByEmployee = is_array($dashboardTaskProjectOptionsByEmployee ?? null) ? $dashboardTaskProjectOptionsByEmployee : [];
+        $dashboardTaskDefaultAssigneeEmployeeId = (string) ($dashboardTaskAssignableStaffOptions->first()['id'] ?? '');
     @endphp
 
     <div class="row">
 
         <div class="col-xl-12 col-xxl-12">
-            <div class="row">
 
-                @if ($showDashboardMenuCarousel)
-                <div class="dashboard-menu-carousel owl-carousel">
-                    <!-- Start - Laporan Pekerjaan -->
-                    <div class="dashboard-activity-item">
-                        <div class="card overflow-hidden avtivity-card">
-                            <div class="card-body">
-                                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                                    <span class="avatar avatar-lg avatar-success rounded-circle border-0">
-                                        <i class="fa-solid fa-clipboard-list fs-1 text-success"></i>
-                                    </span>
-                                    <div>
-                                        <p class="fs-12 mb-2">Laporan Pekerjaan</p>
-                                        <span class="title text-black fs-20 fw-semibold">128 Laporan</span>
-                                    </div>
+            @if (! empty($dashboardIncomingMeeting))
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="dashboard-incoming-meeting" data-dashboard-incoming-meeting-id="{{ $dashboardIncomingMeeting['id'] }}">
+                            <span class="dashboard-incoming-meeting__icon">
+                                <i class="fa-solid fa-video-camera"></i>
+                            </span>
+                            <div>
+                                <div class="dashboard-incoming-meeting__title">
+                                    Incoming Meeting: {{ $dashboardIncomingMeeting['title'] }}
                                 </div>
-                                <div>
-                                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar bg-success position-absolute rounded bootom-0" style="width: 100%; height:5px;" aria-label="Progess-success" role="progressbar">
-                                            <span class="sr-only">76% Complete</span>
-                                        </div>
-                                    </div>
+                                <div class="dashboard-incoming-meeting__body">
+                                    Time to sync up and get aligned. The waiting room is open!
+                                </div>
+                                <div class="dashboard-incoming-meeting__meta">
+                                    Time: {{ $dashboardIncomingMeeting['time_label'] }} | Link:
+                                    <a href="{{ $dashboardIncomingMeeting['join_url'] }}" target="_blank" rel="noopener noreferrer" data-dashboard-incoming-meeting-link>Join Zoom Meeting</a>
                                 </div>
                             </div>
-                            <div class="effect bg-success"></div>
                         </div>
                     </div>
-                    <!-- End - Laporan Pekerjaan -->
-
-                    <!-- Start - Agenda Kegiatan -->
-                    <div class="dashboard-activity-item">
-                        <div class="card overflow-hidden avtivity-card">
-                            <div class="card-body">
-                                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                                    <span class="avatar avatar-lg avatar-secondary rounded-circle border-0">
-                                        <i class="fa-solid fa-calendar-days fs-1 text-secondary"></i>
-                                    </span>
-                                    <div>
-                                        <p class="fs-12 mb-2">Agenda Kegiatan</p>
-                                        <span class="title text-black fs-20 fw-semibold">24 Agenda</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-secondary" style="width: 100%; height:5px;" aria-label="Progess-secondary" role="progressbar">
-                                            <span class="sr-only">58% Complete</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="effect bg-secondary"></div>
-                        </div>
-                    </div>
-                    <!-- End - Agenda Kegiatan -->
-
-                    <!-- Start - Attendance Data -->
-                    <div class="dashboard-activity-item">
-                        <div class="card overflow-hidden avtivity-card">
-                            <div class="card-body">
-                                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                                    <span class="avatar avatar-lg avatar-danger rounded-circle border-0">
-                                        <i class="fa-solid fa-fingerprint fs-1 text-danger"></i>
-                                    </span>
-                                    <div>
-                                        <p class="fs-12 mb-2">Attendance Data</p>
-                                        <span class="title text-black fs-20 fw-semibold">97% Kehadiran</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-danger" style="width: 100%; height:5px;" aria-label="Progess-danger"  role="progressbar">
-                                            <span class="sr-only">97% Complete</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="effect bg-danger"></div>
-                        </div>
-                    </div>
-                    <!-- End - Attendance Data -->
-
-                    <!-- Start - Data Pelamar -->
-                    <div class="dashboard-activity-item">
-                        <div class="card overflow-hidden avtivity-card">
-                            <div class="card-body">
-                                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                                    <span class="avatar avatar-lg avatar-warning rounded-circle border-0">
-                                        <i class="fa-solid fa-id-card fs-1 text-warning"></i>
-                                    </span>
-                                    <div>
-                                        <p class="fs-12 mb-2">Data Pelamar</p>
-                                        <span class="title text-black fs-20 fw-semibold">36 Pelamar</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-warning" style="width: 100%; height:5px;" role="progressbar">
-                                            <span class="sr-only">64% Complete</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="effect bg-warning"></div>
-                        </div>
-                    </div>
-                    <!-- End - Data Pelamar -->
-
-                    <!-- Start - Data Karyawan -->
-                    <div class="dashboard-activity-item">
-                        <div class="card overflow-hidden avtivity-card">
-                            <div class="card-body">
-                                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                                    <span class="avatar avatar-lg avatar-primary rounded-circle border-0">
-                                        <i class="fa-solid fa-users fs-1 text-primary"></i>
-                                    </span>
-                                    <div>
-                                        <p class="fs-12 mb-2">Data Karyawan</p>
-                                        <span class="title text-black fs-20 fw-semibold">245 Karyawan</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-primary" style="width: 100%; height:5px;" role="progressbar">
-                                            <span class="sr-only">70% Complete</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="effect bg-primary"></div>
-                        </div>
-                    </div>
-                    <!-- End - Data Karyawan -->
-
-                    <!-- Start - Blog Management -->
-                    <div class="dashboard-activity-item">
-                        <div class="card overflow-hidden avtivity-card">
-                            <div class="card-body">
-                                <div class="d-flex gap-md-4 gap-3 align-items-center">
-                                    <span class="avatar avatar-lg avatar-info rounded-circle border-0">
-                                        <i class="fa-solid fa-newspaper fs-1 text-info"></i>
-                                    </span>
-                                    <div>
-                                        <p class="fs-12 mb-2">Blog Management</p>
-                                        <span class="title text-black fs-20 fw-semibold">18 Artikel</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="progress position-absolute bottom-0 start-0 w-100" style="height:5px;">
-                                        <div class="progress-bar rounded bg-info" style="width: 100%; height:5px;" role="progressbar">
-                                            <span class="sr-only">54% Complete</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="effect bg-info"></div>
-                        </div>
-                    </div>
-                    <!-- End - Blog Management -->
                 </div>
-                @endif
-
-            </div>
+            @endif
 
             <div class="row">
                 <div class="col-12 mb-3">
                     <div class="row g-3">
-                        <div class="col-xl-6 {{ ($hasCheckedInToday ?? false) ? 'd-none d-md-block' : '' }}">
+                        <div class="col-xl-4 {{ ($hasCheckedInToday ?? false) ? 'd-none d-md-block' : '' }}">
                             <div class="card">
                                 <div class="card-header border-0 pb-3">
                                     <div>
@@ -235,7 +138,7 @@
                                     <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Date &amp; Time</p>
-                                            <span class="fs-20 text-success" id="dashboardAttendanceSummaryTimeValue">{{ now('Asia/Jakarta')->format('d M Y | H:i:s') }}</span>
+                                            <span class="fs-20 text-success" id="dashboardAttendanceSummaryTimeValue">{{ now('Asia/Jakarta')->format('d M | H:i:s') }}</span>
                                         </div>
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Clock In</p>
@@ -258,7 +161,7 @@
                                 <div class="mb-3"></div>
                             </div>
                         </div>
-                        <div class="col-xl-6 {{ !($hasCheckedInToday ?? false) ? 'd-none d-md-block' : '' }}">
+                        <div class="col-xl-4 {{ !($hasCheckedInToday ?? false) ? 'd-none d-md-block' : '' }}">
                             <div class="card">
                                 <div class="card-header border-0 pb-3">
                                     <div>
@@ -270,7 +173,7 @@
                                     <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Date &amp; Time</p>
-                                            <span class="fs-20 text-black" id="dashboardAttendanceClockOutSummaryTimeValue">{{ now('Asia/Jakarta')->format('d M Y | H:i:s') }}</span>
+                                            <span class="fs-20 text-black" id="dashboardAttendanceClockOutSummaryTimeValue">{{ now('Asia/Jakarta')->format('d M | H:i:s') }}</span>
                                         </div>
                                         <div class="text-center">
                                             <p class="fs-14 mb-2">Clock Out</p>
@@ -295,6 +198,30 @@
                                         title="{{ $clockOutUnavailableMessage ?? 'Clock out belum tersedia.' }}"
                                     @endif
                                 >Clock Out</a>
+                                <div class="mb-3"></div>
+                            </div>
+                        </div>
+                        <div class="col-xl-4">
+                            <div class="card">
+                                <div class="card-header border-0 pb-3">
+                                    <div>
+                                        <h4 class="card-title">Current Task</h4>
+                                        <p class="fs-13 mb-0">Track your task and see your daily and monthly progress.</p>
+                                    </div>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="d-flex gap-3 justify-content-between flex-wrap p-4 pb-2">
+                                        <div class="text-center">
+                                            <p class="fs-14 mb-2">Month ({{ $dashboardTaskMonthLabel ?? now('Asia/Jakarta')->format('M') }})</p>
+                                            <span class="fs-20 text-black">{{ (int) ($dashboardMonthlyTaskTotal ?? 0) }} Task</span>
+                                        </div>
+                                        <div class="text-center">
+                                            <p class="fs-14 mb-2">Today ({{ $dashboardTaskTodayLabel ?? now('Asia/Jakarta')->format('D') }})</p>
+                                            <span class="fs-20 text-black">{{ (int) ($dashboardTodayDeadlineTaskTotal ?? 0) }} Task</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn light btn-success m-3 mb-2 btn-lg" data-bs-toggle="modal" data-bs-target="#dashboardTaskFormModal" data-dashboard-task-form-mode="create">Create a New Task</button>
                                 <div class="mb-3"></div>
                             </div>
                         </div>
@@ -482,14 +409,136 @@
         </div>
     </div>
 
+    <div class="modal fade" id="dashboardTaskFormModal" tabindex="-1" aria-labelledby="dashboardTaskFormTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <form id="dashboardTaskForm">
+                    @csrf
+                    <input type="hidden" name="_method" id="dashboardTaskFormMethod" value="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="dashboardTaskFormTitle">Create New Task</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label class="form-label">Task Name <span class="required text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="title" id="dashboardTaskTitle" placeholder="Contoh: Rekap absensi bulanan" required>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label class="form-label">Task Description</label>
+                                    <textarea class="form-control" rows="3" name="description" id="dashboardTaskDescription" placeholder="Tambahkan detail atau konteks pekerjaan"></textarea>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Date <span class="required text-danger">*</span></label>
+                                    <input type="hidden" name="start_date" id="dashboardTaskStartDate" required>
+                                    <input type="hidden" name="due_date" id="dashboardTaskDueDate" required>
+                                    <input type="text" class="form-control js-dashboard-task-date-range-input" id="dashboardTaskDateRange" placeholder="Select date range" autocomplete="off" readonly required>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Priority <span class="required text-danger">*</span></label>
+                                    <select class="form-control default-select" name="priority" id="dashboardTaskPriority" required>
+                                        <option value="low">Low</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Task Status <span class="required text-danger">*</span></label>
+                                    <select class="form-control default-select" name="status" id="dashboardTaskStatus" required>
+                                        <option value="pending">To Do</option>
+                                        <option value="in_progress">On Progress</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Attachment</label>
+                                    <input type="text" class="form-control" name="attachment_path" id="dashboardTaskAttachment" placeholder="Contoh: Link Google Drive, Figma, atau Docs">
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Blockers</label>
+                                    <input type="text" class="form-control" name="blockers" id="dashboardTaskBlockers" placeholder="Contoh: Menunggu approval dokumen">
+                                </div>
+                            </div>
+                            @if ($dashboardTaskAssignableStaffOptions->count() > 1)
+                                <div class="col-12 col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Assign Staff <span class="required text-danger">*</span></label>
+                                        <select class="form-control default-select" name="assigned_employee_id" id="dashboardTaskAssigneeEmployeeId" required>
+                                            @foreach ($dashboardTaskAssignableStaffOptions as $staffOption)
+                                                <option value="{{ $staffOption['id'] }}">{{ $staffOption['name'] }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            @endif
+                            <div class="col-12 col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Task Category <span class="required text-danger">*</span></label>
+                                    <select class="form-control default-select" name="task_category" id="dashboardTaskCategory" required>
+                                        <option value="daily">Daily Task Report</option>
+                                        <option value="project">Project Report</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Project Name</label>
+                                    <select class="form-control default-select" name="project_id" id="dashboardTaskProject" disabled>
+                                        <option value="">Pilih Nama Project</option>
+                                        @foreach ($dashboardTaskProjectOptions as $projectOption)
+                                            <option value="{{ $projectOption['id'] }}">{{ $projectOption['name'] }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-success" id="dashboardTaskFormSubmit">Save changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 @endsection
 
 @section('script')
     @php
         $sweetAlertJsPath = public_path('assets/vendor/sweetalert2/sweetalert2.min.js');
         $sweetAlertJsVersion = file_exists($sweetAlertJsPath) ? filemtime($sweetAlertJsPath) : time();
+        $dashboardCarbonClockNow = now('Asia/Jakarta');
+        $dashboardCarbonShortMonths = [];
+        $dashboardCarbonLongMonths = [];
+        $dashboardCarbonWeekdays = [];
+
+        for ($monthNumber = 1; $monthNumber <= 12; $monthNumber++) {
+            $monthDate = \Carbon\CarbonImmutable::create(2026, $monthNumber, 1, 0, 0, 0, 'Asia/Jakarta')->locale('id');
+            $dashboardCarbonShortMonths[$monthNumber] = $monthDate->format('M');
+            $dashboardCarbonLongMonths[$monthNumber] = $monthDate->translatedFormat('F');
+        }
+
+        for ($dayOffset = 0; $dayOffset <= 6; $dayOffset++) {
+            $weekdayDate = \Carbon\CarbonImmutable::create(2026, 9, 20 + $dayOffset, 0, 0, 0, 'Asia/Jakarta')->locale('id');
+            $dashboardCarbonWeekdays[$weekdayDate->dayOfWeek] = $weekdayDate->translatedFormat('l');
+        }
     @endphp
-    <script src="{{ asset('assets/js/dashboard.js') }}?v={{ file_exists(public_path('assets/js/dashboard.js')) ? filemtime(public_path('assets/js/dashboard.js')) : time() }}"></script>
     <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}?v={{ $sweetAlertJsVersion }}"></script>
     <script>
         (function () {
@@ -527,9 +576,14 @@
             var storeAttendanceUrl = @json(route('attendance.store'));
             var updateAttendanceUrlTemplate = @json(url('/attendance/__ATTENDANCE_ID__'));
             var currentIpUrl = @json(route('attendance.current-ip'));
-            var verifyTelegramUsernameUrl = @json(route('attendance.verify-telegram-username'));
             var userActivityLogUrl = @json(\Illuminate\Support\Facades\Route::has('user-activity-log.store') ? route('user-activity-log.store') : null);
             var csrfToken = @json(csrf_token());
+            var dashboardClockBaseEpochMs = @json($dashboardCarbonClockNow->getTimestamp() * 1000);
+            var dashboardClockBrowserStartEpochMs = Date.now();
+            var dashboardClockTimezoneOffsetMinutes = @json((int) ($dashboardCarbonClockNow->getOffset() / 60));
+            var dashboardClockShortMonths = @json($dashboardCarbonShortMonths);
+            var dashboardClockLongMonths = @json($dashboardCarbonLongMonths);
+            var dashboardClockWeekdays = @json($dashboardCarbonWeekdays);
             var browserPublicIp = null;
             var attendanceState = {
                 todayAttendanceId: @json($todayAttendanceId ?? null),
@@ -554,7 +608,6 @@
                     ipBadgeElement: clockInIpBadgeElement,
                     submitButtonElement: clockInSubmitButton,
                     hasVerifiedOnsite: false,
-                    hasVerifiedTelegram: false,
                     latestUserCoordinates: null,
                     mapInstance: null,
                     officeRadiusCircle: null,
@@ -574,7 +627,6 @@
                     ipBadgeElement: clockOutIpBadgeElement,
                     submitButtonElement: clockOutSubmitButton,
                     hasVerifiedOnsite: false,
-                    hasVerifiedTelegram: false,
                     latestUserCoordinates: null,
                     mapInstance: null,
                     officeRadiusCircle: null,
@@ -671,7 +723,6 @@
                 }
 
                 context.hasVerifiedOnsite = false;
-                context.hasVerifiedTelegram = false;
                 context.latestUserCoordinates = null;
                 if (context.verifyButtonElement) {
                     context.verifyButtonElement.classList.remove('d-none');
@@ -762,13 +813,11 @@
             function renderSubmitButtons() {
                 if (clockInSubmitButton) {
                     clockInSubmitButton.disabled = !modalContext.clockIn.hasVerifiedOnsite
-                        || !modalContext.clockIn.hasVerifiedTelegram
                         || attendanceState.hasCheckedInToday;
                 }
 
                 if (clockOutSubmitButton) {
                     clockOutSubmitButton.disabled = !modalContext.clockOut.hasVerifiedOnsite
-                        || !modalContext.clockOut.hasVerifiedTelegram
                         || !attendanceState.hasCheckedInToday
                         || attendanceState.hasCheckedOutToday
                         || attendanceState.hasEarlyDepartureExceptionToday
@@ -975,36 +1024,6 @@
                 context.mapInstance.panTo(userPosition);
             }
 
-            function verifyTelegramUsernameSync() {
-                return new Promise(function (resolve, reject) {
-                    if (!verifyTelegramUsernameUrl) {
-                        reject(new Error('Endpoint verifikasi Telegram belum tersedia.'));
-                        return;
-                    }
-
-                    $.ajax({
-                        url: verifyTelegramUsernameUrl,
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': csrfToken
-                        }
-                    }).done(function (response) {
-                        if (response && response.success) {
-                            resolve(response);
-                            return;
-                        }
-
-                        reject(new Error(response && response.message ? response.message : 'Verifikasi Telegram gagal.'));
-                    }).fail(function (xhr) {
-                        var errorMessage = 'Verifikasi Telegram gagal.';
-                        if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMessage = xhr.responseJSON.message;
-                        }
-                        reject(new Error(errorMessage));
-                    });
-                });
-            }
-
             function logUserActivity(eventName, metadata) {
                 if (!userActivityLogUrl || !eventName) {
                     return;
@@ -1030,7 +1049,6 @@
 
                 if (!navigator.geolocation) {
                     context.hasVerifiedOnsite = false;
-                    context.hasVerifiedTelegram = false;
                     setVerificationMessage(context, 'Browser tidak mendukung geolocation.', 'error');
                     renderSubmitButtons();
                     return;
@@ -1038,14 +1056,12 @@
 
                 if (!window.isSecureContext) {
                     context.hasVerifiedOnsite = false;
-                    context.hasVerifiedTelegram = false;
                     setVerificationMessage(context, 'Geolocation hanya jalan di HTTPS atau localhost.', 'error');
                     renderSubmitButtons();
                     return;
                 }
 
                 context.hasVerifiedOnsite = false;
-                context.hasVerifiedTelegram = false;
                 if (context.verifyButtonElement) {
                     context.verifyButtonElement.classList.add('d-none');
                 }
@@ -1053,34 +1069,26 @@
                 setVerificationMessage(context, 'Please wait', 'muted');
                 renderSubmitButtons();
 
-                verifyTelegramUsernameSync().then(function () {
-                    context.hasVerifiedTelegram = true;
-                    navigator.geolocation.getCurrentPosition(
-                        function (position) {
-                            updateUserLocationOnMap(context, position);
-                            setVerificationMessage(context, 'Verification successful', 'success');
-                            renderSubmitButtons();
-                            logUserActivity(context.type + '_verified', {
-                                has_coordinates: true
-                            });
-                        },
-                        function () {
-                            context.hasVerifiedOnsite = false;
-                            renderSubmitButtons();
-                            setVerificationMessage(context, 'Gagal mendapatkan lokasi.', 'error');
-                        },
-                        {
-                            enableHighAccuracy: true,
-                            timeout: 15000,
-                            maximumAge: 0
-                        }
-                    );
-                }).catch(function (error) {
-                    context.hasVerifiedTelegram = false;
-                    context.hasVerifiedOnsite = false;
-                    renderSubmitButtons();
-                    setVerificationMessage(context, error && error.message ? error.message : 'Verifikasi Telegram gagal.', 'error');
-                });
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        updateUserLocationOnMap(context, position);
+                        setVerificationMessage(context, 'Verification successful', 'success');
+                        renderSubmitButtons();
+                        logUserActivity(context.type + '_verified', {
+                            has_coordinates: true
+                        });
+                    },
+                    function () {
+                        context.hasVerifiedOnsite = false;
+                        renderSubmitButtons();
+                        setVerificationMessage(context, 'Gagal mendapatkan lokasi.', 'error');
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 0
+                    }
+                );
             }
 
             function resolveCurrentCoordinatesForAttendance(context) {
@@ -1140,7 +1148,7 @@
                     return;
                 }
 
-                if (!(context.hasVerifiedOnsite && context.hasVerifiedTelegram)) {
+                if (!context.hasVerifiedOnsite) {
                     setVerificationMessage(context, 'Harap verifikasi terlebih dahulu sebelum absen.', 'warning');
                     renderSubmitButtons();
                     return;
@@ -1205,47 +1213,21 @@
             }
 
             function renderDashboardAttendanceTime() {
-                var now = new Date();
-                var dateParts = new Intl.DateTimeFormat('id-ID', {
-                    timeZone: 'Asia/Jakarta',
-                    weekday: 'long',
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric'
-                }).formatToParts(now);
-                var cardDateParts = new Intl.DateTimeFormat('en-GB', {
-                    timeZone: 'Asia/Jakarta',
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric'
-                }).formatToParts(now);
-                var timeParts = new Intl.DateTimeFormat('id-ID', {
-                    timeZone: 'Asia/Jakarta',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hourCycle: 'h23'
-                }).formatToParts(now);
-
-                var dateMap = {};
-                dateParts.forEach(function (part) {
-                    dateMap[part.type] = part.value;
-                });
-                var cardDateMap = {};
-                cardDateParts.forEach(function (part) {
-                    cardDateMap[part.type] = part.value;
-                });
-                var timeMap = {};
-                timeParts.forEach(function (part) {
-                    timeMap[part.type] = part.value;
-                });
-                var formattedTime = timeMap.hour + ':' + timeMap.minute + ':' + timeMap.second;
-                var formattedCardMonth = String(cardDateMap.month || '').replace('.', '');
-                var formattedDateTime = cardDateMap.day + ' ' + formattedCardMonth + ' ' + cardDateMap.year + ' | ' + formattedTime;
-                var modalDate = dateMap.weekday + ', ' + dateMap.day + ' ' + dateMap.month + ' ' + dateMap.year;
+                var elapsedMs = Date.now() - dashboardClockBrowserStartEpochMs;
+                var jakartaDate = new Date(dashboardClockBaseEpochMs + elapsedMs + (dashboardClockTimezoneOffsetMinutes * 60 * 1000));
+                var day = String(jakartaDate.getUTCDate()).padStart(2, '0');
+                var monthNumber = jakartaDate.getUTCMonth() + 1;
+                var year = jakartaDate.getUTCFullYear();
+                var hour = jakartaDate.getUTCHours();
+                var minute = jakartaDate.getUTCMinutes();
+                var second = jakartaDate.getUTCSeconds();
+                var formattedTime = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0') + ':' + String(second).padStart(2, '0');
+                var formattedCardMonth = dashboardClockShortMonths[monthNumber] || '';
+                var formattedLongMonth = dashboardClockLongMonths[monthNumber] || formattedCardMonth;
+                var formattedWeekday = dashboardClockWeekdays[jakartaDate.getUTCDay()] || '';
+                var formattedDateTime = day + ' ' + formattedCardMonth + ' | ' + formattedTime;
+                var modalDate = formattedWeekday + ', ' + day + ' ' + formattedLongMonth + ' ' + year;
                 var modalDateTime = modalDate + ' - ' + formattedTime;
-                var hour = parseInt(timeMap.hour, 10);
-                var minute = parseInt(timeMap.minute, 10);
                 var totalMinutes = (hour * 60) + minute;
                 var isWithinWorkRange = totalMinutes >= officeStartTotalMinutes && totalMinutes < officeEndTotalMinutes;
                 if (!attendanceState.canClockOutNow && totalMinutes >= officeEndTotalMinutes) {
@@ -1360,6 +1342,259 @@
             renderDashboardAttendanceTime();
             setInterval(renderDashboardAttendanceTime, 1000);
             renderSubmitButtons();
+        })();
+    </script>
+    <script>
+        (function () {
+            if (typeof window.jQuery === 'undefined') {
+                return;
+            }
+
+            var $ = window.jQuery;
+            var dashboardTaskStoreUrl = @json($dashboardTaskStoreUrl ?? route('project_management.task_list.tasks.store'));
+            var dashboardTaskProjectOptionsByEmployee = @json($dashboardTaskProjectOptionsByEmployee);
+            var dashboardTaskDefaultAssigneeEmployeeId = @json($dashboardTaskDefaultAssigneeEmployeeId);
+
+            function setDashboardTaskSelectValue(selector, value) {
+                var selectElement = $(selector);
+
+                if ($.fn.selectpicker && selectElement.data('selectpicker')) {
+                    selectElement.selectpicker('val', value);
+                    return;
+                }
+
+                selectElement.val(value);
+            }
+
+            function refreshDashboardTaskSelect(selector) {
+                var selectElement = $(selector);
+
+                if ($.fn.selectpicker && selectElement.length && selectElement.data('selectpicker')) {
+                    selectElement.selectpicker('refresh');
+                }
+            }
+
+            function refreshDashboardTaskFormSelects() {
+                [
+                    '#dashboardTaskPriority',
+                    '#dashboardTaskStatus',
+                    '#dashboardTaskCategory',
+                    '#dashboardTaskAssigneeEmployeeId',
+                    '#dashboardTaskProject',
+                ].forEach(refreshDashboardTaskSelect);
+            }
+
+            function selectedDashboardTaskAssigneeEmployeeId() {
+                return $('#dashboardTaskAssigneeEmployeeId').val() || dashboardTaskDefaultAssigneeEmployeeId;
+            }
+
+            function renderDashboardTaskProjectOptions(selectedProjectId) {
+                var employeeId = selectedDashboardTaskAssigneeEmployeeId();
+                var projectOptions = dashboardTaskProjectOptionsByEmployee[employeeId] || [];
+                var projectSelect = $('#dashboardTaskProject');
+
+                projectSelect.empty().append(new Option('Pilih Nama Project', ''));
+
+                projectOptions.forEach(function (projectOption) {
+                    projectSelect.append(new Option(projectOption.name, projectOption.id));
+                });
+
+                if (selectedProjectId) {
+                    setDashboardTaskSelectValue('#dashboardTaskProject', selectedProjectId);
+                }
+
+                refreshDashboardTaskSelect('#dashboardTaskProject');
+            }
+
+            function setDashboardTaskProjectFieldState() {
+                var isProjectTask = $('#dashboardTaskCategory').val() === 'project';
+                var selectedProjectId = $('#dashboardTaskProject').val();
+
+                renderDashboardTaskProjectOptions(selectedProjectId);
+                $('#dashboardTaskProject').prop('disabled', ! isProjectTask);
+
+                if (! isProjectTask) {
+                    setDashboardTaskSelectValue('#dashboardTaskProject', '');
+                }
+
+                refreshDashboardTaskSelect('#dashboardTaskProject');
+            }
+
+            function formatDashboardTaskDateRangeDisplay(startDateValue, dueDateValue) {
+                if (! startDateValue || ! dueDateValue || typeof moment === 'undefined') {
+                    return '';
+                }
+
+                var startDate = moment(startDateValue, 'YYYY-MM-DD');
+                var dueDate = moment(dueDateValue, 'YYYY-MM-DD');
+
+                if (! startDate.isValid() || ! dueDate.isValid()) {
+                    return '';
+                }
+
+                return startDate.format('DD/MM/YYYY') + ' - ' + dueDate.format('DD/MM/YYYY');
+            }
+
+            function setDashboardTaskDateRange(startDateValue, dueDateValue) {
+                var startDate = startDateValue || '';
+                var dueDate = dueDateValue || startDate;
+                var dateRangeInput = $('#dashboardTaskDateRange');
+
+                $('#dashboardTaskStartDate').val(startDate);
+                $('#dashboardTaskDueDate').val(dueDate);
+                dateRangeInput.val(formatDashboardTaskDateRangeDisplay(startDate, dueDate));
+
+                if ($.fn.daterangepicker && dateRangeInput.data('daterangepicker') && typeof moment !== 'undefined' && startDate && dueDate) {
+                    var startMoment = moment(startDate, 'YYYY-MM-DD');
+                    var dueMoment = moment(dueDate, 'YYYY-MM-DD');
+
+                    if (startMoment.isValid() && dueMoment.isValid()) {
+                        dateRangeInput.data('daterangepicker').setStartDate(startMoment);
+                        dateRangeInput.data('daterangepicker').setEndDate(dueMoment);
+                    }
+                }
+            }
+
+            function initializeDashboardTaskDateRangePicker() {
+                var dateRangeInput = $('#dashboardTaskDateRange');
+
+                if (! dateRangeInput.length) {
+                    return;
+                }
+
+                dateRangeInput.val(formatDashboardTaskDateRangeDisplay($('#dashboardTaskStartDate').val(), $('#dashboardTaskDueDate').val()));
+
+                if (! $.fn.daterangepicker || dateRangeInput.data('daterangepicker-initialized')) {
+                    return;
+                }
+
+                dateRangeInput.daterangepicker({
+                    autoApply: true,
+                    autoUpdateInput: false,
+                    parentEl: '#dashboardTaskFormModal',
+                    locale: {
+                        format: 'DD/MM/YYYY',
+                        cancelLabel: 'Clear'
+                    }
+                });
+
+                dateRangeInput.on('apply.daterangepicker', function (event, picker) {
+                    setDashboardTaskDateRange(picker.startDate.format('YYYY-MM-DD'), picker.endDate.format('YYYY-MM-DD'));
+                });
+
+                dateRangeInput.on('cancel.daterangepicker', function () {
+                    setDashboardTaskDateRange('', '');
+                });
+
+                dateRangeInput.data('daterangepicker-initialized', true);
+            }
+
+            function resetDashboardTaskForm() {
+                $('#dashboardTaskForm')[0].reset();
+                $('#dashboardTaskForm').attr('action', dashboardTaskStoreUrl);
+                $('#dashboardTaskFormMethod').val('POST');
+                $('#dashboardTaskFormSubmit').prop('disabled', false).removeClass('btn-warning').addClass('btn-success').text('Save changes');
+                setDashboardTaskSelectValue('#dashboardTaskStatus', 'pending');
+                setDashboardTaskSelectValue('#dashboardTaskPriority', 'medium');
+                setDashboardTaskSelectValue('#dashboardTaskCategory', 'daily');
+                setDashboardTaskSelectValue('#dashboardTaskAssigneeEmployeeId', dashboardTaskDefaultAssigneeEmployeeId);
+                setDashboardTaskDateRange('', '');
+                setDashboardTaskProjectFieldState();
+                refreshDashboardTaskFormSelects();
+            }
+
+            function handleDashboardTaskAjaxError(xhr) {
+                var message = xhr.responseJSON?.message || 'Gagal memproses permintaan.';
+
+                if (xhr.responseJSON?.errors) {
+                    var firstError = Object.values(xhr.responseJSON.errors)[0];
+                    if (Array.isArray(firstError) && firstError.length > 0) {
+                        message = firstError[0];
+                    }
+                }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Terjadi Kesalahan',
+                    text: message,
+                });
+            }
+
+            function hideDashboardTaskModal() {
+                var modalElement = document.getElementById('dashboardTaskFormModal');
+
+                if (window.bootstrap && modalElement) {
+                    var modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                    modal.hide();
+                    return;
+                }
+
+                $('#dashboardTaskFormModal').modal('hide');
+            }
+
+            $(document).on('click', '[data-dashboard-task-form-mode="create"]', resetDashboardTaskForm);
+            $('#dashboardTaskCategory').on('change', setDashboardTaskProjectFieldState);
+            $('#dashboardTaskAssigneeEmployeeId').on('change', setDashboardTaskProjectFieldState);
+            $('#dashboardTaskFormModal').on('shown.bs.modal', initializeDashboardTaskDateRangePicker);
+
+            $('#dashboardTaskForm').on('submit', function (event) {
+                event.preventDefault();
+
+                var form = $(this);
+                var formData = new FormData(this);
+                var submitButton = $('#dashboardTaskFormSubmit');
+
+                if (! formData.get('start_date') || ! formData.get('due_date')) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Tanggal belum lengkap',
+                        text: 'Pilih date range task terlebih dahulu.',
+                    });
+
+                    return;
+                }
+
+                $.ajax({
+                    url: form.attr('action') || dashboardTaskStoreUrl,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'X-CSRF-TOKEN': formData.get('_token'),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    beforeSend: function () {
+                        submitButton.prop('disabled', true).html('Menyimpan...');
+                    },
+                    success: function (response) {
+                        if (response.success === true || response.status === true) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: response.message,
+                                timer: 1200,
+                                showConfirmButton: false,
+                            }).then(function () {
+                                hideDashboardTaskModal();
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Gagal',
+                                text: response.message,
+                            });
+                        }
+                    },
+                    error: handleDashboardTaskAjaxError,
+                    complete: function () {
+                        submitButton.prop('disabled', false).html('Save changes');
+                    },
+                });
+            });
+
+            resetDashboardTaskForm();
         })();
     </script>
 @endsection

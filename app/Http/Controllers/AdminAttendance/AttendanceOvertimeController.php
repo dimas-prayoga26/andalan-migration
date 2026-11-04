@@ -5,6 +5,7 @@ namespace App\Http\Controllers\AdminAttendance;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceOvertime;
 use App\Models\OvertimeLifecycleLog;
+use App\Models\Position;
 use App\Models\ProjectTask;
 use App\Models\User;
 use App\Support\Attendance\OvertimeReviewTableBuilder;
@@ -22,14 +23,11 @@ use Illuminate\Support\Str;
 class AttendanceOvertimeController extends Controller
 {
     /**
+     * Admin overtime lifecycle steps 6-8, reachable after PIC task & hours verification (step 5).
+     *
      * @var array<int, array{event_key:string,title:string,completed_statuses:array<int, string>}>
      */
     private const ADMIN_OVERTIME_CARD_STEPS = [
-        [
-            'event_key' => 'task_hours_verification',
-            'title' => 'Task & Hours Verification',
-            'completed_statuses' => ['verified'],
-        ],
         [
             'event_key' => 'payroll_processing',
             'title' => 'HR / Payroll Processing',
@@ -49,48 +47,21 @@ class AttendanceOvertimeController extends Controller
 
     public function index(Request $request, OvertimeSummaryMetricBuilder $metricBuilder, OvertimeReviewTableBuilder $tableBuilder): View
     {
-        $legacyMonth = $request->query('month');
-        $legacyYear = $request->query('year');
-        $cardMonth = $this->normalizeMonth($request->query('card_month', $legacyMonth));
-        $cardYear = $this->normalizeYear($request->query('card_year', $legacyYear));
-        $pendingTableData = $tableBuilder->buildForContext(
-            'admin',
-            null,
-            null,
-            $request->query('pending_month', $legacyMonth),
-            $request->query('pending_year', $legacyYear)
-        );
-        $completeTableData = $tableBuilder->buildForContext(
-            'admin',
-            null,
-            null,
-            $request->query('complete_month', $legacyMonth),
-            $request->query('complete_year', $legacyYear)
-        );
-        $overtimeSummary = $metricBuilder->summarizeForPeriod(null, null, $cardMonth, $cardYear);
+        $selectedMonth = $this->normalizeMonth($request->query('month'));
+        $selectedYear = $this->normalizeYear($request->query('year'));
+        $overtimeTableData = $tableBuilder->buildForContext('admin', null, null, $selectedMonth, $selectedYear);
+        $overtimeSummary = $metricBuilder->summarizeForPeriod(null, null, $selectedMonth, $selectedYear);
 
         return view('admin_attendance.overtime.index', [
             'overtimeSummary' => $overtimeSummary,
             'overtimeMetricCards' => $metricBuilder->metricCards($overtimeSummary),
-            'overtimeCards' => $this->adminOvertimeCardsFor(null, $cardMonth, $cardYear),
-            'monthOptions' => $pendingTableData['monthOptions'],
-            'yearOptions' => $this->yearOptionsForFilters(
-                $cardYear,
-                (int) $pendingTableData['selectedYear'],
-                (int) $completeTableData['selectedYear'],
-                $pendingTableData['yearOptions'],
-                $completeTableData['yearOptions']
-            ),
-            'selectedMonth' => $pendingTableData['selectedMonth'],
-            'selectedYear' => $pendingTableData['selectedYear'],
-            'selectedCardMonth' => $cardMonth,
-            'selectedCardYear' => $cardYear,
-            'selectedPendingMonth' => $pendingTableData['selectedMonth'],
-            'selectedPendingYear' => $pendingTableData['selectedYear'],
-            'selectedCompleteMonth' => $completeTableData['selectedMonth'],
-            'selectedCompleteYear' => $completeTableData['selectedYear'],
-            'pendingRows' => $pendingTableData['pendingRows'],
-            'approvedRows' => $completeTableData['approvedRows'],
+            'overtimeCards' => $this->adminOvertimeCardsFor(null, $selectedMonth, $selectedYear),
+            'monthOptions' => $overtimeTableData['monthOptions'],
+            'yearOptions' => $overtimeTableData['yearOptions'],
+            'selectedMonth' => $selectedMonth,
+            'selectedYear' => $selectedYear,
+            'pendingRows' => $overtimeTableData['pendingRows'],
+            'approvedRows' => $overtimeTableData['approvedRows'],
         ]);
     }
 
@@ -110,21 +81,6 @@ class AttendanceOvertimeController extends Controller
         return $yearNumber >= 2020 && $yearNumber <= 2100
             ? $yearNumber
             : (int) Carbon::now('Asia/Jakarta')->format('Y');
-    }
-
-    /**
-     * @return array<int, int>
-     */
-    private function yearOptionsForFilters(mixed ...$selectedYearsAndOptions): array
-    {
-        return collect($selectedYearsAndOptions)
-            ->flatten()
-            ->filter(fn (mixed $year): bool => is_numeric($year) && (int) $year >= 2020)
-            ->map(fn (mixed $year): int => (int) $year)
-            ->unique()
-            ->sortDesc()
-            ->values()
-            ->all();
     }
 
     public function detail(Request $request, string $uid): View
@@ -148,19 +104,19 @@ class AttendanceOvertimeController extends Controller
             ])
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
-                'employee.user:id,username,email',
+                'employee.profile:id,employee_id,name,nickname',
+                'employee.user:id,email',
                 'employee.deployment:id,employee_id,current_company_id',
-                'assignedBy:id,username,email',
+                'assignedBy:id,email',
                 'assignedBy.employee:id,user_id',
-                'assignedBy.employee.profile:id,employee_id,name',
+                'assignedBy.employee.profile:id,employee_id,name,nickname',
                 'lifecycleLogs:id,overtime_id,event_key,title,status,actor_id,happened_at',
-                'lifecycleLogs.actor:id,username,email',
+                'lifecycleLogs.actor:id,email',
                 'lifecycleLogs.actor.employee:id,user_id',
-                'lifecycleLogs.actor.employee.profile:id,employee_id,name',
+                'lifecycleLogs.actor.employee.profile:id,employee_id,name,nickname',
                 'projectTasks:id,overtime_id,employee_id,project_id,assigned_by,title,description,status,priority,start_date,due_date,blockers,attachment_path,completed_at,created_at',
                 'projectTasks.project:id,name',
-                'projectTasks.assignedBy:id,username',
+                'projectTasks.assignedBy:id,email', 'projectTasks.assignedBy.employee.profile:id,employee_id,name,nickname',
             ])
             ->whereKey($uid)
             ->whereHas('employee', function (Builder $query): void {
@@ -277,23 +233,24 @@ class AttendanceOvertimeController extends Controller
             })
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
-                'employee.user:id,username,email',
-                'assignedBy:id,username,email',
+                'employee.profile:id,employee_id,name,nickname',
+                'employee.user:id,email',
+                'assignedBy:id,email',
                 'assignedBy.employee:id,user_id',
-                'assignedBy.employee.profile:id,employee_id,name',
+                'assignedBy.employee.profile:id,employee_id,name,nickname',
                 'projectTasks:id,overtime_id,start_date,due_date',
                 'lifecycleLogs:id,overtime_id,event_key,title,status,step_order',
             ])
             ->orderByDesc('overtime_date')
             ->orderByDesc('created_at')
             ->get()
-            ->filter(fn (AttendanceOvertime $overtime): bool => $this->hasStartedAdminOvertimeCardRange($overtime))
             ->map(fn (AttendanceOvertime $overtime): array => $this->adminOvertimeCardFor($overtime))
             ->values();
     }
 
     /**
+     * Cards that have not passed PIC task & hours verification carry a locked notice instead of being clickable.
+     *
      * @return array<string, mixed>
      */
     private function adminOvertimeCardFor(AttendanceOvertime $overtime): array
@@ -301,6 +258,7 @@ class AttendanceOvertimeController extends Controller
         $task = $overtime->projectTasks->first();
         $lifecycleLogsByEvent = $overtime->lifecycleLogs->keyBy('event_key');
         $showActualTime = $this->hasApprovedOvertimeTimes($overtime) || $this->hasActualOvertimeTimes($overtime);
+        $isAwaitingPicVerification = $this->isAwaitingPicVerification($overtime);
 
         return [
             'record_number' => '#'.(is_string($overtime->record_number) && trim($overtime->record_number) !== '' ? trim($overtime->record_number) : '-'),
@@ -310,7 +268,15 @@ class AttendanceOvertimeController extends Controller
             'time_lines' => $this->timeLinesFor($overtime, $showActualTime),
             'supervisor_name' => $this->supervisorDisplayName($overtime),
             'detail_url' => route('admin-attendance.overtime.detail', ['uid' => $overtime->id]),
-            'current_log' => $this->currentAdminLifecycleLog($lifecycleLogsByEvent),
+            'current_log' => $isAwaitingPicVerification
+                ? $this->picVerificationLifecycleLog($lifecycleLogsByEvent)
+                : $this->currentAdminLifecycleLog($lifecycleLogsByEvent),
+            'locked_notice' => $isAwaitingPicVerification
+                ? [
+                    'title' => 'Belum Diverifikasi PIC',
+                    'message' => 'Lembur ini belum diverifikasi oleh PIC / Supervisor, sehingga belum bisa diproses.',
+                ]
+                : null,
         ];
     }
 
@@ -436,7 +402,7 @@ class AttendanceOvertimeController extends Controller
             'blockers' => (string) ($projectTask->blockers ?? ''),
             'task_category_label' => $projectTask->project_id !== null ? 'Project Task' : 'Daily Task',
             'project_name' => $projectTask->project_id !== null ? trim((string) ($projectTask->project?->name ?? '')) : 'Daily Task',
-            'assigned_by' => trim((string) ($projectTask->assignedBy?->username ?? 'self')) ?: 'self',
+            'assigned_by' => trim((string) ($projectTask->assignedBy?->shortName() ?? 'self')) ?: 'self',
             'checked' => $isFinished,
         ];
     }
@@ -478,7 +444,7 @@ class AttendanceOvertimeController extends Controller
     private function resolveOvertimeDirectorApprover(AttendanceOvertime $overtime): ?User
     {
         $preferredDirector = User::query()
-            ->select(['id', 'username', 'email'])
+            ->select(['id', 'email'])
             ->with('employee.profile')
             ->whereRaw('LOWER(email) = ?', ['lukman@rnbmanagement.com'])
             ->first();
@@ -487,34 +453,19 @@ class AttendanceOvertimeController extends Controller
             return $preferredDirector;
         }
 
-        $directorNames = [
-            'Board of Directors',
-            'board of directors',
-            'board_of_directors',
-            'board_of_director',
-            'board_of_rector',
-            'board of directur',
-            'board_of_directur',
-            'Director',
-            'director',
-        ];
-
         return User::query()
-            ->select(['id', 'username', 'email'])
+            ->select(['id', 'email'])
             ->with('employee.profile')
-            ->where(function (Builder $query) use ($directorNames): void {
+            ->where(function (Builder $query): void {
                 $query
-                    ->whereHas('roles', function (Builder $query) use ($directorNames): void {
-                        $query->whereIn('name', $directorNames);
+                    ->whereHas('employee.deployment.position', function (Builder $query): void {
+                        $query->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS);
                     })
-                    ->orWhereHas('employee.deployment.position', function (Builder $query) use ($directorNames): void {
-                        $query->whereIn('name', $directorNames);
-                    })
-                    ->orWhereHas('employee.deployment.positions', function (Builder $query) use ($directorNames): void {
-                        $query->whereIn('positions.name', $directorNames);
+                    ->orWhereHas('employee.deployment.positions', function (Builder $query): void {
+                        $query->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS);
                     });
             })
-            ->orderBy('username')
+            ->orderBy('email')
             ->first();
     }
 
@@ -604,9 +555,9 @@ class AttendanceOvertimeController extends Controller
             return $profileName;
         }
 
-        $username = is_string($user->username) ? trim($user->username) : '';
-        if ($username !== '') {
-            return $username;
+        $nickname = is_string($user->employee?->profile?->nickname) ? trim($user->employee->profile->nickname) : '';
+        if ($nickname !== '') {
+            return $nickname;
         }
 
         $email = is_string($user->email) ? trim($user->email) : '';
@@ -644,7 +595,7 @@ class AttendanceOvertimeController extends Controller
         $currentLog = $adminLifecycleLogs->first(fn (array $log): bool => $log['is_complete'] === false);
 
         $selectedLog = $currentLog ?? $adminLifecycleLogs->last() ?? [
-            'title' => 'Task & Hours Verification',
+            'title' => 'HR / Payroll Processing',
             'status' => 'Waiting',
             'badge_class' => 'badge-warning',
         ];
@@ -652,6 +603,28 @@ class AttendanceOvertimeController extends Controller
         unset($selectedLog['is_complete']);
 
         return $selectedLog;
+    }
+
+    /**
+     * @param  Collection<string, OvertimeLifecycleLog>  $lifecycleLogsByEvent
+     * @return array{title:string,status:string,badge_class:string}
+     */
+    private function picVerificationLifecycleLog(Collection $lifecycleLogsByEvent): array
+    {
+        $status = $this->lifecycleStatus($lifecycleLogsByEvent, 'task_hours_verification');
+
+        return [
+            'title' => 'Task & Hours Verification',
+            'status' => $this->lifecycleStatusLabel($status),
+            'badge_class' => $this->lifecycleStatusBadgeClass($status !== '' ? $status : 'waiting'),
+        ];
+    }
+
+    private function isAwaitingPicVerification(AttendanceOvertime $overtime): bool
+    {
+        $verificationStatus = $this->lifecycleStatus($overtime->lifecycleLogs->keyBy('event_key'), 'task_hours_verification');
+
+        return $verificationStatus !== 'verified' && ! $this->hasStartedAdminOvertimeCardRange($overtime);
     }
 
     private function hasStartedAdminOvertimeCardRange(AttendanceOvertime $overtime): bool
@@ -679,14 +652,14 @@ class AttendanceOvertimeController extends Controller
 
     private function employeeDisplayName(AttendanceOvertime $overtime): string
     {
-        $name = $overtime->employee?->profile?->name ?: $overtime->employee?->user?->username;
+        $name = $overtime->employee?->profile?->name ?: $overtime->employee?->profile?->nickname;
 
         return is_string($name) && trim($name) !== '' ? trim($name) : '-';
     }
 
     private function supervisorDisplayName(AttendanceOvertime $overtime): string
     {
-        $name = $overtime->assignedBy?->employee?->profile?->name ?: $overtime->assignedBy?->username;
+        $name = $overtime->assignedBy?->employee?->profile?->name ?: $overtime->assignedBy?->employee?->profile?->nickname;
 
         return is_string($name) && trim($name) !== '' ? trim($name) : '-';
     }

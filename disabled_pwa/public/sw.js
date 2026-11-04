@@ -1,0 +1,88 @@
+const SIAP_CACHE_VERSION = 'siap-pwa-v4';
+
+self.addEventListener('install', (event) => {
+    event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys()
+            .then((cacheNames) => Promise.all(
+                cacheNames
+                    .filter((cacheName) => cacheName !== SIAP_CACHE_VERSION)
+                    .map((cacheName) => caches.delete(cacheName))
+            ))
+            .then(() => self.clients.claim())
+    );
+});
+
+self.addEventListener('fetch', () => {
+    // Required for PWA installability. Requests still go directly to the network.
+});
+
+const logPushDebug = (payload, stage) => {
+    if (!payload.debug_id) {
+        return Promise.resolve();
+    }
+
+    const params = new URLSearchParams({
+        debug_id: String(payload.debug_id),
+        stage,
+        tag: String(payload.tag || ''),
+        title: String(payload.title || ''),
+        client_time: new Date().toISOString(),
+    });
+
+    return fetch(`/sw-push-debug?${params.toString()}`, {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'same-origin',
+    }).catch(() => {});
+};
+
+self.addEventListener('push', (event) => {
+    let payload = {};
+
+    try {
+        payload = event.data ? event.data.json() : {};
+    } catch (error) {
+        payload = {
+            title: 'SIAP',
+            body: event.data ? event.data.text() : 'Ada notifikasi baru.',
+        };
+    }
+
+    const title = payload.title || 'SIAP';
+    const options = {
+        body: payload.body || 'Ada notifikasi baru.',
+        icon: payload.icon || '/images/images.png',
+        tag: payload.tag || `siap-notification-${Date.now()}`,
+        renotify: true,
+        silent: false,
+        timestamp: Date.now(),
+        vibrate: [120, 60, 120],
+        data: {
+            url: payload.url || '/',
+        },
+    };
+
+    if (payload.badge) {
+        options.badge = payload.badge;
+    }
+
+    event.waitUntil(
+        logPushDebug(payload, 'received')
+            .then(() => self.registration.showNotification(title, options))
+            .then(() => logPushDebug(payload, 'shown'))
+    );
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    const targetUrl = event.notification.data && event.notification.data.url
+        ? event.notification.data.url
+        : '/';
+
+    event.waitUntil(self.clients.openWindow(targetUrl));
+});

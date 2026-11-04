@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceOvertime;
 use App\Models\Employee;
 use App\Models\OvertimeLifecycleLog;
+use App\Models\Position;
 use App\Models\ProjectTask;
 use App\Models\User;
 use App\Support\Attendance\OvertimeReviewTableBuilder;
@@ -89,30 +90,21 @@ class PicAttendanceOvertimeController extends Controller
         $companyId = $authenticatedUser instanceof User ? $this->currentCompanyIdFor($authenticatedUser) : null;
         $assignedByUserId = $authenticatedUser instanceof User ? (string) $authenticatedUser->id : null;
         $picOvertimeCompanyId = is_string($assignedByUserId) && trim($assignedByUserId) !== '' ? null : $companyId;
-        $legacyMonth = $request->query('month');
-        $legacyYear = $request->query('year');
-        $cardMonth = $this->normalizeMonth($request->query('card_month', $legacyMonth));
-        $cardYear = $this->normalizeYear($request->query('card_year', $legacyYear));
-        $pendingTableData = $tableBuilder->buildForContext(
+        $selectedMonth = $this->normalizeMonth($request->query('month'));
+        $selectedYear = $this->normalizeYear($request->query('year'));
+        $overtimeTableData = $tableBuilder->buildForContext(
             'pic',
             $picOvertimeCompanyId,
             $assignedByUserId,
-            $request->query('pending_month', $legacyMonth),
-            $request->query('pending_year', $legacyYear)
-        );
-        $approvedTableData = $tableBuilder->buildForContext(
-            'pic',
-            $picOvertimeCompanyId,
-            $assignedByUserId,
-            $request->query('approved_month', $legacyMonth),
-            $request->query('approved_year', $legacyYear)
+            $selectedMonth,
+            $selectedYear
         );
         $overtimeSummary = is_string($assignedByUserId) && trim($assignedByUserId) !== ''
             ? $metricBuilder->summarizeForPeriod(
                 $picOvertimeCompanyId,
                 $assignedByUserId,
-                $cardMonth,
-                $cardYear
+                $selectedMonth,
+                $selectedYear
             )
             : $metricBuilder->summarizeForActiveEmployees($companyId, $assignedByUserId);
 
@@ -127,34 +119,22 @@ class PicAttendanceOvertimeController extends Controller
                     $authenticatedUser,
                     $companyId,
                     $assignedByUserId,
-                    $cardMonth,
-                    $cardYear
+                    $selectedMonth,
+                    $selectedYear
                 )
                 : collect(),
             'overtimeCards' => $this->picOvertimeCardsFor(
                 $companyId,
                 $assignedByUserId,
-                $cardMonth,
-                $cardYear
+                $selectedMonth,
+                $selectedYear
             ),
-            'monthOptions' => $pendingTableData['monthOptions'],
-            'yearOptions' => $this->yearOptionsForFilters(
-                $cardYear,
-                (int) $pendingTableData['selectedYear'],
-                (int) $approvedTableData['selectedYear'],
-                $pendingTableData['yearOptions'],
-                $approvedTableData['yearOptions']
-            ),
-            'selectedMonth' => $pendingTableData['selectedMonth'],
-            'selectedYear' => $pendingTableData['selectedYear'],
-            'selectedCardMonth' => $cardMonth,
-            'selectedCardYear' => $cardYear,
-            'selectedPendingMonth' => $pendingTableData['selectedMonth'],
-            'selectedPendingYear' => $pendingTableData['selectedYear'],
-            'selectedApprovedMonth' => $approvedTableData['selectedMonth'],
-            'selectedApprovedYear' => $approvedTableData['selectedYear'],
-            'pendingRows' => $pendingTableData['pendingRows'],
-            'approvedRows' => $approvedTableData['approvedRows'],
+            'monthOptions' => $overtimeTableData['monthOptions'],
+            'yearOptions' => $overtimeTableData['yearOptions'],
+            'selectedMonth' => $selectedMonth,
+            'selectedYear' => $selectedYear,
+            'pendingRows' => $overtimeTableData['pendingRows'],
+            'approvedRows' => $overtimeTableData['approvedRows'],
         ]);
     }
 
@@ -174,21 +154,6 @@ class PicAttendanceOvertimeController extends Controller
         return $yearNumber >= 2020 && $yearNumber <= 2100
             ? $yearNumber
             : (int) Carbon::now('Asia/Jakarta')->format('Y');
-    }
-
-    /**
-     * @return array<int, int>
-     */
-    private function yearOptionsForFilters(mixed ...$selectedYearsAndOptions): array
-    {
-        return collect($selectedYearsAndOptions)
-            ->flatten()
-            ->filter(fn (mixed $year): bool => is_numeric($year) && (int) $year >= 2020)
-            ->map(fn (mixed $year): int => (int) $year)
-            ->unique()
-            ->sortDesc()
-            ->values()
-            ->all();
     }
 
     public function store(Request $request): RedirectResponse
@@ -266,18 +231,18 @@ class PicAttendanceOvertimeController extends Controller
             ])
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
-                'employee.user:id,username,email',
-                'assignedBy:id,username,email',
+                'employee.profile:id,employee_id,name,nickname',
+                'employee.user:id,email',
+                'assignedBy:id,email',
                 'assignedBy.employee:id,user_id',
-                'assignedBy.employee.profile:id,employee_id,name',
+                'assignedBy.employee.profile:id,employee_id,name,nickname',
                 'lifecycleLogs:id,overtime_id,event_key,title,status,actor_id,happened_at',
-                'lifecycleLogs.actor:id,username,email',
+                'lifecycleLogs.actor:id,email',
                 'lifecycleLogs.actor.employee:id,user_id',
-                'lifecycleLogs.actor.employee.profile:id,employee_id,name',
+                'lifecycleLogs.actor.employee.profile:id,employee_id,name,nickname',
                 'projectTasks:id,overtime_id,employee_id,project_id,assigned_by,title,description,status,priority,start_date,due_date,blockers,attachment_path,completed_at,created_at',
                 'projectTasks.project:id,name',
-                'projectTasks.assignedBy:id,username',
+                'projectTasks.assignedBy:id,email', 'projectTasks.assignedBy.employee.profile:id,employee_id,name,nickname',
             ])
             ->whereKey($uid)
             ->where('assigned_by', $authenticatedUser->id)
@@ -603,7 +568,7 @@ class PicAttendanceOvertimeController extends Controller
             'blockers' => (string) ($projectTask->blockers ?? ''),
             'task_category_label' => $projectTask->project_id !== null ? 'Project Task' : 'Daily Task',
             'project_name' => $projectTask->project_id !== null ? trim((string) ($projectTask->project?->name ?? '')) : 'Daily Task',
-            'assigned_by' => trim((string) ($projectTask->assignedBy?->username ?? 'self')) ?: 'self',
+            'assigned_by' => trim((string) ($projectTask->assignedBy?->shortName() ?? 'self')) ?: 'self',
             'checked' => $isFinished,
             'update_url' => route('pic-attendance.overtime.tasks.update', [
                 'attendanceOvertime' => $overtime->id,
@@ -649,7 +614,7 @@ class PicAttendanceOvertimeController extends Controller
     private function resolveOvertimeDirectorApprover(AttendanceOvertime $overtime): ?User
     {
         $preferredDirector = User::query()
-            ->select(['id', 'username', 'email'])
+            ->select(['id', 'email'])
             ->with('employee.profile')
             ->whereRaw('LOWER(email) = ?', ['lukman@rnbmanagement.com'])
             ->first();
@@ -658,34 +623,19 @@ class PicAttendanceOvertimeController extends Controller
             return $preferredDirector;
         }
 
-        $directorNames = [
-            'Board of Directors',
-            'board of directors',
-            'board_of_directors',
-            'board_of_director',
-            'board_of_rector',
-            'board of directur',
-            'board_of_directur',
-            'Director',
-            'director',
-        ];
-
         return User::query()
-            ->select(['id', 'username', 'email'])
+            ->select(['id', 'email'])
             ->with('employee.profile')
-            ->where(function (Builder $query) use ($directorNames): void {
+            ->where(function (Builder $query): void {
                 $query
-                    ->whereHas('roles', function (Builder $query) use ($directorNames): void {
-                        $query->whereIn('name', $directorNames);
+                    ->whereHas('employee.deployment.position', function (Builder $query): void {
+                        $query->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS);
                     })
-                    ->orWhereHas('employee.deployment.position', function (Builder $query) use ($directorNames): void {
-                        $query->whereIn('name', $directorNames);
-                    })
-                    ->orWhereHas('employee.deployment.positions', function (Builder $query) use ($directorNames): void {
-                        $query->whereIn('positions.name', $directorNames);
+                    ->orWhereHas('employee.deployment.positions', function (Builder $query): void {
+                        $query->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS);
                     });
             })
-            ->orderBy('username')
+            ->orderBy('email')
             ->first();
     }
 
@@ -795,9 +745,9 @@ class PicAttendanceOvertimeController extends Controller
             return $profileName;
         }
 
-        $username = is_string($user->username) ? trim($user->username) : '';
-        if ($username !== '') {
-            return $username;
+        $nickname = is_string($user->employee?->profile?->nickname) ? trim($user->employee->profile->nickname) : '';
+        if ($nickname !== '') {
+            return $nickname;
         }
 
         $email = is_string($user->email) ? trim($user->email) : '';
@@ -852,19 +802,12 @@ class PicAttendanceOvertimeController extends Controller
             ])
             ->where('assigned_by', trim($assignedByUserId))
             ->whereBetween('overtime_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
-            ->whereHas('employee', function (Builder $query): void {
-                $query
-                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                    ->whereHas('deployment', function (Builder $query): void {
-                        $query->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']);
-                    });
-            })
             ->with([
                 'employee:id,user_id',
-                'employee.user:id,username,email',
-                'assignedBy:id,username,email',
+                'employee.user:id,email',
+                'assignedBy:id,email',
                 'assignedBy.employee:id,user_id',
-                'assignedBy.employee.profile:id,employee_id,name',
+                'assignedBy.employee.profile:id,employee_id,name,nickname',
                 'lifecycleLogs:id,overtime_id,event_key,title,status,step_order',
             ])
             ->orderByDesc('overtime_date')
@@ -1095,9 +1038,9 @@ class PicAttendanceOvertimeController extends Controller
             return $profileName;
         }
 
-        $username = is_string($overtime->assignedBy?->username) ? trim($overtime->assignedBy->username) : '';
-        if ($username !== '') {
-            return $username;
+        $nickname = is_string($overtime->assignedBy?->employee?->profile?->nickname) ? trim($overtime->assignedBy->employee->profile->nickname) : '';
+        if ($nickname !== '') {
+            return $nickname;
         }
 
         $email = is_string($overtime->assignedBy?->email) ? trim($overtime->assignedBy->email) : '';
@@ -1145,7 +1088,7 @@ class PicAttendanceOvertimeController extends Controller
         }
 
         $referenceDate = Carbon::now('Asia/Jakarta')->startOfDay();
-        $employeeIds = $this->activeSupervisedEmployeeIdsFor($user, $companyId, $referenceDate);
+        $employeeIds = $this->supervisedEmployeeIdsForHistory($user);
 
         if ($employeeIds->isEmpty()) {
             return collect();
@@ -1154,8 +1097,8 @@ class PicAttendanceOvertimeController extends Controller
         $employees = Employee::query()
             ->select(['id', 'user_id'])
             ->with([
-                'profile:id,employee_id,name',
-                'user:id,username,email',
+                'profile:id,employee_id,name,nickname',
+                'user:id,email',
                 'deployment:id,employee_id,current_position_id,current_department_id,current_company_id',
                 'deployment.department:id,name',
                 'deployment.position:id,name',
@@ -1333,8 +1276,8 @@ class PicAttendanceOvertimeController extends Controller
         return Employee::query()
             ->select(['id', 'user_id'])
             ->with([
-                'profile:id,employee_id,name',
-                'user:id,username,email',
+                'profile:id,employee_id,name,nickname',
+                'user:id,email',
             ])
             ->whereIn('id', $employeeIds)
             ->get()
@@ -1399,6 +1342,38 @@ class PicAttendanceOvertimeController extends Controller
             ->values();
     }
 
+    /**
+     * @return Collection<int, string>
+     */
+    private function supervisedEmployeeIdsForHistory(User $user): Collection
+    {
+        $supervisorEmployeeId = $this->currentEmployeeIdFor($user);
+
+        if ($supervisorEmployeeId === null) {
+            return collect();
+        }
+
+        $assignedStaffIds = DB::table('employee_pic_assignments')
+            ->where('supervisor_employee_id', $supervisorEmployeeId)
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->pluck('staff_employee_id')
+            ->filter(static fn (mixed $employeeId): bool => is_string($employeeId) && trim($employeeId) !== '')
+            ->map(static fn (string $employeeId): string => trim($employeeId))
+            ->values();
+
+        if ($assignedStaffIds->isEmpty()) {
+            return collect();
+        }
+
+        return Employee::query()
+            ->whereIn('id', $assignedStaffIds)
+            ->whereNull('deleted_at')
+            ->pluck('id')
+            ->map(static fn (string $employeeId): string => trim($employeeId))
+            ->values();
+    }
+
     private function currentEmployeeIdFor(User $user): ?string
     {
         $user->loadMissing('employee:id,user_id');
@@ -1415,10 +1390,10 @@ class PicAttendanceOvertimeController extends Controller
             return $profileName;
         }
 
-        $usernameValue = $employee?->user?->username;
-        $username = is_string($usernameValue) ? trim($usernameValue) : '';
-        if ($username !== '') {
-            return $username;
+        $nicknameValue = $employee?->profile?->nickname;
+        $nickname = is_string($nicknameValue) ? trim($nicknameValue) : '';
+        if ($nickname !== '') {
+            return $nickname;
         }
 
         $emailValue = $employee?->user?->email;
@@ -1429,9 +1404,9 @@ class PicAttendanceOvertimeController extends Controller
 
     private function employeeUsernameLabel(?Employee $employee): string
     {
-        $username = is_string($employee?->user?->username) ? trim($employee->user->username) : '';
-        if ($username !== '') {
-            return $username;
+        $nickname = is_string($employee?->profile?->nickname) ? trim($employee->profile->nickname) : '';
+        if ($nickname !== '') {
+            return $nickname;
         }
 
         $email = is_string($employee?->user?->email) ? trim($employee->user->email) : '';

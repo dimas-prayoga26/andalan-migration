@@ -22,15 +22,6 @@ class AuthorizationEmployeeListScopeTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        if (! extension_loaded('pdo_sqlite')) {
-            $this->markTestSkipped('pdo_sqlite extension is not available.');
-        }
-
-        parent::setUp();
-    }
-
     public function test_administrator_sees_employee_list_from_all_companies(): void
     {
         $rnbCompany = Company::query()->create(['name' => 'RNB']);
@@ -96,11 +87,12 @@ class AuthorizationEmployeeListScopeTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_authorization_permission_uses_only_primary_deployment_position(): void
+    public function test_authorization_permission_ignores_positions_beyond_first_secondary(): void
     {
         $rnbCompany = Company::query()->create(['name' => 'RNB']);
         $operationsDepartment = $this->createDepartment('Operations');
         $staffPosition = Position::query()->create(['name' => 'Staff']);
+        $supervisorPosition = Position::query()->create(['name' => 'Supervisor']);
         $administratorPosition = Position::query()->create(['name' => 'Administrator']);
 
         $multiPositionUser = $this->createEmployeeUser(
@@ -121,37 +113,35 @@ class AuthorizationEmployeeListScopeTest extends TestCase
         $deployment->positions()->sync([
             (string) $staffPosition->id => [
                 'is_primary' => true,
+                'sort_order' => 0,
+                'status' => 'active',
+            ],
+            (string) $supervisorPosition->id => [
+                'is_primary' => false,
+                'sort_order' => 1,
                 'status' => 'active',
             ],
             (string) $administratorPosition->id => [
                 'is_primary' => false,
+                'sort_order' => 2,
                 'status' => 'active',
             ],
         ]);
 
-        $userWithAdditionalAdministratorPosition = $multiPositionUser->fresh();
-        $this->assertFalse($userWithAdditionalAdministratorPosition->hasAnyPositionPermission(['view-authorization']));
+        $userWithThirdAdministratorPosition = $multiPositionUser->fresh();
+        $this->assertFalse($userWithThirdAdministratorPosition->hasAnyPositionPermission(['view-authorization']));
 
-        $this->actingAs($userWithAdditionalAdministratorPosition)
+        $this->actingAs($userWithThirdAdministratorPosition)
             ->get(route('authorization'))
             ->assertForbidden();
 
-        $deployment->update(['current_position_id' => $administratorPosition->id]);
-        $deployment->positions()->sync([
-            (string) $staffPosition->id => [
-                'is_primary' => false,
-                'status' => 'active',
-            ],
-            (string) $administratorPosition->id => [
-                'is_primary' => true,
-                'status' => 'active',
-            ],
-        ]);
+        $deployment->positions()->updateExistingPivot((string) $administratorPosition->id, ['sort_order' => 1]);
+        $deployment->positions()->updateExistingPivot((string) $supervisorPosition->id, ['sort_order' => 2]);
 
-        $userWithPrimaryAdministratorPosition = $multiPositionUser->fresh();
-        $this->assertTrue($userWithPrimaryAdministratorPosition->hasAnyPositionPermission(['view-authorization']));
+        $userWithSecondaryAdministratorPosition = $multiPositionUser->fresh();
+        $this->assertTrue($userWithSecondaryAdministratorPosition->hasAnyPositionPermission(['view-authorization']));
 
-        $this->actingAs($userWithPrimaryAdministratorPosition)
+        $this->actingAs($userWithSecondaryAdministratorPosition)
             ->get(route('authorization'))
             ->assertOk();
     }
@@ -454,27 +444,28 @@ class AuthorizationEmployeeListScopeTest extends TestCase
 
         $this->actingAs($coo)
             ->post(route('authorization.position-permissions.update'), [
-                'permission_positions' => [
-                    (string) $authorizationPermission->uuid => [(string) $cooPosition->id],
+                'permission_levels' => [
+                    (string) $authorizationPermission->uuid => [Position::levelForSystemKey($cooPosition->system_key) => 'all'],
                 ],
             ])
             ->assertRedirect(route('authorization.access-menus'));
     }
 
-    public function test_superuser_sees_employee_list_from_all_companies(): void
+    public function test_super_administrator_sees_employee_list_from_all_companies(): void
     {
         $rnbCompany = Company::query()->create(['name' => 'RNB']);
         $otherCompany = Company::query()->create(['name' => 'ABG']);
-        $superuserDepartment = $this->createDepartment('Superuser');
+        $superuserDepartment = $this->createDepartment('Super Administrator');
         $operationsDepartment = $this->createDepartment('Operations');
         $staffPosition = Position::query()->create(['name' => 'Staff']);
+        $superAdministratorPosition = Position::query()->create(['name' => 'Super Administrator']);
 
         $superuser = $this->createEmployeeUser(
             name: 'Main Superuser',
             username: 'main.superuser',
             company: $rnbCompany,
             department: $superuserDepartment,
-            position: $staffPosition,
+            position: $superAdministratorPosition,
         );
         $rnbStaff = $this->createEmployeeUser(
             name: 'RNB Staff',
@@ -491,7 +482,7 @@ class AuthorizationEmployeeListScopeTest extends TestCase
             position: $staffPosition,
         );
 
-        $this->assignRole($superuser, 'superuser');
+        $this->assignRole($superuser, 'Staff');
         $this->assignRole($rnbStaff, 'Staff');
         $this->assignRole($otherStaff, 'Staff');
 
@@ -522,7 +513,6 @@ class AuthorizationEmployeeListScopeTest extends TestCase
         Position $position,
     ): User {
         $user = User::query()->create([
-            'username' => $username,
             'email' => $username.'@example.test',
             'password' => Hash::make('password'),
             'is_active' => true,

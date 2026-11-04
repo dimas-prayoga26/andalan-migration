@@ -6,7 +6,9 @@ use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 class Applicant extends Model
@@ -14,9 +16,9 @@ class Applicant extends Model
     use GeneratesCustomSequenceUuid;
     use SoftDeletes;
 
-    private const LEGACY_PHOTO_BASE_URL = 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/';
+    private const FALLBACK_PHOTO_BASE_URL = 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/photo/';
 
-    private const LEGACY_CV_BASE_URL = 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/cv/';
+    private const FALLBACK_CV_BASE_URL = 'https://rnbmanagement.com/domain-rnbmanagementcom/subdomain/careers/files/cv/';
 
     protected $table = 'applicants';
 
@@ -25,13 +27,6 @@ class Applicant extends Model
     protected $keyType = 'string';
 
     public $incrementing = false;
-
-    protected function casts(): array
-    {
-        return [
-            'legacy_created_at' => 'datetime',
-        ];
-    }
 
     protected static function booted(): void
     {
@@ -72,6 +67,31 @@ class Applicant extends Model
         return $this->hasMany(ApplicantWorkExperience::class, 'applicant_id', 'id')->orderBy('sequence');
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(ApplicantDocument::class, 'applicant_id', 'id');
+    }
+
+    public function uploadRequests(): HasMany
+    {
+        return $this->hasMany(ApplicantUploadRequest::class, 'applicant_id', 'id');
+    }
+
+    public function technicalTestUploadRequests(): HasMany
+    {
+        return $this->hasMany(ApplicantTechnicalTestUploadRequest::class, 'applicant_id', 'id');
+    }
+
+    public function assessments(): HasMany
+    {
+        return $this->hasMany(ApplicantAssessment::class, 'applicant_id', 'id');
+    }
+
+    public function finalAssessment(): HasOne
+    {
+        return $this->hasOne(ApplicantFinalAssessment::class, 'applicant_id', 'id');
+    }
+
     public function statusLabel(): string
     {
         return (string) ($this->applicantStatus?->name ?? 'Submitted');
@@ -96,32 +116,108 @@ class Applicant extends Model
 
     public function cvDownloadUrl(): ?string
     {
-        $cvFile = trim((string) $this->cv);
+        $cvFile = $this->documentFilePath(ApplicantDocument::TYPE_CV);
 
         if ($cvFile === '') {
             return null;
         }
 
-        if (Str::startsWith($cvFile, ['http://', 'https://'])) {
-            return $cvFile;
-        }
-
-        return self::LEGACY_CV_BASE_URL.rawurlencode($cvFile);
+        return $this->uploadedFileUrl(
+            $cvFile,
+            'files/cv',
+            (string) config('applicant_files.cv_base_url'),
+            (string) config('applicant_files.fallback_cv_base_url', self::FALLBACK_CV_BASE_URL),
+        );
     }
 
     public function photoUrl(): ?string
     {
-        $photoFile = trim((string) $this->photo);
+        $photoFile = $this->documentFilePath([
+            ApplicantDocument::TYPE_PHOTO_PROFILE,
+            ApplicantDocument::TYPE_PHOTO,
+        ]);
 
         if ($photoFile === '') {
             return null;
         }
 
-        if (Str::startsWith($photoFile, ['http://', 'https://'])) {
-            return $photoFile;
+        return $this->uploadedFileUrl(
+            $photoFile,
+            'files/photo',
+            (string) config('applicant_files.photo_base_url'),
+            (string) config('applicant_files.fallback_photo_base_url', self::FALLBACK_PHOTO_BASE_URL),
+        );
+    }
+
+    /**
+     * @param  string|array<int, string>  $documentType
+     */
+    private function documentFilePath(string|array $documentType): string
+    {
+        $documentTypes = (array) $documentType;
+        $documentFilePath = null;
+
+        if ($this->relationLoaded('documents')) {
+            $documentFilePath = $this->documents
+                ->first(fn (ApplicantDocument $document): bool => in_array($document->document_type, $documentTypes, true))
+                ?->file_path;
+        } elseif ($this->exists) {
+            $documentFilePath = $this->documents()
+                ->whereIn('document_type', $documentTypes)
+                ->value('file_path');
         }
 
-        return self::LEGACY_PHOTO_BASE_URL.rawurlencode($photoFile);
+        $documentFilePath = trim((string) $documentFilePath);
+
+        if ($documentFilePath !== '') {
+            return $documentFilePath;
+        }
+
+        return '';
+    }
+
+    private function uploadedFileUrl(string $filename, string $directory, string $baseUrl, string $fallbackBaseUrl): string
+    {
+        if (Str::startsWith($filename, ['http://', 'https://'])) {
+            return $filename;
+        }
+
+        $normalizedFilename = $this->normalizeUploadedFilename($filename, $directory);
+        $encodedFilename = collect(explode('/', $normalizedFilename))
+            ->map(static fn (string $segment): string => rawurlencode($segment))
+            ->implode('/');
+
+        foreach ((array) config('applicant_files.careers_public_paths', []) as $publicPath) {
+            $candidatePath = rtrim((string) $publicPath, DIRECTORY_SEPARATOR)
+                .DIRECTORY_SEPARATOR
+                .str_replace('/', DIRECTORY_SEPARATOR, $directory)
+                .DIRECTORY_SEPARATOR
+                .str_replace('/', DIRECTORY_SEPARATOR, $normalizedFilename);
+
+            if (File::exists($candidatePath)) {
+                return rtrim($baseUrl, '/').'/'.$encodedFilename;
+            }
+        }
+
+        return rtrim($fallbackBaseUrl, '/').'/'.$encodedFilename;
+    }
+
+    private function normalizeUploadedFilename(string $filename, string $directory): string
+    {
+        $normalizedFilename = str_replace('\\', '/', trim($filename));
+        $normalizedFilename = ltrim($normalizedFilename, '/');
+        $normalizedFilename = preg_replace('#^public/#i', '', $normalizedFilename) ?? $normalizedFilename;
+
+        $directory = trim(str_replace('\\', '/', $directory), '/');
+        $directoryTail = basename($directory);
+
+        foreach ([$directory.'/', $directoryTail.'/'] as $prefix) {
+            if (Str::startsWith($normalizedFilename, $prefix)) {
+                return ltrim(substr($normalizedFilename, strlen($prefix)), '/');
+            }
+        }
+
+        return $normalizedFilename;
     }
 
     /**

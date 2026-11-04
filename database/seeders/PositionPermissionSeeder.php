@@ -51,7 +51,10 @@ class PositionPermissionSeeder extends Seeder
             ['section' => 'Siap', 'label' => 'Attendance', 'permission' => 'view-attendance'],
             ['section' => 'Siap', 'label' => 'Timesheet & Reporting', 'permission' => 'view-timesheet-reporting'],
             ['section' => 'Siap', 'label' => 'Zoom Meeting', 'permission' => 'view-meeting'],
+            ['section' => 'Siap', 'label' => 'Business Email', 'permission' => 'view-business-email'],
             ['section' => 'HR Management', 'label' => 'Admin Attendance', 'permission' => 'view-admin-attendance'],
+            ['section' => 'HR Management', 'label' => 'Email Management', 'permission' => 'view-email-management'],
+            ['section' => 'Administration & Finance', 'label' => 'Email', 'permission' => 'view-administration-finance-email'],
             ['section' => 'HR Management', 'label' => 'PIC', 'permission' => 'view-pic-attendance'],
             ['section' => 'HR Management', 'label' => 'Director', 'permission' => 'view-director-attendance'],
             ['section' => 'HR Management', 'label' => 'Organization', 'permission' => 'view-organization'],
@@ -69,28 +72,6 @@ class PositionPermissionSeeder extends Seeder
      */
     private function syncRolePermissions(array $permissionNames): void
     {
-        Role::query()
-            ->where('name', 'superuser')
-            ->first()
-            ?->syncPermissions($permissionNames);
-
-        Role::query()
-            ->where('name', 'Board of Directors')
-            ->first()
-            ?->syncPermissions([
-                'view-dashboard',
-                'view-calendar',
-                'view-attendance',
-                'view-timesheet-reporting',
-                'view-meeting',
-                'view-director-attendance',
-                'view-organization',
-                'view-authorization',
-                'view-employee-database',
-                'view-talent-acquisition',
-                'view-settings',
-            ]);
-
         Role::query()
             ->where('name', 'Staff')
             ->first()
@@ -114,6 +95,7 @@ class PositionPermissionSeeder extends Seeder
             'view-attendance',
             'view-timesheet-reporting',
             'view-meeting',
+            'view-business-email',
         ];
 
         $allPermissionsWithoutPic = $permissions
@@ -128,6 +110,7 @@ class PositionPermissionSeeder extends Seeder
             'view-attendance',
             'view-timesheet-reporting',
             'view-meeting',
+            'view-business-email',
             'view-organization',
             'view-authorization',
             'view-employee-database',
@@ -137,10 +120,10 @@ class PositionPermissionSeeder extends Seeder
         ];
 
         $positionPermissions = [
-            'Administrator' => $allPermissionsWithoutPic,
-            'Chief Operating Officer' => $directorPermissions,
-            'Director' => $directorPermissions,
-            'Finance and Administration Coordinator' => [
+            Position::KEY_ADMINISTRATOR => $allPermissionsWithoutPic,
+            Position::KEY_CHIEF_OPERATING_OFFICER => $directorPermissions,
+            Position::KEY_DIRECTOR => $directorPermissions,
+            Position::KEY_FINANCE_ADMINISTRATION_COORDINATOR => [
                 'view-dashboard',
                 'view-calendar',
                 'view-attendance',
@@ -148,7 +131,7 @@ class PositionPermissionSeeder extends Seeder
                 'view-meeting',
                 'view-employee-services',
             ],
-            'Accounting and Taxation' => [
+            Position::KEY_ACCOUNTING_TAXATION => [
                 'view-dashboard',
                 'view-calendar',
                 'view-attendance',
@@ -156,27 +139,28 @@ class PositionPermissionSeeder extends Seeder
                 'view-meeting',
                 'view-employee-services',
             ],
-            'Operations Coordinator' => $baseStaffPermissions,
-            'Supervisor' => array_merge($baseStaffPermissions, ['view-pic-attendance']),
-            'Interior Design' => $baseStaffPermissions,
-            'Architecture Design' => $baseStaffPermissions,
-            'Web Developer' => $baseStaffPermissions,
-            'Documentation Event and Editor Video' => $baseStaffPermissions,
-            'Graphic Design' => array_merge($baseStaffPermissions, ['view-talent-acquisition']),
-            'Branding Designer' => array_merge($baseStaffPermissions, ['view-talent-acquisition']),
-            'Driver' => $baseStaffPermissions,
+            Position::KEY_OPERATIONS_COORDINATOR => $baseStaffPermissions,
+            Position::KEY_SUPERVISOR => array_merge($baseStaffPermissions, ['view-pic-attendance', 'view-talent-acquisition']),
+            Position::KEY_INTERIOR_DESIGN => $baseStaffPermissions,
+            Position::KEY_ARCHITECTURE_DESIGN => $baseStaffPermissions,
+            Position::KEY_WEB_DEVELOPER => $baseStaffPermissions,
+            Position::KEY_DOCUMENTATION_EVENT_EDITOR_VIDEO => $baseStaffPermissions,
+            Position::KEY_DIGITAL_MARKETING => $baseStaffPermissions,
+            Position::KEY_GRAPHIC_DESIGN => array_merge($baseStaffPermissions, ['view-talent-acquisition']),
+            Position::KEY_BRANDING_DESIGNER => array_merge($baseStaffPermissions, ['view-talent-acquisition']),
+            Position::KEY_DRIVER => $baseStaffPermissions,
         ];
 
         Position::query()
-            ->where('name', 'Super Administrator')
+            ->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR)
             ->get()
             ->each(static fn (Position $position): mixed => $position->permissions()->detach());
 
         Position::query()
-            ->whereIn('name', array_keys($positionPermissions))
+            ->whereIn('system_key', array_keys($positionPermissions))
             ->get()
             ->each(function (Position $position) use ($positionPermissions, $permissions): void {
-                $permissionIds = collect($positionPermissions[$position->name] ?? [])
+                $permissionIds = collect($positionPermissions[$position->system_key] ?? [])
                     ->map(static fn (string $permissionName): ?string => $permissions->get($permissionName)?->uuid)
                     ->filter()
                     ->values()

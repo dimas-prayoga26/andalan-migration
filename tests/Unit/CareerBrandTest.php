@@ -1,0 +1,180 @@
+<?php
+
+namespace Tests\Unit;
+
+use App\Http\Controllers\TalentAcquisitionController;
+use App\Mail\ApplicantStatusMail;
+use App\Models\Applicant;
+use App\Models\Company;
+use App\Models\JobVacancy;
+use App\Models\MailAccessAccount;
+use App\Support\CareerBrand;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Mail;
+use ReflectionMethod;
+use RuntimeException;
+use Tests\TestCase;
+
+class CareerBrandTest extends TestCase
+{
+    public function test_null_blank_and_unknown_brand_key_use_rnb_brand(): void
+    {
+        config(['career_brands.default_brand' => 'tms']);
+
+        foreach ([null, '', 'unknown-brand'] as $brandKey) {
+            $brand = CareerBrand::brand($brandKey);
+
+            $this->assertSame('rnb', $brand['key']);
+            $this->assertSame('RNB Management', $brand['name']);
+            $this->assertSame('recruitment@rnb.co.id', $brand['email']);
+            $this->assertSame('rnb', $brand['mailer']);
+        }
+    }
+
+    public function test_known_brand_key_uses_matching_brand(): void
+    {
+        $brand = CareerBrand::brand('tms');
+
+        $this->assertSame('tms', $brand['key']);
+        $this->assertSame('TMS', $brand['name']);
+        $this->assertSame('recruitment@tims.co.id', $brand['email']);
+        $this->assertSame('tms', $brand['mailer']);
+    }
+
+    public function test_null_brand_config_falls_back_to_rnb_brand(): void
+    {
+        config(['career_brands.brands.tms' => null]);
+
+        $brand = CareerBrand::brand('tms');
+
+        $this->assertSame('rnb', $brand['key']);
+        $this->assertSame('RNB Management', $brand['name']);
+        $this->assertSame('rnb', $brand['mailer']);
+    }
+
+    public function test_partial_rnb_brand_config_is_completed_with_required_mail_fields(): void
+    {
+        config(['career_brands.brands.rnb' => [
+            'name' => 'RNB Management',
+        ]]);
+
+        $brand = CareerBrand::brand(null);
+
+        $this->assertSame('rnb', $brand['key']);
+        $this->assertSame('RNB Management', $brand['name']);
+        $this->assertSame('recruitment@rnb.co.id', $brand['email']);
+        $this->assertSame('rnb', $brand['mailer']);
+        $this->assertSame('https://rnb.co.id/', $brand['website']);
+    }
+
+    public function test_applicant_status_mail_handles_brand_without_email(): void
+    {
+        $mail = new ApplicantStatusMail(new Applicant([
+            'full_name' => 'John Doe',
+        ]), [
+            'key' => 'rnb',
+            'name' => 'RNB Management',
+        ]);
+
+        $envelope = $mail->envelope();
+
+        $this->assertSame('Status Lamaran Anda: Submitted - RNB Management', $envelope->subject);
+        $this->assertSame('recruitment@rnb.co.id', $envelope->from->address);
+        $this->assertSame('RNB Management', $envelope->from->name);
+    }
+
+    public function test_applicant_status_mail_formats_submitted_at_in_jakarta_time(): void
+    {
+        $originalAppTimezone = config('app.timezone');
+        $originalPhpTimezone = date_default_timezone_get();
+
+        config(['app.timezone' => 'UTC']);
+        date_default_timezone_set('UTC');
+
+        try {
+            $mail = new ApplicantStatusMail(new Applicant([
+                'full_name' => 'John Doe',
+                'created_at' => Carbon::parse('2026-10-05 20:15:00', 'UTC'),
+            ]), CareerBrand::brand('rnb'));
+
+            $mail->assertSeeInHtml('06 October 2026, 03:15 WIB');
+            $mail->assertDontSeeInHtml('05 October 2026, 20:15');
+        } finally {
+            config(['app.timezone' => $originalAppTimezone]);
+            date_default_timezone_set($originalPhpTimezone);
+        }
+    }
+
+    public function test_applicant_status_mail_brand_uses_department_email_from_applicant_company(): void
+    {
+        $departmentMailAccount = new MailAccessAccount([
+            'email' => 'recruitment@tims.co.id',
+            'type' => MailAccessAccount::TYPE_APPLICANT_NOTIFICATION,
+            'is_active' => true,
+        ]);
+
+        $company = new Company([
+            'name' => 'TMS',
+            'website' => 'https://www.tims.co.id/',
+        ]);
+        $company->setRelation('applicantNotificationMailAccessAccounts', Collection::make([$departmentMailAccount]));
+        $company->setRelation('departmentMailAccessAccounts', Collection::make([]));
+
+        $jobVacancy = new JobVacancy([
+            'name' => 'Programmer',
+        ]);
+        $jobVacancy->setRelation('company', $company);
+
+        $applicant = new Applicant([
+            'full_name' => 'John Doe',
+            'email' => 'john@example.com',
+            'brand_key' => null,
+        ]);
+        $applicant->setRelation('jobVacancy', $jobVacancy);
+
+        $method = new ReflectionMethod(TalentAcquisitionController::class, 'brandForApplicantStatusMail');
+        $brand = $method->invoke(new TalentAcquisitionController, $applicant);
+
+        $this->assertSame('tms', $brand['key']);
+        $this->assertSame('TMS', $brand['name']);
+        $this->assertSame('tms', $brand['mailer']);
+        $this->assertSame('recruitment@tims.co.id', $brand['email']);
+    }
+
+    public function test_missing_brand_mailer_config_falls_back_to_default_mailer(): void
+    {
+        config([
+            'mail.default' => 'smtp',
+            'mail.mailers.rnb' => null,
+            'mail.mailers.smtp' => [
+                'transport' => 'log',
+            ],
+        ]);
+
+        $method = new ReflectionMethod(TalentAcquisitionController::class, 'mailerForBrand');
+
+        $this->assertSame('smtp', $method->invoke(
+            new TalentAcquisitionController,
+            ['mailer' => 'rnb'],
+        ));
+    }
+
+    public function test_applicant_status_mail_failure_does_not_throw(): void
+    {
+        Mail::shouldReceive('mailer')
+            ->once()
+            ->andThrow(new RuntimeException('SMTP authentication failed.'));
+
+        $method = new ReflectionMethod(TalentAcquisitionController::class, 'sendApplicantStatusMail');
+
+        $this->assertFalse($method->invoke(
+            new TalentAcquisitionController,
+            new Applicant([
+                'full_name' => 'John Doe',
+                'email' => 'john@example.com',
+                'brand_key' => null,
+            ]),
+        ));
+    }
+}

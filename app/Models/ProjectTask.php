@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProjectTask extends Model
@@ -33,6 +34,10 @@ class ProjectTask extends Model
                 $projectTask->id = static::generateCustomSequenceUuid('id');
             }
         });
+
+        static::deleting(function (self $projectTask): void {
+            $projectTask->hrMeetingTasks()->delete();
+        });
     }
 
     public function project(): BelongsTo
@@ -58,5 +63,10 @@ class ProjectTask extends Model
     public function eventDivision(): BelongsTo
     {
         return $this->belongsTo(EventDivision::class, 'event_division_id', 'id');
+    }
+
+    public function hrMeetingTasks(): HasMany
+    {
+        return $this->hasMany(HrMeetingTask::class, 'project_task_id', 'id');
     }
 }

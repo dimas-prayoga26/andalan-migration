@@ -10,6 +10,7 @@ use App\Models\LeaveRequestHistory;
 use App\Models\LeaveType;
 use App\Models\User;
 use App\Services\Leave\JointHolidaySummaryService;
+use App\Support\Attendance\LeaveCardStepResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -20,20 +21,24 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Yajra\DataTables\Facades\DataTables;
 
 class PicAttendanceLeaveController extends Controller
 {
     private ?string $supervisorEmployeeId = null;
 
-    public function __construct(private readonly JointHolidaySummaryService $jointHolidaySummaryService) {}
+    public function __construct(
+        private readonly JointHolidaySummaryService $jointHolidaySummaryService,
+        private readonly LeaveCardStepResolver $leaveCardStepResolver,
+    ) {}
 
     public function index(Request $request): View
     {
         $selectedPeriod = $this->selectedPeriodFor($request);
 
         return view('pic_attendance.leave.index', [
-            'leaveOverviewStats' => $this->leaveOverviewStatsFor($request),
-            'leavePendingCards' => $this->pendingLeaveCardsFor($request),
+            'leaveOverviewStats' => $this->leaveOverviewStatsFor($request, $selectedPeriod),
+            'leaveCards' => $this->leaveProgressCardsFor($request, $selectedPeriod),
             'leaveGridPositionGroups' => $this->leaveGridPositionGroupsFor($request, $selectedPeriod),
             'leaveSelectedMonth' => $selectedPeriod['month'],
             'leaveSelectedYear' => $selectedPeriod['year'],
@@ -55,8 +60,8 @@ class PicAttendanceLeaveController extends Controller
         $leaveRequest = $this->baseLeaveRequestQuery($activeEmployeeIds)
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
-                'employee.user:id,username,email',
+                'employee.profile:id,employee_id,name,nickname',
+                'employee.user:id,email',
                 'employee.deployment:id,employee_id,join_date',
                 'leaveType:id,code,name',
                 'leaveType.subTypes:id,leave_type_id,name',
@@ -174,7 +179,9 @@ class PicAttendanceLeaveController extends Controller
 
         return redirect()
             ->route('pic-attendance.leave.detail', ['uid' => $uid])
-            ->with('success', 'Supervisor Review berhasil '.($targetStatus === 'approved' ? 'disetujui.' : 'ditolak.'));
+            ->with('success', $targetStatus === 'approved'
+                ? 'Pengajuan cuti disetujui dan diteruskan ke HR untuk verifikasi.'
+                : 'Pengajuan cuti telah ditolak.');
     }
 
     public function pendingDatatable(Request $request): JsonResponse
@@ -188,6 +195,10 @@ class PicAttendanceLeaveController extends Controller
     }
 
     /**
+     * Summary badges for the PIC's own staff, limited to leave requests overlapping the selected period.
+     * This Week and Next Week stay relative to today.
+     *
+     * @param  array{month: int, year: int}  $selectedPeriod
      * @return array{
      *     pending: int,
      *     rejected: int,
@@ -200,7 +211,7 @@ class PicAttendanceLeaveController extends Controller
      *     unpaid: int
      * }
      */
-    private function leaveOverviewStatsFor(Request $request): array
+    private function leaveOverviewStatsFor(Request $request, array $selectedPeriod): array
     {
         $now = now('Asia/Jakarta')->startOfDay();
         $authenticatedUser = $request->user();
@@ -213,7 +224,7 @@ class PicAttendanceLeaveController extends Controller
             return $this->emptyLeaveOverviewStats();
         }
 
-        $statusCounts = $this->baseLeaveRequestQuery($activeEmployeeIds)
+        $statusCounts = $this->applySelectedPeriodFilter($this->baseLeaveRequestQuery($activeEmployeeIds), $selectedPeriod)
             ->selectRaw('LOWER(COALESCE(status, "")) as normalized_status, COUNT(*) as aggregate')
             ->groupBy('normalized_status')
             ->pluck('aggregate', 'normalized_status');
@@ -224,16 +235,29 @@ class PicAttendanceLeaveController extends Controller
         $nextWeekEnd = $thisWeekEnd->copy()->addWeek();
 
         return [
-            'pending' => $this->countPendingSupervisorReviewLeaveRequests($activeEmployeeIds),
+            'pending' => $this->countPendingSupervisorReviewLeaveRequests($activeEmployeeIds, $selectedPeriod),
             'rejected' => (int) ($statusCounts['rejected'] ?? 0) + (int) ($statusCounts['refused'] ?? 0),
-            'approved' => (int) $this->supervisorApprovedLeaveRequestQuery($activeEmployeeIds)->count(),
+            'approved' => (int) $this->applySelectedPeriodFilter($this->supervisorApprovedLeaveRequestQuery($activeEmployeeIds), $selectedPeriod)->count(),
             'this_week' => $this->countLeaveRequestsBetween($activeEmployeeIds, $thisWeekStart, $thisWeekEnd),
             'next_week' => $this->countLeaveRequestsBetween($activeEmployeeIds, $nextWeekStart, $nextWeekEnd),
-            'annual' => $this->countLeaveRequestsByType($activeEmployeeIds, ['ANNUAL', 'ANNUAL_LEAVE'], ['annual leave', 'cuti tahunan']),
-            'sick' => $this->countLeaveRequestsByType($activeEmployeeIds, ['SICK', 'SICK_LEAVE'], ['sick leave', 'sakit']),
-            'special' => $this->countLeaveRequestsByType($activeEmployeeIds, ['SPECIAL', 'SPECIAL_LEAVE'], ['special leave', 'cuti khusus']),
-            'unpaid' => $this->countLeaveRequestsByType($activeEmployeeIds, ['UNPAID', 'UNPAID_LEAVE'], ['unpaid leave', 'cuti tidak dibayar']),
+            'annual' => $this->countLeaveRequestsByType($activeEmployeeIds, $selectedPeriod, ['ANNUAL', 'ANNUAL_LEAVE'], ['annual leave', 'cuti tahunan']),
+            'sick' => $this->countLeaveRequestsByType($activeEmployeeIds, $selectedPeriod, ['SICK', 'SICK_LEAVE'], ['sick leave', 'sakit']),
+            'special' => $this->countLeaveRequestsByType($activeEmployeeIds, $selectedPeriod, ['SPECIAL', 'SPECIAL_LEAVE'], ['special leave', 'cuti khusus']),
+            'unpaid' => $this->countLeaveRequestsByType($activeEmployeeIds, $selectedPeriod, ['UNPAID', 'UNPAID_LEAVE'], ['unpaid leave', 'cuti tidak dibayar']),
         ];
+    }
+
+    /**
+     * @param  array{month: int, year: int}  $selectedPeriod
+     */
+    private function applySelectedPeriodFilter(Builder $query, array $selectedPeriod): Builder
+    {
+        $periodStart = Carbon::create($selectedPeriod['year'], $selectedPeriod['month'], 1, 0, 0, 0, 'Asia/Jakarta')->startOfDay();
+        $periodEnd = $periodStart->copy()->endOfMonth()->startOfDay();
+
+        return $query
+            ->whereDate('start_date', '<=', $periodEnd->toDateString())
+            ->whereDate('end_date', '>=', $periodStart->toDateString());
     }
 
     /**
@@ -290,7 +314,6 @@ class PicAttendanceLeaveController extends Controller
             return collect();
         }
 
-        $todayDate = $date->toDateString();
         $supervisedEmployeeIds = DB::table('employee_pic_assignments')
             ->where('supervisor_employee_id', $this->supervisorEmployeeId)
             ->where('is_active', true)
@@ -308,25 +331,6 @@ class PicAttendanceLeaveController extends Controller
         return Employee::query()
             ->whereIn('id', $supervisedEmployeeIds)
             ->whereNull('deleted_at')
-            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-            ->whereHas('user', function (Builder $query): void {
-                $query->where('is_active', true);
-            })
-            ->whereHas('deployment', function (Builder $query) use ($todayDate): void {
-                $query
-                    ->whereNull('deleted_at')
-                    ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
-                    ->where(function (Builder $query) use ($todayDate): void {
-                        $query
-                            ->whereNull('join_date')
-                            ->orWhereDate('join_date', '<=', $todayDate);
-                    })
-                    ->where(function (Builder $query) use ($todayDate): void {
-                        $query
-                            ->whereNull('resignation_date')
-                            ->orWhereDate('resignation_date', '>=', $todayDate);
-                    });
-            })
             ->pluck('id')
             ->filter(static fn (mixed $employeeId): bool => is_string($employeeId) && trim($employeeId) !== '')
             ->values();
@@ -355,15 +359,21 @@ class PicAttendanceLeaveController extends Controller
         );
     }
 
-    private function countPendingSupervisorReviewLeaveRequests(Collection $activeEmployeeIds): int
+    /**
+     * @param  array{month: int, year: int}  $selectedPeriod
+     */
+    private function countPendingSupervisorReviewLeaveRequests(Collection $activeEmployeeIds, array $selectedPeriod): int
     {
         return (int) $this->applyPendingSupervisorReviewFilter(
-            $this->baseLeaveRequestQuery($activeEmployeeIds)
+            $this->applySelectedPeriodFilter($this->baseLeaveRequestQuery($activeEmployeeIds), $selectedPeriod)
                 ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['pending'])
         )->count();
     }
 
     /**
+     * Pending, approved and rejected leave requests of the PIC's staff that are between step 2 and step 4.
+     *
+     * @param  array{month: int, year: int}  $selectedPeriod
      * @return Collection<int, array{
      *     name:string,
      *     initial:string,
@@ -371,10 +381,11 @@ class PicAttendanceLeaveController extends Controller
      *     reason:string,
      *     date_label:string,
      *     supervisor_name:string,
-     *     detail_url:string
+     *     detail_url:string,
+     *     current_step:array{title: string, status: string, color: string}
      * }>
      */
-    private function pendingLeaveCardsFor(Request $request): Collection
+    private function leaveProgressCardsFor(Request $request, array $selectedPeriod): Collection
     {
         $now = now('Asia/Jakarta')->startOfDay();
         $authenticatedUser = $request->user();
@@ -386,26 +397,24 @@ class PicAttendanceLeaveController extends Controller
             return collect();
         }
 
-        return $this->applyPendingSupervisorReviewFilter(
-            $this->baseLeaveRequestQuery($activeEmployeeIds)
-                ->with([
-                    'employee:id,user_id',
-                    'employee.profile:id,employee_id,name',
-                    'employee.user:id,username,email',
-                    'leaveType:id,code,name',
-                    'histories' => function ($query): void {
-                        $query
-                            ->select(['id', 'leave_request_id', 'event_type', 'to_status'])
-                            ->where('event_type', 'supervisor_review')
-                            ->where('to_status', 'approved')
-                            ->oldest('happened_at');
-                    },
-                ])
-                ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['pending'])
-        )
-            ->orderBy('start_date')
-            ->orderBy('created_at')
-            ->limit(6)
+        return $this->applySelectedPeriodFilter($this->baseLeaveRequestQuery($activeEmployeeIds), $selectedPeriod)
+            ->with([
+                'employee:id,user_id',
+                'employee.profile:id,employee_id,name,nickname',
+                'employee.user:id,email',
+                'leaveType:id,code,name',
+                'histories' => function ($query): void {
+                    $query
+                        ->select(['id', 'leave_request_id', 'event_type', 'to_status'])
+                        ->where('event_type', 'supervisor_review');
+                },
+            ])
+            ->whereRaw('LOWER(COALESCE(status, "")) IN (?, ?, ?, ?)', ['pending', 'approved', 'rejected', 'refused'])
+            ->whereHas('histories', function (Builder $query): void {
+                $query->where('event_type', 'supervisor_review');
+            })
+            ->orderByDesc('start_date')
+            ->orderByDesc('created_at')
             ->get(['id', 'employee_id', 'leave_type_id', 'start_date', 'end_date', 'total_days', 'reason', 'status'])
             ->map(function (LeaveRequest $leaveRequest): array {
                 $employeeName = $this->employeeDisplayName($leaveRequest->employee);
@@ -418,6 +427,7 @@ class PicAttendanceLeaveController extends Controller
                     'date_label' => $this->leaveRequestPeriodLabel($leaveRequest),
                     'supervisor_name' => $this->supervisorDisplayName($leaveRequest),
                     'detail_url' => route('pic-attendance.leave.detail', ['uid' => $leaveRequest->id]),
+                    'current_step' => $this->leaveCardStepResolver->currentStep($leaveRequest),
                 ];
             })
             ->values();
@@ -453,8 +463,8 @@ class PicAttendanceLeaveController extends Controller
         return Employee::query()
             ->whereIn('id', $activeEmployeeIds)
             ->with([
-                'profile:id,employee_id,name',
-                'user:id,username,email',
+                'profile:id,employee_id,name,nickname',
+                'user:id,email',
                 'deployment:id,employee_id,current_position_id,current_company_id,current_department_id',
                 'deployment.position:id,name',
                 'deployment.positions:id,name',
@@ -545,12 +555,13 @@ class PicAttendanceLeaveController extends Controller
     }
 
     /**
+     * @param  array{month: int, year: int}  $selectedPeriod
      * @param  array<int, string>  $codes
      * @param  array<int, string>  $names
      */
-    private function countLeaveRequestsByType(Collection $activeEmployeeIds, array $codes, array $names): int
+    private function countLeaveRequestsByType(Collection $activeEmployeeIds, array $selectedPeriod, array $codes, array $names): int
     {
-        return (int) $this->supervisorApprovedLeaveRequestQuery($activeEmployeeIds)
+        return (int) $this->applySelectedPeriodFilter($this->supervisorApprovedLeaveRequestQuery($activeEmployeeIds), $selectedPeriod)
             ->whereHas('leaveType', function (Builder $query) use ($codes, $names): void {
                 $query->where(function (Builder $query) use ($codes, $names): void {
                     $query
@@ -575,16 +586,14 @@ class PicAttendanceLeaveController extends Controller
         $periodEnd = $periodStart->copy()->endOfMonth()->startOfDay();
 
         if ($activeEmployeeIds->isEmpty()) {
-            return response()->json([
-                'data' => [],
-            ]);
+            return DataTables::collection(collect())->toJson();
         }
 
         $query = $this->baseLeaveRequestQuery($activeEmployeeIds)
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
-                'employee.user:id,username,email',
+                'employee.profile:id,employee_id,name,nickname',
+                'employee.user:id,email',
                 'leaveType:id,code,name',
             ])
             ->whereDate('start_date', '<=', $periodEnd->toDateString())
@@ -614,9 +623,7 @@ class PicAttendanceLeaveController extends Controller
                 'detail_url' => route('pic-attendance.leave.detail', ['uid' => $leaveRequest->id]),
             ]);
 
-        return response()->json([
-            'data' => $rows,
-        ]);
+        return DataTables::collection($rows)->toJson();
     }
 
     private function applySupervisorApprovedReviewFilter(Builder $query): Builder
@@ -628,13 +635,22 @@ class PicAttendanceLeaveController extends Controller
         });
     }
 
+    /**
+     * Leave requests currently sitting at step 2 (Supervisor Review) without a supervisor decision yet.
+     */
     private function applyPendingSupervisorReviewFilter(Builder $query): Builder
     {
-        return $query->whereDoesntHave('histories', function (Builder $query): void {
-            $query
-                ->where('event_type', 'supervisor_review')
-                ->whereIn('to_status', ['approved', 'rejected']);
-        });
+        return $query
+            ->whereHas('histories', function (Builder $query): void {
+                $query
+                    ->where('event_type', 'supervisor_review')
+                    ->where('to_status', 'pending');
+            })
+            ->whereDoesntHave('histories', function (Builder $query): void {
+                $query
+                    ->where('event_type', 'supervisor_review')
+                    ->whereIn('to_status', ['approved', 'rejected']);
+            });
     }
 
     /**
@@ -703,9 +719,9 @@ class PicAttendanceLeaveController extends Controller
             return trim($profileName);
         }
 
-        $username = $employee?->user?->username;
-        if (is_string($username) && trim($username) !== '') {
-            return trim($username);
+        $nickname = $employee?->profile?->nickname;
+        if (is_string($nickname) && trim($nickname) !== '') {
+            return trim($nickname);
         }
 
         $email = $employee?->user?->email;
@@ -1230,7 +1246,7 @@ class PicAttendanceLeaveController extends Controller
     {
         return $leaveRequest->histories
             ->map(function ($history): array {
-                $actorName = $history->actor?->username;
+                $actorName = $history->actor?->shortName();
                 if (! is_string($actorName) || trim($actorName) === '') {
                     $actorEmail = $history->actor?->email;
                     $actorName = is_string($actorEmail) && trim($actorEmail) !== ''
@@ -1292,13 +1308,12 @@ class PicAttendanceLeaveController extends Controller
             return trim($profileName);
         }
 
-        $username = DB::table('employees')
-            ->join('users', 'users.id', '=', 'employees.user_id')
-            ->where('employees.id', trim($supervisorEmployeeId))
-            ->value('users.username');
+        $nickname = DB::table('employee_profiles')
+            ->where('employee_id', trim($supervisorEmployeeId))
+            ->value('nickname');
 
-        if (is_string($username) && trim($username) !== '') {
-            return trim($username);
+        if (is_string($nickname) && trim($nickname) !== '') {
+            return trim($nickname);
         }
 
         $email = DB::table('employees')

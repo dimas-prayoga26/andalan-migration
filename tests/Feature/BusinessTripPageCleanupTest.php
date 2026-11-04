@@ -910,7 +910,6 @@ class BusinessTripPageCleanupTest extends TestCase
     {
         $user = new User([
             'id' => 'USER-1',
-            'username' => 'staff72',
             'email' => 'staff72@example.test',
         ]);
         $user->setRelation('employee', null);

@@ -1,0 +1,274 @@
+@if ($showCreateTaskModal ?? ($showAddTask ?? true))
+<div class="modal fade" id="create" tabindex="-1" aria-labelledby="createMeetingTaskLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('hr-meetings.tasks.store', $meeting) }}">
+                @csrf
+                <input type="hidden" name="category" id="meetingTaskCategory" value="">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createMeetingTaskLabel">Create Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="meetingTaskTitle">Judul Task</label>
+                        <input type="text" class="form-control" id="meetingTaskTitle" name="title" placeholder="Judul task" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="meetingTaskAssignee">Assign to</label>
+                        <select class="form-select" id="meetingTaskAssignee" name="assigned_to" required @disabled(($meetingTaskAssigneeOptions ?? collect())->isEmpty())>
+                            @forelse ($meetingTaskAssigneeOptions ?? [] as $employee)
+                                <option value="{{ $employee['id'] }}">{{ $employee['name'] }}</option>
+                            @empty
+                                <option value="">Belum ada staff yang joined di meeting ini</option>
+                            @endforelse
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label" for="meetingTaskDateRangePicker">Date Range</label>
+                        <input type="text" class="form-control js-meeting-task-date-range-picker" id="meetingTaskDateRangePicker" data-start-date-target="#meetingTaskStartDate" data-due-date-target="#meetingTaskDueDate" placeholder="dd/mm/yyyy - dd/mm/yyyy" autocomplete="off" required>
+                        <input type="hidden" id="meetingTaskStartDate" name="start_date" value="">
+                        <input type="hidden" id="meetingTaskDueDate" name="due_date" value="">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-success" @disabled(($meetingTaskAssigneeOptions ?? collect())->isEmpty())>Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
+<script>
+    $(function () {
+        var meetingTaskCards = @json($meetingTaskCards ?? []);
+        var cardByTitle = {};
+
+        function escapeHtml(value) {
+            return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
+        }
+
+        function nullableTaskText(value) {
+            return value ? value : '-';
+        }
+
+        function nullableTaskValue(value) {
+            if (value === null || typeof value === 'undefined') {
+                return '';
+            }
+
+            return String(value).trim();
+        }
+
+        function renderTaskAttachment(selector, attachmentPath) {
+            var attachmentValue = nullableTaskValue(attachmentPath);
+            var attachmentElement = $(selector);
+
+            if (attachmentValue === '') {
+                attachmentElement.text('No attachment');
+                return;
+            }
+
+            attachmentElement
+                .empty()
+                .append($('<a>', {
+                    href: attachmentValue,
+                    class: 'text-primary',
+                    target: '_blank',
+                    rel: 'noopener noreferrer',
+                    text: 'Open attachment'
+                }));
+        }
+
+        function renderTaskAttachmentLink(task) {
+            var attachmentValue = nullableTaskValue(task.attachment_path);
+
+            if (attachmentValue === '') {
+                return '';
+            }
+
+            return ' <a href="' + escapeAttribute(attachmentValue) + '" target="_blank" rel="noopener noreferrer" class="small text-primary fw-semibold" title="' + escapeAttribute(attachmentValue) + '" aria-label="Open attachment">'
+                + '<i class="fa fa-paperclip me-1" aria-hidden="true"></i>Attachment'
+                + '</a>';
+        }
+
+        function escapeAttribute(value) {
+            return escapeHtml(value).replace(/'/g, '&#039;');
+        }
+
+        function taskPayload(task) {
+            return escapeAttribute(JSON.stringify(task || {}));
+        }
+
+        function renderTaskActions(task) {
+            var updateAction = task.can_update !== false
+                ? '<button type="button" class="dropdown-item js-meeting-task-edit" data-bs-toggle="modal" data-bs-target="#meetingTaskEditModal" data-task=\'' + taskPayload(task) + '\'>Update</button>'
+                : '';
+            var deleteAction = task.can_delete !== false
+                ? '<button type="button" class="dropdown-item text-danger js-meeting-task-delete" data-bs-toggle="modal" data-bs-target="#meetingTaskDeleteModal" data-task=\'' + taskPayload(task) + '\'>Delete</button>'
+                : '';
+
+            return ''
+                + '<div class="dropdown">'
+                + '<button type="button" class="btn btn-sm btn-light btn-square" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Task actions"><i class="bi bi-grid"></i></button>'
+                + '<div class="dropdown-menu dropdown-menu-end">'
+                + '<button type="button" class="dropdown-item js-meeting-task-detail" data-bs-toggle="modal" data-bs-target="#meetingTaskDetailModal" data-task=\'' + taskPayload(task) + '\'>View More</button>'
+                + updateAction
+                + deleteAction
+                + '</div>'
+                + '</div>';
+        }
+
+        function renderTask(task) {
+            var lineClass = task.is_completed ? 'bg-success' : 'bg-light';
+            var statusText = task.is_completed ? 'Status: Completed' : 'Due ' + (task.due_label || '-');
+
+            return ''
+                + '<div class="d-flex align-items-center py-2">'
+                + '<div class="timeline-vr-badge ' + lineClass + ' me-2"></div>'
+                + '<div class="clearfix ms-2">'
+                + '<h6 class="fs-13 mb-0 fw-semibold d-flex align-items-center flex-wrap gap-1"><span>' + escapeHtml(task.title || '-') + '</span>' + renderTaskAttachmentLink(task) + '</h6>'
+                + '<span class="small">' + escapeHtml(statusText) + ' by <span class="text-primary">' + escapeHtml(task.assignee || '-') + '</span></span>'
+                + '</div>'
+                + '<div class="clearfix ms-auto">'
+                + renderTaskActions(task)
+                + '</div>'
+                + '</div>';
+        }
+
+        meetingTaskCards.forEach(function (card) {
+            cardByTitle[card.title] = card;
+        });
+
+        $('.card').each(function () {
+            var cardElement = $(this);
+            var title = $.trim(cardElement.find('.card-title').first().text());
+            var cardData = cardByTitle[title];
+
+            if (!cardData) {
+                return;
+            }
+
+            var body = cardElement.find('.card-body').first();
+            var headerRow = body.children('.d-flex.justify-content-between.mb-3').first();
+            var completedText = cardData.completed + ' / ' + cardData.total + ' Completed <span class="text-success">(' + cardData.percentage + '%)</span>';
+            var tasksHtml = cardData.tasks.length
+                ? cardData.tasks.map(renderTask).join('')
+                : '<div class="text-muted py-2">No task yet.</div>';
+
+            headerRow.find('.text-gray').html(completedText);
+            headerRow.find('[data-bs-target="#create"]').attr('href', 'javascript:void(0)').attr('data-meeting-task-category', cardData.key);
+            body.children().not(headerRow).remove();
+            body.append(tasksHtml);
+        });
+
+        $('#create').on('show.bs.modal', function (event) {
+            var trigger = $(event.relatedTarget);
+            var category = trigger.data('meeting-task-category') || '';
+            var title = $.trim(trigger.closest('.card').find('.card-title').first().text());
+
+            $('#meetingTaskCategory').val(category);
+            $('#createMeetingTaskLabel').text(title ? 'Create Task - ' + title : 'Create Task');
+        });
+
+        $('.js-meeting-task-date-range-picker').each(function () {
+            var input = $(this);
+            var startDateInput = $(input.data('start-date-target'));
+            var dueDateInput = $(input.data('due-date-target'));
+
+            if (!$.fn.daterangepicker || !window.moment) {
+                input.attr('type', 'date');
+                input.on('change', function () {
+                    startDateInput.val(input.val());
+                    dueDateInput.val(input.val());
+                });
+                return;
+            }
+
+            input.daterangepicker({
+                autoUpdateInput: false,
+                showDropdowns: true,
+                startDate: moment(),
+                endDate: moment(),
+                locale: {
+                    format: 'DD/MM/YYYY',
+                    separator: ' - ',
+                    cancelLabel: 'Clear',
+                },
+            });
+
+            input.on('apply.daterangepicker', function (event, picker) {
+                input.val(picker.startDate.format('DD/MM/YYYY') + ' - ' + picker.endDate.format('DD/MM/YYYY'));
+                startDateInput.val(picker.startDate.format('YYYY-MM-DD'));
+                dueDateInput.val(picker.endDate.format('YYYY-MM-DD'));
+                input.trigger('blur');
+            });
+
+            input.on('cancel.daterangepicker', function () {
+                input.val('');
+                startDateInput.val('');
+                dueDateInput.val('');
+            });
+        });
+
+        $(document).on('click', '.js-meeting-task-detail', function () {
+            var task = $(this).data('task') || {};
+
+            $('#meetingTaskDetailTitle').text(nullableTaskText(task.title));
+            $('#meetingTaskDetailDescription').text(nullableTaskText(task.description));
+            $('#meetingTaskDetailDate').text(nullableTaskText(task.date_range_label || task.due_label));
+            $('#meetingTaskDetailBlockers').text(nullableTaskText(task.blockers));
+            $('#meetingTaskDetailCategory').text(nullableTaskText(task.task_category_label));
+            $('#meetingTaskDetailCategoryDescription').text(nullableTaskText(task.task_category_description));
+            $('#meetingTaskDetailAssignedBy').text('@' + (nullableTaskValue(task.assigned_by) || 'self'));
+            $('#meetingTaskDetailStatus')
+                .removeClass('text-danger text-success text-warning text-primary')
+                .addClass(task.status_class || 'text-warning')
+                .text(nullableTaskValue(task.status_label) || 'To Do');
+            renderTaskAttachment('#meetingTaskDetailAttachment', task.attachment_path);
+        });
+
+        $(document).on('click', '.js-meeting-task-edit', function () {
+            var task = $(this).data('task') || {};
+            var startDate = task.start_date || '';
+            var dueDate = task.due_date || startDate;
+            var startMoment = startDate && window.moment ? moment(startDate, 'YYYY-MM-DD') : null;
+            var dueMoment = dueDate && window.moment ? moment(dueDate, 'YYYY-MM-DD') : null;
+
+            $('#meetingTaskEditForm').attr('action', task.update_url || '#');
+            $('#meetingTaskEditCategory').val(task.category || '');
+            $('#meetingTaskEditCategoryLabel').val(task.task_category_label || '');
+            $('#meetingTaskEditTitle').val(task.title || '');
+            $('#meetingTaskEditDescription').val(task.description || '');
+            $('#meetingTaskEditAssignee').val(task.assignee_id || '');
+            $('#meetingTaskEditAssigneeHidden').val(task.assignee_id || '');
+            $('#meetingTaskEditPriority').val(task.priority || 'medium');
+            $('#meetingTaskEditStatus').val(task.status || 'pending');
+            $('#meetingTaskEditAttachment').val(task.attachment_path || '');
+            $('#meetingTaskEditBlockers').val(task.blockers || '');
+            $('#meetingTaskEditProjectName').val(task.project_name || 'Pilih Nama Project');
+            $('#meetingTaskEditStartDate').val(startDate);
+            $('#meetingTaskEditDueDate').val(dueDate);
+
+            if (startMoment && startMoment.isValid() && dueMoment && dueMoment.isValid()) {
+                $('#meetingTaskEditDateRangePicker').val(startMoment.format('DD/MM/YYYY') + ' - ' + dueMoment.format('DD/MM/YYYY'));
+
+                if ($.fn.daterangepicker && $('#meetingTaskEditDateRangePicker').data('daterangepicker')) {
+                    $('#meetingTaskEditDateRangePicker').data('daterangepicker').setStartDate(startMoment);
+                    $('#meetingTaskEditDateRangePicker').data('daterangepicker').setEndDate(dueMoment);
+                }
+            } else {
+                $('#meetingTaskEditDateRangePicker').val('');
+            }
+        });
+
+        $(document).on('click', '.js-meeting-task-delete', function () {
+            var task = $(this).data('task') || {};
+
+            $('#meetingTaskDeleteForm').attr('action', task.destroy_url || '#');
+            $('#meetingTaskDeleteTitle').text(task.title || '-');
+        });
+    });
+</script>

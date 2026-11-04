@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\Employee\EmployeeDataOptions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,7 +26,7 @@ class ProfileUpdateRequest extends FormRequest
         return [
             'name' => ['nullable', 'string', 'max:255'],
             'gender' => ['nullable', Rule::in(['Male', 'Female'])],
-            'marital_status' => ['nullable', Rule::in(['Lajang', 'Menikah'])],
+            'marital_status' => ['nullable', Rule::in(array_keys(EmployeeDataOptions::MARITAL_STATUSES))],
             'birth' => ['nullable', 'date_format:Y-m-d'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => [

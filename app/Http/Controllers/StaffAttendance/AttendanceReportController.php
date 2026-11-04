@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Yajra\DataTables\Facades\DataTables;
 use ZipArchive;
 
 class AttendanceReportController extends Controller
@@ -191,12 +192,12 @@ class AttendanceReportController extends Controller
                 ->find(Auth::id());
 
             if (! $staffUser) {
-                return response()->json(['data' => []]);
+                return DataTables::collection(collect())->toJson();
             }
 
             $staffEmployeeId = $staffUser->employee?->id;
             if (! is_string($staffEmployeeId) || trim($staffEmployeeId) === '') {
-                return response()->json(['data' => []]);
+                return DataTables::collection(collect())->toJson();
             }
 
             $employmentStartMonth = $this->resolveStaffEmploymentStartMonth($staffEmployeeId, $nowJakarta);
@@ -214,14 +215,12 @@ class AttendanceReportController extends Controller
                 $selectedMonth = (int) $currentMonthStart->month;
             }
 
-            $staffProfileName = EmployeeProfile::query()
+            $staffProfile = EmployeeProfile::query()
                 ->where('employee_id', $staffEmployeeId)
-                ->value('name');
-            $staffDisplayName = is_string($staffProfileName) && trim($staffProfileName) !== ''
-                ? trim($staffProfileName)
-                : ((is_string($staffUser->username) && trim($staffUser->username) !== '')
-                    ? trim($staffUser->username)
-                    : ((is_string($staffUser->email) && trim($staffUser->email) !== '') ? trim($staffUser->email) : '-'));
+                ->first(['name', 'nickname']);
+            $staffDisplayName = collect([$staffProfile?->name, $staffProfile?->nickname, $staffUser->email])
+                ->map(fn (mixed $nameCandidate): string => trim((string) $nameCandidate))
+                ->first(fn (string $nameCandidate): bool => $nameCandidate !== '') ?? '-';
 
             $periodStart = Carbon::create($selectedYear, $selectedMonth, 1, 0, 0, 0, 'Asia/Jakarta')->startOfDay();
             $periodEnd = $periodStart->copy()->endOfMonth()->startOfDay();
@@ -542,9 +541,7 @@ class AttendanceReportController extends Controller
                 ]);
             }
 
-            return response()->json([
-                'data' => $tableRows->sortByDesc('attendance_date_iso')->values(),
-            ]);
+            return DataTables::collection($tableRows->sortByDesc('attendance_date_iso')->values())->toJson();
         }
 
         $tableUsersQuery = User::query()
@@ -578,7 +575,10 @@ class AttendanceReportController extends Controller
         $employeeProfileNamesByEmployeeId = EmployeeProfile::query()
             ->whereIn('employee_id', $employeeIds)
             ->orderBy('created_at')
-            ->pluck('name', 'employee_id');
+            ->get(['employee_id', 'name', 'nickname'])
+            ->mapWithKeys(fn (EmployeeProfile $employeeProfile): array => [
+                $employeeProfile->employee_id => trim((string) $employeeProfile->name) !== '' ? $employeeProfile->name : $employeeProfile->nickname,
+            ]);
         $attendancesTodayByEmployeeId = Attendance::query()
             ->whereIn('employee_id', $employeeIds)
             ->whereDate('date', $todayDate)
@@ -642,9 +642,7 @@ class AttendanceReportController extends Controller
             $profileName = is_string($employeeId) ? $employeeProfileNamesByEmployeeId->get($employeeId) : null;
             $staffDisplayName = is_string($profileName) && trim($profileName) !== ''
                 ? trim($profileName)
-                : ((is_string($user->username) && trim($user->username) !== '')
-                    ? trim($user->username)
-                    : ((is_string($user->email) && trim($user->email) !== '') ? trim($user->email) : '-'));
+                : ((is_string($user->email) && trim($user->email) !== '') ? trim($user->email) : '-');
 
             return [
                 'attendance_id' => $attendanceToday?->id,
@@ -686,9 +684,7 @@ class AttendanceReportController extends Controller
             ];
         })->values();
 
-        return response()->json([
-            'data' => $tableRows,
-        ]);
+        return DataTables::collection($tableRows)->toJson();
     }
 
     public function exportReport(Request $request): Response
@@ -934,9 +930,7 @@ class AttendanceReportController extends Controller
             return false;
         }
 
-        return $user->getRoleNames()
-            ->map(fn (string $roleName): string => strtolower(trim($roleName)))
-            ->contains('superuser');
+        return $user->isSuperAdministrator();
     }
 
     private function isBoardOfDirectur(?User $user): bool

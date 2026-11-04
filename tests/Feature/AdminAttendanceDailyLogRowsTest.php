@@ -10,6 +10,7 @@ use App\Models\EmployeeDeployment;
 use App\Models\EmployeeProfile;
 use App\Models\Position;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -46,6 +47,35 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
         $this->assertStringContainsString("\$leaveRequest->setRelation('employee', \$employee)", $controller);
         $this->assertStringContainsString("@if (\$row['has_detail'])", $view);
         $this->assertStringContainsString('<span>-</span>', $view);
+    }
+
+    public function test_admin_daily_log_date_filter_normalizes_supported_dates_and_rejects_future_dates(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 21, 10, 0, 0, 'Asia/Jakarta'));
+
+        try {
+            $controller = app(AttendanceRecapController::class);
+            $method = new ReflectionMethod(AttendanceRecapController::class, 'recapAttendanceDate');
+
+            $this->assertSame(
+                '2026-09-19',
+                $method->invoke($controller, Request::create('/admin-attendance/recap-attendance', 'GET', ['date' => '19/09/2026']))->toDateString()
+            );
+            $this->assertSame(
+                '2026-09-18',
+                $method->invoke($controller, Request::create('/admin-attendance/recap-attendance', 'GET', ['date' => '2026-09-18']))->toDateString()
+            );
+            $this->assertSame(
+                '2026-09-21',
+                $method->invoke($controller, Request::create('/admin-attendance/recap-attendance', 'GET', ['date' => '22/09/2026']))->toDateString()
+            );
+            $this->assertSame(
+                '2026-09-21',
+                $method->invoke($controller, Request::create('/admin-attendance/recap-attendance', 'GET', ['date' => 'not-a-date']))->toDateString()
+            );
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_clock_in_at_office_start_boundary_is_presented_on_time_even_when_status_is_late(): void
@@ -133,7 +163,7 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
         $employee->forceFill(['id' => 'admin-driver-effective-work-hours']);
         $employee->setRelation('profile', new EmployeeProfile(['name' => 'Driver Jam Efektif']));
 
-        $driverPosition = new Position(['name' => 'Driver']);
+        $driverPosition = new Position(['name' => 'Driver', 'system_key' => Position::KEY_DRIVER]);
         $deployment = new EmployeeDeployment;
         $deployment->setRelation('position', $driverPosition);
         $deployment->setRelation('positions', new EloquentCollection([$driverPosition]));
@@ -163,7 +193,7 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
         $employee->forceFill(['id' => 'admin-executive-assistant-effective-work-hours']);
         $employee->setRelation('profile', new EmployeeProfile(['name' => 'Executive Assistant Jam Efektif']));
 
-        $executiveAssistantPosition = new Position(['name' => 'Executive Assistant']);
+        $executiveAssistantPosition = new Position(['name' => 'Executive Assistant', 'system_key' => Position::KEY_EXECUTIVE_ASSISTANT]);
         $deployment = new EmployeeDeployment;
         $deployment->setRelation('position', $executiveAssistantPosition);
         $deployment->setRelation('positions', new EloquentCollection([$executiveAssistantPosition]));
@@ -204,8 +234,8 @@ class AdminAttendanceDailyLogRowsTest extends TestCase
     {
         $controller = File::get(app_path('Http/Controllers/AdminAttendance/AttendanceRecapController.php'));
 
-        $this->assertStringContainsString("->whereDoesntHave('roles'", $controller);
-        $this->assertStringContainsString("->where('name', 'superuser')", $controller);
+        $this->assertStringContainsString("->whereDoesntHave('deployment.position'", $controller);
+        $this->assertStringContainsString('->whereSystemKey(Position::KEY_SUPER_ADMINISTRATOR)', $controller);
         $this->assertStringContainsString("->whereNotIn('email', self::EXCLUDED_ATTENDANCE_DETAIL_EMAILS)", $controller);
         $this->assertStringContainsString("->whereRaw('LOWER(COALESCE(workplace, \"\")) <> ?', ['rnb jakarta'])", $controller);
 

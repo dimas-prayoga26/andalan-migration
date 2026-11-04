@@ -2,14 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\Support\TelegramAttendanceNotifier;
 use App\Models\Attendance;
-use App\Models\Employee;
-use App\Models\TelegramUser;
-use App\Models\TelegramUserLog;
+use App\Models\Role;
 use App\Models\User;
+use App\Services\Attendance\AttendanceMutationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -17,102 +16,34 @@ class TelegramAttendanceNotifierTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_notifier_writes_success_log_for_clock_in(): void
+    public function test_telegram_notifier_models_and_config_are_removed(): void
     {
-        config(['services.telegram.bot_token' => 'test-bot-token']);
+        $this->assertFileDoesNotExist(app_path('Http/Controllers/Support/TelegramAttendanceNotifier.php'));
+        $this->assertFileDoesNotExist(app_path('Models/TelegramUser.php'));
+        $this->assertFileDoesNotExist(app_path('Models/TelegramUserLog.php'));
+        $this->assertNull(config('services.telegram'));
 
-        [$user, $employee] = $this->createUserEmployeeAndTelegramLink('notif_success');
-        $attendance = Attendance::query()->create([
-            'employee_id' => $employee->id,
-            'date' => now('Asia/Jakarta')->toDateString(),
-            'clock_in' => '08:00:00',
-            'status' => 'Hadir',
-        ]);
-
-        Http::fake([
-            'https://api.telegram.org/*' => Http::response([
-                'ok' => true,
-                'result' => [
-                    'message_id' => 11,
-                ],
-            ], 200),
-        ]);
-
-        app(TelegramAttendanceNotifier::class)->notifyCheckIn($user, $attendance);
-
-        $this->assertDatabaseHas('telegram_users_logs', [
-            'telegram_user_id' => $employee->telegramUser?->id,
-            'attendance_id' => $attendance->id,
-            'notification_type' => 'clock_in',
-            'is_success' => 1,
-            'http_status_code' => 200,
-            'error_message' => null,
-        ]);
-
-        $createdLog = TelegramUserLog::query()->first();
-        $this->assertNotNull($createdLog);
-        $this->assertIsArray($createdLog->response_payload);
-        $this->assertSame(true, $createdLog->response_payload['ok'] ?? null);
+        foreach (['app', 'config', 'routes', 'resources'] as $directory) {
+            foreach (File::allFiles(base_path($directory)) as $file) {
+                $this->assertStringNotContainsStringIgnoringCase('telegram', $file->getContents(), $file->getRelativePathname());
+            }
+        }
     }
 
-    public function test_notifier_writes_failure_log_for_clock_out_when_telegram_api_error(): void
+    public function test_clock_in_does_not_send_telegram_notification(): void
     {
-        config(['services.telegram.bot_token' => 'test-bot-token']);
+        Http::fake();
 
-        [$user, $employee] = $this->createUserEmployeeAndTelegramLink('notif_failure');
-        $attendance = Attendance::query()->create([
-            'employee_id' => $employee->id,
-            'date' => now('Asia/Jakarta')->toDateString(),
-            'clock_in' => '08:00:00',
-            'clock_out' => '17:00:00',
-            'status' => 'Pulang',
-        ]);
+        $user = User::factory()->activeEmployee(['view-attendance'])->create();
+        $user->assignRole(Role::query()->firstOrCreate([
+            'name' => 'staff',
+            'guard_name' => 'web',
+        ]));
 
-        Http::fake([
-            'https://api.telegram.org/*' => Http::response([
-                'ok' => false,
-                'description' => 'Bad Request: chat not found',
-            ], 400),
-        ]);
+        $result = app(AttendanceMutationService::class)->store([], '127.0.0.1', 'PHPUnit', $user, $user->id);
 
-        app(TelegramAttendanceNotifier::class)->notifyCheckOut($user, $attendance);
-
-        $createdLog = TelegramUserLog::query()->first();
-        $this->assertNotNull($createdLog);
-        $this->assertFalse((bool) $createdLog->is_success);
-        $this->assertSame(400, $createdLog->http_status_code);
-        $this->assertIsArray($createdLog->response_payload);
-        $this->assertNotNull($createdLog->error_message);
-    }
-
-    /**
-     * @return array{0: User, 1: Employee}
-     */
-    private function createUserEmployeeAndTelegramLink(string $username): array
-    {
-        $user = User::query()->create([
-            'username' => $username,
-            'email' => $username.'@example.com',
-            'password' => Hash::make('password'),
-            'is_active' => true,
-        ]);
-
-        $employee = Employee::query()->create([
-            'user_id' => $user->id,
-            'status' => 'Active',
-        ]);
-
-        TelegramUser::query()->create([
-            'employee_id' => $employee->id,
-            'chat_id' => '999111222',
-            'first_name' => 'Notif',
-            'last_name' => 'Staff',
-            'username' => $username,
-            'language_code' => 'id',
-        ]);
-
-        $employee->load('telegramUser');
-
-        return [$user, $employee];
+        $this->assertTrue($result['payload']['success'] ?? false);
+        $this->assertTrue(Attendance::query()->where('employee_id', $user->employee->id)->exists());
+        Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'api.telegram.org'));
     }
 }

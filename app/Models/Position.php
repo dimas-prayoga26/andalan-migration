@@ -3,12 +3,148 @@
 namespace App\Models;
 
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
+use Database\Factories\PositionFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Position extends Model
 {
     use GeneratesCustomSequenceUuid;
+
+    /** @use HasFactory<PositionFactory> */
+    use HasFactory;
+
+    public const KEY_ACCOUNTING_TAXATION = 'accounting_taxation';
+
+    public const KEY_ADMINISTRATOR = 'administrator';
+
+    public const KEY_ARCHITECTURE_DESIGN = 'architecture_design';
+
+    public const KEY_BRANDING_DESIGNER = 'branding_designer';
+
+    public const KEY_CHIEF_OPERATING_OFFICER = 'chief_operating_officer';
+
+    public const KEY_COMMISSIONER = 'commissioner';
+
+    public const KEY_COMMISSIONER_INDEPENDENT = 'commissioner_independent';
+
+    public const KEY_DIRECTOR = 'director';
+
+    public const KEY_DIGITAL_MARKETING = 'digital_marketing';
+
+    public const KEY_DOCUMENTATION_EVENT_EDITOR_VIDEO = 'documentation_event_editor_video';
+
+    public const KEY_DRIVER = 'driver';
+
+    public const KEY_EXECUTIVE_ASSISTANT = 'executive_assistant';
+
+    public const KEY_FINANCE_ADMINISTRATION_COORDINATOR = 'finance_administration_coordinator';
+
+    public const KEY_GRAPHIC_DESIGN = 'graphic_design';
+
+    public const KEY_INTERIOR_DESIGN = 'interior_design';
+
+    public const KEY_LEGAL_OFFICER_PARTNERSHIP = 'legal_officer_partnership';
+
+    public const KEY_OPERATIONS_COORDINATOR = 'operations_coordinator';
+
+    public const KEY_SUPER_ADMINISTRATOR = 'super_administrator';
+
+    public const KEY_SUPERVISOR = 'supervisor';
+
+    public const KEY_WEB_DEVELOPER = 'web_developer';
+
+    public const SYSTEM_KEYS_BY_NAME = [
+        'Accounting and Taxation' => self::KEY_ACCOUNTING_TAXATION,
+        'Administrator' => self::KEY_ADMINISTRATOR,
+        'Architecture Design' => self::KEY_ARCHITECTURE_DESIGN,
+        'Branding Designer' => self::KEY_BRANDING_DESIGNER,
+        'Chief Operating Officer' => self::KEY_CHIEF_OPERATING_OFFICER,
+        'Commissioner' => self::KEY_COMMISSIONER,
+        'Commissioner Independent' => self::KEY_COMMISSIONER_INDEPENDENT,
+        'Director' => self::KEY_DIRECTOR,
+        'Digital Marketing' => self::KEY_DIGITAL_MARKETING,
+        'Documentation Event and Editor Video' => self::KEY_DOCUMENTATION_EVENT_EDITOR_VIDEO,
+        'Driver' => self::KEY_DRIVER,
+        'Executive Assistant' => self::KEY_EXECUTIVE_ASSISTANT,
+        'Finance and Administration Coordinator' => self::KEY_FINANCE_ADMINISTRATION_COORDINATOR,
+        'Graphic Design' => self::KEY_GRAPHIC_DESIGN,
+        'Interior Design' => self::KEY_INTERIOR_DESIGN,
+        'Legal Officer & Partnership' => self::KEY_LEGAL_OFFICER_PARTNERSHIP,
+        'Operations Coordinator' => self::KEY_OPERATIONS_COORDINATOR,
+        'Super Administrator' => self::KEY_SUPER_ADMINISTRATOR,
+        'Supervisor' => self::KEY_SUPERVISOR,
+        'Web Developer' => self::KEY_WEB_DEVELOPER,
+    ];
+
+    public const PROTECTED_SYSTEM_KEYS = [
+        self::KEY_SUPER_ADMINISTRATOR,
+        self::KEY_ADMINISTRATOR,
+        self::KEY_DIRECTOR,
+        self::KEY_SUPERVISOR,
+    ];
+
+    public const DIRECTOR_APPROVER_SYSTEM_KEYS = [
+        self::KEY_CHIEF_OPERATING_OFFICER,
+        self::KEY_DIRECTOR,
+    ];
+
+    public const ATTENDANCE_REST_DEDUCTION_EXEMPT_SYSTEM_KEYS = [
+        self::KEY_DRIVER,
+        self::KEY_EXECUTIVE_ASSISTANT,
+    ];
+
+    public const LEVEL_ADMINISTRATOR = 'administrator';
+
+    public const LEVEL_DIRECTOR = 'director';
+
+    public const LEVEL_SUPERVISOR = 'supervisor';
+
+    public const LEVEL_CORE_STAFF = 'core_staff';
+
+    /**
+     * Staff outside day-to-day team work, e.g. weekly meetings (drivers, crew, baristas).
+     */
+    public const LEVEL_NON_CORE_STAFF = 'non_core_staff';
+
+    /**
+     * Permission levels in display order.
+     *
+     * @var array<string, string>
+     */
+    public const LEVEL_LABELS = [
+        self::LEVEL_ADMINISTRATOR => 'Administrator',
+        self::LEVEL_DIRECTOR => 'Director',
+        self::LEVEL_SUPERVISOR => 'Supervisor',
+        self::LEVEL_CORE_STAFF => 'Core Staff',
+        self::LEVEL_NON_CORE_STAFF => 'Non-Core Staff',
+    ];
+
+    /**
+     * Default level for new system positions; any other new position starts as core staff.
+     *
+     * @var array<string, array<int, string>>
+     */
+    public const LEVEL_SYSTEM_KEYS = [
+        self::LEVEL_ADMINISTRATOR => [
+            self::KEY_ADMINISTRATOR,
+        ],
+        self::LEVEL_DIRECTOR => [
+            self::KEY_DIRECTOR,
+            self::KEY_CHIEF_OPERATING_OFFICER,
+            self::KEY_COMMISSIONER,
+            self::KEY_COMMISSIONER_INDEPENDENT,
+        ],
+        self::LEVEL_SUPERVISOR => [
+            self::KEY_SUPERVISOR,
+        ],
+        self::LEVEL_NON_CORE_STAFF => [
+            self::KEY_DRIVER,
+            self::KEY_EXECUTIVE_ASSISTANT,
+        ],
+    ];
 
     protected $table = 'positions';
 
@@ -18,13 +154,61 @@ class Position extends Model
 
     public $incrementing = false;
 
+    protected $attributes = [
+        'is_protected' => false,
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_protected' => 'boolean',
+        ];
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $position): void {
             if (! is_string($position->id) || trim($position->id) === '') {
                 $position->id = static::generateCustomSequenceUuid('id');
             }
+
+            if (blank($position->level)) {
+                $position->level = static::levelForSystemKey($position->system_key);
+            }
         });
+
+        static::saving(function (self $position): void {
+            $systemKey = static::systemKeyForName((string) $position->name);
+
+            if (blank($position->system_key) && $systemKey !== null) {
+                $position->system_key = $systemKey;
+            }
+
+            if (! blank($position->system_key) && static::isProtectedSystemKey((string) $position->system_key)) {
+                $position->is_protected = true;
+            }
+        });
+    }
+
+    public static function systemKeyForName(string $name): ?string
+    {
+        return self::SYSTEM_KEYS_BY_NAME[$name] ?? null;
+    }
+
+    public static function isProtectedSystemKey(string $systemKey): bool
+    {
+        return in_array($systemKey, self::PROTECTED_SYSTEM_KEYS, true);
+    }
+
+    public static function levelForSystemKey(?string $systemKey): string
+    {
+        foreach (self::LEVEL_SYSTEM_KEYS as $level => $systemKeys) {
+            if (in_array($systemKey, $systemKeys, true)) {
+                return $level;
+            }
+        }
+
+        return self::LEVEL_CORE_STAFF;
     }
 
     public function permissions(): BelongsToMany
@@ -45,5 +229,29 @@ class Position extends Model
     {
         return $this->belongsToMany(RulesOfAttendace::class, 'attendance_rule_positions', 'position_id', 'attendance_rule_id', 'id', 'id')
             ->withTimestamps();
+    }
+
+    /**
+     * @param  string|array<int, string>  $systemKeys
+     */
+    public function scopeWhereSystemKey(Builder $query, string|array $systemKeys): Builder
+    {
+        $systemKeys = is_array($systemKeys) ? $systemKeys : [$systemKeys];
+
+        return $query->whereIn('system_key', $systemKeys);
+    }
+
+    /**
+     * @param  string|array<int, string>  $systemKeys
+     */
+    public function scopeWhereNotSystemKey(Builder $query, string|array $systemKeys): Builder
+    {
+        $systemKeys = is_array($systemKeys) ? $systemKeys : [$systemKeys];
+
+        return $query->where(function (Builder $query) use ($systemKeys): void {
+            $query
+                ->whereNull('system_key')
+                ->orWhereNotIn('system_key', $systemKeys);
+        });
     }
 }

@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\AttendanceOvertime;
 use App\Models\Employee;
 use App\Models\OvertimeLifecycleLog;
+use App\Models\Position;
 use App\Models\Project;
 use App\Models\ProjectMember;
 use App\Models\ProjectTask;
@@ -20,6 +21,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Yajra\DataTables\Facades\DataTables;
 
 class AttendanceOvertimeController extends Controller
 {
@@ -188,11 +190,11 @@ class AttendanceOvertimeController extends Controller
 
         $overtimeQuery = AttendanceOvertime::query()
             ->with([
-                'employee.user:id,username',
-                'employee.profile:id,employee_id,name',
-                'assignedBy:id,username',
+                'employee.user:id,email',
+                'employee.profile:id,employee_id,name,nickname',
+                'assignedBy:id,email', 'assignedBy.employee.profile:id,employee_id,name,nickname',
                 'assignedBy.employee:id,user_id',
-                'assignedBy.employee.profile:id,employee_id,name',
+                'assignedBy.employee.profile:id,employee_id,name,nickname',
                 'lifecycleLogs.actor',
                 'lifecycleLogs.actor.employee.profile',
                 'projectTasks' => function ($query): void {
@@ -243,11 +245,11 @@ class AttendanceOvertimeController extends Controller
 
         $overtimesQuery = AttendanceOvertime::query()
             ->with([
-                'employee.user:id,username',
-                'employee.profile:id,employee_id,name',
-                'assignedBy:id,username',
+                'employee.user:id,email',
+                'employee.profile:id,employee_id,name,nickname',
+                'assignedBy:id,email', 'assignedBy.employee.profile:id,employee_id,name,nickname',
                 'assignedBy.employee:id,user_id',
-                'assignedBy.employee.profile:id,employee_id,name',
+                'assignedBy.employee.profile:id,employee_id,name,nickname',
             ])
             ->latest('id')
             ->select([
@@ -269,7 +271,7 @@ class AttendanceOvertimeController extends Controller
             });
         } elseif (! $isAdminUser) {
             if (! is_string($authenticatedEmployeeId) || trim($authenticatedEmployeeId) === '') {
-                return response()->json(['data' => []]);
+                return DataTables::collection(collect())->toJson();
             }
             $overtimesQuery
                 ->where('employee_id', $authenticatedEmployeeId)
@@ -308,9 +310,7 @@ class AttendanceOvertimeController extends Controller
             ];
         })->values();
 
-        return response()->json([
-            'data' => $tableRows,
-        ]);
+        return DataTables::collection($tableRows)->toJson();
     }
 
     /**
@@ -335,12 +335,12 @@ class AttendanceOvertimeController extends Controller
     {
         $overtimesQuery = AttendanceOvertime::query()
             ->with([
-                'employee.user:id,username',
-                'employee.profile:id,employee_id,name',
+                'employee.user:id,email',
+                'employee.profile:id,employee_id,name,nickname',
                 'employee.deployment:id,employee_id,current_company_id',
-                'assignedBy:id,username',
+                'assignedBy:id,email', 'assignedBy.employee.profile:id,employee_id,name,nickname',
                 'assignedBy.employee:id,user_id',
-                'assignedBy.employee.profile:id,employee_id,name',
+                'assignedBy.employee.profile:id,employee_id,name,nickname',
                 'lifecycleLogs:id,overtime_id,event_key,status',
                 'projectTasks' => function ($query): void {
                     $query
@@ -960,7 +960,7 @@ class AttendanceOvertimeController extends Controller
     private function resolveOvertimeDirectorApprover(AttendanceOvertime $overtime): ?User
     {
         $preferredDirector = User::query()
-            ->select(['id', 'username', 'email'])
+            ->select(['id', 'email'])
             ->with('employee.profile')
             ->whereRaw('LOWER(email) = ?', ['lukman@rnbmanagement.com'])
             ->first();
@@ -969,34 +969,19 @@ class AttendanceOvertimeController extends Controller
             return $preferredDirector;
         }
 
-        $directorNames = [
-            'Board of Directors',
-            'board of directors',
-            'board_of_directors',
-            'board_of_director',
-            'board_of_rector',
-            'board of directur',
-            'board_of_directur',
-            'Director',
-            'director',
-        ];
-
         return User::query()
-            ->select(['id', 'username', 'email'])
+            ->select(['id', 'email'])
             ->with('employee.profile')
-            ->where(function (Builder $query) use ($directorNames): void {
+            ->where(function (Builder $query): void {
                 $query
-                    ->whereHas('roles', function (Builder $query) use ($directorNames): void {
-                        $query->whereIn('name', $directorNames);
+                    ->whereHas('employee.deployment.position', function (Builder $query): void {
+                        $query->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS);
                     })
-                    ->orWhereHas('employee.deployment.position', function (Builder $query) use ($directorNames): void {
-                        $query->whereIn('name', $directorNames);
-                    })
-                    ->orWhereHas('employee.deployment.positions', function (Builder $query) use ($directorNames): void {
-                        $query->whereIn('positions.name', $directorNames);
+                    ->orWhereHas('employee.deployment.positions', function (Builder $query): void {
+                        $query->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS);
                     });
             })
-            ->orderBy('username')
+            ->orderBy('email')
             ->first();
     }
 
@@ -1162,9 +1147,9 @@ class AttendanceOvertimeController extends Controller
         }
 
         $attendanceOvertime->loadMissing([
-            'employee.user:id,username',
-            'employee.profile:id,employee_id,name',
-            'assignedBy:id,username',
+            'employee.user:id,email',
+            'employee.profile:id,employee_id,name,nickname',
+            'assignedBy:id,email', 'assignedBy.employee.profile:id,employee_id,name,nickname',
         ]);
         $overtimeDate = $attendanceOvertime->overtime_date instanceof Carbon
             ? $attendanceOvertime->overtime_date
@@ -1707,10 +1692,7 @@ class AttendanceOvertimeController extends Controller
             return false;
         }
 
-        $normalizedRoleNames = $user->getRoleNames()
-            ->map(static fn (string $roleName): string => strtolower(trim($roleName)));
-
-        return $normalizedRoleNames->contains('superuser');
+        return $user->isSuperAdministrator();
     }
 
     private function isStaffUser(?User $user): bool
@@ -1731,10 +1713,7 @@ class AttendanceOvertimeController extends Controller
             return false;
         }
 
-        $normalizedRoleNames = $user->getRoleNames()
-            ->map(static fn (string $roleName): string => strtolower(trim($roleName)));
-
-        return $normalizedRoleNames->contains('superuser');
+        return $user->isSuperAdministrator();
     }
 
     private function canAccessOvertime(?User $authenticatedUser, AttendanceOvertime $attendanceOvertime): bool
@@ -2133,7 +2112,7 @@ class AttendanceOvertimeController extends Controller
         }
 
         return ProjectTask::query()
-            ->with(['project:id,name', 'assignedBy:id,username'])
+            ->with(['project:id,name', 'assignedBy:id,email', 'assignedBy.employee.profile:id,employee_id,name,nickname'])
             ->where('employee_id', $employeeId)
             ->where('overtime_id', (string) $overtime->id)
             ->orderBy('due_date')
@@ -2195,7 +2174,7 @@ class AttendanceOvertimeController extends Controller
             'task_category' => $projectId !== '' ? 'project' : 'daily',
             'task_category_label' => $projectId !== '' ? 'Project Task' : 'Daily Task',
             'project_name' => $projectId !== '' ? trim((string) ($projectTask->project?->name ?? '')) : 'Daily Task',
-            'assigned_by' => trim((string) ($projectTask->assignedBy?->username ?? 'self')) ?: 'self',
+            'assigned_by' => trim((string) ($projectTask->assignedBy?->shortName() ?? 'self')) ?: 'self',
             'project_id' => $projectId,
             'checked' => $isFinished,
             'update_url' => route('attendance.overtimes.tasks.update', [
@@ -2458,10 +2437,10 @@ class AttendanceOvertimeController extends Controller
 
         $staffUsersQuery = User::query()
             ->role('staff')
-            ->select(['id', 'username'])
+            ->select(['id', 'email'])
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
+                'employee.profile:id,employee_id,name,nickname',
                 'employee.deployment:id,employee_id,current_company_id',
             ])
             ->whereHas('employee');
@@ -2500,10 +2479,10 @@ class AttendanceOvertimeController extends Controller
         $userCompanyId = $authenticatedUser?->employee?->deployment?->current_company_id;
 
         $picUsersQuery = User::query()
-            ->select(['id', 'username'])
+            ->select(['id', 'email'])
             ->with([
                 'employee:id,user_id',
-                'employee.profile:id,employee_id,name',
+                'employee.profile:id,employee_id,name,nickname',
                 'employee.deployment:id,employee_id,current_company_id',
             ])
             ->whereHas('employee');
@@ -2542,9 +2521,9 @@ class AttendanceOvertimeController extends Controller
             return $profileName;
         }
 
-        $username = is_string($employee->user?->username) ? trim($employee->user->username) : '';
-        if ($username !== '') {
-            return $username;
+        $nickname = is_string($employee->profile?->nickname) ? trim($employee->profile->nickname) : '';
+        if ($nickname !== '') {
+            return $nickname;
         }
 
         return '-';
@@ -2563,9 +2542,9 @@ class AttendanceOvertimeController extends Controller
             return $profileName;
         }
 
-        $username = is_string($user->username) ? trim($user->username) : '';
-        if ($username !== '') {
-            return $username;
+        $nickname = is_string($user->employee?->profile?->nickname) ? trim($user->employee->profile->nickname) : '';
+        if ($nickname !== '') {
+            return $nickname;
         }
 
         return '-';

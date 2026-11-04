@@ -33,7 +33,7 @@ trait GeneratesCustomSequenceUuid
                 $rawSequenceIdentifier = $datePrefix.str_pad((string) $nextSequence, $sequencePartLength, '0', STR_PAD_LEFT);
                 $uuidIdentifier = static::obfuscateSequenceToUuid($rawSequenceIdentifier, $columnName);
 
-                $isUsed = $model->newQuery()
+                $isUsed = $model->newQueryWithoutScopes()
                     ->where($columnName, $uuidIdentifier)
                     ->exists();
 

@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\LeaveRequest;
 use App\Models\LeaveRequestHistory;
 use App\Models\LeaveType;
+use App\Models\Position;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -41,7 +42,7 @@ class LeaveRequestHistorySeeder extends Seeder
             }
 
             $staffUser = User::query()
-                ->where('username', 'staff31')
+                ->where('email', 'staff31@gmail.com')
                 ->whereHas('roles', function ($query): void {
                     $query->whereRaw('LOWER(name) = ?', ['staff']);
                 })
@@ -49,7 +50,7 @@ class LeaveRequestHistorySeeder extends Seeder
                     $query->where('current_company_id', $rnbCompanyId);
                 })
                 ->with(['employee:id,user_id'])
-                ->orderBy('username')
+                ->orderBy('email')
                 ->first();
 
             $staffEmployeeId = is_string($staffUser?->employee?->id) ? trim($staffUser->employee->id) : '';
@@ -58,21 +59,30 @@ class LeaveRequestHistorySeeder extends Seeder
                 throw new RuntimeException('User Staff pada company RNB tidak ditemukan.');
             }
 
-            $boardUsers = User::query()
+            $directorUsers = User::query()
                 ->whereHas('roles', function ($query): void {
-                    $query->whereRaw('LOWER(name) = ?', ['board of directors']);
+                    $query->whereRaw('LOWER(name) = ?', ['staff']);
                 })
                 ->whereHas('employee.deployment', function ($query) use ($rnbCompanyId): void {
                     $query->where('current_company_id', $rnbCompanyId);
                 })
-                ->orderBy('username')
-                ->get(['id', 'username']);
+                ->where(function ($query): void {
+                    $query
+                        ->whereHas('employee.deployment.position', function ($positionQuery): void {
+                            $positionQuery->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS);
+                        })
+                        ->orWhereHas('employee.deployment.positions', function ($positionQuery): void {
+                            $positionQuery->whereSystemKey(Position::DIRECTOR_APPROVER_SYSTEM_KEYS);
+                        });
+                })
+                ->orderBy('email')
+                ->get(['id', 'email']);
 
-            if ($boardUsers->isEmpty()) {
-                throw new RuntimeException('User role Board of Directors pada company RNB tidak ditemukan.');
+            if ($directorUsers->isEmpty()) {
+                throw new RuntimeException('User director pada company RNB tidak ditemukan.');
             }
 
-            $supervisorActorUserId = (string) $boardUsers->first()->id;
+            $supervisorActorUserId = (string) $directorUsers->first()->id;
 
             $leaveTypeIdsByCode = LeaveType::query()
                 ->whereIn(DB::raw('LOWER(code)'), ['annual', 'sick', 'special', 'unpaid'])

@@ -18,6 +18,15 @@ class EmployeeProfile extends Model
 
     public $incrementing = false;
 
+    protected function casts(): array
+    {
+        return [
+            'languages' => 'array',
+            'hard_skills' => 'array',
+            'soft_skills' => 'array',
+        ];
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $employeeProfile): void {

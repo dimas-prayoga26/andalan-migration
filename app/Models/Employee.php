@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use App\Models\Concerns\GeneratesCustomSequenceUuid;
+use Database\Factories\EmployeeFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -14,12 +17,11 @@ use Illuminate\Support\Collection;
 class Employee extends Model
 {
     use GeneratesCustomSequenceUuid;
-    use SoftDeletes;
 
-    private const ATTENDANCE_REST_DEDUCTION_EXEMPT_POSITION_NAMES = [
-        'Driver',
-        'Executive Assistant',
-    ];
+    /** @use HasFactory<EmployeeFactory> */
+    use HasFactory;
+
+    use SoftDeletes;
 
     protected $table = 'employees';
 
@@ -31,12 +33,14 @@ class Employee extends Model
 
     protected $attributes = [
         'is_event_project_admin' => false,
+        'is_core_staff' => false,
     ];
 
     protected function casts(): array
     {
         return [
             'is_event_project_admin' => 'boolean',
+            'is_core_staff' => 'boolean',
         ];
     }
 
@@ -81,6 +85,31 @@ class Employee extends Model
         return $this->hasMany(EmployeeAddress::class, 'employee_id', 'id');
     }
 
+    public function licenses(): HasMany
+    {
+        return $this->hasMany(EmployeeLicense::class, 'employee_id', 'id');
+    }
+
+    public function educations(): HasMany
+    {
+        return $this->hasMany(EmployeeEducation::class, 'employee_id', 'id');
+    }
+
+    public function certifications(): HasMany
+    {
+        return $this->hasMany(EmployeeCertification::class, 'employee_id', 'id');
+    }
+
+    public function workExperiences(): HasMany
+    {
+        return $this->hasMany(EmployeeWorkExperience::class, 'employee_id', 'id');
+    }
+
+    public function references(): HasMany
+    {
+        return $this->hasMany(EmployeeReference::class, 'employee_id', 'id');
+    }
+
     public function latestAddress(): HasOne
     {
         return $this->hasOne(EmployeeAddress::class, 'employee_id', 'id')->latestOfMany('created_at');
@@ -113,14 +142,47 @@ class Employee extends Model
         return $this->hasMany(AttendanceOvertime::class, 'employee_id', 'id');
     }
 
-    public function telegramUser(): HasOne
+    public function bankAccounts(): HasMany
     {
-        return $this->hasOne(TelegramUser::class, 'employee_id', 'id');
+        return $this->hasMany(EmployeeBankAccount::class, 'employee_id', 'id');
+    }
+
+    public function families(): HasMany
+    {
+        return $this->hasMany(EmployeeFamily::class, 'employee_id', 'id');
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(EmployeeDocument::class, 'employee_id', 'id');
+    }
+
+    public function medicalCheckups(): HasMany
+    {
+        return $this->hasMany(EmployeeMedicalCheckup::class, 'employee_id', 'id');
+    }
+
+    public function compensation(): HasOne
+    {
+        return $this->hasOne(EmployeeCompensation::class, 'employee_id', 'id');
+    }
+
+    /**
+     * Company assets currently held by this employee.
+     */
+    public function assets(): HasMany
+    {
+        return $this->hasMany(CompanyAsset::class, 'employee_id', 'id');
     }
 
     public function hasPositionName(string $positionName): bool
     {
         return $this->hasAnyPositionName([$positionName]);
+    }
+
+    public function hasPositionSystemKey(string $systemKey): bool
+    {
+        return $this->hasAnyPositionSystemKey([$systemKey]);
     }
 
     /**
@@ -142,9 +204,9 @@ class Employee extends Model
         }
 
         if (! $this->relationLoaded('deployment')) {
-            $this->loadMissing('deployment.position', 'deployment.positions');
+            $this->loadMissing('deployment.position:id,name,system_key', 'deployment.positions:id,name,system_key');
         } elseif ($this->deployment !== null) {
-            $this->deployment->loadMissing('position', 'positions');
+            $this->deployment->loadMissing('position:id,name,system_key', 'positions:id,name,system_key');
         }
 
         $positionNames = new Collection;
@@ -164,13 +226,62 @@ class Employee extends Model
             ->contains(fn (mixed $name): bool => $normalizedPositionNames->contains(strtolower(trim((string) $name))));
     }
 
+    /**
+     * @param  iterable<string>  $systemKeys
+     */
+    public function hasAnyPositionSystemKey(iterable $systemKeys): bool
+    {
+        $normalizedSystemKeys = (new Collection($systemKeys))
+            ->map(fn (mixed $systemKey): string => strtolower(trim((string) $systemKey)))
+            ->filter()
+            ->values();
+
+        if ($normalizedSystemKeys->isEmpty()) {
+            return false;
+        }
+
+        if (! $this->exists && ! $this->relationLoaded('deployment')) {
+            return false;
+        }
+
+        if (! $this->relationLoaded('deployment')) {
+            $this->loadMissing('deployment.position:id,name,system_key', 'deployment.positions:id,name,system_key');
+        } elseif ($this->deployment !== null) {
+            $this->deployment->loadMissing('position:id,name,system_key', 'positions:id,name,system_key');
+        }
+
+        $positionSystemKeys = new Collection;
+
+        if ($this->deployment?->position !== null) {
+            $positionSystemKeys->push((string) $this->deployment->position->system_key);
+        }
+
+        if ($this->deployment?->positions !== null) {
+            $positionSystemKeys = $positionSystemKeys->merge(
+                $this->deployment->positions->pluck('system_key')
+            );
+        }
+
+        return $positionSystemKeys
+            ->filter()
+            ->contains(fn (mixed $systemKey): bool => $normalizedSystemKeys->contains(strtolower(trim((string) $systemKey))));
+    }
+
     public function isExemptFromAttendanceRestDeduction(): bool
     {
-        return $this->hasAnyPositionName(self::ATTENDANCE_REST_DEDUCTION_EXEMPT_POSITION_NAMES);
+        return $this->hasAnyPositionSystemKey(Position::ATTENDANCE_REST_DEDUCTION_EXEMPT_SYSTEM_KEYS);
     }
 
     public function isEligibleForTwelveHourAutoOvertime(): bool
     {
-        return $this->hasAnyPositionName(self::ATTENDANCE_REST_DEDUCTION_EXEMPT_POSITION_NAMES);
+        return $this->hasAnyPositionSystemKey(Position::ATTENDANCE_REST_DEDUCTION_EXEMPT_SYSTEM_KEYS);
+    }
+
+    public function scopeActiveForMailManagement(Builder $query): Builder
+    {
+        return $query
+            ->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active'])
+            ->whereHas('user', fn (Builder $query): Builder => $query->where('is_active', true))
+            ->whereHas('deployment', fn (Builder $query): Builder => $query->whereRaw('LOWER(COALESCE(status, "")) = ?', ['active']));
     }
 }

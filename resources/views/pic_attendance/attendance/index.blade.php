@@ -167,18 +167,10 @@
 						<tr>
 							<td class="fw-semibold">{{ $row['name'] }}</td>
 							<td>
-								@if ($row['clock_in_badge'] !== '')
-									<span class="badge badge-sm badge-{{ $row['clock_in_badge'] }} light fw-bold">{{ $row['clock_in'] }}</span>
-								@else
-									<span class="fw-bold">{{ $row['clock_in'] }}</span>
-								@endif
+								<x-attendance-clock-time :value="$row['clock_in']" :badge="$row['clock_in_badge']" />
 							</td>
 							<td>
-								@if ($row['clock_out_badge'] !== '')
-									<span class="badge badge-sm badge-{{ $row['clock_out_badge'] }} light fw-bold">{{ $row['clock_out'] }}</span>
-								@else
-									<span class="fw-bold">{{ $row['clock_out'] }}</span>
-								@endif
+								<x-attendance-clock-time :value="$row['clock_out']" :badge="$row['clock_out_badge']" />
 							</td>
 							<td data-capture-tone="{{ $row['attachment_badge'] }}">{{ $row['note'] }}</td>
 							<td>{{ $row['working_hours'] }}</td>
@@ -306,7 +298,7 @@
                                     <span>Clock In</span>
                                 </div>
                                 <div class="col-8">
-                                    <span id="attendanceLogClockIn" class="fw-semibold">-</span>
+                                    <span id="attendanceLogClockIn" class="fw-semibold" translate="no">-</span>
                                 </div>
                             </div>
                             <div class="row py-2">
@@ -314,7 +306,7 @@
                                     <span>Clock Out</span>
                                 </div>
                                 <div class="col-8">
-                                    <span id="attendanceLogClockOut" class="text-gray fw-semibold">-</span>
+                                    <span id="attendanceLogClockOut" class="text-gray fw-semibold" translate="no">-</span>
                                 </div>
                             </div>
                             <div class="row py-2">

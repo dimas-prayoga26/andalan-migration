@@ -23,21 +23,22 @@ class AppNotificationController extends Controller
             403,
         );
 
-        if ($appNotification->read_at === null) {
+        $meeting = $appNotification->type === 'hr_meeting_scheduled'
+            ? $this->meetingFromNotificationUrl($appNotification->url)
+            : null;
+        $isMeetingNotYetJoinable = $meeting instanceof HrMeeting && ! $meeting->isJoinable();
+
+        if ($appNotification->read_at === null && ! $isMeetingNotYetJoinable) {
             $appNotification->forceFill(['read_at' => now()])->save();
         }
 
-        return redirect()->to($this->notificationTargetUrl($appNotification));
+        return redirect()->to($this->notificationTargetUrl($appNotification, $meeting));
     }
 
-    private function notificationTargetUrl(AppNotification $notification): string
+    private function notificationTargetUrl(AppNotification $notification, ?HrMeeting $meeting): string
     {
-        if ($notification->type === 'hr_meeting_scheduled') {
-            $meeting = $this->meetingFromNotificationUrl($notification->url);
-
-            if ($meeting instanceof HrMeeting) {
-                return route('zoom-meeting.join', $meeting);
-            }
+        if ($meeting instanceof HrMeeting) {
+            return route('zoom-meeting.join', $meeting);
         }
 
         return $notification->url ?: route('dashboard');

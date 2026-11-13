@@ -151,7 +151,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @return array{dashboardIncomingMeeting:array{id:string,notification_id:string,title:string,time_label:string,join_url:string}|null}
+     * @return array{dashboardIncomingMeeting:array{id:string,notification_id:string,title:string,time_label:string,join_url:string,can_join:bool,join_opens_in_seconds:int,join_opens_at_label:string}|null}
      */
     private function dashboardIncomingMeetingData(?User $authenticatedUser): array
     {
@@ -180,15 +180,12 @@ class DashboardController extends Controller
             ->select(['id', 'title', 'meeting_date', 'meeting_time', 'meeting_link', 'status'])
             ->whereIn('id', $meetingNotifications->keys()->all())
             ->where('status', 'scheduled')
-            ->where(function (Builder $query) use ($now): void {
-                $query
-                    ->whereDate('meeting_date', '>', $now->toDateString())
-                    ->orWhere(function (Builder $todayQuery) use ($now): void {
-                        $todayQuery
-                            ->whereDate('meeting_date', $now->toDateString())
-                            ->whereTime('meeting_time', '>=', $now->format('H:i:s'));
-                    });
-            })->whereHas('participants', function (Builder $participantQuery) use ($employee): void {
+            ->whereDoesntHave('participants', function (Builder $joinedParticipantQuery) use ($employee): void {
+                $joinedParticipantQuery
+                    ->where('employee_id', $employee->id)
+                    ->where('attendance_status', 'joined');
+            })
+            ->whereHas('participants', function (Builder $participantQuery) use ($employee): void {
                 $participantQuery
                     ->where('employee_id', $employee->id)
                     ->orWhere(function (Builder $allStaffQuery): void {
@@ -224,8 +221,11 @@ class DashboardController extends Controller
                 'id' => (string) $meeting->id,
                 'notification_id' => (string) $notification->id,
                 'title' => trim((string) $meeting->title),
-                'time_label' => $this->incomingMeetingTimeLabel($this->incomingMeetingDateTime($meeting), $now),
+                'time_label' => $this->incomingMeetingTimeLabel($meeting->startsAt(), $now),
                 'join_url' => route('notifications.open', $notification),
+                'can_join' => $meeting->isJoinable($now),
+                'join_opens_in_seconds' => $meeting->secondsUntilJoinable($now),
+                'join_opens_at_label' => $meeting->startsAt()->format('H:i').' WIB',
             ],
         ];
     }
@@ -282,23 +282,17 @@ class DashboardController extends Controller
         return null;
     }
 
-    private function incomingMeetingDateTime(HrMeeting $meeting): CarbonImmutable
-    {
-        $meetingDate = $meeting->meeting_date instanceof \DateTimeInterface
-            ? $meeting->meeting_date->format('Y-m-d')
-            : (string) $meeting->meeting_date;
-        $meetingTime = trim((string) $meeting->meeting_time);
-
-        if (preg_match('/^\d{2}:\d{2}$/', $meetingTime)) {
-            $meetingTime .= ':00';
-        }
-
-        return CarbonImmutable::parse(trim($meetingDate.' '.$meetingTime), 'Asia/Jakarta');
-    }
-
     private function incomingMeetingTimeLabel(CarbonImmutable $meetingAt, CarbonImmutable $now): string
     {
-        $minutesUntilMeeting = max(0, (int) $now->diffInMinutes($meetingAt, false));
+        $minutesUntilMeeting = (int) $now->diffInMinutes($meetingAt, false);
+
+        if ($minutesUntilMeeting < 0) {
+            $startedAtLabel = $meetingAt->isSameDay($now)
+                ? $meetingAt->format('H:i')
+                : $meetingAt->format('d M Y, H:i');
+
+            return 'Started '.$startedAtLabel.' WIB';
+        }
 
         if ($minutesUntilMeeting === 0) {
             return 'Now';

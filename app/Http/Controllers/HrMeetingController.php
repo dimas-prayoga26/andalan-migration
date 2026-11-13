@@ -95,6 +95,22 @@ class HrMeetingController extends Controller
             abort(403);
         }
 
+        if (! $hrMeeting->isJoinable()) {
+            $notYetJoinableMessage = 'Meeting belum dimulai. Join meeting tersedia mulai '
+                .$hrMeeting->startsAt()->format('d M Y, H:i').' WIB.';
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $notYetJoinableMessage,
+                    'join_opens_in_seconds' => $hrMeeting->secondsUntilJoinable(),
+                ], 422);
+            }
+
+            return redirect()
+                ->route('zoom-meeting.index')
+                ->with('error', $notYetJoinableMessage);
+        }
+
         $participant = $hrMeeting->participants()
             ->firstOrNew([
                 'employee_id' => $employee->id,
@@ -110,6 +126,8 @@ class HrMeetingController extends Controller
         }
 
         $participant->save();
+
+        $this->markScheduledMeetingNotificationsAsRead($hrMeeting, $employee);
 
         if ($request->expectsJson()) {
             $joinedCount = $hrMeeting->participants()
@@ -1083,6 +1101,9 @@ class HrMeetingController extends Controller
             'meeting_link' => $meeting->meeting_link,
             'join_url' => route('zoom-meeting.join', $meeting),
             'details_url' => route('zoom-meeting.details', $meeting),
+            'can_join' => $meeting->isJoinable(),
+            'join_opens_in_seconds' => $meeting->secondsUntilJoinable(),
+            'join_opens_at_label' => $meeting->startsAt()->format('H:i').' WIB',
         ];
     }
 
@@ -1149,5 +1170,26 @@ class HrMeetingController extends Controller
         return $positionSystemKeys
             ->filter()
             ->contains(Position::KEY_SUPERVISOR);
+    }
+
+    /**
+     * Mark the staff's scheduled-meeting notifications as read once they join, so the dashboard banner disappears.
+     */
+    private function markScheduledMeetingNotificationsAsRead(HrMeeting $meeting, Employee $employee): void
+    {
+        $userId = auth()->id();
+
+        AppNotification::query()
+            ->where('type', 'hr_meeting_scheduled')
+            ->whereNull('read_at')
+            ->where('url', 'like', '%'.$meeting->id.'%')
+            ->where(function ($query) use ($employee, $userId): void {
+                $query->where('employee_id', $employee->id);
+
+                if ($userId !== null) {
+                    $query->orWhere('user_id', $userId);
+                }
+            })
+            ->update(['read_at' => now()]);
     }
 }

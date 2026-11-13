@@ -66,6 +66,17 @@
             color: var(--bs-primary);
             font-weight: 600;
         }
+
+        .dashboard-incoming-meeting__meta a.is-disabled {
+            color: #8a94a6;
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+
+        .dashboard-incoming-meeting__join-hint {
+            color: #6e7a8a;
+            font-size: 13px;
+        }
     </style>
 @endsection
 
@@ -115,7 +126,12 @@
                                 </div>
                                 <div class="dashboard-incoming-meeting__meta">
                                     Time: {{ $dashboardIncomingMeeting['time_label'] }} | Link:
-                                    <a href="{{ $dashboardIncomingMeeting['join_url'] }}" target="_blank" rel="noopener noreferrer" data-dashboard-incoming-meeting-link>Join Zoom Meeting</a>
+                                    @if ($dashboardIncomingMeeting['can_join'])
+                                        <a href="{{ $dashboardIncomingMeeting['join_url'] }}" target="_blank" rel="noopener noreferrer" data-dashboard-incoming-meeting-link>Join Zoom Meeting</a>
+                                    @else
+                                        <a role="link" aria-disabled="true" class="is-disabled" target="_blank" rel="noopener noreferrer" title="Join meeting tersedia mulai {{ $dashboardIncomingMeeting['join_opens_at_label'] }}" data-dashboard-incoming-meeting-link data-join-url="{{ $dashboardIncomingMeeting['join_url'] }}" data-join-opens-in-seconds="{{ $dashboardIncomingMeeting['join_opens_in_seconds'] }}">Join Zoom Meeting</a>
+                                        <span class="dashboard-incoming-meeting__join-hint" data-dashboard-incoming-meeting-join-hint>(available at {{ $dashboardIncomingMeeting['join_opens_at_label'] }})</span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -540,6 +556,37 @@
         }
     @endphp
     <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.min.js') }}?v={{ $sweetAlertJsVersion }}"></script>
+    <script>
+        (function () {
+            var lockedMeetingLink = document.querySelector('[data-dashboard-incoming-meeting-link][aria-disabled="true"]');
+
+            if (!lockedMeetingLink) {
+                return;
+            }
+
+            var joinOpensInSeconds = parseInt(lockedMeetingLink.getAttribute('data-join-opens-in-seconds') || '0', 10);
+
+            function unlockMeetingLink() {
+                var joinHint = document.querySelector('[data-dashboard-incoming-meeting-join-hint]');
+
+                lockedMeetingLink.setAttribute('href', lockedMeetingLink.getAttribute('data-join-url') || '#');
+                lockedMeetingLink.removeAttribute('aria-disabled');
+                lockedMeetingLink.removeAttribute('role');
+                lockedMeetingLink.removeAttribute('title');
+                lockedMeetingLink.classList.remove('is-disabled');
+
+                if (joinHint) {
+                    joinHint.remove();
+                }
+            }
+
+            if (!Number.isFinite(joinOpensInSeconds) || joinOpensInSeconds > 86400) {
+                return;
+            }
+
+            setTimeout(unlockMeetingLink, Math.max(0, joinOpensInSeconds) * 1000);
+        })();
+    </script>
     <script>
         (function () {
             if (typeof window.jQuery === 'undefined') {

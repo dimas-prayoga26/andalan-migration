@@ -80,12 +80,16 @@ class HeaderProfileComposer
             ->get();
 
         $scheduledMeetingIds = $this->scheduledMeetingNotificationIds($notifications);
+        $meetingJoinOpensInSeconds = $this->meetingJoinOpensInSeconds($scheduledMeetingIds);
 
         return $notifications
             ->filter(fn (AppNotification $notification): bool => $this->notificationStillVisible($notification, $scheduledMeetingIds))
-            ->map(function (AppNotification $notification): AppNotification {
+            ->map(function (AppNotification $notification) use ($meetingJoinOpensInSeconds): AppNotification {
                 if ($notification->type === 'hr_meeting_scheduled') {
-                    $notification->setAttribute('meeting_id', $this->meetingIdFromNotificationUrl($notification->url));
+                    $meetingId = $this->meetingIdFromNotificationUrl($notification->url);
+
+                    $notification->setAttribute('meeting_id', $meetingId);
+                    $notification->setAttribute('meeting_join_opens_in_seconds', (int) $meetingJoinOpensInSeconds->get((string) $meetingId, 0));
                 }
 
                 return $notification;
@@ -116,6 +120,25 @@ class HeaderProfileComposer
             ->pluck('id')
             ->map(fn (mixed $meetingId): string => (string) $meetingId)
             ->values();
+    }
+
+    /**
+     * @param  Collection<int, string>  $scheduledMeetingIds
+     * @return Collection<string, int>
+     */
+    private function meetingJoinOpensInSeconds(Collection $scheduledMeetingIds): Collection
+    {
+        if ($scheduledMeetingIds->isEmpty()) {
+            return collect();
+        }
+
+        return HrMeeting::query()
+            ->select(['id', 'meeting_date', 'meeting_time'])
+            ->whereIn('id', $scheduledMeetingIds->all())
+            ->get()
+            ->mapWithKeys(fn (HrMeeting $meeting): array => [
+                (string) $meeting->id => $meeting->secondsUntilJoinable(),
+            ]);
     }
 
     /**

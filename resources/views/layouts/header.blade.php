@@ -54,7 +54,7 @@
                                  <div class="dropdown-menu dropdown-menu-end py-0">
 									<div class="dz-scroll p-2" style="height: 380px;">
 										@forelse(($headerNotifications ?? collect()) as $notification)
-											<a href="{{ route('notifications.open', $notification) }}" target="_blank" rel="noopener noreferrer" class="d-flex align-items-center p-2 bg-action-light rounded mb-1 text-decoration-none" data-header-notification-item data-header-notification-meeting-id="{{ $notification->meeting_id ?? '' }}">
+											<a href="{{ route('notifications.open', $notification) }}" target="_blank" rel="noopener noreferrer" class="d-flex align-items-center p-2 bg-action-light rounded mb-1 text-decoration-none" data-header-notification-item data-header-notification-meeting-id="{{ $notification->meeting_id ?? '' }}" data-header-notification-join-opens-in-seconds="{{ (int) ($notification->meeting_join_opens_in_seconds ?? 0) }}">
 												<div class="d-inline-block">
 													<div class="avatar avatar-sm avatar-primary rounded-circle"><i class="fa fa-video-camera"></i></div>
 												</div>
@@ -135,6 +135,8 @@
         </header>
         <!-- End - Header -->
         <script>
+            var headerNotificationsLoadedAt = Date.now();
+
             document.addEventListener('click', function (event) {
                 function decrementNotificationCount() {
                     var notificationCount = document.querySelector('[data-header-notification-count]');
@@ -162,6 +164,11 @@
 
                 var incomingMeetingLink = event.target.closest('[data-dashboard-incoming-meeting-link]');
 
+                if (incomingMeetingLink && incomingMeetingLink.getAttribute('aria-disabled') === 'true') {
+                    event.preventDefault();
+                    return;
+                }
+
                 if (incomingMeetingLink) {
                     var incomingMeetingBanner = incomingMeetingLink.closest('[data-dashboard-incoming-meeting-id]');
 
@@ -183,6 +190,14 @@
                 var notificationItem = event.target.closest('[data-header-notification-item]');
 
                 if (!notificationItem) {
+                    return;
+                }
+
+                var joinOpensInSeconds = parseInt(notificationItem.getAttribute('data-header-notification-join-opens-in-seconds') || '0', 10);
+
+                if (joinOpensInSeconds > 0 && Date.now() < headerNotificationsLoadedAt + (joinOpensInSeconds * 1000)) {
+                    event.preventDefault();
+                    alert('Meeting belum dimulai. Join meeting baru bisa dilakukan saat jam meeting sudah tiba.');
                     return;
                 }
 

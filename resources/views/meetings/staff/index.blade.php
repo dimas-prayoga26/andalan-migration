@@ -36,6 +36,10 @@
 @endsection
 
 @section('content')
+@if (session('error'))
+    @include('partials.swal-alert', ['type' => 'error', 'message' => session('error')])
+@endif
+
 <div class="row meeting-section">
     <div class="col-lg-12">
         <div class="d-flex justify-content-between align-items-center meeting-section-header">
@@ -82,7 +86,11 @@
                 @if ($meeting['meeting_link'])
                     <form method="POST" action="{{ $meeting['join_url'] }}" target="_blank" class="m-3 mt-0 mb-2 js-join-meeting-form" data-meeting-id="{{ $meeting['id'] }}">
                         @csrf
-                        <button type="submit" class="btn light btn-primary w-100 btn-lg js-join-meeting-button">Join Now</button>
+                        @if ($meeting['can_join'])
+                            <button type="submit" class="btn light btn-primary w-100 btn-lg js-join-meeting-button">Join Now</button>
+                        @else
+                            <button type="submit" class="btn light btn-primary w-100 btn-lg js-join-meeting-button" disabled data-join-opens-in-seconds="{{ $meeting['join_opens_in_seconds'] }}" title="Join meeting tersedia mulai {{ $meeting['join_opens_at_label'] }}">Available at {{ $meeting['join_opens_at_label'] }}</button>
+                        @endif
                     </form>
                 @else
                     <button type="button" class="btn light btn-primary mt-0 m-3 mb-2 btn-lg" disabled>Join Now</button>
@@ -189,6 +197,21 @@
 
 @section('script')
 <script>
+    document.querySelectorAll('.js-join-meeting-button[data-join-opens-in-seconds]').forEach(function (lockedButton) {
+        var joinOpensInSeconds = parseInt(lockedButton.getAttribute('data-join-opens-in-seconds') || '0', 10);
+
+        if (!Number.isFinite(joinOpensInSeconds) || joinOpensInSeconds > 86400) {
+            return;
+        }
+
+        setTimeout(function () {
+            lockedButton.removeAttribute('data-join-opens-in-seconds');
+            lockedButton.removeAttribute('title');
+            lockedButton.disabled = false;
+            lockedButton.textContent = 'Join Now';
+        }, Math.max(0, joinOpensInSeconds) * 1000);
+    });
+
     document.addEventListener('submit', function (event) {
         var form = event.target;
 
@@ -199,6 +222,10 @@
         event.preventDefault();
 
         var button = form.querySelector('.js-join-meeting-button');
+
+        if (button && button.hasAttribute('data-join-opens-in-seconds')) {
+            return;
+        }
         var originalText = button ? button.textContent : '';
         var meetingWindow = window.open('', '_blank');
 
